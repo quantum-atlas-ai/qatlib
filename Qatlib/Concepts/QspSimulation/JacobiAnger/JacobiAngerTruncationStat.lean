@@ -23,7 +23,6 @@ factorial error bound for 0 ≤ τ ≤ q − 1 used in QSP Hamiltonian simulatio
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QsvtCore.PhaseExistence

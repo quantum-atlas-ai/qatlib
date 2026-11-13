@@ -30,10 +30,8 @@ The mathematical background is described in [BrassardEtAl2002].
 -/
 
 open Qatlib.Foundations.PureStateMath.Reflection
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -177,14 +175,14 @@ private theorem event_mem_sum' {α : Type} [Fintype α] (p : PMF α) (T : Finset
         = @ite ℝ≥0∞ (b ∈ T) (Classical.propDecidable (b ∈ T)) (p b) 0 := by
     intro b _
     rcases em (b ∈ T) with hb | hb
-    · rw [if_pos hb, if_pos hb, mul_one]
-    · rw [if_neg hb, if_neg hb, mul_zero]
+    · rw [ite_eq_left hb, ite_eq_left hb, mul_one]
+    · rw [ite_eq_right hb, ite_eq_right hb, mul_zero]
   have hS : ∑ b ∈ T, (@ite ℝ≥0∞ (b ∈ T) (Classical.propDecidable (b ∈ T)) (p b) 0)
       = ∑ b ∈ T, p b :=
-    Finset.sum_congr rfl fun b hb => by rw [if_pos hb]
+    Finset.sum_congr rfl fun b hb => by rw [ite_eq_left hb]
   have hsub : ∑ b ∈ T, (@ite ℝ≥0∞ (b ∈ T) (Classical.propDecidable (b ∈ T)) (p b) 0)
       = ∑ b ∈ Finset.univ, (@ite ℝ≥0∞ (b ∈ T) (Classical.propDecidable (b ∈ T)) (p b) 0) :=
-    Finset.sum_subset (Finset.subset_univ T) fun b _ hb => if_neg hb
+    Finset.sum_subset (Finset.subset_univ T) fun b _ hb => ite_eq_right hb
   rw [Finset.sum_congr rfl hEq]
   exact hsub.symm.trans hS
 

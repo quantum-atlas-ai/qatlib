@@ -28,7 +28,6 @@ the adaptive learning setting of [BenOrHassidim2007]
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 open scoped BigOperators NNReal ENNReal

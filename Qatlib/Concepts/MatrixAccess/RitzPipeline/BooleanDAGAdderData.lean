@@ -28,7 +28,6 @@ These data support reversible arithmetic in the circuit model of [NielsenChuang2
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

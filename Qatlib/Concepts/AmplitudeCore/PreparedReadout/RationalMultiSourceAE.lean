@@ -37,7 +37,6 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE
 
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 

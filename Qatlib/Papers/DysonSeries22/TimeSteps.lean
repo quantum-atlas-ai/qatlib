@@ -40,7 +40,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.DysonSeries22.ExactSource
 open Qatlib.Papers.DysonSeries22.Truncation
 open Qatlib.Foundations.TimeEvolution.DysonError
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The exact homogeneous evolution map between consecutive times `t n` and `t (n + 1)`. -/

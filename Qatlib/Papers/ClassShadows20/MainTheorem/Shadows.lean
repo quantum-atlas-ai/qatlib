@@ -28,7 +28,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.ClassShadows20.LowerBound
@@ -38,8 +37,6 @@ namespace Qatlib.Papers.ClassShadows20.MainTheorem
 open Qatlib
 open Qatlib.Papers.ClassShadows20.MainTheorem
 open Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffective
-
-set_option linter.unusedSectionVars false
 
 /-- A sampler for `m` members using `b` fair bits has acceptance mass `m / 2^b`. -/
 theorem generalSampler_acceptanceMass (m b : ℕ) (hm : 0 < m) (hb : m ≤ 2 ^ b) :

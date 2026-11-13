@@ -27,7 +27,6 @@ explicit query bound and a positive marked-amplitude lower bound for each `k`-el
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.UniqueCollision

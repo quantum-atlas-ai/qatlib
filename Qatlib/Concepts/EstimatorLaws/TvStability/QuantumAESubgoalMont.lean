@@ -25,11 +25,8 @@ discussed in [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
-
 
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
 

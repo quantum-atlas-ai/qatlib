@@ -28,8 +28,6 @@ and cardinality hypotheses. See [MagniezZur2026] for related background.
 * [Magniez and Zur, 2026][MagniezZur2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 noncomputable section

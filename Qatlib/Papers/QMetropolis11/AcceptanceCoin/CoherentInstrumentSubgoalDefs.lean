@@ -27,7 +27,6 @@ labels.
 * [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3).
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower

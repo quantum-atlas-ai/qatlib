@@ -20,6 +20,9 @@ these subproblems contains a claw. This is the finite-index formulation of Lemma
 [BuhrmanEtAl2005]; `block_bounds` and the strict-inequality lemmas justify the block and
 first-occurrence arguments.
 
+This is a logical equivalence between finite-index witness predicates. It does
+not construct search circuits or establish a query recurrence or complexity bound.
+
 ## Main statements
 
 * `block_bounds`: each index in `[1, N]` lies in its quotient-indexed block, whose index is at

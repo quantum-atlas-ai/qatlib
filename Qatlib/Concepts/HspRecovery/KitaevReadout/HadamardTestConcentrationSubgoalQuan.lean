@@ -25,8 +25,6 @@ statistical estimate used by the phase readout construction of [Kitaev1995].
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.SketchArith.SketchBuild

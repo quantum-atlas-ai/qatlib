@@ -45,7 +45,6 @@ set_option autoImplicit false
 open Qatlib
 open Qatlib
 open scoped ENNReal
-set_option warningAsError false
 
 namespace Qatlib.Concepts.ResourceBounds.AsymBounds
 noncomputable section

@@ -25,8 +25,6 @@ contradicting the contract's universally quantified expected-query bound.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 

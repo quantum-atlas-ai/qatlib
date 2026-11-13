@@ -54,7 +54,6 @@ of `advPmValue` bounded by the supremum of the actual infinite expected query co
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -73,8 +72,6 @@ open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -270,8 +267,6 @@ theorem phase_instrument_mixed_binary_value_bound
   exact adversary_value_of_multiplicative_bound input f _ _ (fun Gamma hG hz =>
     phase_instrument_mixed_binary_query_lower_bound e input f Gamma P hP decode rho hrho eps he0 he1 hc hG hz hsuccess)
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

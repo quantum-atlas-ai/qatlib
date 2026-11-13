@@ -34,7 +34,6 @@ polynomial completion. See [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.QsvtCore.PolyApprox
 
@@ -276,24 +275,24 @@ def repMul {d e : ℕ} {f g : Polynomial ℝ}
   by_cases hd : d % 2 = 0 <;> by_cases he : e % 2 = 0
   · have hs : (d + e) % 2 = 0 := by omega
     have hh : (d + e) / 2 = d / 2 + e / 2 := by omega
-    simp only [Representation, if_pos hd] at u
-    simp only [Representation, if_pos he] at v
-    simpa only [Representation, if_pos hs, hh] using evenMulEven u v
+    simp only [Representation, ite_eq_left hd] at u
+    simp only [Representation, ite_eq_left he] at v
+    simpa only [Representation, ite_eq_left hs, hh] using evenMulEven u v
   · have hs : (d + e) % 2 ≠ 0 := by omega
     have hh : (d + e) / 2 = d / 2 + e / 2 := by omega
-    simp only [Representation, if_pos hd] at u
-    simp only [Representation, if_neg he] at v
-    simpa only [Representation, if_neg hs, hh] using evenMulOdd u v
+    simp only [Representation, ite_eq_left hd] at u
+    simp only [Representation, ite_eq_right he] at v
+    simpa only [Representation, ite_eq_right hs, hh] using evenMulOdd u v
   · have hs : (d + e) % 2 ≠ 0 := by omega
     have hh : (d + e) / 2 = e / 2 + d / 2 := by omega
-    simp only [Representation, if_neg hd] at u
-    simp only [Representation, if_pos he] at v
-    simpa only [Representation, if_neg hs, hh, mul_comm] using evenMulOdd v u
+    simp only [Representation, ite_eq_right hd] at u
+    simp only [Representation, ite_eq_left he] at v
+    simpa only [Representation, ite_eq_right hs, hh, mul_comm] using evenMulOdd v u
   · have hs : (d + e) % 2 = 0 := by omega
     have hh : (d + e) / 2 = d / 2 + e / 2 + 1 := by omega
-    simp only [Representation, if_neg hd] at u
-    simp only [Representation, if_neg he] at v
-    simpa only [Representation, if_pos hs, hh] using oddMulOdd u v
+    simp only [Representation, ite_eq_right hd] at u
+    simp only [Representation, ite_eq_right he] at v
+    simpa only [Representation, ite_eq_left hs, hh] using oddMulOdd u v
 
 /-- Increase the degree index of an interval representation from `d` to `d + 1`. -/
 def repSucc {d : ℕ} {f : Polynomial ℝ} (u : Representation d f) :
@@ -301,12 +300,12 @@ def repSucc {d : ℕ} {f : Polynomial ℝ} (u : Representation d f) :
   by_cases hd : d % 2 = 0
   · have hs : (d + 1) % 2 ≠ 0 := by omega
     have hh : (d + 1) / 2 = d / 2 := by omega
-    simp only [Representation, if_pos hd] at u
-    simpa only [Representation, if_neg hs, hh] using evenPad u
+    simp only [Representation, ite_eq_left hd] at u
+    simpa only [Representation, ite_eq_right hs, hh] using evenPad u
   · have hs : (d + 1) % 2 = 0 := by omega
     have hh : (d + 1) / 2 = d / 2 + 1 := by omega
-    simp only [Representation, if_neg hd] at u
-    simpa only [Representation, if_pos hs, hh] using oddPad u
+    simp only [Representation, ite_eq_right hd] at u
+    simpa only [Representation, ite_eq_left hs, hh] using oddPad u
 
 /-- Transport a representation from degree index `d` to any larger index `e`. -/
 def repMono {d e : ℕ} {f : Polynomial ℝ} (hde : d ≤ e)

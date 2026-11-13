@@ -24,7 +24,6 @@ unitarity. Background and related constructions are discussed in [LowChuang2017]
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs

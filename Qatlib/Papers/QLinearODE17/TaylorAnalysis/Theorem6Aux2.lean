@@ -25,7 +25,6 @@ coordinatewise Taylor evolution. See [BerryEtAl2017ODE] for the paper's setting.
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

@@ -37,13 +37,11 @@ underlying quantum state and measurement formalism is described in [Watrous2018]
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
-set_option linter.unusedSectionVars false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -82,6 +80,8 @@ identity on the extra `I` register. -/
 noncomputable def purificationBody (U : Matrix (A × I) (A × I) ℂ) :
     Matrix ((A × I) × I) ((A × I) × I) ℂ :=
   evaluate (TensorGate U (1 : Matrix I I ℂ)) purificationWord
+
+omit [DecidableEq A] [Fintype I] [DecidableEq I] in
 
 /-- The reduced matrix is the sum over auxiliary indices of the outer products of the
 corresponding state slices. -/
@@ -214,6 +214,8 @@ noncomputable def outcomeBody (M : Matrix (J × I) (J × I) ℂ) (S : Finset J) 
 noncomputable def outcomeProjector (S : Finset J) : Matrix (J × I) (J × I) ℂ :=
   Matrix.diagonal (fun x => if x.1 ∈ S then 1 else 0)
 
+omit [Fintype J] [Fintype I] in
+
 /-- The outcome toggling matrix acts as the identity outside the outcome projector and as a flag
 flip on its range. -/
 theorem outcomeXor_decompose (S : Finset J) :
@@ -260,8 +262,8 @@ theorem outcomeEffect_corner (M : Matrix (J × I) (J × I) ℂ) (j0 : J) (S : Fi
       apply Finset.sum_congr rfl
       intro a ha
       by_cases h : a ∈ S
-      · simp only [if_pos h]
-      · simp only [if_neg h, Finset.sum_const_zero]
+      · simp only [ite_eq_left h]
+      · simp only [ite_eq_right h, Finset.sum_const_zero]
     _ = _ := Finset.sum_ite_mem_eq S _
 
 /-- Compressing the outcome body to the input frame gives the selected outcome effect. -/
@@ -282,6 +284,8 @@ theorem outcomeBody_corner (M : Matrix (J × I) (J × I) ℂ) (j0 : J) (S : Fins
     rw [compress_encodingFiber_eq, outcomeBody_decompose]
     simp [tensorGate_apply, PauliX, permMatrix]
   rw [hc, outcomeEffect_corner]
+
+omit [Fintype J] [DecidableEq J] [DecidableEq I] in
 
 /-- Every selected outcome effect is positive semidefinite. -/
 theorem outcomeEffect_posSemidef (M : Matrix (J × I) (J × I) ℂ) (j0 : J) (S : Finset J) :
@@ -350,9 +354,9 @@ theorem outcomeProjector_born (S : Finset J) (v : QState (J × I)) :
   apply Finset.sum_congr rfl
   intro x hx
   by_cases h : x.1 ∈ S
-  · simp only [if_pos h, one_mul]
+  · simp only [ite_eq_left h, one_mul]
     exact (hv (v x)).symm
-  · simp only [if_neg h, zero_mul, mul_zero, Complex.zero_re]
+  · simp only [ite_eq_right h, zero_mul, mul_zero, Complex.zero_re]
 
 /-- The selected outcome probability after applying `M` to the initialized outcome register
 equals the real part of the outcome effect's quadratic form on the input state. -/

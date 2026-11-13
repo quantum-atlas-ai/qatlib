@@ -27,7 +27,6 @@ estimates supply elementary rounding tools for semidefinite-programming settings
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

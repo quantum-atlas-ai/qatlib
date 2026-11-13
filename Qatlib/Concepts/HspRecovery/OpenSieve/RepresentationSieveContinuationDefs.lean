@@ -37,7 +37,6 @@ retain low parts, supports, and offsets while discarding the top-bit inputs.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.RecordExtract
 open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian

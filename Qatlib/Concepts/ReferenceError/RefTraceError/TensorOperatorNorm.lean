@@ -31,8 +31,6 @@ norm.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -42,8 +40,6 @@ namespace Qatlib.Concepts.ReferenceError.RefTraceError
 open Matrix
 
 open scoped Matrix.Norms.L2Operator Kronecker
-
-set_option linter.unusedSectionVars false
 
 section Bridging
 
@@ -81,6 +77,7 @@ section ProductState
 
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- The Euclidean norm of a tensor state is the product of the Euclidean norms of its factors. -/
 theorem tensorState_l2_norm (ψ : QState I) (φ : QState J) :
     ‖toEuclidean_fromVec (TensorState ψ φ)‖ = ‖toEuclidean_fromVec ψ‖ * ‖toEuclidean_fromVec φ‖ := by
@@ -111,6 +108,8 @@ private theorem sq_le_sq_of_nonneg {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h 
     a ^ 2 ≤ b ^ 2 :=
   sq_le_sq.mpr (by rwa [abs_of_nonneg ha, abs_of_nonneg hb])
 
+omit [Fintype O] [DecidableEq O] [DecidableEq I] [Fintype P] [DecidableEq P] [DecidableEq J] in
+
 /-- A Kronecker product acts on a tensor state by applying each matrix to its respective factor. -/
 theorem kronecker_mulVec_tensorState (A : Matrix O I ℂ) (B : Matrix P J ℂ)
     (ψ : QState I) (φ : QState J) :
@@ -122,6 +121,7 @@ theorem kronecker_mulVec_tensorState (A : Matrix O I ℂ) (B : Matrix P J ℂ)
   rw [Finset.sum_mul_sum]
   exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
+omit [DecidableEq O] [DecidableEq P] in
 /-- The squared Euclidean norm after a Kronecker-product action is bounded by the product of the
 squared operator norms and the squared input norm. -/
 theorem kronecker_mulVec_norm_sq_le (A : Matrix O I ℂ) (B : Matrix P J ℂ) (z : QState (I × J)) :
@@ -361,6 +361,14 @@ theorem l2_norm_unitary_eq_one [Nonempty I] {U : Matrix I I ℂ}
 the left-factor difference. -/
 theorem kronecker_sub_left (A B : Matrix O I ℂ) (C : Matrix P J ℂ) :
     A ⊗ₖ C - B ⊗ₖ C = (A - B) ⊗ₖ C := by
+  let _ := (inferInstance : Fintype O)
+  let _ := (inferInstance : DecidableEq O)
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
+  let _ := (inferInstance : Fintype P)
+  let _ := (inferInstance : DecidableEq P)
+  let _ := (inferInstance : Fintype J)
+  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y
@@ -371,6 +379,14 @@ theorem kronecker_sub_left (A B : Matrix O I ℂ) (C : Matrix P J ℂ) :
 right-factor difference. -/
 theorem kronecker_sub_right (C : Matrix O I ℂ) (B D : Matrix P J ℂ) :
     C ⊗ₖ B - C ⊗ₖ D = C ⊗ₖ (B - D) := by
+  let _ := (inferInstance : Fintype O)
+  let _ := (inferInstance : DecidableEq O)
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
+  let _ := (inferInstance : Fintype P)
+  let _ := (inferInstance : DecidableEq P)
+  let _ := (inferInstance : Fintype J)
+  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y
@@ -380,6 +396,14 @@ theorem kronecker_sub_right (C : Matrix O I ℂ) (B D : Matrix P J ℂ) :
 /-- Decomposes a difference of two Kronecker products into a sum changing one factor at a time. -/
 theorem kronecker_sub_add_decomp (A C : Matrix O I ℂ) (B D : Matrix P J ℂ) :
     A ⊗ₖ B - C ⊗ₖ D = (A - C) ⊗ₖ B + C ⊗ₖ (B - D) := by
+  let _ := (inferInstance : Fintype O)
+  let _ := (inferInstance : DecidableEq O)
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
+  let _ := (inferInstance : Fintype P)
+  let _ := (inferInstance : DecidableEq P)
+  let _ := (inferInstance : Fintype J)
+  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y

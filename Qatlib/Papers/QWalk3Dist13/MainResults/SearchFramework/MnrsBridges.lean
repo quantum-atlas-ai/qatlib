@@ -18,10 +18,10 @@ Updates*.
 
 Theorem 3.1 of the paper is the MNRS walk-search theorem (MNRS 2006,
 Theorem 3), specialised to a coin-dependent data structure `D`; Theorem 3.3
-is its nested-update variant.  Both are proved here as bridges onto the frozen
+is its nested-update variant.  Both are proved here as bridges onto the library's
 abstract assembly
 
-* `QuantumAlgorithm.Concepts.WalkSearch.MnrsAmplify.mnrs_search_theorem_three_abstract`
+* `Qatlib.Concepts.WalkSearch.MnrsAmplify.mnrs_search_theorem_three_abstract`
   (the MNRS Theorem 3 detection/find assembly: zero-mass exactness, success
   `≥ 1/24` on nonzero marked mass, and the order-form attempt-cost bound
   `99 · (1/√ε)((1/√δ)U + C)`),
@@ -29,7 +29,7 @@ abstract assembly
 combined with the cost ledger of `SourceModel.CostLedger`:
 `walkSearchCost` for Theorem 3.1 and `nestedUpdateCost` for Theorem 3.3.
 
-The statements keep every hypothesis of the frozen interface visible (the
+The statements keep every hypothesis of the library interface visible (the
 reflection family `R`, the reachable slice `Rs`, the `β`-closeness bounds),
 so that no physical assumption is hidden; the paper's `O(·)` becomes the
 explicit constant factors `99` and `198`, which are absorbable.
@@ -110,8 +110,7 @@ inner walk cost is `innerWalkCost U' C' ε' δ' = ε'^{-1/2}(δ'^{-1/2}U' + C')`
 then the composed algorithm succeeds with bounded error and its cost is at most
 `198 · nestedUpdateCost SC S' T CC U' C' δ ε ε' δ'`.
 
-Note on the transcription: the metadata statement of this claim renders the
-outer factor as `1/√ε` twice; the PDF (p.8) displays
+The source cost expression (p.8) is
 `S_C + S' + (1/√ε)((1/√δ)((1/√ε')((1/√δ')U' + C') + T) + C_C)`, which is the
 expression formalised in `nestedUpdateCost`.  The proof is the paper's: apply
 Theorem 3.1 to the data-augmented walk, whose setup cost is

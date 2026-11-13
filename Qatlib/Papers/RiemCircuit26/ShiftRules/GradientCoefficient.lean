@@ -23,8 +23,6 @@ exact two-evaluation parameter-shift formula. See [LaiEtAl2026].
 * [Lai et al., 2026][LaiEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 

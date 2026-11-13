@@ -44,7 +44,6 @@ charges.
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase

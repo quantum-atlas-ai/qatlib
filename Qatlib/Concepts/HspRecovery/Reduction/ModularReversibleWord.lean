@@ -1471,7 +1471,6 @@ end Qatlib.Concepts.HspRecovery.ReductionCore.Native
 namespace Qatlib.Concepts.HspRecovery.ReductionCore.ModularReversibleWord
 open Matrix Bits Arithmetic Native
 open scoped Classical
-set_option warningAsError false
 
 /-- For coprime operand and modulus values, the native words implement total modular addition,
 subtraction, and multiplication with clean ancillary blocks. The result also supplies

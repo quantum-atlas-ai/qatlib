@@ -41,7 +41,6 @@ open Matrix
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled BCHCommMass BCHPerturbation
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
-set_option warningAsError false
 
 /-- For a summable nonnegative real sequence, the sum of products over p tuples equals the pth
 power of its sum. -/

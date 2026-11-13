@@ -32,7 +32,6 @@ theorem `g1` assembles these results with outcome sequencing and resource-cost c
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -45,9 +44,6 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
-set_option linter.unreachableTactic false
 
 noncomputable section
 

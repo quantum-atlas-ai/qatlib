@@ -45,8 +45,6 @@ periodicity identities used in phase readout.
 * [Magniez et al., 2011, Theorem 5][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 

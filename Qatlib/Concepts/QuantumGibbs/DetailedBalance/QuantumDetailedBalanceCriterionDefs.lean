@@ -26,7 +26,6 @@ enter later statements.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 open Matrix

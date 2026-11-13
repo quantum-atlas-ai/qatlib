@@ -33,7 +33,6 @@ lemmas for relabeling, tensor gates, and outer products support later branch cal
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open Qatlib
@@ -42,8 +41,6 @@ open Qatlib
 open Qatlib
 open scoped ComplexOrder
 open scoped Classical
-
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.PureStateMath.BornBridge
 

@@ -23,8 +23,6 @@ row-sketch and source-column dimensions [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SketchSpectral.SketchPerturb
 
 open Matrix

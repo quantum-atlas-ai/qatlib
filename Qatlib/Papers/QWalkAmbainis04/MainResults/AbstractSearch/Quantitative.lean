@@ -109,8 +109,6 @@ This development supports the analysis in [AmbainisKempeRivosh2004].
 * [Ambainis et al., 2004][AmbainisKempeRivosh2004]
 -/
 
-set_option warningAsError false
-
 open Matrix
 open scoped BigOperators ComplexOrder
 

@@ -24,8 +24,6 @@ success estimate in the setting of Algorithm 1 of [Kuperberg2005].
 * [Kuperberg, Algorithm 1 and Theorem 3.1][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.RecordExtract
 
 set_option autoImplicit false

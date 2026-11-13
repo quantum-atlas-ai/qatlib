@@ -25,8 +25,6 @@ while a mixture of original-row coordinate laws has the same probabilities as `p
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Classical BigOperators

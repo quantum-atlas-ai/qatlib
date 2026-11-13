@@ -24,7 +24,6 @@ terms in the corrected form of the variance analysis associated with [Cornwell20
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments

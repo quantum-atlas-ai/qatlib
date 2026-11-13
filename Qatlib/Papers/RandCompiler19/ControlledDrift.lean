@@ -20,7 +20,6 @@ The randomized compiler is introduced in [Campbell2019]. This module applies
 it to the explicit controlled-copy embedding.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.ReferenceError.RefTraceError

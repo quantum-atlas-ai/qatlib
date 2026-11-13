@@ -37,7 +37,7 @@ Formalised here:
 * `inner_psiOne_psiTwo`: the bilinear-form evaluation
   `⟨ψ₁|ψ₂⟩ = (1/√p) Σ_r (c/σ_r)(v_rᵀx̃)(u_rᵀy)`.
   The real symmetric inner product is the same bilinear form studied in the
-  shared layer `QuantumAlgorithm.Concepts.SqEstimation.InnerProduct`; no
+  shared layer `Qatlib.Concepts.SqEstimation.InnerProduct`; no
   conjugation is used because the source data are real;
 * `ancilla_offdiagonal_eq_prediction`: the paper's displayed Eq. (10) readout,
   `ρ₀₁ = c/(2√p) · predictionFromSVD`, showing that the prediction is exactly
@@ -62,7 +62,7 @@ independently in `Postselection/SourcePostselection.lean`.
 The Moore–Penrose/least-squares identification of the read-out value with the
 fitted prediction is proved in `Prediction/SourcePrediction.lean`, whose
 pseudoinverse contract is the real counterpart of
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`.
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`.
 -/
 
 set_option autoImplicit false

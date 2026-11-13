@@ -30,7 +30,6 @@ these expressions under their stated parameter conditions.
 * [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedStat.QuantumDataFitting2012
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat.QuantumDataFitting2012

@@ -51,7 +51,6 @@ namespace Qatlib.Concepts.SdpDuality.ConeSeparation
 
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 noncomputable local instance optimizationMatrixCStar {J : Type} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where

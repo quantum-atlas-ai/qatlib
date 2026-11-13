@@ -27,8 +27,6 @@ states, deterministic readout, and classical query-tree lower bounds in the orac
 * [Cleve et al., 1998][CleveEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

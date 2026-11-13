@@ -36,7 +36,6 @@ bounds.
 * [Grover, 2005][Grover2005]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -63,13 +62,11 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 open scoped Matrix.Norms.L2Operator
 
-set_option linter.unusedSectionVars false
-
 variable {J H O I : Type*} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
 /-- Rescales each complex coefficient `c j` by the real block-encoding normalization `α j`. -/
-def scaledLCUCoefficients [Fintype J] (c : J → ℂ) (α : J → ℝ) : J → ℂ :=
+def scaledLCUCoefficients {J : Type*} [Fintype J] (c : J → ℂ) (α : J → ℝ) : J → ℂ :=
   fun j => c j * (α j : ℂ)
 
 omit [DecidableEq J] [DecidableEq H] [DecidableEq O] [DecidableEq I] in
@@ -104,6 +101,8 @@ theorem scaled_lcu_coefficient_mass (c : J → ℂ) (α : J → ℝ)
 def tagFrame (j₀ : J) (L : Matrix H O ℂ) : Matrix (J × H) O ℂ :=
   Matrix.of fun p i => (if p.1 = j₀ then 1 else 0) * L p.2 i
 
+omit [Fintype J] [Fintype O] [DecidableEq O] in
+
 /-- Expresses the tagged frame as basis-state preparation followed by `L`. -/
 theorem tagFrame_eq (j₀ : J) (L : Matrix H O ℂ) :
     tagFrame j₀ L = prepareLift (Qatlib.Foundations.PureStateMath.Ket j₀) * L := by
@@ -124,6 +123,8 @@ theorem tagFrame_isIsometry (j₀ : J) (L : Matrix H O ℂ) (hL : IsIsometry L) 
   exact IsIsometry.mul (prepareLift_isIsometry (I := H) (Qatlib.Foundations.PureStateMath.Ket j₀)
     (by simp [Qatlib.Foundations.PureStateMath.Ket])) hL
 
+omit [Fintype J] [Fintype H] in
+
 /-- Tagging the identity frame gives the encoding fiber at `j₀`. -/
 theorem tagFrame_one (j₀ : J) :
     tagFrame j₀ (1 : Matrix H H ℂ) = encodingFiber (I := H) j₀ := by
@@ -137,6 +138,10 @@ theorem compress_tagFrame (j₀ : J) (L : Matrix H O ℂ) (M : Matrix (J × H) (
     compress (tagFrame j₀ L) M (tagFrame j₀ R)
       = Lᴴ * compress (prepareLift (Qatlib.Foundations.PureStateMath.Ket j₀)) M
           (prepareLift (Qatlib.Foundations.PureStateMath.Ket j₀)) * R := by
+  let _ := (inferInstance : Fintype O)
+  let _ := (inferInstance : DecidableEq O)
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
   rw [tagFrame_eq j₀ L, tagFrame_eq j₀ R, compress, compress]
   set PL : Matrix (J × H) H ℂ := prepareLift (Qatlib.Foundations.PureStateMath.Ket j₀) with hPL
   calc (PL * L)ᴴ * M * (PL * R) = (Lᴴ * PLᴴ) * (M * (PL * R)) := by

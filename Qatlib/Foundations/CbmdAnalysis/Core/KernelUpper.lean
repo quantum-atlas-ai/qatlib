@@ -32,7 +32,6 @@ numerator-to-distance-product ratio. These estimates enter the coefficient bound
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 

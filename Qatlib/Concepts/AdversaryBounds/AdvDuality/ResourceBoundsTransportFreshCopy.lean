@@ -49,7 +49,6 @@ open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 noncomputable section

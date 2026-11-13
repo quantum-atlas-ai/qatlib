@@ -33,7 +33,6 @@ elementary bounded and prefix-free message-code data.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCCDefs
@@ -48,7 +47,6 @@ open scoped BigOperators
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- A finite family of measurement Kraus operators together with one correction operator for
 each classical record. -/

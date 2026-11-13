@@ -28,7 +28,6 @@ true condition estimates, with factors recording the supplied spectral and outpu
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

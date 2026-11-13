@@ -28,7 +28,6 @@ its sensitivity to unitary access errors, using phase-estimation constructions d
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing

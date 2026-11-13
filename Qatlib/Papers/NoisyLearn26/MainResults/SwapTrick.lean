@@ -27,8 +27,6 @@ two-copy matrix `kron ρ` with the trace of the square of `partialTrace ρ`. See
 * [Cotler et al., 2025][CotlerGongKannan2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

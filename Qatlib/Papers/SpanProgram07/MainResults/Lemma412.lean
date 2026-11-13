@@ -28,8 +28,6 @@ witness-size formulas, with a positive-witness upper bound for the all-true OR i
 * [Reichardt and Spalek, 2008][ReichardtSpalek2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

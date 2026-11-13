@@ -39,7 +39,6 @@ open Qatlib.Concepts.HspRecovery.SieveLaw
 
 namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped Matrix.Norms.L2Operator ComplexOrder CStarAlgebra
-set_option warningAsError false
 
 /-- Bounds the trace distance between normalized positive exponentials by the sum of their
 trace-norm difference and absolute trace difference, divided by the larger positive trace. -/

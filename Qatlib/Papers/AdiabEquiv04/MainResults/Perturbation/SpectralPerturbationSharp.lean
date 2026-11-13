@@ -27,7 +27,6 @@ from Lemma 3.17 of [AharonovEtAl2007Adiabatic], with correction `K² / (J - 2K)`
 * [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

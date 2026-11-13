@@ -25,8 +25,6 @@ instance and every new no instance satisfies the corresponding original promise.
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

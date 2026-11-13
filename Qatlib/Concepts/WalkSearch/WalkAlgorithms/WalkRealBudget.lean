@@ -22,8 +22,6 @@ The final bound controls the triangle-search charge by an explicit constant time
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

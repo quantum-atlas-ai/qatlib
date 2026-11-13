@@ -22,7 +22,6 @@ combinatorial ingredient for graph subset-search reductions [ChildsEisenberg2003
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

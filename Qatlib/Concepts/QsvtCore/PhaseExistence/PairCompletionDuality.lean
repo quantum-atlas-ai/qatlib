@@ -28,8 +28,6 @@ contracts it through the square variable, and controls the degree of a conjugate
 * [Gilyén et al., Theorem 4][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

@@ -32,7 +32,6 @@ parameter to a ceiling grid. See [VanDamMoscaVazirani2001].
 * [van Dam et al., 2001][VanDamMoscaVazirani2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

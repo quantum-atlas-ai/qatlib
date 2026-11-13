@@ -28,8 +28,6 @@ The controlled spatial-search setting is described in [Tulsi2008].
 * [Tulsi, 2008][Tulsi2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

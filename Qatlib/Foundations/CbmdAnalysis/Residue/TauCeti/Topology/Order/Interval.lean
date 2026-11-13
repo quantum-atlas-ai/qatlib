@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -34,7 +36,6 @@ These ordered-topology tools support contour parameter arguments associated with
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
@@ -73,7 +74,7 @@ theorem exists_Icc_subset_uIcc_disjoint {α : Type*} [LinearOrder α] [Topologic
 
 /-- A nonempty compact subset of an open interval lies in a smaller open interval whose closed
 interval still lies in the original open interval. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsCompact.exists_Icc_between {α : Type*} [LinearOrder α] [TopologicalSpace α]
+theorem _root_.IsCompact.exists_Icc_between {α : Type*} [LinearOrder α] [TopologicalSpace α]
     [OrderClosedTopology α] [DenselyOrdered α] {K : Set α} {a b : α} (hK : IsCompact K)
     (hne : K.Nonempty) (hKs : K ⊆ Ioo a b) :
     ∃ c d, K ⊆ Ioo c d ∧ Icc c d ⊆ Ioo a b := by
@@ -86,7 +87,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsCompact.exists_Icc_betw
 
 /-- A nonempty closed order-connected set that is not bounded both above and below is a closed
 upper ray, a closed lower ray, or the whole space. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Set.OrdConnected.eq_Ici_or_eq_Iic_or_eq_univ
+theorem _root_.Set.OrdConnected.eq_Ici_or_eq_Iic_or_eq_univ
     {α : Type*} [ConditionallyCompleteLinearOrder α] [TopologicalSpace α] [OrderTopology α]
     {s : Set α} (hs : s.OrdConnected) (hne : s.Nonempty) (hclosed : IsClosed s)
     (hunbounded : ¬(BddBelow s ∧ BddAbove s)) :
@@ -119,7 +120,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Set.OrdConnected.eq_Ici_o
 
 /-- A continuous strictly increasing function on a closed upper ray that tends to `D` has image
 equal to the half-open interval from its initial value to `D`. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.image_Ici_of_strictMonoOn_of_tendsto
+theorem _root_.ContinuousOn.image_Ici_of_strictMonoOn_of_tendsto
     {α β : Type*} [ConditionallyCompleteLinearOrder α] [TopologicalSpace α] [OrderTopology α]
     [DenselyOrdered α] [NoMaxOrder α]
     [LinearOrder β] [TopologicalSpace β] [OrderClosedTopology β] {d : α → β} {p : α} {D : β}

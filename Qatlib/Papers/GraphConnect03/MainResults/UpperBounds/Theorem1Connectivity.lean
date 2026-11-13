@@ -28,8 +28,6 @@ bounds recorded by the corresponding `IsBigOFrom` statements. See [DurrMhallaLei
 * [Durr et al., 2003][DurrMhallaLei2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section

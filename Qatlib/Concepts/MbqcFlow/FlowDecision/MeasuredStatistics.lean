@@ -30,7 +30,6 @@ described in [Holevo1982].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
@@ -46,8 +45,6 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 

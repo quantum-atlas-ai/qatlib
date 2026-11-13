@@ -33,7 +33,6 @@ local QFT resource formulas.
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -61,7 +60,6 @@ open Qatlib.Concepts.AmpTransform.ErrorStream
 open Qatlib.Concepts.AmplitudeCore.InvFreeSampling
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier
 
@@ -85,7 +83,7 @@ theorem aqNext_m1_envelope_identity (N : ℕ) (L : ℝ) (hL : L ≠ -1) :
     ring
 
 /-- On the open single item window, the full envelope equals `aqM1Slice`. -/
-theorem aqNext_envelope_m1_on_open_window {N : ℕ} (hN : 0 < N) {L : ℝ}
+theorem aqNext_envelope_m1_on_open_window {N : ℕ} (_hN : 0 < N) {L : ℝ}
     (h : aqM1Window N L) :
     aqEnvelope (N : ℝ) 1 L = aqM1Slice (N : ℝ) L := by
   have hL : L ≠ -1 := by
@@ -95,7 +93,7 @@ theorem aqNext_envelope_m1_on_open_window {N : ℕ} (hN : 0 < N) {L : ℝ}
 
 /-- For positive `N`, the single item envelope slice is strictly increasing on its open window. -/
 theorem aqNext_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂ : ℝ}
-    (h₁ : aqM1Window N L₁) (h₂ : aqM1Window N L₂) (hlt : L₁ < L₂) :
+    (_h₁ : aqM1Window N L₁) (h₂ : aqM1Window N L₂) (hlt : L₁ < L₂) :
     aqM1Slice (N : ℝ) L₁ < aqM1Slice (N : ℝ) L₂ := by
   have hN' : (1 : ℝ) ≤ (N : ℝ) := by
     have : (1 : ℕ) ≤ N := by omega
@@ -201,13 +199,14 @@ theorem clause23_endpoint_holds : clause23_endpoint := by
 
 /-- At the single item endpoint with an empty noise set, the squared Fourier phase norm is one;
 this is a special case of the Lemma 20 expression in [Cornwell2014]. -/
-theorem aq_lemma20_T1_endpoint {n N s P y : ℕ} (hN : N = 2 ^ n) (hy : y < N) (hy0 : y ≠ 0) :
+theorem aq_lemma20_T1_endpoint {n N s P y : ℕ} (_hN : N = 2 ^ n) (_hy : y < N) (_hy0 : y ≠ 0) :
     ‖(1 : ℂ) / (1 : ℂ) * amplifiedQFTOmega N ^ (s * y) +
       (1 : ℂ) / (1 : ℂ) * (∑ z ∈ (∅ : Finset ℕ), amplifiedQFTOmega N ^ (z * y))‖ ^ 2 = 1 := by
+  let _ := P
   have hsum : (∑ z ∈ (∅ : Finset ℕ), amplifiedQFTOmega N ^ (z * y)) = 0 := by simp
   have hnorm : ‖amplifiedQFTOmega N ^ (s * y)‖ = 1 :=
     zoo_amplified_qft_lemma20_omega_norm N (s * y)
-  simp only [hsum, add_zero, div_one, norm_one, one_mul, hnorm, one_pow]
+  simp only [hsum, add_zero, div_one, one_mul, hnorm, one_pow]
 
 /-- The squared normalized Fourier phase expression is at most one under the stated progression,
 disjointness, cyclicity, and dense regime hypotheses. -/
@@ -215,7 +214,7 @@ theorem aq_lemma20_dense_regime {n N M L T s P y : ℕ} (A G : Finset ℕ)
     (hN : N = 2 ^ n) (hA : A = (Finset.range M).image (fun r => s + r * P))
     (hA_sub : A ⊆ Finset.range N) (hG_sub : G ⊆ Finset.range N) (hA_card : A.card = M)
     (hG_card : G.card = L) (hdisj : Disjoint A G) (hT : T = M + L) (hTpos : 0 < T)
-    (hy : y < N) (hy0 : y ≠ 0) (hcyc : (P * y) % N = 0) (hdense : 2 * N < 2 * T) :
+    (hy : y < N) (hy0 : y ≠ 0) (hcyc : (P * y) % N = 0) (_hdense : 2 * N < 2 * T) :
     ‖(M : ℂ) / (T : ℂ) * amplifiedQFTOmega N ^ (s * y) +
       (1 : ℂ) / (T : ℂ) * (∑ z ∈ G, amplifiedQFTOmega N ^ (z * y))‖ ^ 2 ≤ (1 : ℝ) :=
   zoo_amplified_qft_lemma20 n N M L T s P y A G hN hA hA_sub hG_sub hA_card hG_card hdisj
@@ -259,7 +258,7 @@ theorem aq_successRatio_nonneg {N s M P P' : ℕ} (p : ℝ) (obs : Finset (Fin N
     simpa [aqSuccessRatio, hne] using! hdiv
 
 /-- The amplification angle increases with the marked count when `0 < M ≤ L` and `2 * L ≤ N`. -/
-theorem aqAngle_mono {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N) :
+theorem aqAngle_mono {N M L : ℕ} (hN : 0 < N) (_hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N) :
     aqAngle N M ≤ aqAngle N L := by
   have hNR : (0 : ℝ) < N := by exact_mod_cast hN
   have hdiv : (M : ℝ) / (N : ℝ) ≤ (L : ℝ) / (N : ℝ) := by
@@ -390,13 +389,13 @@ theorem aq_unknown_M_recovery_cost {N : ℕ} (hN : 0 < N) (h : Fin N → Bool) (
 
 /-- For positive `n`, the dyadic Haar preparation is unitary and maps its seed basis state to
 the uniform state. -/
-theorem aq_haar_dyadic_preparation (n : ℕ) (hn : 0 < n) :
+theorem aq_haar_dyadic_preparation (n : ℕ) (_hn : 0 < n) :
     haarDyadicPreparation n ∈ Matrix.unitaryGroup (Reg (n - 1) × Bool) ℂ ∧
       haarDyadicPreparation n *ᵥ Ket (haarDyadicSeed n) = Uniform (Reg (n - 1) × Bool) :=
   haarDyadicPreparation_spec n
 
 /-- The prepared Haar pair word uses `j` data queries, one input query, and `j + 2` fixed gates. -/
-theorem aq_haar_pair_ledger (n : ℕ) (hn : 0 < n) (j : ℕ) :
+theorem aq_haar_pair_ledger (n : ℕ) (_hn : 0 < n) (j : ℕ) :
     preparedDataQueries (aqHaarPairWord (haarDyadicPreparation n) (haarDyadicSeed n) j) = j ∧
       preparedInputQueries (aqHaarPairWord (haarDyadicPreparation n) (haarDyadicSeed n) j) = 1 ∧
       preparedFixedGates (aqHaarPairWord (haarDyadicPreparation n) (haarDyadicSeed n) j) = j + 2 := by
@@ -407,8 +406,8 @@ theorem aq_haar_pair_ledger (n : ℕ) (hn : 0 < n) (j : ℕ) :
 
 /-- The amplification schedule is the floor of `π / (4 * aqAngle N M)`, and its squared sine
 factor is at most one. -/
-theorem aq_haar_and_amplified_share_schedule (N M : ℕ) (hN : 0 < N) (hM : 0 < M)
-    (hMN : 2 * M ≤ N) :
+theorem aq_haar_and_amplified_share_schedule (N M : ℕ) (_hN : 0 < N) (_hM : 0 < M)
+    (_hMN : 2 * M ≤ N) :
     aqRounds N M = Nat.floor (Real.pi / (4 * aqAngle N M)) ∧
       (Real.sin (2 * (aqRounds N M : ℝ) * aqAngle N M)) ^ 2 ≤ 1 := by
   refine ⟨rfl, ?_⟩
@@ -491,7 +490,7 @@ theorem aqNext_failure_mass_le {N s M P : ℕ} {cands : Finset ℕ} {p pmax : �
     intro σ
     by_cases hex : ∃ P' ∈ cands \ {P},
         aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ)
-    · rw [if_pos hex]
+    · rw [ite_eq_left hex]
       obtain ⟨P', hP', hc⟩ := hex
       have hone : (1 : ℝ) ≤ ∑ P' ∈ cands \ {P},
           (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then (1 : ℝ) else 0) := by
@@ -506,10 +505,10 @@ theorem aqNext_failure_mass_le {N s M P : ℕ} {cands : Finset ℕ} {p pmax : �
           show 0 ≤ (if aqCandidateConsistent N s M i (aqFreshMarked N s M P σ)
             then (1 : ℝ) else 0)
           by_cases h : aqCandidateConsistent N s M i (aqFreshMarked N s M P σ) <;> simp [h]
-        rw [if_pos hc] at h1
+        rw [ite_eq_left hc] at h1
         exact h1
       linarith
-    · rw [if_neg hex]
+    · rw [ite_eq_right hex]
       exact Finset.sum_nonneg fun P' _ => by split <;> norm_num
   calc
     aqFreshFailureMass N s M P cands p hp (le_trans hp1 hmax.le)
@@ -741,7 +740,7 @@ private theorem aqNext_verify_of_marks {N : ℕ} (f : Fin N → Bool) (s M q : �
     (h2 : f ⟨s + (M - 1) * q, h.2.2.2⟩ = true) :
     (aqNextVerify f s M q).1 = true := by
   unfold aqNextVerify
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   simp [h0, h1, h2]
 
 /-- Every in range planted progression point is marked by the fixed noise record. -/
@@ -783,8 +782,8 @@ theorem aqNext_attempt_true_period_hit {N : ℕ} (s M P B : ℕ) (G : Finset (Fi
 
 /-- Every value returned by a recovery attempt passes the fixed record verification check. -/
 theorem aqNext_attempt_output_verified {N : ℕ} (s M P B : ℕ) (G : Finset (Fin N))
-    (y : Fin N) (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N)
-    (hPB : P ≤ B) (hsepB : 2 * B ^ 2 < N) (q : ℕ)
+    (y : Fin N) (_hM : 2 ≤ M) (_hP : 2 ≤ P) (_hb : s + (M - 1) * P < N)
+    (_hPB : P ≤ B) (_hsepB : 2 * B ^ 2 < N) (q : ℕ)
     (hq : (aqNextAttempt (aqNextFixedNoiseRecord N s M P G) s M B y).1 = some q) :
     (aqNextVerify (aqNextFixedNoiseRecord N s M P G) s M q).1 = true := by
   unfold aqNextAttempt at hq
@@ -983,7 +982,7 @@ theorem aqNext_site_indicator_complement (k a : ℕ) (ha : a ≤ 2 ^ k) :
       (if aqNextBernoulliDraw k a ha tape = false then (1 : ℝ) else 0) =
         1 - (if aqNextBernoulliDraw k a ha tape = true then (1 : ℝ) else 0) := by
     intro tape
-    cases h : aqNextBernoulliDraw k a ha tape <;> simp [h]
+    cases h : aqNextBernoulliDraw k a ha tape <;> simp []
   calc
     (∑ tape : Reg k, (uniformFairTapeLaw k).prob tape *
         (if aqNextBernoulliDraw k a ha tape = false then 1 else 0))
@@ -1126,7 +1125,7 @@ theorem aqNext_threshold_le (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) 
 
 /-- The dyadic threshold parameter is at most `p` and differs from it by strictly less than
 `2^(-k)`. -/
-theorem aqNext_effective_parameter_bounds (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
+theorem aqNext_effective_parameter_bounds (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (_hp1 : p ≤ 1) :
     (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k ≤ p ∧
       p < (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k + 1 / (2 : ℝ) ^ k := by
   have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
@@ -1213,7 +1212,7 @@ theorem aqNext_effective_stream_tendsto (N : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1
   exact hprod
 
 /-- The precision `k` threshold of the dyadic parameter `a / 2^k` is exactly `a`. -/
-theorem aqNext_effective_exact_of_dyadic (k a : ℕ) (ha : a ≤ 2 ^ k) :
+theorem aqNext_effective_exact_of_dyadic (k a : ℕ) (_ha : a ≤ 2 ^ k) :
     aqNextBernoulliThreshold k ((a : ℝ) / (2 : ℝ) ^ k) = a := by
   have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
   have heq : ((a : ℝ) / (2 : ℝ) ^ k) * (2 : ℝ) ^ k = (a : ℝ) := by

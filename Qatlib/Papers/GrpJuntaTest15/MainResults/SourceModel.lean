@@ -20,8 +20,7 @@ set_option backward.isDefEq.respectTransparency false
 # SourceModel — shared paper model for GrpJuntaTest15
 
 Ambainis--Belovs--Regev--de Wolf, *Efficient Quantum Algorithms for (Gapped) Group
-Testing and Junta Testing*, arXiv:1507.03126v1 (11 Jul 2015).  Fixed version: v1;
-PDF `prove/assets/1507.03126.pdf`.
+Testing and Junta Testing*, arXiv:1507.03126v1 (11 Jul 2015).  Fixed version: v1.
 
 This module fixes the paper-level vocabulary used by every claim file:
 
@@ -32,16 +31,14 @@ This module fixes the paper-level vocabulary used by every claim file:
   randomized query model), and the "fresh variables" lists of Lemma 3.6;
 * the concrete bounded-error quantum query model of the shared library
   (`Circuit`, `Run`, `IsPovm`, `povmProb` from
-  `QuantumAlgorithm.Foundations.ReferenceError.MixturePaths` and
-  `QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality`), specialized to a
+  `Qatlib.Foundations.ReferenceError.MixturePaths` and
+  `Qatlib.Concepts.AdversaryBounds.AdvDuality`), specialized to a
   bit phase oracle and to the QGGT block oracle of Definition 5.1;
 * the adversary-bound SDP feasibility/objective vocabulary of Eq. (3), and the
   irrelevant-variable composition of Definitions 2.8--2.10.
 
 Definitions only: no claim is asserted here.  Algorithmic bounds are stated
-over these concrete models in the claim files; where a proof is not completed,
-the claim file records the exact source theorem, the paper's proof route, the
-current Lean gap and candidate dependencies.
+over these concrete models in the claim files.
 -/
 
 set_option autoImplicit false

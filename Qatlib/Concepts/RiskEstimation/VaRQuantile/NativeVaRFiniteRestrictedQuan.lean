@@ -45,7 +45,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 set_option autoImplicit false
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- Finite rational CDF readout and bisection satisfy the approximate quantile-bracket failure
 bound and the support call-count bound. This implements the finite precision search

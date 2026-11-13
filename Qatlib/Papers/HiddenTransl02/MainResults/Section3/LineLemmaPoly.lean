@@ -30,11 +30,9 @@ of the Line Lemma from [FriedlEtAl2014].
 * [Friedl et al., 2014][FriedlEtAl2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 
 namespace Qatlib.Papers.HiddenTransl02.MainResults.Section3

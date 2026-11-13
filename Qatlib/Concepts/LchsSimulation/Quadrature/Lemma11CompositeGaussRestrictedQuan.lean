@@ -36,7 +36,6 @@ noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open MeasureTheory Set Matrix
 open scoped Classical Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Assuming the stated cellwise Gauss remainder witnesses, the composite LCHS quadrature error
 obeys the explicit geometric bound under the large-parameter condition `32 ≤ exp(1) * T *

@@ -104,10 +104,8 @@ neighborhoods.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
@@ -130,6 +128,8 @@ theorem unitary_row_inner {U : Matrix V V ℂ} (hU : U ∈ Matrix.unitaryGroup V
 /-- The row of `U` indexed by `i`, restricted to the column set `T`. -/
 def rowOn (U : Matrix V V ℂ) (T : Set V) (i : V) : ↥T → ℂ := fun c => U i c.1
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- Evaluating a restricted row at a column in `T` returns the corresponding entry of `U`. -/
 @[simp] theorem rowOn_apply (U : Matrix V V ℂ) (T : Set V) (i : V) (c : ↥T) :
     rowOn U T i c = U i c.1 := rfl
@@ -142,8 +142,8 @@ theorem outStronglyQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V)
   obtain ⟨U, hU, hpat⟩ := hD
   have hSfin : S.Finite := Set.finite_univ.subset (Set.subset_univ S)
   have hTfin : T.Finite := Set.finite_univ.subset (Set.subset_univ T)
-  letI : Fintype ↥S := hSfin.fintype
-  letI : Fintype ↥T := hTfin.fintype
+  let : Fintype ↥S := hSfin.fintype
+  let : Fintype ↥T := hTfin.fintype
   have hsupp : ∀ i c : V, U i c ≠ 0 ↔ D.Adj i c := hpat
 
   have hoff : ∀ i ∈ S, ∀ j ∈ S, i ≠ j → ∀ c : V, c ∉ T → U i c = 0 ∨ U j c = 0 := by
@@ -254,11 +254,15 @@ theorem outStronglyQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V)
   rw [hS, hT'] at hle
   omega
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- Outgoing strong quadrangularity implies `StronglyQuadrangular`. -/
 theorem stronglyQuadrangular_of_outSQ (D : Defs.Digraph V) (h : OutStronglyQuadrangular D) :
     StronglyQuadrangular D := by
   rintro ⟨S, T, _T', hcard, _hcard', hmeet, hsub, _hmeet', _hsub'⟩
   exact h ⟨S, T, hcard, hmeet, hsub⟩
+
+omit [Fintype V] [DecidableEq V] in
 
 /-- Outgoing strong quadrangularity implies outgoing quadrangularity. -/
 theorem outQuadrangular_of_outSQ (D : Defs.Digraph V) (h : OutStronglyQuadrangular D) :
@@ -339,7 +343,7 @@ theorem outNbrs_nonempty_of_isUnitaryDigraph (D : Defs.Digraph V) (hD : IsUnitar
   have hrow : U * star U = 1 := (Matrix.mem_unitaryGroup_iff).mp hU
   have hdiag := congrFun (congrFun hrow i) i
   rw [Matrix.mul_apply, Matrix.one_apply] at hdiag
-  simp only [if_true] at hdiag
+  simp only [ite_true] at hdiag
   have hne : ∑ j : V, U i j * star U j i ≠ 0 := by rw [hdiag]; norm_num
   obtain ⟨j, -, hj⟩ := Finset.exists_ne_zero_of_sum_ne_zero hne
   exact ⟨j, mem_outNbrs.mpr ((hpat i j).mp (left_ne_zero_of_mul hj))⟩

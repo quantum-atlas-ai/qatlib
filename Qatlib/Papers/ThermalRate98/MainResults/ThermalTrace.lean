@@ -33,8 +33,6 @@ propagation factors into their pairwise form.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.ThermalRate98.MainResults

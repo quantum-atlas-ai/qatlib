@@ -25,8 +25,6 @@ error model for circuit approximation in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 
 namespace Qatlib.Concepts.MatrixAccess.RitzPipeline

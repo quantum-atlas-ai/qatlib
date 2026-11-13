@@ -30,7 +30,6 @@ transformation results.
 * [Low and Chuang, 2019][LowChuang2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseGeometry.Phase

@@ -55,10 +55,8 @@ resource and communication properties of teleportation [BennettEtAl1993Teleporta
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -127,9 +125,7 @@ open Matrix
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 open Matrix Qatlib.Concepts.QuditTeleport.CommLowerBound
 open Qatlib.Concepts.QuditTeleport.MessagingBounds Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff
@@ -141,7 +137,6 @@ open Qatlib.Concepts.QuditTeleport.ResourceIff
 open scoped BigOperators ComplexOrder MatrixOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 open Matrix

@@ -36,7 +36,6 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped BigOperators
-set_option warningAsError false
 
 /-- The original rescaling contract with normalized tolerance δ/α and multiplicative objective
 bound (1 + δ)α is false. -/

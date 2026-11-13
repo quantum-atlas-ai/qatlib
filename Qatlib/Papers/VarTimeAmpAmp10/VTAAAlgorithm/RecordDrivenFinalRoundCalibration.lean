@@ -29,9 +29,7 @@ product sum for the variable-time analysis associated with [Ambainis2012].
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 

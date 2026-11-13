@@ -27,8 +27,6 @@ expressing parity as an iterated-function output. These results support the pari
 * [Farhi et al., 1998][FarhiEtAl1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.ParityLimit98.MainResults.IteratedFunction
 
 open scoped BigOperators

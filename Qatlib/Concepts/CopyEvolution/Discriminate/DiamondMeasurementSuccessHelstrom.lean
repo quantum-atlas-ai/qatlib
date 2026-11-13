@@ -43,7 +43,6 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 
 open Matrix Qatlib
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 

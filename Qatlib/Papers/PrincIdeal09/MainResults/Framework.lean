@@ -35,7 +35,6 @@ elementary lemmas extract window membership and predecessor spacing from the rec
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults

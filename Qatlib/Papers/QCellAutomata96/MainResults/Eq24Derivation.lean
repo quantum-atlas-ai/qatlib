@@ -32,8 +32,6 @@ Equation (17). See [Meyer1996a].
 * [Meyer, 1996][Meyer1996a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -813,7 +813,6 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Collects unitarity, zero-query and gate counts, and state error bounds for numerical dyadic
 circuits, together with local amplitude-estimation table counts and forward and adjoint QFT

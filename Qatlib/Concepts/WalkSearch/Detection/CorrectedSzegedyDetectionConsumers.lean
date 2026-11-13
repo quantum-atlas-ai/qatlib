@@ -29,7 +29,6 @@ background.
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Qatlib.Foundations.PureStateMath.Reflection

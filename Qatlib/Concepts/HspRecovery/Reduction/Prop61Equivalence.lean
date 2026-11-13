@@ -22,8 +22,6 @@ connects the source-level oracle reductions used in hidden-reflection recovery.
 * [Kuperberg, Proposition 6.1][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore.Prop61Equivalence

@@ -35,13 +35,11 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
 
-
 open Qatlib.Concepts.LchsSimulation.InhomLeftGrid
 
 namespace Qatlib.Concepts.LchsSimulation.KTrapezoid
 open MeasureTheory
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- For a continuous Banach-space-valued function with the stated first and second derivatives
 and second-derivative norm at most `C` on `[a, b]`, the trapezoidal error is at most `C * (b

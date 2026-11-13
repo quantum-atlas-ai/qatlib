@@ -22,8 +22,6 @@ exact identity for the resource rescaling discussed in [JinLiu2024].
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

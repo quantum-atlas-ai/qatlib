@@ -37,7 +37,6 @@ set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Foundations.PureStateMath
@@ -56,7 +55,6 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The binary length of a natural number, with zero assigned length zero. -/
 def natBits (n : ℕ) : ℕ := if n = 0 then 0 else Nat.log2 n + 1

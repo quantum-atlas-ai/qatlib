@@ -9,29 +9,13 @@ import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Controlled Block-Encoding Specifications for the Thermal Correlation Matrix
+# SourceThermalBlockEncoding
 
-This module formalizes Theorems 9 (pp. 6--7) and 16 (pp. 12--13, Equations
-(D2)--(D4)) of Stroeks, Lenterman, Terhal, and Herasymenko on controlled
-`(1, n + 5, ·)`-block-encodings of `(1 / 4) M^{(β)}(h)` and their asymptotic and
-explicit oracle, ancilla, gate, and classical-preprocessing resource bounds.
-
-## Main definitions
-
-* `thm16LogFactor`: Explicit logarithmic factor `log^{5 / 2}(max(..., 1))` of
-  Theorem 16.
-
-## Main statements
-
-* `theorem9_blockEncoding_thermalM`: Theorem 9, `poly(n) / ε`-regime controlled
-  block-encoding specification of `thermalMQuarter h β`.
-* `theorem16_thermalM_resources`: Theorem 16, explicit resource-ledger
-  specification of `thermalMQuarter h β`.
-
-## References
-
-* [Stroeks et al., 2024][StroeksEtAl2024FreeFermion], Section IV, Theorem 9 and
-  Appendix D, Theorem 16, pp. 6--7 and 12--13.
+The headline algorithm and resource claims in this module are proposition definitions
+with the suffix `_statement`: **Statement only — not proved in Qatlib.**
+No circuit or oracle implementation is constructed for these specifications.
+The remaining definitions and proved lemmas concern only mathematical identities.
+Resource annotations in the legacy records have no execution semantics.
 -/
 
 set_option autoImplicit false
@@ -123,61 +107,6 @@ private lemma corner_conjugate (m N : ℕ)
   simp [BlockCorner, Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
     Matrix.one_apply, ite_mul, mul_ite]
 
-private lemma exact_thermal_encoding (n s : ℕ) (h : SparseHermitian (2 ^ n) s)
-    (β ε : ℝ) (hε : 0 ≤ ε) (cost : ResourceLedger) :
-    ∃ B : ControlledBlockEncoding (2 ^ n) (thermalMQuarter h β) 1 ε,
-      B.m = n + 5 ∧ B.cost = cost := by
-  let m := n + 5
-  let j₀ : Fin (2 ^ m) := ⟨0, Nat.two_pow_pos m⟩
-  have hm : 2 ≤ 2 ^ m := by
-    have hp := Nat.pow_le_pow_right (n := 2) (by norm_num : 1 ≤ 2)
-      (show 1 ≤ m by dsimp [m]; omega)
-    simpa using hp
-  let j₁ : Fin (2 ^ m) := ⟨1, by omega⟩
-  have h₀₁ : j₀ ≠ j₁ := by simp [j₀, j₁]
-  let c := fun i => (1 / 4 : ℝ) * (1 / (1 + Real.exp (β * h.hermitian.eigenvalues i)))
-  have hc : ∀ i, 0 ≤ c i ∧ c i ≤ 1 := by
-    intro i
-    have he := Real.exp_pos (β * h.hermitian.eigenvalues i)
-    have hinv : 0 ≤ 1 / (1 + Real.exp (β * h.hermitian.eigenvalues i)) := by positivity
-    have hle : 1 / (1 + Real.exp (β * h.hermitian.eigenvalues i)) ≤ 1 :=
-      (div_le_one (by positivity)).mpr (by linarith)
-    dsimp [c]
-    constructor <;> nlinarith
-  obtain ⟨D, hD, hcorner⟩ := diagonal_dilation m (2 ^ n) j₀ j₁ h₀₁ c hc
-  let V : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ := h.hermitian.eigenvectorUnitary
-  have hV : V ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ :=
-    h.hermitian.eigenvectorUnitary.2
-  have hVstar : Vᴴ ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ := by
-    rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
-      Matrix.conjTranspose_conjTranspose]
-    exact Matrix.mem_unitaryGroup_iff.mp hV
-  let U := TensorGate (1 : Matrix (Fin (2 ^ m)) (Fin (2 ^ m)) ℂ) Vᴴ * D *
-    TensorGate (1 : Matrix (Fin (2 ^ m)) (Fin (2 ^ m)) ℂ) V
-  have hU : U ∈ Matrix.unitaryGroup (Fin (2 ^ m) × Fin (2 ^ n)) ℂ :=
-    Submonoid.mul_mem _ (Submonoid.mul_mem _
-      (tensorGate_unitary (Submonoid.one_mem _) hVstar) hD)
-      (tensorGate_unitary (Submonoid.one_mem _) hV)
-  have hcornerU : BlockCorner U j₀ = thermalMQuarter h β := by
-    rw [corner_conjugate, hcorner]
-    unfold thermalMQuarter thermalM hermFun
-    have hdiag : Matrix.diagonal (fun i => (c i : ℂ)) =
-        (1 / 4 : ℝ) • Matrix.diagonal
-          (fun i => ((1 / (1 + Real.exp (β * h.hermitian.eigenvalues i)) : ℝ) : ℂ)) := by
-      rw [← Matrix.diagonal_smul]
-      congr 1
-      funext i
-      simp [c, Complex.real_smul]
-    rw [hdiag, Matrix.mul_smul, Matrix.smul_mul]
-  refine ⟨{ m := m
-            j₀ := j₀
-            U := U
-            unitary := hU
-            error_nonneg := hε
-            error_le := ?_
-            cost := cost }, rfl, rfl⟩
-  simpa [hcornerU] using hε
-
 /-- The logarithmic factor `log^{5/2}(16 s^9 β^8/(ε_PA^2 ε_p(h)^2))` of Theorem 16
 (arXiv:2409.04550, Eq. (D3)/(D4)); the `max … 1` makes it total for degenerate
 parameters. -/
@@ -185,53 +114,29 @@ def thm16LogFactor (s : ℕ) (β εPA εp : ℝ) : ℝ :=
   Real.rpow (Real.log (max (16 * (s : ℝ) ^ 9 * β ^ 8 / (εPA ^ 2 * εp ^ 2)) 1))
     (5 / 2 : ℝ)
 
-/-- **Theorem 9 (arXiv:2409.04550, p. 6–7).**  For an `s`-sparse Hamiltonian `h` on
-`n` qubits, `β = poly(n)` and `ε > 0`, the controlled `(1, n+5, ε)`-block-encoding
-of `(1/4) M^(β) = (1/4) I/(I + exp(βh))` needs `poly(n)/ε` oracle calls,
-`O(n) + n_a + log^{5/2}(poly(n)/ε^4)` ancillas,
-`O(n) + poly(n)/ε + log^{5/2}(poly(n)/ε^4)` gates, and classical time
-`poly(n/ε, log(1/ε))`. -/
-theorem theorem9_blockEncoding_thermalM
+/-- **Statement only — not proved in Qatlib.**
+Headline resource specification for `theorem9_blockEncoding_thermalM`.
+The records below carry independent output and resource annotations; this proposition
+does not certify an oracle execution, sampling procedure, or gate decomposition. -/
+def theorem9_blockEncoding_thermalM_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s) (β ε : ℝ) (na : ℕ)
     (hβpos : 0 < β) (hε : 0 < ε)
-    (hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ)) :
+    (hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ)) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (thermalMQuarter h β) 1 ε,
       B.m = n + 5 ∧
       PolyOverEps B.cost.oracleCalls n ε ∧
       AncillaShape B.cost.ancillaryQubits n na ε ∧
       GateShape B.cost.gates n ε ∧
-      ClassicalShape B.cost.classicalTime n ε := by
-  classical
-  by_cases _htriv : 0 < β ∧ ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ)
-  swap
-  · exact False.elim (_htriv ⟨hβpos, hβ⟩)
-  let cost : ResourceLedger := ⟨0, 0, 0, 0, 0⟩
-  obtain ⟨B, hm, hcost⟩ := exact_thermal_encoding n s h β ε hε.le cost
-  have hpoly : IsNatNonnegPoly (0 : Polynomial ℝ) := by intro k; simp
-  have hlog : 0 ≤ logPolyEps 0 n ε :=
-    Real.rpow_nonneg (Real.log_nonneg (le_max_right _ _)) _
-  refine ⟨B, hm, ?_, ?_, ?_, ?_⟩
-  · rw [hcost]
-    exact ⟨0, hpoly, by simp [cost]⟩
-  · rw [hcost]
-    refine ⟨0, 0, le_rfl, hpoly, ?_⟩
-    simpa [cost] using add_nonneg (Nat.cast_nonneg na) hlog
-  · rw [hcost]
-    exact ⟨0, 0, le_rfl, hpoly, by simpa [cost] using hlog⟩
-  · rw [hcost]
-    exact ⟨0, hpoly, by simp [cost]⟩
+      ClassicalShape B.cost.classicalTime n ε
 
-/-- **Theorem 16 (arXiv:2409.04550, p. 12–13, Eq. (D2)–(D4)).**  Explicit resource
-counts for the controlled `(1, n+5, ε_PA + ε_p(h) + δ)`-block-encoding of
-`(1/4)M^(β)`: oracle calls are `Θ((βs)^4/ε_PA^2)` when `βs/(2π) ≥ 1` and
-`Θ((βs)^2/ε_PA)` otherwise; ancillas are
-`O(sn + n_a + log^{5/2}(16 s^9 β^8/(ε_PA^2 ε_p(h)^2)))`; gates are
-`O(n + (n+4)β^4 s^4/ε_PA + log^{5/2}(…))`; classical time is
-`poly(β^4 s^4/ε_PA, log(1/δ))`. -/
-theorem theorem16_thermalM_resources
+/-- **Statement only — not proved in Qatlib.**
+Headline resource specification for `theorem16_thermalM_resources`.
+The records below carry independent output and resource annotations; this proposition
+does not certify an oracle execution, sampling procedure, or gate decomposition. -/
+def theorem16_thermalM_resources_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s)
     (β εPA εp δc : ℝ) (na : ℕ)
-    (hβ : 0 < β) (hεPA : 0 < εPA) (hεp : 0 ≤ εp) (hδ : 0 < δc) :
+    (hβ : 0 < β) (hεPA : 0 < εPA) (hεp : 0 ≤ εp) (hδ : 0 < δc) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (thermalMQuarter h β) 1 (εPA + εp + δc),
       B.m = n + 5 ∧
       (if 1 ≤ β * (s : ℝ) / (2 * Real.pi) then
@@ -245,40 +150,6 @@ theorem theorem16_thermalM_resources
       BigO B.cost.gates
         ((n : ℝ) + ((n : ℝ) + 4) * β ^ 4 * (s : ℝ) ^ 4 / εPA +
           thm16LogFactor s β εPA εp) ∧
-      PolyTwo B.cost.classicalTime (β ^ 4 * (s : ℝ) ^ 4 / εPA) (Real.log (1 / δc)) := by
-  classical
-  by_cases _htriv : 0 < β
-  swap
-  · exact False.elim (_htriv hβ)
-  let cost : ResourceLedger :=
-    { oracleCalls := if 1 ≤ β * (s : ℝ) / (2 * Real.pi) then
-          β ^ 4 * (s : ℝ) ^ 4 / εPA ^ 2 else β ^ 2 * (s : ℝ) ^ 2 / εPA
-      ancillaryQubits := 0
-      gates := 0
-      classicalTime := 0
-      usesOfUM := 0 }
-  obtain ⟨B, hm, hcost⟩ := exact_thermal_encoding n s h β (εPA + εp + δc)
-    (by linarith) cost
-  have hlog : 0 ≤ thm16LogFactor s β εPA εp :=
-    Real.rpow_nonneg (Real.log_nonneg (le_max_right _ _)) _
-  refine ⟨B, hm, ?_, ?_, ?_, ?_⟩
-  · rw [hcost]
-    dsimp [cost]
-    split <;> exact ⟨1, 1, one_pos, one_pos, by simp, by simp⟩
-  · rw [hcost]
-    refine ⟨1, one_pos, ?_⟩
-    dsimp [cost]
-    simpa only [one_mul] using
-      add_nonneg (add_nonneg (mul_nonneg (Nat.cast_nonneg s) (Nat.cast_nonneg n))
-        (Nat.cast_nonneg na)) hlog
-  · rw [hcost]
-    refine ⟨1, one_pos, ?_⟩
-    dsimp [cost]
-    have hp : 0 ≤ ((n : ℝ) + 4) * β ^ 4 * (s : ℝ) ^ 4 / εPA :=
-      div_nonneg (mul_nonneg (mul_nonneg (by positivity) (pow_nonneg hβ.le 4))
-        (by positivity)) hεPA.le
-    simpa only [one_mul] using add_nonneg (add_nonneg (Nat.cast_nonneg n) hp) hlog
-  · rw [hcost]
-    exact ⟨0, 0, by intro x hx; simp, by intro x hx; simp, by simp [cost]⟩
+      PolyTwo B.cost.classicalTime (β ^ 4 * (s : ℝ) ^ 4 / εPA) (Real.log (1 / δc))
 
 end Qatlib.Papers.FreeFermion24.MainResults.Thermal

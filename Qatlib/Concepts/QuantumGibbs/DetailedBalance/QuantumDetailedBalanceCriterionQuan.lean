@@ -24,14 +24,12 @@ Detailed balance and invariant Gibbs states underlie quantum Metropolis sampling
 This module proves the algebraic criterion, with its assumptions given by
 `QuantumDetailedBalanceCriterion`.
 -/
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Foundations.PureStateMath.Reflection
-
 
 namespace Qatlib.Concepts.QuantumGibbs.DetailedBalance
 

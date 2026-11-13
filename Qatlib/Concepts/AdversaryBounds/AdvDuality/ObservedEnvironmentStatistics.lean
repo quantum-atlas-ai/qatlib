@@ -34,7 +34,6 @@ depend on acceptance and the measurement outcome record.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -45,7 +44,6 @@ open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.ShadowModels.ShadowChannel
-
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 

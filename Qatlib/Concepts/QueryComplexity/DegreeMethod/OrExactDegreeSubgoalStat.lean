@@ -23,8 +23,6 @@ application of the polynomial method in [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 /-- The proposition that every real polynomial representing OR on a nonempty finite Boolean cube

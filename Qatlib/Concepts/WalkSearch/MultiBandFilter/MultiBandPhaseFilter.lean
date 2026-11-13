@@ -30,7 +30,6 @@ errors using phase estimation as in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase

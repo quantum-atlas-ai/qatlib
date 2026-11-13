@@ -34,9 +34,7 @@ first-order commutator approximation in operator norm.
 -/
 
 open Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -48,8 +46,6 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 
 open Matrix
 open scoped ComplexOrder Kronecker Matrix.Norms.L2Operator
-
-set_option linter.unusedSectionVars false
 
 /-- The permutation matrix swapping two `D`-dimensional registers. -/
 def swapRegisterMatrix (D : ℕ) : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ :=

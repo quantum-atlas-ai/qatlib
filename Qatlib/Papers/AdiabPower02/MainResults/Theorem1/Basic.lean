@@ -27,7 +27,6 @@ positive number of product-formula steps achieving a prescribed positive error t
 * [van Dam et al., 2001][VanDamMoscaVazirani2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

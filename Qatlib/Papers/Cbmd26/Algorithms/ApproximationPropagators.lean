@@ -29,7 +29,6 @@ These results provide approximation inputs for the wave and Bessel dynamics cons
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.Cbmd26.Algorithms

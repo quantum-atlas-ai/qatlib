@@ -68,8 +68,6 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 open Qatlib
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout
@@ -4695,7 +4693,6 @@ theorem nextApproxCountM_adequate {ε t : ℝ} {N : ℕ} {L₁ L₂ M₂ : ℕ} 
 open Qatlib.Concepts.AEMeanReadout.AELawStability
 open Qatlib.Concepts.EstimatorLaws.MergedEstimator
 open Qatlib.Concepts.EstimatorLaws.TvStability
-set_option warningAsError false
 
 /-- The access ledger `2 * (k + 2) * (2 * layerRepetitions k + 1) * layerGrid k` for the
 positive and negative layered estimates in one signed trial. -/

@@ -28,7 +28,6 @@ see [Novak2001] for the quantum integration context.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

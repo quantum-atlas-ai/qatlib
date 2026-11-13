@@ -37,7 +37,6 @@ system.
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -48,8 +47,6 @@ open Matrix
 open scoped Classical BigOperators Kronecker
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The conjugate transpose of a unitary finite-dimensional operator is unitary. -/
 theorem energyConjTranspose_unitary {D : ℕ} {V : Operator D}

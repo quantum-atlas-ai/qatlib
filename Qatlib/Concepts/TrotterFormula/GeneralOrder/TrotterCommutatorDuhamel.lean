@@ -43,7 +43,6 @@ open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix Set MeasureTheory Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The norm of a product-formula exponential word is at most `exp (|t| * suzukiMass xs)`. -/

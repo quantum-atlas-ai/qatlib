@@ -30,7 +30,6 @@ component count, while `source_actual_resource_pieces` records concrete unitary 
 * [Boghosian and Taylor, 1998][BoghosianTaylor1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -27,7 +27,6 @@ This yields an explicit hyperbolic-function decomposition of the matrix exponent
 * [Bender et al., 2007][BenderEtAl2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

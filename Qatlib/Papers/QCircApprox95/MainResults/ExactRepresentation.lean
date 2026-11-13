@@ -28,7 +28,6 @@ dimension of its difference from a rectangular matrix, as used in exact unitary 
 * [Knill, 1995][Knill1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

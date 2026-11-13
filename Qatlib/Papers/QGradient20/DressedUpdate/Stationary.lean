@@ -28,8 +28,6 @@ zero coordinate derivatives of the objective. The mathematical context is [GaoEt
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

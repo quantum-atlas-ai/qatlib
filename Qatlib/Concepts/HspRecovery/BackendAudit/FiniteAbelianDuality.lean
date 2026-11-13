@@ -27,8 +27,6 @@ characters. [Lomont2004]
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 
 namespace Qatlib.Concepts.HspRecovery.BackendAudit

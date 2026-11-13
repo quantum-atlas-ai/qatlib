@@ -20,10 +20,10 @@ repository: an observable is a complex matrix `M` on a finite register `n` and a
 state is a bare amplitude vector `ψ : QState n = n → ℂ`.
 
 The conventions match the library's
-`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision.Inner`:
+`Qatlib.Concepts.MbqcFlow.FlowDecision.Inner`:
 `⟨ψ|M|ψ⟩ = Inner ψ (M *ᵥ ψ)`, read in `ℝ` by taking the real part, which is the
 whole value whenever `M` is Hermitian. The transport lemmas of
-`QuantumAlgorithm.Papers.QuantumPCA14.Discriminate.RepresentationBridge` identify
+`Qatlib.Papers.QuantumPCA14.Discriminate.RepresentationBridge` identify
 this with Mathlib's `EuclideanSpace` inner product, so Hilbert-space inequalities
 (Cauchy–Schwarz in particular) can be used and then read back in matrix form.
 
@@ -45,7 +45,7 @@ variable {n : Type*} [Fintype n] [DecidableEq n]
 
 /-- The library inner product `⟨ψ|φ⟩ = ∑ᵢ conj(ψᵢ) φᵢ`, under a name that does not
 collide with Mathlib's root type former `Inner`. Definitionally it is
-`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision.Inner`. -/
+`Qatlib.Concepts.MbqcFlow.FlowDecision.Inner`. -/
 noncomputable def stateInner (ψ φ : QState n) : ℂ :=
   Qatlib.Foundations.PureStateMath.Inner ψ φ
 

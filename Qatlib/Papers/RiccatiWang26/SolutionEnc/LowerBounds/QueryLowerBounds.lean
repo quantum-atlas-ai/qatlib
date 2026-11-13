@@ -18,9 +18,9 @@ The product lower bounds (Theorems 5.1–5.4), the single-control hardness resul
 (Theorems 5.6–5.7), Remark 5.5, Proposition H.4 and the main result (1.2) are not
 formalized in this layer; no declaration below claims them.
 
-The retained lemmas quantify over `Solver F ε`: a worst-case query count together with an
-`(α, a, ε)` block-encoding of every member of the instance family `F`.  This is the paper's
-"under the above access and accuracy conventions".  The upper bounds would be stated as the
+The legacy `Solver F ε` records a declared query count and mathematical block-encoding
+existence for each member of `F`; it has no oracle execution relation. The retained hybrid
+lemma takes its hybrid estimate as an explicit assumption. The upper bounds would require the
 existence of a block-encoding together with an `Õ` cost (the paper's (1.2)), which is not
 constructed here.
 -/
@@ -38,17 +38,16 @@ open Qatlib.Papers.RiccatiWang26.SolutionEnc
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
-/-- A worst-case solver for a family `F` of solution operators at decoded accuracy `ε`:
-it makes `queries` calls to the family's matrix oracles and produces an `(α, a, ε)`
-block-encoding of every member of `F`.  This is the object the product lower bounds of
-Section 5.1 quantify over. -/
+/-- Legacy numerical solver contract: mathematical block-encoding existence
+for each target and an independent declared query count. No oracle program or
+execution relation is present, so this record alone certifies no complexity. -/
 structure Solver {n : Type*} [Fintype n] [DecidableEq n]
     (F : Set (Sq n)) (ε : ℝ) where
   /-- Number of ancilla qubits. -/
   a : ℕ
   /-- Output normalization of the solution block-encoding. -/
   α : ℝ
-  /-- Worst-case number of oracle calls. -/
+  /-- Declared query annotation; no execution count is derived here. -/
   queries : ℝ
   queries_nonneg : 0 ≤ queries
   correct : ∀ X ∈ F, BlockEncodes X a α ε
@@ -134,11 +133,9 @@ lemma dare_readout_lower (p r : ℝ) (hr : r = p ^ 2 / 2) (hp : 2 / 3 ≤ p) : 2
 
 /-! ## Selected-value lemmas and actual normalization (H.3–H.4) -/
 
-/-- RiccatiWang26, Lemma H.3 (p. 122).  If a promised family has Hermitian target `X`, a known
-unit vector `x₀`, and a decision problem for `x₀*Xx₀` with gap `gap > 0`, then a controlled
-`(αX, aX, ε)` block-encoding with public `αX = O(1)` and `ε < gap/4` decides the problem with a
-constant number of calls: the readout error is at most `ε/αX < gap/4`, which cannot cross a gap
-of `gap`. -/
+/-- Threshold arithmetic associated with Lemma H.3: a supplied scalar readout
+`y` with assumed error `hy` distinguishes the two promised value ranges.
+No measurement procedure or constant-query implementation is constructed. -/
 theorem lemma_H_3_selected_value_oracle
     (X : Sq n) (x0 : n → ℂ) (αX ε gap tYes tNo : ℝ)
     (hα : 0 < αX) (hα1 : 1 ≤ αX) (hgap : 0 < gap) (hε : ε < gap / 4)

@@ -42,7 +42,6 @@ open Qatlib.Concepts.ProbabilityCore.Concentration
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open scoped BigOperators Classical
-set_option warningAsError false
 noncomputable section
 
 /-- The Boolean probability distribution assigning probability `p` to true and `1 - p` to false. -/

@@ -28,8 +28,6 @@ finite sum in `objective`. See [GaoEtAl2021] for the paper context.
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section

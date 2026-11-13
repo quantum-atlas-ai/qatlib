@@ -29,8 +29,6 @@ and determines the prime Gauss sum up to sign according to the modulus modulo fo
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

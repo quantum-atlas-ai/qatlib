@@ -56,9 +56,7 @@ amplitude-amplification success.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -87,7 +85,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
 
@@ -184,28 +181,28 @@ noncomputable def sinEnvelopeHHLIdeal {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : 
 
 /-- The spectrally weighted sum of the ideal combined flag mass, weighted by squared
 prepared-input coefficients. -/
-noncomputable def sinEnvelopeIdealMass {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeIdealMass {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) : ℝ :=
   ∑ i, ‖(Vᴴ *ᵥ (B *ᵥ Ket j)) i‖ ^ 2 * sinEnvelopeFlagMass d (eig i)
 
 /-- The sum weighted by spectral coefficients and phase-kernel masses of the combined flag mass
 at decoded labels. -/
-noncomputable def sinEnvelopeActualMass {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeActualMass {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) : ℝ :=
   ∑ i, ‖(Vᴴ *ᵥ (B *ᵥ Ket j)) i‖ ^ 2 *
     ∑ z, ‖sinEnvelopeKernel M (eig i) z‖ ^ 2 *
       sinEnvelopeFlagMass d (sinEnvelopeDecode M z)
 
 /-- The spectral kernel state with three-level flag one and no success-filter amplitude factor. -/
-noncomputable def sinEnvelopeActualWellState {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
-    (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
+noncomputable def sinEnvelopeActualWellState {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
+    (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (_d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • ∑ z, sinEnvelopeKernel M (eig i) z •
     TensorState (Ket z) (TensorState (Ket (1 : Fin 3)) (V *ᵥ Ket i))
 
 /-- The spectral kernel state with flag one, weighted by the success filter at each decoded
 phase label. -/
-noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • ∑ z, sinEnvelopeKernel M (eig i) z •
@@ -214,7 +211,7 @@ noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (hM : 
 
 /-- The spectral kernel state with flag one, weighted by the success filter at each exact
 eigenphase. -/
-noncomputable def sinEnvelopeIdealWellState {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeIdealWellState {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • (sinEnvelopeFilterF d (eig i) : ℂ) •
@@ -665,7 +662,7 @@ private theorem se_wrap_r_ge (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
 
 /-- For `M ≥ 4` and phase in `[0, 1/4]`, the decoded phase's kernel-weighted second moment is at
 most `(1 + 10*π^2/3)/M^2 + 1440/M^3`. -/
-private theorem se_kernel_e2 (M : ℕ) (hM : 2 ≤ M) (φ d : ℝ) (hd : 0 < d)
+private theorem se_kernel_e2 (M : ℕ) (hM : 2 ≤ M) (φ d : ℝ) (_hd : 0 < d)
     (hφ : 0 ≤ φ) (hφ' : φ ≤ 1/4) (hM4 : 4 ≤ M) :
     ∑ z : Fin M, ‖sinEnvelopeKernel M φ z‖^2 * (φ - sinEnvelopeDecode M z)^2 ≤
       (1 + 10*Real.pi^2/3)/(M:ℝ)^2 + 1440/(M:ℝ)^3 := by
@@ -800,12 +797,12 @@ private theorem se_flag_mass_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) :
     norm_num
   · have hw : ¬ 2*d ≤ x := by intro h; exact he (le_antisymm hx h)
     unfold sinEnvelopeFlagMass sinEnvelopeFilterF sinEnvelopeFilterG
-    simp only [if_neg hw]
+    simp only [ite_eq_right hw]
     by_cases hl : d ≤ x
     · have hsin := Real.sin_sq_add_cos_sq (Real.pi/2*(x-d)/d)
-      simp only [if_pos hl]
+      simp only [ite_eq_left hl]
       nlinarith [hsin]
-    · simp only [if_neg hl]
+    · simp only [ite_eq_right hl]
       norm_num
 
 set_option maxHeartbeats 2000000 in
@@ -1516,7 +1513,7 @@ private theorem se_well_diff_apply {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   by_cases hp : p.2.1 = 1
   · have h1 := sin_envelope_actual_well_apply M hM eig V B j d p
     have h2 := se_ideal_well_apply M hM eig V B j d p
-    rw [Pi.sub_apply, h1, h2, if_pos hp, if_pos hp, if_pos hp, ← Pi.sub_apply]
+    rw [Pi.sub_apply, h1, h2, ite_eq_left hp, ite_eq_left hp, ite_eq_left hp, ← Pi.sub_apply]
     refine congrArg (fun v : Fin D → ℂ => v p.2.2) ?_
     rw [← Matrix.mulVec_sub]
     funext i
@@ -1526,7 +1523,7 @@ private theorem se_well_diff_apply {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     push_cast
     ring
   · rw [Pi.sub_apply, sin_envelope_actual_well_apply M hM eig V B j d p,
-      se_ideal_well_apply M hM eig V B j d p, if_neg hp, if_neg hp, if_neg hp]
+      se_ideal_well_apply M hM eig V B j d p, ite_eq_right hp, ite_eq_right hp, ite_eq_right hp]
     simp
 
 /-- The ideal well state's squared norm equals the spectrally weighted sum of squared exact
@@ -1620,7 +1617,7 @@ ideal mass under the stated spectral and resolution hypotheses. See
 [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_postselection_mass_stability {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d η : ℝ)
-    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (_hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (_hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hd : 0 < d) (hη : 0 < η) (hη1 : η ≤ 1)
     (heig : ∀ i, 0 ≤ eig i ∧ eig i ≤ 1/4)
     (hbudget : 21 / (d * η) ≤ (M : ℝ)) :
@@ -1656,8 +1653,8 @@ ideal well mass when eigenphases lie in `[2*d, 1/4]` and the resolution hypothes
 See [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_well_mass_stability {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d η : ℝ)
-    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
-    (hd : 0 < d) (h2d : 2 * d ≤ 1/4) (hη : 0 < η) (hη1 : η ≤ 1)
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (_hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
+    (hd : 0 < d) (_h2d : 2 * d ≤ 1/4) (hη : 0 < η) (hη1 : η ≤ 1)
     (heig : ∀ i, 2 * d ≤ eig i ∧ eig i ≤ 1/4)
     (hbudget : 420 / (d * η) ≤ (M : ℝ)) :
     |(∑ p, ‖sinEnvelopeActualWellStateCorrected M hM eig V B j d p‖^2) -
@@ -1904,12 +1901,16 @@ private theorem se_mulVec_sum {H : Type} [Fintype H] [DecidableEq H] {ι : Type*
   simp_rw [Finset.mul_sum]
   rw [Finset.sum_comm]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Scaling the right tensor factor scales the tensor state. -/
 private theorem se_tensorState_smul_right {J : Type} (ψ : QState I) (c : ℂ) (w : QState J) :
     TensorState ψ (c • w) = c • TensorState ψ w := by
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Tensoring on the left distributes over a finite linear combination of right factors. -/
 private theorem se_tensorState_sum_smul_right {J : Type} {ι : Type*} [Fintype ι]
@@ -1920,12 +1921,16 @@ private theorem se_tensorState_sum_smul_right {J : Type} {ι : Type*} [Fintype �
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The phase-flag embedding commutes with complex scalar multiplication. -/
 private theorem se_phaseFlagEmbed_smul (M : ℕ) (c : ℂ) (ψ : QState (Fin M × I)) :
     phaseFlagEmbed M (c • ψ) = c • phaseFlagEmbed M ψ := by
   funext p
   obtain ⟨x, b, i⟩ := p
   cases b <;> simp [phaseFlagEmbed]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The phase-flag embedding commutes with finite sums. -/
 private theorem se_phaseFlagEmbed_sum (M : ℕ) {ι : Type*} [Fintype ι]
@@ -2141,12 +2146,12 @@ private theorem se_blockDiag_mulVec {C : Type} [Fintype C] [DecidableEq C] {n : 
   rw [Finset.sum_eq_single c]
   · rw [show (∑ x : Fin n, BlockDiag W (c, i) (c, x) * v (c, x)) =
         ∑ x : Fin n, W c i x * v (c, x) from Finset.sum_congr rfl fun x _ => by
-      rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_pos rfl]]
+      rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_left rfl]]
     rfl
   · intro c' _ hc'
     apply Finset.sum_eq_zero
     intro x _
-    rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_neg (fun h => hc' h.symm),
+    rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_right (fun h => hc' h.symm),
         zero_mul]
   · intro h
     exact absurd (Finset.mem_univ c) h
@@ -2365,7 +2370,7 @@ Euclidean distance `η` of its ideal state. See [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_hhl_full_workspace_error {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d η : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
-    (hd : 0 < d) (hη : 0 < η) (hη1 : η ≤ 1)
+    (hd : 0 < d) (hη : 0 < η) (_hη1 : η ≤ 1)
     (heig : ∀ i, 0 ≤ eig i ∧ eig i ≤ 1/4)
     (hbudget : 21 / (d * η) ≤ (M : ℝ)) :
     ‖toEuclidean_fromVec (sinEnvelopeHHLRun M hM (continuousHHLOracle eig V) d B j -
@@ -2557,16 +2562,16 @@ private theorem se_flag_diag_oracleLift {D M : ℕ} (U : Operator D) :
   simp only [controlOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply]
   by_cases hb : b = b'
   · subst hb
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     cases b
     · have hif : (if (false : Bool) = true then
-          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) = 1 := if_neg (by decide)
+          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) = 1 := ite_eq_right (by decide)
       rw [hif, Matrix.one_apply_ne (fun he => h (Prod.ext_iff.mp he).1)]
     · have hif : (if (true : Bool) = true then
           TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) =
-          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U := if_pos rfl
+          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U := ite_eq_left rfl
       rw [hif, tensorGate_apply, Matrix.one_apply_ne h, zero_mul]
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
 
 /-- Every instruction in the phase-threshold loop preserves the three-level flag coordinate. -/
 private theorem se_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
@@ -2580,7 +2585,7 @@ private theorem se_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
     simp only [phaseThresholdLoop, List.mem_append] at hs
     rcases hs with hs | hs
     · exact ih s hs
-    · simp only [phaseThresholdBlock, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+    · simp only [phaseThresholdBlock, List.mem_cons, List.not_mem_nil,
         or_false] at hs
       rcases hs with rfl | rfl | rfl
       · exact se_flag_diag_perm n
@@ -2628,30 +2633,30 @@ private theorem se_measureProb_flag_diag {D M : ℕ}
     funext p
     rw [collapse_apply]
     by_cases hp : p ∈ sinEnvelopeWellSetCorrected D M
-    · rw [if_pos hp]
+    · rw [ite_eq_left hp]
       show (∑ p', G p p' * v p') =
           ∑ p', G p p' * Collapse v (sinEnvelopeWellSetCorrected D M) p'
       apply Finset.sum_congr rfl
       intro p' _
       by_cases hp' : p' ∈ sinEnvelopeWellSetCorrected D M
-      · rw [collapse_apply, if_pos hp']
-      · rw [collapse_apply, if_neg hp', mul_zero]
+      · rw [collapse_apply, ite_eq_left hp']
+      · rw [collapse_apply, ite_eq_right hp', mul_zero]
         have h1 : p.2.2.1 = 1 := (Finset.mem_filter.mp hp).2
         have h2 : p'.2.2.1 ≠ 1 :=
           fun hh => hp' (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hh⟩)
         rw [hG p p' (by rw [h1]; exact h2.symm), zero_mul]
-    · rw [if_neg hp]
+    · rw [ite_eq_right hp]
       show (0 : ℂ) = ∑ p', G p p' * Collapse v (sinEnvelopeWellSetCorrected D M) p'
       symm
       apply Finset.sum_eq_zero
       intro p' _
       by_cases hp' : p' ∈ sinEnvelopeWellSetCorrected D M
-      · rw [collapse_apply, if_pos hp']
+      · rw [collapse_apply, ite_eq_left hp']
         have h2 : p'.2.2.1 = 1 := (Finset.mem_filter.mp hp').2
         have h1 : p.2.2.1 ≠ 1 :=
           fun hh => hp (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hh⟩)
         rw [hG p p' (fun hh => h1 (hh.trans h2)), zero_mul]
-      · rw [collapse_apply, if_neg hp', mul_zero]
+      · rw [collapse_apply, ite_eq_right hp', mul_zero]
   rw [← sum_normSq_collapse, ← sum_normSq_collapse, hcol]
   simp only [← Complex.normSq_eq_norm_sq]
   exact sum_normSq_mulVec_of_mem_unitaryGroup hGu _
@@ -2695,8 +2700,8 @@ private theorem se_flag_image_apply {D : ℕ} (M : ℕ) (eig : Fin D → ℝ)
 /-- Collapsing the forward flagged spectral state to the corrected well event gives the embedded
 corrected actual well state. -/
 private theorem se_run_well_collapse {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
-    (V B : Operator D) (j : Fin D) (d : ℝ) (hd : 0 < d)
-    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
+    (V B : Operator D) (j : Fin D) (d : ℝ) (_hd : 0 < d)
+    (_hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     Collapse (∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i •
         phaseFlagEmbed (I := Fin 3 × Fin D) M
           (fun q : Fin M × (Fin 3 × Fin D) =>
@@ -2713,7 +2718,7 @@ private theorem se_run_well_collapse {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : F
   · subst hs
     have hmem : (z, b, 1, k) ∈ sinEnvelopeWellSetCorrected D M := by
       simp [sinEnvelopeWellSetCorrected]
-    rw [if_pos hmem]
+    rw [ite_eq_left hmem]
     cases b
     · rw [se_flag_image_apply M eig V B j d]
       show (∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i *
@@ -2741,10 +2746,10 @@ private theorem se_run_well_collapse {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : F
       simp
   · have hnmem : (z, b, s, k) ∉ sinEnvelopeWellSetCorrected D M := by
       simp [sinEnvelopeWellSetCorrected, hs]
-    rw [if_neg hnmem]
+    rw [ite_eq_right hnmem]
     cases b
     · show (0 : ℂ) = sinEnvelopeActualWellStateCorrected M hM eig V B j d (z, (s, k))
-      rw [sin_envelope_actual_well_apply M hM eig V B j d (z, (s, k)), if_neg hs]
+      rw [sin_envelope_actual_well_apply M hM eig V B j d (z, (s, k)), ite_eq_right hs]
     · rfl
 
 /-- The probability of the corrected well event in the flagged spectral state equals the

@@ -52,10 +52,8 @@ Matrix positivity and finite-dimensional operator methods are treated in [Watrou
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option warningAsError false
 open Qatlib.Concepts.QuditTeleport.CommLowerBound
 open Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
@@ -73,9 +71,7 @@ open Matrix
 open scoped BigOperators ComplexOrder
 open scoped BigOperators
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 open Matrix Qatlib.Concepts.QuditTeleport.CommLowerBound
 open Qatlib.Concepts.QuditTeleport.MessagingBounds Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff

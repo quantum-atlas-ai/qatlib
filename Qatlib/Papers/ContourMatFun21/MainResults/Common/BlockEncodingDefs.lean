@@ -13,20 +13,18 @@ set_option backward.isDefEq.respectTransparency false
 # ContourMatFun21 — paper-layer block-encoding vocabulary
 
 Fixed arXiv:2106.08076v2 (Takahira, Ohashi, Sogabe, Usuda).
-PDF SHA-256 of the prefetched copy is recorded in the PR body.
-
 This file re-states the two source definitions used throughout the paper:
 
 * `IsApproxBlockEncoding U j₀ A α ε` — paper Definition 1 (p. 4, Eq. (3)):
   `U` is unitary, `α > 0`, and `‖A − α·⟨0ᵃ|U|0ᵃ⟩‖ ≤ ε` where `⟨0ᵃ|U|0ᵃ⟩` is the
-  frozen `BlockCorner U j₀` (the all-zero ancilla corner in the abstract ancilla
+  defined `BlockCorner U j₀` (the all-zero ancilla corner in the abstract ancilla
   type `J`).
 * `IsStatePrepPair VL VR j₀ μ δ v` — paper Definition 2 (p. 4): the pair
   `(VL, VR)` prepares the (unnormalised) vector `v` up to ℓ¹ error `δ` at
   normalisation `μ`.
 
-The frozen layer carries the *exact* (`ε = 0`) notion `IsBlockEncoding`
-(`QuantumAlgorithm.Papers.Qubitization19.LCUConsumers.IsBlockEncoding`).  The
+The shared library carries the *exact* (`ε = 0`) notion `IsBlockEncoding`
+(`Qatlib.Papers.Qubitization19.LCUConsumers.IsBlockEncoding`).  The
 paper's results are all stated with the error `ε ≥ 0`, so the paper layer keeps
 the approximate form above and connects the two with
 `isApproxBlockEncoding_zero_iff`.
@@ -55,15 +53,15 @@ variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 /-- Paper Definition 1 (arXiv:2106.08076v2, p. 4, Eq. (3)): `U` is an
 `(α, a, ε)`-block-encoding of `A` when `U` is unitary on `J × I` (ancilla `J`,
 system `I`), `α > 0`, and the `j₀`-corner obeys
-`‖A − α·(⟨j₀| ⊗ I)U(|j₀⟩ ⊗ I)‖ ≤ ε`.  Here the corner `⟨j₀|U|j₀⟩` is the frozen
+`‖A − α·(⟨j₀| ⊗ I)U(|j₀⟩ ⊗ I)‖ ≤ ε`.  Here the corner `⟨j₀|U|j₀⟩` is the shared
 `BlockCorner U j₀`. -/
 def IsApproxBlockEncoding (U : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (A : Matrix I I ℂ) (α ε : ℝ) : Prop :=
   U ∈ Matrix.unitaryGroup (J × I) ℂ ∧ 0 < α ∧
     ‖A - ((α : ℂ)) • BlockCorner U j₀‖ ≤ ε
 
-/-- The exact (`ε = 0`) block encoding of Definition 1 is the frozen
-`IsBlockEncoding` (`QuantumAlgorithm.Papers.Qubitization19.LCUConsumers`). -/
+/-- The exact (`ε = 0`) block encoding of Definition 1 is the shared
+`IsBlockEncoding` (`Qatlib.Papers.Qubitization19.LCUConsumers`). -/
 theorem isApproxBlockEncoding_zero_iff {U : Matrix (J × I) (J × I) ℂ} {j₀ : J}
     {A : Matrix I I ℂ} {α : ℝ} :
     IsApproxBlockEncoding U j₀ A α 0 ↔ IsBlockEncoding U j₀ A α := by

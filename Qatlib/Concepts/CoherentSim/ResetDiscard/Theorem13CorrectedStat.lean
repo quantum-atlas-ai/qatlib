@@ -23,7 +23,6 @@ the weighted branch output and the total coefficient norm, in the setting of [Ch
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 open Matrix

@@ -61,7 +61,6 @@ noncomputable section
 namespace Qatlib.Concepts.ShadowModels.FairBitRecords
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Decodes the first tape symbol below three as a Pauli axis, rejecting symbol three and
 defaulting to axis zero on an empty tape, while counting consumed symbols. -/

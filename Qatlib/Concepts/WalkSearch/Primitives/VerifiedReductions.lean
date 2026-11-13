@@ -27,7 +27,6 @@ The reductions use the subset-finding framework of [ChildsEisenberg2003].
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.CollisionSearch
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms

@@ -29,7 +29,6 @@ of the QPE procedure. It isolates the finite-copy training-set guarantee motivat
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

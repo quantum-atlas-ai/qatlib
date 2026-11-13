@@ -35,7 +35,6 @@ the quantum Metropolis setting of [TemmeEtAl2011]. The mixing estimates explicit
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup
@@ -45,8 +44,6 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Concepts.MbqcFlow.FlowDecision.StageAQUANTUMGIBBS
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 namespace StageAQUANTUMGIBBS

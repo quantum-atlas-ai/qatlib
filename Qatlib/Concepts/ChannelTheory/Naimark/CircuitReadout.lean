@@ -19,7 +19,6 @@ sums this identity over a finite event.
 These are the circuit and measurement semantics of [NielsenChuang2010]; see
 [Nielsen & Chuang, Chapter 8][NielsenChuang2010] for the channel description.
 -/
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -35,7 +35,6 @@ concentration statement.
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -51,7 +50,6 @@ open Matrix
 open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
 
 /-- Each of the three Pauli matrices has trace zero. -/
 theorem trace_pauliMatrix (a : Fin 3) : Matrix.trace (pauliMatrix a) = 0 := by
@@ -87,7 +85,7 @@ theorem pauliObservable_mul_pauliMatrix_trace (c : ℝ) (θ : Fin 3 → ℝ) (a 
   rw [show Matrix.trace ((c : ℂ) • 1 * pauliMatrix a) = 0 from by
     rw [Matrix.smul_mul, Matrix.one_mul, Matrix.trace_smul, trace_pauliMatrix, smul_zero]]
   rw [zero_add, Finset.sum_congr rfl fun a' _ => h1 a', Finset.sum_congr rfl fun a' _ => h2 a',
-    Finset.sum_ite_eq', if_pos (Finset.mem_univ a)]
+    Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ a)]
   ring
 
 /-- The trace pairing with a Pauli outcome projector is `c + s * θ a`, where `s` is one for
@@ -199,7 +197,7 @@ theorem pauli_shadow_mean_second_moment (ρ : Operator 2) (hρ : IsDensityOperat
     intro a
     have hsub : PauliProjector a true - PauliProjector a false = pauliMatrix a := by
       rw [PauliProjector, PauliProjector]
-      simp only [if_true, Bool.false_eq_true, if_false]
+      simp only [ite_true, Bool.false_eq_true, ite_false]
       module
     simp only [hu]
     rw [← Complex.sub_re, ← Matrix.trace_sub, ← Matrix.sub_mul, hsub]
@@ -218,7 +216,7 @@ theorem pauli_shadow_mean_second_moment (ρ : Operator 2) (hρ : IsDensityOperat
       have h2 := hu_diff a
       linarith
     rw [sum_bool]
-    simp only [pauliSnapshotValue, if_true, Bool.false_eq_true, if_false]
+    simp only [pauliSnapshotValue, ite_true, Bool.false_eq_true, ite_false]
     rw [huT, huF]
     ring
   have hmoment2 : (pauliRecordDist ρ hρ).expect (fun o => (pauliSnapshotValue c θ o)^2)

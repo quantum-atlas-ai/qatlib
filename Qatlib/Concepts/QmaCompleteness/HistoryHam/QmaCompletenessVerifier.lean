@@ -33,11 +33,9 @@ surrounding Hamiltonian-complexity setting are discussed in [MarriottWatrous2005
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Matrix
 open scoped BigOperators
@@ -125,9 +123,7 @@ theorem clause1_partial_resources :
     omega
 
 end Clause1Resources
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000
@@ -135,9 +131,7 @@ set_option maxHeartbeats 800000
 /-- Adding zero on the right leaves a natural number unchanged. -/
 theorem cnotAux_smoke (n : ℕ) : n + 0 = n := by
   exact add_zero n
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000
@@ -689,9 +683,7 @@ theorem cnotAuxUv_col (x : List Bool) (p : Reg 1) :
     rw [cnotAux_final_state]
   rw [← h2, h3]
   simp [Qatlib.Foundations.PureStateMath.Ket]
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000

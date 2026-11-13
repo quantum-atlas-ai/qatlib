@@ -31,7 +31,6 @@ explicit algebraic facts for checking proposed encoding contracts.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

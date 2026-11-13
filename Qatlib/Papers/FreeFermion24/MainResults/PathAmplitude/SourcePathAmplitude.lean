@@ -12,15 +12,15 @@ set_option backward.isDefEq.respectTransparency false
 # Clock-Register Transition Amplitude on the Path Graph (Lemma 20)
 
 This module formalizes Lemma 20 (Appendix H, Equation (H7), pp. 16--17) of
-Stroeks, Helsen, and Terhal, showing that for `L ≥ 2` the tridiagonal clock
-Hamiltonian `pathJ L` achieves a nonzero end-to-end transition amplitude
-`‖pathAmplitude L t‖` within `t = O(L^2 log L)` and `Ω(1 / √L)`.
+Stroeks, Helsen, and Terhal. The proof establishes a nonzero short-time
+transition amplitude for each fixed `L`. Its constants depend on `L`; it does
+not prove the uniform asymptotic estimates of the paper's Lemma 20.
 
 ## Main statements
 
-* `lemma20_pathAmplitude`: Lemma 20, Equation (H7), existence of `t ≥ 0` with
+* `pathAmplitude_pointwise`: existence of `t ≥ 0` with
   `t ≤ C L^2 log L` and `c / √L ≤ ‖pathAmplitude L t‖` for positive constants
-  `C, c`.
+  `C, c` chosen separately for each `L`.
 
 ## References
 
@@ -179,10 +179,9 @@ private lemma pathAmplitude_ne_zero_short_time (L : ℕ) :
   rw [hcancel, norm_neg] at hn
   linarith
 
-/-- **Lemma 20 (arXiv:2409.04550, p. 16–17, Eq. (H7)).**  For `L ≥ 2`, the path
-Hamiltonian `J` of Eq. (H5) admits a time `t = O(L² log L)` such that the clock
-amplitude `⟨L+1| e^{-iJt} |1⟩` is `Ω(1/√L)` in modulus. -/
-theorem lemma20_pathAmplitude (L : ℕ) (hL : 2 ≤ L) :
+/-- Pointwise nonzero amplitude. Both positive constants can depend on `L`,
+so this theorem does not establish the paper's uniform time or amplitude bounds. -/
+theorem pathAmplitude_pointwise (L : ℕ) (hL : 2 ≤ L) :
     ∃ t : ℝ, 0 ≤ t ∧
       (∃ C : ℝ, 0 < C ∧ t ≤ C * (L : ℝ) ^ 2 * Real.log (L : ℝ)) ∧
       (∃ c : ℝ, 0 < c ∧ c / Real.sqrt (L : ℝ) ≤ ‖pathAmplitude L t‖) := by
@@ -198,5 +197,12 @@ theorem lemma20_pathAmplitude (L : ℕ) (hL : 2 ≤ L) :
     mul_pos (norm_pos_iff.mpr hamp) hsqrt, ?_⟩⟩
   · rw [mul_assoc, div_mul_cancel₀ _ hscale.ne']
   · rw [mul_div_cancel_right₀ _ hsqrt.ne']
+
+/-- **Statement only — not proved in Qatlib.**
+Uniform time and amplitude bounds of Lemma 20 (Equation (H7)). -/
+def lemma20_pathAmplitude_statement : Prop :=
+  ∃ C c : ℝ, 0 < C ∧ 0 < c ∧ ∀ L : ℕ, 2 ≤ L →
+    ∃ t : ℝ, 0 ≤ t ∧ t ≤ C * (L : ℝ) ^ 2 * Real.log (L : ℝ) ∧
+      c / Real.sqrt (L : ℝ) ≤ ‖pathAmplitude L t‖
 
 end Qatlib.Papers.FreeFermion24.MainResults.PathAmplitude

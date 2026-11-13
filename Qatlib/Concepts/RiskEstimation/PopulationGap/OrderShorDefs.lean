@@ -37,7 +37,6 @@ data and specifications rather than proofs that all stated budgets or recovery p
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
@@ -56,7 +55,6 @@ open Qatlib.Concepts.PeriodSampling.DlogSamplingLaw
 open Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 

@@ -26,8 +26,6 @@ record the separate resource constraints used in [BhartiHaugTanggara2026].
 * [Bharti et al., 2026][BhartiHaugTanggara2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

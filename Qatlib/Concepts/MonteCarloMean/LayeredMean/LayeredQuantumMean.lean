@@ -32,7 +32,6 @@ finite-dimensional version of the layered construction in [Montanaro2015].
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -50,8 +49,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -61,9 +58,13 @@ noncomputable def layerPayoff {I : Type} (f : I → ℝ) : ℕ → I → ℝ
   | 0, i => if f i < 1 then f i else 0
   | l+1, i => if (2:ℝ)^l ≤ f i ∧ f i < (2:ℝ)^(l+1) then f i / (2:ℝ)^(l+1) else 0
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Layer zero equals the original payoff below one and is zero elsewhere. -/
 theorem layerPayoff_zero (f : I → ℝ) (i : I) :
     layerPayoff f 0 i = if f i < 1 then f i else 0 := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Layer `l + 1` equals the payoff divided by 2^(l + 1) on [2^l, 2^(l + 1)) and is zero
 elsewhere. -/
@@ -75,32 +76,36 @@ theorem layerPayoff_succ (f : I → ℝ) (l : ℕ) (i : I) :
 one. -/
 theorem layerPayoff_mem_Icc (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
     ∀ (l : ℕ) (i : I), layerPayoff f l i ∈ Set.Icc (0:ℝ) 1 := by
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
   intro l
   match l with
   | 0 =>
     intro i
     by_cases h : f i < 1
-    · rw [layerPayoff_zero, if_pos h]
+    · rw [layerPayoff_zero, ite_eq_left h]
       exact Set.mem_Icc.mpr ⟨hf i, le_of_lt h⟩
-    · rw [layerPayoff_zero, if_neg h]
+    · rw [layerPayoff_zero, ite_eq_right h]
       norm_num
   | l+1 =>
     intro i
     by_cases h : (2:ℝ)^l ≤ f i ∧ f i < (2:ℝ)^(l+1)
-    · rw [layerPayoff_succ, if_pos h]
+    · rw [layerPayoff_succ, ite_eq_left h]
       refine Set.mem_Icc.mpr ⟨div_nonneg (hf i) (by positivity), ?_⟩
       rw [div_le_one (by positivity : (0:ℝ) < (2:ℝ)^(l+1))]
       exact le_of_lt h.2
-    · rw [layerPayoff_succ, if_neg h]
+    · rw [layerPayoff_succ, ite_eq_right h]
       norm_num
 
 /-- The weighted sum of layers zero through `L` equals the payoff when it is below 2^L, and is
 zero when it is at least 2^L. -/
-private theorem layer_sum_partition (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
+private theorem layer_sum_partition (f : I → ℝ) (_hf : ∀ i, 0 ≤ f i) :
     ∀ (L : ℕ) (i : I), (∑ l ∈ Finset.range (L+1), (2:ℝ)^l * layerPayoff f l i = f i
         ∧ f i < (2:ℝ)^L)
       ∨ (∑ l ∈ Finset.range (L+1), (2:ℝ)^l * layerPayoff f l i = 0
         ∧ (2:ℝ)^L ≤ f i) := by
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
   intro L
   induction L with
   | zero =>
@@ -108,10 +113,10 @@ private theorem layer_sum_partition (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
     by_cases h : f i < 1
     · left
       refine ⟨?_, h⟩
-      rw [Finset.sum_range_one, layerPayoff_zero, if_pos h, pow_zero, one_mul]
+      rw [Finset.sum_range_one, layerPayoff_zero, ite_eq_left h, pow_zero, one_mul]
     · right
       refine ⟨?_, ?_⟩
-      · rw [Finset.sum_range_one, layerPayoff_zero, if_neg h, pow_zero, one_mul]
+      · rw [Finset.sum_range_one, layerPayoff_zero, ite_eq_right h, pow_zero, one_mul]
       · rw [pow_zero]
         exact le_of_not_gt (by simpa using h)
   | succ L ih =>
@@ -123,18 +128,18 @@ private theorem layer_sum_partition (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
       ring
     rcases ih i with ⟨hsum, hlt⟩ | ⟨hsum, hge⟩
     · have hterm : (2:ℝ)^(L+1) * layerPayoff f (L+1) i = 0 := by
-        rw [layerPayoff_succ, if_neg (fun h => not_le_of_gt hlt h.1), mul_zero]
+        rw [layerPayoff_succ, ite_eq_right (fun h => not_le_of_gt hlt h.1), mul_zero]
       by_cases hlt2 : f i < (2:ℝ)^(L+1)
       · exact Or.inl ⟨by rw [hsplit, hsum, hterm]; ring, hlt2⟩
       · exact absurd (lt_of_lt_of_le hlt
           (pow_le_pow_right₀ (by norm_num : (1:ℝ) ≤ 2) (by omega))) hlt2
     · by_cases hlt2 : f i < (2:ℝ)^(L+1)
       · have hterm : (2:ℝ)^(L+1) * layerPayoff f (L+1) i = f i := by
-          rw [layerPayoff_succ, if_pos ⟨hge, hlt2⟩]
+          rw [layerPayoff_succ, ite_eq_left ⟨hge, hlt2⟩]
           field_simp
         exact Or.inl ⟨by rw [hsplit, hsum, hterm]; ring, hlt2⟩
       · exact Or.inr ⟨by rw [hsplit, hsum, layerPayoff_succ,
-          if_neg (fun h => hlt2 h.2), mul_zero]; ring, le_of_not_gt hlt2⟩
+          ite_eq_right (fun h => hlt2 h.2), mul_zero]; ring, le_of_not_gt hlt2⟩
 
 /-- For nonnegative weights and payoff, the truncated layered mean is at most the full mean,
 with residual at most the weighted second moment divided by 2^L. -/
@@ -195,12 +200,12 @@ private theorem weighted_layer_residual (w : I → ℝ) (hw0 : ∀ i, 0 ≤ w i)
 truncated mean residual is bounded by its second moment divided by 2^L. This is the dyadic
 partition used for [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem layered_payoff_partition_and_second_moment_tail (A : Matrix I I ℂ) (j : I)
-    (f : I → ℝ) (L : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
+    (f : I → ℝ) (L : ℕ) (_hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
     (∀ l i, layerPayoff f l i ∈ Set.Icc (0:ℝ) 1) ∧
     (∑ i, BornProb (ApplyGate A (Ket j)) i*f i)-(∑ l ∈ Finset.range (L+1), (2:ℝ)^l*∑ i, BornProb (ApplyGate A (Ket j)) i*layerPayoff f l i) ≤ (∑ i, BornProb (ApplyGate A (Ket j)) i*(f i)^2)/(2:ℝ)^L :=
   ⟨layerPayoff_mem_Icc f hf,
     (weighted_layer_residual (fun i => BornProb (ApplyGate A (Ket j)) i)
-      (fun i => bornProb_nonneg _ _) f hf L).2⟩
+      (fun _i => bornProb_nonneg _ _) f hf L).2⟩
 
 /-- The amplitude-estimation grid size 2^(k + 6)(k + 2) used for each dyadic layer. -/
 def layerGrid (k : ℕ) : ℕ := 2^(k+6)*(k+2)
@@ -366,7 +371,7 @@ noncomputable def layerTrialLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
     FinDist (Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) where
   prob u := ∏ n, (meanLaw (layerGrid k) A j (layerPayoff f (l:ℕ)) hA
     (layerPayoff_mem_Icc f hf _) (layerGrid_ge_two k)).prob (u n)
-  nonneg u := Finset.prod_nonneg fun n _ =>
+  nonneg _u := Finset.prod_nonneg fun _n _ =>
     (meanLaw (layerGrid k) A j (layerPayoff f (l:ℕ)) hA
       (layerPayoff_mem_Icc f hf _) (layerGrid_ge_two k)).nonneg _
   sum_one := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf (meanLaw (layerGrid k) A j (layerPayoff f (l:ℕ)) hA
@@ -378,7 +383,7 @@ noncomputable def layerLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
     FinDist (Fin (k+2) → Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) where
   prob ω := ∏ l, (layerTrialLaw k A j f hA hf l).prob (ω l)
-  nonneg ω := Finset.prod_nonneg fun l _ => (layerTrialLaw k A j f hA hf l).nonneg _
+  nonneg _ω := Finset.prod_nonneg fun l _ => (layerTrialLaw k A j f hA hf l).nonneg _
   sum_one := pi_dist_sum (layerTrialLaw k A j f hA hf)
 
 /-- The mass of a full layered record is the product of its individual layer-record masses. -/
@@ -422,11 +427,11 @@ private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I 
     rw [Finset.sum_filter]
     refine Finset.sum_congr rfl fun ω _ => ?_
     by_cases hB : B (ω l₀)
-    · rw [if_pos hB]
+    · rw [ite_eq_left hB]
       have h0 : ∀ b ∈ (Finset.univ : Finset (Fin (k+2))), b ≠ l₀ →
           ((if b = l₀ then (if B (ω b) then (1:ℝ) else 0) else 1) : ℝ) = 1 := by
         intro b _ hbl
-        rw [if_neg hbl]
+        rw [ite_eq_right hbl]
       have h1 : l₀ ∉ (Finset.univ : Finset (Fin (k+2))) →
           ((if l₀ = l₀ then (if B (ω l₀) then (1:ℝ) else 0) else 1) : ℝ) = 1 := by
         intro hcon
@@ -437,13 +442,13 @@ private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I 
               ((if l = l₀ then (if B (ω l) then (1:ℝ) else 0) else 1) : ℝ)
             = ((if l₀ = l₀ then (if B (ω l₀) then (1:ℝ) else 0) else 1) : ℝ) :=
                 Finset.prod_eq_single l₀ h0 h1
-          _ = (1:ℝ) := by rw [if_pos rfl, if_pos hB]
+          _ = (1:ℝ) := by rw [ite_eq_left rfl, ite_eq_left hB]
       rw [hprod, mul_one]
-    · rw [if_neg hB]
+    · rw [ite_eq_right hB]
       have hprod : ∏ l : Fin (k+2),
           (if l = l₀ then (if B (ω l) then (1:ℝ) else 0) else 1) = 0 := by
         refine Finset.prod_eq_zero (Finset.mem_univ l₀) ?_
-        rw [if_pos rfl, if_neg hB]
+        rw [ite_eq_left rfl, ite_eq_right hB]
       rw [hprod, mul_zero]
   rw [hstep1]
   calc (∑ ω : Fin (k+2) → Fin (2*layerRepetitions k+1) → Fin (layerGrid k),
@@ -462,9 +467,9 @@ private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I 
     _ = ∑ u : Fin (2*layerRepetitions k+1) → Fin (layerGrid k),
           (layerTrialLaw k A j f hA hf l₀).prob u * (if B u then (1:ℝ) else 0) := by
         rw [Finset.prod_eq_single l₀]
-        · simp only [if_true]
+        · simp only [ite_true]
         · intro l _ hl
-          simp only [if_neg hl, mul_one]
+          simp only [ite_eq_right hl, mul_one]
           exact (layerTrialLaw k A j f hA hf l).sum_one
         · intro hcon
           exact absurd (Finset.mem_univ l₀) hcon
@@ -473,8 +478,8 @@ private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I 
         = if B u then (layerTrialLaw k A j f hA hf l₀).prob u else 0 := by
     intro u
     by_cases hB : B u
-    · rw [if_pos hB, if_pos hB, mul_one]
-    · rw [if_neg hB, if_neg hB, mul_zero]
+    · rw [ite_eq_left hB, ite_eq_left hB, mul_one]
+    · rw [ite_eq_right hB, ite_eq_right hB, mul_zero]
   calc (∑ u : Fin (2*layerRepetitions k+1) → Fin (layerGrid k),
           (layerTrialLaw k A j f hA hf l₀).prob u * (if B u then (1:ℝ) else 0))
       = ∑ u, (if B u then (layerTrialLaw k A j f hA hf l₀).prob u else 0) :=
@@ -504,10 +509,13 @@ most twice the squared original payoff. -/
 private theorem layer_bridge (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) (l : ℕ)
     (hl : 1 ≤ l) (i : I) :
     (2:ℝ)^(2*l) * layerPayoff f l i ≤ 2 * (f i)^2 := by
+  let _ := hf
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
   obtain ⟨m, rfl⟩ : ∃ m, l = m+1 := ⟨l-1, by omega⟩
   rw [layerPayoff_succ]
   by_cases h : (2:ℝ)^m ≤ f i ∧ f i < (2:ℝ)^(m+1)
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hp : (0:ℝ) < (2:ℝ)^(m+1) := by positivity
     have hcompute : (2:ℝ)^(2*(m+1)) * (f i / (2:ℝ)^(m+1))
         = (2:ℝ)^(m+1) * f i := by
@@ -517,7 +525,7 @@ private theorem layer_bridge (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) (l : ℕ)
     rw [hcompute]
     have hnext : (2:ℝ)^(m+1) = 2*(2:ℝ)^m := by rw [pow_succ]; ring
     nlinarith [h.1, hf i]
-  · rw [if_neg h, mul_zero]
+  · rw [ite_eq_right h, mul_zero]
     exact mul_nonneg (by norm_num : (0:ℝ) ≤ 2) (sq_nonneg (f i))
 
 /-- Under nonnegative normalized weights and second moment at most one, the rescaled square root
@@ -651,7 +659,7 @@ set_option maxHeartbeats 4000000 in
 /-- For `k ≥ 1` and a nonnegative payoff with Born second moment at most one, the layered
 readout is within 2^(-k) of its mean with probability at least 1 - 2^(-k). This realizes the
 finite-law guarantee associated with [Montanaro2015, Lemma 4][Montanaro2015]. -/
-theorem layered_quantum_mean_actual_guarantee (k : ℕ) (hk : 1 ≤ k) (A : Matrix I I ℂ) (j : I)
+theorem layered_quantum_mean_actual_guarantee (k : ℕ) (_hk : 1 ≤ k) (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i)
     (hE : (∑ i, BornProb (ApplyGate A (Ket j)) i*(f i)^2) ≤ 1) :
     let μ := ∑ i, BornProb (ApplyGate A (Ket j)) i*f i;
@@ -993,7 +1001,7 @@ theorem payoff_hadamard_half_and_layered_consumer :
     let A:=Hadamard; let f : Bool → ℝ:=fun i => if i=false then 0 else 1/2;
     (∑ i, BornProb (ApplyGate A (Ket false)) i*f i)=1/4 ∧
     (∑ i, BornProb (ApplyGate A (Ket false)) i*(f i)^2)=1/8 ∧
-    ∀ (k : ℕ) (hk : 1≤k), ∑ ω ∈ Finset.univ.filter (fun ω => |layerEstimate k ω-1/4|≤(2:ℝ)^(-((k:ℤ)))), (layerLaw k A false f hadamard_unitary (by intro i; cases i <;> norm_num [f])).prob ω ≥ 1-(2:ℝ)^(-((k:ℤ))) := by
+    ∀ (k : ℕ) (_hk : 1≤k), ∑ ω ∈ Finset.univ.filter (fun ω => |layerEstimate k ω-1/4|≤(2:ℝ)^(-((k:ℤ)))), (layerLaw k A false f hadamard_unitary (by intro i; cases i <;> norm_num [f])).prob ω ≥ 1-(2:ℝ)^(-((k:ℤ))) := by
   have hstate : ∀ i : Bool, ApplyGate Hadamard (Ket false) i = ((Real.sqrt 2 : ℂ))⁻¹ := by
     intro i
     rw [applyGate_eq_mulVec_ket, hadamard_apply_false]

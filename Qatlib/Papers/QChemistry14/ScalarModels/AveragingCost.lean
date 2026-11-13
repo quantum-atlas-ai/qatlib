@@ -25,8 +25,6 @@ Hamiltonian-averaging cost expression. See [McCleanEtAl2014].
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.AveragingCost

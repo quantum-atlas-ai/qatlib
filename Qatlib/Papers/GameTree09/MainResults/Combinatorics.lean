@@ -29,10 +29,7 @@ with the eligible leaf indices. `comb_witness` supplies the corresponding negati
 * [Reichardt, 2009][Reichardt2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Classical
@@ -85,15 +82,15 @@ theorem parentGate_castSucc {J : ℕ} (hJ : 0 < J) (g : Fin (J + 1) → Bool)
     (k : Fin (J + 1)) :
     parentGate (J + 1) g k.castSucc = parentGate J (fun i => g i.succ) k := by
   conv_lhs => unfold parentGate
-  rw [dif_neg (by simp only [Fin.val_castSucc]; omega)]
-  rw [dif_neg (by omega)]
+  rw [dite_eq_right (by simp only [Fin.val_castSucc]; omega)]
+  rw [dite_eq_right (by omega)]
   congr 1
 
 /-- The last leaf of an extended comb has parent gate `g 0`. -/
 theorem parentGate_last {J : ℕ} (g : Fin (J + 1) → Bool) :
     parentGate (J + 1) g (Fin.last (J + 1)) = some (g 0) := by
   conv_lhs => unfold parentGate
-  rw [dif_pos (Fin.val_last (J + 1))]
+  rw [dite_eq_left (Fin.val_last (J + 1))]
 
 /-- An extended comb joins the relabeled smaller comb to the last leaf using AND when `g 0` is
 true and OR otherwise. -/
@@ -121,7 +118,7 @@ theorem comb_nodeAt (J : ℕ) (g : Fin J → Bool) (k : Fin (J + 1)) :
         subst hk
         have hpath : combPath (J + 1) (Fin.last (J + 1)) = [true] := by
           simp only [combPath]
-          rw [dif_pos (Fin.val_last (J + 1))]
+          rw [dite_eq_left (Fin.val_last (J + 1))]
         rw [hpath, comb_succ_eq]
         split_ifs with hg <;> simp [Formula.nodeAt]
       · have hkne : k ≠ Fin.last (J + 1) := by
@@ -130,15 +127,15 @@ theorem comb_nodeAt (J : ℕ) (g : Fin J → Bool) (k : Fin (J + 1)) :
         rw [← hk']
         have hpath : combPath (J + 1) k'.castSucc = false :: combPath J k' := by
           conv_lhs => rw [combPath]
-          rw [dif_neg (by simp only [Fin.val_castSucc]; omega)]
+          rw [dite_eq_right (by simp only [Fin.val_castSucc]; omega)]
           simp only [List.cons.injEq, true_and]
           congr 1
         rw [hpath, comb_succ_eq]
         split_ifs with hg
-        · simp only [Formula.nodeAt, Bool.false_eq_true, if_false, Formula.nodeAt_mapLeaf,
+        · simp only [Formula.nodeAt, Bool.false_eq_true, ite_false, Formula.nodeAt_mapLeaf,
             ih (fun i => g i.succ) k']
           simp [Formula.mapLeaf]
-        · simp only [Formula.nodeAt, Bool.false_eq_true, if_false, Formula.nodeAt_mapLeaf,
+        · simp only [Formula.nodeAt, Bool.false_eq_true, ite_false, Formula.nodeAt_mapLeaf,
             ih (fun i => g i.succ) k']
           simp [Formula.mapLeaf]
 
@@ -166,7 +163,7 @@ theorem combFalseInput_castSucc_apply {J : ℕ} (g : Fin (J + 1) → Bool)
     · simp [Fin.val_castSucc, heq]
     · have hJ : 0 < J := by have := k.isLt; omega
       have hpg := parentGate_castSucc (J := J) hJ g k
-      simp only [Fin.val_castSucc, hlt, heq, if_false]
+      simp only [Fin.val_castSucc, hlt, heq, ite_false]
       rw [hpg]
 
 /-- An inherited candidate false input takes value `g 0` at the new last leaf. -/
@@ -178,7 +175,7 @@ theorem combFalseInput_castSucc_last {J : ℕ} (g : Fin (J + 1) → Bool)
     simp only [Fin.val_last, Fin.val_castSucc]; omega
   have he : ¬ ((Fin.last (J + 1) : Fin (J + 2)).val = j.castSucc.val) := by
     simp only [Fin.val_last, Fin.val_castSucc]; omega
-  rw [if_neg hl, if_neg he, parentGate_last]
+  rw [ite_eq_right hl, ite_eq_right he, parentGate_last]
   rfl
 
 /-- The candidate indexed by the new last leaf is false at that leaf and true everywhere else. -/
@@ -363,7 +360,7 @@ theorem comb_false_input_iff (J : ℕ) (g : Fin J → Bool) (j : Fin (J + 1))
         simp [comb, Formula.eval, Function.update]
   | succ J ih =>
       by_cases hg : g 0 = true
-      · rw [comb_succ_eq, if_pos hg, isMaximalFalse_and_root]
+      · rw [comb_succ_eq, ite_eq_left hg, isMaximalFalse_and_root]
         by_cases hjlast : j = Fin.last (J + 1)
         · subst hjlast
           left
@@ -381,7 +378,7 @@ theorem comb_false_input_iff (J : ℕ) (g : Fin J → Bool) (j : Fin (J + 1))
             funext i; exact combFalseInput_castSucc_apply g j' i]
           exact ih (fun i => g i.succ) j' hsub
       · have hgf : g 0 = false := by cases h : g 0 <;> simp_all
-        rw [comb_succ_eq, if_neg hg, isMaximalFalse_or_root]
+        rw [comb_succ_eq, ite_eq_right hg, isMaximalFalse_or_root]
         have hjNotLast : j ≠ Fin.last (J + 1) := by
           intro h; subst h; exact hg ((inTF_last g).mp hj)
         obtain ⟨j', rfl⟩ := (Fin.eq_castSucc_or_eq_last j).resolve_right hjNotLast
@@ -412,7 +409,7 @@ theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) �
         exact comb_false_input_iff 0 g j (by unfold InTF; simp)
   | succ J ih =>
       by_cases hg : g 0 = true
-      · rw [comb_succ_eq, if_pos hg, isMaximalFalse_and_root]
+      · rw [comb_succ_eq, ite_eq_left hg, isMaximalFalse_and_root]
         constructor
         · rintro (⟨hlast, hall⟩ | ⟨hsub, hlast⟩)
           · refine ⟨Fin.last (J + 1), (inTF_last g).mpr hg, ?_⟩
@@ -421,7 +418,7 @@ theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) �
             by_cases hk : k = Fin.last (J + 1)
             · subst hk; simp [hlast]
             · rcases Fin.eq_castSucc_or_eq_last k with ⟨i, rfl⟩ | rfl
-              · simp only [if_neg (Fin.castSucc_ne_last i)]
+              · simp only [ite_eq_right (Fin.castSucc_ne_last i)]
                 exact hall i
               · exact absurd rfl hk
           · obtain ⟨j', hj'TF, hj'x⟩ :=
@@ -433,11 +430,11 @@ theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) �
             · rw [combFalseInput_castSucc_last, hlast]; exact hg.symm
         · rintro ⟨j, hjTF, rfl⟩
           have h := comb_false_input_iff (J + 1) g j hjTF
-          rw [comb_succ_eq, if_pos hg] at h
+          rw [comb_succ_eq, ite_eq_left hg] at h
           exact (isMaximalFalse_and_root (comb J (fun i => g i.succ))
             (combFalseInput (J + 1) g j)).mp h
       · have hgf : g 0 = false := by cases h : g 0 <;> simp_all
-        rw [comb_succ_eq, if_neg hg, isMaximalFalse_or_root]
+        rw [comb_succ_eq, ite_eq_right hg, isMaximalFalse_or_root]
         constructor
         · rintro ⟨hsub, hlast⟩
           obtain ⟨j', hj'TF, hj'x⟩ := (ih (fun i => g i.succ) (pref x)).mp hsub
@@ -448,7 +445,7 @@ theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) �
           · rw [combFalseInput_castSucc_last, hlast]; exact hgf.symm
         · rintro ⟨j, hjTF, rfl⟩
           have h := comb_false_input_iff (J + 1) g j hjTF
-          rw [comb_succ_eq, if_neg hg] at h
+          rw [comb_succ_eq, ite_eq_right hg] at h
           exact (isMaximalFalse_or_root (comb J (fun i => g i.succ))
             (combFalseInput (J + 1) g j)).mp h
 
@@ -458,14 +455,14 @@ theorem comb_false_input_injective (J : ℕ) (g : Fin J → Bool) {j j' : Fin (J
   rcases lt_trichotomy j.val j'.val with hlt | heq | hgt
   · have h1 : combFalseInput J g j j = false := by simp [combFalseInput]
     have h2 : combFalseInput J g j' j = true := by
-      unfold combFalseInput; rw [if_pos hlt]
+      unfold combFalseInput; rw [ite_eq_left hlt]
     have := congrFun h j
     rw [h1, h2] at this
     exact absurd this (by simp)
   · exact Fin.ext heq
   · have h1 : combFalseInput J g j' j' = false := by simp [combFalseInput]
     have h2 : combFalseInput J g j j' = true := by
-      unfold combFalseInput; rw [if_pos hgt]
+      unfold combFalseInput; rw [ite_eq_left hgt]
     have := congrFun h j'
     rw [h1, h2] at this
     exact absurd this (by simp)
@@ -480,7 +477,7 @@ theorem comb_maximal_false_bijection (J : ℕ) (g : Fin J → Bool) :
         combFalseInput J g j = combFalseInput J g j' → j = j') :=
   ⟨fun j hj => comb_false_input_iff J g j hj,
    fun x hx => (comb_maximal_false_iff J g x).mp hx,
-   fun j j' _ _ h => comb_false_input_injective J g h⟩
+   fun _j _j' _ _ h => comb_false_input_injective J g h⟩
 
 /-- For every maximal-false comb input, the vector supported at that input with value the
 reciprocal target coordinate is a negative witness. See [Reichardt2009]. -/

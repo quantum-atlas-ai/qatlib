@@ -44,7 +44,7 @@ content (logarithmic inversion, coefficient simplification, bracket ordering,
 and leading-cost equality).  The `O(·)` remainders are represented explicitly
 rather than as asymptotic classes.
 
-Related but different Frozen material: `QuantumAlgorithm.Concepts.AmplitudeCore.PhaseEstimation`
+Related library material: `Qatlib.Concepts.AmplitudeCore.PhaseEstimation`
 contains the BHMT QPE window-mass bound, not the Kaiser/prolate expansions.
 -/
 

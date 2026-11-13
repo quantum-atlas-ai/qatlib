@@ -30,7 +30,6 @@ bound proves optimality even for error at most 1/3, as in [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -42,18 +41,20 @@ namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 section Helpers
 
 variable {I : Type} [Fintype I] [DecidableEq I]
+
+omit [DecidableEq I] in
 
 /-- Applying a gate commutes with scalar multiplication of a state. -/
 theorem parity_applyGate_smul (U : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :
     ApplyGate U (c • ψ) = c • ApplyGate U ψ := by
   unfold ApplyGate
   rw [Matrix.mulVec_smul]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Scaling the left factor of a tensor state scales the tensor state by the same complex
 scalar. -/
@@ -62,6 +63,8 @@ theorem parity_tensorState_smul_left {J : Type} [Fintype J] [DecidableEq J] (c :
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Scaling the right factor of a tensor state scales the tensor state by the same complex
 scalar. -/
@@ -216,11 +219,11 @@ theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
             + ((Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹) = 1
         rw [invSqrt2_mul_self]
         norm_num
-      · rw [if_neg (pairLo_ne_pairHi hj)]
+      · rw [ite_eq_right (pairLo_ne_pairHi hj)]
         show ((Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹)
             + ((Real.sqrt 2 : ℂ)⁻¹ * -((Real.sqrt 2 : ℂ)⁻¹)) = 0
         ring
-      · rw [if_neg (fun e => pairLo_ne_pairHi hj e.symm)]
+      · rw [ite_eq_right (fun e => pairLo_ne_pairHi hj e.symm)]
         show ((Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹)
             + (-((Real.sqrt 2 : ℂ)⁻¹) * (Real.sqrt 2 : ℂ)⁻¹) = 0
         ring
@@ -232,7 +235,7 @@ theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
         intro e
         subst e
         exact hy hx
-      rw [if_neg hxy]
+      rw [ite_eq_right hxy]
       apply Finset.sum_eq_zero
       intro z _
       by_cases hz : z = pairLo N j hj ∨ z = pairHi N j hj
@@ -247,7 +250,7 @@ theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
         intro e
         subst e
         exact hx hy
-      rw [if_neg hxy]
+      rw [ite_eq_right hxy]
       apply Finset.sum_eq_zero
       intro z _
       by_cases hz : z = pairLo N j hj ∨ z = pairHi N j hj
@@ -263,13 +266,13 @@ theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
       have hyh : y ≠ pairHi N j hj := fun e => hy (Or.inr e)
       rw [Finset.sum_eq_single x]
       · rw [pairHadamardIdx_apply_off hxl hxh hxl hxh,
-        pairHadamardIdx_apply_off hxl hxh hyl hyh, if_pos rfl, one_mul]
+        pairHadamardIdx_apply_off hxl hxh hyl hyh, ite_eq_left rfl, one_mul]
       · intro z _ hzx
         by_cases hz : z = pairLo N j hj ∨ z = pairHi N j hj
         · rw [pairHadamardIdx_apply_left_mem hz hyl hyh, mul_zero]
         · have hzl : z ≠ pairLo N j hj := fun e => hz (Or.inl e)
           have hzh : z ≠ pairHi N j hj := fun e => hz (Or.inr e)
-          rw [pairHadamardIdx_apply_off hxl hxh hzl hzh, if_neg (fun e : x = z => hzx e.symm)]
+          rw [pairHadamardIdx_apply_off hxl hxh hzl hzh, ite_eq_right (fun e : x = z => hzx e.symm)]
           ring
       · intro hcon
         exact absurd (Finset.mem_univ x) hcon
@@ -310,9 +313,9 @@ theorem pairHadamardIdx_conjTranspose {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
       have hyh : y ≠ pairHi N j hj := fun e => hy (Or.inr e)
       by_cases hxy : x = y
       · subst hxy
-        rw [pairHadamardIdx_apply_off hxl hxh hxl hxh, if_pos rfl, map_one]
-      · rw [pairHadamardIdx_apply_off hyl hyh hxl hxh, if_neg (fun e => hxy e.symm),
-          pairHadamardIdx_apply_off hxl hxh hyl hyh, if_neg hxy, map_zero]
+        rw [pairHadamardIdx_apply_off hxl hxh hxl hxh, ite_eq_left rfl, map_one]
+      · rw [pairHadamardIdx_apply_off hyl hyh hxl hxh, ite_eq_right (fun e => hxy e.symm),
+          pairHadamardIdx_apply_off hxl hxh hyl hyh, ite_eq_right hxy, map_zero]
 
 /-- The pair Hadamard matrix is unitary. -/
 theorem pairHadamardIdx_unitary {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
@@ -401,7 +404,7 @@ theorem applyGate_pairHadamardIdx_pairSup {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < 
     · subst hx
       simp only [ApplyGate, Matrix.mulVec, dotProduct, hsum, pairHadamardIdx_hi_lo,
         pairHadamardIdx_hi_hi, pairSup_lo, pairSup_hi, Ket,
-        if_neg (Ne.symm (pairLo_ne_pairHi hj))]
+        ite_eq_right (Ne.symm (pairLo_ne_pairHi hj))]
       ring
   · rw [ket_ne (fun e => hx (Or.inl e))]
     simp only [ApplyGate, Matrix.mulVec, dotProduct]
@@ -432,7 +435,7 @@ theorem applyGate_pairHadamardIdx_pairSupMinus {N : ℕ} {j : ℕ} (hj : 2 * j +
     · subst hx
       simp only [ApplyGate, Matrix.mulVec, dotProduct, hsum, pairHadamardIdx_lo_lo,
         pairHadamardIdx_lo_hi, pairSupMinus_lo, pairSupMinus_hi, Ket,
-        if_neg (pairLo_ne_pairHi hj)]
+        ite_eq_right (pairLo_ne_pairHi hj)]
       ring
     · subst hx
       simp only [ApplyGate, Matrix.mulVec, dotProduct, hsum, pairHadamardIdx_hi_lo,
@@ -480,8 +483,8 @@ theorem applyGate_pairHadamardIdx_pairSup_ite {N : ℕ} (f : Fin N → Bool) {j 
       Ket (if f (pairLo N j hj) ^^ f (pairHi N j hj)
         then pairHi N j hj else pairLo N j hj) := by
   by_cases hP : f (pairLo N j hj) ^^ f (pairHi N j hj)
-  · rw [if_pos hP, if_pos hP, applyGate_pairHadamardIdx_pairSupMinus hj]
-  · rw [if_neg hP, if_neg hP, applyGate_pairHadamardIdx_pairSup hj]
+  · rw [ite_eq_left hP, ite_eq_left hP, applyGate_pairHadamardIdx_pairSupMinus hj]
+  · rw [ite_eq_right hP, ite_eq_right hP, applyGate_pairHadamardIdx_pairSup hj]
 
 end PairMixer
 
@@ -558,7 +561,7 @@ def idxAt {N : ℕ} (hN : 0 < N) (m : ℕ) (hm : m ≤ N / 2) : Fin N :=
 
 /-- Before processing any pairs, `idxAt` is the zero index. -/
 @[simp] theorem idxAt_zero {N : ℕ} (hN : 0 < N) : idxAt hN 0 (by omega) = ⟨0, hN⟩ := by
-  simp only [idxAt, dif_pos (by omega : (2 : ℕ) * 0 < N), Nat.mul_zero]
+  simp only [idxAt, dite_eq_left (by omega : (2 : ℕ) * 0 < N), Nat.mul_zero]
 
 /-- The XOR of the input bits in adjacent pair `j`, or `false` when that pair is incomplete. -/
 def pairParityBit {N : ℕ} (f : Fin N → Bool) (j : ℕ) : Bool :=
@@ -567,7 +570,7 @@ def pairParityBit {N : ℕ} (f : Fin N → Bool) (j : ℕ) : Bool :=
 /-- For a complete pair, `pairParityBit` equals the XOR of the lower and upper input bits. -/
 theorem pairParityBit_eq {N : ℕ} {f : Fin N → Bool} {j : ℕ} (hj : 2 * j + 1 < N) :
     pairParityBit f j = (f (pairLo N j hj) ^^ f (pairHi N j hj)) := by
-  exact dif_pos hj
+  exact dite_eq_left hj
 
 /-- The record register containing the first `m` pair XOR values and `false` in the remaining
 positions. -/
@@ -584,7 +587,7 @@ theorem pairRecAfter_succ {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m < N /
   · subst hk
     rw [Function.update_self]
     show (if m < m + 1 then pairParityBit f m else false) = pairParityBit f m
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
   · rw [Function.update_of_ne hk]
     have hkm : (k : ℕ) ≠ m := by
       intro e
@@ -592,10 +595,10 @@ theorem pairRecAfter_succ {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m < N /
     by_cases hlt : (k : ℕ) < m + 1
     · show (if (k : ℕ) < m + 1 then pairParityBit f (k : ℕ) else false)
         = (if (k : ℕ) < m then pairParityBit f (k : ℕ) else false)
-      rw [if_pos hlt, if_pos (by omega)]
+      rw [ite_eq_left hlt, ite_eq_left (by omega)]
     · show (if (k : ℕ) < m + 1 then pairParityBit f (k : ℕ) else false)
         = (if (k : ℕ) < m then pairParityBit f (k : ℕ) else false)
-      rw [if_neg hlt, if_neg (by omega)]
+      rw [ite_eq_right hlt, ite_eq_right (by omega)]
 
 /-- The record register index assigned to pair `j`. -/
 def pairRecBit {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) : Fin N := ⟨j, by omega⟩
@@ -621,9 +624,9 @@ theorem parityCopyFlip_involutive {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
   · have h1 : Function.update p.2.1 (pairRecBit j hj)
         (! p.2.1 (pairRecBit j hj)) (pairRecBit j hj)
         = ! p.2.1 (pairRecBit j hj) := Function.update_self _ _ _
-    simp only [parityCopyFlip, if_pos hp, update_update_eq, h1, Bool.not_not,
+    simp only [parityCopyFlip, ite_eq_left hp, update_update_eq, h1, Bool.not_not,
       update_self_eq]
-  · simp only [parityCopyFlip, if_neg hp]
+  · simp only [parityCopyFlip, ite_eq_right hp]
 
 /-- Swap the index selected by the recorded pair XOR with the index for the next processing
 stage. -/
@@ -901,11 +904,11 @@ theorem run_pairsPart {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     obtain ⟨c, hc, hrun⟩ := ih hm0 hm0' a
     have hlt : 2 * m < N := by omega
     have hidx : idxAt hN m hm0 = pairLo N m (hm' m (Nat.lt_succ_self m)) := by
-      simp only [idxAt, dif_pos hlt]
+      simp only [idxAt, dite_eq_left hlt]
       rfl
     have hrecm : pairRecAfter f m (pairRecBit m (hm' m (Nat.lt_succ_self m))) = false := by
       simp only [pairRecAfter, pairRecBit_val]
-      exact if_neg (by omega)
+      exact ite_eq_right (by omega)
     have heq : pairsPart (m + 1) hm'
         = pairsPart m hm0' ++ pairBlock m (hm' m (Nat.lt_succ_self m)) := rfl
     refine ⟨c * phaseOf (f (pairLo N m (hm' m (Nat.lt_succ_self m)))), ?_, ?_⟩
@@ -942,7 +945,7 @@ private theorem sum_fin_eq_range {N : ℕ} (F : Fin N → ℕ) :
     ∑ k, F k = ∑ k ∈ Finset.range N, (if h : k < N then F ⟨k, h⟩ else 0) := by
   rw [← Fin.sum_univ_eq_sum_range (fun k => if h : k < N then F ⟨k, h⟩ else 0) N]
   refine Finset.sum_congr rfl fun i _ => ?_
-  rw [dif_pos i.isLt]
+  rw [dite_eq_left i.isLt]
 
 /-- A finite sum splits into sums over adjacent pairs and a final term when the length is odd. -/
 private theorem sum_range_split (g : ℕ → ℕ) : ∀ N : ℕ,
@@ -970,12 +973,12 @@ private theorem sum_range_split (g : ℕ → ℕ) : ∀ N : ℕ,
   rcases Nat.even_or_odd N with ⟨m, rfl⟩ | ⟨m, rfl⟩
   · have he0 : ¬ ((m + m) % 2 = 1) := by omega
     have hd2 : (m + m) / 2 = m := by omega
-    simp only [if_neg he0, hd2, add_zero]
+    simp only [ite_eq_right he0, hd2, add_zero]
     rw [show m + m = 2 * m from by ring]
     exact (key m).1
   · have he1 : (2 * m + 1) % 2 = 1 := by omega
     have hd2 : (2 * m + 1) / 2 = m := by omega
-    simp only [if_pos he1, hd2, show 2 * m + 1 - 1 = 2 * m from rfl]
+    simp only [ite_eq_left he1, hd2, show 2 * m + 1 - 1 = 2 * m from rfl]
     exact (key m).2
 
 /-- The natural number value of input bit `k`, extended by zero beyond the input length. -/
@@ -1002,8 +1005,8 @@ theorem boolWeight_eq_pairSum {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
   have hodd : (if N % 2 = 1 then bitAt f (N - 1) else 0) = b2n (oddTailBit f) := by
     unfold oddTailBit bitAt
     by_cases hNo : N % 2 = 1
-    · rw [if_pos hNo, dif_pos hNo, dif_pos (by omega)]
-    · rw [if_neg hNo, dif_neg hNo]
+    · rw [ite_eq_left hNo, dite_eq_left hNo, dite_eq_left (by omega)]
+    · rw [ite_eq_right hNo, dite_eq_right hNo]
       rfl
   rw [h1, h2, hodd]
 
@@ -1015,10 +1018,10 @@ theorem boolWeight_pairRecAfter {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m
       (if h : k < N then b2n (pairRecAfter f m ⟨k, h⟩) else 0) = 0 := by
     intro k hkN hge
     have hkn : k < N := Finset.mem_range.mp hkN
-    rw [dif_pos hkn]
+    rw [dite_eq_left hkn]
     show b2n (if k < m then pairParityBit f k else false) = 0
     have hkm : ¬ (k < m) := by omega
-    rw [if_neg hkm]
+    rw [ite_eq_right hkm]
     rfl
   rw [boolWeight_eq_sum, sum_fin_eq_range (fun k => b2n (pairRecAfter f m k)),
     ← Finset.sum_subset (show Finset.range m ⊆ Finset.range N from
@@ -1032,9 +1035,9 @@ theorem boolWeight_pairRecAfter {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m
   have hjm : j < m := Finset.mem_range.mp hj
   have hjn : j < N := by omega
   show (if h : j < N then b2n (pairRecAfter f m ⟨j, h⟩) else 0) = b2n (pairParityBit f j)
-  rw [dif_pos hjn]
+  rw [dite_eq_left hjn]
   show b2n (if j < m then pairParityBit f j else false) = b2n (pairParityBit f j)
-  rw [if_pos hjm]
+  rw [ite_eq_left hjm]
 
 /-- For a nonempty input, `countedParityBit` is true exactly when the input has odd Hamming
 weight. -/
@@ -1050,8 +1053,8 @@ theorem countedParityBit_eq {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     have hbit : pairParityBit f j = (f ⟨2 * j, h1⟩ ^^ f ⟨2 * j + 1, h2⟩) := by
       show (if h : 2 * j + 1 < N
           then f ⟨2 * j, by omega⟩ ^^ f ⟨2 * j + 1, by omega⟩ else false) = _
-      rw [dif_pos h2]
-    simp only [bitAt, dif_pos h1, dif_pos h2, hbit]
+      rw [dite_eq_left h2]
+    simp only [bitAt, dite_eq_left h1, dite_eq_left h2, hbit]
     exact b2n_xor_add _ _
   have hsumrel : (∑ j ∈ Finset.range (N / 2), b2n (pairParityBit f j))
       + 2 * (∑ j ∈ Finset.range (N / 2), bitAt f (2 * j) * bitAt f (2 * j + 1))
@@ -1080,11 +1083,11 @@ theorem countedParityBit_eq {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
   cases hb : countedParityBit f with
   | true =>
     rw [hb] at hfin
-    simp only [b2n, if_true] at hfin
+    simp only [b2n, ite_true] at hfin
     simp [show boolWeight f % 2 = 1 from hfin.symm]
   | false =>
     rw [hb] at hfin
-    simp only [b2n, Bool.false_eq_true, if_false] at hfin
+    simp only [b2n, Bool.false_eq_true, ite_false] at hfin
     simp [show ¬ (boolWeight f % 2 = 1) from by omega]
 
 end Arithmetic
@@ -1128,10 +1131,10 @@ theorem queryCount_countedParityCircuit (N : ℕ) :
     simp only [countedParityCircuit, ← queryCount_append]
   rw [h1, queryCount_pairsPart]
   by_cases hodd : N % 2 = 1
-  · rw [if_pos hodd]
+  · rw [ite_eq_left hodd]
     show N / 2 + 1 + 0 = (N + 1) / 2
     omega
-  · rw [if_neg hodd]
+  · rw [ite_eq_right hodd]
     show N / 2 + 0 + 0 = (N + 1) / 2
     omega
 
@@ -1146,10 +1149,10 @@ theorem gateCount_countedParityCircuit (N : ℕ) :
     simp only [countedParityCircuit, ← gateCount_append]
   rw [h1, gateCount_pairsPart]
   by_cases hodd : N % 2 = 1
-  · rw [if_pos hodd]
+  · rw [ite_eq_left hodd]
     show 6 * (N / 2) + 1 + 1 ≤ 12 * N + 12
     omega
-  · rw [if_neg hodd]
+  · rw [ite_eq_right hodd]
     show 6 * (N / 2) + 0 + 1 ≤ 12 * N + 12
     omega
 
@@ -1165,10 +1168,10 @@ theorem isUnitaryCircuit_countedParityCircuit (N : ℕ) :
   rw [h1, isUnitaryCircuit_append]
   refine ⟨isUnitaryCircuit_pairsPart _ _, ?_⟩
   by_cases hodd : N % 2 = 1
-  · rw [if_pos hodd, isUnitaryCircuit_append, isUnitaryCircuit_query]
+  · rw [ite_eq_left hodd, isUnitaryCircuit_append, isUnitaryCircuit_query]
     exact ⟨(isUnitaryCircuit_gate _ _).mpr ⟨parityTargetFlip_unitary N, isUnitaryCircuit_nil⟩,
       (isUnitaryCircuit_gate _ _).mpr ⟨parityAcceptFlip_unitary N, isUnitaryCircuit_nil⟩⟩
-  · rw [if_neg hodd, List.nil_append]
+  · rw [ite_eq_right hodd, List.nil_append]
     exact (isUnitaryCircuit_gate _ _).mpr ⟨parityAcceptFlip_unitary N, isUnitaryCircuit_nil⟩
 
 /-- Querying a basis state with a false target and then applying `parityTargetFlip` stores the
@@ -1205,10 +1208,10 @@ theorem countedParityCircuit_run (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) :
   by_cases hodd : N % 2 = 1
   · have hlast : idxAt hN (N / 2) (Nat.le_refl _) = ⟨N - 1, by omega⟩ := by
       ext
-      simp only [idxAt, dif_pos (by omega : 2 * (N / 2) < N), Fin.val_mk]
+      simp only [idxAt, dite_eq_left (by omega : 2 * (N / 2) < N), Fin.val_mk]
       omega
     have hoddT : oddTailBit f = f ⟨N - 1, by omega⟩ := by
-      simp only [oddTailBit, dif_pos hodd]
+      simp only [oddTailBit, dite_eq_left hodd]
     have hfidx : f (idxAt hN (N / 2) (Nat.le_refl _)) = oddTailBit f := by
       rw [hlast]
       exact hoddT.symm
@@ -1216,7 +1219,7 @@ theorem countedParityCircuit_run (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) :
     rw [show countedParityCircuit N = pairsPart (N / 2) (lt_half_pairs N)
         ++ ([Step.query, Step.gate (permMatrix (parityTargetFlip (N := N)))]
           ++ [Step.gate (permMatrix (parityAcceptFlip (N := N)))]) from by
-        simp only [countedParityCircuit, if_pos hodd, List.append_assoc],
+        simp only [countedParityCircuit, ite_eq_left hodd, List.append_assoc],
       run_append, run_append, hinit, hrun, run_oddTail f c _ _ false, hfidx,
       run_gate, parity_applyGate_smul, applyGate_permMatrix_ket (parityAcceptFlip_involutive N),
       run_nil]
@@ -1226,11 +1229,11 @@ theorem countedParityCircuit_run (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) :
       cases regParity (pairRecAfter f (N / 2)) <;> simp
     simp only [parityAcceptFlip, ← haccFinal]
   · have hoddT : oddTailBit f = false := by
-      simp only [oddTailBit, dif_neg hodd]
+      simp only [oddTailBit, dite_eq_right hodd]
     refine ⟨c, hc, ?_⟩
     rw [show countedParityCircuit N = pairsPart (N / 2) (lt_half_pairs N)
         ++ [Step.gate (permMatrix (parityAcceptFlip (N := N)))] from by
-        simp only [countedParityCircuit, if_neg hodd, List.append_assoc,
+        simp only [countedParityCircuit, ite_eq_right hodd, List.append_assoc,
           List.nil_append],
       run_append, hinit, hrun, run_gate, parity_applyGate_smul,
       applyGate_permMatrix_ket (parityAcceptFlip_involutive N), run_nil]
@@ -1251,7 +1254,7 @@ theorem countedParity_measureProb {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
       = parityOracle N f from rfl, hrun, measureProb_smul_ket hc]
   by_cases hmem : ((idxAt hN (N / 2) (Nat.le_refl (N / 2)), oddTailBit f),
       (pairRecAfter f (N / 2), countedParityBit f)) ∈ countedParityAccept N
-  · rw [if_pos hmem]
+  · rw [ite_eq_left hmem]
     have hb : countedParityBit f = true := by
       simpa [countedParityAccept] using hmem
     have hw : boolWeight f = (Finset.univ.filter (fun i => f i = true)).card := rfl
@@ -1259,8 +1262,8 @@ theorem countedParity_measureProb {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
       have h3 := countedParityBit_eq hN f
       rw [hb, hw] at h3
       simpa using h3
-    rw [if_pos h2]
-  · rw [if_neg hmem]
+    rw [ite_eq_left h2]
+  · rw [ite_eq_right hmem]
     have hb : countedParityBit f = false := by
       have : ¬ (countedParityBit f = true) := by
         intro hcon
@@ -1271,7 +1274,7 @@ theorem countedParity_measureProb {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
       have h3 := countedParityBit_eq hN f
       rw [hb, hw] at h3
       simpa using h3
-    rw [if_neg h2]
+    rw [ite_eq_right h2]
 
 /-- For positive `N`, the counted parity circuit is unitary, starts in a normalized state,
 computes parity exactly, uses ⌈N/2⌉ queries, and uses at most 12N + 12 gates. This realizes

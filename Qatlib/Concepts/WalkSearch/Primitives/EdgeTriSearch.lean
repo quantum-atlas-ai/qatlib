@@ -25,8 +25,6 @@ underlying search perspective is described in [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -39,7 +39,6 @@ These constructions connect a classical chain gap and marked fraction to the wal
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding

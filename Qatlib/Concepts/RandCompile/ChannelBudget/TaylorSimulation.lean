@@ -35,7 +35,6 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 open Qatlib.Concepts.CoherentSim.TaylorEncoding
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.RandCompile.ChannelBudget
 
@@ -43,7 +42,6 @@ open Qatlib
 open Matrix
 open Classical
 open scoped BigOperators
-set_option warningAsError false
 
 /-- Summing products over all length-`n` choices from a finite type equals the `n`th power of
 the sum of the individual weights. -/

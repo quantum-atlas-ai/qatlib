@@ -27,7 +27,6 @@ variable-time prefixes to the paid circuit model used for [Ambainis2012].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 
@@ -41,9 +40,7 @@ open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVtFrame
 open scoped Classical BigOperators
-set_option warningAsError false
 noncomputable section
-set_option linter.unusedSectionVars false
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
 /-- The paid word implementing stage `j` of a coherent variable-time frame. -/

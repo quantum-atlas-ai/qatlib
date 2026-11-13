@@ -29,8 +29,6 @@ declarations establish these endpoint equalities.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 

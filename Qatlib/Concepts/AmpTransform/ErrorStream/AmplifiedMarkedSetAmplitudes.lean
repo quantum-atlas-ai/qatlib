@@ -30,8 +30,6 @@ dimension. The baseline zero-frequency probabilities are computed separately, an
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.PhaseGeometry.Phase
 

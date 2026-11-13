@@ -23,8 +23,6 @@ one minus the remaining unmarked mass. See [Szegedy2004] for the mathematical ba
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Matrix
 
 namespace Qatlib.Concepts.WalkSearch.ClassicalStop

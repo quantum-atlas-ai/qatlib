@@ -31,13 +31,11 @@ statements supply execution and resource bookkeeping.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.ConversionCore.AdversaryValue
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

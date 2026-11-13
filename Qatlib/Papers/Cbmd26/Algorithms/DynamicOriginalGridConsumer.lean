@@ -77,7 +77,6 @@ noncomputable section
 namespace CBMD
 open Matrix Set
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Abbreviates the finite address type for all segment and fine-grid sample pairs. -/
 abbrev DynamicGridTimeIndex (Λ T : ℝ) (N : ℕ) (ζ : ℝ) :=

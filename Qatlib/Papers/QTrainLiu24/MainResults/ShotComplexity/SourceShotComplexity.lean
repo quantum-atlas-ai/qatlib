@@ -14,7 +14,6 @@ set_option backward.isDefEq.respectTransparency false
 
 Paper: Chen-Yu Liu et al., *Quantum-Train: Rethinking Hybrid Quantum-Classical
 Machine Learning in the Model Compression Perspective*, fixed arXiv:2405.11304v2.
-PDF `prove/assets/2405.11304v2.pdf`.
 
 Claim c002: the shot-complexity paragraph of §III (p.8). The source, citing
 Ref. [64] (Haah–Harrow–Ji–Wu–Yu, *Sample-optimal tomography of quantum states*),
@@ -40,8 +39,6 @@ This module formalises:
   `B` one cannot infer a lower bound `L > B` valid at every sufficient sample
   size — exactly the source's caveat that an upper bound does not give an
   `Ω̃(M/ε)` necessary lower bound.
-
-No `sorry`, no extra axiom, no `unsafe`.
 -/
 
 set_option autoImplicit false

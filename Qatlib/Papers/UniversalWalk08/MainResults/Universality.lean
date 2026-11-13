@@ -27,8 +27,6 @@ circuit statistics from the assumed amplitude proportionality and scale bound.
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Universality
 
 open Matrix

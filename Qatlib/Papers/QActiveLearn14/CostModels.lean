@@ -99,8 +99,6 @@ final identities compare inverse-square-root and inverse classical count scales.
 * [Paparo et al., 2014][PaparoEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

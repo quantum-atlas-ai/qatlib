@@ -38,7 +38,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
-set_option warningAsError false
 
 section Duhamel
 

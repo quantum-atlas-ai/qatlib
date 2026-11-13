@@ -26,8 +26,8 @@ repetitions (number of failures before the first success plus one) is
 Both bounds are uniform: no factor of `N` or `t` appears.
 
 Shared interface: the circuit-level Born mass of the zero-phase sector is
-`QuantumAlgorithm.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`
-(Frozen v2.0.2), which identifies the measured zero-event probability with the squared
+`Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`,
+which identifies the measured zero-event probability with the squared
 norm of the zero-phase data branch.  This file formalises the numerical consequence that
 the paper draws from that mass identity; it does not reprove the circuit identity.
 

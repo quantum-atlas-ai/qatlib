@@ -28,7 +28,6 @@ partition-function estimator in Theorem 8 of [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
 

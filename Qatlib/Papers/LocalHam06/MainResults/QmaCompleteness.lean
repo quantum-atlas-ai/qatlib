@@ -21,7 +21,6 @@ This module concerns the five-local history encoding; two-local gadgets are
 handled elsewhere in this paper family.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

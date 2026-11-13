@@ -25,7 +25,6 @@ background on matrix norms.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.MixedFidelity.TraceNormRankBound
 open Qatlib
 

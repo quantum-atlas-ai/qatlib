@@ -33,7 +33,6 @@ proves the compiled reversible circuit semantics. The circuit background is desc
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

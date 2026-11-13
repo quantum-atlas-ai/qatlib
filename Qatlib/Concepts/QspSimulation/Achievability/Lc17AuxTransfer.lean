@@ -33,9 +33,7 @@ desired scalar amplitude.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
@@ -47,7 +45,6 @@ open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.QspSimulation.Achievability
 

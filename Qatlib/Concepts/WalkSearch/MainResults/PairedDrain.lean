@@ -26,7 +26,6 @@ covers the initial pair count. For background on quantum search and amplitude am
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkSearch.Primitives

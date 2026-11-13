@@ -32,8 +32,6 @@ feature space is too small, yielding `theorem4_no_cheap_protocol`. See [Yao1993]
 * [Yao, 1993][Yao1993]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

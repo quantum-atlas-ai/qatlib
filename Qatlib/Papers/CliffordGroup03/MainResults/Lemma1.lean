@@ -24,7 +24,6 @@ the carry from adding binary powers of `i` to obtain the phase-weighted formula.
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

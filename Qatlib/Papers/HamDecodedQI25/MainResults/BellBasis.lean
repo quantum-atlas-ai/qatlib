@@ -34,7 +34,7 @@ bridging step left implicit.
 - `bell_orthonormal` is Lemma 46: Frobenius-orthogonal operator
   families give orthonormal Bell families.
 
-No axiom beyond the three standard ones, no `sorry`. -/
+These are algebraic identities; no circuit synthesis or gate bound is proved. -/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HamDecodedQI25.MainResults.BellBasis

@@ -27,8 +27,6 @@ sampling conclusion assumes a normalized vector and a norm-preserving operator.
 * [Jordan, 2008][Jordan2008a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -29,10 +29,7 @@ candidate maximal-false assignments.
 * [Reichardt, 2009][Reichardt2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix
@@ -81,8 +78,8 @@ def andComposedBlock {m k α β : Type*} (a₁ a₂ a : ℝ) (A : Matrix m α �
 def source_lemma_3_4_or_statement {m α β : Type*} [Fintype m] [DecidableEq m]
     [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) (s : Fin 2 → ℝ)
-    (hA : ∀ i j, 0 ≤ A i j) (hB : ∀ i j, 0 ≤ B i j)
-    (h0 : 0 < s 0) (h1 : 0 < s 1) : Prop :=
+    (_hA : ∀ i j, 0 ≤ A i j) (_hB : ∀ i j, 0 ≤ B i j)
+    (_h0 : 0 < s 0) (_h1 : 0 < s 1) : Prop :=
   ‖orComposedBlock 1 (alpha s 0) (alpha s 1) A B‖ ^ 2 ≤
     (Real.sqrt (s 0) + Real.sqrt (s 1)) / Real.sqrt (s 0 + s 1) *
       ‖orSourceBlock A B‖ ^ 2
@@ -92,8 +89,8 @@ def source_lemma_3_4_or_statement {m α β : Type*} [Fintype m] [DecidableEq m]
 def source_lemma_3_4_and_statement {m k α β : Type*} [Fintype m] [DecidableEq m]
     [Fintype k] [DecidableEq k] [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) (C : Matrix k α ℝ) (s : Fin 2 → ℝ)
-    (hA : ∀ i j, 0 ≤ A i j) (hB : ∀ i j, 0 ≤ B i j) (hC : ∀ i j, 0 ≤ C i j)
-    (h0 : 0 < s 0) (h1 : 0 < s 1) : Prop :=
+    (_hA : ∀ i j, 0 ≤ A i j) (_hB : ∀ i j, 0 ≤ B i j) (_hC : ∀ i j, 0 ≤ C i j)
+    (_h0 : 0 < s 0) (_h1 : 0 < s 1) : Prop :=
   ‖andComposedBlock (alpha s 0) (alpha s 1) (alphaNorm s) A B C‖ ^ 2 ≤
     (Real.sqrt (s 0) + Real.sqrt (s 1)) / Real.sqrt (s 0 + s 1) *
       ‖andSourceBlock A B C‖ ^ 2
@@ -180,12 +177,12 @@ theorem pairS_pos {n : ℕ} (φ : Formula n) (p : List Bool) (j : Fin 2) :
       | leaf i => simp
       | and a b =>
           by_cases hj : j.val = 0
-          · simp [h, hj]; exact_mod_cast Formula.size_pos a
-          · simp [h, hj]; exact_mod_cast Formula.size_pos b
+          · simp [hj]; exact_mod_cast Formula.size_pos a
+          · simp [hj]; exact_mod_cast Formula.size_pos b
       | or a b =>
           by_cases hj : j.val = 0
-          · simp [h, hj]; exact_mod_cast Formula.size_pos a
-          · simp [h, hj]; exact_mod_cast Formula.size_pos b
+          · simp [hj]; exact_mod_cast Formula.size_pos a
+          · simp [hj]; exact_mod_cast Formula.size_pos b
 
 /-- Each `alpha` coefficient of a formula child-size pair is strictly positive. -/
 theorem alpha_pos_pair {n : ℕ} (φ : Formula n) (p : List Bool) (j : Fin 2) :
@@ -206,25 +203,25 @@ theorem gateCoeffT_pos {n : ℕ} (φ : Formula n) (x : Fin n → Bool) (p : List
     0 < gateCoeffT φ x p := by
   unfold gateCoeffT
   cases h : φ.gateAt p with
-  | none => simp [h]
+  | none => simp []
   | some gk =>
       cases gk with
       | and2 =>
           by_cases hin : φ.InTx x p
-          · simp [h, hin]; exact alpha_pos_pair φ p _
-          · simp [h, hin]; exact alphaNorm_pos_pair φ p
-      | or2 => simp [h]
+          · simp [hin]; exact alpha_pos_pair φ p _
+          · simp [hin]; exact alphaNorm_pos_pair φ p
+      | or2 => simp []
 
 /-- Every path gate factor is strictly positive. -/
 theorem gateCoeffK_pos {n : ℕ} (φ : Formula n) (p : List Bool) (c : Bool) :
     0 < gateCoeffK φ p c := by
   unfold gateCoeffK
   cases h : φ.gateAt p with
-  | none => simp [h]
+  | none => simp []
   | some gk =>
       cases gk with
-      | and2 => simp [h]
-      | or2 => simp [h]; exact alpha_pos_pair φ p _
+      | and2 => simp []
+      | or2 => simp []; exact alpha_pos_pair φ p _
 
 /-- Every combined input-vector gate factor is strictly positive. -/
 theorem gateCoeffV_pos {n : ℕ} (φ : Formula n) (x : Fin n → Bool) (γ p : List Bool) :
@@ -260,7 +257,7 @@ theorem targetCoeff_ne_zero {n : ℕ} (φ : Formula n) (x : Fin n → Bool) :
 theorem vecCoeff_ne_zero {n : ℕ} (φ : Formula n) (γ : Fin n → List Bool) (k : Fin n)
     (x : Fin n → Bool) (h : x k = false) : vecCoeff φ γ k x ≠ 0 := by
   unfold vecCoeff
-  rw [if_pos h]
+  rw [ite_eq_left h]
   exact Complex.ofReal_ne_zero.mpr (ne_of_gt (prod_coeffV_pos φ x (γ k)))
 
 /-- The complex coordinate vector equal to one at `u` and zero elsewhere. -/
@@ -282,7 +279,7 @@ theorem dot_basis {α : Type*} [Fintype α] [DecidableEq α] (u : α) (w : α �
 when that input bit is true, and a reciprocal-target coordinate vector is a negative witness
 for every maximal-false input. See [Reichardt2009]. -/
 theorem source_lemma_3_6 {n : ℕ} (φ : Formula n) (γ : Fin n → List Bool)
-    (hγ : IsLeafPath φ γ) :
+    (_hγ : IsLeafPath φ γ) :
     (∀ (u : φ.MaxFalse) (k : Fin n),
         SpanProgram.dot (basis u) ((Pphi φ γ).vec k) = 0 ↔ u.val k = true) ∧
       (∀ u : φ.MaxFalse,
@@ -309,7 +306,7 @@ theorem source_lemma_3_6 {n : ℕ} (φ : Formula n) (γ : Fin n → List Bool)
         unfold Pphi targetCoeff
         simp
       rw [Finset.sum_eq_single u]
-      · simp only [if_true]
+      · simp only [ite_true]
         rw [hstar, one_div, mul_inv_cancel₀ ht]
       · intro b _ hb
         simp [hb]
@@ -321,7 +318,7 @@ theorem source_lemma_3_6 {n : ℕ} (φ : Formula n) (γ : Fin n → List Bool)
         show vecCoeff φ γ b u.val = 0
         simp [vecCoeff, hb]
       rw [Finset.sum_eq_single u]
-      · simp only [if_true]
+      · simp only [ite_true]
         simp [hv]
       · intro v _ hvu
         simp [hvu]

@@ -30,7 +30,6 @@ distributions for intermediate amplitudes. The result is also exported through
 * [Brassard et al., Theorem 12][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

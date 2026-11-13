@@ -26,7 +26,6 @@ The result supplies a restricted interface to randomized quantum search [BoyerEt
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.QueryLowerBound
 

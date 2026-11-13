@@ -22,7 +22,6 @@ starting state. It specifies the binomial ratio for the squared marked overlap a
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 set_option autoImplicit false
 

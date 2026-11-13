@@ -32,7 +32,6 @@ The mathematical context is discussed in [MagniezZur2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 400000

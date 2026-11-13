@@ -24,7 +24,6 @@ provides a single proposition for the phase-estimation estimates associated with
 * [Harrow et al., 2009, Appendix A.3][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout

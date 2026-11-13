@@ -7,7 +7,7 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Real.Sqrt
+import Mathlib.Analysis.Real.Sqrt
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Qatlib.Papers.QLearningGeom03.MainResults.ImpatientCritical
 
@@ -34,10 +34,7 @@ These estimates supply the constrained optimality argument for impatient learnin
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 

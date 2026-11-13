@@ -26,7 +26,6 @@ full family word has error at most `m ^ 2 * ε`, while both the forward and reve
 * [Gilyén, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding

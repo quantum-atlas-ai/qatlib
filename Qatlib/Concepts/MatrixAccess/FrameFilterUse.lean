@@ -32,7 +32,6 @@ uses two Hadamards and a CNOT with reversed control and target, with zero oracle
 * [Gilyen et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -77,7 +76,6 @@ open Qatlib
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- Lifts a gate to `I ⊗ G` on a flagged register while preserving forward and backward oracle
 instructions. -/

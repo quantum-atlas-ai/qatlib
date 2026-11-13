@@ -23,8 +23,6 @@ framework is developed in [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.Spectral
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral

@@ -31,7 +31,6 @@ propagation setting of [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError

@@ -30,8 +30,6 @@ the trainability analysis of [RudolphEtAl2024].
 * [Rudolph et al., 2024][RudolphEtAl2024]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.Trainability23.HaarAverages
 
 open scoped BigOperators Matrix

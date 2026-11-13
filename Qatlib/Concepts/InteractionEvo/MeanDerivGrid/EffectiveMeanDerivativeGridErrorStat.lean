@@ -24,7 +24,6 @@ decomposition in the setting of [LowWiebe2018].
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.EffCosts
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid

@@ -32,7 +32,6 @@ collision-search memory model [Ambainis2007ElementDistinctness].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.RecordExtract
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

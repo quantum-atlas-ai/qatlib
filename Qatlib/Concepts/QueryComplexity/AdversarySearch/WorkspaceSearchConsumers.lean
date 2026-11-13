@@ -25,10 +25,7 @@ the same success threshold using at most π√N/4 queries.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

@@ -37,7 +37,6 @@ their stated hypotheses.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.RiskEstimation.PopulationGap
 
 set_option autoImplicit false

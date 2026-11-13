@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
+import Mathlib.Basic.Complex.Basic
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Data.Matrix.Block
@@ -42,7 +42,6 @@ scalar lies between `1 / sqrt 2` and one on the interpolation interval.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.AdiabaticQLS23.MainResults
 
@@ -91,6 +90,8 @@ def Smat : Matrix (Fin 2 × N) (Fin 2 × N) ℂ := block2 0 1 1 0
 /-- The block diagonal matrix with `A` in both diagonal positions. -/
 def DA (A : Matrix N N ℂ) : Matrix (Fin 2 × N) (Fin 2 × N) ℂ := block2 A 0 0 A
 
+omit [DecidableEq N] in
+
 /-- Expands the interpolating Hamiltonian into its two off-diagonal blocks. See [CostaEtAl2025]. -/
 theorem H_eq (f : ℝ) (A Q : Matrix N N ℂ) :
     H f A Q = block2 0 ((1 - f) • Q + f • (A * Q))
@@ -128,6 +129,8 @@ def Qb (b : N → ℂ) : Matrix N N ℂ := 1 - rankOne b
 /-- The matrix `1 - 2 • rankOne b`, which is a reflection when `b` is normalized. -/
 def reflection (b : N → ℂ) : Matrix N N ℂ := 1 - 2 • rankOne b
 
+omit [DecidableEq N] in
+
 /-- The outer-product matrix of a normalized vector is idempotent. -/
 theorem rankOne_mul_self {b : N → ℂ} (hb : ∑ i, star (b i) * b i = 1) :
     rankOne b * rankOne b = rankOne b := by
@@ -151,11 +154,15 @@ theorem Qb_mul_self {b : N → ℂ} (hb : ∑ i, star (b i) * b i = 1) :
         = 1 - rankOne b - rankOne b + rankOne b * rankOne b := by noncomm_ring
     _ = 1 - rankOne b := by rw [rankOne_mul_self hb]; abel
 
+omit [Fintype N] in
+
 /-- The complement matrix `Qb b` is Hermitian for every vector `b`. See [CostaEtAl2025]. -/
 theorem Qb_hermitian (b : N → ℂ) : (Qb b)ᴴ = Qb b := by
   unfold Qb rankOne
   ext i j
   simp [Matrix.conjTranspose_apply, star_sub, star_mul, Matrix.one_apply, eq_comm]
+
+omit [Fintype N] in
 
 /-- The average of the identity and `reflection b` equals `Qb b`. See [CostaEtAl2025]. -/
 theorem qGadget_compression (b : N → ℂ) :
@@ -182,6 +189,8 @@ def Hmat : Matrix (Fin 2) (Fin 2) ℂ :=
 /-- The selected matrix block `(1 - f) • 1 + f • A`. -/
 def selectBlock (f : ℝ) (A : Matrix N N ℂ) : Matrix N N ℂ :=
   (1 - f) • (1 : Matrix N N ℂ) + f • A
+
+omit [Fintype N] in
 
 /-- When `rotNorm f` is nonzero, the specified rotation and Hadamard coefficients produce
 `selectBlock f A` scaled by `1 / (Real.sqrt 2 * rotNorm f)`. See [CostaEtAl2025]. -/

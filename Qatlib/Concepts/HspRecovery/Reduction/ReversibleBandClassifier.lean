@@ -36,7 +36,6 @@ endpoint-comparison count.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 

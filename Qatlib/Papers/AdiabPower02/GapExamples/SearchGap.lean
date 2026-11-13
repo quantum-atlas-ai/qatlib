@@ -123,8 +123,6 @@ bound. See [VanDamMoscaVazirani2001].
 * [van Dam et al., 2001][VanDamMoscaVazirani2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 

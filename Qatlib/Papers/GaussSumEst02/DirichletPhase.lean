@@ -32,8 +32,6 @@ primitive representative, and bound the conductor of a product by a least common
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

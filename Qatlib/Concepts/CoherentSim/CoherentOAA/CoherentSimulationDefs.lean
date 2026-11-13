@@ -36,7 +36,6 @@ implementation properties.
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

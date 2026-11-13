@@ -48,7 +48,6 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- For nonnegative rational weights with positive total mass, ideal preparation has Born
 probabilities equal to the normalized weights. -/

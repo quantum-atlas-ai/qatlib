@@ -24,7 +24,6 @@ computation background.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -37,7 +36,6 @@ open scoped BigOperators Classical ComplexOrder ENNReal
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The maximum branch charge of a joint program, used as its finite-bit charge. -/
 noncomputable def jointFiniteBitCharge {S O X : Type} [Fintype S] [Fintype X] {D E : ℕ}

@@ -40,8 +40,6 @@ The development follows [DeckerDraismaWocjan2009].
 * [Decker et al., 2009][DeckerDraismaWocjan2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

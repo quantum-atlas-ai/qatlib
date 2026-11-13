@@ -30,8 +30,6 @@ from the resolution relation for a power-of-two dimension.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

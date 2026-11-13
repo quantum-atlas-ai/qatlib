@@ -33,7 +33,6 @@ sequential measurement probability, and the effect of discarding the coarse outc
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

@@ -35,7 +35,6 @@ measurement and correction operators.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.FiniteLocc.LOCCProgram

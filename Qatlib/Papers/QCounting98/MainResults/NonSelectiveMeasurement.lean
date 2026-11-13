@@ -27,7 +27,6 @@ linear phase-register gate, and total mass for a normalized input. The mathemati
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.QCounting98.MainResults.NonSelectiveMeasurement
@@ -37,6 +36,8 @@ open scoped BigOperators
 
 variable {S A : Type*} [Fintype S] [DecidableEq S] [Fintype A] [DecidableEq A]
 
+omit [DecidableEq S] [Fintype A] [DecidableEq A] in
+
 /-- Summing the measurement masses of all computational-basis slices of the first register gives
 the second-register marginal mass. See [BrassardHoyerTapp1998Counting]. -/
 theorem nonselective_computational_marginal (ψ : QState (S × A)) (T : Finset A) :
@@ -45,6 +46,8 @@ theorem nonselective_computational_marginal (ψ : QState (S × A)) (T : Finset A
   classical
   unfold MeasureProb BornProb
   rw [Finset.sum_product]
+
+omit [Fintype A] [DecidableEq A] in
 
 /-- A unitary change of measurement basis on the first register preserves the summed
 second-register event mass. See [BrassardHoyerTapp1998Counting]. -/

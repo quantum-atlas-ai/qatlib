@@ -31,7 +31,6 @@ The module identifies rounded integer coefficients with rounded gates and proves
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

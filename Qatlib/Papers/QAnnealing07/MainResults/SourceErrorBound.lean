@@ -15,8 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 # Error probability of the final measurement
 
 Source: R. D. Somma, S. Boixo, H. Barnum, *Quantum Simulated Annealing*,
-fixed arXiv:0712.1008v1 (6 Dec 2007). Local PDF `local archive
-tmp/prove/assets/0712.1008.pdf`, text twin `0712.1008.txt`.
+fixed arXiv:0712.1008v1 (6 Dec 2007).
 
 This file covers Eq. (19), p.4, and Eq. (A19), p.6.
 

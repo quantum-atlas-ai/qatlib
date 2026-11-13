@@ -50,7 +50,6 @@ cell-gate budgets. Standard quantum circuit conventions are discussed in [Nielse
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

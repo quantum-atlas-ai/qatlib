@@ -64,7 +64,6 @@ theorem mmwAverage_isDensityOperator (D T : ℕ) (M : ℕ → Operator D) (η : 
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- A real trace pairing with `mmwAverage` equals the sum of the corresponding pairings with
 individual Gibbs iterates divided by the number of rounds. -/

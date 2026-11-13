@@ -55,7 +55,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The uniform step size is nonnegative when `s ≤ t`. -/
 theorem inh_step_nonneg (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) :

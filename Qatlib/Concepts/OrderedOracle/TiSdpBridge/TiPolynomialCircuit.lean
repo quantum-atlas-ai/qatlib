@@ -38,7 +38,6 @@ conditions are imposed.
   formulations of ordered search.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -46,7 +45,6 @@ noncomputable section
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
-
 
 namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix

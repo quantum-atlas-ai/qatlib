@@ -28,8 +28,6 @@ bounds. `spliceShift` records translation of the longer string.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.HspRecovery.OpenSieve.Cor72

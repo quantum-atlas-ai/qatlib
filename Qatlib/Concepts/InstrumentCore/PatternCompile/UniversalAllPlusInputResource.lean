@@ -30,7 +30,6 @@ scheme of [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates Qatlib.Concepts.ClusterPatterns.PauliNetwork

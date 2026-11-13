@@ -28,8 +28,6 @@ These are interface-level forms of the search guarantees motivating [BoyerEtAl19
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

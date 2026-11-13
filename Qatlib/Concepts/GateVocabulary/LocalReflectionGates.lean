@@ -30,7 +30,6 @@ calculation. See [NielsenChuang2010] for background.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
@@ -48,8 +47,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- A local gate is either a single-qubit matrix assigned to a wire or a controlled-NOT
 specified by two wires. -/
@@ -92,18 +89,18 @@ theorem wireGate_apply (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) (x y : R
     Equiv.apply_symm_apply, tensorPauliWireGate, tensorPauliProduct, pauliProductDensity,
     Matrix.of_apply]
   by_cases hsupp : ∀ k : Fin n, k ≠ w → x k = y k
-  · rw [if_pos hsupp]
+  · rw [ite_eq_left hsupp]
     rw [Finset.prod_eq_single w]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       show relabelGate boolEquivFin2 U (boolEquivFin2 (x w)) (boolEquivFin2 (y w)) = _
       rw [hentry]
     · intro k _ hkw
       have hone : (1 : Operator 2) (boolEquivFin2 (x k)) (boolEquivFin2 (y k)) = 1 := by
-        rw [Matrix.one_apply, if_pos (congrArg _ (hsupp k hkw))]
-      rw [if_neg hkw, hone]
+        rw [Matrix.one_apply, ite_eq_left (congrArg _ (hsupp k hkw))]
+      rw [ite_eq_right hkw, hone]
     · intro h
       exact absurd (Finset.mem_univ w) h
-  · rw [if_neg hsupp]
+  · rw [ite_eq_right hsupp]
     obtain ⟨k, hkw, hne⟩ : ∃ k : Fin n, k ≠ w ∧ x k ≠ y k := by
       by_contra hc
       push Not at hc
@@ -111,8 +108,8 @@ theorem wireGate_apply (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) (x y : R
     have hbf : boolEquivFin2 (x k) ≠ boolEquivFin2 (y k) :=
       fun h => hne (boolEquivFin2.injective h)
     refine Finset.prod_eq_zero (Finset.mem_univ k) ?_
-    rw [if_neg hkw]
-    rw [Matrix.one_apply, if_neg hbf]
+    rw [ite_eq_right hkw]
+    rw [Matrix.one_apply, ite_eq_right hbf]
 
 /-- Relabeling a finite matrix by an equivalence preserves matrix multiplication. -/
 private theorem relabelGate_mul' {S T : Type*} [Fintype S] [DecidableEq S] [Fintype T]
@@ -190,7 +187,7 @@ theorem cnotUpdate_involutive (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
     simp only [Function.update_self]
     have hcne : Function.update x k (x k ^^ x c) c = x c := by
       simp only [Function.update]
-      rw [dif_neg hc]
+      rw [dite_eq_right hc]
     rw [hcne, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
   · simp [Function.update, hkt]
 
@@ -346,11 +343,11 @@ theorem applyGate_wireGate_ket (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) 
   funext y
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
   rw [Finset.sum_eq_single x (fun j _ hj => by
-        rw [if_neg hj, mul_zero])
+        rw [ite_eq_right hj, mul_zero])
       (fun h => absurd (Finset.mem_univ x) h)]
   rw [wireGate_apply]
   by_cases hsupp : ∀ k : Fin n, k ≠ w → y k = x k
-  · rw [if_pos hsupp]
+  · rw [ite_eq_left hsupp]
     cases hb : y w with
     | false =>
         have hy : y = Function.update x w false := by
@@ -365,7 +362,7 @@ theorem applyGate_wireGate_ket (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) 
         rw [hy]
         simp only [Qatlib.Foundations.PureStateMath.Ket, smul_eq_mul, Pi.smul_apply,
             Pi.add_apply]
-        rw [if_neg hune]
+        rw [ite_eq_right hune]
         simp
     | true =>
         have hy : y = Function.update x w true := by
@@ -380,9 +377,9 @@ theorem applyGate_wireGate_ket (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) 
         rw [hy]
         simp only [Qatlib.Foundations.PureStateMath.Ket, smul_eq_mul, Pi.smul_apply,
             Pi.add_apply]
-        rw [if_neg hune]
+        rw [ite_eq_right hune]
         simp
-  · rw [if_neg hsupp]
+  · rw [ite_eq_right hsupp]
     have hne : ∀ c : Bool, y ≠ Function.update x w c := by
       intro c hy
       subst hy
@@ -390,10 +387,10 @@ theorem applyGate_wireGate_ket (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) 
         rw [Function.update_of_ne hk])
     have h0 : Qatlib.Foundations.PureStateMath.Ket (Function.update x w false) y = 0 := by
       simp only [Qatlib.Foundations.PureStateMath.Ket]
-      rw [if_neg (hne false)]
+      rw [ite_eq_right (hne false)]
     have h1 : Qatlib.Foundations.PureStateMath.Ket (Function.update x w true) y = 0 := by
       simp only [Qatlib.Foundations.PureStateMath.Ket]
-      rw [if_neg (hne true)]
+      rw [ite_eq_right (hne true)]
     simp [h0, h1]
 
 /-- Applying a matrix gate preserves addition of states. -/
@@ -457,7 +454,7 @@ theorem tofEmb_emb {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t) (hb
 
 /-- Map wire `a` to zero, wire `b` to one when distinct from `a`, and all remaining wires to
 two. -/
-def tofCoreWire {n : ℕ} (a b t : Fin n) (w : Fin n) : Fin 3 :=
+def tofCoreWire {n : ℕ} (a b : Fin n) (_t : Fin n) (w : Fin n) : Fin 3 :=
   if w = a then 0 else if w = b then 1 else 2
 
 /-- Translate the wire labels of a local gate to the three-wire core using `tofCoreWire`. -/
@@ -710,12 +707,12 @@ theorem applyGate_gateMatrix_fibre {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (ha
                 (u (tofCoreWire a b t t0) ^^ u (tofCoreWire a b t c0))) x)
               = Qatlib.Foundations.PureStateMath.Ket (tofEmb a b t (Function.update u (tofCoreWire a b t t0)
                 (u (tofCoreWire a b t t0) ^^ u (tofCoreWire a b t c0))) x)
-          rw [if_pos rfl, one_smul]
+          rw [ite_eq_left rfl, one_smul]
         · intro v _ hv
           show (if v = Function.update u (tofCoreWire a b t t0)
                 (u (tofCoreWire a b t t0) ^^ u (tofCoreWire a b t c0)) then (1:ℂ) else 0)
               • Qatlib.Foundations.PureStateMath.Ket (tofEmb a b t v x) = 0
-          rw [if_neg hv, zero_smul]
+          rw [ite_eq_right hv, zero_smul]
         · intro h
           exact absurd (Finset.mem_univ _) h
       rw [hsplit]
@@ -927,7 +924,6 @@ private theorem exp_chain6 (c : ℂ) :
   simp only [exp_pi4_pos_sq, Complex.I_mul_I, neg_one_mul]
 
 set_option maxHeartbeats 2000000 in
-set_option linter.unusedSimpArgs false in
 
 /-- The fifteen-gate word on the three-wire core sends each basis ket to its Toffoli-updated
 basis ket. -/
@@ -947,25 +943,23 @@ private theorem toffoli_core_run (u : Reg 3) :
       reflectionApplyGate_add, reflectionApplyGate_smul, applyGate_one,
       Hadamard, tGate, tGateAdj, Rz, update_cons_zero, update_cons_one,
       update_cons_two, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
-      Matrix.cons_val_two, Matrix.diagonal_apply, inv_sqrt_two_mul,
-      smul_smul, smul_add, add_smul, zero_smul, add_zero, zero_add,
+      Matrix.cons_val_two, Matrix.diagonal_apply,
+      smul_smul, smul_add, zero_smul, add_zero, zero_add,
       Matrix.head_cons, Matrix.tail_cons,
-      Bool.xor_self, Bool.xor_false, Bool.false_xor, Bool.true_xor, Bool.xor_true,
-      Bool.and_self, Bool.and_true, Bool.true_and, Bool.and_false, Bool.false_and,
-      if_true, if_false, Bool.false_eq_true, Bool.true_eq_false]
+      Bool.xor_self, Bool.xor_false, Bool.xor_true,
+      Bool.and_self, Bool.and_true, Bool.and_false,
+      ite_true, ite_false, Bool.false_eq_true, Bool.true_eq_false]
     refine qstate_eq_reg3 ?_
     intro b0 b1 b2
     rcases b0 <;> rcases b1 <;> rcases b2 <;>
       simp only [Qatlib.Foundations.PureStateMath.Ket, Pi.smul_apply, Pi.add_apply, smul_eq_mul, Matrix.of_apply,
-        Bool.false_and, Bool.true_and, Bool.and_false, Bool.and_true, Bool.false_eq_true,
-        Bool.true_eq_false, if_true, if_false, one_mul, mul_one, zero_mul, mul_zero,
-        add_zero, zero_add] <;>
+        Bool.and_false, Bool.and_true, Bool.false_eq_true,
+        ite_true, ite_false, one_mul, mul_one] <;>
       norm_num only [Complex.ofReal_div, Complex.ofReal_neg, neg_mul] <;>
-      simp only [exp_chain1, exp_chain2, exp_chain3, exp_chain4, exp_chain5,
-        exp_chain6, exp_pi4_pos_mul_neg, inv_sqrt_two_mul, mul_neg] <;>
+      simp only [inv_sqrt_two_mul, mul_neg] <;>
       norm_num [inv_sqrt_two_mul]
   all_goals
-    simp only [exp_chain1, exp_chain2, exp_chain3, exp_chain4, exp_chain5,
+    simp only [exp_chain1, exp_chain2, exp_chain5,
       exp_chain6, exp_pi4_pos_mul_neg, inv_sqrt_two_mul, mul_neg]
     norm_num [inv_sqrt_two_mul]
   all_goals
@@ -1057,9 +1051,9 @@ theorem local_toffoli_fifteen_exact (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (h
   have hinit : ∑ u : Reg 3,
       (if u = tofRestr a b t x then (1:ℂ) else 0) • Qatlib.Foundations.PureStateMath.Ket (tofEmb a b t u x) = Qatlib.Foundations.PureStateMath.Ket x := by
     rw [Finset.sum_eq_single (tofRestr a b t x)]
-    · rw [if_pos rfl, one_smul, tofEmb_restrict]
+    · rw [ite_eq_left rfl, one_smul, tofEmb_restrict]
     · intro u _ hu
-      rw [if_neg hu, zero_smul]
+      rw [ite_eq_right hu, zero_smul]
     · intro h
       exact absurd (Finset.mem_univ _) h
   have hf := run_reflectionCompile_fibre a b t hab hat hbt (toffoliLocalSteps a b t)
@@ -1075,9 +1069,9 @@ theorem local_toffoli_fifteen_exact (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (h
             (tofRestr a b t x) := by
     intro u
     rw [Finset.sum_eq_single (tofRestr a b t x)]
-    · rw [if_pos rfl, mul_one]
+    · rw [ite_eq_left rfl, mul_one]
     · intro v _ hv
-      rw [if_neg hv, mul_zero]
+      rw [ite_eq_right hv, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   rw [hf, toffoli_map_core a b t hab hat hbt, toffoli_core_matrix]
@@ -1089,12 +1083,12 @@ theorem local_toffoli_fifteen_exact (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (h
       (Function.update (tofRestr a b t x) 2
         ((tofRestr a b t x) 2 ^^ ((tofRestr a b t x) 0 && (tofRestr a b t x) 1)))
       (tofRestr a b t x) = 1 := by
-    simp only [permMatrix, Matrix.of_apply, if_true]
+    simp only [permMatrix, Matrix.of_apply, ite_true]
   · rw [hp1, one_smul, tofEmb_target a b t hab hat hbt]
   · intro u _ hu
     have h0 : permMatrix (fun w : Reg 3 => Function.update w 2 (w 2 ^^ (w 0 && w 1))) u
         (tofRestr a b t x) = 0 := by
-      simp only [permMatrix, Matrix.of_apply, if_neg hu]
+      simp only [permMatrix, Matrix.of_apply, ite_eq_right hu]
     rw [h0, zero_smul]
   · intro h
     exact absurd (Finset.mem_univ _) h

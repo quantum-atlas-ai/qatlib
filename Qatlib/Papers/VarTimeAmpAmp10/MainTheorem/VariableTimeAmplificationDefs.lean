@@ -33,7 +33,6 @@ open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -41,7 +40,6 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.MainTheorem
 
 open Matrix Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The absolute sine of `n * θ` is at most `n` times the absolute sine of `θ`. -/
 theorem abs_sin_nsmul_le (n : ℕ) (θ : ℝ) :

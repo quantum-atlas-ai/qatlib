@@ -24,7 +24,6 @@ compressed eigenvalues. Related mathematical background is given in [LowSu2026].
 * [Low and Su, 2026, Proposition 18 and Corollary 19][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
@@ -41,8 +40,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 noncomputable section
 
 namespace Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
@@ -369,7 +366,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     rw [hs_inner, hSHS, Matrix.one_apply]
   have hs_norm : ∀ i : I, Normalized (fun k => S k i) := by
     intro i
-    rw [normalized_iff_inner_self, hs_orth i i, if_pos rfl]
+    rw [normalized_iff_inner_self, hs_orth i i, ite_eq_left rfl]
 
   have hv_eq : ∀ i : I, v i = G *ᵥ (fun k => S k i) := fun i => rfl
   have hv_inner : ∀ i j : I, Qatlib.Foundations.PureStateMath.Inner (v i) (v j) = if i = j then (1 : ℂ) else 0 := by
@@ -382,7 +379,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         (hs_norm i)
   have hv_self : ∀ i : I, Qatlib.Foundations.PureStateMath.Inner (v i) (v i) = 1 := by
     intro i
-    rw [hv_inner i i, if_pos rfl]
+    rw [hv_inner i i, ite_eq_left rfl]
 
   have hGUv : ∀ j : I, Gᴴ *ᵥ (U *ᵥ v j) = (lam j : ℂ) • (fun k => S k j) := by
     intro j
@@ -465,7 +462,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     have hkey : Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i) = Qatlib.Foundations.PureStateMath.Inner (fun k => S k i) (Gᴴ *ᵥ (U *ᵥ v i)) := by
       conv_lhs => rw [hv_eq i]
       rw [inner_mulVec_adj]
-    rw [hkey, hGUv, inner_smul_r, hs_orth i i, if_pos rfl, mul_one]
+    rw [hkey, hGUv, inner_smul_r, hs_orth i i, ite_eq_left rfl, mul_one]
   have hlam_le : ∀ i : I, |lam i| ≤ 1 := by
     intro i
     have hcs : ‖Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i)‖ ≤ normVec (v i) * normVec (U *ᵥ v i) :=
@@ -521,7 +518,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     have hkey : Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i) = Qatlib.Foundations.PureStateMath.Inner (fun k => S k i) (Gᴴ *ᵥ (U *ᵥ v i)) := by
       conv_lhs => rw [hv_eq i]
       rw [inner_mulVec_adj]
-    rw [hkey, hGUv, inner_smul_r, hs_orth i i, if_pos rfl, mul_one]
+    rw [hkey, hGUv, inner_smul_r, hs_orth i i, ite_eq_left rfl, mul_one]
   have hlam_le : ∀ i : I, |lam i| ≤ 1 := by
     intro i
     have hcs : ‖Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i)‖ ≤ normVec (v i) * normVec (U *ᵥ v i) :=
@@ -688,7 +685,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     have hkey : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i - (lam i : ℂ) • v i) (U *ᵥ v i - (lam i : ℂ) • v i)
         = ((1 - (lam i) ^ 2 : ℝ) : ℂ) := by
       simp only [inner_sub_l, inner_sub_r, inner_smul_r, inner_smul_l]
-      rw [hUU_in i i, if_pos rfl, hUv i i, if_pos rfl, hvU i i, if_pos rfl, hv_self]
+      rw [hUU_in i i, ite_eq_left rfl, hUv i i, ite_eq_left rfl, hvU i i, ite_eq_left rfl, hv_self]
       simp only [star_ofReal_cast]
       push_cast
       ring
@@ -740,7 +737,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         cases neg <;> simp
       rw [hif]
       by_cases hneg : neg = true
-      · rw [if_pos hneg, hkey]
+      · rw [ite_eq_left hneg, hkey]
         have h1 : star ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by
           rw [RCLike.star_def, Complex.conj_inv, Complex.conj_ofReal]
         rw [h1]
@@ -764,7 +761,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
           push_cast
           field_simp
         exact h4
-      · rw [if_neg hneg, hkey]
+      · rw [ite_eq_right hneg, hkey]
         have h1 : star ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by
           rw [RCLike.star_def, Complex.conj_inv, Complex.conj_ofReal]
         rw [h1]
@@ -818,7 +815,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         module
       cases neg with
       | false =>
-        rw [if_neg (by simp : ¬ (false = true)), if_neg (by simp : ¬ (false = true))]
+        rw [ite_eq_right (by simp : ¬ (false = true)), ite_eq_right (by simp : ¬ (false = true))]
         have hcore : walk G U *ᵥ (v i + Complex.I • e i)
             = Complex.exp (Complex.I * (Real.arccos (lam i) : ℂ)) • (v i + Complex.I • e i) := by
           rw [Matrix.mulVec_add, Matrix.mulVec_smul, hwalkv, hwalke]
@@ -837,7 +834,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
             rw [hsreal2]
             ring
           rw [hexp]
-          simp only [smul_add, smul_sub, smul_smul]
+          simp only [smul_add, smul_smul]
           have hI : ((↑(lam i) + Complex.I * ↑(Real.sqrt (1 - (lam i) ^ 2))) * Complex.I : ℂ)
               = -(((Real.sqrt (1 - (lam i) ^ 2) : ℝ) : ℂ)) + Complex.I * ((lam i : ℂ)) := by
             rw [add_mul]
@@ -849,7 +846,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         rw [hcore]
         module
       | true =>
-        rw [if_pos (by simp : (true = true)), if_pos (by simp : (true = true))]
+        rw [ite_eq_left (by simp : (true = true)), ite_eq_left (by simp : (true = true))]
         have hcore : walk G U *ᵥ (v i + (-Complex.I) • e i)
             = Complex.exp (Complex.I * (-((Real.arccos (lam i) : ℝ) : ℂ)))
                 • (v i + (-Complex.I) • e i) := by
@@ -872,7 +869,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
             rw [hsreal2, Complex.ofReal_neg]
             ring
           rw [hexp]
-          simp only [smul_add, smul_sub, smul_smul]
+          simp only [smul_add, smul_smul]
           have hI : ((↑(lam i) - Complex.I * ↑(Real.sqrt (1 - (lam i) ^ 2))) * -Complex.I : ℂ)
               = -(((Real.sqrt (1 - (lam i) ^ 2) : ℝ) : ℂ)) - Complex.I * ((lam i : ℂ)) := by
             rw [mul_neg, sub_mul]
@@ -898,8 +895,8 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     refine Finset.sum_congr rfl fun i _ => ?_
     rw [Matrix.add_mulVec]
     by_cases hlt : abs (lam i) < 1
-    · simp only [if_pos hlt, pureDensity_mulVec]
-    · simp only [if_neg hlt, pureDensity_mulVec, one_smul, Matrix.zero_mulVec, add_zero]
+    · simp only [ite_eq_left hlt, pureDensity_mulVec]
+    · simp only [ite_eq_right hlt, pureDensity_mulVec, Matrix.zero_mulVec, add_zero]
 
   have he_cross : ∀ i j : I, i ≠ j → Qatlib.Foundations.PureStateMath.Inner (e i) (e j) = 0 := by
     intro i j hij
@@ -909,8 +906,8 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         have hkey : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i - (lam i : ℂ) • v i)
             (U *ᵥ v j - (lam j : ℂ) • v j) = 0 := by
           simp only [inner_sub_l, inner_sub_r, inner_smul_r, inner_smul_l]
-          rw [hUU_in i j, if_neg hij, hUv i j, if_neg hij, hvU i j, if_neg hij,
-            hv_inner i j, if_neg hij]
+          rw [hUU_in i j, ite_eq_right hij, hUv i j, ite_eq_right hij, hvU i j, ite_eq_right hij,
+            hv_inner i j, ite_eq_right hij]
           simp
         rw [hkey]
         ring
@@ -926,12 +923,12 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     intro i j
     by_cases hij : i = j
     · subst hij
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       by_cases hlt : abs (lam i) < 1
-      · rw [if_pos hlt, he_norm i hlt]
-      · rw [if_neg hlt, he_zero_of_ge i hlt, inner_apply]
+      · rw [ite_eq_left hlt, he_norm i hlt]
+      · rw [ite_eq_right hlt, he_zero_of_ge i hlt, inner_apply]
         simp
-    · rw [if_neg hij, he_cross i j hij]
+    · rw [ite_eq_right hij, he_cross i j hij]
   have he_ve : ∀ i j : I, Qatlib.Foundations.PureStateMath.Inner (v i) (e j) = 0 := by
     intro i j
     by_cases hlt : abs (lam j) < 1
@@ -956,16 +953,16 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     rw [Finset.sum_eq_single i]
     · rw [hv_self]
       by_cases hlt : abs (lam i) < 1
-      · rw [if_pos hlt, he_ve' i i]
+      · rw [ite_eq_left hlt, he_ve' i i]
         module
-      · rw [if_neg hlt]
+      · rw [ite_eq_right hlt]
         module
     · intro b _ hb
-      rw [hv_inner b i, if_neg hb]
+      rw [hv_inner b i, ite_eq_right hb]
       by_cases hlt : abs (lam b) < 1
-      · rw [if_pos hlt, he_ve' b i]
+      · rw [ite_eq_left hlt, he_ve' b i]
         module
-      · rw [if_neg hlt]
+      · rw [ite_eq_right hlt]
         module
     · intro h
       exact absurd (Finset.mem_univ i) h
@@ -973,14 +970,14 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     intro i hlt
     rw [hT_mulVec]
     rw [Finset.sum_eq_single i]
-    · rw [he_ve i i, he_norm i hlt, if_pos hlt]
+    · rw [he_ve i i, he_norm i hlt, ite_eq_left hlt]
       module
     · intro b _ hb
       rw [he_ve b i]
       by_cases hltb : abs (lam b) < 1
-      · rw [if_pos hltb, he_cross b i hb]
+      · rw [ite_eq_left hltb, he_cross b i hb]
         module
-      · rw [if_neg hltb]
+      · rw [ite_eq_right hltb]
         module
     · intro h
       exact absurd (Finset.mem_univ i) h
@@ -997,15 +994,15 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (v j) = 0 ∧ Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (U *ᵥ v j) = 0 := by
     intro i j hij
     have h1 : Qatlib.Foundations.PureStateMath.Inner (v i) (v j) = 0 := by
-      rw [hv_inner i j, if_neg hij]
+      rw [hv_inner i j, ite_eq_right hij]
     have h2 : Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v j) = 0 := by
-      rw [hvU i j, if_neg hij]
+      rw [hvU i j, ite_eq_right hij]
       ring
     have h3 : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (v j) = 0 := by
-      rw [hUv i j, if_neg hij]
+      rw [hUv i j, ite_eq_right hij]
       ring
     have h4 : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (U *ᵥ v j) = 0 := by
-      rw [hUU_in i j, if_neg hij]
+      rw [hUU_in i j, ite_eq_right hij]
     exact ⟨h1, h2, h3, h4⟩
   have hT_star : star T = T := by
     rw [hT_eq]
@@ -1016,10 +1013,10 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     refine Finset.sum_congr rfl fun i _ => ?_
     have hA : star (pureDensity (v i)) = pureDensity (v i) := pureDensity_star _
     by_cases hlt : abs (lam i) < 1
-    · rw [if_pos hlt]
+    · rw [ite_eq_left hlt]
       show star (pureDensity (v i) + pureDensity (e i)) = _
       rw [star_add, hA, pureDensity_star]
-    · rw [if_neg hlt]
+    · rw [ite_eq_right hlt]
       show star (pureDensity (v i) + (0 : Matrix H H ℂ)) = _
       rw [add_zero, hA]
   have hTadj : Matrix.conjTranspose T = T := by
@@ -1076,7 +1073,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
       intro y hy
       rw [inner_rev', inner_mulVec_adj, hy, inner_rev', star_star]
     by_cases hlt : abs (lam i) < 1
-    · rw [if_pos hlt, if_pos hlt]
+    · rw [ite_eq_left hlt, ite_eq_left hlt]
       have hsplit : ∀ (a b : ℂ), U *ᵥ (a • v i + b • e i)
           = a • (U *ᵥ v i) + b • (U *ᵥ e i) := by
         intro a b
@@ -1099,7 +1096,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
       rw [hR1, hR2]
       simp only [smul_add, smul_sub, smul_smul]
       module
-    · rw [if_neg hlt, if_neg hlt]
+    · rw [ite_eq_right hlt, ite_eq_right hlt]
       have hsplit2 : ∀ (a : ℂ), U *ᵥ (a • v i + (0 : QState H))
           = a • (U *ᵥ v i) := by
         intro a
@@ -1117,12 +1114,12 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         have hw : U *ᵥ v i - (lam i : ℂ) • v i = 0 := by
           have hInner : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i - (lam i : ℂ) • v i) (U *ᵥ v i - (lam i : ℂ) • v i) = 0 := by
             have hUU' : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (U *ᵥ v i) = 1 := by
-              rw [hUU_in i i, if_pos rfl]
+              rw [hUU_in i i, ite_eq_left rfl]
             have hUV' : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (v i) = (lam i : ℂ) := by
-              rw [inner_rev', hvU i i, if_pos rfl, mul_one]
+              rw [inner_rev', hvU i i, ite_eq_left rfl, mul_one]
               exact star_ofReal_cast _
             have hVV : Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i) = (lam i : ℂ) := by
-              rw [hvU i i, if_pos rfl, mul_one]
+              rw [hvU i i, ite_eq_left rfl, mul_one]
             simp only [inner_sub_l, inner_sub_r, inner_smul_r, inner_smul_l]
             rw [hUU', hUV', hVV, hv_self i]
             have hs1 : star ((lam i : ℂ)) = (lam i : ℂ) := star_ofReal_cast _
@@ -1152,13 +1149,13 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
         rw [mul_pureDensity_apply, hGGv i]
         rfl
       by_cases hlt : abs (lam i) < 1
-      · rw [if_pos hlt]
+      · rw [ite_eq_left hlt]
         have heG : (G * Gᴴ) * pureDensity (e i) = 0 := by
           ext a b
           rw [mul_pureDensity_apply, hGGe1 i]
           simp
         rw [hvG, heG, add_zero]
-      · rw [if_neg hlt, Matrix.mul_zero, add_zero]
+      · rw [ite_eq_right hlt, Matrix.mul_zero, add_zero]
         exact hvG
     rw [Finset.sum_congr rfl fun i _ => hterm i, hsum]
   have h5 : G * Gᴴ * (1 - T) = 0 := by
@@ -1219,12 +1216,12 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
       have hw : U *ᵥ v i - (lam i : ℂ) • v i = 0 := by
         have hInner : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i - (lam i : ℂ) • v i) (U *ᵥ v i - (lam i : ℂ) • v i) = 0 := by
           have hUU' : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (U *ᵥ v i) = 1 := by
-            rw [hUU_in i i, if_pos rfl]
+            rw [hUU_in i i, ite_eq_left rfl]
           have hUV' : Qatlib.Foundations.PureStateMath.Inner (U *ᵥ v i) (v i) = (lam i : ℂ) := by
-            rw [inner_rev', hvU i i, if_pos rfl, mul_one]
+            rw [inner_rev', hvU i i, ite_eq_left rfl, mul_one]
             exact star_ofReal_cast _
           have hVV : Qatlib.Foundations.PureStateMath.Inner (v i) (U *ᵥ v i) = (lam i : ℂ) := by
-            rw [hvU i i, if_pos rfl, mul_one]
+            rw [hvU i i, ite_eq_left rfl, mul_one]
           have hs1 : star ((lam i : ℂ)) = (lam i : ℂ) := star_ofReal_cast _
           have h2c : ((lam i : ℂ) * (lam i : ℂ) : ℂ) = 1 := by
             have h2' : (lam i * lam i : ℝ) = 1 := by rw [← pow_two]; exact h2
@@ -1270,7 +1267,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
           + (if abs (lam i) < 1 then (Qatlib.Foundations.PureStateMath.Inner (e i) ψ) • e i else 0) := by
         intro i
         by_cases hlt : abs (lam i) < 1
-        · rw [if_pos hlt, hUv1 i hlt, smul_add, smul_smul, smul_smul]
+        · rw [ite_eq_left hlt, hUv1 i hlt, smul_add, smul_smul, smul_smul]
           have hs0 : (0 : ℝ) < Real.sqrt (1 - (lam i) ^ 2) := by
             apply Real.sqrt_pos.mpr
             have h2 := abs_lt.mp hlt
@@ -1278,13 +1275,13 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
           have hsne : (Real.sqrt (1 - (lam i) ^ 2) : ℝ) ≠ 0 := ne_of_gt hs0
           have hds : d i * ((Real.sqrt (1 - (lam i) ^ 2) : ℝ) : ℂ)
               = (Qatlib.Foundations.PureStateMath.Inner (e i) ψ) := by
-            simp only [d, if_pos hlt]
+            simp only [d, ite_eq_left hlt]
             rw [mul_assoc, inv_mul_cancel₀, mul_one]
             exact_mod_cast hsne
           rw [hds]
-        · rw [if_neg hlt]
+        · rw [ite_eq_right hlt]
           have hd : d i = 0 := by
-            simp only [d, if_neg hlt, zero_mul]
+            simp only [d, ite_eq_right hlt, zero_mul]
           have hs : ((Real.sqrt (1 - (lam i) ^ 2) : ℝ) : ℂ) = 0 := by
             have h1 : abs (lam i) = 1 := by
               have := hlam_le i
@@ -1415,9 +1412,9 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
       intro i _
       rw [hIv, hIe]
       by_cases hlt : abs (lam i) < 1
-      · rw [if_pos hlt]
+      · rw [ite_eq_left hlt]
         simp
-      · rw [if_neg hlt]
+      · rw [ite_eq_right hlt]
         simp
 
   have h8 : ∀ i : I, abs (lam i) < 1 →
@@ -1534,7 +1531,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     · have hlt : ¬ abs (lam i) < 1 := by
         intro h
         exact absurd h (by rw [h1]; exact lt_irrefl (1:ℝ))
-      rw [if_neg hlt, Matrix.mul_zero, add_zero, if_pos h1]
+      rw [ite_eq_right hlt, Matrix.mul_zero, add_zero, ite_eq_left h1]
       have hs : (Real.sqrt (1 - (lam i) ^ 2) : ℝ) = 0 := by
         have h2 : (lam i) ^ 2 = 1 := by
           have : (abs (lam i)) ^ 2 = 1 := by rw [h1, one_pow]
@@ -1548,7 +1545,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
     · have hlt : abs (lam i) < 1 := by
         have h2 : abs (lam i) ≤ 1 := hlam_le i
         exact lt_of_le_of_ne h2 h1
-      rw [if_pos hlt, if_neg h1]
+      rw [ite_eq_left hlt, ite_eq_right h1]
       show (walk G U * pureDensity (v i)) a b + (walk G U * pureDensity (e i)) a b = _
       rw [mul_pureDensity_apply, mul_pureDensity_apply]
       rw [hwalkv i, hwalke i]
@@ -1563,7 +1560,7 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
               * pureDensity (walkBranch U (v i) (lam i) true) a b := by
         simp [smul_eq_mul]
       rw [hR, hwb_apply i false a b, hwb_apply i true a b]
-      simp only [if_neg (by simp : ¬ (false = true)), if_true]
+      simp only [ite_eq_right (by simp : ¬ (false = true)), ite_true]
       have hsI : star (Complex.I) = -Complex.I := by
         rw [RCLike.star_def, Complex.conj_I]
       have hsI_neg : star (-Complex.I) = Complex.I := by
@@ -1576,5 +1573,4 @@ theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution :
       ring_nf at hcore ⊢
       rw [show (Complex.I ^ 2 : ℂ) = -1 by rw [pow_two, Complex.I_mul_I]] at hcore ⊢
       ring_nf at hcore ⊢
-      try exact hcore.symm
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩

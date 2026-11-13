@@ -27,7 +27,6 @@ runtime-scale, and Simon-exponent facts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter
@@ -35,7 +34,6 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
 open Qatlib.Papers.LinearSystems09.InputModel
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.LinearSystems09.InputModel.QlsHhl
 

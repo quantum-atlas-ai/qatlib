@@ -28,7 +28,6 @@ This uniform construction supports the CBMD algorithms associated with [WangEtAl
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

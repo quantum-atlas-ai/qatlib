@@ -31,7 +31,6 @@ estimate for the normalized-quadrature sampling regime of [ZhangEtAl2026].
 - [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Filter

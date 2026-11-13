@@ -24,8 +24,6 @@ and implements a single marked basis target. This development supports the treat
 * [Farhi and Gutmann, 1998][FarhiGutmann1998a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.QueryWordCore.Circuit

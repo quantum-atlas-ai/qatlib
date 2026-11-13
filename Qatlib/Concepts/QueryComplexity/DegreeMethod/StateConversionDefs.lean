@@ -33,7 +33,6 @@ solution when one exists and otherwise returns the identity.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -28,7 +28,6 @@ These results express one-qubit measurement universality in the cluster scheme o
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.InstrumentCore.PatternCompile
 open Qatlib.Concepts.ClusterPatterns.AdaptiveEuler

@@ -28,7 +28,6 @@ quadratic-estimator variance setting is developed in [HuangKuengPreskill2020].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate

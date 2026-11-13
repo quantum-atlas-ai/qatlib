@@ -23,7 +23,6 @@ p`, and exponential norm inflation; this formulation has no additional numerator
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

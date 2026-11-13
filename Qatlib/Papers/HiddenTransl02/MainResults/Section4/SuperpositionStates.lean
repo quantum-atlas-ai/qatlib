@@ -32,7 +32,6 @@ open Qatlib.Foundations.PureStateMath
 open scoped Classical
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -53,6 +52,8 @@ section Subgroup
 
 variable (H : Subgroup G) [Fintype H]
 
+omit [Fintype G] [DecidableEq G] in
+
 /-- The uniform amplitude for the cardinality of a finite subgroup is nonzero. -/
 theorem uniformAmplitude_ne_zero : uniformAmplitude (Fintype.card H) ≠ 0 := by
   have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
@@ -61,6 +62,8 @@ theorem uniformAmplitude_ne_zero : uniformAmplitude (Fintype.card H) ≠ 0 := by
     exact_mod_cast ne_of_gt hsqrt
   unfold uniformAmplitude
   exact inv_ne_zero hne
+
+omit [Fintype G] [DecidableEq G] in
 
 /-- The norm of the uniform amplitude for `H` is `1 / sqrt |H|`. -/
 theorem norm_uniformAmplitude :
@@ -77,9 +80,9 @@ theorem subgroupState_ne_zero_iff {x : G} :
   constructor
   · intro h
     by_contra hx
-    exact h (if_neg hx)
+    exact h (ite_eq_right hx)
   · intro hx
-    rw [if_pos hx]
+    rw [ite_eq_left hx]
     exact uniformAmplitude_ne_zero H
 
 /-- The uniform subgroup state is normalized, as required for subgroup superposition in
@@ -92,9 +95,9 @@ theorem normalized_subgroupState : Normalized (subgroupState H) := by
     intro x
     unfold subgroupState
     by_cases hx : x ∈ H
-    · rw [if_pos hx, if_pos hx, norm_uniformAmplitude H, inv_pow,
+    · rw [ite_eq_left hx, ite_eq_left hx, norm_uniformAmplitude H, inv_pow,
         Real.sq_sqrt (show (0:ℝ) ≤ (Fintype.card H : ℝ) by positivity)]
-    · rw [if_neg hx, if_neg hx, norm_zero, zero_pow (by norm_num)]
+    · rw [ite_eq_right hx, ite_eq_right hx, norm_zero, zero_pow (by norm_num)]
   unfold Normalized
   simp only [hstep]
   rw [← Finset.sum_filter, Finset.sum_const, nsmul_eq_mul]
@@ -109,23 +112,27 @@ theorem normalized_subgroupState : Normalized (subgroupState H) := by
   rw [hcard']
   field_simp
 
+omit [Fintype G] [DecidableEq G] in
+
 /-- Left multiplication by an element of `H` preserves the subgroup-state amplitude. -/
 theorem subgroupState_mul_left {h x : G} (hh : h ∈ H) :
     subgroupState H (h * x) = subgroupState H x := by
   unfold subgroupState
   by_cases hx : x ∈ H
-  · rw [if_pos (H.mul_mem hh hx), if_pos hx]
-  · rw [if_neg (fun hmem => hx ?_), if_neg hx]
+  · rw [ite_eq_left (H.mul_mem hh hx), ite_eq_left hx]
+  · rw [ite_eq_right (fun hmem => hx ?_), ite_eq_right hx]
     have : h⁻¹ * (h * x) ∈ H := H.mul_mem (H.inv_mem hh) hmem
     simpa using this
+
+omit [Fintype G] [DecidableEq G] in
 
 /-- Right multiplication by an element of `H` preserves the subgroup-state amplitude. -/
 theorem subgroupState_mul_right {h x : G} (hh : h ∈ H) :
     subgroupState H (x * h) = subgroupState H x := by
   unfold subgroupState
   by_cases hx : x ∈ H
-  · rw [if_pos (H.mul_mem hx hh), if_pos hx]
-  · rw [if_neg (fun hmem => hx ?_), if_neg hx]
+  · rw [ite_eq_left (H.mul_mem hx hh), ite_eq_left hx]
+  · rw [ite_eq_right (fun hmem => hx ?_), ite_eq_right hx]
     have : (x * h) * h⁻¹ ∈ H := H.mul_mem hmem (H.inv_mem hh)
     simpa using this
 
@@ -142,9 +149,9 @@ theorem cosetState_ne_zero_iff (u : G) {x : G} :
   constructor
   · intro h
     by_contra hx
-    exact h (if_neg hx)
+    exact h (ite_eq_right hx)
   · intro hx
-    rw [if_pos hx]
+    rw [ite_eq_left hx]
     exact uniformAmplitude_ne_zero H
 
 /-- The uniform state on the left coset represented by `u` is normalized. -/
@@ -155,9 +162,9 @@ theorem normalized_cosetState (u : G) : Normalized (cosetState u H) := by
     intro x
     unfold cosetState
     by_cases hx : u⁻¹ * x ∈ H
-    · rw [if_pos hx, if_pos hx, norm_uniformAmplitude H, inv_pow,
+    · rw [ite_eq_left hx, ite_eq_left hx, norm_uniformAmplitude H, inv_pow,
         Real.sq_sqrt (show (0:ℝ) ≤ (Fintype.card H : ℝ) by positivity)]
-    · rw [if_neg hx, if_neg hx, norm_zero, zero_pow (by norm_num)]
+    · rw [ite_eq_right hx, ite_eq_right hx, norm_zero, zero_pow (by norm_num)]
   unfold Normalized
   simp only [hstep]
 

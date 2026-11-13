@@ -29,8 +29,6 @@ quantum-search analysis, see [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SearchStopping.UnknownCount
 
 /-- The search-width schedule starting at one and multiplying by `l` at each stage, capped at

@@ -147,7 +147,6 @@ the interior binomial terms.
 * [Sasaki and Carlini, 2002][SasakiCarlini2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

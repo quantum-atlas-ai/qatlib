@@ -34,9 +34,9 @@ objects (Definition 1, Eq. (5); Eq. (14); Eq. (16) and following):
 * the cost budgets of Theorems 3, 5, 6 (Eqs. (45), (57), (63)) as explicit
   real-valued functions of the paper's parameters.
 
-The Lindblad side reuses the frozen `GKSL` generator, its super-operator
+The Lindblad side reuses the library's `GKSL` generator, its super-operator
 `lindbladMap`, and the semigroup `lindbladSemigroup` of
-`QuantumAlgorithm.Concepts.LindbladFlow.GkslSemigroup` (Frozen v2.0.2); only the
+`Qatlib.Concepts.LindbladFlow.GkslSemigroup`; only the
 repeated-interaction side and the cost algebra are supplied here.
 
 Scope: this is the paper-layer interface. It does not construct quantum circuits,
@@ -44,7 +44,7 @@ oracles `P`/`S` or QSVT phase sequences; Theorems 3/5/6 are stated at the level 
 the *resource counts* the paper derives, driven by the standard primitives the
 paper grants (QSVT query count of Eq. (48) and the channel Trotter error of
 Ref. [41], Theorem 2). Those primitives enter each claim file as explicit
-hypotheses, not as hidden axioms.
+hypotheses.
 -/
 
 set_option autoImplicit false
@@ -106,7 +106,7 @@ def inducedOneNorm {D : ℕ} (T : Operator D → Operator D) : ℝ :=
   sSup { x : ℝ | ∃ ρ : Operator D, ρ.traceNorm ≤ 1 ∧ x = (T ρ).traceNorm }
 
 /-- The correspondence error of Theorem 2, Eq. (16): the induced Schatten `1→1`
-norm of `e^{tL} − (⨝_{n=1}^m R̃_n(t/ν))^{∘ν}`, where `e^{tL}` is the frozen
+norm of `e^{tL} − (⨝_{n=1}^m R̃_n(t/ν))^{∘ν}`, where `e^{tL}` is the library's
 Lindblad semigroup `lindbladSemigroup G t`. -/
 def correspondenceError {D dE m : ℕ} (G : GKSL D)
     (H : Fin m → Matrix (Fin D × Fin dE) (Fin D × Fin dE) ℂ)

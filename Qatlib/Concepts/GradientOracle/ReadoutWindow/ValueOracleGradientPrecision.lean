@@ -28,8 +28,6 @@ of [Jordan2005Gradient].
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QspSimulation.Achievability
 
 open Qatlib.Concepts.QuditTeleport.TeleportCore

@@ -53,7 +53,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Papers.KoopmanSim26.StatePrep.Observables
 open scoped Classical
-set_option warningAsError false
 namespace Qatlib.Papers.KoopmanSim26.StatePrep.LowerSchedule
 
 /-- The amplification window is the larger of one and the natural ceiling of the inverse square

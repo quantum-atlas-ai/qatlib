@@ -25,8 +25,6 @@ Walsh inversion, and bentness of dual functions under the stated power identity.
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

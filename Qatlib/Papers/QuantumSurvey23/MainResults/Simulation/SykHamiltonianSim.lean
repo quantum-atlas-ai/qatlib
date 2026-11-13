@@ -29,10 +29,9 @@ classical lower scale `2^N`.  The hypothesis `hPrep` *is* the survey's caveat:
 if state preparation is not polynomial the sum claim fails, so the survey's
 conclusion is exactly this conditional statement.
 
-Reusable dependency (Dev bind `TrotterFormula.TimeOrdered`):
-`QuantumAlgorithm.Concepts.TrotterFormula.TimeOrdered` supplies the
-time-ordered/Trotter product-formula error bounds underlying the `poly(N)`
-simulation cost.
+The time-ordered/Trotter product-formula error bounds underlying the `poly(N)`
+simulation cost are supplied by
+`Qatlib.Concepts.TrotterFormula.TimeOrdered`.
 -/
 
 set_option autoImplicit false

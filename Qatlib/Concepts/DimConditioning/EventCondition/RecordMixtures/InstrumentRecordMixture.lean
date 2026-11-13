@@ -28,7 +28,6 @@ the record forgotten. The underlying instrument formalism is described in [Watro
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.DimConditioning.EventCondition.InstrumentRecordMixture

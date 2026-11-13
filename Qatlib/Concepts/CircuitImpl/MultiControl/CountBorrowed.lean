@@ -29,7 +29,6 @@ The module also proves legality and avoidance of unused wires.
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

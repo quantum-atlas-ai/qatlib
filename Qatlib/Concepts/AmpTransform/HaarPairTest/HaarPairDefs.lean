@@ -29,8 +29,6 @@ an input phase query, and a Boolean Hadamard for the amplified Haar-transform me
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection

@@ -44,7 +44,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid.DysonMeanDerivativeGrid
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The reverse-order product of constant Hamiltonian evolutions sampled at the left endpoints
 of an equally spaced grid. -/

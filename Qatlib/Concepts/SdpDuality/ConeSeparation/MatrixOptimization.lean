@@ -50,7 +50,6 @@ open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
 open Qatlib
 open scoped Classical ENNReal
-set_option warningAsError false
 
 variable {T D m γ Nmax M L Q : ℕ}
 

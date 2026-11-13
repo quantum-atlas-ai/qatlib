@@ -24,7 +24,6 @@ representation package associated with [ChildsEtAl2021Trotter].
 * [Childs et al., 2021, Theorem 8][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.TrotterFormula.TimeOrdered

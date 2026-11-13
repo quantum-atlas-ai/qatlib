@@ -69,7 +69,6 @@ A zero-counting argument rules out a derivative larger than degree times amplitu
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000

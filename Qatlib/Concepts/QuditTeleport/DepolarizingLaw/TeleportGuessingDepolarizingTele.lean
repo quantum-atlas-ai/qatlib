@@ -28,7 +28,6 @@ receiver's information before the classical teleportation message arrives
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -24,7 +24,6 @@ preparation, inverse-preparation, angle-gate, and classical-bit counts.
 * [Kim, 2026][Kim2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzCoreDefs
 
@@ -35,8 +34,6 @@ open Matrix Qatlib
 open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The block length `Nat.ceil (aEta η) + 1`, chosen above the influence constant. -/
 noncomputable def ellStar (η : InfluenceProfile) : ℕ := Nat.ceil (aEta η) + 1

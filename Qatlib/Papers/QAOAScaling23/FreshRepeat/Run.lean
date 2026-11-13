@@ -31,8 +31,6 @@ This development accompanies the study of QAOA-assisted minimum finding in [Shay
 * [Shaydulin et al., 2024][ShaydulinEtAl2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QAOAScaling23.FreshRepeat

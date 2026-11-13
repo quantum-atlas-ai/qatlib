@@ -25,8 +25,6 @@ the simulation discussion surrounding Theorem 2.3 of [FreedmanLarsenWang2000].
 * [Freedman et al., 2000][FreedmanLarsenWang2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

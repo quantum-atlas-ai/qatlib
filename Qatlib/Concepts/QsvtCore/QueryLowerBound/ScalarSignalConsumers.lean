@@ -35,7 +35,6 @@ circuit illustrating the need for correctly oriented leakage estimates.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding

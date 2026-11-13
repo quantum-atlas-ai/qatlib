@@ -31,8 +31,6 @@ whose decoded marked output succeeds with probability at least two thirds. See
 * [Montanaro and Pallister, 2016][MontanaroPallister2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

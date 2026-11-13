@@ -35,7 +35,6 @@ support the conversion between remaining and spent budgets.
   and estimation*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 

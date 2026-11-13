@@ -27,7 +27,6 @@ setting.
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis

@@ -27,8 +27,6 @@ interpolation-gap expression is bounded below when the overlap parameter is at l
 * [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

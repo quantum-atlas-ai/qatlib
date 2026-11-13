@@ -28,7 +28,6 @@ matrix-analysis background is developed in [Bhatia1997].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 

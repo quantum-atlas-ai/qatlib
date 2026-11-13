@@ -20,15 +20,15 @@ Theorem 2, §3 (printed pages 5 and 11):
 `Q_ε(f) ≥ (1 - 2√(ε(1-ε)) - 2ε)/2 · ADV±(f)` for a general output alphabet, and
 `Q_ε(f) ≥ (1 - 2√(ε(1-ε)))/2 · ADV±(f)` when `f` has Boolean output (`|Σ_O| = 2`).
 
-The paper-layer theorem is a reference/bridge to the frozen endpoint
-`QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause16_full_endpoint_v2`
+The paper-layer theorem uses
+`Qatlib.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause16_full_endpoint_v2`
 of type `g16Prop`, whose first and third conjuncts are exactly the two printed
-inequalities (per-run spectral form and optimized `ADV±` form).  The frozen
-endpoint keeps the printed `-2ε` term and the Boolean improvement, the complex
+inequalities (per-run spectral form and optimized `ADV±` form).  That theorem
+includes the printed `-2ε` term and the Boolean improvement, the complex
 Hermitian witness with same-output zero blocks, and the actual finite
 workspace/unitary-circuit Born-event model.  The bridge does not weaken any
-hypothesis: the paper's `ADV±(f)` is the frozen `advPmValue`, and the paper's
-bounded-error algorithm is the frozen `IsBoundedErrorRun`.
+hypothesis: the paper's `ADV±(f)` is `advPmValue`, and the paper's
+bounded-error algorithm is `IsBoundedErrorRun`.
 -/
 
 open Matrix

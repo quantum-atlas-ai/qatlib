@@ -41,8 +41,6 @@ decoder of the combined transcript.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan

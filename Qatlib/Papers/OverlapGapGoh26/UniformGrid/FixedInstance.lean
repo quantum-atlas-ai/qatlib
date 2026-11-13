@@ -28,8 +28,6 @@ tail plus a polynomial grid factor times a single-instance probability, in the f
 * [Goh and Müller, 2026][GohMuller2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section

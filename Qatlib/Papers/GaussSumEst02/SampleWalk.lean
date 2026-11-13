@@ -29,7 +29,6 @@ and shifted correlations, including the small mean captured by `biasSq_mul_lt_on
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

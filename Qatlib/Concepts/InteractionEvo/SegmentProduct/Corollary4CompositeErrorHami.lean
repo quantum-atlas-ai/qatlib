@@ -38,7 +38,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.InteractionEvo.SegmentProduct
 
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Proves that repeating a contraction with single-segment error at most δ yields error at most
 `L * δ` for evolution under `A + B` through time `L * τ`; see [Low and Wiebe, Corollary

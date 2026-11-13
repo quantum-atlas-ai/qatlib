@@ -28,8 +28,6 @@ see [Ambainis2005].
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkSearch.Primitives

@@ -37,8 +37,6 @@ trace-norm unit ball with reference dimension equal to the input dimension.
 
 open Qatlib.Concepts.RandCompile.ChannelBudget
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.BlockEncoding.EncodingCore

@@ -29,8 +29,6 @@ binary logarithm of the entry count supplies sufficient address width for
 * [von Burg et al., 2021][VonBurgEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
 noncomputable section

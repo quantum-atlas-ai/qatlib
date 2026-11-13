@@ -31,7 +31,6 @@ and their query costs in the error-stream setting of [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -48,7 +47,6 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
@@ -283,7 +281,7 @@ theorem aq_error_success_lower_noiseless_anchor (N M P : ℕ) :
     unfold aqErrorSuccessLower aqSuccessLower
     simp only [Nat.cast_zero, add_zero, Nat.sub_zero, sub_zero]
     field_simp
-    all_goals first | assumption | ring
+    all_goals ring
   · have hz : N - M = 0 := by omega
     rw [aqErrorSuccessLower, aqSuccessLower, hz]
     simp
@@ -320,7 +318,7 @@ theorem aq_error_verify_semantics (N : ℕ) (s M P : ℕ) (G : Finset (Fin N))
       have hle : P ≤ (M-1)*P := by
         simpa using! (Nat.mul_le_mul_right P (show 1 ≤ M-1 by omega))
       omega
-    rw [aqVerify, dif_pos ⟨hP, hb1, hb2, hb⟩]
+    rw [aqVerify, dite_eq_left ⟨hP, hb1, hb2, hb⟩]
     have hfa : h (⟨s, hb1⟩ : Fin N) = true := by
       rw [hmark _]
       exact decide_eq_true (hmem s ⟨0, by omega, by omega⟩ hb1)
@@ -339,12 +337,12 @@ theorem aq_error_verify_semantics (N : ℕ) (s M P : ℕ) (G : Finset (Fin N))
     intro s1 q hq
     rw [aqVerify] at hq
     by_cases hc : 0 < q ∧ s1 < N ∧ s1+q < N ∧ s1+(M-1)*q < N
-    · rw [dif_pos hc] at hq
+    · rw [dite_eq_left hc] at hq
       simp only [List.foldl_cons, List.foldl_nil, Bool.true_and, Bool.and_eq_true] at hq
       obtain ⟨⟨ha0, ha1⟩, ha2⟩ := hq
       exact ⟨hc.1, hc.2.1, hc.2.2.1, hc.2.2.2,
         hsplit _ ha0, hsplit _ ha1, hsplit _ ha2⟩
-    · rw [dif_neg hc] at hq
+    · rw [dite_eq_right hc] at hq
       simp at hq
   exact ⟨htrue, hsound, fun _ _ => aqVerify_cost _ _ _ _⟩
 
@@ -397,8 +395,8 @@ theorem aq_error_attempt_sound_and_counts (N : ℕ) (s M P B : ℕ) (G : Finset 
 theorem aq_error_attempt_mass_lower (N : ℕ) (hN : 0 < N) (s M L P B : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool) {Z : Type} [DecidableEq Z] (z : Z)
     (a : Fin N → Option Z) (ha : ∀ y, y ∈ aqGoodWindow N P → a y = some z)
-    (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hMP : M*P ≤ N) (hPB : P ≤ B)
-    (hsepB : 2*B^2 < N) (hG : G.card = L)
+    (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hMP : M*P ≤ N) (_hPB : P ≤ B)
+    (_hsepB : 2*B^2 < N) (hG : G.card = L)
     (hdis : Disjoint G (aqProgressionSet N s M P)) (h2T : 2*(M+L) ≤ N)
     (hsep : (L:ℝ) < 2*(M:ℝ)/Real.pi)
     (hmark : ∀ x, h x = decide (x ∈ aqProgressionSet N s M P ∪ G)) :
@@ -417,10 +415,10 @@ theorem aq_error_attempt_mass_lower (N : ℕ) (hN : 0 < N) (s M L P B : ℕ)
       apply Finset.sum_le_sum
       intro y _
       by_cases hy : y ∈ aqGoodWindow N P
-      · rw [if_pos hy, if_pos (ha y hy)]
-      · rw [if_neg hy]
+      · rw [ite_eq_left hy, ite_eq_left (ha y hy)]
+      · rw [ite_eq_right hy]
         by_cases hz : a y = some z
-        · rw [if_pos hz]
+        · rw [ite_eq_left hz]
           exact bornProb_nonneg _ _
         · simp [hz]
     _ = _ := rfl

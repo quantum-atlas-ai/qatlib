@@ -35,7 +35,6 @@ layer. See [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -46,7 +45,6 @@ open Qatlib.Concepts.CopyEvolution.SelfTomography
 open Qatlib.Concepts.CopyEvolution.SelfTomography
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.QuantumPCA14.FeatureReadout
 

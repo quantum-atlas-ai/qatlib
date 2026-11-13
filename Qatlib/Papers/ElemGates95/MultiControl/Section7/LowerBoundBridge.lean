@@ -35,7 +35,6 @@ exact matrix equality.
 * [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.7.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

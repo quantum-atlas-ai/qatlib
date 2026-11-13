@@ -32,8 +32,6 @@ times this quantity, exact circuit counts, and explicit arithmetic term and squa
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -51,7 +49,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- The signed rational approximation to `2 * pi / 2^j` obtained from `piRatApprox (k + 4)`. -/
 def numericalPhaseRat (j : ℕ) (neg : Bool) (k : ℕ) : ℚ :=
@@ -331,8 +328,8 @@ theorem numericalGateMatrix_cp_sub (n : ℕ) (k : ℕ) (a c : Fin n) (e : ℕ) (
   congr 1
   funext x
   by_cases h : x a && x c
-  · rw [if_pos h, if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h, if_neg h, sub_self]
+  · rw [ite_eq_left h, ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h, ite_eq_right h, sub_self]
 
 /-- Every numerical local QFT gate matrix is exactly unitary. -/
 theorem numericalGateMatrix_unitary {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
@@ -348,10 +345,10 @@ theorem numericalGateMatrix_unitary {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
       congr 1
       funext x
       split_ifs with h
-      · rw [Pi.star_apply, if_pos h, RCLike.star_def, ← Complex.normSq_eq_conj_mul_self,
+      · rw [Pi.star_apply, ite_eq_left h, RCLike.star_def, ← Complex.normSq_eq_conj_mul_self,
           Complex.normSq_eq_norm_sq, hnorm]
         norm_num
-      · rw [Pi.star_apply, if_neg h]
+      · rw [Pi.star_apply, ite_eq_right h]
         simp
 
 /-- Each numerical local QFT gate matrix differs from its exact matrix in operator norm by at
@@ -366,9 +363,9 @@ theorem numericalGateMatrix_error {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
         pi_norm_le_iff_of_nonneg (by positivity)]
       intro b
       by_cases h : b a && b c
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         exact (numerical_dyadic_phase_exact_unitarity_and_error e k neg).2
-      · rw [if_neg h, norm_zero]
+      · rw [ite_eq_right h, norm_zero]
         positivity
 
 /-- Compile a local QFT gate word into fixed circuit gates using numerical gate matrices at

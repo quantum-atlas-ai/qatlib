@@ -31,10 +31,7 @@ center and quotient properties used in the hidden-subgroup reductions. See
 * [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 
@@ -186,7 +183,7 @@ theorem card_center (h : IsExtraSpecial p G) : Nat.card (Subgroup.center G) = p 
 
 /-- The quotient of a group satisfying `IsExtraSpecial p G` by its commutator subgroup is
 commutative [IvanyosMagniezSantha2003]. -/
-theorem quotient_commutative (h : IsExtraSpecial p G) :
+theorem quotient_commutative (_h : IsExtraSpecial p G) :
     IsMulCommutative (G ⧸ commutator G) :=
   quotient_commutator_commutative G
 

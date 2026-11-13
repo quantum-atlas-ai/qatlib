@@ -18,6 +18,7 @@ Single source of truth:
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 import html
 from html.parser import HTMLParser
 import json
@@ -25,11 +26,39 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
+from collections import defaultdict
 from typing import Any
 
 GITHUB_REPO_URL = "https://github.com/quantum-atlas-ai/qatlib"
 CACHE_CDN_URL = "https://lake-cache.quantum-atlas.ai"
+
+DECLARATION_KINDS = (
+    "theorem",
+    "lemma",
+    "def",
+    "abbrev",
+    "structure",
+    "inductive",
+    "class",
+    "opaque",
+    "instance",
+    "axiom",
+)
+DECLARATION_RE = re.compile(
+    r"^\s*(?:(?:@\[[^\]]*\]|(?:private|protected|noncomputable|partial|unsafe|scoped|local|public|meta))\s+)*"
+    r"(?P<kind>theorem|lemma|def|abbrev|structure|inductive|class|opaque|instance|axiom)"
+    r"(?:\s+|\s*:\s*)(?P<name>[A-Za-z_][A-Za-z0-9_'.]*)?"
+)
+IMPORT_RE = re.compile(r"^\s*import\s+([^\s]+)", re.MULTILINE)
+NAMESPACE_RE = re.compile(r"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)")
+END_NAMESPACE_RE = re.compile(r"^\s*end(?:\s+([A-Za-z_][A-Za-z0-9_.]*))?\s*$")
+SOURCE_HIGHLIGHT_RE = re.compile(
+    r"\b(counterexample|refutation|refuted|erratum|errata|corrected|correction|invalid|false|caveat)\b",
+    re.IGNORECASE,
+)
+PANEL_LAYERS = ("Foundations", "Concepts", "Papers")
 
 # Fallback Qatlib brand wordmark group (selected Z-QL03: Q∀† scaled to 80%, lib unchanged, #263F5F on #FFFFFF)
 FALLBACK_WORDMARK_INNER = (
@@ -491,6 +520,724 @@ def scan_qatlib_tree(repo_root: Path, bib_keys: set[str]) -> dict[str, Any]:
         "dirs": all_dirs,
         "cite_to_dirs": cite_to_dirs,
     }
+
+
+def _first_sentence(text: str) -> str:
+    """Return a compact first sentence for an inline Lean docstring."""
+    compact = re.sub(r"\s+", " ", text or "").strip()
+    if not compact:
+        return ""
+    match = re.search(r"(?<![A-Za-z]\.)\.\s", compact)
+    return compact[: match.end()].strip() if match else compact
+
+
+def _module_doc(text: str) -> tuple[str, str, str]:
+    """Extract module title, summary, and source highlights from a module docstring."""
+    match = re.search(r"/-!([\s\S]*?)-/", text)
+    if not match:
+        return "", "", ""
+    body = match.group(1).strip()
+    title = ""
+    prose: list[str] = []
+    for raw in body.splitlines():
+        line = raw.strip().lstrip("*").strip()
+        if not line:
+            if prose:
+                break
+            continue
+        if line.startswith("#") and not title:
+            title = line.lstrip("#").strip()
+            continue
+        if line.startswith(("- ", "* ", "|")):
+            if prose:
+                break
+            continue
+        prose.append(line)
+        if len(" ".join(prose)) > 240:
+            break
+    summary = _first_sentence(" ".join(prose))
+    highlights = ", ".join(sorted(set(m.group(1).lower() for m in SOURCE_HIGHLIGHT_RE.finditer(body))))
+    return title, summary, highlights
+
+
+def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
+    """Worker-process parser for one public Lean source file."""
+    path, repo_root = job
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    rel = path.relative_to(repo_root).as_posix()
+    parts = Path(rel).parts
+    layer = parts[1] if len(parts) > 1 else "Other"
+    unit = parts[2] if len(parts) > 2 else path.stem
+    unit_dir = Path(*parts[:3]) if len(parts) >= 3 else Path(rel).parent
+    after_unit = parts[3:]
+    block = after_unit[0] if len(after_unit) > 1 else "(root)"
+    module_name = Path(rel).with_suffix("").as_posix().replace("/", ".")
+    title, summary, module_highlights = _module_doc(text)
+    imports = sorted(set(m.group(1) for m in IMPORT_RE.finditer(text)))
+    layer_imports: dict[str, list[str]] = {name: [] for name in PANEL_LAYERS}
+    for imported in imports:
+        for imported_layer in PANEL_LAYERS:
+            prefix = f"Qatlib.{imported_layer}."
+            if imported.startswith(prefix):
+                layer_imports[imported_layer].append(imported)
+    citations = sorted(set(BRACKET_KEY_RE.findall(text)))
+
+    declarations: list[dict[str, Any]] = []
+    namespace_stack: list[str] = []
+    pending_doc = ""
+    lines = text.splitlines()
+    line_no = 0
+    while line_no < len(lines):
+        raw = lines[line_no]
+        stripped = raw.strip()
+        if stripped.startswith("/--"):
+            remainder = "\n".join(lines[line_no:])
+            doc_match = re.match(r"/--([\s\S]*?)-/", remainder)
+            if doc_match:
+                pending_doc = doc_match.group(1).strip()
+                line_no += remainder[: doc_match.end()].count("\n") + 1
+                continue
+        if not stripped or stripped.startswith("--"):
+            line_no += 1
+            continue
+        namespace_match = NAMESPACE_RE.match(raw)
+        if namespace_match:
+            namespace_stack.extend(namespace_match.group(1).split("."))
+            pending_doc = ""
+            line_no += 1
+            continue
+        if END_NAMESPACE_RE.match(raw):
+            if namespace_stack:
+                namespace_stack.pop()
+            pending_doc = ""
+            line_no += 1
+            continue
+        declaration_match = DECLARATION_RE.match(raw)
+        if declaration_match:
+            kind = declaration_match.group("kind")
+            name = declaration_match.group("name") or f"anonymous_{line_no + 1}"
+            if kind == "instance" and re.match(r"^\s*instance\s*:", raw):
+                name = f"anonymous_{line_no + 1}"
+            prefix = namespace_stack or module_name.split(".")[:-1]
+            fqn = ".".join([*prefix, name])
+            highlight_text = f"{pending_doc} {raw}"
+            highlights = sorted(
+                set(m.group(1).lower() for m in SOURCE_HIGHLIGHT_RE.finditer(highlight_text))
+            )
+            declarations.append(
+                {
+                    "name": name,
+                    "fqn": fqn,
+                    "kind": kind,
+                    "line": line_no + 1,
+                    "doc": _first_sentence(pending_doc),
+                    "source": rel,
+                    "highlights": highlights,
+                }
+            )
+            pending_doc = ""
+            line_no += 1
+            continue
+        pending_doc = ""
+        line_no += 1
+
+    return {
+        "path": rel,
+        "layer": layer,
+        "unit": unit,
+        "unit_path": "/".join(unit_dir.parts),
+        "block": block,
+        "module": module_name,
+        "title": title,
+        "summary": summary,
+        "loc": len(lines),
+        "imports": imports,
+        "layer_imports": {key: sorted(set(value)) for key, value in layer_imports.items()},
+        "citations": citations,
+        "highlights": sorted(set(module_highlights.split(", ") if module_highlights else [])),
+        "declarations": declarations,
+    }
+
+
+def scan_catalog_sources(repo_root: Path) -> dict[str, Any]:
+    """Build the source-first panel inventory using worker processes."""
+    paths = sorted(
+        path
+        for layer in PANEL_LAYERS
+        for path in (repo_root / "Qatlib" / layer).rglob("*.lean")
+    )
+    jobs = [(path, repo_root) for path in paths]
+    if jobs:
+        workers = min(8, os.cpu_count() or 1, len(jobs))
+        try:
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                modules = list(pool.map(_parse_source_file, jobs, chunksize=16))
+        except (OSError, RuntimeError):
+            modules = [_parse_source_file(job) for job in jobs]
+    else:
+        modules = []
+
+    units: dict[str, dict[str, Any]] = {}
+    layers: dict[str, dict[str, Any]] = {
+        layer: {
+            "dir_count": 0,
+            "module_count": 0,
+            "loc": 0,
+            "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+            "highlights": [],
+        }
+        for layer in PANEL_LAYERS
+    }
+    seen_units: dict[str, set[str]] = defaultdict(set)
+    for module in modules:
+        layer = module["layer"]
+        unit_key = module["unit"]
+        unit = units.setdefault(
+            unit_key,
+            {
+                "id": unit_key,
+                "level": layer,
+                "title": unit_key,
+                "path": module["unit_path"],
+                "depends_on": [],
+                "blocks": {},
+                "modules": [],
+                "loc": 0,
+                "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+                "highlights": [],
+                "citations": set(),
+                "imports": {name: set() for name in PANEL_LAYERS},
+            },
+        )
+        unit["modules"].append(module)
+        unit["loc"] += module["loc"]
+        unit["citations"].update(module["citations"])
+        unit["highlights"].extend(module["highlights"])
+        for imported_layer, imported in module["layer_imports"].items():
+            unit["imports"][imported_layer].update(imported)
+        block = unit["blocks"].setdefault(
+            module["block"],
+            {
+                "id": module["block"],
+                "title": module["block"],
+                "content": "",
+                "boundary": "",
+                "goal-rank": "",
+                "modules": [],
+                "loc": 0,
+                "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+                "declarations": [],
+                "highlights": [],
+            },
+        )
+        block["modules"].append(module)
+        block["loc"] += module["loc"]
+        block["declarations"].extend(module["declarations"])
+        block["highlights"].extend(module["highlights"])
+        for declaration in module["declarations"]:
+            kind = declaration["kind"]
+            if kind in DECLARATION_KINDS:
+                unit["kind_counts"][kind] += 1
+                block["kind_counts"][kind] += 1
+                layers[layer]["kind_counts"][kind] += 1
+        layers[layer]["module_count"] += 1
+        layers[layer]["loc"] += module["loc"]
+        seen_units[layer].add(unit_key)
+        layers[layer]["highlights"].extend(module["highlights"])
+
+    for layer in PANEL_LAYERS:
+        layers[layer]["dir_count"] = len(seen_units[layer])
+        layers[layer]["highlights"] = sorted(set(layers[layer]["highlights"]))
+    for unit in units.values():
+        unit["modules"].sort(key=lambda item: item["path"])
+        for block in unit["blocks"].values():
+            block["modules"].sort(key=lambda item: item["path"])
+            block["declarations"].sort(key=lambda item: (item["line"], item["fqn"]))
+            block["highlights"] = sorted(set(block["highlights"]))
+        unit["blocks"] = sorted(unit["blocks"].values(), key=lambda item: item["id"])
+        unit["citations"] = sorted(unit["citations"])
+        unit["highlights"] = sorted(set(unit["highlights"]))
+        unit["imports"] = {key: sorted(value) for key, value in unit["imports"].items()}
+    return {
+        "layers": layers,
+        "units": sorted(units.values(), key=lambda item: (item["level"], item["id"])),
+        "modules": modules,
+        "total_modules": len(modules),
+        "total_dirs": sum(value["dir_count"] for value in layers.values()),
+    }
+
+
+def load_panel_metadata(metadata_dir: Path | None) -> dict[str, Any]:
+    """Read optional Unit/Paper metadata without requiring it in the public tree."""
+    if metadata_dir is None:
+        return {"units": [], "papers": [], "units_index": {}}
+    if not metadata_dir.is_dir():
+        raise ValueError(f"metadata directory does not exist: {metadata_dir}")
+    units_index: dict[str, Any] = {}
+    index_path = metadata_dir / "units.json"
+    if index_path.is_file():
+        units_index = json.loads(index_path.read_text(encoding="utf-8"))
+    papers_index: dict[str, Any] = {}
+    papers_index_path = metadata_dir / "papers.json"
+    if papers_index_path.is_file():
+        papers_index = json.loads(papers_index_path.read_text(encoding="utf-8"))
+    units: list[dict[str, Any]] = []
+    for path in sorted((metadata_dir / "units").glob("*/*.json")):
+        data = dict(json.loads(path.read_text(encoding="utf-8")))
+        data["_source_file"] = path.as_posix()
+        data["_index"] = units_index.get(data.get("id", ""), {})
+        units.append(data)
+    papers: list[dict[str, Any]] = []
+    for path in sorted((metadata_dir / "papers").glob("*.json")):
+        data = dict(json.loads(path.read_text(encoding="utf-8")))
+        data["_source_file"] = path.as_posix()
+        data["_index"] = papers_index.get(data.get("id", ""), {})
+        papers.append(data)
+    return {
+        "units": units,
+        "papers": papers,
+        "units_index": units_index,
+        "papers_index": papers_index,
+    }
+
+
+def apply_panel_metadata(catalog: dict[str, Any], metadata: dict[str, Any]) -> dict[str, Any]:
+    """Overlay structured Unit/Paper fields onto the source-first inventory."""
+    by_public_path: dict[str, dict[str, Any]] = {}
+    metadata_by_id: dict[str, dict[str, Any]] = {}
+    for data in metadata.get("units", []):
+        metadata_by_id[data.get("id", "")] = data
+        index = data.get("_index", {})
+        paths = list(index.get("public_paths", []))
+        for path_key in (index.get("frozen_path"), index.get("dev_path")):
+            if path_key:
+                paths.append(path_key)
+        for path_key in paths:
+            norm_path = re.sub(
+                r"^[^/]+/(?=(?:Foundations|Concepts|Papers|OpenQuestions)/)",
+                "Qatlib/",
+                str(path_key),
+            )
+            by_public_path[norm_path] = data
+
+    matched: set[str] = set()
+    for unit in catalog["units"]:
+        data = by_public_path.get(unit["path"]) or metadata_by_id.get(unit["id"])
+        if data is None:
+            continue
+        matched.add(data.get("id", ""))
+        unit["metadata"] = data
+        unit["title"] = data.get("title", unit["title"])
+        unit["depends_on"] = list(data.get("depends_on", []))
+        meta_blocks = {block.get("id"): block for block in data.get("blocks", [])}
+        for block in unit["blocks"]:
+            overlay = meta_blocks.get(block["id"])
+            if overlay:
+                for key in ("title", "content", "boundary", "goal-rank"):
+                    if key in overlay:
+                        block[key] = overlay[key]
+        for block_id, overlay in meta_blocks.items():
+            if not any(block["id"] == block_id for block in unit["blocks"]):
+                unit["blocks"].append(
+                    {
+                        "id": block_id,
+                        "title": overlay.get("title", block_id),
+                        "content": overlay.get("content", ""),
+                        "boundary": overlay.get("boundary", ""),
+                        "goal-rank": overlay.get("goal-rank", ""),
+                        "modules": [],
+                        "loc": 0,
+                        "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+                        "declarations": [],
+                        "highlights": [],
+                    }
+                )
+        unit["blocks"].sort(key=lambda item: item["id"])
+
+    for data in metadata.get("units", []):
+        if data.get("id") in matched:
+            continue
+        index = data.get("_index", {})
+        source_paths = index.get("public_paths", []) or []
+        unit = {
+            "id": data.get("id", "Unknown"),
+            "level": data.get("level", "Foundations"),
+            "title": data.get("title", data.get("id", "Unknown")),
+            "path": source_paths[0] if source_paths else "",
+            "depends_on": list(data.get("depends_on", [])),
+            "blocks": [],
+            "modules": [],
+            "loc": 0,
+            "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+            "highlights": [],
+            "citations": [],
+            "imports": {name: [] for name in PANEL_LAYERS},
+            "metadata": data,
+        }
+        for block in data.get("blocks", []):
+            unit["blocks"].append(
+                {
+                    "id": block.get("id", "Block"),
+                    "title": block.get("title", block.get("id", "Block")),
+                    "content": block.get("content", ""),
+                    "boundary": block.get("boundary", ""),
+                    "goal-rank": block.get("goal-rank", ""),
+                    "modules": [],
+                    "loc": 0,
+                    "kind_counts": {kind: 0 for kind in DECLARATION_KINDS},
+                    "declarations": [],
+                    "highlights": [],
+                }
+            )
+        catalog["units"].append(unit)
+
+    catalog["units"].sort(key=lambda item: (item["level"], item["id"]))
+    catalog["metadata_mode"] = True
+    catalog["metadata"] = metadata
+    return catalog
+
+
+def build_panel_papers(
+    bib_entries: list[dict[str, Any]], catalog: dict[str, Any], metadata: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Merge bibliography entries, source paper units, and optional claims."""
+    by_key = {entry["key"]: dict(entry) for entry in bib_entries}
+    source_papers = {
+        unit["id"]: unit for unit in catalog["units"] if unit["level"] == "Papers"
+    }
+    metadata_papers = {paper.get("id"): paper for paper in metadata.get("papers", [])}
+    for key, paper in metadata_papers.items():
+        record = by_key.setdefault(
+            key,
+            {
+                "key": key,
+                "title": key,
+                "authors": "",
+                "year": "",
+                "venue": "",
+                "doi": "",
+                "eprint": "",
+                "url": "",
+                "section_id": "00",
+                "section_title": "General",
+                "raw_bibtex": "",
+            },
+        )
+        record["metadata"] = paper
+        identity = paper.get("identity", {})
+        for field, source_field in (
+            ("title", "title"),
+            ("year", "year"),
+            ("venue", "venue"),
+            ("eprint", "arxiv_id"),
+            ("doi", "doi"),
+        ):
+            if identity.get(source_field) and not record.get(field):
+                record[field] = identity[source_field]
+        if identity.get("authors") and not record.get("authors"):
+            record["authors"] = ", ".join(identity["authors"])
+    for record in by_key.values():
+        record["source_unit"] = source_papers.get(record["key"])
+        record.setdefault("metadata", metadata_papers.get(record["key"]))
+        record["claims"] = (record.get("metadata") or {}).get("claims", [])
+        record["references"] = (record.get("metadata") or {}).get("references", [])
+        record["cited_by"] = (
+            (record.get("metadata") or {}).get("cited_by")
+            or (record.get("metadata") or {}).get("_index", {}).get("cited_by", [])
+        )
+    return sorted(by_key.values(), key=lambda item: item.get("key", ""))
+
+
+def _badge(label: str, tone: str = "neutral") -> str:
+    return f'<span class="panel-badge panel-badge-{html.escape(tone)}">{html.escape(label)}</span>'
+
+
+def _coverage_badges(claim: dict[str, Any]) -> str:
+    badges: list[str] = []
+    claim_text = " ".join(
+        str(claim.get(key) or "")
+        for key in ("label", "statement", "content")
+    ).lower()
+    for marker in ("theorem", "lemma", "proposition", "corollary", "counterexample", "erratum", "refutation"):
+        if marker in claim_text:
+            badges.append(_badge(marker, "partial" if marker in {"counterexample", "erratum", "refutation"} else "neutral"))
+    rank = claim.get("claim-rank")
+    if rank:
+        badges.append(_badge(f"claim-rank {rank}", "rank"))
+    if claim.get("status"):
+        badges.append(_badge(str(claim["status"]), "status"))
+    coverages = sorted(
+        set(item.get("coverage", "") for item in claim.get("covered_by", []) if item.get("coverage"))
+    )
+    for coverage in coverages:
+        tone = (
+            "full"
+            if coverage in {"full", "equivalent"}
+            else "partial"
+            if coverage in {"partial_support", "restricted"}
+            else "neutral"
+        )
+        badges.append(_badge(coverage.replace("_", " "), tone))
+    return " ".join(badges)
+
+
+def _unit_href(unit_id: str, lang: str, root_prefix: str) -> str:
+    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    return f"{page_prefix}units/{html.escape(unit_id)}.html"
+
+
+def _paper_href(paper_id: str, lang: str, root_prefix: str) -> str:
+    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    return f"{page_prefix}papers/{html.escape(str(paper_id))}.html"
+
+
+def build_catalog_kpi_panel(*, lang: str, tree_stats: dict[str, Any]) -> str:
+    labels = {
+        "en": (
+            "Live source KPIs",
+            "Modules",
+            "LOC",
+            "theorem",
+            "lemma",
+            "def",
+            "structure",
+            "instance",
+        ),
+        "zh": ("源码统计", "模块", "代码行", "theorem", "lemma", "def", "structure", "instance"),
+    }
+    heading, module_lbl, loc_lbl, *kind_labels = labels[lang]
+    rows: list[str] = []
+    for layer in PANEL_LAYERS:
+        stats = tree_stats["catalog"]["layers"][layer]
+        selected_kinds = ("theorem", "lemma", "def", "structure", "instance")
+        values = [stats["module_count"], stats["loc"]] + [
+            stats["kind_counts"].get(kind, 0) for kind in selected_kinds
+        ]
+        rows.append(
+            f'<tr><th>{html.escape(layer)}</th>'
+            + "".join(f"<td>{value:,}</td>" for value in values)
+            + "</tr>"
+        )
+    headings = [module_lbl, loc_lbl, *kind_labels]
+    return f'''<section class="section panel-kpi-section">
+      <div class="section-header"><div class="section-eyebrow">{html.escape(heading)}</div>
+      <h2>{"Per-layer source inventory" if lang == "en" else "按层源码清单"}</h2>
+      <p>{"The same inventory powers Unit, Block, and Declaration detail views." if lang == "en" else "同一份清单同时驱动 Unit、Block 与 Declaration 详情视图。"}</p></div>
+      <div class="panel-table-wrap"><table class="panel-table"><thead><tr><th>Layer</th>{"".join(f"<th>{html.escape(label)}</th>" for label in headings)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+    </section>'''
+
+
+def build_unit_detail_body(
+    *, unit: dict[str, Any], lang: str, root_prefix: str, all_unit_ids: set[str]
+) -> str:
+    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    metadata = unit.get("metadata") or {}
+    if lang == "en":
+        heading = f"Unit · {unit['id']}"
+        back_label = "Back to Module Explorer"
+        level_label, loc_label, module_label = "Layer", "LOC", "modules"
+        depends_label, imports_label, block_label = "Depends on", "Layer imports", "Blocks"
+        no_decl = "No declarations were found for this block."
+    else:
+        heading = f"Unit · {unit['id']}"
+        back_label = "返回模块导览"
+        level_label, loc_label, module_label = "层级", "代码行", "模块"
+        depends_label, imports_label, block_label = "依赖 Unit", "跨层导入", "Block"
+        no_decl = "此 Block 尚未发现 Lean 声明。"
+
+    depends = "".join(
+        f'<a class="dir-chip" href="{_unit_href(item, lang, root_prefix)}">{html.escape(item)}</a>'
+        for item in unit.get("depends_on", [])
+        if item in all_unit_ids
+    )
+    depends_html = (
+        f'<div class="panel-links"><span class="panel-muted">{depends_label}:</span>{depends}</div>'
+        if depends
+        else ""
+    )
+    imports_html: list[str] = []
+    for layer, imports in unit.get("imports", {}).items():
+        if not imports:
+            continue
+        chips = "".join(
+            f'<a class="dir-chip" href="{page_prefix}modules.html#{html.escape("Qatlib/" + layer + "/" + imported.split(".")[2])}">{html.escape(imported)}</a>'
+            for imported in imports[:30]
+            if len(imported.split(".")) >= 3
+        )
+        if chips:
+            imports_html.append(f'<div class="panel-links"><span class="panel-muted">{html.escape(layer)}:</span>{chips}</div>')
+    imports_section = (
+        f'<div><div class="panel-muted">{imports_label}</div>{"".join(imports_html)}</div>'
+        if imports_html
+        else ""
+    )
+
+    block_cards: list[str] = []
+    for block in unit.get("blocks", []):
+        rank_badge = _badge(f"goal-rank {block.get('goal-rank')}", "rank") if block.get("goal-rank") else ""
+        highlight_badges = " ".join(_badge(item, "partial") for item in block.get("highlights", []))
+        declarations = block.get("declarations", [])
+        rows: list[str] = []
+        for declaration in declarations:
+            source_link = f'{GITHUB_REPO_URL}/blob/main/{declaration["source"]}#L{declaration["line"]}'
+            badges = " ".join(_badge(item, "partial") for item in declaration.get("highlights", []))
+            rows.append(
+                f'<tr><td>{html.escape(declaration["kind"])}</td>'
+                f'<td><a href="{source_link}" target="_blank" rel="noopener"><code>{html.escape(declaration["fqn"])}</code></a></td>'
+                f'<td><a href="{source_link}" target="_blank" rel="noopener">L{declaration["line"]}</a></td>'
+                f'<td>{html.escape(declaration.get("doc") or "—")} {badges}</td></tr>'
+            )
+        decl_html = (
+            '<table class="panel-decl-table"><thead><tr><th>Kind</th><th>Declaration</th><th>Source</th><th>Inline summary</th></tr></thead><tbody>'
+            + "".join(rows)
+            + "</tbody></table>"
+            if rows
+            else f'<p class="panel-empty">{no_decl}</p>'
+        )
+        modules_html: list[str] = []
+        for module in block.get("modules", []):
+            module_highlights = " ".join(_badge(item, "partial") for item in module.get("highlights", []))
+            module_imports = ", ".join(module.get("imports", [])[:8])
+            modules_html.append(
+                f'<div class="panel-module-card"><div class="panel-module-head"><strong>{html.escape(module["module"])}</strong>'
+                f'<span class="panel-muted">{module["loc"]:,} LOC · {len(module["declarations"])} declarations</span></div>'
+                f'<div class="panel-muted">{html.escape(module.get("summary") or "")} {module_highlights}</div>'
+                f'<div class="panel-muted">imports: {html.escape(module_imports or "—")}</div></div>'
+            )
+        block_cards.append(
+            f'<article class="panel-card" id="block-{html.escape(block["id"])}">'
+            f'<div class="panel-meta"><h2>{html.escape(block.get("title", block["id"]))}</h2>{rank_badge}{highlight_badges}</div>'
+            f'<p>{html.escape(block.get("content") or "")}</p>'
+            f'<p class="panel-muted"><strong>Boundary:</strong> {html.escape(block.get("boundary") or "—")}</p>'
+            f'<details open><summary>{html.escape(block_label)} · {html.escape(block["id"])} · {len(declarations)} declarations</summary>'
+            f'{"".join(modules_html)}{decl_html}</details></article>'
+        )
+
+    return f'''
+  <main class="panel-detail-wrap">
+    <div class="panel-detail-header">
+      <div class="section-eyebrow">Catalog / Unit</div>
+      <h1>{html.escape(heading)}</h1>
+      <p>{html.escape(unit.get("title", unit["id"]))} · {html.escape(level_label)} {html.escape(unit.get("level", ""))} · {unit.get("loc", 0):,} {html.escape(loc_label)} · {len(unit.get("modules", []))} {html.escape(module_label)}</p>
+      <p style="margin-top:10px;"><a href="{page_prefix}modules.html">← {html.escape(back_label)}</a></p>
+      {depends_html}{imports_section}
+    </div>
+    <div class="panel-grid">{"".join(block_cards) if block_cards else '<article class="panel-card"><p class="panel-empty">No blocks are registered for this Unit.</p></article>'}</div>
+  </main>
+'''
+
+
+def build_paper_detail_body(
+    *, paper: dict[str, Any], lang: str, root_prefix: str, catalog: dict[str, Any]
+) -> str:
+    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    identity = (paper.get("metadata") or {}).get("identity", {})
+    title = paper.get("title") or identity.get("title") or paper.get("key", "")
+    claims = paper.get("claims", [])
+    source_unit = paper.get("source_unit")
+    if lang == "en":
+        back_label = "Back to Papers & Bibliography"
+        claim_heading = "Claims and fidelity"
+        source_heading = "Formalized source"
+        no_claims = "No structured claims are available in the source-only view."
+    else:
+        back_label = "返回文献索引"
+        claim_heading = "Claim 与保真度"
+        source_heading = "形式化源码"
+        no_claims = "公共源码视图没有结构化 Claim 元数据。"
+
+    links: list[str] = []
+    if paper.get("doi"):
+        links.append(f'<a class="bib-ext-badge" href="https://doi.org/{html.escape(paper["doi"])}" target="_blank" rel="noopener">DOI ↗</a>')
+    if paper.get("eprint"):
+        links.append(f'<a class="bib-ext-badge" href="https://arxiv.org/abs/{html.escape(paper["eprint"])}" target="_blank" rel="noopener">arXiv:{html.escape(paper["eprint"])} ↗</a>')
+    if paper.get("url") and not links:
+        links.append(f'<a class="bib-ext-badge" href="{html.escape(paper["url"])}" target="_blank" rel="noopener">URL ↗</a>')
+    source_html = ""
+    if source_unit:
+        source_html = (
+            f'<div class="panel-card"><h2>{html.escape(source_heading)}</h2>'
+            f'<p><a href="{_unit_href(source_unit["id"], lang, root_prefix)}">{html.escape(source_unit["path"])}</a> · {source_unit["loc"]:,} LOC</p>'
+            f'<div class="panel-links">{" ".join(_badge(item, "partial") for item in source_unit.get("highlights", []))}</div></div>'
+        )
+
+    unit_ids = {unit["id"] for unit in catalog.get("units", [])}
+    claim_cards: list[str] = []
+    for claim in claims:
+        binds: list[str] = []
+        for binding in claim.get("binds", []):
+            unit_id = str(binding).split(".", 1)[0]
+            href = _unit_href(unit_id, lang, root_prefix) if unit_id in unit_ids else f"{page_prefix}modules.html"
+            binds.append(f'<a class="dir-chip" href="{href}">{html.escape(binding)}</a>')
+        coverage_rows: list[str] = []
+        for item in claim.get("covered_by", []):
+            raw_file = str(item.get("file", ""))
+            norm_file = re.sub(
+                r"^[^/]+/(?=(?:Foundations|Concepts|Papers|OpenQuestions)/)",
+                "Qatlib/",
+                raw_file,
+            )
+            file_href = f"{GITHUB_REPO_URL}/blob/main/{norm_file}" if norm_file else ""
+            fqn = html.escape(str(item.get("fqn") or ""))
+            fqn_html = f'<a href="{file_href}" target="_blank" rel="noopener"><code>{fqn}</code></a>' if file_href else f"<code>{fqn}</code>"
+            coverage_rows.append(
+                f'<tr><td>{fqn_html}</td><td>{_badge(str(item.get("coverage") or "unrecorded"), "full" if item.get("coverage") in {"full", "equivalent"} else "partial")}</td><td>{html.escape(str(item.get("note") or ""))}</td></tr>'
+            )
+        coverage_html = (
+            '<table class="panel-decl-table"><thead><tr><th>Covered by</th><th>Fidelity</th><th>Evidence note</th></tr></thead><tbody>'
+            + "".join(coverage_rows)
+            + "</tbody></table>"
+            if coverage_rows
+            else '<p class="panel-empty">No covered_by evidence recorded.</p>'
+        )
+        claim_cards.append(
+            f'<article class="panel-claim"><h3>{html.escape(claim.get("label") or claim.get("id", "Claim"))} {_coverage_badges(claim)}</h3>'
+            f'<p><strong>{html.escape(claim.get("id", ""))}</strong> · {html.escape(claim.get("content") or claim.get("statement") or "")}</p>'
+            f'<div class="panel-links">{"".join(binds) if binds else "<span class=\"panel-empty\">No binds</span>"}</div>{coverage_html}</article>'
+        )
+    claims_html = "".join(claim_cards) if claim_cards else f'<p class="panel-empty">{no_claims}</p>'
+
+    metadata_ids = {
+        item.get("id")
+        for item in catalog.get("metadata", {}).get("papers", [])
+        if item.get("id")
+    }
+
+    def paper_chips(ids: list[Any]) -> str:
+        chips: list[str] = []
+        for item in ids:
+            if isinstance(item, dict):
+                key = item.get("ref_id") or item.get("id") or item.get("key") or ""
+                label = item.get("title") or key
+            else:
+                key = str(item)
+                label = key
+            if key in metadata_ids:
+                chips.append(
+                    f'<a class="dir-chip" href="{_paper_href(key, lang, root_prefix)}">{html.escape(str(label))}</a>'
+                )
+            else:
+                chips.append(f'<span class="dir-chip">{html.escape(str(label))}</span>')
+        return "".join(chips)
+
+    return f'''
+  <main class="panel-detail-wrap">
+    <div class="panel-detail-header">
+      <div class="section-eyebrow">Paper / Declaration Explorer</div>
+      <h1>{html.escape(paper.get("key", ""))}</h1>
+      <p>{html.escape(title)}</p>
+      <p class="panel-muted">{html.escape(paper.get("authors", ""))} · {html.escape(paper.get("venue", ""))} · {html.escape(paper.get("year", ""))}</p>
+      <div class="panel-links">{"".join(links)}</div>
+      <p style="margin-top:10px;"><a href="{page_prefix}papers.html">← {html.escape(back_label)}</a></p>
+    </div>
+    {source_html}
+    <article class="panel-card"><h2>{html.escape(claim_heading)}</h2>{claims_html}</article>
+    <article class="panel-card"><h2>References ↔ cited_by</h2>
+      <div class="panel-links"><span class="panel-muted">references:</span>{paper_chips(paper.get("references", [])) or '<span class="panel-empty">—</span>'}</div>
+      <div class="panel-links"><span class="panel-muted">cited_by:</span>{paper_chips(paper.get("cited_by", [])) or '<span class="panel-empty">—</span>'}</div>
+    </article>
+  </main>
+'''
 
 
 # ---------------------------------------------------------------------------
@@ -1693,6 +2440,89 @@ a:hover { color: var(--brand-hover); }
   background: var(--bg-subtle);
 }
 
+/* Unified Catalog / Paper / Declaration panel */
+.panel-kpi-section { padding-top: 28px; }
+.panel-table-wrap { overflow-x: auto; }
+.panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 13px;
+}
+.panel-table th, .panel-table td {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+.panel-table th:first-child, .panel-table td:first-child { text-align: left; }
+.panel-table thead th { background: var(--bg-subtle); color: var(--fg-muted); }
+.panel-table tbody tr:last-child th, .panel-table tbody tr:last-child td { border-bottom: none; }
+.panel-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.panel-card + .panel-card { margin-top: 14px; }
+.panel-card h2, .panel-card h3 { margin: 0 0 8px; }
+.panel-card h2 { font-size: 19px; }
+.panel-card h3 { font-size: 16px; }
+.panel-meta, .panel-muted { color: var(--fg-muted); font-size: 13px; }
+.panel-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.panel-badge-rank { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
+.panel-badge-status { color: var(--teal); border-color: var(--teal); background: var(--teal-soft); }
+.panel-badge-full { color: #2f7a56; border-color: #65b48b; background: #e3f5eb; }
+.panel-badge-partial { color: var(--plum); border-color: #c49bcf; background: var(--plum-soft); }
+[data-theme="dark"] .panel-badge-full { color: #91ddb1; background: rgba(71, 170, 111, .18); }
+.panel-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.panel-links a {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.panel-detail-wrap { max-width: 1280px; margin: 0 auto; padding: 36px 24px 72px; }
+.panel-detail-header { margin-bottom: 22px; }
+.panel-detail-header h1 { margin: 0 0 8px; font-size: 30px; }
+.panel-detail-header p { margin: 0; color: var(--fg-muted); max-width: 900px; }
+.panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.panel-decl-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+.panel-decl-table th, .panel-decl-table td { border: 1px solid var(--border); padding: 7px 8px; vertical-align: top; text-align: left; }
+.panel-decl-table th { background: var(--bg-subtle); color: var(--fg-muted); white-space: nowrap; }
+.panel-decl-table code { font-size: 11.5px; word-break: break-word; }
+.panel-module-card { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+.panel-module-card:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.panel-module-head { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+.panel-module-head strong { font-family: var(--font-mono); font-size: 13px; }
+.panel-claim { border-left: 3px solid var(--brand); padding-left: 12px; }
+.panel-claim + .panel-claim { margin-top: 16px; }
+.panel-claim p { margin: 6px 0; color: var(--fg-muted); white-space: pre-line; }
+.panel-empty { color: var(--fg-faint); font-style: italic; }
+@media (max-width: 760px) {
+  .panel-grid { grid-template-columns: 1fr; }
+  .panel-detail-wrap { padding: 22px 16px 48px; }
+  .panel-table { font-size: 12px; }
+}
+
 @media (max-width: 1180px) {
   .nav-links a { padding: 6px 9px; font-size: 13.8px; }
   .nav-search-input { width: 165px; }
@@ -2209,7 +3039,7 @@ def build_home_body(
         'git = "https://github.com/quantum-atlas-ai/qatlib.git"\nrev = "main"'
     )
     dep_sh = "lake update\nlake exe get_cache"
-    dev_sh = (
+    clone_sh = (
         "git clone https://github.com/quantum-atlas-ai/qatlib.git\n"
         "cd qatlib\n"
         "lake exe get_cache\n"
@@ -2228,7 +3058,7 @@ def build_home_body(
         cta_api = "API Reference (doc-gen4)"
         cta_mods = "Explore Modules"
         cta_papers = f"Bibliography ({bib_count})"
-        tab1, tab2 = "Use as Dependency", "Clone & Develop"
+        tab1, tab2 = "Use as Dependency", "Clone & Build"
         cap1 = f"Add to lakefile.toml (Lean {toolchain_tag}), then pull prebuilt Mathlib + Physlib + Qatlib caches:"
         cap2 = "Fetch all three cache tiers in one command and build incrementally:"
         metrics = [
@@ -2289,7 +3119,7 @@ def build_home_body(
         cta_api = "API 参考文档 (doc-gen4)"
         cta_mods = "模块导览"
         cta_papers = f"文献索引 ({bib_count})"
-        tab1, tab2 = "作为下游依赖引入", "克隆与本地开发"
+        tab1, tab2 = "作为下游依赖引入", "克隆与构建"
         cap1 = f"在 lakefile.toml（工具链 {toolchain_tag}）中添加依赖，一键拉取三层预编译缓存："
         cap2 = "无需从零编译全库，拉取 Mathlib + Physlib + Qatlib 缓存后按需增量构建："
         metrics = [
@@ -2387,7 +3217,7 @@ def build_home_body(
       <div class="quickstart-card">
         <div class="qs-tabs">
           <button type="button" class="qs-tab active" data-tab="qs-dep">{html.escape(tab1)}</button>
-          <button type="button" class="qs-tab" data-tab="qs-dev">{html.escape(tab2)}</button>
+          <button type="button" class="qs-tab" data-tab="qs-build">{html.escape(tab2)}</button>
         </div>
         <div id="qs-dep" class="qs-panel active">
           <p class="qs-caption">{html.escape(cap1)}</p>
@@ -2402,12 +3232,12 @@ def build_home_body(
             <pre><code>{dep_sh}</code></pre>
           </div>
         </div>
-        <div id="qs-dev" class="qs-panel">
+        <div id="qs-build" class="qs-panel">
           <p class="qs-caption">{html.escape(cap2)}</p>
           <div class="code-card" style="margin-bottom:0;">
             <div class="code-card-header"><span class="code-lang">BASH</span>
               <button type="button" class="copy-btn" data-copy-label="{copy_lbl}">{copy_lbl}</button></div>
-            <pre><code>{dev_sh}</code></pre>
+            <pre><code>{clone_sh}</code></pre>
           </div>
         </div>
       </div>
@@ -2428,6 +3258,8 @@ def build_home_body(
       {layers_html}
     </div>
   </section>
+
+  {build_catalog_kpi_panel(lang=lang, tree_stats=tree_stats)}
 
   <section class="section">
     <div class="section-header">
@@ -2465,6 +3297,11 @@ def build_modules_explorer_body(
     docs_prefix = f"{root_prefix}docs/"
     layers = tree_stats["layers"]
     dirs = tree_stats["dirs"]
+    catalog_units = {
+        unit.get("path"): unit
+        for unit in tree_stats.get("catalog", {}).get("units", [])
+        if unit.get("path")
+    }
 
     if lang == "en":
         h1 = "Module Explorer"
@@ -2514,6 +3351,12 @@ def build_modules_explorer_body(
 
     cards_html: list[str] = []
     for d in dirs:
+        panel_unit = catalog_units.get(d["rel_dir"])
+        panel_link = (
+            f'<a href="{_unit_href(panel_unit["id"], lang, root_prefix)}">Unit detail →</a>'
+            if panel_unit
+            else ""
+        )
         layer_tag_lbl = layer_display.get(d["layer"], d["layer"])
         search_blob = " ".join(
             [d["rel_dir"], d["name"], layer_tag_lbl, d["title"], d["summary"], " ".join(d["citations"])]
@@ -2542,6 +3385,7 @@ def build_modules_explorer_body(
             f'<details class="mod-details"><summary>{expand_lbl} ({len(d["featured_mods"])})</summary>'
             f'<ul class="mod-leaf-list">{leaf_lis}</ul></details>'
             f'<div class="mod-actions">'
+            f"{panel_link}"
             f'<a href="{docs_prefix}{d["entry_html"]}">{api_lbl}</a>'
             f'<a href="{docs_prefix}{d["rel_dir"]}/index.html">{dir_api_lbl}</a>'
             f'<a href="{GITHUB_REPO_URL}/tree/main/{d["rel_dir"]}" target="_blank" rel="noopener">{gh_lbl}</a>'
@@ -2583,20 +3427,22 @@ def build_papers_explorer_body(
     root_prefix: str,
     bib_sections: list[dict[str, Any]],
     bib_entries: list[dict[str, Any]],
+    panel_papers: list[dict[str, Any]] | None = None,
 ) -> str:
     page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
     docs_prefix = f"{root_prefix}docs/"
     copy_lbl = "复制" if lang == "zh" else "Copy"
+    paper_rows = panel_papers or bib_entries
 
     if lang == "en":
         h1 = "Papers & Bibliography"
         lead = (
-            f"Search all {len(bib_entries):,} authoritative books, foundational papers, and preprints "
+            f"Search all {len(paper_rows):,} authoritative books, foundational papers, and preprints "
             f"in docs/references.bib across {len(bib_sections)} subject chapters, with direct cross-links "
             "to Qatlib formalization directories."
         )
         placeholder = "Search by author, title, year, citekey, arXiv ID, or Qatlib module…"
-        all_chap = f"All {len(bib_sections)} Subject Chapters ({len(bib_entries)})"
+        all_chap = f"All {len(bib_sections)} Subject Chapters ({len(paper_rows)})"
         only_form_lbl = "Linked to Qatlib modules only"
         status_tpl = "Showing {shown} of {total} references"
         raw_lbl = "BibTeX"
@@ -2604,11 +3450,11 @@ def build_papers_explorer_body(
     else:
         h1 = "文献与参考书目索引"
         lead = (
-            f"检索 docs/references.bib 收录的全部 {len(bib_entries):,} 篇权威专著与学术论文（按 {len(bib_sections)} 个学科章节分类），"
+            f"检索 docs/references.bib 收录的全部 {len(paper_rows):,} 篇权威专著与学术论文（按 {len(bib_sections)} 个学科章节分类），"
             "并直接跳转到对应的 Qatlib 形式化模块。"
         )
         placeholder = "按作者、论文标题、年份、Citekey、arXiv 编号或 Qatlib 模块名搜索…"
-        all_chap = f"全部 {len(bib_sections)} 个学科章节 ({len(bib_entries)})"
+        all_chap = f"全部 {len(bib_sections)} 个学科章节 ({len(paper_rows)})"
         only_form_lbl = "仅显示已关联 Qatlib 模块的文献"
         status_tpl = "当前显示 {shown} / {total} 篇文献"
         raw_lbl = "BibTeX"
@@ -2630,76 +3476,84 @@ def build_papers_explorer_body(
         )
 
     cards_html: list[str] = []
-    for ent in bib_entries:
-        linked_dirs = ent["cited_by_dirs"] or ent["section_related"]
-        has_direct = "1" if ent["cited_by_dirs"] else "0"
-        venue_parts = [p for p in [ent["venue"], f'vol. {ent["volume"]}' if ent["volume"] else "", ent["year"]] if p]
+    for ent in paper_rows:
+        linked_dirs = ent.get("cited_by_dirs", []) or ent.get("section_related", [])
+        has_direct = "1" if ent.get("cited_by_dirs") else "0"
+        venue_parts = [p for p in [ent.get("venue", ""), f'vol. {ent.get("volume", "")}' if ent.get("volume") else "", ent.get("year", "")] if p]
         venue_line = ", ".join(venue_parts)
-        chap_zh = BIB_SECTION_TITLES_ZH.get(ent["section_id"], "")
-        chap_disp = sec_label(ent["section_id"], ent["section_title"])
+        section_id = ent.get("section_id", "00")
+        section_title = ent.get("section_title", "General")
+        chap_zh = BIB_SECTION_TITLES_ZH.get(section_id, "")
+        chap_disp = sec_label(section_id, section_title)
         search_blob = " ".join(
             [
-                ent["key"],
-                ent["title"],
-                ent["authors"],
+                ent.get("key", ""),
+                ent.get("title", ""),
+                ent.get("authors", ""),
                 venue_line,
-                ent["section_title"],
+                section_title,
                 chap_zh,
-                ent["eprint"],
-                ent["doi"],
+                ent.get("eprint", ""),
+                ent.get("doi", ""),
                 " ".join(linked_dirs),
             ]
         ).lower()
 
         ext_links: list[str] = []
-        if ent["doi"]:
+        if ent.get("doi"):
             ext_links.append(
-                f'<a class="bib-ext-badge" href="https://doi.org/{html.escape(ent["doi"])}" '
+                f'<a class="bib-ext-badge" href="https://doi.org/{html.escape(ent.get("doi", ""))}" '
                 f'target="_blank" rel="noopener">DOI ↗</a>'
             )
-        if ent["eprint"]:
+        if ent.get("eprint"):
             ext_links.append(
-                f'<a class="bib-ext-badge" href="https://arxiv.org/abs/{html.escape(ent["eprint"])}" '
-                f'target="_blank" rel="noopener">arXiv:{html.escape(ent["eprint"])} ↗</a>'
+                f'<a class="bib-ext-badge" href="https://arxiv.org/abs/{html.escape(ent.get("eprint", ""))}" '
+                f'target="_blank" rel="noopener">arXiv:{html.escape(ent.get("eprint", ""))} ↗</a>'
             )
-        elif ent["url"] and not ent["doi"]:
+        elif ent.get("url") and not ent.get("doi"):
             ext_links.append(
-                f'<a class="bib-ext-badge" href="{html.escape(ent["url"])}" '
+                f'<a class="bib-ext-badge" href="{html.escape(ent.get("url", ""))}" '
                 f'target="_blank" rel="noopener">URL ↗</a>'
             )
         ext_links.append(
-            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#{html.escape(ent["key"])}">{docgen_badge_lbl}</a>'
+            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#{html.escape(ent.get("key", ""))}">{docgen_badge_lbl}</a>'
         )
 
         dir_chips = ""
-        if ent["cited_by_dirs"]:
+        if ent.get("cited_by_dirs"):
             chips = "".join(
                 f'<a class="dir-chip" href="{page_prefix}modules.html#{html.escape(d)}">'
                 f'{html.escape(d.removeprefix("Qatlib/"))}</a>'
-                for d in ent["cited_by_dirs"][:6]
+                for d in ent.get("cited_by_dirs", [])[:6]
             )
             dir_chips = (
                 f'<div class="chip-list" style="margin-top:8px;align-items:center;">'
                 f'<span style="font-size:12px;color:var(--fg-faint);">{form_prefix}</span>{chips}</div>'
             )
+        detail_link = f'<a class="bib-ext-badge" href="{_paper_href(ent.get("key", ""), lang, root_prefix)}">Explorer detail →</a>'
+        claim_badges = " ".join(
+            _badge(f"{len(ent.get('claims', []))} claims", "rank")
+            for _ in [0]
+            if ent.get("claims")
+        )
 
         cards_html.append(
-            f'<article id="{html.escape(ent["key"])}" class="bib-card" '
-            f'data-section="{html.escape(ent["section_id"])}" data-formalized="{has_direct}" '
+            f'<article id="{html.escape(ent.get("key", ""))}" class="bib-card" '
+            f'data-section="{html.escape(section_id)}" data-formalized="{has_direct}" '
             f'data-search="{html.escape(search_blob)}">'
             f'<div class="bib-meta-top">'
-            f'<a class="bib-key" href="#{html.escape(ent["key"])}">[{html.escape(ent["key"])}]</a>'
-            f'<span class="bib-chapter">{html.escape(ent["section_id"])}. {html.escape(chap_disp)}</span>'
+            f'<a class="bib-key" href="#{html.escape(ent.get("key", ""))}">[{html.escape(ent.get("key", ""))}]</a>'
+            f'<span class="bib-chapter">{html.escape(section_id)}. {html.escape(chap_disp)}</span>'
             f"</div>"
-            f'<h2 class="bib-title">{html.escape(ent["title"])}</h2>'
-            f'<p class="bib-authors">{html.escape(ent["authors"])}</p>'
+            f'<h2 class="bib-title">{html.escape(ent.get("title", ""))}</h2>'
+            f'<p class="bib-authors">{html.escape(ent.get("authors", ""))}</p>'
             f'<p class="bib-venue">{html.escape(venue_line)}</p>'
-            f'<div class="bib-links">{"".join(ext_links)}'
+            f'<div class="bib-links">{"".join(ext_links)}{detail_link}{claim_badges}'
             f'<details class="bib-raw-details"><summary>{raw_lbl}</summary>'
             f'<div class="code-card" style="margin-top:8px;">'
             f'<div class="code-card-header"><span class="code-lang">BIBTEX</span>'
             f'<button type="button" class="copy-btn" data-copy-label="{copy_lbl}">{copy_lbl}</button></div>'
-            f'<pre><code>{html.escape(ent["raw_bibtex"])}</code></pre></div></details></div>'
+            f'<pre><code>{html.escape(ent.get("raw_bibtex", ""))}</code></pre></div></details></div>'
             f"{dir_chips}</article>"
         )
 
@@ -2722,7 +3576,7 @@ def build_papers_explorer_body(
     </div>
 
     <div id="explorer-status" class="results-status" data-template="{html.escape(status_tpl)}">
-      {html.escape(status_tpl.format(shown=len(bib_entries), total=len(bib_entries)))}
+      {html.escape(status_tpl.format(shown=len(paper_rows), total=len(paper_rows)))}
     </div>
 
     <div id="bib-explorer-list" class="bib-list">
@@ -3024,6 +3878,76 @@ def verify_portal_links(out_dir: Path) -> list[str]:
 # Main Build Entrypoint
 # ---------------------------------------------------------------------------
 
+def write_panel_detail_pages(
+    *,
+    out_dir: Path,
+    catalog: dict[str, Any],
+    panel_papers: list[dict[str, Any]],
+    wordmark_nav: str,
+    toolchain_tag: str,
+) -> None:
+    """Write bilingual Unit and Paper detail views driven by one panel model."""
+    all_unit_ids = {unit["id"] for unit in catalog.get("units", [])}
+    for lang, units_root, papers_root, root_prefix in (
+        ("en", out_dir / "units", out_dir / "papers", "../"),
+        ("zh", out_dir / "zh" / "units", out_dir / "zh" / "papers", "../../"),
+    ):
+        units_root.mkdir(parents=True, exist_ok=True)
+        papers_root.mkdir(parents=True, exist_ok=True)
+        for unit in catalog.get("units", []):
+            page_slug = f"units/{unit['id']}.html"
+            body = build_unit_detail_body(
+                unit=unit,
+                lang=lang,
+                root_prefix=root_prefix,
+                all_unit_ids=all_unit_ids,
+            )
+            (units_root / f"{unit['id']}.html").write_text(
+                render_page_shell(
+                    title=f"Unit · {unit['id']}",
+                    lang=lang,
+                    page_slug=page_slug,
+                    root_prefix=root_prefix,
+                    toolchain_tag=toolchain_tag,
+                    wordmark_nav=wordmark_nav,
+                    body_html=body,
+                ),
+                encoding="utf-8",
+            )
+        for paper in panel_papers:
+            paper_id = paper.get("key", "")
+            if not paper_id:
+                continue
+            page_slug = f"papers/{paper_id}.html"
+            body = build_paper_detail_body(
+                paper=paper,
+                lang=lang,
+                root_prefix=root_prefix,
+                catalog=catalog,
+            )
+            (papers_root / f"{paper_id}.html").write_text(
+                render_page_shell(
+                    title=f"Paper · {paper_id}",
+                    lang=lang,
+                    page_slug=page_slug,
+                    root_prefix=root_prefix,
+                    toolchain_tag=toolchain_tag,
+                    wordmark_nav=wordmark_nav,
+                    body_html=body,
+                ),
+                encoding="utf-8",
+            )
+
+
+def _reset_output_dir(path: Path) -> None:
+    """Move a prior generated site to the desktop trash before rebuilding."""
+    if not path.exists():
+        return
+    trash = shutil.which("trash-put")
+    if trash is None:
+        raise RuntimeError(f"cannot safely replace generated output without trash-put: {path}")
+    subprocess.run([trash, str(path)], check=True)
+
 def build_site(
     repo_root: Path,
     out_dir: Path,
@@ -3031,6 +3955,7 @@ def build_site(
     move_docgen: bool,
     stub_docgen: bool,
     check_links: bool,
+    metadata_dir: Path | None = None,
 ) -> None:
     tc_raw = (repo_root / "lean-toolchain").read_text(encoding="utf-8").strip()
     toolchain_tag = tc_raw.split(":")[-1] if ":" in tc_raw else tc_raw
@@ -3044,12 +3969,22 @@ def build_site(
     for ck, dir_set in tree_stats["cite_to_dirs"].items():
         if ck in bib_key_map:
             bib_key_map[ck]["cited_by_dirs"] = sorted(dir_set)
+    catalog = scan_catalog_sources(repo_root)
+    metadata = load_panel_metadata(metadata_dir)
+    if metadata_dir is not None:
+        catalog = apply_panel_metadata(catalog, metadata)
+    tree_stats["catalog"] = catalog
+    panel_papers = build_panel_papers(bib_entries, catalog, metadata)
+    tree_stats["total_modules"] = catalog["total_modules"]
+    tree_stats["total_dirs"] = catalog["total_dirs"]
+    for layer in PANEL_LAYERS:
+        tree_stats["layers"][layer]["module_count"] = catalog["layers"][layer]["module_count"]
+        tree_stats["layers"][layer]["dir_count"] = catalog["layers"][layer]["dir_count"]
 
     areas_en, bibtex_en = parse_readme_areas_and_bibtex(repo_root / "README.en.md")
     areas_zh, bibtex_zh = parse_readme_areas_and_bibtex(repo_root / "README.md")
 
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
+    _reset_output_dir(out_dir)
     (out_dir / "assets").mkdir(parents=True, exist_ok=True)
     (out_dir / "zh").mkdir(parents=True, exist_ok=True)
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
@@ -3185,6 +4120,7 @@ def build_site(
                     root_prefix=root_prefix,
                     bib_sections=bib_sections,
                     bib_entries=bib_entries,
+                    panel_papers=panel_papers,
                 ),
             ),
             encoding="utf-8",
@@ -3214,6 +4150,14 @@ def build_site(
             encoding="utf-8",
         )
 
+    write_panel_detail_pages(
+        out_dir=out_dir,
+        catalog=catalog,
+        panel_papers=panel_papers,
+        wordmark_nav=wordmark_nav,
+        toolchain_tag=toolchain_tag,
+    )
+
     # 404 page with legacy root doc-gen4 URL redirector
     (out_dir / "404.html").write_text(
         build_smart_404_page(wordmark_nav, toolchain_tag),
@@ -3234,7 +4178,7 @@ def build_site(
             bib_count=len(bib_entries),
             areas_en=areas_en,
         )
-    elif stub_docgen:
+    elif stub_docgen or check_links:
         create_stub_docgen_dir(docs_target, toolchain_tag, tree_stats)
 
     if check_links:
@@ -3258,6 +4202,7 @@ def main() -> None:
     parser.add_argument("--move-docgen", action="store_true", help="Move --docgen-dir into _site/docs in O(1) instead of copying")
     parser.add_argument("--stub-docgen-if-missing", action="store_true", help="Generate stub /docs/ pages for local preview if --docgen-dir is absent")
     parser.add_argument("--out-dir", type=Path, default=Path("_site"), help="Output directory for GitHub Pages artifact")
+    parser.add_argument("--metadata-dir", type=Path, default=None, help="Optional Unit/Paper metadata directory to overlay on the source inventory")
     parser.add_argument("--check", action="store_true", help="Verify all internal relative links in generated portal HTML")
     args = parser.parse_args()
 
@@ -3268,6 +4213,7 @@ def main() -> None:
         move_docgen=args.move_docgen,
         stub_docgen=args.stub_docgen_if_missing,
         check_links=args.check,
+        metadata_dir=args.metadata_dir.resolve() if args.metadata_dir else None,
     )
 
 

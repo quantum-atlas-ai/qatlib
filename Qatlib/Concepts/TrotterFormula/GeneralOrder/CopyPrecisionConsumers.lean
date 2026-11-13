@@ -26,7 +26,6 @@ attenuation from the ideal evolution phase. For background, see [LloydMohseniReb
 * [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -40,8 +39,6 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix
 open scoped ComplexOrder Classical
 
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 /-- The square of the inverse square root of two, viewed in `ℂ`, is `1 / 2`. -/

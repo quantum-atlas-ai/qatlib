@@ -30,8 +30,6 @@ The remaining part of the paper's main claim — that the gate count is
 `poly(log N, d, ‖Ht‖, 1/ε)` — is the standard sparse-Hamiltonian-simulation cost
 ([1,3] of the paper), reused at the concept layer; see the docstring of
 `c001_implementation_reduction`.
-
-Everything here is proved; there are no `sorry`s in this file.
 -/
 
 set_option autoImplicit false
@@ -235,7 +233,7 @@ Eq.(4) — evolving any ancilla-`|1⟩` input `|1⟩|ψ⟩` for time `π/2` prod
 
 The paper's efficiency clause ("`poly(log N, d, ‖Ht‖, 1/ε)` gates") is the standard
 sparse-Hamiltonian-simulation cost of `H` for time `π/2` ([1,3] of the paper, reused
-at the concept layer, e.g. `QuantumAlgorithm.Concepts.LcuQsvtApprox.SparseWalkFrame`),
+at the concept layer, e.g. `Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame`),
 plus the single initial NOT gate on the ancilla; the dilation is `d`-sparse whenever
 `U` is `d`-sparse per row/column, since its rows are `U`- or `U†`-rows. -/
 theorem sparse_unitary_dilation_main [Nonempty ι] (U : Matrix ι ι ℂ)

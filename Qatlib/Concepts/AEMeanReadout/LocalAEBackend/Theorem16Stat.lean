@@ -23,8 +23,6 @@ normalization, exact marked-mass conclusions, and inverse-square-root program-co
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 /-- Specifies exact promise search for `0 < t₀ ≤ N`, with marked mass one in the nonempty
 promised case, marked mass zero in the empty case, and inverse-square-root cost bounds. -/

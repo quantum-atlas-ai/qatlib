@@ -27,7 +27,6 @@ the normalized transition law required by the descent analysis associated with
 * [Shaydulin et al., 2024][ShaydulinEtAl2024]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 set_option maxHeartbeats 1400000

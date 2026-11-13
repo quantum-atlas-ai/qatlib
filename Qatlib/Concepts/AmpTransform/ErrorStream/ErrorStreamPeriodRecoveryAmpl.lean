@@ -30,7 +30,6 @@ The error-stream setting is developed in [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -44,7 +43,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
@@ -140,12 +138,12 @@ theorem errorStreamPeriodRecovery : ErrorStreamPeriodRecovery := by
       ((if (a y).1 = none then w y else 0) + (if (a y).1 = some P then w y else 0)) ≤ w y := by
     by_cases hn : (a y).1 = none
     · have hnot : ¬((a y).1 = some P) := by rw [hn]; simp
-      rw [if_pos hn, if_neg hnot]
+      rw [ite_eq_left hn, ite_eq_right hnot]
       simp
     · by_cases hp : (a y).1 = some P
-      · rw [if_neg hn, if_pos hp]
+      · rw [ite_eq_right hn, ite_eq_left hp]
         simp
-      · rw [if_neg hn, if_neg hp]
+      · rw [ite_eq_right hn, ite_eq_right hp]
         simpa using! (bornProb_nonneg _ _)
   have hle : (∑ y,
       ((if (a y).1 = none then w y else 0) + (if (a y).1 = some P then w y else 0))) ≤ ∑ y, w y :=
@@ -212,12 +210,12 @@ theorem errorStreamPeriodRecovery : ErrorStreamPeriodRecovery := by
       intro ω _
       by_cases hfirstω : (a (ω 0)).1 = some P
       · have hretry := aq_error_retry_first_record h s M B k P (R'+1) (by omega) ω hfirstω
-        rw [if_pos hfirstω, if_pos hretry]
-      · rw [if_neg hfirstω]
+        rw [ite_eq_left hfirstω, ite_eq_left hretry]
+      · rw [ite_eq_right hfirstω]
         by_cases hretry : (aqRetry h s M B k (List.ofFn ω)).1 = some P
-        · rw [if_pos hretry]
+        · rw [ite_eq_left hretry]
           exact aqProductMass_nonneg w hw0 ω
-        · rw [if_neg hretry]
+        · rw [ite_eq_right hretry]
     calc
       q ≤ ∑ y, if (a y).1 = some P then w y else 0 := hpmass
       _ = ∑ ω : Fin (R'+1) → Fin N, if (a (ω 0)).1 = some P then aqProductMass w ω else 0 :=

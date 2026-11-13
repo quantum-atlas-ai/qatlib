@@ -27,7 +27,6 @@ represented by a leaf and exactly `Nat.clog 2 r` measurements at each leaf.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

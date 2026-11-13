@@ -29,12 +29,12 @@ marked item with certainty is
 ⌈ π / (4 arcsin (1 / √(N/k))) − 1/2 ⌉  <  (π/4) √(N/k).        (1)
 ```
 
-We formalise this in the same fixed-space unitary phase-query model used by the frozen
+We formalise this in the same fixed-space unitary phase-query model used by the library's
 known-count result (a `Circuit I` with a fixed finite basis `I`, oracle family
 `SetOracle`, zero error, see
-`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`).
+`Qatlib.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`).
 
-Two issues with the printed inequality are recorded here explicitly.
+The printed inequality requires the following correction.
 
 * The displayed strict inequality `⌈x − 1/2⌉ < (π/4)√(N/k)` is **false as printed**:
   for `N = 100`, `k = 1` the left side is `⌈7.8416 − 1/2⌉ = 8` while the right side is
@@ -43,7 +43,7 @@ Two issues with the printed inequality are recorded here explicitly.
   `fact2_ceiling_budget_witness` below (proved).  We therefore do not state the false
   strict inequality.
 
-What is proved here (all sorry-free):
+The following results are proved here:
 
 * `fact2_ceiling_budget_witness`: the corrected elementary ceiling inequality.
 * `fact2_known_count_upper`: for every known cardinality `k` with `2k ≤ N`, one fixed
@@ -51,15 +51,15 @@ What is proved here (all sorry-free):
   `⌈(π/4)√(N/k)⌉` queries (the source's `O(√(N/k))` upper half).
 * `exactOptimalQueryCount_quarter`: at quarter density the source's exact formula
   `⌈π/(4 arcsin√(k/N)) − 1/2⌉` evaluates to `1`.
-* `fact2_quarter_density_exact`: **a genuine exact-optimality theorem**.  When exactly
+* `fact2_quarter_density_exact`: **an exact-optimality theorem**.  When exactly
   one quarter of the basis is marked, one query is both sufficient (`0` error,
   `quarterDensity_searchClaim`) and *necessary* — no zero-query circuit can be certain on
   every quarter-density instance.  This realises Fact 2's "cannot be improved even by 1"
   in a non-trivial family.
 
-Residual gap: Zalka's exact lower bound for arbitrary `k` is still not frozen, so the
-general instance of the displayed ceiling formula is not proved; the quarter-density
-case is the proved exact-optimality instance.
+Scope note: exact optimality is proved for the quarter-density family. Zalka's
+exact lower bound for arbitrary `k`, and hence the general instance of the displayed
+ceiling formula, are outside the scope of this file.
 -/
 
 set_option autoImplicit false

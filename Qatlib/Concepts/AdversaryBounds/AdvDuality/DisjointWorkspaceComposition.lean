@@ -33,7 +33,6 @@ These use the tensor-product channel formalism of [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -52,9 +51,6 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
 open scoped Classical ComplexOrder BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 /-- Lift an operator to the left factor of a tensor product and flatten the product index. -/

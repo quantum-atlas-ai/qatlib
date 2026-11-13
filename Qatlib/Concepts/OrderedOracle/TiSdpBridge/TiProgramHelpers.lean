@@ -34,7 +34,6 @@ translated inputs, and `ti_polynomial_prepared_run` accounts for Fourier prepara
   ordered-search algorithms.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -37,7 +37,6 @@ nonempty marked set.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -47,8 +46,6 @@ open scoped BigOperators
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -87,7 +84,7 @@ noncomputable def countRelOutput {N : ℕ} (c : ℝ)
   ⌊(N : ℝ) * aeEstimate (countRelFinalGrid c (basicApproxCountStop N ω)) y + 1 / 2⌋
 
 /-- The event that the rounded final count has absolute error strictly less than `S.card / c`. -/
-noncomputable def countRelGood {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (c : ℝ)
+noncomputable def countRelGood {N : ℕ} (_hN : 0 < N) (S : Finset (Fin N)) (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (countRelFinalGrid c (basicApproxCountStop N ω))) : Prop :=
   |((countRelOutput c ω y : ℤ) : ℝ) - (S.card : ℝ)| < (S.card : ℝ) / c
@@ -352,7 +349,7 @@ theorem countRelFinalGood_of_precision {N : ℕ} (hN : 0 < N) (S : Finset (Fin N
 /-- When the marked set is empty and `c ≥ 1`, the final law assigns probability one to label
 zero, whose rounded output is zero. -/
 theorem countRel_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = 0)
-    (c : ℝ) (hc : 1 ≤ c)
+    (c : ℝ) (_hc : 1 ≤ c)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hω : 2 ≤ countRelFinalGrid c (basicApproxCountStop N ω)) :
     (countRelFinalLaw hN S c ω hω).prob ⟨0, by omega⟩ = 1 ∧
@@ -466,7 +463,7 @@ theorem countRel_joint_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS :
     · rw [hn0]
       have hz (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
           countRelPrefixZero N 0 ω := by intro l hl; omega
-      simp only [if_pos (hz _), basicApproxCountPrefixWeight_sum]
+      simp only [ite_eq_left (hz _), basicApproxCountPrefixWeight_sum]
       norm_num
     · have hpow : (1 : ℝ) ≤ (2 : ℝ) ^ n := one_le_pow₀ (by norm_num)
       have hθsmall : θ ≤ 1 / 5 := by nlinarith
@@ -480,12 +477,12 @@ theorem countRel_joint_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS :
         basicApproxCountPrefixWeight hN S ω *
           countRelFinalGood hN S c ω (countRel_grid_two hc (basicApproxCountStop N ω)) := by
     by_cases hz : countRelPrefixZero N n ω
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       have hscale := countRel_exit_scale hN S hS θ hθ0 hangle n hn ω hz hcross
       have hwin := countRel_window_at_grid hN S hS c hc ω hscale
       exact mul_le_mul_of_nonneg_left
         (countRelFinalGood_of_precision hN S hS c hc ω (countRel_grid_two hc _) hwin) (hp0 ω)
-    · rw [if_neg hz, zero_mul]
+    · rw [ite_eq_right hz, zero_mul]
       exact mul_nonneg (hp0 ω) (Finset.sum_nonneg
         (fun y _ => (countRelFinalLaw hN S c ω (countRel_grid_two hc _)).nonneg y))
   have hsum := Finset.sum_le_sum (fun ω (_ : ω ∈ Finset.univ) => hpoint ω)

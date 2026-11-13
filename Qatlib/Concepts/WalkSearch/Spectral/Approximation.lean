@@ -30,8 +30,6 @@ explicit error and circuit resource counts, following the QSVT framework [Gilyen
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.Spectral
 
 open Qatlib.Concepts.RandCompile.ChannelBudget

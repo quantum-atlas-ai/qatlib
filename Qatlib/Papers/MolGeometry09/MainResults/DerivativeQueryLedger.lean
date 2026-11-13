@@ -35,11 +35,9 @@ counts, and compares query counts with finite-difference arithmetic and register
 * [Kassal and Aspuru-Guzik, 2009][KassalAspuruGuzik2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.MolGeometry09.MainResults.DerivativeQueryLedger
@@ -164,7 +162,7 @@ theorem derivative_query_count_dimension_free
 /-- For `d ≥ 2` and `n ≥ 1`, the modeled count `2^(n - 1)` is strictly less than `d^n + 1`; see
 [KassalAspuruGuzik2009]. -/
 theorem quantum_beats_classical_finite_difference
-    (d n : ℕ) (hd : 2 ≤ d) (hn : 1 ≤ n) :
+    (d n : ℕ) (hd : 2 ≤ d) (_hn : 1 ≤ n) :
     2 ^ (n - 1) < d ^ n + 1 := by
   have h2n : 2 ^ n ≤ d ^ n := Nat.pow_le_pow_left hd n
   have hmono : 2 ^ (n - 1) ≤ 2 ^ n :=

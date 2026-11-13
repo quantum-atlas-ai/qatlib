@@ -58,7 +58,7 @@ Modelling notes.
   Krawtchouk basis, `P*(s) = ∑_k w_k K_k(s)`, where `P*(s) = P(2s − m)`
   corresponds to `s` satisfied constraints (`f(x) = 2s − m`).
 
-Proved here without `sorry`:
+Results proved here:
 
 * the identity `f(x) = 2·sat(x) − m` for sign-valued max-LINSAT constraints
   (`linsatObjective_eq_two_satCount_sub`);

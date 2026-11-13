@@ -31,7 +31,6 @@ carry no correctness or probability-range conditions.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults

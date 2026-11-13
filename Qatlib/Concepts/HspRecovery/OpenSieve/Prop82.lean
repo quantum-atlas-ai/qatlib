@@ -29,7 +29,6 @@ matrix satisfying the fixed-projector support equation to that subgroup's coset 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open scoped ComplexOrder

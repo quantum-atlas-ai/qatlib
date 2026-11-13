@@ -24,7 +24,6 @@ states by summing over computational basis vectors, following the register conve
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

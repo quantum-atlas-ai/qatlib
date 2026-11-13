@@ -29,13 +29,11 @@ the quantum walk framework of [Szegedy2004].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Matrix
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits

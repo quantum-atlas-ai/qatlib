@@ -25,14 +25,12 @@ total trace preservation in the presence of any finite reference system, using t
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 namespace Qatlib.Concepts.DimInstruments.DimTreeExec
 open Qatlib.Concepts.DimInstruments.DimTreeExec

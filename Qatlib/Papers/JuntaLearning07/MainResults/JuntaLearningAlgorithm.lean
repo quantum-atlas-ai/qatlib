@@ -52,7 +52,6 @@ ingredients for Theorem IV.5.
   Juntas, Theorem IV.5 and Fact IV.6.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

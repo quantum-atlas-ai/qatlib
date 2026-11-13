@@ -27,8 +27,6 @@ the total amplification formula. The formalization follows [Watrous1998].
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
 
 open Finset

@@ -33,7 +33,6 @@ This is the effective spectral gap estimate used in reflection-based state conve
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding

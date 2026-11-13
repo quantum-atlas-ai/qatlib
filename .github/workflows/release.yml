@@ -12,24 +12,27 @@ on:
         default: "v4.35.0"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Publish or Update GitHub Release
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release delete "$TAG_NAME" --yes
+            echo "::error::Release $TAG_NAME already exists; releases are append-only." >&2
+            exit 1
           fi
           gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes

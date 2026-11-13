@@ -31,8 +31,6 @@ greedy clock fixing. See [BaskaranEtAl2023].
 * [Baskaran et al., 2023][BaskaranEtAl2023]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Classical

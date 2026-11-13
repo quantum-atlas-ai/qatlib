@@ -26,8 +26,6 @@ counts the spectator-bit assignments used for gate widgets in [Childs2009].
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Gates
 
 open Matrix

@@ -9,7 +9,7 @@ import Lean.Elab.Tactic.Omega
 import Mathlib.AlgebraicTopology.SimplexCategory.Basic
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.Real.Hom
+import Mathlib.Algebra.Order.Archimedean.Real.Hom
 import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
@@ -43,7 +43,6 @@ standard in quantum query lower bounds; see [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -56,7 +55,6 @@ open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithACl
 namespace Qatlib.Concepts.QmaCompleteness.WitnessSampler
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Matrix
 
@@ -282,20 +280,22 @@ private theorem oracle_diff_apply (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x →
       have e2 : (p.1.2 && Δ p.1.1) = true := by
         rw [Bool.and_eq_true]; exact ⟨hbs.1, hD⟩
       have e3 : ¬(p.1.2 = true ∧ S p.1.1 ∧ ¬Δ p.1.1) := fun h => h.2.2 hD
-      rw [if_pos e1, if_pos e2, if_neg e3]
+      rw [ite_eq_left e1, ite_eq_left e2, ite_eq_right e3]
       ring
     · have e1 : (p.1.2 && S p.1.1) = true := by
         rw [Bool.and_eq_true]; exact hbs
       have e2 : ¬((p.1.2 && Δ p.1.1) = true) := by
         rw [Bool.and_eq_true]; intro hc2; exact hD hc2.2
-      rw [if_pos e1, if_neg e2, if_pos ⟨hbs.1, hbs.2, hD⟩]
+      rw [ite_eq_left e1, ite_eq_right e2, ite_eq_left ⟨hbs.1, hbs.2, hD⟩]
       ring
   · have e1 : ¬((p.1.2 && S p.1.1) = true) := by
       rw [Bool.and_eq_true]; intro hc2; exact hbs hc2
     have e2 : ¬((p.1.2 && Δ p.1.1) = true) := by
       rw [Bool.and_eq_true]; intro hc2; exact hbs ⟨hc2.1, hΔ p.1.1 hc2.2⟩
-    rw [if_neg e1, if_neg e2, if_neg (fun h => hbs ⟨h.1, h.2.1⟩)]
+    rw [ite_eq_right e1, ite_eq_right e2, ite_eq_right (fun h => hbs ⟨h.1, h.2.1⟩)]
     ring
+
+omit [DecidableEq W] in
 
 /-- The controlled fiber measurement mass `controlFiberMass n S Δ W φ` is nonnegative for every
 vector `φ`. -/
@@ -318,13 +318,13 @@ private theorem oracle_diff_norm_sq (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x �
     intro p
     rw [oracle_diff_apply S Δ hΔ φ p]
     by_cases hc : p.1.2 = true ∧ S p.1.1 ∧ ¬Δ p.1.1
-    · rw [if_pos hc, if_pos hc]
+    · rw [ite_eq_left hc, ite_eq_left hc]
       have h2 : ‖(-2 : ℂ) * φ p‖ = 2 * ‖φ p‖ := by
         rw [norm_mul, norm_neg]
         norm_num
       rw [h2]
       ring
-    · rw [if_neg hc, if_neg hc]
+    · rw [ite_eq_right hc, ite_eq_right hc]
       simp
   unfold controlFiberMass MeasureProb
   rw [Finset.mul_sum, Finset.sum_filter]

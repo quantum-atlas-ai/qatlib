@@ -31,7 +31,6 @@ the hypotheses of its underlying recovery component.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -49,7 +48,6 @@ open Qatlib.Concepts.WalkFind.UniformThree
 open Qatlib.Concepts.HspRecovery.ReductionCore
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.AlgebraicRecovery
 

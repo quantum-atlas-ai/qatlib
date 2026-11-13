@@ -29,7 +29,6 @@ For the mathematical background, see [Grover1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -39,8 +38,6 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 
 open Matrix
 open Qatlib
-
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
@@ -197,7 +194,7 @@ theorem measureProb_groverState (hN : 0 < Fintype.card I) (A : Finset I) (θ : �
   have heach (i : I) (hi : i ∈ A) : BornProb (GroverState A j) i =
       (Fintype.card I : ℝ)⁻¹ * (Real.sin ((2 * j + 1) * θ)) ^ 2 / (Real.sin θ) ^ 2 := by
     rw [groverState_eq hN A θ hθ hs hc]
-    simp only [BornProb, MarkedVector, if_pos hi, norm_div, norm_mul, norm_inv,
+    simp only [BornProb, MarkedVector, ite_eq_left hi, norm_div, norm_mul, norm_inv,
       Complex.norm_real, Real.norm_eq_abs, div_pow, mul_pow, inv_pow, sq_abs,
       Real.sq_sqrt hNreal]
   have hsum : MeasureProb (GroverState A j) A =

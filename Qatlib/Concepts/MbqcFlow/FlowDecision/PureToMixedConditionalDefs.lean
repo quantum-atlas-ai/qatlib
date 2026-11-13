@@ -30,7 +30,6 @@ instrument framework of [Watrous2018].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

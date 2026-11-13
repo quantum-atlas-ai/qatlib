@@ -35,9 +35,6 @@ completeness of the tensor family.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

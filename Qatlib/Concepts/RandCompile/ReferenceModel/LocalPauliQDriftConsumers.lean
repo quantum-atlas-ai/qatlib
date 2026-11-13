@@ -25,8 +25,6 @@ combines simulation, sampling, phase, and coefficient errors in the setting of [
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ChannelTheory.Stinespring
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates

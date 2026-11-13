@@ -26,8 +26,6 @@ scalar estimates to Euclidean-state error and normalized-state error bounds for 
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.ParabolicPDE24.HeatLimit

@@ -26,7 +26,6 @@ The mathematical background is described in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.QspSimulation.Achievability
 

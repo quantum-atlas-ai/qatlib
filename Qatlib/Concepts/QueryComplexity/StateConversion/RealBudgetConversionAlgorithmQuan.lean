@@ -29,7 +29,6 @@ The mathematical background is described in [LeeEtAl2011].
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding

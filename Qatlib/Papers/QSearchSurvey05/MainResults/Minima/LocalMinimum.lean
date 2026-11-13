@@ -28,8 +28,6 @@ local minimum application of [Ambainis2005], obtaining twice 2^(n/3)n^(1/6).
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -23,8 +23,6 @@ decoding properties used in amplitude-estimation arguments such as those in [Mon
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
-
 open Matrix
 
 open Qatlib.Foundations.PureStateMath

@@ -30,10 +30,7 @@ norm chain, and the identity and all-ones matrices provide exact comparison valu
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix Finset
@@ -43,9 +40,13 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+omit [Nonempty ι] in
+
 /-- For a complex matrix, `specNorm` equals the norm supplied by the Euclidean operator-norm
 instance. -/
 lemma specNorm_eq_l2 (H : Matrix ι ι ℂ) : specNorm H = ‖H‖ := rfl
+
+omit [Nonempty ι] in
 
 /-- For a real or complex matrix, `specNorm` equals the norm supplied by the Euclidean
 operator-norm instance. -/
@@ -55,6 +56,8 @@ lemma specNorm_eq_l2' {𝕜 : Type*} [RCLike 𝕜] (H : Matrix ι ι 𝕜) : spe
 lemma specNorm_nonneg {𝕜 : Type*} [RCLike 𝕜] (H : Matrix ι ι 𝕜) : 0 ≤ specNorm H := by
   rw [specNorm_eq_l2']
   exact norm_nonneg H
+
+omit [DecidableEq ι] in
 
 /-- The norm of each matrix entry is at most `maxNorm H`. -/
 lemma le_maxNorm (H : Matrix ι ι ℂ) (i j : ι) : ‖H i j‖ ≤ maxNorm H :=
@@ -67,17 +70,23 @@ lemma maxNorm_nonneg (H : Matrix ι ι ℂ) : 0 ≤ maxNorm H := by
   obtain ⟨i⟩ := (inferInstance : Nonempty ι)
   exact (norm_nonneg (H i i)).trans (le_maxNorm H i i)
 
+omit [DecidableEq ι] in
+
 /-- The maximum Euclidean column norm is nonnegative. -/
 lemma mcnNorm_nonneg (H : Matrix ι ι ℂ) : 0 ≤ mcnNorm H := by
   obtain ⟨j⟩ := (inferInstance : Nonempty ι)
   exact (Real.sqrt_nonneg _).trans
     (Finset.le_sup' (fun j : ι => Real.sqrt (∑ i : ι, ‖H i j‖ ^ 2)) (Finset.mem_univ j))
 
+omit [DecidableEq ι] in
+
 /-- The maximum column-sum norm is nonnegative. -/
 lemma l1Norm_nonneg (H : Matrix ι ι ℂ) : 0 ≤ l1Norm H := by
   obtain ⟨j⟩ := (inferInstance : Nonempty ι)
   exact (Finset.sum_nonneg (fun i _ => norm_nonneg _)).trans
     (Finset.le_sup' (fun j : ι => ∑ i : ι, ‖H i j‖) (Finset.mem_univ j))
+
+omit [DecidableEq ι] [Nonempty ι] in
 
 /-- The square root of the sum of squared entry norms in column `j` equals the Euclidean norm of
 that column. -/
@@ -86,6 +95,8 @@ lemma sqrt_col_sq_eq (H : Matrix ι ι ℂ) (j : ι) :
       = ‖(EuclideanSpace.equiv ι ℂ).symm (fun i => H i j)‖ := by
   rw [EuclideanSpace.norm_eq]
   congr 1
+
+omit [Nonempty ι] in
 
 /-- The Euclidean norm of a coordinate vector with a single entry equal to one is one. -/
 lemma single_one_norm (j : ι) :
@@ -96,9 +107,11 @@ lemma single_one_norm (j : ι) :
       rw [Fintype.sum_eq_single j]
       · simp
       · intro b hb
-        simp [Pi.single_apply, Ne.symm hb]
+        simp [Ne.symm hb]
     simpa using h'
   rw [h, Real.sqrt_one]
+
+omit [Nonempty ι] in
 
 /-- The Euclidean norm of a matrix-vector product is at most the spectral norm of the matrix
 times the norm of the vector. -/
@@ -106,6 +119,8 @@ lemma specNorm_mulVec {𝕜 : Type*} [RCLike 𝕜] (H : Matrix ι ι 𝕜) (x : 
     ‖(EuclideanSpace.equiv ι 𝕜).symm (H *ᵥ x.ofLp)‖ ≤ specNorm H * ‖x‖ := by
   have h := Matrix.l2_opNorm_mulVec H x
   simpa [specNorm_eq_l2'] using h
+
+omit [DecidableEq ι] in
 
 /-- The maximum-entry norm is at most the maximum Euclidean column norm. -/
 lemma maxNorm_le_mcnNorm (H : Matrix ι ι ℂ) : maxNorm H ≤ mcnNorm H := by
@@ -123,7 +138,7 @@ lemma mcnNorm_le_specNorm (H : Matrix ι ι ℂ) : mcnNorm H ≤ specNorm H := b
   refine Finset.sup'_le _ _ fun j _ => ?_
   rw [sqrt_col_sq_eq]
   have hmv := specNorm_mulVec H ((WithLp.toLp 2 (Pi.single j (1 : ℂ))) : EuclideanSpace ℂ ι)
-  simp only [WithLp.ofLp_toLp] at hmv
+  simp only [] at hmv
   rw [single_one_norm, mul_one] at hmv
   have hsingle : (H *ᵥ (Pi.single j (1 : ℂ))) = fun i => H i j := by
     funext i
@@ -177,8 +192,10 @@ lemma specNorm_le_specNorm_abs (H : Matrix ι ι ℂ) :
     rw [EuclideanSpace.norm_eq, EuclideanSpace.norm_eq]
     congr 1
     refine Finset.sum_congr rfl fun i _ => ?_
-    simp [Real.norm_eq_abs, sq_abs]
+    simp []
   exact hdom.trans (hstep.trans_eq (by rw [hveq]))
+
+omit [DecidableEq ι] in
 
 /-- For a Hermitian matrix, each row sum of entry norms is at most the maximum column-sum norm. -/
 lemma absMatrix_rowSum_le_l1 (H : Matrix ι ι ℂ) (hH : H.IsHermitian) (i : ι) :
@@ -277,6 +294,8 @@ lemma specNorm_abs_le_l1 (H : Matrix ι ι ℂ) (hH : H.IsHermitian) :
   have hle := Real.sqrt_le_sqrt hsq
   rwa [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq hRHSnn] at hle
 
+omit [DecidableEq ι] in
+
 /-- The maximum column-sum norm is at most the square root of the dimension times the maximum
 Euclidean column norm. -/
 lemma l1Norm_le_sqrt_card_mul_mcnNorm (H : Matrix ι ι ℂ) :
@@ -371,6 +390,8 @@ lemma specNorm_one {𝕜 : Type*} [RCLike 𝕜] : specNorm (1 : Matrix ι ι �
   rw [h]
   exact norm_one
 
+omit [Fintype ι] [Nonempty ι] in
+
 /-- The entrywise absolute-value matrix of the complex identity is the real identity. -/
 lemma absMatrix_one : absMatrix (1 : Matrix ι ι ℂ) = (1 : Matrix ι ι ℝ) := by
   ext i j
@@ -398,6 +419,8 @@ lemma maxNorm_const_one : maxNorm (fun _ _ : ι => (1 : ℂ)) = 1 := by
     have h := le_maxNorm (fun _ _ : ι => (1 : ℂ)) i₀ i₀
     simpa using h
 
+omit [DecidableEq ι] in
+
 /-- The maximum Euclidean column norm of the all-ones matrix is the square root of the index
 cardinality. -/
 lemma mcnNorm_const_one :
@@ -413,6 +436,8 @@ lemma mcnNorm_const_one :
       (fun j => Real.sqrt (∑ i : ι, ‖(fun _ _ : ι => (1 : ℂ)) i j‖ ^ 2))
       (Finset.mem_univ j₀)
     rwa [hcol j₀] at h
+
+omit [DecidableEq ι] in
 
 /-- The maximum column-sum norm of the all-ones matrix equals the index cardinality. -/
 lemma l1Norm_const_one : l1Norm (fun _ _ : ι => (1 : ℂ)) = (Fintype.card ι : ℝ) := by

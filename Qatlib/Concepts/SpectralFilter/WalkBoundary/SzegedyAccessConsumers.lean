@@ -30,7 +30,6 @@ four gates.
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -50,9 +49,6 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedVariables false
 
 open scoped Classical BigOperators
 
@@ -137,8 +133,7 @@ theorem szegedyIsometry_periodicFlip_conjTranspose_col (i : Bool) :
   rw [conjTranspose_mulVec_ket_apply]
   simp only [SzegedyIsometry, Matrix.of_apply]
   fin_cases i <;> fin_cases k <;>
-    simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
-      starRingEnd_ofReal, Ket]
+    simp [periodicFlipTransition, Real.sqrt_one, Ket]
 
 /-- The adjoint Szegedy isometry annihilates each equal-pair basis ket. -/
 theorem szegedyIsometry_periodicFlip_conjTranspose_anti (i : Bool) :
@@ -147,8 +142,7 @@ theorem szegedyIsometry_periodicFlip_conjTranspose_anti (i : Bool) :
   rw [conjTranspose_mulVec_ket_apply]
   simp only [SzegedyIsometry, Matrix.of_apply]
   fin_cases i <;> fin_cases k <;>
-    simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
-      starRingEnd_ofReal, Ket]
+    simp [periodicFlipTransition, Real.sqrt_zero]
 
 /-- The Szegedy reflection fixes each supported flip-pair basis ket. -/
 theorem szegedyReflection_periodicFlip_fix (i : Bool) :
@@ -215,8 +209,7 @@ theorem counted_szegedy_periodic_endpoint_actual_consumer :
     rw [conjTranspose_mulVec_ket_apply]
     simp only [SzegedyIsometry, Matrix.of_apply]
     fin_cases k <;>
-      simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
-        starRingEnd_ofReal, Ket]
+      simp [periodicFlipTransition, Real.sqrt_zero]
 
 /-- The periodic flip counted word evaluates to the identity while retaining four queries and
 four gates. -/

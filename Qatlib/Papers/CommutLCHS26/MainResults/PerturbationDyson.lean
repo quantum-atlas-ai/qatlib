@@ -45,7 +45,6 @@ open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.InteractionEvo.DysonGrid
 open Qatlib.Concepts.TimeEvolution.DysonPropagator
 open Qatlib.Papers.CommutLCHS26.MainResults
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _

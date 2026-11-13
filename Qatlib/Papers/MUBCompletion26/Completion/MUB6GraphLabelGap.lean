@@ -30,7 +30,6 @@ repeated labels.
 * [Sun, 2026][Sun2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 open Qatlib.Foundations.PureStateMath
 

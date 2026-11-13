@@ -28,7 +28,6 @@ least-common-multiple identity yield the explicit constant success bound in
 * [Cleve et al., 1998][CleveEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

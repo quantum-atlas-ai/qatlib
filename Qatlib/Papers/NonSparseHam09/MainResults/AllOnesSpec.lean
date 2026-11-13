@@ -26,11 +26,7 @@ comparisons among matrix norms. See [ChildsKothari2010] for the surrounding anal
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -39,6 +35,8 @@ open scoped Matrix.Norms.L2Operator BigOperators
 namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
+
+omit [DecidableEq ι] [Nonempty ι] in
 
 /-- The all-ones matrix sends a vector to the constant vector whose value is the sum of its
 coordinates [ChildsKothari2010]. -/
@@ -68,7 +66,7 @@ theorem specNorm_const_one :
 
     have hsum : (∑ _i : ι, ‖∑ j, v.ofLp j‖ ^ 2)
         = (Fintype.card ι : ℝ) * ‖∑ j, v.ofLp j‖ ^ 2 := by
-      simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm]
+      simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [hsum]
 
     have hcs : ‖∑ j, v.ofLp j‖ ^ 2
@@ -112,7 +110,7 @@ theorem specNorm_const_one :
           (fun _ => (Fintype.card ι : ℂ))).ofLp i‖ ^ 2)
           = (Fintype.card ι : ℝ) * (Fintype.card ι : ℝ) ^ 2 := by
         simp only [hcoord]
-        simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, Complex.norm_natCast]
+        simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
       rw [hsum2, show (Fintype.card ι : ℝ) * (Fintype.card ι : ℝ) ^ 2
           = ((Fintype.card ι : ℝ) * Real.sqrt (Fintype.card ι : ℝ)) ^ 2 by
         rw [mul_pow, Real.sq_sqrt hcard]; ring]

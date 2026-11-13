@@ -25,10 +25,7 @@ regulator shifts [Schmidt2009].
 * [Schmidt, 2009][Schmidt2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults
@@ -111,7 +108,7 @@ theorem lemma1_period_entry (M : RegPeriodModel) (g : M.Form) :
 `log Δ + 3`, stays at `g` through its final offset, then reaches the successor, and varies
 by at most four across shifts [Schmidt2009]. -/
 theorem lemma2_run (M : RegPeriodModel) (Δ : ℝ)
-    (hΔ : 0 < Δ) (hR : 5 * Real.log Δ < M.R) (g : M.Form) (k : ℤ)
+    (_hΔ : 0 < Δ) (_hR : 5 * Real.log Δ < M.R) (g : M.Form) (k : ℤ)
     (hwin : (1 / 2 : ℝ) < M.d (M.succ g) - M.d g)
     (hcount : 4 * (M.d (M.succ g) - M.d g) ≤ Real.log Δ + 3) :
     1 ≤ windowRun M g k ∧ (windowRun M g k : ℝ) < Real.log Δ + 3 ∧

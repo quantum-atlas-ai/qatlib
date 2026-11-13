@@ -30,14 +30,12 @@ constructions use the operational probability framework of [DaviesLewis1970].
 * [Davies and Lewis, 1970][DaviesLewis1970]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ZeroCostLimit.FirstHitMass
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.StoppingCore.BranchCostCore

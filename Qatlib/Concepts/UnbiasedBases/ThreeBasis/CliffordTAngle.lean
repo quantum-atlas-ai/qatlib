@@ -40,7 +40,6 @@ culminate in `trace_htht_eq_cos_htAngle`, retaining the global phase `tPhase`.
 - [Nielsen and Chuang, 2010][NielsenChuang2010], *Quantum Computation and Quantum Information*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo
 
 namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis

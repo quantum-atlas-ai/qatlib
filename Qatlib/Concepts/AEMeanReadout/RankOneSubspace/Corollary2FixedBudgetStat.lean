@@ -22,7 +22,6 @@ the corresponding strict count-error window of mass at least `8 / π^2`.
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

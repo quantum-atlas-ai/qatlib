@@ -48,7 +48,6 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget
 
 open Qatlib MeasureTheory Set Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Complex differentiability on the closed lower half-plane implies continuity on that set. -/
 theorem clause30_closed_differentiable_gives_closed_continuity {f : ℂ → ℂ}

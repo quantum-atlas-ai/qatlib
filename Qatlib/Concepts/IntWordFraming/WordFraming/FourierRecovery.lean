@@ -48,7 +48,6 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.IntWordFraming.WordFraming
 
 open Matrix
-set_option warningAsError false
 
 /-- Converting an integer matrix to a table and back returns the original matrix. -/
 @[simp] theorem tableMatrix_matrixTable {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) :

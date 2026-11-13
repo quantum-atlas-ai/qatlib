@@ -26,7 +26,6 @@ Fourier-sum formula with a cardinality bound, following the setting of Lemma 20 
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

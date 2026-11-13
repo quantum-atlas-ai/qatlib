@@ -39,12 +39,10 @@ semidefinite, and weighted-source settings; it introduces no new declarations.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
-
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
@@ -54,7 +52,6 @@ open Qatlib
 open Qatlib
 
 section
-set_option linter.unusedSectionVars false
 
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]

@@ -24,7 +24,6 @@ The example concerns density-matrix exponentiation by copies [LloydMohseniRebent
 * [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers

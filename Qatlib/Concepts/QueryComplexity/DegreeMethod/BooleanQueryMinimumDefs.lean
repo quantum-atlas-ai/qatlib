@@ -35,7 +35,6 @@ order of all four minima and positivity for nonconstant functions.
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab

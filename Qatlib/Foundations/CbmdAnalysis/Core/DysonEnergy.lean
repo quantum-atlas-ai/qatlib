@@ -34,7 +34,6 @@ provide the parameter-dependent growth estimates needed in [WangEtAl2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 

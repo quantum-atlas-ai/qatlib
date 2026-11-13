@@ -32,8 +32,6 @@ in terms of `Q` and the oracle difference.
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.AdaptiveQuery.RawProcess

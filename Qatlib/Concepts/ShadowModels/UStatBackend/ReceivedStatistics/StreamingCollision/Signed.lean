@@ -25,7 +25,6 @@ received-record estimators associated with nonlinear estimation [HuangKuengPresk
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

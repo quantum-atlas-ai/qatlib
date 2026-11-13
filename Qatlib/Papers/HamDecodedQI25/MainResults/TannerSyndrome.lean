@@ -27,7 +27,7 @@ check with an odd intersection with the support already certifies
   intersection with the error support has odd cardinality forces
   `H *ᵥ e ≠ 0`.
 
-No axiom, no `admit`, no `native_decide`. -/
+-/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HamDecodedQI25.MainResults.TannerSyndrome

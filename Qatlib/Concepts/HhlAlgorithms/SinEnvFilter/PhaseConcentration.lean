@@ -26,7 +26,6 @@ combines these results into the proposition associated with Appendix A.3 of
 * [Harrow et al., 2009, Appendix A.3][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

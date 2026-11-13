@@ -16,8 +16,8 @@ partition functions with a quantum computer*, fixed arXiv:0905.2199.
 
 This file supplies the partition function and the Gibbs state used by the
 paper-layer contracts, together with the elementary positivity facts needed to
-connect them to the frozen matrix-exponential perturbation library
-(`QuantumAlgorithm.Foundations.MatrixExpTrace.ExpPerturbation`).
+connect them to the matrix-exponential perturbation library
+(`Qatlib.Concepts.MatrixExpTrace.ExpPerturbation`).
 
 Boundary: these definitions only fix the paper's notation. They make no
 complexity or algorithm statement; those live in the individual claim files.

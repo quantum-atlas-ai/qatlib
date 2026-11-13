@@ -25,8 +25,6 @@ sharp spectral-band twiddle bound of [JansenRuskaiSeiler2007], with dependence `
 * [Jansen et al., 2007][JansenRuskaiSeiler2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

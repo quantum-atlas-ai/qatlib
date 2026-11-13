@@ -42,7 +42,6 @@ The remaining claims are recorded as abstract statements:
 - c012 (Lemma 5.4) is the Chebyshev trace closeness in eigenvalue-sum
   form.
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

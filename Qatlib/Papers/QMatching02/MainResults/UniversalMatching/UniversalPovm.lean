@@ -6,7 +6,7 @@ Authors: Qatlib Contributors
 
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Complex.BigOperators
+import Mathlib.Basic.Complex.BigOperators
 import Mathlib.Analysis.InnerProductSpace.Positive
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Nat.Choose.Basic
@@ -33,7 +33,6 @@ families; the completeness of those families is an explicit hypothesis.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix

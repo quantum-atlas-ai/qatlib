@@ -12,7 +12,7 @@ set_option backward.isDefEq.respectTransparency false
 # SourceLemma2 — no simultaneous concentration in the two bases (Lemma 2, p.4)
 
 Anshu–Breuckmann–Nirkhe, fixed arXiv:2206.13228v4 (STOC 2023; v4 2024-12-05),
-PDF `prove/assets/2206.13228v4.pdf`, p.4:
+PDF https://arxiv.org/pdf/2206.13228v4, p.4:
 
 > Lemma 2. For `ε₁` such that `2c₁ε₁ ≤ (k/(4n))²`, either `∀i, D_z(B_i^z) < 99/100`
 > or else `∀j, D_x(B_j^x) < 99/100`.

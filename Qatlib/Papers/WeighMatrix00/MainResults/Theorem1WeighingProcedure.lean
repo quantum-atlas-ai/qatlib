@@ -30,8 +30,6 @@ This development forms part of the formalization of [VanDam2002].
 * [van Dam, 2002][VanDam2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

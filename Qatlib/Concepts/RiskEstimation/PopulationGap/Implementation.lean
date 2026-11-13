@@ -54,7 +54,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
@@ -474,7 +473,6 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The combined implementation target is false because it includes an unrestricted real
 quantization guarantee contradicted by negative inputs. -/

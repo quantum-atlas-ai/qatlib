@@ -38,7 +38,6 @@ then yield unitary square roots, with determinant one preserved when it is requi
   Computation and Quantum Information.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.SU2
 
 section

@@ -24,7 +24,6 @@ provide two-sector operator bounds for the analysis surrounding [AftabAnTrivisa2
 * [Aftab et al., 2026][AftabAnTrivisa2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

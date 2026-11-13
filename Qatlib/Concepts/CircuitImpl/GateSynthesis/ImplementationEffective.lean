@@ -34,7 +34,6 @@ implementation identities.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Foundations.PureStateMath

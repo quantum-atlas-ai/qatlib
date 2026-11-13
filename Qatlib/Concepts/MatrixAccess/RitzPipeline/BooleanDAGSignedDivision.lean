@@ -31,7 +31,6 @@ including a zero denominator. The circuit background is described in [NielsenChu
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

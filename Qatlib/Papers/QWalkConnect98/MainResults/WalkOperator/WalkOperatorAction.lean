@@ -27,8 +27,6 @@ vanish outside the source component. The mathematical setting is described in [W
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator
 
 open Finset

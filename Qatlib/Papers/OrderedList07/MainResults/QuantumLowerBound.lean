@@ -25,8 +25,6 @@ into query lower bounds corresponding to the discussion in [BenOrHassidim2007].
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

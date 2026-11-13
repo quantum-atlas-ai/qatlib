@@ -26,8 +26,6 @@ setup factor. The module uses exact fourth-power windows and a real-exponent ide
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 

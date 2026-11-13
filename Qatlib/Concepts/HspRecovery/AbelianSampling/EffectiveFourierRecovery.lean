@@ -66,7 +66,6 @@ open Qatlib.Concepts.HspRecovery.AbelianSampling
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open Qatlib.Concepts.HspRecovery.AbelianSampling
-set_option warningAsError false
 
 /-- Establishes the conjunction of presentation invariance, normalized coordinate and word
 equality laws, Smith computation bounds, and exact phase readout in

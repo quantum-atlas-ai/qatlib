@@ -22,7 +22,6 @@ PEPS and transfer contractions are discussed in [VerstraeteWolfPerezGarciaCirac2
 and [Verstraete, Murg & Cirac, tensor-network methods][VerstraeteMurgCirac2008].
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

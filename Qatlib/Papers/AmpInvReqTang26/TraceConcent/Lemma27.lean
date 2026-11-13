@@ -41,7 +41,6 @@ open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.RootLaws
-set_option warningAsError false
 
 /-- The mass of the complement of a decidable event under a finite probability law is one minus
 its mass. -/

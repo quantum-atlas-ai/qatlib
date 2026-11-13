@@ -25,8 +25,6 @@ the resulting semidirect product with distinguished generators `zGen` and `wGen`
 * [Inui and Le Gall, 2007][InuiLeGall2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -31,11 +31,10 @@ records the `Õ(N^{3/2})` upper bound as `gates² ≤ 4N³`, and
 `qram_recovers_quadratic` records the QRAM restoration `√N ≤ N` plus
 `N ≤ (√N+1)²`.
 
-Reusable dependencies (Dev bind `SearchStopping.KnownCount`,
-`TableAccess.LookupCompile`): `QuantumAlgorithm.Concepts.SearchStopping.KnownCount`
+`Qatlib.Concepts.SearchStopping.KnownCount`
 has `preparedGrover_knownCount_query_upper` (the `√N`-query bound) and
 `queryCount_groverCircuit`; the QRAM oracle-compilation backend is
-`QuantumAlgorithm.Concepts.TableAccess.LookupCompile`.  Those prove the circuit
+`Qatlib.Concepts.TableAccess.LookupCompile`.  Those prove the circuit
 constructions; here we only record the arithmetic assessment.
 -/
 

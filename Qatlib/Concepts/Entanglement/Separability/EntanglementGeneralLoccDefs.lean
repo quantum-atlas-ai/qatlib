@@ -34,7 +34,6 @@ sum of the negative parts of the partial-transpose spectrum, as in [VidalWerner2
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
@@ -44,7 +43,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

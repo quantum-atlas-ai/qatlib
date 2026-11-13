@@ -27,7 +27,6 @@ gap and its minimum on the unit interval for the feasible-space analysis of [Zho
 * [Zhou et al., 2026][ZhouAnLiu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

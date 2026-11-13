@@ -26,8 +26,8 @@ contradiction with `T = ⌈16 ln n / ε²⌉`.  Hence within `16 ln n / ε²` ro
 algorithm either finds a violated constraint or outputs a state in `S_ε`.
 
 The key analytic input, the chord/comparator inequality at a *negative* learning rate
-`η = -ε/4`, is provided by the frozen development
-`QuantumAlgorithm.Concepts.MatrixWeights.LambdaMin.matrix_mw_chord_comparator`.
+`η = -ε/4`, is provided by the library theorem
+`Qatlib.Concepts.MatrixWeights.LambdaMin.matrix_mw_chord_comparator`.
 -/
 
 set_option autoImplicit false

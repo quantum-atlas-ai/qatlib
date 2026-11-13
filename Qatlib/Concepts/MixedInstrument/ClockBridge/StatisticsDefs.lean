@@ -23,7 +23,6 @@ comparison with that space quantity. See [Montanaro2015] for the Monte Carlo con
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ShadowModels.ShadowChannel
 
@@ -35,7 +34,6 @@ open scoped BigOperators Classical ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The maximum of the pilot record count and the main block size in a confidence budget. -/
 def confidencePeakSpace (b : ConfidenceBudget) : ℕ :=

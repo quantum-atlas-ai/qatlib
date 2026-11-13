@@ -28,9 +28,7 @@ the linear-systems construction of [HarrowHassidimLloyd2009].
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.NativeNumerics.LayeredMean

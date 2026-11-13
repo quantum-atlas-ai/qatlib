@@ -26,10 +26,8 @@ obstruction transfers to permutation-equivalent digraphs.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.NoGo

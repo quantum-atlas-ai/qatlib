@@ -25,7 +25,6 @@ and cross moment to explicit inverse square-root expressions. See [CrostaSaubane
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section

@@ -49,7 +49,6 @@ namespace Qatlib.Concepts.MatrixExpTrace.GibbsNorm
 
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The matrix exponential of a Hermitian matrix is positive semidefinite. -/
 theorem exp_posSemidef {I : Type} [Fintype I] [DecidableEq I]

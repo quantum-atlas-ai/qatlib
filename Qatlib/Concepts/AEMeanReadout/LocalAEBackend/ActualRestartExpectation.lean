@@ -52,7 +52,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib
 open scoped Classical ENNReal BigOperators Topology
-set_option warningAsError false
 
 /-- The Boolean success law obtained by measuring a prepared amplitude amplification trial at
 depth `j` and testing membership in `S`. -/

@@ -36,7 +36,6 @@ finite-precision error budget.
   and the detailed-balance discussion.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
@@ -46,8 +45,6 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.StageAQUANTUMGIBBS
 open Qatlib.Papers.QMetropolis11.GibbsMixing.StageBGIBBSMETROPOLIS
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.QMetropolis11.GibbsMixing
 namespace StageBGIBBSMETROPOLIS

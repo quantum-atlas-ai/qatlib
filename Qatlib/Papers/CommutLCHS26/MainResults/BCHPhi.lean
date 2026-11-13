@@ -32,7 +32,6 @@ positive degree. These are the phi expressions used in the commutator expansion 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

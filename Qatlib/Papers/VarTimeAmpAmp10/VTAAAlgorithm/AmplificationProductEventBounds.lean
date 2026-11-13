@@ -41,7 +41,6 @@ open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
-
 set_option autoImplicit false
 
 open Matrix Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -84,7 +83,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib
 open Qatlib
 open Qatlib
-set_option warningAsError false
 noncomputable section
 
 /-- The universal conjunction of positivity, gain-window, recurrence, and time-bound assertions

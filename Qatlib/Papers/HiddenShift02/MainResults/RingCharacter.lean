@@ -35,8 +35,6 @@ The development follows [VanDamHallgrenIp2006].
 * [van Dam et al., 2006][VanDamHallgrenIp2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.WalshMoment.Forrelation

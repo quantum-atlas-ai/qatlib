@@ -32,7 +32,6 @@ algorithms such as [BrandaoSvore2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.SdpDuality.ConeSeparation.SdpDuality
 open Qatlib.Concepts.MatrixWeights.ApproxGibbs
@@ -43,8 +42,6 @@ open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.SdpDuality.ConeSeparation
 

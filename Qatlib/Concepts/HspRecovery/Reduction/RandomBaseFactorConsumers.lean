@@ -25,8 +25,6 @@ to odd moduli with at least two distinct prime factors.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PeriodSampling.OrderRecovery
 
 set_option autoImplicit false

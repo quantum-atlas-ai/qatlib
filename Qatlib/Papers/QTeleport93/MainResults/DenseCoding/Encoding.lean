@@ -30,8 +30,6 @@ communication argument in [BennettEtAl1993Teleportation].
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Papers.QTeleport93.MainResults.DenseCoding

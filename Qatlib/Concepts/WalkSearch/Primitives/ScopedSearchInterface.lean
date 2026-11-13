@@ -27,7 +27,6 @@ These interfaces express finite versions of the search guarantees studied in [Bo
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

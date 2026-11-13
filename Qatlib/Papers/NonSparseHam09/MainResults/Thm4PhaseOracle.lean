@@ -26,11 +26,7 @@ proposition and proves elementary identities for `phaseEntry`. This development 
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -40,7 +36,7 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
-/-- The proposition encoding Theorem 4 of [ChildsKothari2010]: no polynomially bounded query
+/-- **Statement only — not proved in Qatlib.** The proposition encoding Theorem 4 of [ChildsKothari2010]: no polynomially bounded query
 function uniformly supplies phase-oracle simulations of all Hermitian evolutions at
 nonnegative times with error `1 / 4`, using spectral-norm time and logarithmic dimension as
 inputs. -/
@@ -53,17 +49,21 @@ def theorem4Statement : Prop :=
         ∃ q : ℕ, q ≤ p (specNorm H * t) (Real.log N) ∧
           SimulatesPhaseWithQueries H ψ t (1 / 4) q)
 
+omit [Fintype ι] [DecidableEq ι] in
+
 /-- The phase assigned to a zero matrix entry is one. See [ChildsKothari2010]. -/
 lemma phaseEntry_of_zero (H : Matrix ι ι ℂ) (i j : ι) (h : H i j = 0) :
     phaseEntry H i j = 1 := by
   unfold phaseEntry
-  rw [if_pos h]
+  rw [ite_eq_left h]
+
+omit [Fintype ι] [DecidableEq ι] in
 
 /-- The phase assigned to a nonzero matrix entry has norm one. See [ChildsKothari2010]. -/
 lemma phaseEntry_norm_eq_one (H : Matrix ι ι ℂ) (i j : ι) (h : H i j ≠ 0) :
     ‖phaseEntry H i j‖ = 1 := by
   unfold phaseEntry
-  rw [if_neg h, norm_div, Complex.norm_real, Real.norm_of_nonneg (norm_nonneg _)]
+  rw [ite_eq_right h, norm_div, Complex.norm_real, Real.norm_of_nonneg (norm_nonneg _)]
   exact div_self (ne_of_gt (norm_pos_iff.mpr h))
 
 end Qatlib.Papers.NonSparseHam09.MainResults

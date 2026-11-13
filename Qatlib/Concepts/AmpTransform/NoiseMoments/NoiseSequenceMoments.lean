@@ -29,8 +29,6 @@ affine-intensity variance in the noise model associated with [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 

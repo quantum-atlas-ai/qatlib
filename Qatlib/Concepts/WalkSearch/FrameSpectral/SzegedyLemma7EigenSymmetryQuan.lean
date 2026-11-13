@@ -23,7 +23,6 @@ and does not require frame isometry. The quantum walk spectral framework is deve
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding

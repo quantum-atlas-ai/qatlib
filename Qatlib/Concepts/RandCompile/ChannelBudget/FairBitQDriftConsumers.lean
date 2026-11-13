@@ -27,7 +27,6 @@ The mathematical background is described in [Campbell2019].
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring

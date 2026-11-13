@@ -27,7 +27,6 @@ functions of Hermitian contractions.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

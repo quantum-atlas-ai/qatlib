@@ -35,7 +35,6 @@ rotation separately.
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.BornMetrics.EventProbability
@@ -55,8 +54,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
@@ -111,7 +108,7 @@ theorem gridHHLScale_mul_reciprocal {D M : ℕ} (hM : 0 < M) (label : Fin D → 
       have h0' : (M : ℕ) = 0 := by exact_mod_cast congrArg Complex.re h0
       omega
     rw [gridHHLScale, gridHHLReciprocalScale, gridHHLSupport, gridHHLSupportR]
-    simp only [hj, if_false, Complex.ofReal_one]
+    simp only [hj, ite_false, Complex.ofReal_one]
     field_simp
 
 /-- Multiplication by the support indicator leaves the grid eigenvalue unchanged. -/
@@ -385,11 +382,11 @@ theorem gridHHLqft_ket (M : ℕ) (j : Fin M) :
   show ∑ x, QFTMatrix M y x * Ket j x = PhaseState M j y
   simp only [qftMatrix_apply]
   rw [Finset.sum_eq_single j]
-  · rw [Ket, if_pos rfl, mul_one, phaseState_apply]
+  · rw [Ket, ite_eq_left rfl, mul_one, phaseState_apply]
     have hcomm : ((y.val : ℤ) * (j.val : ℤ)) = (j.val : ℤ) * (y.val : ℤ) := mul_comm _ _
     rw [hcomm]
   · intro m _ hm
-    rw [Ket, if_neg hm, mul_zero]
+    rw [Ket, ite_eq_right hm, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ j) h
 
@@ -469,7 +466,7 @@ theorem applyGate_tensorGate_pair {I J : Type*} [Fintype I] [Fintype J] [Decidab
   rw [Finset.sum_eq_single i]
   · simp
   · intro y _ hy
-    rw [if_neg (Ne.symm hy)]
+    rw [ite_eq_right (Ne.symm hy)]
     ring
   · intro h
     exact absurd (Finset.mem_univ i) h
@@ -546,14 +543,14 @@ theorem gridHHLFlagData_symm_apply {D M : ℕ} (q : Fin M × (Bool × Fin D)) :
 theorem gridHHLRotation_apply_ne {M : ℕ} (c : ℝ) (a b : Fin M) (flag flag' : Bool)
     (h : a ≠ b) : gridHHLRotation M c (a, flag) (b, flag') = 0 := by
   show BlockDiag (gridHHLBlock M c) (a, flag) (b, flag') = 0
-  rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_neg h]
+  rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_right h]
 
 /-- At a fixed phase label, the flag rotation has the entries of the corresponding two-by-two
 flag block. -/
 theorem gridHHLRotation_apply {M : ℕ} (c : ℝ) (a : Fin M) (flag flag' : Bool) :
     gridHHLRotation M c (a, flag) (a, flag') = gridHHLBlock M c a flag flag' := by
   show BlockDiag (gridHHLBlock M c) (a, flag) (a, flag') = _
-  rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_pos rfl]
+  rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_left rfl]
 
 /-- At each phase and data coordinate, the lifted flag gate transforms the two flag amplitudes
 by the cosine-sine block formulas. -/
@@ -595,7 +592,7 @@ theorem gridHHLFlag_apply {D M : ℕ} (c : ℝ) (s : QState (Fin M × (Bool × F
       · rw [gridHHLRotation_apply c a q t, gridHHLBlock]
         simp
       · intro j _ hj
-        rw [if_neg (Ne.symm hj)]
+        rw [ite_eq_right (Ne.symm hj)]
         ring
       · intro h
         exact absurd (Finset.mem_univ i) h
@@ -633,9 +630,9 @@ theorem gridHHLqft_zero (M : ℕ) (hM : 0 < M) (j : Fin M) :
   show ∑ x, QFTMatrix M j x * (Ket (⟨0, hM⟩ : Fin M) x) = _
   rw [Finset.sum_eq_single ⟨0, hM⟩]
   · have he : ((j.val : ℤ) * (((⟨0, hM⟩ : Fin M).val : ℤ))) = 0 := by rfl
-    rw [qftMatrix_apply, Ket, if_pos rfl, he, zpow_zero, mul_one, mul_one]
+    rw [qftMatrix_apply, Ket, ite_eq_left rfl, he, zpow_zero, mul_one, mul_one]
   · intro x _ hx
-    rw [Ket, if_neg hx]
+    rw [Ket, ite_eq_right hx]
     ring
   · intro h
     exact absurd (Finset.mem_univ (⟨0, hM⟩ : Fin M)) h
@@ -647,7 +644,7 @@ theorem gridHHLqft_zero (M : ℕ) (hM : 0 < M) (j : Fin M) :
     rw [Finset.sum_eq_single j (f := fun i => g i * (if i = j then 1 else 0))]
     · simp
     · intro i _ hi
-      rw [if_neg hi, mul_zero]
+      rw [ite_eq_right hi, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ j) h
   simp only [mul_one] at h
@@ -679,6 +676,7 @@ theorem matrix_mulVec_eq_sum {I : Type*} [Fintype I] [DecidableEq I] (V : Matrix
 theorem gridHHL_eigen_expansion {D M : ℕ} (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (b : QState (Fin D)) :
     b = ∑ i, (Vᴴ *ᵥ b) i • (V *ᵥ Ket i) := by
+  let _ := M
   have hUV : V * Vᴴ = 1 := by
     have h := Matrix.mem_unitaryGroup_iff.mp hV
     rwa [Matrix.star_eq_conjTranspose] at h
@@ -767,7 +765,7 @@ theorem controlledPowers_conjTranspose_kickback {D M : ℕ} (U : Operator D) (k 
       simp only [Matrix.mulVec, dotProduct]
       rw [Finset.mul_sum]
       exact Finset.sum_congr rfl fun j _ => by ring
-    simp only [if_true]
+    simp only [ite_true]
     rw [hsum, hev a.val, Pi.smul_apply]
     have hX : (primRoot M ^ ((k : ℤ))) ^ ((a.val : ℕ) : ℤ)
         = primRoot M ^ ((k : ℤ) * (a.val : ℤ)) := by
@@ -814,10 +812,10 @@ theorem conjTranspose_controlledPowers {D M : ℕ} (U : Operator D) :
   rw [Matrix.conjTranspose_apply]
   simp only [ControlledPowers, Matrix.of_apply]
   by_cases h : b = a
-  · rw [if_pos h, if_pos h.symm, ← Matrix.conjTranspose_apply, Matrix.conjTranspose_pow]
+  · rw [ite_eq_left h, ite_eq_left h.symm, ← Matrix.conjTranspose_apply, Matrix.conjTranspose_pow]
     have hval : a.val = b.val := congrArg Fin.val h.symm
     rw [hval]
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
     simp
 
 /-- A phase-data gate tensored with the flag identity and relabeled to workspace order acts only
@@ -1217,7 +1215,7 @@ theorem gridHHL_selector_sum' {I : Type*} [Fintype I] [DecidableEq I] (i : I) (g
     · intro x _ hx
       by_cases h : i = x
       · exact absurd h.symm hx
-      · rw [if_neg h, mul_zero]
+      · rw [ite_eq_right h, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ i) h
   simp only [mul_one] at h
@@ -1245,17 +1243,17 @@ theorem mulVec_diagonal {D : ℕ} (d : Fin D → ℂ) (w : QState (Fin D)) :
   simp only [Matrix.mulVec, dotProduct, Matrix.diagonal_apply, Fintype.sum_apply,
     smul_apply', Ket]
   rw [Finset.sum_eq_single j]
-  · simp only [if_true]
+  · simp only [ite_true]
     exact (gridHHL_selector_sum' j (fun x => d x * w x)).symm
   · intro i _ h
-    rw [if_neg (Ne.symm h)]
+    rw [ite_eq_right (Ne.symm h)]
     ring
   · intro h
     exact absurd (Finset.mem_univ j) h
 
 /-- For positive grid size, applying the spectral reciprocal gives the column expansion weighted
 by reciprocal grid values and the coefficients of `Vᴴ *ᵥ b`. -/
-theorem gridHHLReciprocal_mulVec {D M : ℕ} (hM : 0 < M) (label : Fin D → Fin M)
+theorem gridHHLReciprocal_mulVec {D M : ℕ} (_hM : 0 < M) (label : Fin D → Fin M)
     (V : Operator D) (b : QState (Fin D)) :
     gridHHLReciprocal label V *ᵥ b
       = ∑ i, ((Vᴴ *ᵥ b) i * (gridHHLReciprocalScale M label i)) • (V *ᵥ Ket i) := by
@@ -1275,9 +1273,9 @@ value. -/
 theorem gridHHLSin_reciprocalScale {D M : ℕ} (c : ℝ) (label : Fin D → Fin M) (i : Fin D) :
     (gridHHLSin M c (label i) : ℂ) = (c : ℂ) * (gridHHLReciprocalScale M label i) := by
   by_cases h : (label i).val = 0
-  · rw [gridHHLSin, gridHHLReciprocalScale, if_pos h, if_pos h]
+  · rw [gridHHLSin, gridHHLReciprocalScale, ite_eq_left h, ite_eq_left h]
     simp
-  · rw [gridHHLSin, gridHHLReciprocalScale, if_neg h, if_neg h]
+  · rw [gridHHLSin, gridHHLReciprocalScale, ite_eq_right h, ite_eq_right h]
     push_cast
     have hne : ((label i).val : ℂ) ≠ 0 := by exact_mod_cast h
     field_simp
@@ -1329,11 +1327,11 @@ theorem gridHHLRun_pointwise {D M : ℕ} (hM : 0 < M) (label : Fin D → Fin M) 
     simp only [gridHHLWorkspaceState_apply, Pi.add_apply, Ket,
       Fintype.sum_apply, Pi.smul_apply, TensorState]
     by_cases ha : a = (⟨0, hM⟩ : Fin M)
-    · rw [if_pos (congrArg Fin.val ha)]
+    · rw [ite_eq_left (congrArg Fin.val ha)]
       simp [ha]
       rw [hsin a i ha]
       rfl
-    · rw [if_neg (fun hval => ha (Fin.ext hval))]
+    · rw [ite_eq_right (fun hval => ha (Fin.ext hval))]
       simp [ha]
   · intro a flag i ha
     rw [hrun]
@@ -1349,7 +1347,7 @@ phase to zero and has successful amplitudes equal to the scaled pseudoinverse ap
 input, realizing the reciprocal mechanism of [HarrowHassidimLloyd2009]. -/
 theorem grid_hhl_uncompute_and_postselected_pseudoinverse {D M : ℕ} (hM : 0 < M)
     (label : Fin D → Fin M) (V : Operator D) (c : ℝ) (b : QState (Fin D))
-    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / (M : ℝ)) :
+    (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (_hc0 : 0 ≤ c) (_hc1 : c ≤ 1 / (M : ℝ)) :
     let out := Run (1 : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
         (gridHHLCircuit (D := D) (M := M) label V c)
         (TensorState (Ket (⟨0, hM⟩ : Fin M)) (TensorState (Ket (false : Bool)) b))
@@ -1434,12 +1432,12 @@ theorem gridHHLFlagBorn_eq_of {D M : ℕ} (hM : 0 < M)
     rw [Finset.sum_eq_single ⟨0, hM⟩]
     · show ‖(if (⟨0, hM⟩ : Fin M).val = 0 then ((c : ℂ) • v) i else 0)‖ ^ 2
         = ‖((c : ℂ) • v) i‖ ^ 2
-      rw [if_pos (by rfl)]
+      rw [ite_eq_left (by rfl)]
     · intro a _ ha
       have hne : (a : Fin M).val ≠ 0 := by
         intro hz
         exact ha (Fin.ext hz)
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       simp
     · intro h
       exact absurd (Finset.mem_univ (⟨0, hM⟩ : Fin M)) h
@@ -1512,7 +1510,7 @@ theorem conditionalState_smul {I : Type*} [Fintype I] [DecidableEq I] {c : ℝ} 
   · have h2 : 0 < MeasureProb ((c : ℂ) • ψ) Finset.univ := by
       rw [hm]
       positivity
-    simp only [ConditionalState, if_pos h, if_pos h2]
+    simp only [ConditionalState, ite_eq_left h, ite_eq_left h2]
     rw [postMeasure_smul hc ψ]
   · have hz : MeasureProb ψ Finset.univ = 0 := le_antisymm (le_of_not_gt h) hP
     simp only [ConditionalState]
@@ -1525,14 +1523,14 @@ pseudoinverse-state mass; for positive `c` the output is its conditional state, 
 [HarrowHassidimLloyd2009]. -/
 theorem grid_hhl_actual_probability_and_output {D M : ℕ} (label : Fin D → Fin M) (V : Operator D)
     (c : ℝ) (b : QState (Fin D)) (hM : 0 < M) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
-    (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / (M : ℝ)) :
+    (_hc0 : 0 ≤ c) (_hc1 : c ≤ 1 / (M : ℝ)) :
     let v := matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b
     gridHHLProbability label V c b = c ^ 2 * MeasureProb v Finset.univ ∧
     (0 < c → gridHHLOutput label V c b = ConditionalState v) ∧
     (c = 0 → gridHHLOutput label V c b = none) := by
   have hprob : gridHHLProbability label V c b
       = c ^ 2 * MeasureProb (matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b) Finset.univ := by
-    rw [gridHHLProbability, dif_pos hM]
+    rw [gridHHLProbability, dite_eq_left hM]
     exact gridHHLFlagBorn_eq hM label V c b hV
   have hsucc : gridHHLSuccessBlock hM
       (Run (1 : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
@@ -1548,7 +1546,7 @@ theorem grid_hhl_actual_probability_and_output {D M : ℕ} (label : Fin D → Fi
     simp
   refine ⟨hprob, ?_, ?_⟩
   · intro hc
-    rw [gridHHLOutput, dif_pos hM, gridHHLOutputAux, hsucc, conditionalState_smul hc]
+    rw [gridHHLOutput, dite_eq_left hM, gridHHLOutputAux, hsucc, conditionalState_smul hc]
   · intro hc
     obtain ⟨hpt, -⟩ := gridHHLRun_pointwise hM label V 0 b hV
     have hz : gridHHLSuccessBlock hM
@@ -1562,7 +1560,7 @@ theorem grid_hhl_actual_probability_and_output {D M : ℕ} (label : Fin D → Fi
       simp only at h
       rw [h]
       simp
-    rw [gridHHLOutput, dif_pos hM, hc, gridHHLOutputAux, hz, conditionalState_zero]
+    rw [gridHHLOutput, dite_eq_left hM, hc, gridHHLOutputAux, hz, conditionalState_zero]
 
 /-- Every grid eigenvalue has complex norm at most one when the grid size is positive. -/
 theorem gridHHLScale_norm_le {D M : ℕ} (hM : 0 < M) (label : Fin D → Fin M) (i : Fin D) :
@@ -1660,7 +1658,7 @@ theorem grid_hhl_consistent_input_derived_success {D M : ℕ} (label : Fin D →
       = some (PostMeasure (matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b) Finset.univ) := by
     have h4 := (grid_hhl_actual_probability_and_output label V c b hM hV hc.le hc1).2.1 hc
     rw [h4]
-    simp only [ConditionalState, if_pos hmp]
+    simp only [ConditionalState, ite_eq_left hmp]
   have hprob : gridHHLProbability label V c b
       = c ^ 2 * MeasureProb (matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b) Finset.univ :=
     (grid_hhl_actual_probability_and_output label V c b hM hV hc.le hc1).1
@@ -1688,7 +1686,7 @@ theorem gridHHLReciprocal_zero_of_label_zero {D M : ℕ} (hM : 0 < M) (label : F
   apply Finset.sum_eq_zero
   intro i _
   have h1 : gridHHLReciprocalScale M label i = 0 := by
-    rw [gridHHLReciprocalScale, if_pos (hz i)]
+    rw [gridHHLReciprocalScale, ite_eq_left (hz i)]
   rw [h1, mul_zero, smul_def']
   funext j
   simp only [Pi.zero_apply, zero_mul]
@@ -1732,14 +1730,14 @@ theorem grid_hhl_zero_spectrum_and_zero_rotation {D M : ℕ} (label : Fin D → 
       (by positivity)).1
     have hz' : (0 : ℝ) ^ 2 = 0 := by ring
     rw [h1, hz', zero_mul]
-    rw [gridHHLOutput, dif_pos hM, gridHHLOutputAux, hzero0, conditionalState_zero]
+    rw [gridHHLOutput, dite_eq_left hM, gridHHLOutputAux, hzero0, conditionalState_zero]
     simp
   · intro c hc0 hc1 hz
     have hnull : matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b = 0 :=
       gridHHLReciprocal_zero_of_label_zero hM label V hV b hz
     have h1 := (grid_hhl_actual_probability_and_output label V c b hM hV hc0 hc1).1
     rw [h1, hnull, measureProb_zero, mul_zero]
-    rw [gridHHLOutput, dif_pos hM, gridHHLOutputAux, hzero c, hnull, smul_zero,
+    rw [gridHHLOutput, dite_eq_left hM, gridHHLOutputAux, hzero c, hnull, smul_zero,
       conditionalState_zero]
     simp
 

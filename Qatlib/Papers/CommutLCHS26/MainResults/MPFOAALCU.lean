@@ -48,7 +48,6 @@ open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K]
 

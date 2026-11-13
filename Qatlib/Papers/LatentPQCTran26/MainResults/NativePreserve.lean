@@ -33,8 +33,6 @@ squared-gradient bound for the decoder outputs. See [TranEtAl2026] for the paper
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 open MeasureTheory
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.NativePreserve

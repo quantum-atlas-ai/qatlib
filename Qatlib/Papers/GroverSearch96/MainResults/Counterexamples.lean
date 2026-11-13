@@ -35,8 +35,6 @@ probability one half for every iteration count. See [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath.Reflection

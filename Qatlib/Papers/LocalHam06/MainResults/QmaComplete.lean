@@ -27,7 +27,6 @@ the padded Hamiltonian and separated energy thresholds used in the reduction of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 

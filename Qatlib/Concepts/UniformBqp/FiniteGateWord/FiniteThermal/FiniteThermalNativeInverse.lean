@@ -32,11 +32,9 @@ lowering, legality, and inverse semantics.
 -/
 
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 namespace Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits
 open Qatlib Matrix

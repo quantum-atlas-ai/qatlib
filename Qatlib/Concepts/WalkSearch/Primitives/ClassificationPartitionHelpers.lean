@@ -26,7 +26,6 @@ invariant when pairs are added to the edge bucket or prepended to the removal tr
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000

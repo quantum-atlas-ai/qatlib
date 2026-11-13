@@ -40,8 +40,6 @@ in [Jordan2005Gradient].
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 600000
 noncomputable section

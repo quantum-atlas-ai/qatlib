@@ -28,7 +28,6 @@ of [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.StoppingCore.InterruptBridge
@@ -39,7 +38,6 @@ open Qatlib Matrix Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.CompressedQuery.CompressOracle
 open scoped Classical BigOperators
 noncomputable section
-set_option linter.unusedSectionVars false
 variable {a : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
 /-- The access ledger for `compileCircuit`, recording its forward queries, address width,
@@ -62,6 +60,8 @@ theorem compiledLedger_exact (c : Bool) (C : Circuit (Data (Reg a) W)) (perAcces
       L.accessCharge = QueryCount C * (a + perAccess) := by
   simp [compiledLedger, compile_queries, compile_gates, AccessLedger.accessCharge,
     AccessLedger.totalAccesses]
+
+omit [Fintype W] in
 
 /-- The compiled ledger has no controlled or inverse accesses and satisfies capability honesty
 when neither capability is granted. -/

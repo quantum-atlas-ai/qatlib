@@ -27,7 +27,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
@@ -43,7 +42,6 @@ open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The backend-alphabet encoding into source codes is injective. -/
 theorem walkGoal_backend_faithful : Function.Injective BackendAlphabet.toSourceCode := by

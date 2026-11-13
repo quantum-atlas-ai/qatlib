@@ -33,7 +33,6 @@ and deterministic-conversion criteria are defined as propositions for further de
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
@@ -44,7 +43,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -364,7 +362,7 @@ theorem feedbackUnitary_mem (ψ : QState (Fin D × Fin E)) :
   exact (feedbackUnitary ψ).2
 
 /-- The right-local feedback unitary preserves the first marginal of a normalized input state. -/
-theorem feedbackState_firstMarginal (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
+theorem feedbackState_firstMarginal (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ) :
     PartialTrace (outerProduct (feedbackState ψ)) = PartialTrace (outerProduct ψ) := by
   exact partialTrace_outerProduct_apply_tensorRight ψ (feedbackUnitary ψ).val
     (feedbackUnitary_mem ψ)

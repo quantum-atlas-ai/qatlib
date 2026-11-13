@@ -39,11 +39,9 @@ formalised.  The argument needs the Lemma 3 pair classification and the
 Lemma 4 local-unbiasedness reduction together with a formal treatment of third roots of
 unity (`ω = e^{2πi/3}`, `ω̄`, `ω_J, ω'_J`) and the qubit/qutrit basis normal forms.  Those
 pieces are stated here (`Lemma3PairClassification`, `Lemma4LocalFactorization`) but the
-contradiction (37)–(38) and the `S1`/`S2` case analysis are not yet assembled.  Candidate
-reuse: `Complex.exp` root-of-unity lemmas in Mathlib (`Complex.exp_ne_zero`,
-`Complex.exp_int_mul`), plus the `ProductModel` factorization lemmas.  Suggested route:
-formalise Eq. (33)'s two-parameter family, derive (36)–(38) by `ring`/`field_simp` over `ℂ`,
-and split `S1`/`S2` with `Fin` case analysis.
+contradiction (37)–(38) and the `S1`/`S2` case analysis are not yet assembled.
+These steps involve Eq. (33)'s two-parameter family, the root-of-unity identities
+in (36)–(38) over `ℂ`, and the `ProductModel` factorization lemmas.
 -/
 set_option autoImplicit false
 noncomputable section

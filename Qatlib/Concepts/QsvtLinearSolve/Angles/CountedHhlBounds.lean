@@ -19,7 +19,6 @@ The algorithmic background is [HarrowHassidimLloyd2009] and
 [Brassard et al., amplitude amplification][BrassardEtAl2002]. The exact constants
 and ledger identities are those of the counted construction defined here.
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

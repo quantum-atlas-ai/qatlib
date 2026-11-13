@@ -36,7 +36,6 @@ powers and a sufficiently small Euler step, in the spectral framework of [ReedSi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Filter NormedSpace
 open scoped Topology NNReal ENNReal

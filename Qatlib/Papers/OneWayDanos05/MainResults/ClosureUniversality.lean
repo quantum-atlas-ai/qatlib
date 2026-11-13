@@ -29,7 +29,6 @@ adjacency and output data for gluing along an interface, and a branch-realizatio
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

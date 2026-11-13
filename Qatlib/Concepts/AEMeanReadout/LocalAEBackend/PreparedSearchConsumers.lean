@@ -26,11 +26,7 @@ explicit at the level of executed states, success probabilities, and resource co
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -172,7 +168,7 @@ theorem prepared_search_quarter_mass_consumer :
     funext i
     fin_cases i
     all_goals simp [Ket]
-    all_goals first | rfl | (norm_num; ring)
+    all_goals (norm_num; ring)
   · exact (prepared_aa_actual_circuit (preparedQuarterA ζ) (0 : Fin 2)
       ({1} : Finset (Fin 2)) 1 hA).2.1
   · have hgc := (prepared_aa_actual_circuit (preparedQuarterA ζ) (0 : Fin 2)
@@ -243,7 +239,7 @@ private theorem num_gates_fin :
 sampled-bit and query counts are `5/2` and `15/16`, and expected returned gate count is
 `15/4`. -/
 theorem prepared_search_bit_sampled_consumer :
-    ∀ (ζ : ℂ) (hζ : ‖ζ‖=1) (hA : preparedQuarterA ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ),
+    ∀ (ζ : ℂ) (_hζ : ‖ζ‖=1) (hA : preparedQuarterA ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ),
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAASampled (preparedQuarterA ζ) hA 0 {1} 2 3 2)
     (fun x => ∃ y gates, x.1=some (y,gates) ∧ y ∈ ({1} : Finset (Fin 2))) = 15/32 ∧
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (preparedAASampled (preparedQuarterA ζ) hA 0 {1} 2 3 2) (fun x => (x.2.1 : ℝ≥0∞)) = 5/2 ∧

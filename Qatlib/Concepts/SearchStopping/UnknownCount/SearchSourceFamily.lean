@@ -37,7 +37,6 @@ factor `6 / 5` schedule. For the quantum-search analysis, see [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -45,8 +44,6 @@ open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 namespace Qatlib.Concepts.SearchStopping.UnknownCount
-
-set_option linter.unusedSectionVars false
 
 open scoped BigOperators
 open Filter
@@ -128,6 +125,8 @@ theorem search_source_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     SourceSizes (Fintype.card I) l 0 = 1 ∧ MeanQueries I 1 = 0 ∧
       CheckedMeanQueries I 1 = 1 ∧ CheckedFailure A 1 = 1 - (A.card : ℝ) / Fintype.card I := by
+  let _ := hl
+  let _ := hl4
   have hN : 0 < Fintype.card I := lt_trans hA hproper
   obtain ⟨θ,hθ0,hθp,hdensity,h2⟩ := search_principal_angle A hA hproper
   have hs : Real.sin θ ≠ 0 :=
@@ -151,6 +150,7 @@ theorem search_source_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (s : ℕ) :
     0 ≤ MeanQueries I (SourceSizes (Fintype.card I) l s) ∧
       MeanQueries I (SourceSizes (Fintype.card I) l s) ≤ l^s / 2 := by
+  let _ := hl4
   have hN : 0 < Fintype.card I := lt_trans hA hproper
   have hsizes := (search_source_schedule_laws _ hN l hl.le).2.1
   obtain ⟨_,_,_,_,_,hQ,_⟩ := search_randomized_search_contract A hA hproper _ (hsizes s)
@@ -387,9 +387,9 @@ theorem search_source_final_output_uniform {I : Type*} [Fintype I] [DecidableEq 
   have heach := search_stage_output_uniform A hA hproper (SourceSizes (Fintype.card I) l)
   simp_rw [heach]
   by_cases hi : i ∈ A
-  · simp only [if_pos hi]
+  · simp only [ite_eq_left hi]
     exact (search_source_all_density_termination l hl hl4 A hA hproper).div_const _
-  · simp only [if_neg hi]
+  · simp only [ite_eq_right hi]
     exact hasSum_zero
 
 /-- For `1 < l < 4 / 3` and a nonempty proper marked set, the terminal trace law induces the
@@ -412,7 +412,7 @@ theorem search_source_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
       simp only [TerminalOutput, TerminalMass]
       rw [Fintype.sum_prod_type]
       simp_rw [Fintype.sum_prod_type]
-      simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       exact search_terminal_output_marginal hN A sizes hsizes n i
     change HasSum (fun n => ∑ x : TerminalStage I sizes n,
       if TerminalOutput ⟨n,x⟩ = i then TerminalMass A sizes ⟨n,x⟩ else 0) _
@@ -443,6 +443,8 @@ theorem search_source_initial_output {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (i : I) :
     RetryOutputMass A (SourceSizes (Fintype.card I) l) 0 i =
       if i ∈ A then 1 / (Fintype.card I : ℝ) else 0 := by
+  let _ := hl
+  let _ := hl4
   simp only [RetryOutputMass, RetryReach, Finset.range_zero, Finset.prod_empty, one_mul]
   have hs : SourceSizes (Fintype.card I) l 0 = 1 := by
     norm_num [SourceSizes, SourceWidths]
@@ -458,6 +460,7 @@ theorem search_source_univ_weighted_cost {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (x : TerminalTrace I (SourceSizes (Fintype.card I) l)) :
     TerminalMass (Finset.univ : Finset I) (SourceSizes (Fintype.card I) l) x *
       (TerminalCost (SourceSizes (Fintype.card I) l) x : ℝ) = 0 := by
+  let _ := hl4
   by_cases hx : x.1 = 0
   · rcases x with ⟨n,h,j,i⟩
     dsimp at hx
@@ -539,8 +542,8 @@ theorem search_source_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
     simpa using search_source_initial_output l hl hl4 hN Finset.univ i
   · have hsizes := (search_source_schedule_laws _ hN l hl.le).2.1
     have hr := search_univ_first_success hN (SourceSizes (Fintype.card I) l) hsizes n
-    rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, if_neg hn] at hr
-    rw [RetryOutputMass, hr, zero_mul, if_neg hn]
+    rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, ite_eq_right hn] at hr
+    rw [RetryOutputMass, hr, zero_mul, ite_eq_right hn]
 
 /-- For `1 < l < 4 / 3` and any nonempty marked set, the terminal output law is uniform on that
 set. See [NayakWu1998]. -/
@@ -568,12 +571,12 @@ theorem search_source_terminal_output_nonempty {I : Type*} [Fintype I] [Decidabl
         simp only [TerminalOutput, TerminalMass]
         rw [Fintype.sum_prod_type]
         simp_rw [Fintype.sum_prod_type]
-        simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+        simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
         exact search_terminal_output_marginal hN Finset.univ sizes hsizes n i
       change HasSum (fun n => ∑ x : TerminalStage I sizes n,
         if TerminalOutput ⟨n,x⟩ = i then TerminalMass Finset.univ sizes ⟨n,x⟩ else 0) _
       simp_rw [hrow]
-      simp only [sizes, search_source_univ_retry_output l hl hl4 hN, Finset.mem_univ, if_true,
+      simp only [sizes, search_source_univ_retry_output l hl hl4 hN, Finset.mem_univ, ite_true,
           Finset.card_univ]
       exact hasSum_ite_eq 0 _
 
@@ -608,7 +611,7 @@ theorem search_source_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq 
     · subst s
       simp only [RetryReach, Finset.range_zero, Finset.prod_empty, ite_true, one_mul]
       linarith
-    · rw [if_neg hs, zero_add]
+    · rw [ite_eq_right hs, zero_add]
       have hm : 2 ≤ sizes s := search_source_later_size_ge_two l hl hl4 _ s (by omega) (by omega)
       obtain ⟨_,_,_,_,_,hQ,_⟩ := search_randomized_search_contract A hA hp (sizes s) (hsizes s)
       have hmr : (2 : ℝ) ≤ sizes s := by exact_mod_cast hm

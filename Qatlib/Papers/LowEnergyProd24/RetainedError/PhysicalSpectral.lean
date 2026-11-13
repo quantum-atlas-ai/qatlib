@@ -27,8 +27,6 @@ blocks, allowing the centered leakage bounds to control original energy transiti
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 300000
 noncomputable section

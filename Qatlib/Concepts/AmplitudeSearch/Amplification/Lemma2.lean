@@ -23,7 +23,6 @@ on positive-mass runs, and the source clock-moment estimate.
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin

@@ -25,8 +25,6 @@ proportional to M⁵ log M for the scalar cost expression used in the chemistry 
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.TrotterCost

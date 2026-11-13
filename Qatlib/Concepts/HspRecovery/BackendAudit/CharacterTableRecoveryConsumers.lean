@@ -27,11 +27,7 @@ computes its character labels, sampling law, and exact recovery failure probabil
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -130,7 +126,7 @@ theorem tableFreshRecord_success_ge (tab : G → G → Bool) (f : G → R) (e : 
 /-- Using `tableRecoverySamples (card G) k` fresh samples with a correct character table
 recovers the hidden subgroup with probability mass at least `ENNReal.ofReal (1 - 2⁻ᵏ)`. -/
 theorem tableFreshRecord_budget_ge (tab : G → G → Bool) (f : G → R) (e : G ≃ AddChar G ℂ)
-    (A : Matrix G G ℂ) (H : AddSubgroup G) (hf : HidesSubgroup f H)
+    (_A : Matrix G G ℂ) (H : AddSubgroup G) (hf : HidesSubgroup f H)
     (htab : ∀ a y, tab a y = true ↔ e a y = 1) (k : ℕ) :
     ENNReal.ofReal (1 - ((2 : ℝ)⁻¹)^k) ≤
       ∑ χs ∈ Finset.univ.filter (fun χs : Fin (tableRecoverySamples (Fintype.card G) k) →
@@ -244,15 +240,15 @@ def fourEvenSubgroup : AddSubgroup (ZMod 4) where
   carrier := {x | x.val % 2 = 0}
   add_mem' := by
     intro a b ha hb
-    simp only [Set.mem_setOf_eq] at ha hb ⊢
+    simp only [Set.mem_ofPred_eq] at ha hb ⊢
     rw [ZMod.val_add]
     omega
   zero_mem' := by
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     rw [ZMod.val_zero]
   neg_mem' := by
     intro a ha
-    simp only [Set.mem_setOf_eq] at ha ⊢
+    simp only [Set.mem_ofPred_eq] at ha ⊢
     rw [ZMod.neg_val']
     have hlt : a.val < 4 := ZMod.val_lt a
     omega
@@ -462,7 +458,7 @@ theorem character_table_mod_four_actual_consumer :
     obtain ⟨i, hi⟩ := hex
     have hz : (tableGroupRecordDist (fun x : ZMod 4 => (x.val : ZMod 2))
         fourCharacterLabeling).prob (xs i) = 0 := by
-      rw [four_record_dist_prob, if_neg (by omega)]
+      rw [four_record_dist_prob, ite_eq_right (by omega)]
     rw [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf,
         Finset.prod_eq_zero (Finset.mem_univ i) hz]
   have hle :
@@ -503,8 +499,8 @@ theorem character_table_mod_four_actual_consumer :
   have hsingle : (∑ a ∈ Finset.univ.filter (fun a : ZMod 4 => a = 0),
       (tableGroupRecordDist (fun x : ZMod 4 => (x.val : ZMod 2)) fourCharacterLabeling).prob a)
       = (1 : ℝ) / 2 := by
-    rw [Finset.sum_filter, Finset.sum_ite_eq', if_pos (Finset.mem_univ 0),
-      four_record_dist_prob, if_pos (show ((0 : ZMod 4).val % 2 = 0) by decide)]
+    rw [Finset.sum_filter, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ 0),
+      four_record_dist_prob, ite_eq_left (show ((0 : ZMod 4).val % 2 = 0) by decide)]
   unfold Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent
   calc (∑ xs ∈ Finset.univ.filter (fun xs : Fin m → ZMod 4 => ∀ i, xs i = 0),
         (tableGroupRecordDist (fun x : ZMod 4 => (x.val : ZMod 2)) fourCharacterLabeling).probOf xs)

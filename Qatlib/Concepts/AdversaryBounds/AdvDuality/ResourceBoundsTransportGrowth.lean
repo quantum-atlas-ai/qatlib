@@ -44,7 +44,6 @@ open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
 open Qatlib.Concepts.QueryComplexity.AdversarySearch
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 noncomputable section

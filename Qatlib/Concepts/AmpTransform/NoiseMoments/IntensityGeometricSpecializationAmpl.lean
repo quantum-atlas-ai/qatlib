@@ -27,8 +27,6 @@ to the noise analysis of [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 open Qatlib.Concepts.SpectralReadout.NoiseStatistics

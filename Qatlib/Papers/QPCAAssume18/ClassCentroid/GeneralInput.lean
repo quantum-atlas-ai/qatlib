@@ -26,8 +26,6 @@ needed by the estimator.
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

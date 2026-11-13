@@ -24,8 +24,6 @@ at most `β ^ k₃`, the output mixture is within `β ^ k₃ + η` of the target
 * [Paparo et al., 2014][PaparoEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

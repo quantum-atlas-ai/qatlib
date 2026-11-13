@@ -30,7 +30,6 @@ quantum-algorithm pipelines, such as the Monte Carlo setting of [Montanaro2015].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.LinearLearning.ConcisePipeline
 
@@ -166,7 +165,7 @@ theorem overflow_mul_le_expectedCost (p : CostedLaw α) (budget : ℕ) :
   apply ENNReal.tsum_le_tsum
   intro x
   by_cases h : budget < x.2
-  · simp only [if_pos h, mul_one]
+  · simp only [ite_eq_left h, mul_one]
     rw [mul_comm (budget + 1 : ℝ≥0∞)]
     apply mul_le_mul_right
     exact_mod_cast Nat.succ_le_of_lt h

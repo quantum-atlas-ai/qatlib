@@ -47,7 +47,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.InteractionEvo.DysonGrid
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Sum the continuous ordered Dyson terms of degrees zero through `K` from `s` to `t`. -/
 noncomputable def dysonPrefix {I : Type} [Fintype I] [DecidableEq I]

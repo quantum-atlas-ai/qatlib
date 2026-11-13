@@ -33,8 +33,6 @@ from zero to one without increasing degree, at the cost of increasing its error 
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod

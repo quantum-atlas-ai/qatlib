@@ -26,8 +26,6 @@ positive initial success. See [Grover2005].
 * [Grover, 2005][Grover2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

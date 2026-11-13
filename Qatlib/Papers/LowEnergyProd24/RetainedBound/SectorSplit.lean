@@ -25,8 +25,6 @@ error control with the actual high-energy component of a normalized input state,
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 200000
 noncomputable section

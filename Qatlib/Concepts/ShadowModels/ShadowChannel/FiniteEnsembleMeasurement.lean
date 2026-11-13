@@ -32,11 +32,9 @@ to the Kraus operators and giving exact fresh-record resource counts. See
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
-
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -51,8 +49,6 @@ open scoped ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {X : Type} [Fintype X] {D : ℕ}
 

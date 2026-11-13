@@ -29,7 +29,6 @@ the scalar obstruction of [Meyer1996].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 
 noncomputable section

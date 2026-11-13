@@ -35,7 +35,6 @@ workspaces, inverses, and repeated controlled powers.
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -71,9 +70,6 @@ open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib
 open Qatlib
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
 
 /-- A two-qubit instruction consisting of a known single-qubit gate on a selected factor or a
 CNOT. -/

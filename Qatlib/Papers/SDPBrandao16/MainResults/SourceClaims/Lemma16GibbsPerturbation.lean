@@ -15,11 +15,11 @@ Fixed source: arXiv:1609.05537v5, printed Lemma 16 / Eq. (85), page 19.
 
 The source proves that for Hermitian matrices `H, H'`
 `‖e^H/tr e^H − e^{H'}/tr e^{H'}‖₁ ≤ 2(e^{‖H−H'‖} − 1)`, which is exactly the
-frozen noncommuting Gibbs bound reused below (`sdp_gibbs_perturbation_noncommuting`,
+established noncommuting Gibbs bound reused below (`sdp_gibbs_perturbation_noncommuting`,
 an `equivalent`-coverage theorem in `Foundations.MatrixExpTrace.GibbsNorm`).
 
 This file only *bridges* the source notation onto that theorem: the paper's
-`e^H/tr(e^H)` is the frozen inverse-partition normalized state
+`e^H/tr(e^H)` is the inverse-partition normalized state
 `((tr e^H).re : ℂ)⁻¹ • e^H` (the trace of `e^H` is real because `H` is
 Hermitian), and the paper's trace distance is `Matrix.traceNorm`.
 -/
@@ -41,8 +41,8 @@ between the Gibbs states `e^H / tr(e^H)` and `e^{H'} / tr(e^{H'})` is at most
 `2 * (exp ‖H − H'‖ − 1)`.  No commutativity or closeness hypothesis is
 required.
 
-Reused frozen theorem (FQN):
-`QuantumAlgorithm.Foundations.MatrixExpTrace.GibbsNorm.sdp_gibbs_perturbation_noncommuting`. -/
+The theorem used here is:
+`Qatlib.Foundations.MatrixExpTrace.GibbsNorm.sdp_gibbs_perturbation_noncommuting`. -/
 theorem lemma16_gibbsTraceDistance (D : ℕ) (H H' : Operator D) (hD : 0 < D)
     (hH : H.IsHermitian) (hH' : H'.IsHermitian) :
     Matrix.traceNorm

@@ -25,7 +25,6 @@ and selected-output guarantees here are properties of the local construction.
 -/
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 

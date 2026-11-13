@@ -69,8 +69,6 @@ the componentwise multiplication law for the prescribed scalar and 2 × 2 block 
 * [Shor and Jordan, 2008][ShorJordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

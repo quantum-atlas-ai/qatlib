@@ -15,8 +15,8 @@ arXiv:1412.4687v1, p. 2, Eq. (13).  For an orthogonal projector `P`, a unitary
 `W`, and a vector `ψ` in the range of `P`, the projected amplified word
 `-W (1-2P) W† (1-2P) W` acts as `3(PW) - 4(PWPWᴴPW)`.
 
-Frozen FQN reused: `QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.equation13`
-(`Statements/Equation13.lean:19`).  Hypotheses are exactly the source's
+Library theorem: `Qatlib.Concepts.CoherentSim.ResetDiscard.equation13`.
+Hypotheses are exactly the source's
 `P² = P`, unitarity of `W`, and `Pψ = ψ`; normalization is unnecessary.
 -/
 

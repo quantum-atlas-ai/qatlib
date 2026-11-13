@@ -52,7 +52,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The square root of the probability mass on a fixed label equals the Euclidean norm of the
 corresponding data branch. -/

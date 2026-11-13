@@ -32,8 +32,6 @@ only the reversed final accumulator on stack 2.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Cleanup

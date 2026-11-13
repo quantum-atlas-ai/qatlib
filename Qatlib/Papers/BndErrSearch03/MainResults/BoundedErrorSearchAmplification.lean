@@ -37,8 +37,6 @@ amplitude threshold into `α m ^ 2 ≥ 1/576`.
 * [Høyer et al., 2003][HoyerMoscaDeWolf2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

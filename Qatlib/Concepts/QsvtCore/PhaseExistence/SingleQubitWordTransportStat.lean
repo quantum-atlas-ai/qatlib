@@ -22,9 +22,6 @@ polynomial `responseQ` evaluated at the signal. See [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.QsVtMain
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

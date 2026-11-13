@@ -28,10 +28,7 @@ surrounding analysis.
 * [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
@@ -53,7 +50,7 @@ theorem theorem_thirteen {G : Type*} [Group G] (N : Subgroup G) [N.Normal]
   ⟨fun z => coset_inter_normal_eq_empty_or_coset (H := I.H) (N := N) z,
     fun _ _ hu => inv_mul_mem_of_mem_leftCoset_inter hu,
     fun z u hu => rightCoset_inter_eq_image z u hu,
-    fun H₁ hle hHN hsup => theorem_thirteen_reduction hle hHN hsup,
+    fun _H₁ hle hHN hsup => theorem_thirteen_reduction hle hHN hsup,
     fun x => hNtwo.inv_eq_self x⟩
 
 end Qatlib.Papers.NonAbelianHSP01.MainResults.Claims

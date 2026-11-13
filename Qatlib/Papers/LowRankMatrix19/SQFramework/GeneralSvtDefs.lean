@@ -42,7 +42,6 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.SketchSpectral.EvenSVT
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Papers.LowRankMatrix19.SQFramework
 namespace ConstructionStageB

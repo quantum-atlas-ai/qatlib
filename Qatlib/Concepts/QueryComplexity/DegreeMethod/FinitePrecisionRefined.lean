@@ -33,7 +33,6 @@ finite-encoding interface for numerical computation in the setting of [KitaevShe
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.IntervalArith.IntervalOps
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs

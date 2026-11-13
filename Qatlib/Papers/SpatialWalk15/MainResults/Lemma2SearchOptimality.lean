@@ -28,8 +28,6 @@ the setting of [ChakrabortyEtAl2016].
 * [Chakraborty et al., 2016][ChakrabortyEtAl2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

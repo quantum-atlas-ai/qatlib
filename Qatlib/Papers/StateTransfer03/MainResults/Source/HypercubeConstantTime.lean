@@ -26,8 +26,6 @@ dimension. See [ChristandlEtAl2004].
 * [Christandl et al., 2004][ChristandlEtAl2004]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 open scoped BigOperators
@@ -35,7 +33,6 @@ open Qatlib.Papers.StateTransfer03.MainResults.Defs
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
 
 noncomputable section
 

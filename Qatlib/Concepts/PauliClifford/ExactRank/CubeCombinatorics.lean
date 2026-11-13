@@ -28,8 +28,6 @@ Hamming-weight background appears in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.PauliClifford.ExactRank
 open scoped Classical BigOperators

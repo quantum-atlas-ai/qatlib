@@ -46,7 +46,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.RiskEstimation.PopulationGap
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 400000
 
 namespace Qatlib.Papers.ClassShadows20.LowerBound.Shadows
@@ -77,7 +76,6 @@ theorem clause6_quantization_conjunct_refutable :
   norm_num at h
 
 open scoped BigOperators ComplexOrder
-set_option warningAsError false
 
 /-- There exists a family of twenty-four qubit unitaries whose uniform average has the stated
 first moment and second moment for Hermitian test operators. -/

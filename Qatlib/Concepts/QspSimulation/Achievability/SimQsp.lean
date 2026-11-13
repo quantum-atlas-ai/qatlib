@@ -38,7 +38,6 @@ success-event, failure-probability, and conditional-state interfaces.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -61,7 +60,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxRecDepth 4096
 set_option maxHeartbeats 3000000
 

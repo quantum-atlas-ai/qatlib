@@ -18,7 +18,6 @@ The specification concerns the upper-bound construction associated with quantum 
 sampling [OzolsRoettelerRoland2013]; see [Ozols et al., 2013][OzolsRoettelerRoland2013].
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing

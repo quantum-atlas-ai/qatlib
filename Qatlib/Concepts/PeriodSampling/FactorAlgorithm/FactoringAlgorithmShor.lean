@@ -25,7 +25,6 @@ or an attempt, within the finite probability model associated with [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

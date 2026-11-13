@@ -34,7 +34,6 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The exponential Taylor polynomial has value one at zero. -/
 theorem taylorPoly_zero (k : ℕ) : taylorPoly k 0 = 1 := by

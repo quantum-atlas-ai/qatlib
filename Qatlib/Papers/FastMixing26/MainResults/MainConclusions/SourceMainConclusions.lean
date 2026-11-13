@@ -19,8 +19,11 @@ fixed arXiv:2606.26090v2 (PDF SHA-256 70f1cf62dfec60d72f2d721539a6ffc9447afb15b9
   at high temperature (conditional bridge, fully proved).
 
 Corollary 1.4 (c002) is not formalized (no quantum-algorithm/block-encoding model in
-the library); its statement and the estimator contracts are preserved in this branch's
-history.
+the library). The legacy estimator records below contain independent numerical
+annotations, not runtime certificates. In particular, the partition-function record
+has no accuracy condition; the expectation map receives the target scalar itself.
+Neither record supplies execution, gates, or a sampling process, and neither is used
+by `source_theorem_1_3`.
 
 Theorem 1.3 is the composition of Theorem 4.1 (gap of the Pauli generator `K`) with
 Theorem 5.1 (Dirichlet-form comparison `𝓔^L ≥ c₂^{qk} 𝓔^K`) through the frozen gap-transfer
@@ -77,28 +80,30 @@ theorem source_theorem_1_3 {D : ℕ} (q k : ℕ) (d J c : ℝ) (hc : 1 ≤ c) :
   rw [hconst] at hres
   exact hres
 
-/-- Runtime/accuracy contract for the partition-function estimation of Corollary 1.4:
-`Z_β` is estimated up to relative error `ε` within `poly(n, 1/ε)` time. -/
+/-- Legacy numerical specification associated with Corollary 1.4, retained for
+compatibility. It has no target partition function or accuracy condition and no
+execution model. Its scalar bound is not a computational runtime guarantee. -/
 structure PartitionFunctionEstimator (n : ℕ) (ε : ℝ) where
-  /-- Number of gates / samples. -/
+  /-- Independent numerical annotation; not a measured gate or sample count. -/
   runtime : ℕ
-  /-- The produced estimate of `Z_β`. -/
+  /-- An arbitrary real number, with no specified target or accuracy. -/
   estimate : ℝ
-  /-- The runtime is positive. -/
+  /-- The numerical annotation is positive. -/
   runtime_pos : 0 < runtime
-  /-- The runtime is polynomial in `n` and `1/ε`. -/
+  /-- A scalar upper bound, with no connection to execution. -/
   runtime_poly : (runtime : ℝ) ≤ ((n : ℝ) + 1 / ε) ^ 2
 
-/-- Runtime/accuracy contract for the global-expectation estimation of Corollary 1.4:
-every expectation `M` is estimated up to additive error `ε` within `poly(n, 1/ε)` time. -/
+/-- Legacy scalar approximation specification associated with Corollary 1.4.
+The map receives the target expectation directly, so its error bound does not
+certify estimation from physical input. No computational runtime is certified. -/
 structure ExpectationEstimator (n : ℕ) (ε : ℝ) where
-  /-- Number of gates / samples. -/
+  /-- Independent numerical annotation; not a measured gate or sample count. -/
   runtime : ℕ
-  /-- The estimator map. -/
+  /-- An unrestricted scalar map receiving the target itself. -/
   est : ℝ → ℝ
-  /-- Runtime is positive. -/
+  /-- The numerical annotation is positive. -/
   runtime_pos : 0 < runtime
-  /-- Runtime is polynomial in `n` and `1/ε`. -/
+  /-- A scalar upper bound, with no connection to execution. -/
   runtime_poly : (runtime : ℝ) ≤ ((n : ℝ) + 1 / ε) ^ 2
   /-- Additive error `ε` on every expectation. -/
   err : ∀ M : ℝ, |est M - M| ≤ ε

@@ -30,7 +30,6 @@ state-conversion framework of [LeeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.WordComposition
 open Qatlib.Concepts.NumericalWord.MixedWordError
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum

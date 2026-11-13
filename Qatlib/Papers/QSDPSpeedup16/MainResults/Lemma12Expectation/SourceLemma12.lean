@@ -27,12 +27,13 @@ density matrix `ρ`, with probability larger than `1 − p_e` one can compute
 Encoded here: a finite probability law over real estimates whose good event has
 mass at least `1 − p_e` and on which the estimate is within `ε` of
 `tr(ρA)`, together with the copy and time budgets (with the explicit constant
-`8` and the `4` inside the logarithm, as in the Frozen
-`ExpectationEstimationBudget`).  The estimate is produced by the Frozen answer
-theorem `QuantumAlgorithm.Concepts.RationalScan.Step2Scan.expectationClause_valid`
-(the diagonal exact-expectation law).  The source's phase-estimation +
-Chernoff repetition implementing the sampler, and the sparsity structure of
-`A` itself (only the parameter `s` is used), are not encoded.
+`8` and the `4` inside the logarithm, as in the library's
+`ExpectationEstimationBudget`).  The estimate is produced by the library
+theorem `Qatlib.Concepts.RationalScan.Step2Scan.expectationClause_valid`
+(the diagonal exact-expectation law). Scope note: the source's
+phase-estimation + Chernoff implementation of the sampler and the sparsity
+structure of `A` are outside the scope of this file; only the parameter `s`
+is used.
 -/
 
 set_option autoImplicit false
@@ -64,7 +65,7 @@ theorem lemma12_expectationEstimation (n s : ℕ) (A ρ : Operator n) (ε p_e : 
     expectationClause_valid n 1 (fun _ => A) A ρ n s ε p_e hn hn (by norm_num) hs hε hp hp1
       hρ (fun _ => hA) hA
   refine ⟨Ω, w, fun ω => estA ω 0, copies, meas, hΩ, hlaw, ?_, ?_, ?_⟩
-  · -- The Frozen event implies the single-estimate event at coordinate `0`.
+  · -- The event implies the single-estimate event at coordinate `0`.
     have hmono :
         eventProb w (fun ω => (∀ i : Fin 1,
             |estA ω i - (Matrix.trace (A * ρ)).re| ≤ ε) ∧

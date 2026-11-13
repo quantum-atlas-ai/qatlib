@@ -26,7 +26,6 @@ single-qubit blocks, as used in the multi-controlled gate constructions of [Bare
 * [Barenco et al., 1995, Section 7][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

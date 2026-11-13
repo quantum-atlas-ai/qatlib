@@ -30,8 +30,6 @@ The mathematical setting is that of [AbramsLloyd1997].
 * [Abrams and Lloyd, 1997][AbramsLloyd1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.ManyBodyFermi97.MainResults.PairPotential

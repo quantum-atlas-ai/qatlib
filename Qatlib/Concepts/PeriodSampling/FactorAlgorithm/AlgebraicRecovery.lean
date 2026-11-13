@@ -41,7 +41,6 @@ the specified input encoding.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 
@@ -63,10 +62,6 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unreachableTactic false
-set_option linter.unusedTactic false
 
 namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 

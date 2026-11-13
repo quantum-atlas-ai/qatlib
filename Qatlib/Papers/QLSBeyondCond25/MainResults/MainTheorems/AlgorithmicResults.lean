@@ -8,7 +8,7 @@ Authors: Qatlib Contributors
 Paper layer for *A New Quantum Algorithm for Linear Systems beyond the Condition Number*
 (QLSBeyondCond25), fixed source version arXiv:2510.05588v3.
 
-This file covers the headline algorithmic claims of the paper:
+This file records the quantitative contracts used by the headline algorithms of the paper:
 
 * c001, Theorem 1.1 (page 3): Algorithm 1 prepares `|y'⟩` with
   `½‖|y'⟩⟨y'| - |y⟩⟨y|‖₁ ≤ O(ε)` in time
@@ -24,8 +24,9 @@ This file covers the headline algorithmic claims of the paper:
 The cost formulas are defined faithfully (`algorithmTime`, `ET`) and their arithmetic is proved
 (`sqrt_cube_mul`, `gamma_bounds`, `ET_le_card_mul_of_term_bound`,
 `theorem15_time_bound`).  The algorithm-level guarantees (state preparation, recovery probability,
-and the instance-dependent `E_T` analysis) are recorded as placeholder statements with the paper's
-proof route and the missing Lean ingredients documented on each declaration.
+The arithmetic statements are proved here.  The two algorithm contracts below take an explicit
+output operator, random-seed space, and runtime function as arguments; they do not assert that the
+paper's algorithms have already been constructed in this library.
 -/
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
@@ -75,7 +76,7 @@ theorem gamma_bounds (ynorm2 : ℝ) (h : 0 ≤ ynorm2) :
   · rw [div_lt_one (by linarith)]
     linarith
 
-/-! ## c001 — Theorem 1.1 -/
+/-! ## c001 — Theorem 1.1 contract -/
 
 /-- Trace distance `½‖ρ - σ‖₁` of two real density matrices, with the trace norm written as the sum
 of the singular values (`LinearMap.singularValues`). -/
@@ -86,58 +87,55 @@ noncomputable def traceDistance {d : ℕ} (ρ σ : Matrix (Fin d) (Fin d) ℝ) :
 def rankOne {d : ℕ} (ψ : EuclideanSpace ℝ (Fin d)) : Matrix (Fin d) (Fin d) ℝ :=
   fun i j => ψ i * ψ j
 
-/-- Theorem 1.1 (page 3), *New QLS algorithm*: Algorithm 1 prepares a state `|y'⟩` whose trace
-distance to `|y⟩` is `O(ε)` and whose runtime is at most
-`(1/‖y‖₂⁶ + ‖y‖₂²)·√(s³·E_T)/ε²` (the `Õ` suppressing the `log` factors of Theorem 3.11/3.12).
+/-! The following interface makes the output and runtime of Algorithm 1 explicit. -/
 
-Gap: version arXiv:2510.05588v3, Theorem 1.1, page 3; proof combines Theorem 3.9 (phase estimation
-succeeds with probability at least `1/(1+‖y‖₂²)` and returns an `ε`-close state) with Theorem 3.12
-(amplitude amplification with `γ = ‖y‖₂²/(1+‖y‖₂²)`, giving the time bound on page 21) and
-Theorem 3.11 (`U_AB` in time `Õ(s)`, page 20).  Missing formal ingredients: a matrix model of
-Algorithm 1 (star-state preparation, block encoding of `U_AB`, and the amplification step), and a
-proof that trace distance is bounded by the state-preparation error.  The declaration below is
-recorded as a `Prop`-valued definition rather than a theorem: the existential says that some
-prepared state and runtime obey the displayed bounds, but nothing in the Lean development
-constructs that state or proves that Algorithm 1 produces it.  Candidate reusable dependencies:
-`QuantumAlgorithm.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter.degenerate_phase_zero_event_and_full_branch_error`,
-`QuantumAlgorithm.Concepts.LcuQsvtApprox.SparseWalkFrame.LcuQsvtSparseSimulation`,
-`QuantumAlgorithm.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation.qpe_exact_readout`.
-Suggested next tactic: instantiate `theorem311_unitary_cost` and `theorem39_query_complexity`
-(this development) and close the trace-distance step with
-`‖|ψ⟩⟨ψ| - |φ⟩⟨φ|‖₁ ≤ 2‖ψ - φ‖`. -/
+/-- An explicit output operator and runtime for a state-preparation procedure. -/
+structure StatePreparationAlgorithm (N : ℕ) where
+  /-- State returned on the input vector. -/
+  prepare : EuclideanSpace ℝ (Fin N) → EuclideanSpace ℝ (Fin N)
+  /-- Runtime assigned to that input. -/
+  runtime : EuclideanSpace ℝ (Fin N) → ℝ
+
+/-- Theorem 1.1's formalizable contract for a supplied Algorithm 1 implementation.  The state is
+the implementation's `prepare y` output and the cost is its `runtime y`; neither is existential.
+The implementation itself, including phase estimation and amplification, remains an argument to
+this contract. -/
 def theorem11_guarantee
-    {N : ℕ} (y : EuclideanSpace ℝ (Fin N)) (s ETv ε C : ℝ)
+    {N : ℕ} (A : StatePreparationAlgorithm N) (y : EuclideanSpace ℝ (Fin N)) (s ETv ε C : ℝ)
     (hε : 0 < ε) (hC : 0 < C) (hs : 0 ≤ s) (hET : 0 ≤ ETv) (hyn : 0 < ‖y‖) : Prop :=
-  ∃ (ψ : EuclideanSpace ℝ (Fin N)) (time : ℝ),
-    traceDistance (rankOne ψ) (rankOne y) ≤ C * ε ∧
-      time ≤ algorithmTime (‖y‖ ^ 2) s ETv ε
+  traceDistance (rankOne (A.prepare y)) (rankOne y) ≤ C * ε ∧
+    A.runtime y ≤ algorithmTime (‖y‖ ^ 2) s ETv ε
 
-/-! ## c002 — Theorem 1.2 -/
+/-! ## c002 — Theorem 1.2 contract -/
 
-/-- Theorem 1.2 (page 4), *Quantum algorithm for multivariate polynomial systems*: for a system of
-quadratic polynomials with a unique Boolean solution `s` of Hamming weight `h`, Algorithm 2 recovers
-`s` with probability at least `1 - δ` in time `Õ(√E_T·log(1/δ))`, where `E_T` is computed with
-respect to the weighted Boolean Macaulay linear system `AD z = b`.
+/-- An explicit seeded output operator and runtime for Algorithm 2. -/
+structure RecoveryAlgorithm (n M : ℕ) where
+  /-- Finite random seed space used by the recovery procedure. -/
+  Seed : Type
+  seedFintype : Fintype Seed
+  seedNonempty : Nonempty Seed
+  /-- Boolean vector returned from the two data vectors and a seed. -/
+  recover : (Fin M → ℝ) → (Fin M → ℝ) → Seed → Fin n → Bool
+  /-- Runtime assigned to the two data vectors. -/
+  runtime : (Fin M → ℝ) → (Fin M → ℝ) → ℝ
 
-Gap: version arXiv:2510.05588v3, Theorem 1.2, page 4.  The paper's route: (1) build the weighted
-Boolean Macaulay linear system (`AD z = b`, Definition 5.4, page 28) with sparse `AD` and
-`‖z‖ = √h` (page 28); (2) apply Theorem 1.1 with `‖z‖₂² = h` to prepare `|z⟩` in time
-`Õ(√E_T/ε²)`; (3) recover `S` (hence `s`) from `O(log n + log(1/δ))` measurements of `|z⟩`
-(Lemma 5.6); (4) set `ε = 1/poly(n)` so the measurement error does not change the support
-condition `(h+1)/(2h) > 1/2`.  Missing formal ingredients: the Macaulay-matrix model of the
-polynomial system, the link `D z = y` between the weighted and unweighted solutions, and the
-probabilistic measurement pipeline of Lemma 5.6 (the union-bound and sample-count arithmetic of
-that lemma are proved in `Section5/MeasurementRecovery.lean`).  Candidate reusable dependencies:
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.spectralSupport` and
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.leastSquares_minimum_residual_and_norm`.
-Suggested next tactic: instantiate the recovery theorem
-`lemma56_measurement_recovery` with the outcome distribution of `|z⟩` and telescope the
-`h ≤ n` factor through `Real.sqrt`. -/
+/-- Uniform success probability of an explicit recovery operator on a target Boolean vector. -/
+noncomputable def RecoveryAlgorithm.successProbability
+    {n M : ℕ} (A : RecoveryAlgorithm n M) (p d : Fin M → ℝ) (target : Fin n → Bool) : ℝ :=
+  letI := A.seedFintype
+  ((Finset.univ.filter (fun seed => A.recover p d seed = target)).card : ℝ) /
+    (Fintype.card A.Seed : ℝ)
+
+/-- Theorem 1.2's formalizable contract for a supplied Algorithm 2 implementation.  The target
+solution is explicit, the success probability is computed from the implementation's seeded output,
+and the runtime is the implementation's runtime.  The polynomial-system construction and its
+connection to the paper's Boolean solution are outside this contract. -/
 def theorem12_guarantee
-    {n M : ℕ} (p d : Fin M → ℝ) (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) : Prop :=
-  ∃ (recovered : Fin n → Bool) (successProb time : ℝ),
-    1 - δ ≤ successProb ∧ successProb ≤ 1 ∧
-      time ≤ Real.sqrt (ET p d) * Real.log (1 / δ)
+    {n M : ℕ} (A : RecoveryAlgorithm n M) (p d : Fin M → ℝ) (target : Fin n → Bool)
+    (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) : Prop :=
+  1 - δ ≤ A.successProbability p d target ∧
+    A.successProbability p d target ≤ 1 ∧
+      A.runtime p d ≤ Real.sqrt (ET p d) * Real.log (1 / δ)
 
 /-! ## c003 — Theorem 1.3 -/
 
@@ -164,9 +162,7 @@ bounds the row norms `d_i` and the coefficients `p_i` polynomially, so `E_T = Σ
 recovers `S` in polynomial time.  Missing formal ingredients: the graph-theoretic encoding of the
 planted MIS as a Boolean Macaulay system, the identification of the support with the independent
 sets, and the polynomial bound on the resulting row norms.  Candidate reusable dependencies:
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.spectralSupport`.  Suggested next tactic:
-derive `∀ i, p i ^ 2 * d i ≤ P` from `I_i = poly(n)·C(h,i)` by unfolding the star-state
-normalisation `σ_i = √d_{u_i}` and apply `ET_le_card_mul_of_term_bound`. -/
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.spectralSupport`. -/
 theorem theorem13_planted_mis
     {M : ℕ} (p d : Fin M → ℝ) (P : ℝ) (hP : 0 < P)
     (hterm : ∀ i, p i ^ 2 * d i ≤ P) :
@@ -213,9 +209,7 @@ are `O(1)` on the support, giving `E_T = O(1)`, `s = O(1)`, and then Theorem 1.1
 the exponential `κ(B)` is Proposition 5.7 (proved in `Section5/ConditionNumber.lean` as a statement
 with the arithmetic core `proposition57_lower_bound`).  The provable cost half is
 `theorem15_time_bound`.  Missing formal ingredients: the welded-tree graph and its incidence matrix,
-the `s-t` electrical-flow solution structure, and the row-norm bounds `d_i = O(1)`.  Suggested next
-tactic: bound `(Fintype.card M : ℝ)` by the number of tree monomials and apply
-`ET_le_card_mul_of_term_bound` with a constant `P`. -/
+the `s-t` electrical-flow solution structure, and the row-norm bounds `d_i = O(1)`. -/
 theorem theorem15_welded_tree_main
     {n : ℕ} (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (s ETv ynorm2 : ℝ) (hs : 0 ≤ s) (hET : 0 ≤ ETv) (hyn : 1 ≤ ynorm2)

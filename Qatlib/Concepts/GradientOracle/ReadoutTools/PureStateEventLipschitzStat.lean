@@ -23,9 +23,7 @@ in the finite-dimensional framework of [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge

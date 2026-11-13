@@ -26,7 +26,6 @@ expand into sums over sublists, with the omitted-gate power of `lam` and the acc
 * [Geraci, 2008][Geraci2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

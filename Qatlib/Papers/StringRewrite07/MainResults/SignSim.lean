@@ -27,8 +27,6 @@ has 224 elements. See [JanzingWocjan2010].
 * [Janzing and Wocjan, 2010][JanzingWocjan2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

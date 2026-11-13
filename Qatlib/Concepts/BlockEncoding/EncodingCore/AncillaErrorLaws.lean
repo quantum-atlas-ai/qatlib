@@ -34,7 +34,6 @@ For background, see [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 
@@ -46,15 +45,12 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
 
-
 namespace Qatlib.Concepts.BlockEncoding.EncodingCore
 
 open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 
 open scoped Matrix.Norms.L2Operator
-
-set_option linter.unusedSectionVars false
 
 variable {J K I : Type*} [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
   [Fintype I] [DecidableEq I]
@@ -84,9 +80,13 @@ private def liftRightEquiv : J × (K × I) ≃ (J × K) × I where
   left_inv := fun _ => rfl
   right_inv := fun _ => rfl
 
+omit [Fintype J] [DecidableEq J] [Fintype K] [Fintype I] [DecidableEq I] in
+
 /-- The left independent lift is a relabeled tensor product of `U` with identity. -/
 theorem independentLiftLeft_eq (U : Matrix (J × I) (J × I) ℂ) :
     independentLiftLeft U = relabelGate liftLeftEquiv (TensorGate U (1 : Matrix K K ℂ)) := rfl
+
+omit [Fintype J] [Fintype K] [DecidableEq K] [Fintype I] [DecidableEq I] in
 
 /-- The right independent lift is a relabeled tensor product of identity with `V`. -/
 theorem independentLiftRight_eq (V : Matrix (K × I) (K × I) ℂ) :
@@ -133,6 +133,8 @@ theorem independentLiftRight_unitary {V : Matrix (K × I) (K × I) ℂ}
   exact relabelGate_mem_unitary (tensorGate_unitary (Matrix.unitaryGroup J ℂ).one_mem hV)
     liftRightEquiv
 
+omit [DecidableEq I] in
+
 /-- At fixed ancilla values, the matrix product of independent lifts reduces to the product sum
 over the shared data register. -/
 theorem independent_lift_mul_apply (j₀ : J) (k₀ : K) (U : Matrix (J × I) (J × I) ℂ)
@@ -151,14 +153,14 @@ theorem independent_lift_mul_apply (j₀ : J) (k₀ : K) (U : Matrix (J × I) (J
       subst ha
       subst hb
       simp [independentLiftLeft, independentLiftRight]
-    · rw [if_neg hab]
+    · rw [ite_eq_right hab]
       by_cases ha : a = j₀
       · have hb : ¬(b = k₀) := fun h => hab (by rw [ha, h])
         have hne : ¬(k₀ = b) := fun h => hb h.symm
-        simp only [independentLiftLeft, independentLiftRight, Matrix.of_apply, if_pos ha,
-          if_neg hne]
+        simp only [independentLiftLeft, independentLiftRight, Matrix.of_apply, ite_eq_left ha,
+          ite_eq_right hne]
         ring
-      · simp only [independentLiftLeft, independentLiftRight, Matrix.of_apply, if_neg ha]
+      · simp only [independentLiftLeft, independentLiftRight, Matrix.of_apply, ite_eq_right ha]
         ring
   rw [Finset.sum_congr rfl fun z _ => hkey z]
   calc ∑ z : (J × K) × I, (if z.1 = (j₀, k₀) then (1 : ℂ) else 0)

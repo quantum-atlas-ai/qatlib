@@ -11,7 +11,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 # Grid ball overlap specification
 
 `gridBall` selects integer vectors in a finite coordinate box using a scaled Euclidean distance
-condition. The proposition `gridBallIntersection_ratio` specifies a uniform lower bound for the
+condition. The proposition `gridBallIntersection_ratio_statement` specifies a uniform lower bound for the
 relative overlap of the origin-centered and shifted grid balls. See [Regev2004] for the paper
 context.
 
@@ -19,7 +19,7 @@ context.
 
 * `gridBall`: The integer vectors with coordinates between `-ceil(R * L)` and `ceil(R * L)`
   satisfying `sqrt(∑ i, ((x i - c i) / L)²) ≤ R`.
-* `gridBallIntersection_ratio`: The proposition that a positive constant bounds the loss of
+* `gridBallIntersection_ratio_statement`: The proposition that a positive constant bounds the loss of
   relative grid ball overlap by `C * sqrt n * sqrt(∑ i, d i²) / R` for `R ≥ 1` and grid
   parameter `2^n`.
 
@@ -27,8 +27,6 @@ context.
 
 * [Regev, 2004][Regev2004]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -43,9 +41,9 @@ noncomputable def gridBall (n : ℕ) (L : ℕ) (R : ℝ) (c : Fin n → ℝ) : F
       Finset.Icc (-(↑⌈R * L⌉₊ : ℤ)) (↑⌈R * L⌉₊ : ℤ))).filter
     (fun x => Real.sqrt (∑ i : Fin n, (((x i : ℝ) - c i) / (L : ℝ)) ^ 2) ≤ R)
 
-/-- The proposition that a positive constant bounds the loss of relative grid ball overlap by `C
+/-- **Statement only — not proved in Qatlib.** The proposition that a positive constant bounds the loss of relative grid ball overlap by `C
 * sqrt n * sqrt(∑ i, d i²) / R` for `R ≥ 1` and grid parameter `2^n`. -/
-def gridBallIntersection_ratio : Prop :=
+def gridBallIntersection_ratio_statement : Prop :=
   ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (R : ℝ) (d : Fin n → ℝ),
     1 ≤ R →
     (1 - C * Real.sqrt (n : ℝ) * Real.sqrt (∑ i : Fin n, (d i) ^ 2) / R) ≤

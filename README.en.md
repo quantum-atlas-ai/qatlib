@@ -26,6 +26,13 @@
 
 It provides unified mathematical definitions, operator-algebraic interfaces, reusable algorithmic primitives, and formalized theorems from the quantum computing literature.
 
+### <a id="status-provenance"></a>Status, Scope & Provenance
+
+- **Kernel soundness guarantee**: Every merged module passes Lean 4 kernel-environment auditing ([`lake test`](./scripts/test.lean)), ensuring its transitive axiom closure lies strictly within Lean's three standard axioms `{propext, Classical.choice, Quot.sound}` (`0 sorryAx`, no `native_decide`, no custom axioms), complemented by static source-fidelity checks ([`scripts/check_fidelity.py`](./scripts/check_fidelity.py)).
+- **Paper formalization scope**: Directories under `Qatlib/Papers/` span varying formalization depths—ranging from full end-to-end main theorems and query/gate complexity bounds to targeted lemmas, conditional reductions, parameter analyses, or premise corrections and counterexamples (documented in each module's `/-! ... -/` header). To report a discrepancy between a formalized statement and its source paper, please open a [**Statement Fidelity Report**](./.github/ISSUE_TEMPLATE/statement_fidelity.md).
+- **AI-assisted provenance**: Formalizations and refactorings in Qatlib are developed with substantial AI-agent assistance, verified by the Lean 4 kernel, automated static/semantic linters, and targeted human mathematical review.
+- **Third-party acknowledgments**: Selected complex-analysis and polynomial-approximation components under `Qatlib/Foundations/CbmdAnalysis/` are adapted from [TauCeti](https://github.com/TauCetiProject/TauCeti) and [CausalSmith / Causalean](https://github.com/Jiyuan-Tan/CausalSmith) under Apache-2.0; full provenance and upstream commit SHAs are recorded in [`NOTICE`](./NOTICE).
+
 ## <a id="installation"></a>Installation & Usage
 
 If you do not have Lean 4 and `elan` installed yet, follow the [official Lean 4 quickstart](https://lean-lang.org/lean4/doc/quickstart.html) or the [mathlib4 installation guide](https://leanprover-community.github.io/get_started.html).
@@ -38,7 +45,7 @@ Ensure your project's `lean-toolchain` matches this repository (`leanprover/lean
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "main" # Track the latest theorems (recommended); or pin to "v4.35.0" for the initial toolchain baseline
+rev = "main" # Track the latest theorems (recommended); or lock a specific commit SHA in lake-manifest.json (note: tag "v4.35.0" marks only the initial toolchain snapshot)
 ```
 
 When adding the dependency for the first time (or when pulling newly added upstream theorems), run both commands below to update `lake-manifest.json` and fetch the prebuilt caches (`Mathlib` + `Physlib` + `Qatlib`):

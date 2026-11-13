@@ -25,7 +25,6 @@ and evaluation of that polynomial along a normalized singular-vector pair. See
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding Qatlib.Concepts.SignalPrimitive.LCUConsumers
 

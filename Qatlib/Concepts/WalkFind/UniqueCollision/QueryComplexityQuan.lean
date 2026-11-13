@@ -32,7 +32,6 @@ to prove the thresholded reduced-search proposition `QueryComplexity`.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 
 set_option autoImplicit false

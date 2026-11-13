@@ -27,8 +27,8 @@ intermediate states) is not rebuilt. The paper reduces the chain in Eq. (9) to i
 Eq. (10), `p_fail(m) = Σ_k |c_k|² (1-d_k)(1-2 d_k(1-d_k))^m`, over the Jordan blocks of
 Lemma 1 with weights `c_k` (`Σ_k |c_k|² = 1`) and overlaps `d_k ∈ [0,1]`. We formalise Eq. (10)
 with `w k = |c_k|²` and prove the stated bound Eq. (8). The per-block scalar estimate is obtained
-by reusing `rejection_scalar_bound` from the Frozen library
-(`QuantumAlgorithm.Concepts.MixedInstrument.RewindAlgebra.rejection_scalar_bound`, itself the
+by reusing `rejection_scalar_bound` from the shared library
+(`Qatlib.Concepts.MixedInstrument.RewindAlgebra.rejection_scalar_bound`, itself the
 geometric estimate `t(1-t)(t²+(1-t)²)^n ≤ 1/(2(n+1))`), applied with `t = 1 - d_k`.
 -/
 
@@ -44,12 +44,12 @@ namespace Qatlib.Papers.TopoPEPS12.MainResults
 Eq. (10) after using `(1-x) ≤ e^{-x}` and `y e^{-y} ≤ e^{-1} < 1` (paper p. 4). -/
 theorem perBlock_failure_bound (d : ℝ) (hd0 : 0 < d) (hd1 : d ≤ 1) (m : ℕ) (hm : 0 < m) :
     (1 - d) * (1 - 2 * d * (1 - d)) ^ m ≤ 1 / (2 * d * m) := by
-  -- apply the Frozen scalar geometric estimate with `t = 1 - d`
+  -- apply the scalar geometric estimate with `t = 1 - d`
   have ht : (1 - d) ∈ Set.Icc (0 : ℝ) 1 := ⟨by linarith, by linarith⟩
   have h :=
     Qatlib.Concepts.MixedInstrument.RewindAlgebra.rejection_scalar_bound
       (1 - d) ht m
-  -- expand the Frozen statement into the paper's block form
+  -- expand the scalar estimate into the paper's block form
   have hbase : ((1 - d) ^ 2 + (1 - (1 - d)) ^ 2) = 1 - 2 * d * (1 - d) := by ring
   have hone : (1 - (1 - d)) = d := by ring
   rw [hbase, hone] at h

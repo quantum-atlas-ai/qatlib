@@ -45,7 +45,6 @@ The error-stream setting is developed in [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -65,7 +64,6 @@ open Qatlib.Concepts.AmpTransform.NoiseEnvelope
 open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
@@ -123,7 +121,7 @@ def aqLegendreTie (ξ : ℝ) (q : ℚ) : Prop :=
 single-signal boundary properties, and the negation of
 `ExpectedNoiseEnvelopeBridgeOriginal`. -/
 def clause23_endpoint : Prop :=
-  (∀ (M N : ℕ) (hM : 2 ≤ M) (hN : 0 < N) (L : ℝ),
+  (∀ (M N : ℕ) (_hM : 2 ≤ M) (_hN : 0 < N) (L : ℝ),
       -(M : ℝ) < L → L < (N : ℝ) - (M : ℝ) →
       aqEnvelope (N : ℝ) (M : ℝ) (aqMinL (M : ℝ) (N : ℝ)) ≤ aqEnvelope (N : ℝ) (M : ℝ) L)
   ∧ (∀ (N M L : ℕ) [NeZero N] (y : ZMod N) (c : ℂ),
@@ -132,17 +130,17 @@ def clause23_endpoint : Prop :=
         ‖c + ∑ i, ZMod.stdAddChar (ω i * y)‖ ^ 2)) / ((M : ℝ) + L) ^ 2 *
         (Real.tan (aqAngle N (M + L))) ^ 2 * aqGain N (M + L) ≤
         aqEnvelope (N : ℝ) (M : ℝ) (L : ℝ))
-  ∧ (∀ (N : ℕ) (hN : 1 < N) (L : ℝ), 0 ≤ L → L < (N : ℝ) - 1 →
+  ∧ (∀ (N : ℕ) (_hN : 1 < N) (L : ℝ), 0 ≤ L → L < (N : ℝ) - 1 →
       1 / ((N : ℝ) - 1) ≤ aqM1Slice (N : ℝ) L ∧
         (aqM1Slice (N : ℝ) L = 1 / ((N : ℝ) - 1) ↔ L = 0))
-  ∧ (∀ (N : ℕ) (hN : 0 < N) (L : ℝ), aqM1Window N L →
+  ∧ (∀ (N : ℕ) (_hN : 0 < N) (L : ℝ), aqM1Window N L →
       aqEnvelope (N : ℝ) 1 L = aqM1Slice (N : ℝ) L)
-  ∧ (∀ (N : ℕ) (hN : 0 < N) {L₁ L₂ : ℝ},
+  ∧ (∀ (N : ℕ) (_hN : 0 < N) {L₁ L₂ : ℝ},
       aqM1Window N L₁ → aqM1Window N L₂ → L₁ < L₂ →
       aqM1Slice (N : ℝ) L₁ < aqM1Slice (N : ℝ) L₂)
-  ∧ (∀ (N : ℕ) (hN : 0 < N) (L : ℝ), aqM1Window N L →
+  ∧ (∀ (N : ℕ) (_hN : 0 < N) (L : ℝ), aqM1Window N L →
       (1 : ℝ) / N < aqM1Slice (N : ℝ) L)
-  ∧ (∀ (N : ℕ) (hN : 0 < N) (L : ℝ), aqM1Window N L →
+  ∧ (∀ (N : ℕ) (_hN : 0 < N) (L : ℝ), aqM1Window N L →
       ∃ L', aqM1Window N L' ∧ aqM1Slice (N : ℝ) L' < aqM1Slice (N : ℝ) L)
   ∧ (¬ Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeOriginal)
 
@@ -290,7 +288,7 @@ noncomputable def aqNextEffectiveStreamProb (N k a : ℕ) (ha : a ≤ 2 ^ k)
     (if aqNextBernoulliStream N k a ha tapes = σ then 1 else 0)
 
 /-- For `0 ≤ p ≤ 1`, the floored threshold is at most `2 ^ k`. -/
-def aqNextThresholdFits (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
+theorem aqNextThresholdFits (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     aqNextBernoulliThreshold k p ≤ 2 ^ k := by
   apply Nat.cast_le.mpr
   have hfl : (aqNextBernoulliThreshold k p : ℝ) ≤ p * (2 : ℝ) ^ k :=
@@ -308,11 +306,11 @@ def aqNextThresholdFits (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
   exact Nat.cast_le.mp h3
 
 /-- The condition that the effective threshold parameter lies between zero and one. -/
-def aqNextEffectiveIsBernoulli (k a : ℕ) (ha : a ≤ 2 ^ k) : Prop :=
+def aqNextEffectiveIsBernoulli (k a : ℕ) (_ha : a ≤ 2 ^ k) : Prop :=
   0 ≤ aqNextEffectiveParameter k a ∧ aqNextEffectiveParameter k a ≤ 1
 
 /-- The condition that the dyadic ratio `a / 2 ^ k` lies between zero and one. -/
-def aqNextDyadicIsBernoulli (k a : ℕ) (ha : a ≤ 2 ^ k) : Prop :=
+def aqNextDyadicIsBernoulli (k a : ℕ) (_ha : a ≤ 2 ^ k) : Prop :=
   0 ≤ (a : ℝ) / (2 : ℝ) ^ k ∧ (a : ℝ) / (2 : ℝ) ^ k ≤ 1
 
 /-- The conjunction of fresh-observation consistency and recovery bounds, fixed-noise candidate
@@ -326,11 +324,11 @@ def clause26_endpoint : Prop :=
   ∧ (∀ (N s M : ℕ) (cands : Finset ℕ) (obs : Finset (Fin N)),
       aqFreshCompatible N s M cands obs =
         cands.filter fun P => aqCandidateConsistent N s M P obs)
-  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (P' : ℕ) (hP' : P' ∈ cands)
+  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (P' : ℕ) (_hP' : P' ∈ cands)
       (σ : Fin N → Bool),
       P' ∈ aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) →
         aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ))
-  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (P' : ℕ) (hP' : P' ∈ cands)
+  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (P' : ℕ) (_hP' : P' ∈ cands)
       (σ : Fin N → Bool),
       ¬ aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) →
         P' ∉ aqFreshCompatible N s M cands (aqFreshMarked N s M P σ))
@@ -338,16 +336,16 @@ def clause26_endpoint : Prop :=
       (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
         (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
         = p ^ aqCandidateSeparation N s M P P')
-  ∧ (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (hP : P ∈ cands) (σ : Fin N → Bool),
+  ∧ (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (_hP : P ∈ cands) (σ : Fin N → Bool),
       (∀ P' ∈ cands \ {P},
         ¬ aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ)) →
       aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) = {P} ∧
         aqFreshDisambiguate N s M cands p (aqFreshMarked N s M P σ) = some P)
-  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (hP : P ∈ cands) (σ : Fin N → Bool),
+  ∧ (∀ (N s M P : ℕ) (cands : Finset ℕ) (_hP : P ∈ cands) (σ : Fin N → Bool),
       aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) ≠ {P} →
       ∃ P' ∈ cands \ {P}, aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ))
   ∧ (∀ (N s M P : ℕ) (p pmax : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ pmax)
-      (hmax : pmax < 1) (cands : Finset ℕ) (hP : P ∈ cands),
+      (hmax : pmax < 1) (cands : Finset ℕ) (_hP : P ∈ cands),
       ∀ P' ∈ cands \ {P},
         (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp (le_trans hp1 hmax.le)).prob σ *
           (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
@@ -361,8 +359,8 @@ def clause26_endpoint : Prop :=
         Q ∈ aqFreshCompatible N s M cands obs)
   ∧ (∃ (N s M P P' : ℕ) (obs : Finset (Fin N)),
       P ≠ P' ∧ aqCandidateConsistent N s M P obs ∧ aqCandidateConsistent N s M P' obs)
-  ∧ (∀ (N s M P P' : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (hp1' : p < 1)
-      (hsep : 0 < aqCandidateSeparation N s M P P'),
+  ∧ (∀ (N s M P P' : ℕ) (p : ℝ) (_hp : 0 ≤ p) (_hp1 : p ≤ 1) (_hp1' : p < 1)
+      (_hsep : 0 < aqCandidateSeparation N s M P P'),
       0 < 1 - p ^ (aqCandidateSeparation N s M P P'))
   ∧ (∀ (N t k : ℕ),
       aqSameRunCost N t k =
@@ -372,12 +370,12 @@ def clause26_endpoint : Prop :=
           aqExecutionCost).add
           (aqFreshPassCost N t k))
   ∧ (∀ (N s M P B : ℕ) (G : Finset (Fin N)) (y : Fin N)
-      (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N) (hPB : P ≤ B)
-      (hsepB : 2 * B ^ 2 < N) (hy : y ∈ aqNextGoodWindow N P),
+      (_hM : 2 ≤ M) (_hP : 2 ≤ P) (_hb : s + (M - 1) * P < N) (_hPB : P ≤ B)
+      (_hsepB : 2 * B ^ 2 < N) (_hy : y ∈ aqNextGoodWindow N P),
       (aqNextAttempt (aqNextFixedNoiseRecord N s M P G) s M B y).1 = some P)
   ∧ (∀ (N s M P B : ℕ) (G : Finset (Fin N)) (y : Fin N)
-      (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N) (hPB : P ≤ B)
-      (hsepB : 2 * B ^ 2 < N) (q : ℕ),
+      (_hM : 2 ≤ M) (_hP : 2 ≤ P) (_hb : s + (M - 1) * P < N) (_hPB : P ≤ B)
+      (_hsepB : 2 * B ^ 2 < N) (q : ℕ),
       (aqNextAttempt (aqNextFixedNoiseRecord N s M P G) s M B y).1 = some q →
         (aqNextVerify (aqNextFixedNoiseRecord N s M P G) s M q).1 = true)
   ∧ (∀ (N s M P B : ℕ) (G : Finset (Fin N)) (y : Fin N),
@@ -393,25 +391,25 @@ def clause26_endpoint : Prop :=
         (aqNextVerify (aqNextFixedNoiseRecord N s M P' G) s M P').1 = true)
   ∧ (∀ (k a : ℕ) (ha : a ≤ 2 ^ k),
       aqNextEffectiveSiteProb k a ha = aqNextEffectiveParameter k a)
-  ∧ (∀ (k a : ℕ) (ha : a ≤ 2 ^ k),
+  ∧ (∀ (k a : ℕ) (_ha : a ≤ 2 ^ k),
       0 ≤ aqNextEffectiveParameter k a ∧ aqNextEffectiveParameter k a ≤ 1)
   ∧ (∀ (N k a : ℕ) (ha : a ≤ 2 ^ k) (σ : Fin N → Bool),
       ∃ h : 0 ≤ aqNextEffectiveParameter k a ∧ aqNextEffectiveParameter k a ≤ 1,
         aqNextEffectiveStreamProb N k a ha σ
           = (aqNextBernoulliStreamLaw N (aqNextEffectiveParameter k a) h.1 h.2).prob σ)
-  ∧ (∀ (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1),
+  ∧ (∀ (k : ℕ) (p : ℝ) (_hp : 0 ≤ p) (_hp1 : p ≤ 1),
       aqNextBernoulliThreshold k p ≤ 2 ^ k)
-  ∧ (∀ (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1),
+  ∧ (∀ (k : ℕ) (p : ℝ) (_hp : 0 ≤ p) (_hp1 : p ≤ 1),
       (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k ≤ p ∧
         p < (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k + 1 / (2 : ℝ) ^ k)
-  ∧ (∀ (k : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1),
+  ∧ (∀ (_k : ℕ) (p : ℝ) (_hp : 0 ≤ p) (_hp1 : p ≤ 1),
       Filter.Tendsto (fun k => (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k)
         Filter.atTop (nhds p))
   ∧ (∀ (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (σ : Fin N → Bool),
       Filter.Tendsto (fun k => aqNextEffectiveStreamProb N k (aqNextBernoulliThreshold k p)
           (aqNextThresholdFits k p hp hp1) σ)
         Filter.atTop (nhds ((aqNextBernoulliStreamLaw N p hp hp1).prob σ)))
-  ∧ (∀ (k a : ℕ) (ha : a ≤ 2 ^ k),
+  ∧ (∀ (k a : ℕ) (_ha : a ≤ 2 ^ k),
       aqNextBernoulliThreshold k ((a : ℝ) / (2 : ℝ) ^ k) = a)
   ∧ (∀ (N k a : ℕ) (ha : a ≤ 2 ^ k) (σ : Fin N → Bool),
       ∃ h : 0 ≤ (a : ℝ) / (2 : ℝ) ^ k ∧ (a : ℝ) / (2 : ℝ) ^ k ≤ 1,
@@ -429,7 +427,7 @@ def clause27_endpoint : Prop :=
          else aqCandidateLikelihood N s M P p obs / aqCandidateLikelihood N s M P' p obs))
   ∧ (∀ (N s M P P' : ℕ) (p : ℝ) (obs : Finset (Fin N)),
       aqCandidateLikelihood N s M P' p obs = 0 → aqSuccessRatio N s M P P' p obs = 0)
-  ∧ (∀ (N s M P P' : ℕ) (p : ℝ) (obs : Finset (Fin N)) (hp : 0 ≤ p) (hp1 : p ≤ 1),
+  ∧ (∀ (N s M P P' : ℕ) (p : ℝ) (obs : Finset (Fin N)) (_hp : 0 ≤ p) (_hp1 : p ≤ 1),
       0 ≤ aqSuccessRatio N s M P P' p obs)
 
 /-- The monotonicity and round-count comparisons for public and layer-dependent amplification,

@@ -14,9 +14,9 @@ set_option backward.isDefEq.respectTransparency false
 "The Overlap Gap Property limits limit swapping in the QAOA"
 (arXiv:2404.06087v6, 2025, Mark Goh).
 
-This file records faithful `Prop` statements for the claims whose full
-formalisation meets substantive obstacles. Three cores are proved in
-this block: `OgpLandscape.ogp_forbids_two_far_optima` and
+This file records abstract `Prop` statements for the claims listed below.
+Three mathematical components are proved in the accompanying modules:
+`OgpLandscape.ogp_forbids_two_far_optima` and
 `OgpLandscape.limit_swap_suboptimal` (c004, Corollary 4.2.2
 deterministic core), `QaoaValue.qaoa_value_degree_bound` and
 `QaoaValue.qaoa_value_tendsto_one_half` (c002, Theorem 4.2
@@ -38,7 +38,6 @@ The remaining claims are recorded as abstract statements:
 - c009 (Corollary 1.2.1): the no-advantage conclusion; needs the
   QAOA-as-local-algorithm equivalence of the cited references.
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

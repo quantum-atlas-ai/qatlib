@@ -17,10 +17,9 @@ unitary `U` and every input `ψ`, the amplified word
 `|0⟩ U |ψ⟩` with no leakage into the orthogonal fiber.  The companion counted
 form supplies the gatewise-valid three-query word.
 
-Frozen FQNs reused:
-* `QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.equation12`
-  (`Statements/Equation12.lean:11`);
-* `QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.equation12_counted`
+Library theorems:
+* `Qatlib.Concepts.CoherentSim.ResetDiscard.equation12` (exact output identity);
+* `Qatlib.Concepts.CoherentSim.ResetDiscard.equation12_counted`
   (three charged queries, four projector-phase macros).
 -/
 

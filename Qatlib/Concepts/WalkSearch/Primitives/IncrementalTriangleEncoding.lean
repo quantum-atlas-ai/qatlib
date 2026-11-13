@@ -28,7 +28,6 @@ The encoding supplies finite counting estimates for graph subset-search reductio
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
 noncomputable section

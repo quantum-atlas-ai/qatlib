@@ -86,7 +86,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib
 open Qatlib
 open Qatlib
-set_option warningAsError false
 noncomputable section
 
 /-- For every nonnegative real `x`, the sine is at least `x - x³ / 6`. -/

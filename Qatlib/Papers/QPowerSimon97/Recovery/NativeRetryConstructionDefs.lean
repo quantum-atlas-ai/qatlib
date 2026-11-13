@@ -43,7 +43,6 @@ the distribution uses the identity function as a fallback when that class is emp
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

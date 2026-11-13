@@ -34,8 +34,6 @@ periodic boundary contractions. These constructions use the matrix product state
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance

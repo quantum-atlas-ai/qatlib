@@ -31,8 +31,6 @@ stages, and uniform expansion bounds multiply across stages.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
@@ -42,8 +40,6 @@ open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Matrix
-
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 

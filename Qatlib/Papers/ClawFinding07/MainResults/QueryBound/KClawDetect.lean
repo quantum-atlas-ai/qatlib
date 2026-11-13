@@ -24,8 +24,6 @@ This module defines comparison and standard-query cost expressions for `k`-claw 
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

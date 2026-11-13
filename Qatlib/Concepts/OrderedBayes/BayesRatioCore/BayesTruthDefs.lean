@@ -42,7 +42,6 @@ the ratio potential, as used in the ordered search analysis of [BenOrHassidim200
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution

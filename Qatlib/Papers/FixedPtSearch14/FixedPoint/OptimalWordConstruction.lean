@@ -31,7 +31,6 @@ target direction without asserting a positive branch probability.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 

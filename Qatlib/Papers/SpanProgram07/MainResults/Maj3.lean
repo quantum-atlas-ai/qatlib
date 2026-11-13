@@ -25,8 +25,6 @@ column parameters realize three-input majority, as in [ReichardtSpalek2008].
 * [Reichardt and Spalek, 2008][ReichardtSpalek2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

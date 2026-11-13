@@ -34,7 +34,6 @@ the reference marginal under the same contraction hypothesis.
 - [Watrous, 2018][Watrous2018], *The Theory of Quantum Information*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -48,9 +47,6 @@ open Matrix
 open scoped ComplexOrder ENNReal
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- The extended nonnegative expected number of loop rounds, defined as the sum of all pending
 masses. -/

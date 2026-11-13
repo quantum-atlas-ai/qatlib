@@ -48,7 +48,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Proves `InhomogeneousWindowSuccessAndBudget`: the finite window has normalized weights,
 length at most `2*α/τ + 1`, average marked success at least 1/8, and input and selection

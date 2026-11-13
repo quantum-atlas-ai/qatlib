@@ -25,7 +25,6 @@ positive size, its asymptotic upper bound, and a comparison with cubic classical
 * [Heiligman, 2003][Heiligman2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

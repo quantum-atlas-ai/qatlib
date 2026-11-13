@@ -27,30 +27,32 @@ channel is the measurement information channel `L_M` of §5.1, with operator
 norm sup'ed over the measurement family.
 
 All transcript laws in this file are the Born-rule masses defined in
-`Model/SourceModel.lean` (`adaptiveTranscriptMass`), so the statement is
-coupled to the concrete protocol semantics.
+`Model/SourceModel.lean` (`adaptiveTranscriptMass`), so the quantities in the
+source statement are coupled to the concrete protocol semantics.
 
-## Proof status (scaffolds removed; statements in branch history c93d182c6)
+## Mathematical background and scope
 
 * Fixed source: arXiv:2608.18839v3, Lemma 5.4, proof in §5.1 (equations
   (5)–(6) and the following Born-rule computation).
-* Key proof route: (i) bound `d_KL(q‖p) ≤ d_{χ²}(q‖p)`; (ii) express the
+* Proof outline: (i) bound `d_KL(q‖p) ≤ d_{χ²}(q‖p)`; (ii) express the
   χ²-divergence through `β_i(x)² = (q(x)-p(x))²/p(x)`; (iii) use the Born rule
   `q(x) = Tr(M_x σ)` and `p(x) = Tr(M_x ρ_mm)` together with
   `Tr(M_x Δ_z) = (cε/(d√ℓ)) Σ_m z_m Tr(M_x V_m)`; (iv) Cauchy–Schwarz over
   the measurement information channel yields the `‖L_M‖_op` factor; (v) the
   chain rule for mutual information gives the sum `Σ_m I(z_m; x^i)`.
-* Lean gap: the χ²-to-KL inequality for finite outcome laws, the Cauchy–Schwarz
-  step over the MIC, and the mutual-information chain rule for the adaptive
-  transcript factorization are not formalized.  The definitions below make the
-  statement precise against the paper-local protocol model.
-* Reusable dependencies: `SourceModel.micOperatorNorm`, `hardInstanceDelta`,
-  `hardInstanceState`, `adaptiveTranscriptMass`; the (removed scaffold)
-  `LowerBound/Framework.lean` and `LowerBound/SingleQubit.lean` statements.
-* Suggested tactics: prove `Real.log_le_sub_one_of_pos`-based
-  `d_KL ≤ d_χ²` for `Fin k` laws, expand `adaptiveTranscriptMass` recursively,
-  apply `Finset.sum_le_sum` with a per-outcome Cauchy–Schwarz bound, then close
-  the mutual-information identity by `Finset.sum_comm` and `Real.log` algebra.
+* Scope note: this module defines the KL divergence, conditional transcript
+  masses, and mutual information for the paper-local protocol model. The
+  χ²-to-KL inequality for finite outcome laws, the Cauchy–Schwarz step over
+  the MIC, and the mutual-information chain rule for the adaptive transcript
+  factorization are outside the scope of this file.
+* Related definitions: `SourceModel.micOperatorNorm`, `hardInstanceDelta`,
+  `hardInstanceState`, and `adaptiveTranscriptMass`. Applications are described
+  in `LowerBound/Framework.lean` and `LowerBound/SingleQubit.lean`.
+* The elementary logarithm inequality `log t ≤ t - 1` for `t > 0`
+  (`Real.log_le_sub_one_of_pos`) gives `d_KL ≤ d_χ²` for `Fin k` laws.
+  Recursive transcript factorization and a per-outcome Cauchy–Schwarz bound
+  give the divergence estimate; rearrangement of the finite sums and logarithms
+  gives the mutual-information identity.
 -/
 
 set_option autoImplicit false

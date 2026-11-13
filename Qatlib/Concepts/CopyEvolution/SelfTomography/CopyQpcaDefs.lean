@@ -31,7 +31,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.CopyEvolution.SelfTomography
@@ -44,7 +43,6 @@ open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The dyadic phase value `k.val / 2 ^ w` represented by a `w`-bit label. -/
 noncomputable def piDyadicWord (w : ℕ) (k : Fin (2 ^ w)) : ℝ := (k.val : ℝ) / 2 ^ w

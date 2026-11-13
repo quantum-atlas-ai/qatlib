@@ -19,7 +19,6 @@ This algebra supports local measurement and classical-shadow models
 [HuangKuengPreskill2020]. Tensor-product state semantics are described in
 [Nielsen & Chuang, composite systems][NielsenChuang2010].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -20,7 +20,7 @@ set_option backward.isDefEq.respectTransparency false
 # QEigenProc24 — fixed source model
 
 Low & Su, *Quantum eigenvalue processing*, fixed arXiv:2401.06240**v3** (26 Mar 2026).
-PDF SHA reference: `prove/assets/2401.06240.pdf`.
+Source PDF: `arXiv:2401.06240`.
 
 This module owns the paper-level vocabulary of the `MainResults` block:
 
@@ -30,14 +30,13 @@ This module owns the paper-level vocabulary of the `MainResults` block:
   realisations `T_j(A)`, `U_j(A)`;
 * the paper's numerical range `W(C)` and Hermitian part `ℜ(C)` (Appendix B.2, p. 101);
 * the Faber-region and Jordan-form *interfaces* used in Sections 8–9 and Appendix A;
-* an explicit, documented `MachineModel` interface for the algorithm-existence and
-  query-count claims (Theorems 1–12): programs, the state a program prepares, its
-  success probability and its query ledger.
+* an abstract `MachineModel` specification with independent program, output,
+  success-probability and ledger fields, retained for compatibility.
 
-Boundary.  The model records what the paper's theorems *assert*; it does not claim
-efficient circuit synthesis, and the `MachineModel` interface is stated explicitly so
-that the algorithm-existence statements are not silently weakened.  Every theorem
-file names the FQN of a reusable Frozen/Mathlib result where one exists.
+Boundary. `MachineModel` alone provides no operational or resource guarantee.
+This directory proves analytic identities and inequalities, not the algorithmic
+Theorems 1–12. `BlockEncoding` adds conditional word implementation contracts;
+the quantum algorithms and their efficient synthesis are not constructed here.
 -/
 
 set_option autoImplicit false
@@ -189,9 +188,8 @@ def ofFun {ι : Type} (f : ι → ℂ) : VecI ι := WithLp.toLp 2 f
 /-- The amplitudes of a state. -/
 def amp {ι : Type} (v : VecI ι) : ι → ℂ := WithLp.ofLp v
 
-/-- Query ledger of one run of the paper's eigenvalue-processing algorithms.
-`ctrlOA`, `ctrlOPsi`, `ctrlOBeta` count queries to the controlled block-encoding oracle,
-the state-preparation oracle and the coefficient-shift oracle respectively. -/
+/-- Unverified query annotations, intended for controlled block-encoding,
+state-preparation and coefficient-shift calls. This record has no execution semantics. -/
 structure QueryLedger where
   ctrlOA : ℕ
   ctrlOPsi : ℕ
@@ -199,10 +197,9 @@ structure QueryLedger where
   gates : ℕ
   deriving Repr
 
-/-- The paper's algorithm model on an output register space `ι`.  A `Program` is one algorithm
-of the model; `outState P` is the (unnormalised) state it produces, `successProb P` is the
-probability that the run returns the paper's target, and `ledger P` is the query ledger of
-that run. -/
+/-- Abstract specification on output register `ι`, with independent output, probability
+and ledger fields. No circuit semantics, probability laws or cost invariants are required;
+instantiating this record does not establish an algorithm or a query bound. -/
 structure MachineModel (ι : Type) where
   Program : Type
   outState : Program → VecI ι
@@ -217,9 +214,9 @@ def Approximates {ι : Type} [Fintype ι] (prepared target : VecI ι) (ε : ℝ)
 /-- Normalisation of a vector, `|v⟩ / ‖|v⟩‖`. -/
 def normalize {ι : Type} [Fintype ι] (v : VecI ι) : VecI ι := (‖v‖ : ℂ)⁻¹ • v
 
-/-- The paper's `O(·)` at the fixed set of parameters of a theorem: a positive constant*independent* of the quantities named in the theorem bounds (n, ε, p_fail, α_A, …).  Using an
-existential constant keeps the statements free of an asymptotic variable; the accompanying
-comment of each theorem records the exact bound displayed in the paper. -/
+/-- Pointwise comparison by an existential positive multiplier. This does not express
+uniform asymptotic dependence: independence from varying parameters must be stated
+separately by quantifying the multiplier before those parameters. -/
 def BigO (f g : ℝ) : Prop := ∃ C : ℝ, 0 < C ∧ f ≤ C * g
 
 end Qatlib.Papers.QEigenProc24.MainResults

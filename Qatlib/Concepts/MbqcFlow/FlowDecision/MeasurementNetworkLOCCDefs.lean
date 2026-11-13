@@ -43,7 +43,6 @@ conditional-unitary instruments, and establishes reference-system identities in 
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
@@ -62,10 +61,6 @@ open scoped Classical BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unnecessarySeqFocus false
-set_option linter.unreachableTactic false
 
 /-- Party identifiers, represented by natural numbers. -/
 abbrev Party := ℕ

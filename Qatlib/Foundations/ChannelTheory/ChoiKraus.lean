@@ -19,8 +19,6 @@ The correspondence is due to [Choi1975] and [Jamiolkowski1972]; see also
 [Nielsen & Chuang, Chapter 8][NielsenChuang2010].
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.ChannelTheory.ChoiKraus
 
 noncomputable section

@@ -257,9 +257,9 @@ def TildeOWith (f g ε extra : ℝ) : Prop :=
     f ≤ C * g * (Real.log (Real.exp 1 + g / ε + 1)) ^ k *
       (Real.log (Real.exp 1 + extra + 1)) ^ k
 
-/-- The query cost of a construction is a nonnegative real, supplied with the
-construction.  This is the only cost model the paper layer needs: the source's
-algorithmic content is the existence of the block-encoding and the value of this cost. -/
+/-- A legacy nonnegative numerical cost annotation. No oracle word or encoding
+implementation is attached, so this record does not certify query complexity.
+The arithmetic results using numerical costs do not construct algorithms. -/
 structure QueryCost where
   cost : ℝ
   nonneg : 0 ≤ cost

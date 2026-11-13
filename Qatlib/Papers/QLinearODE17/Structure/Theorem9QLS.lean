@@ -63,7 +63,6 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

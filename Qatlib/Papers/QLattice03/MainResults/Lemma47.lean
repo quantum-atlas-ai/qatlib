@@ -31,10 +31,7 @@ probability for the first record. See [Regev2004] for the paper context.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open scoped Classical BigOperators
 
@@ -110,11 +107,11 @@ structure BitRoutine where
 prescribed cosine and sine probabilities at phase `2πqd/N`, with positive failure
 probability for the first record. See [Regev2004]. -/
 theorem lemma47_R1_R2
-    (N : ℕ) [NeZero N] (cm : ℕ) (hcm : 3 ≤ cm)
+    (N : ℕ) [NeZero N] (cm : ℕ) (_hcm : 3 ≤ cm)
     (S : SubsetSumRoutine) (r : ℕ → ℕ)
     (d : ZMod N) (q : ℕ)
-    (f : ZMod N → Option (ZMod N)) (hf : IsQMatching N (q : ZMod N) f)
-    (hgood : IsGoodMatching N S (r N) cm f) :
+    (f : ZMod N → Option (ZMod N)) (_hf : IsQMatching N (q : ZMod N) f)
+    (_hgood : IsGoodMatching N S (r N) cm f) :
     ∃ R1 R2 : BitRoutine,
       R1.prob1 = R1BitProb (2 * Real.pi * (q : ℝ) * (d.val : ℝ) / (N : ℝ)) ∧
       R2.prob1 = R2BitProb (2 * Real.pi * (q : ℝ) * (d.val : ℝ) / (N : ℝ)) ∧

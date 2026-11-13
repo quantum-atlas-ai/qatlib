@@ -52,8 +52,6 @@ measurement. These constructions combine deferred measurement as described in
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

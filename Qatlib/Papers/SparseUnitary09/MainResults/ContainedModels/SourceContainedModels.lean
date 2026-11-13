@@ -25,8 +25,8 @@ contained in BQP.
 
 Formalised legs in this file:
 
-* **QTM** — `c003_qtm_contained`: reference bridge to the Frozen theorem
-  `QuantumAlgorithm.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`, which
+* **QTM** — `c003_qtm_contained`: reference bridge to
+  `Qatlib.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`, which
   compiles every local QTM `t`-step window into an explicit `Φ₃` gate word with `0`
   queries and an explicit gate-count bound, preserving the Born law of each
   configuration.  This is exactly the paper's "the QTM model lies within the gate /
@@ -37,11 +37,10 @@ Formalised legs in this file:
   is a position permutation, i.e. a 1-sparse unitary; the walk step (shift+coin) is a
   sparse step.  It reduces to the permutational leg.
 
-Not formalised (documented gap): the **anyonic** models — `Qatlib` has no
-formalization of anyonic/computational-basis braiding, so there is no Lean term asserting
-their gate sparsity; and the literal membership in the **decision class BQP**, which
-requires a BQP class of languages (uniform poly-size circuit families with bounded error),
-absent from the library.  Both gaps are recorded in the PR note.
+Scope note: this file formalises the QTM, permutational-computation and quantum-walk
+reductions described above. Anyonic/computational-basis braiding and its gate sparsity,
+as well as membership in the decision class BQP as a class of languages with uniform
+polynomial-size bounded-error circuit families, are outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -56,13 +55,13 @@ namespace Qatlib.Papers.SparseUnitary09.MainResults.ContainedModels
 open Qatlib.Papers.SparseUnitary09.MainResults.Dilation
 open Qatlib.Papers.SparseUnitary09.MainResults.Model
 
-/-! ## Quantum Turing machine leg (reference bridge to the Frozen concept layer) -/
+/-! ## Quantum Turing machine leg (reference bridge to the concept layer) -/
 
 /-- Claim c003, quantum-Turing-machine leg (arXiv:0904.2211v2, Sec. II, p. 3, line 59).
 
-Reused Frozen FQN: `QuantumAlgorithm.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`
-(module `.../QtmPhi3WindowSimulationQuan/QtmPhi3WindowSimulation.lean`).  Its statement
-`QtmPhi3WindowSimulation` says: for every local QTM `M`, encoding width `b`, and
+The theorem `Qatlib.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`
+in `Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan` has the statement
+`QtmPhi3WindowSimulation`: for every local QTM `M`, encoding width `b`, and
 `0 < n ≤ t`, there is an explicit `Φ₃` gate word with `0` queries, gate count
 `≤ t·((2t−1)·phi3PaddingBudget(3b) + (2t+1)·phi3PaddingBudget b)`, that exactly implements
 the `t`-step window transition and preserves each configuration's Born probability.  This

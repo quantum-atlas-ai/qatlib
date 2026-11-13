@@ -27,8 +27,6 @@ expression with its Walsh counterpart.
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SingleQuery97.MainResults.HuffmanCoding
 
 open Qatlib.Papers.SingleQuery97.MainResults.CharacterSum

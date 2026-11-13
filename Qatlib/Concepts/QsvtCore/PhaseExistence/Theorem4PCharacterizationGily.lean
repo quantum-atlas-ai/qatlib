@@ -25,8 +25,6 @@ for even length. See [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis

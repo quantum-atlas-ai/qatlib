@@ -35,7 +35,6 @@ quantity called total variation in that source statement.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

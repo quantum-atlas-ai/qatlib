@@ -48,14 +48,13 @@ guarantee that the band contains a partial cover of any minimum cover; the
 three bands give the `2^{0.788595n} = 1.727391…^n < 1.728^n` exponent with a
 polynomial overhead in `m` and `n`.
 
-Lean gap: the band decomposition, the Grover search over partial covers and
-the recursion on large sets are not formalised; Proposition 11, the structural
-ingredient, is proved.  Candidate dependencies:
-`SetCoverPartialCover.proposition11`, `minCoverSize`, and
-`QuantumAlgorithm.Concepts.SearchStopping.*` for Grover search.  Suggested
-tactics: formalise the band search as a finite `min` over `X` in a band and
-use Proposition 11 to rewrite `f(U,S)` as a sum over bands, then bound the
-exponent with `entropy_approximation`. -/
+Scope note: the theorem gives a bounded-error specification.  The band
+decomposition, the Grover search over partial covers and the recursion on
+large sets are outside the scope of this file; the structural ingredient is
+proved in `SetCoverPartialCover.proposition11`.  The paper's cost analysis
+minimizes over `X` in each band, decomposes `f(U,S)` into a sum over bands
+using Proposition 11, and bounds the exponent by entropy estimates (related
+to `entropy_approximation`).  The optimization objective is `minCoverSize`. -/
 theorem theorem10_setCover (α : Type) [DecidableEq α] :
     SolvesValueInTime (setCoverProblem α) (1.728 : ℝ) := by
   unfold SolvesValueInTime

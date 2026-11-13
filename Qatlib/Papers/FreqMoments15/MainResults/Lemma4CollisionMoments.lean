@@ -219,14 +219,14 @@ when `T ∩ U = ∅`, and concludes
 `E[C_k²] ≤ ∑_{q=k}^{2k-1} (ℓ F_k^{1/k}/n)^q + (ℓ choose k)((ℓ-k) choose k)² F_k²/n^{2k}`,
 hence `Var(C_k) ≤ ∑_{q=k}^{2k-1} (ℓ F_k^{1/k}/n)^q`.
 
-Formal gap: this needs (i) the pair-counting bound
+Scope note: the second-moment proof is outside the scope of this file.  It uses
+(i) the pair-counting bound
 `|{T,U ∈ ([ℓ] choose k) : |T∪U| = q}| ≤ ℓ^q`, (ii) the ℓ^p-norm monotonicity
 `F_q^{1/q} ≤ F_k^{1/k}` for `q ≥ k` (from `∑ n_j^q ≤ (∑ n_j^k)^{q/k}`), and (iii) the
-algebraic rearrangement.  These are all standard but amount to a substantial second-moment
-development; the honest expectation part above is complete.
-Suggested takeover: prove (i) via `Finset.card_le` on the injection that records
-`T ∩ U` and the two disjoint differences, then (ii) via `Real.rpow_le_rpow` applied to
-`∑ n_j^q ≤ (∑ n_j^k)^(q/k)` (Hölder/power-mean for finite families). -/
+algebraic rearrangement.  The expectation identity above is proved.
+For (i), the counting argument uses the injection that records `T ∩ U` and the
+two disjoint differences.  For (ii), the finite-family Hölder/power-mean inequality
+`∑ n_j^q ≤ (∑ n_j^k)^(q/k)` gives the required comparison of powers. -/
 
 /-- **Lemma 4, variance part — statement registration** (paper §2.2 p. 6 and Appendix A
 pp. 18–19).  The variance of the collision count is at most

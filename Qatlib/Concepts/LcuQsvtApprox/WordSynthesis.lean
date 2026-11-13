@@ -45,7 +45,6 @@ and singular value transformation as in [LowChuang2017] and [GilyenSuLowWiebe201
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
@@ -58,7 +57,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 open Matrix Polynomial

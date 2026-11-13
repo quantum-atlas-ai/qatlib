@@ -25,8 +25,6 @@ minimum of two gap bounds in `[0,1]`, supporting the product-walk analysis of [T
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

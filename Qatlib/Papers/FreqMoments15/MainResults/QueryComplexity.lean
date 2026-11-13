@@ -21,12 +21,12 @@ Theorem 7 (§2.4 p. 10).
 The query model is the one fixed in `FrequencyMomentModel`: a `QueryProgram` is a fixed
 unitary circuit on a query/value register with arbitrary fixed workspace and output
 register, using the unitary value oracle `|i,x⟩ ↦ |i, x + a_i⟩`; its query cost is
-`QueryCount` of the circuit and its success probability is the honest Born probability
+`QueryCount` of the circuit and its success probability is the Born probability
 `relSuccess` that the decoded output is within relative error `ε`.
 
 Model boundary (recorded for each statement): the paper's algorithms also use a
 pairwise-independent hash family and the subroutines of Theorems 1/3; those are not
-separately modelled, the theorems below state the *existence* of a query program with the
+separately modelled, the statements below describe the *existence* of a query program with the
 paper's query cost and success guarantee, which is exactly the paper's conclusion.
 -/
 
@@ -41,7 +41,7 @@ open scoped BigOperators
 /-! ## Theorem 2: `F_0` query upper bound (§2.1 p. 6) -/
 
 /-
-Gap record for `theorem2_F0_query_upper`.
+Mathematical background and scope of `theorem2_F0_query_upper`.
 
 * Paper version: arXiv:1505.00113v3 (4 Aug 2016), Theorem 2, §2.1 p. 6 (Algorithm 1 p. 6).
 * Original proof route: Algorithm 1 picks a hash family `h : [m] → [n/ε²]`, reads the stream,
@@ -49,20 +49,18 @@ Gap record for `theorem2_F0_query_upper`.
   `dM/v`; the multiplicative guarantee follows from the proof of Theorem 1 of Bar-Yossef et
   al. [8] (`dM/v` is within `1+ε` with probability `2/3−1/m`), and the query bound is the one
   from Theorem 1.
-* Lean gap: the repo has the circuit/query-count machinery but no formal quantum approximate
-  counting (Theorem 1 of [8]), no hash-family sampling model, and no formal `dM/v`
-  estimator.  Only the existential `QueryProgram` interface is available, so the algorithmic
-  construction cannot be instantiated.
-* Candidate reusable dependencies: `QuantumAlgorithm.Foundations.ReferenceError.MixturePaths.Circuit`
+* Scope note: this file uses circuit/query-count machinery; quantum approximate
+  counting (Theorem 1 of [8]), hash-family sampling, and the `dM/v` estimator are
+  outside its scope.  The statement uses the existential `QueryProgram` interface;
+  the algorithmic construction is not formalised.
+* Related definitions: `Qatlib.Foundations.QueryWordCore.Circuit`
   (`Circuit`, `QueryCount`, `Run`, `IsUnitaryCircuit`); `QueryProgram`, `QueryProgram.successF0`
   and `streamOracle_unitary` in `FrequencyMomentModel` (the value oracle and its unitarity are
   fully formalised there).
-* Suggested takeover: state a `CountingLemma` interface (amplitude-estimation query bound) as a
-  hypothesis record, prove the `dM/v` estimator's relative-error lemma separately, and instantiate
-  `QueryProgram` by `circuit := counting-circuit` using `streamOracle`; the missing mathematics
-  is then isolated to that interface.
+* The construction combines an amplitude-estimation query bound with the relative-error
+  estimate for `dM/v`; its counting circuit uses the value oracle `streamOracle`.
 -/
-/-- **Theorem 2 — statement registration** (paper §2.1 p. 6).  Algorithm 1 makes
+/-- **Statement only — not proved in Qatlib.** **Theorem 2** (paper §2.1 p. 6).  Algorithm 1 makes
 `O(√n/ε)` queries and outputs an estimate of `F_0` accurate up to relative error `ε` with
 probability at least `3/5 − 1/m`.
 
@@ -70,7 +68,7 @@ Formalised as: there is a constant `C > 0` such that for every `n, m` (`m ≥ 2`
 `ε > 0` there is a query program with at most `C·√n/ε` queries whose relative-error success
 probability is at least `3/5 − 1/m` on every stream.
 
-**Status.** The statement is registered as a `Prop`-valued definition; the counting
+Scope note: this is a `Prop`-valued definition; the counting
 subroutine of Theorem 1 of [8] and the hash-based `dM/v` estimator are not formalised. -/
 def theorem2_F0_query_upper_statement : Prop :=
     ∃ C : ℝ, 0 < C ∧
@@ -82,7 +80,7 @@ def theorem2_F0_query_upper_statement : Prop :=
 /-! ## Theorem 5: `F_k` query upper bound (§2.2 pp. 7–8) -/
 
 /-
-Gap record for `theorem5_Fk_query_upper`.
+Mathematical background and scope of `theorem5_Fk_query_upper`.
 
 * Paper version: arXiv:1505.00113v3 (4 Aug 2016), Theorem 5, §2.2 pp. 7–8 (Algorithm 2 p. 8).
 * Original proof route: Algorithm 2 counts `k`-wise collisions among a random sample of `ℓ`
@@ -90,18 +88,17 @@ Gap record for `theorem5_Fk_query_upper`.
   and the variance bound determine a sample size `ℓ` within a constant factor of `n/F_k^{1/k}`;
   the sample is then processed with Belovs' `k`-distinctness algorithm (Theorem 3, query cost
   `o(n^{3/4} log(1/δ))`), a union bound giving total failure `1/4`.
-* Lean gap: Theorem 3 (Belovs `k`-distinctness) is not formalised, and the expected-query and
+* Scope note: Theorem 3 (Belovs `k`-distinctness) is not formalised, and the expected-query and
   sampling analyses are not present.  Lemma 4's expectation is proved here; its variance part is
   `lemma4_variance_statement` (see `Lemma4CollisionMoments.lean`).
-* Candidate reusable dependencies: `lemma4_expectation`, `lemma4_variance`,
+* Related statements and definitions: `lemma4_expectation`, `lemma4_variance`,
   `collCount`, `sampleExp`, `sampleVar` (this development); `QueryProgram`/`QueryCount`
-  (model); no `k`-distinctness counterpart in Frozen v2.0.2.
-* Suggested takeover: introduce a hypothesis record `DistinctnessAlgorithm` carrying the query
-  bound of Theorem 3, prove the Markov/variance sample-size lemma (`ℓ = Θ(n/F_k^{1/k})` gives
-  `C_k ≥ 1` with high probability), then instantiate `QueryProgram` with that record; the
-  remaining gap is the Belovs algorithm itself.
+  (model).
+* The Markov/variance sample-size estimate gives `C_k ≥ 1` with high probability for
+  `ℓ = Θ(n/F_k^{1/k})`; the algorithm then applies the `k`-distinctness query bound
+  of Theorem 3 to the sample.
 -/
-/-- **Theorem 5 — statement registration** (paper §2.2 pp. 7–8).  Algorithm 2 outputs an
+/-- **Statement only — not proved in Qatlib.** **Theorem 5** (paper §2.2 pp. 7–8).  Algorithm 2 outputs an
 approximation of `F_k` accurate up to relative error `ε` with probability at least `3/4`,
 using an expected number of queries
 `O((n^{(1−1/k)(1−2^{k−2}/(2^k−1))}/ε²) log(n/ε))`.
@@ -110,7 +107,7 @@ Formalised as: there is a constant `C > 0` such that for every `k ≥ 2`, every 
 `n`, universe size `m` and `ε > 0`, there is a query program with at most the stated number
 of queries whose relative-error success probability is at least `3/4` on every stream.
 
-**Status.** The statement is registered as a `Prop`-valued definition; the sampler analysis
+Scope note: this is a `Prop`-valued definition; the sampler analysis
 (with the registered variance bound) and Belovs' `k`-distinctness subroutine are not
 formalised. -/
 def theorem5_Fk_query_upper_statement : Prop :=
@@ -128,7 +125,7 @@ def theorem5_Fk_query_upper_statement : Prop :=
 /-! ## Theorem 6: query lower bounds (§2.4 pp. 9–10) -/
 
 /-
-Gap record for `theorem6_query_lower` (five conjuncts).
+Mathematical background and scope of `theorem6_query_lower` (five conjuncts).
 
 * Paper version: arXiv:1505.00113v3 (4 Aug 2016), Theorem 6, §2.4 pp. 9–10.
 * Original proof route: (i) `F_0`: reduction from the threshold function `Th_d` on `n` bits,
@@ -139,18 +136,15 @@ Gap record for `theorem6_query_lower` (five conjuncts).
   `n^{2k−1}`), lower bound `Ω(n^{1/3})` [35,5]; (iv) `k = ∞`: reduction from element
   distinctness (`Ω(n^{2/3})`) [5]; (v) `k = ∞`: reduction from the counting problem
   `n/2` versus `(1+ε)n/2`, giving `Ω(1/ε)` [39].
-* Lean gap: none of the five oracle lower-bound techniques (threshold-function bound, quantum
+* Scope note: none of the five oracle lower-bound techniques (threshold-function bound, quantum
   counting, collision problem, element distinctness, polynomial method of [39]) is formalised
   in the repo, and no reduction framework from a query problem to `QueryProgram` exists.
-* Candidate reusable dependencies: `QueryProgram`, `Fk`, `F0`, `Finf`, `Stream` (model);
-  `QuantumAlgorithm.Foundations.ReferenceError.MixturePaths.Circuit.QueryCount`.
-  A search of Frozen v2.0.2 for `elementDistinctness`/`collisionProblem`/`threshold` lower
-  bounds returns no counterpart (searched for the mathematical content, not only names).
-* Suggested takeover: define a `QueryProblem` record with a `queryComplexity` lower-bound
-  field, formalise the five reductions as maps of problem instances, and discharge the five
-  base lower bounds as imported hypotheses; the reductions themselves are elementary.
+* Related definitions: `QueryProgram`, `Fk`, `F0`, `Finf`, `Stream` (model);
+  `Qatlib.Foundations.QueryWordCore.Circuit.QueryCount`.
+* Each of the five reductions maps instances of a base query problem to frequency-moment
+  instances; its corresponding base lower bound is the external input to the argument.
 -/
-/-- **Theorem 6 — statement registration** (paper §2.4 pp. 9–10).  Assume `m ≥ n + 1` and
+/-- **Statement only — not proved in Qatlib.** **Theorem 6** (paper §2.4 pp. 9–10).  Assume `m ≥ n + 1` and
 `ε < 1/4`.  The quantum query complexity of estimating `F_0` up to relative error `ε` with
 failure probability at most `1/3` is `Ω(√(n/ε))`.  For any `k > 1` it is
 `Ω(n^{1/2−1/(2k)}/ε)` and also `Ω(n^{1/3})`.  For `k = ∞` it is `Ω(n^{2/3})`, and also
@@ -160,7 +154,7 @@ Each lower bound is stated as: there is an absolute constant `c > 0` such that e
 program achieving relative-error `ε` success probability `≥ 2/3` on all streams uses at
 least `c` times the stated quantity of queries.
 
-**Status.** The statement is registered as a `Prop`-valued definition; the five oracle
+Scope note: this is a `Prop`-valued definition; the five oracle
 lower-bound techniques (threshold function, quantum counting, collision problem, element
 distinctness, polynomial method) and the reductions to them are not formalised. -/
 def theorem6_query_lower_statement : Prop :=
@@ -201,7 +195,7 @@ def theorem6_query_lower_statement : Prop :=
 /-! ## Theorem 7: `Θ(n)` query complexity at `O(1/n)` error (§2.4 p. 10) -/
 
 /-
-Gap record for `theorem7_query_theta`.
+Mathematical background and scope of `theorem7_query_theta`.
 
 * Paper version: arXiv:1505.00113v3 (4 Aug 2016), Theorem 7, §2.4 p. 10.
 * Original proof route: the lower bound is a reduction from the Beame--Machmouchi problem
@@ -210,18 +204,17 @@ Gap record for `theorem7_query_theta`.
   so `O(1/n)` relative error distinguishes the two cases; the `k = ∞` case reuses the `Ω(1/ε)`
   bound of Theorem 6.  The upper bound is the trivial `O(n)`-query classical algorithm
   (read the whole stream).
-* Lean gap: the Beame--Machmouchi `Θ(n)` problem is not formalised, and the `O(n)` upper
+* Scope note: the Beame--Machmouchi `Θ(n)` problem is not formalised, and the `O(n)` upper
   half needs a `QueryProgram` that performs `n` classical reads, i.e. circuit synthesis for a
   classical scan from `streamOracle` queries; neither is available.
-* Candidate reusable dependencies: `Lemma4CollisionMoments` (for `F_k` arithmetic),
+* Related definitions: `Lemma4CollisionMoments` (for `F_k` arithmetic),
   `QueryProgram`/`QueryCount`, `streamOracle_unitary`; the `F_k` values on the two Beame--
   Machmouchi instances can be computed from `freq`/`Fk` directly.
-* Suggested takeover: prove the `F_k` evaluations on the two instances by `Finset.card`/
-  `Finset.sum` computation on `ZMod m` (`m ≥ n/2+1`), then add the `Θ(n)` base lower bound as
-  a hypothesis; for the upper bound, build a `Circuit` of `n` `Step.query` steps and show
-  `QueryCount = n` by `queryCount_append`/`queryCount_cons`.
+* The `F_k` evaluations on the two instances are finite cardinality and sum computations
+  on `ZMod m` (`m ≥ n/2+1`), which yield the reduction to the `Θ(n)` base lower bound.
+  The upper bound uses a circuit of `n` `Step.query` steps, with `QueryCount = n`.
 -/
-/-- **Theorem 7 — statement registration** (paper §2.4 p. 10).  For any `k ≠ 1` and
+/-- **Statement only — not proved in Qatlib.** **Theorem 7** (paper §2.4 p. 10).  For any `k ≠ 1` and
 `m ≥ n/2 + 1`, the quantum query complexity of computing `F_k` up to `O(1/n)` relative
 error with failure probability at most `1/3` is `Θ(n)`.  For `k = ∞` the bound still holds
 for any `m ≥ 2`.
@@ -229,7 +222,7 @@ for any `m ≥ 2`.
 We instantiate the `O(1/n)` error by the fixed accuracy `1/n`, and state both the lower and
 the upper half of `Θ(n)` as existence of positive constants.
 
-**Status.** The statement is registered as a `Prop`-valued definition; the
+Scope note: this is a `Prop`-valued definition; the
 Beame--Machmouchi lower bound and the `O(n)` classical-scan circuit are not formalised. -/
 def theorem7_query_theta_statement : Prop :=
     (∀ (k : ℕ), k ≠ 1 →

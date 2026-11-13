@@ -29,7 +29,6 @@ convention associated with QSP [LowChuang2017].
   Processing*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
@@ -38,7 +37,6 @@ open Qatlib.Concepts.QsvtCore.PolyApprox
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.QspSimulation.Achievability
 

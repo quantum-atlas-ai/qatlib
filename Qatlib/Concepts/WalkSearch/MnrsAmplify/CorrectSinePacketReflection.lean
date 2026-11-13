@@ -37,7 +37,6 @@ component. For background on search via quantum walks, see [MagniezNayakRolandSa
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase

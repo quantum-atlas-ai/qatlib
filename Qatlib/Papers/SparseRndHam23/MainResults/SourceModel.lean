@@ -21,8 +21,7 @@ set_option backward.isDefEq.respectTransparency false
 # SparseRndHam23 — source model
 
 Huang--Preskill--Soleimanifar, *Sparse random Hamiltonians are quantumly easy*,
-fixed arXiv:2302.03394 (version downloaded in the PR assets; PDF
-`2302.03394.pdf`).
+arXiv:2302.03394.
 
 This module sets up the objects appearing in every claim of the paper:
 
@@ -38,17 +37,20 @@ This module sets up the objects appearing in every claim of the paper:
   for its expectation over a random model;
 * `lambdaMin`, `lambdaMax` — extreme real eigenvalues of a Hermitian matrix;
 * `resolvent` — the resolvent `R = (H - ω + iη)^{-1}` of Eq. (6)/(11);
-* `GUEModel` — a probability space carrying a standard GUE-distributed
-  Hermitian matrix; `gueNorm` and `gueResolventNorm` are the expected
-  normalized `p`-norms over that space;
-* `CircuitArch` — a circuit architecture of `G` two-qubit gates with its
-  reachable-state family `Circ(G)` and prepared density matrices;
+* `GUEModel` — a probability space carrying Hermitian matrices; the standard
+  GUE distribution is not enforced by this record; `gueNorm` and
+  `gueResolventNorm` integrate over the supplied measure;
+* `CircuitArch` — a legacy specification of a state family, preparation predicate
+  and independent gate-count label;
 * `matrixTensorPower`, `MomentsMatchUpTo`, `LpStat`, `sigmaSq` — the moment
   statistics of Theorem IV.1;
 * `traceAbs` — `Tr |M|`, used for resolvent moments.
 
-The model is used only by the paper-layer statement files; it does not alter
-shared Foundations/Concepts.
+This directory currently contains only this model. It does not prove the resource
+claims of Proposition V.1 or Theorem II.2. `CircuitRealization` and
+`VerifierRealization` provide additional execution contracts; their existence with
+the desired bounds is recorded only as statements. Matrix gates and arithmetic
+instructions are abstract primitives, not compiled elementary operations.
 -/
 
 set_option autoImplicit false
@@ -145,15 +147,12 @@ def schattenNorm {ι : Type} [Fintype ι] [DecidableEq ι] (p : ℕ) (A : Matrix
 
 /-! ## GUE sampling model -/
 
-/-- A probability space carrying a standard GUE-distributed Hermitian matrix.
-`mat` is the GUE draw (`H_GUE`), `μ` its law. The distributional content is the
-standard GUE law (independent Gaussian entries with variance `1/N`, normalized
-so that `E ‖H‖_2 = 1`); it is recorded by the name and docstring of the
-structure, while all analytic content of the claims is stated in terms of `mat`
-and integrals against `μ`. -/
+/-- A probability space carrying Hermitian matrices, retained under the legacy
+name `GUEModel`. No Gaussian law, entry independence or variance normalization
+is imposed. Interpreting it as GUE requires separate distributional hypotheses. -/
 structure GUEModel (Ω ι : Type) [MeasurableSpace Ω] [Fintype ι]
     [DecidableEq ι] where
-  /-- The GUE law. -/
+  /-- The supplied law; it is not required to be Gaussian. -/
   μ : Measure Ω
   /-- `μ` is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
@@ -162,7 +161,7 @@ structure GUEModel (Ω ι : Type) [MeasurableSpace Ω] [Fintype ι]
   /-- Every draw is Hermitian. -/
   isHermitian : ∀ ω, (mat ω).IsHermitian
 
-/-- Expected normalized Schatten `p`-norm of a GUE draw, i.e. `|||H_GUE|||_p`. -/
+/-- Expected normalized Schatten `p`-norm under the supplied law. -/
 def gueNorm {Ω ι : Type} [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι]
     (G : GUEModel Ω ι) (p : ℕ) : ℝ :=
   (∫ ω, (schattenNorm p (G.mat ω)) ^ p ∂G.μ) ^ (1 / (p : ℝ))
@@ -260,7 +259,7 @@ def randomResolventNorm {Ω ι : Type} [MeasurableSpace Ω] [Fintype ι]
     [DecidableEq ι] (μ : Measure Ω) (H : Ω → Matrix ι ι ℂ) (ω η : ℝ) (p : ℕ) : ℝ :=
   randomSchattenNorm μ (fun x => resolvent (H x) ω η) p
 
-/-- Expected `p`-norm `|||R_GUE|||_p` of the GUE resolvent, Eq. (7). -/
+/-- Expected resolvent `p`-norm under the supplied law; Eq. (7) when that law is GUE. -/
 def gueResolventNorm {Ω ι : Type} [MeasurableSpace Ω] [Fintype ι] [DecidableEq ι]
     (G : GUEModel Ω ι) (ω η : ℝ) (p : ℕ) : ℝ :=
   randomResolventNorm G.μ G.mat ω η p
@@ -284,13 +283,11 @@ def sigmaStar {Ω ι : Type} [MeasurableSpace Ω] [Fintype ι]
 def qExpect {ι : Type} [Fintype ι] (A : Matrix ι ι ℂ) (ψ : ι → ℂ) : ℝ :=
   ((∑ i, (starRingEnd ℂ (ψ i)) * (A *ᵥ ψ) i).re) / (∑ i, ‖ψ i‖ ^ 2)
 
-/-- A circuit architecture of `G` two-qubit gates: it carries its reachable
-state family `Circ(G)` (states obtained from `|0…0⟩`) and the density matrices
-it can prepare. This is the source-level interface for Theorem II.1,
-Theorem II.2, Proposition V.1 and Lemma D.1; gate-level compilation is not
-reconstructed here. -/
+/-- Legacy architecture specification. `G`, `states`, and `prepares` are
+independent fields, with no gate semantics. Resource statements must additionally
+require a realization; this record alone does not certify two-qubit gates. -/
 structure CircuitArch (n : ℕ) where
-  /-- Number of two-qubit gates in the architecture. -/
+  /-- Advertised gate-count label, requiring a separate realization. -/
   G : ℕ
   /-- The family `Circ(G)` of reachable pure states. -/
   states : Set ((QubitSpace n) → ℂ)
@@ -301,16 +298,74 @@ structure CircuitArch (n : ℕ) where
 def IsDensityMatrix {ι : Type} [Fintype ι] (ρ : Matrix ι ι ℂ) : Prop :=
   ρ.PosSemidef ∧ ρ.trace = 1
 
-/-- A classical verifier for a candidate witness density matrix: `accepts` is
-its verification predicate and `runtime` its cost, in Pauli-string operations. -/
+/-- Legacy verifier specification. Runtime and acceptance are independent;
+`VerifierRealization` is required to connect them to arithmetic execution. -/
 structure WitnessVerifier (n : ℕ) where
   /-- Cost of the verification procedure. -/
   runtime : ℝ
   /-- The verification predicate. -/
   accepts : Matrix (QubitSpace n) (QubitSpace n) ℂ → Prop
 
-/-- Cost of evaluating the `(dm)^{2d}` Pauli terms of the degree-`d` ansatz of
-Proposition V.1, at `O(n)` per Pauli multiplication. -/
+/-- Arithmetic resource expression associated with Proposition V.1.
+No execution or verifier-runtime bound follows from this definition. -/
 def classicalWitnessCost (d m n : ℕ) : ℝ := ((d * m : ℝ) ^ (2 * d)) * (n : ℝ) ^ d
+
+/-- A realization by words over a supplied gate library. Every word has exactly
+`G` matrices; states and pure density preparations are precisely their outputs
+from a fixed normalized initial state. Used gates must be unitary; two-qubit
+locality must be established separately for the library. This contract covers pure outputs. -/
+structure CircuitRealization {n : ℕ} (C : CircuitArch n)
+    (allowed : Matrix (QubitSpace n) (QubitSpace n) ℂ → Prop) where
+  initial : QubitSpace n → ℂ
+  normalized : (∑ i, ‖initial i‖ ^ 2) = 1
+  words : Set (List (Matrix (QubitSpace n) (QubitSpace n) ℂ))
+  length_eq : ∀ word ∈ words, word.length = C.G
+  gates_allowed : ∀ word ∈ words, ∀ gate ∈ word, allowed gate
+  gates_unitary : ∀ word ∈ words, ∀ gate ∈ word, gateᴴ * gate = 1
+  states_eq : ∀ ψ, ψ ∈ C.states ↔ ∃ word ∈ words,
+    word.foldl (fun state gate => gate *ᵥ state) initial = ψ
+  prepares_eq : ∀ ρ, C.prepares ρ ↔ ∃ ψ ∈ C.states,
+    ρ = fun i j => ψ i * starRingEnd ℂ (ψ j)
+
+/-- Arithmetic instructions with explicit matrix-entry access and register
+operations. Each instruction counts as one abstract step; bit complexity is absent. -/
+inductive VerifierInstruction (n r : ℕ) where
+  | read (i j : QubitSpace n) (dest : Fin r)
+  | constant (value : ℂ) (dest : Fin r)
+  | add (x y dest : Fin r)
+  | multiply (x y dest : Fin r)
+
+/-- Execute one arithmetic instruction. Input is accessible only through `read`. -/
+def VerifierInstruction.run {n r : ℕ}
+    (ρ : Matrix (QubitSpace n) (QubitSpace n) ℂ)
+    (state : Fin r → ℂ) : VerifierInstruction n r → (Fin r → ℂ)
+  | .read i j dest => Function.update state dest (ρ i j)
+  | .constant value dest => Function.update state dest value
+  | .add x y dest => Function.update state dest (state x + state y)
+  | .multiply x y dest => Function.update state dest (state x * state y)
+
+/-- Straight-line arithmetic implementation: zero-initialized registers, explicit
+instructions, and a final real-part threshold test. Runtime equals instruction
+length in the unit-cost model, not physical runtime or Pauli-operation complexity. -/
+structure VerifierRealization {n : ℕ} (V : WitnessVerifier n) where
+  registers : ℕ
+  program : List (VerifierInstruction n registers)
+  outputRegister : Fin registers
+  runtime_eq : V.runtime = (program.length : ℝ)
+  accepts_eq : ∀ ρ, V.accepts ρ ↔
+    ((program.foldl (VerifierInstruction.run ρ) (fun _ => 0)) outputRegister).re ≤ 0
+
+/-- **Statement only — not proved in Qatlib.** The supplied verifier has a
+straight-line arithmetic implementation bounded by the resource expression.
+Correctness for low-energy witnesses requires an additional specification. -/
+def classicalWitnessCost_statement {n : ℕ} (d m : ℕ) (V : WitnessVerifier n) : Prop :=
+  Nonempty (VerifierRealization V) ∧ V.runtime ≤ classicalWitnessCost d m n
+
+/-- **Statement only — not proved in Qatlib.** The supplied state-family
+specification is realized by words from `allowed`, with the displayed gate bound.
+Two-qubit locality requires a suitable library; no such library is constructed here. -/
+def circuitGateBound_statement {n : ℕ} (C : CircuitArch n)
+    (allowed : Matrix (QubitSpace n) (QubitSpace n) ℂ → Prop) (bound : ℕ) : Prop :=
+  Nonempty (CircuitRealization C allowed) ∧ C.G ≤ bound
 
 end Qatlib.Papers.SparseRndHam23.MainResults

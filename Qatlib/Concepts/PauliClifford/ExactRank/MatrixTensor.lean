@@ -30,7 +30,6 @@ identities supply tensor-product calculations used in quantum information [Niels
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge

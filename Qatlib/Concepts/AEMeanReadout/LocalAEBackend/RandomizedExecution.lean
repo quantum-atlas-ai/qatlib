@@ -27,7 +27,6 @@ finite execution semantics for randomized quantum-search schedules such as those
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib
 

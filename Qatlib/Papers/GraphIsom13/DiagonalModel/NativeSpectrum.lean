@@ -27,8 +27,6 @@ correspondence in [GaitanClark2014].
 * [Gaitan and Clark, 2014][GaitanClark2014]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.GraphIsom13.DiagonalModel
 set_option autoImplicit false
 noncomputable section

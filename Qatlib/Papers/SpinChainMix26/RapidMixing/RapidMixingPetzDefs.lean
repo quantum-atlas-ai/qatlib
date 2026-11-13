@@ -38,8 +38,6 @@ checks branch weights, site-index legality, and the recorded gate and depth boun
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 

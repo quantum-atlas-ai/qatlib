@@ -29,10 +29,7 @@ These identities provide the algebraic setup for the majority learning example i
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -122,12 +119,12 @@ lemma majPhi_add_ones {n m : ℕ} (hn : n = 2 * m + 1) (b : Bits n) :
       rw [hiff]
       intro hc
       exact hc h
-    rw [if_neg h', if_pos h]
+    rw [ite_eq_right h', ite_eq_left h]
     norm_num
   · have h' : 2 * wt (b + ones n) ≤ n := by
       rw [hiff]
       exact h
-    rw [if_pos h', if_neg h]
+    rw [ite_eq_left h', ite_eq_right h]
 
 /-- The majority phase multiplied by the normalization factor 2^(-n/2). -/
 noncomputable def majCoeff {n : ℕ} (b : Bits n) : ℂ :=

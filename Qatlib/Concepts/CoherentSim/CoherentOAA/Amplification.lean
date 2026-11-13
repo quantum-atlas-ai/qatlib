@@ -28,8 +28,6 @@ The theorem `cubic_singularPair` computes the action on a supplied singular pair
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 

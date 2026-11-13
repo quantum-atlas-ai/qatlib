@@ -27,7 +27,6 @@ support used by the two encoder passes. See [TerhalSmolin1998] for the source de
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -22,34 +22,29 @@ Here `α_P(S)` is the coefficient of the Pauli observable that matches `P` on
 `S` and is the identity elsewhere, i.e. `pauliEmbed S P` in
 `Model/SourceModel.lean`; `S Δ S'` is the symmetric difference.  The paper
 normalizes the identity coefficient to `α_Id = 1` (so that the `S = S'` terms
-produce the leading `(10/3)^N`); the statement below records this normalization
-explicitly as `hα : α pauliId = 1`.
+produce the leading `(10/3)^N`); this normalization is `α pauliId = 1`.
 
-## Proof status (scaffolds removed; statements in branch history c93d182c6)
+## Mathematical background and scope
 
 * Fixed source: arXiv:2608.18839v3, Lemma 4.1, proof in Appendix B.
-* Key proof route: (i) expand `α_P(SΔS')` and use orthogonality of Pauli
+* Proof outline: (i) expand `α_P(SΔS')` and use orthogonality of Pauli
   observables: a pair `(S,S')` contributes to `Q` only when
   `S Δ S' = supp(Q)`; (ii) count, for each `Q`, the number of pairs `(S,S')`
   with symmetric difference `supp(Q)`: the `2^{w(Q)}` orderings of the support
   times the free coordinates outside `supp(Q)`; (iii) sum the geometric series
   `Σ_S 1/3^{N-|S|} = (4/3)^N` and collect `(10/3)^N` and the `5^{-w(Q)}`
-  weights.  The identity is exact; the second declaration is the `≤` bound
-  stated in the paper.
-* Lean gap: the counting step over pairs `(S,S')` with prescribed symmetric
-  difference is not formalized, and the Pauli orthogonality
-  `Tr(Q Q') = 2^N δ_{QQ'}` would be needed if the coefficients were derived
-  from a density matrix rather than taken as given.  The present file keeps
-  `α` abstract (as in the paper's lemma statement) and records the counting
-  identity.
-* Reusable dependencies: `SourceModel.pauliEmbed`, `pauliWeight`,
-  `pauliSupport`, `pauliId`; `Finset.symmDiff` and its cardinality lemmas; the
-  binomial/geometric identities `Nat.sum_range_choose` and
-  `Finset.sum_pow'`.
-* Suggested tactics: `Finset.sum_comm` to swap the `P` and `(S,S')` sums;
-  `Finset.sum_eq_zero`/`Finset.sum_ite_eq'` to isolate the `S Δ S' = supp Q`
-  fiber; `Finset.card_symmDiff` for the fiber count; `ring_nf`/`field_simp`
-  for the geometric sums.
+  weights. The source gives an exact identity and a corresponding `≤` bound.
+* Scope note: this module keeps `α` abstract, as in the paper's lemma, and
+  defines the covariance sum and the weighted coefficient norm. The counting
+  identity for pairs `(S,S')` with prescribed symmetric difference is outside
+  the scope of this file. Deriving the coefficients from a density matrix also
+  uses Pauli orthogonality, `Tr(Q Q') = 2^N δ_{QQ'}`.
+* Related definitions: `SourceModel.pauliEmbed`, `pauliWeight`,
+  `pauliSupport`, and `pauliId`. Symmetric-difference cardinalities and the
+  binomial/geometric identities `Nat.sum_range_choose` and `Finset.sum_pow'`
+  describe the combinatorial calculation.
+* Reordering the sums over `P` and `(S,S')` isolates the fiber
+  `S Δ S' = supp Q`; its cardinality determines the geometric sums.
 -/
 
 set_option autoImplicit false

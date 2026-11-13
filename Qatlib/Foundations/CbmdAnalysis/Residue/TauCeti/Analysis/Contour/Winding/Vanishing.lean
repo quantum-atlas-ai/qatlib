@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chris Birkbeck, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -34,8 +36,6 @@ This supplies a vanishing-at-infinity ingredient for the contour analysis associ
 
 * [Wang et al., 2026][WangEtAl2026]
 -/
-
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
@@ -90,7 +90,7 @@ private theorem windingNumber_eq_zero_of_far {γ : ℝ → ℂ} {a b R : ℝ} {w
 /-- For a continuous curve with interval-integrable derivative and integer winding numbers off
 its image, every point outside some compact set avoids the image and has zero winding
 number. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eventually_zero_cocompact_of_integer
+theorem _root_.ContinuousOn.windingNumber_eventually_zero_cocompact_of_integer
     {γ : ℝ → ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (uIcc a b))
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b)

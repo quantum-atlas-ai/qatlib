@@ -38,7 +38,6 @@ measurement-based constructions associated with [RaussendorfBriegel2000] and
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib

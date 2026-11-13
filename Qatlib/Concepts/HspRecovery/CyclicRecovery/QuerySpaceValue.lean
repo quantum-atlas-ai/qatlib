@@ -33,7 +33,6 @@ relationship between standard query encodings described in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -50,7 +49,6 @@ namespace Qatlib.Concepts.HspRecovery.CyclicRecovery
 
 open Qatlib Matrix
 open scoped Classical
-set_option linter.unusedSectionVars false
 
 /-- An equivalence intertwining two index maps relabels the permutation matrix of the first map
 to that of the second. -/
@@ -119,6 +117,8 @@ theorem bitValueEquiv_intertwining {I : Type} (f : I → Bool) (a : I × Bool) :
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+omit [Fintype I] in
+
 /-- Relabeling the bit oracle matrix by `bitValueEquiv` gives the additive oracle matrix for
 `boolValue f`. -/
 theorem bit_value_matrix (f : I → Bool) :
@@ -126,6 +126,8 @@ theorem bit_value_matrix (f : I → Bool) :
   rw [BitOracleOn, addOracle_eq_permMatrix]
   exact relabel_permMatrix_of_intertwining (bitValueEquiv I) (BitFlip f)
     (addOracleEquiv (boolValue f)) (bitValueEquiv_intertwining f)
+
+omit [Fintype W] in
 
 /-- Relabeling a workspace bit oracle gives the tensor product of the additive value oracle with
 the workspace identity. -/

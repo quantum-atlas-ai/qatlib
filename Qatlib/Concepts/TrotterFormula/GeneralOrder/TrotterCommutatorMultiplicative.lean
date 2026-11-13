@@ -150,7 +150,6 @@ theorem inverse_stability_of_norm_le {I : Type} [Fintype I] [DecidableEq I]
     _ = inverseStabilityFactor η := rfl
 open scoped ComplexOrder
 open Set
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 variable {S ι : Type} [Fintype S] [Fintype ι]

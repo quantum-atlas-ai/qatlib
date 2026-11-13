@@ -26,8 +26,6 @@ estimates for the original product word in the low-energy analysis of [HejaziZin
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 250000
 noncomputable section

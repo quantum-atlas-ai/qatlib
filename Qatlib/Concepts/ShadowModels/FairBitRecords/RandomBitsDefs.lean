@@ -29,7 +29,6 @@ the local Pauli measurement framework, see [HuangKuengPreskill2020].
 -/
 
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
@@ -42,7 +41,6 @@ open scoped BigOperators Classical ComplexOrder ENNReal
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The extended nonnegative probability mass `((2 ^ k : ℕ) : ℝ≥0∞)⁻¹` of a single length-`k`
 fair-bit word. -/

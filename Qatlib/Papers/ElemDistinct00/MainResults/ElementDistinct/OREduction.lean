@@ -19,6 +19,10 @@ logical reduction used in the element distinctness discussion of [BuhrmanEtAl200
 real-power identity `ed_upper_exponent` separately factors the exponent appearing in the stated
 upper cost scale.
 
+The reduction is between input predicates. This module does not simulate a
+comparison oracle, transfer a circuit query bound, or prove an element-distinctness
+upper bound from the exponent identity.
+
 ## Main statements
 
 * `hasCollision_edReduction_iff`: the reduction has a collision exactly when some input bit is
@@ -34,7 +38,6 @@ upper cost scale.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

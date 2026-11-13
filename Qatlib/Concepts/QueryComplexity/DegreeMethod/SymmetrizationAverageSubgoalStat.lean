@@ -24,8 +24,6 @@ method [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 /-- The assertion that Hamming-layer averages of every real multivariate polynomial have a

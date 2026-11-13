@@ -29,7 +29,6 @@ The proposition states the formal circuit endpoint for the reflection-query cons
 * [Reichardt, 2011][Reichardt2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

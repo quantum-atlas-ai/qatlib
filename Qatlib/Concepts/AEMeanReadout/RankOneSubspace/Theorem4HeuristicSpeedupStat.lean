@@ -26,8 +26,6 @@ square root of the average ratio of search-space size to marked-set size. For ba
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 

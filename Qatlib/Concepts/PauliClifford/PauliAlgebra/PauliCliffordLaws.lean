@@ -36,7 +36,6 @@ the state and stabilizers produced by the standard Bell preparation circuit.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs

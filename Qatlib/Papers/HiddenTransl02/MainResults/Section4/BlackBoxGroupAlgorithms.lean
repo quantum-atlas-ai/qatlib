@@ -31,10 +31,8 @@ exponent bounds along subgroup and derived-series chains.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 
 namespace Qatlib.Papers.HiddenTransl02.MainResults.Section4
@@ -200,7 +198,6 @@ end TranslatingCosetUniqueness
 end GroupOps
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 
 section SeriesBounds

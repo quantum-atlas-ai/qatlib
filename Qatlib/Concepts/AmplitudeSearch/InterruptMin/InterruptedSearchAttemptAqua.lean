@@ -33,9 +33,6 @@ The observation formulas provide the search-call semantics used in minimum findi
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin.AQuantumAlgorithmForFindingTheMinimum1999
 

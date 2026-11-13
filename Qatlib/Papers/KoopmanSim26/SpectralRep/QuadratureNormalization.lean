@@ -34,7 +34,6 @@ minimum with quartic remainder control at every quadrature node.
 - [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix MeasureTheory Filter

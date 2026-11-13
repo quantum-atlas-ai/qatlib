@@ -27,10 +27,7 @@ failure-probability bound.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.QLattice03.MainResults
 
@@ -39,12 +36,12 @@ noncomputable def svpExponent (f : ℝ) : ℝ := 1 / 2 + 2 * f
 
 /-- The DCP correctness predicate indexed by a failure parameter `f`. This definition is
 `SolvesDCP A` and does not impose a separate bound involving `f`. -/
-def SolvesDCPWithFailure (f : ℝ) (A : ∀ N : ℕ, DCPRegister N → ℤ) : Prop :=
+def SolvesDCPWithFailure (_f : ℝ) (A : ∀ N : ℕ, DCPRegister N → ℤ) : Prop :=
   SolvesDCP A
 
 /-- The two-point correctness predicate indexed by a failure parameter `f`. This definition is
 `SolvesTwoPoint A` and does not impose a separate bound involving `f`. -/
-def SolvesTwoPointWithFailure (f : ℝ)
+def SolvesTwoPointWithFailure (_f : ℝ)
     (A : ∀ n M : ℕ, TwoPointRegister n M → (Fin n → ℤ)) : Prop :=
   SolvesTwoPoint A
 

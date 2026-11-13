@@ -29,8 +29,6 @@ the family complete. This normalization supports signed-map implementations [Cai
 * [Cai et al., 2026][CaiEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Matrix

@@ -32,7 +32,6 @@ relabeling it. Applied to word logarithms, this identifies the multilinear compo
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

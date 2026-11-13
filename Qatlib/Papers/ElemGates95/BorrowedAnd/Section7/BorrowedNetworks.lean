@@ -32,7 +32,6 @@ and control predicates invariant under changes to the borrowed wire and target.
 * [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemmas 7.2 and 7.3.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -29,7 +29,6 @@ remainders for truncated Taylor simulation [BerryEtAl2015Taylor].
 -/
 
 open Qatlib.Concepts.OperatorErrors.Robustness
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -52,7 +51,6 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The first searched index `n` with `2^m ≤ (n + 1)!`, with fallback value `2 * m + 1`. -/
 def factorialTaylorCutoff (m : ℕ) : ℕ :=
@@ -307,6 +305,8 @@ theorem factorialTaylor_matrix_remainder_of_unitary
       simpa [Nat.add_comm] using! htailScalar.2
 
 set_option maxHeartbeats 800000 in
+
+omit [DecidableEq J] in
 
 /-- For Hermitian unitary summands with the stated small-segment bound, the Taylor approximation
 has norm error at most `2 / (K + 1)!`. -/

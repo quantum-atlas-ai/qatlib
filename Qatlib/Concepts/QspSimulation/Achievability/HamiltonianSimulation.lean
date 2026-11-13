@@ -42,9 +42,6 @@ positive error.
 * [Gilyen, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
 open Qatlib.Concepts.Execution.WorkspaceCP

@@ -22,7 +22,6 @@ collision-search analysis of [Ambainis2007ElementDistinctness].
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

@@ -24,9 +24,7 @@ Fourier period recovery method described in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -34,7 +32,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
@@ -77,7 +74,7 @@ theorem cyclic_constant_and_injective_consumer (N m : ℕ) (hN : 0 < N) :
             rw [List.replicate_succ, List.foldl_cons, Nat.gcd_zero_right]
             exact ih
         rw [hfold, Nat.div_self hN]
-      rw [cyclicVerifiedDecode_def, hdecode, if_pos rfl]
+      rw [cyclicVerifiedDecode_def, hdecode, ite_eq_left rfl]
     have htotal : ∀ ω : Fin m → Fin N,
         (cyclicSampleDist N hN (fun _ : Fin N => (0 : ZMod 1))).probOf ω
           = if (∀ i, (ω i).val = 0) then (1 : ℝ) else 0 := by
@@ -88,8 +85,8 @@ theorem cyclic_constant_and_injective_consumer (N m : ℕ) (hN : 0 < N) :
         rw [Nat.cast_one, one_div, inv_one, one_pow]
       rw [hone]
       by_cases h : ∀ i, N ∣ (ω i).val
-      · rw [if_pos h, if_pos (fun i => Nat.eq_zero_of_dvd_of_lt (h i) (ω i).isLt)]
-      · rw [if_neg h, if_neg (fun hz => h fun i => by rw [hz i]; exact dvd_zero _)]
+      · rw [ite_eq_left h, ite_eq_left (fun i => Nat.eq_zero_of_dvd_of_lt (h i) (ω i).isLt)]
+      · rw [ite_eq_right h, ite_eq_right (fun hz => h fun i => by rw [hz i]; exact dvd_zero _)]
     show ∑ ω ∈ Finset.univ.filter (fun ω : Fin m → Fin N =>
         cyclicVerifiedDecode N hN (fun _ : Fin N => (0 : ZMod 1)) ω = some 1),
         (cyclicSampleDist N hN (fun _ : Fin N => (0 : ZMod 1))).probOf ω = 1
@@ -112,7 +109,7 @@ theorem cyclic_constant_and_injective_consumer (N m : ℕ) (hN : 0 < N) :
       have h1 : (cyclicSampleDist N hN (fun _ : Fin N => (0 : ZMod 1))).probOf
             (fun _ : Fin m => (⟨0, hN⟩ : Fin N)) = 1 := by
         rw [htotal]
-        exact if_pos fun i => rfl
+        exact ite_eq_left fun i => rfl
       calc (1 : ℝ) = (cyclicSampleDist N hN (fun _ : Fin N => (0 : ZMod 1))).probOf
               (fun _ : Fin m => (⟨0, hN⟩ : Fin N)) := h1.symm
         _ ≤ ∑ ω ∈ Finset.univ.filter (fun ω : Fin m → Fin N =>

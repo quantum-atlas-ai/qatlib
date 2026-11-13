@@ -34,13 +34,10 @@ abelian groups, following the Fourier sampling framework described in [NielsenCh
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.QuditTeleport.TeleportCore
 

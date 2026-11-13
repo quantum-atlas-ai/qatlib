@@ -25,8 +25,6 @@ concerns resource characterizations for teleportation [BennettEtAl1993Teleportat
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Concepts.QuditTeleport.ResourceIff

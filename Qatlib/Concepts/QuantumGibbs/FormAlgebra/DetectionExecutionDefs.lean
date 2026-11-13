@@ -24,7 +24,6 @@ in the quantum-walk search framework of [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath

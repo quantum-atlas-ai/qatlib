@@ -21,7 +21,6 @@ The measurement-flow context is [BrowneEtAl2007] and
 hypothesis and the counterexample are explicit parts of this formal treatment.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

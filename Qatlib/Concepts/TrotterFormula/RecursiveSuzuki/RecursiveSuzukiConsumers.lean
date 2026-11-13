@@ -32,7 +32,6 @@ bound for arbitrary matrices `O`.
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -38,8 +38,6 @@ This development forms part of the formalization of [GeraciVanBussel2007].
 * [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -26,7 +26,6 @@ threshold is the approximation input used in the gradient setting of
 * [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
 noncomputable section

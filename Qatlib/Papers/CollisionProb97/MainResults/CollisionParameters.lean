@@ -34,7 +34,6 @@ cardinality and an explicit cube-root expected-cost bound.
 * [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

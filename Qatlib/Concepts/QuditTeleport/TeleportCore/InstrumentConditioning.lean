@@ -31,7 +31,6 @@ quantum operations in the finite dimensional instrument setting of [Watrous2018]
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -109,7 +108,6 @@ theorem instrumentProb_feedForward_conditional_laws {O : Type*} [Fintype O]
   · rw [instrumentProb, I.feedForward_zero_branch J hρ h0 p]
     simp
 
-set_option linter.unusedVariables false in
 
 /-- For a positive semidefinite input and a positive first outcome probability, a sequential
 outcome probability is the first probability times the second instrument's probability on

@@ -37,7 +37,6 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.SqEstimation.InnerProduct
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.SketchSpectral.SketchAnalysis
 namespace ConstructionStageB

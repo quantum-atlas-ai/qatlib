@@ -29,7 +29,6 @@ and query counts. Background and related constructions are discussed in [GilyenS
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis

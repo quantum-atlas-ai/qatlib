@@ -31,8 +31,6 @@ selecting an independent label, providing register bookkeeping for the CBMD algo
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.LcuPostselect.ScaledLCU

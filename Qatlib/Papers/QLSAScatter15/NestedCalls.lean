@@ -29,8 +29,6 @@ paper context.
 * [Scherer et al., 2017][SchererEtAl2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

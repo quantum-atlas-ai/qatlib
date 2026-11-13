@@ -24,8 +24,6 @@ explicit inverse powers of the spectral cutoff and precision. See [RebentrostMoh
 * [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 

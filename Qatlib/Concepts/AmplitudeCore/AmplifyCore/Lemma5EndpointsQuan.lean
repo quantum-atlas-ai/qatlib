@@ -19,7 +19,6 @@ The two-component identities come from [BrassardEtAl2002]; see
 [Brassard et al., Lemma 5][BrassardEtAl2002] for the general-phase formulas.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 

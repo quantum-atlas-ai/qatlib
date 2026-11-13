@@ -26,7 +26,6 @@ identifies nonnegative tuples with tuples of positive even entries, relating `ra
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -25,8 +25,6 @@ See [Ambainis2002] for the paper's setting.
 * [Ambainis, 2002][Ambainis2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

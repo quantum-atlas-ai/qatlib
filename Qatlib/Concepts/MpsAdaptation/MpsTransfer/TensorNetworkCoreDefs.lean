@@ -37,8 +37,6 @@ specify their own boundary reductions and operation-count models.
 * [Verstraete, Murg, and Cirac, 2008][VerstraeteMurgCirac2008]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
 open Matrix

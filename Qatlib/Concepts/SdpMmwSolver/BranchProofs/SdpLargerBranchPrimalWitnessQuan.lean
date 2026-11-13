@@ -32,7 +32,6 @@ namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
 
 open Matrix
 open scoped BigOperators ComplexOrder
-set_option warningAsError false
 
 /-- Under the larger-branch separation and parameter hypotheses, there exists a positive
 semidefinite primal feasible operator of trace at most R and objective at least (1 − δ)α.

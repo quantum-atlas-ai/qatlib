@@ -43,11 +43,9 @@ generator framework of [Lindblad1976] and [GoriniKossakowskiSudarshan1976].
 * [Gorini et al., 1976][GoriniKossakowskiSudarshan1976]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-
 
 namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 

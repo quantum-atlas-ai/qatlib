@@ -25,8 +25,6 @@ limitation of the oracle model used to formulate initial-state preparation bound
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 
 open Qatlib.Foundations.PureStateMath

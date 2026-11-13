@@ -36,7 +36,6 @@ support the certificate viewpoint in quantum SDP algorithms [BrandaoSvore2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer

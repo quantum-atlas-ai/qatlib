@@ -29,8 +29,6 @@ circuit well-formedness, and compatibility with spectator registers.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Concepts.CopyEvolution.Discriminate
 

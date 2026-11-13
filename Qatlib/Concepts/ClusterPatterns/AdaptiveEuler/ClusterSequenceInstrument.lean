@@ -33,7 +33,6 @@ describe the complete instrument on arbitrary input operators and density operat
 * [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -49,8 +48,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The ordered product of cluster `J` gates for a phase word, with the first list entry acting
 first. -/

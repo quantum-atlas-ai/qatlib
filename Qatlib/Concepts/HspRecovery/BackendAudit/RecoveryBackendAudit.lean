@@ -30,7 +30,6 @@ for checking all four backends. [Lomont2004]
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian

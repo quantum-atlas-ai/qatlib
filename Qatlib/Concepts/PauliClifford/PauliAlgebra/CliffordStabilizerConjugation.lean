@@ -26,7 +26,6 @@ projectors through legal Clifford circuits, using the operator description of st
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 

@@ -25,7 +25,6 @@ amplitude-estimation output of a unitary preparation. The success event has mass
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

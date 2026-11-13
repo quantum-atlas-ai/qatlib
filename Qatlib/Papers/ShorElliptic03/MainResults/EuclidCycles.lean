@@ -98,7 +98,6 @@ logarithmic estimates.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 set_option maxHeartbeats 1000000
 
@@ -110,9 +109,9 @@ def paperLog2 (x : ℝ) : ℝ := Real.logb 2 x
 /-- The list of natural-number quotients produced by repeated Euclidean division, terminating
 when the second input is zero. -/
 def euclidQuotients : ℕ → ℕ → List ℕ
-  | a, 0 => []
+  | _a, 0 => []
   | a, b + 1 => (a / (b + 1)) :: euclidQuotients (b + 1) (a % (b + 1))
-termination_by a b => b
+termination_by _a b => b
 decreasing_by
   simp_wf
   exact Nat.le_of_lt_succ (Nat.mod_lt _ (Nat.succ_pos _))

@@ -28,7 +28,6 @@ source register. See [TerhalSmolin1998] for the source development.
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.SingleQuery97.MainResults.ActualQuery
 open Qatlib.Foundations.QueryWordCore.Circuit

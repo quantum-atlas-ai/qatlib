@@ -80,7 +80,6 @@ circuit model rather than present-day fault-tolerant hardware costs.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.ShorElliptic03.MainResults.ResourceBounds
@@ -115,7 +114,7 @@ theorem logb160_le_eight : paperLog2 (160 : ℝ) ≤ 8 := by
 /-- The shared-register 160-bit formula is at most one thousand qubits when
 the modeled overhead lies in `[0, 10]`; compare
 [Proos & Zalka, resource estimates][ProosZalka2003]. -/
-theorem ecc160_qubits_le_1000 (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
+theorem ecc160_qubits_le_1000 (ε : ℝ) (_hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsWithSharing 160 ε ≤ 1000 := by
   unfold dlogQubitsWithSharing
   have h1 := sqrt160_le_thirteen
@@ -139,7 +138,7 @@ theorem ecc160_beats_rsa1024 (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
 /-- For `n ≥ 1` and `0 ≤ ε ≤ 10`, the qubit estimate without sharing is at most `21 * n`. See
 [ProosZalka2003]. -/
 theorem dlogQubitsNoSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
-    (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
+    (_hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsNoSharing n ε ≤ 21 * (n : ℝ) := by
   unfold dlogQubitsNoSharing
   have hl : paperLog2 (n : ℝ) ≤ (n : ℝ) := by
@@ -156,7 +155,7 @@ theorem dlogQubitsNoSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
 /-- For `n ≥ 1` and `0 ≤ ε ≤ 10`, the qubit estimate with sharing is at most `27 * n`. See
 [ProosZalka2003]. -/
 theorem dlogQubitsWithSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
-    (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
+    (_hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsWithSharing n ε ≤ 27 * (n : ℝ) := by
   unfold dlogQubitsWithSharing
   have hl : paperLog2 (n : ℝ) ≤ (n : ℝ) := by

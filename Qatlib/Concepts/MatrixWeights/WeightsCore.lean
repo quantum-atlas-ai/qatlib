@@ -476,7 +476,6 @@ theorem mmw_log_potential_step (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t 
 
 open Matrix Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder Topology
-set_option warningAsError false
 
 /-- The underlying matrix of the Hermitian-matrix exponential equals the normed-space
 exponential of the underlying matrix. -/

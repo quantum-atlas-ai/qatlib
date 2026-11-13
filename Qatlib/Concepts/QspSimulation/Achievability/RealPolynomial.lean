@@ -43,8 +43,6 @@ two. These results connect real-polynomial completion to the QSP and QSVT constr
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Concepts.Execution.WorkspaceCP

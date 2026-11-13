@@ -25,8 +25,6 @@ For background on the Boolean Fourier setting and quantum information, see [Roet
 - [Nielsen and Chuang, 2010][NielsenChuang2010].
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalshMoment.Forrelation
 
 open Qatlib

@@ -30,7 +30,6 @@ uses positive constants chosen within the same per-instance existence statement.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open scoped BigOperators

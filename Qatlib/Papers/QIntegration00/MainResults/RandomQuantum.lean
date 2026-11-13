@@ -32,8 +32,6 @@ paper context.
 * [Novak, 2001][Novak2001]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 set_option autoImplicit false

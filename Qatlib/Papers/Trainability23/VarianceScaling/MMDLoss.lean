@@ -29,7 +29,6 @@ exact first moments, second moments, and variance formulas for `sN` and the full
 * [Rudolph et al., 2024][RudolphEtAl2024]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist

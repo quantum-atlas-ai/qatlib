@@ -18,10 +18,8 @@ stationary example shows that stationarity alone does not imply reversibility.
 The walk framework is [Szegedy2004] and
 [Magniez et al., *Search via Quantum Walk*][MagniezNayakRolandSantha2011].
 -/
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.WalkSearch06.ReverseWalk.ConditionalStates
 

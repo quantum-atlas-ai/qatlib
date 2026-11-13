@@ -28,8 +28,6 @@ subsequent overlap calculations. For the matrix product state framework, see
 * [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
 
 /-- The site-ordered product of the matrices selected by a physical word. -/

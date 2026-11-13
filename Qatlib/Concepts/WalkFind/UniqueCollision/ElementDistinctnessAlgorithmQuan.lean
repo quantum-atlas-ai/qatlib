@@ -37,7 +37,6 @@ query upper bound.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.GroverInterp
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 open Qatlib.Concepts.WalkFind.UniqueCollision

@@ -46,8 +46,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
@@ -55,7 +53,6 @@ namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuat
 open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
-set_option warningAsError false
 
 /-- The gradient value oracle is the additive oracle for the same modular value function. -/
 private theorem gradientValueOracle_eq_addOracle {X : Type} [Fintype X] [DecidableEq X]

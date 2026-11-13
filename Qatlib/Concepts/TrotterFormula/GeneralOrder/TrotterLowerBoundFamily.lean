@@ -33,7 +33,6 @@ scaling, and `not_fourth_order` excludes any local bound of the form `K * t ^ 4`
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

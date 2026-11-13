@@ -18,6 +18,9 @@ claw finding to Boolean search. It derives an exact query lower bound of `M` and
 lower bound of `sqrt M / 8` for `M ≥ 6`, with hypotheses expressed by the claw algorithm
 contracts.
 
+The first domain is `Fin 1` throughout these lower-bound results. No lower
+bound for general first-domain size or upper-bound algorithm is established here.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -30,8 +33,6 @@ The mathematical setting follows [BuhrmanEtAl2005].
 
 * [Buhrman et al., 2005][BuhrmanEtAl2005]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

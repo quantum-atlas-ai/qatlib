@@ -29,7 +29,6 @@ worst-case query budget.
 * [Kraus, 1983][Kraus1983]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

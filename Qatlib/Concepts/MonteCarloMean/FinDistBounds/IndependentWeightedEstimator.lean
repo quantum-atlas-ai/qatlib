@@ -30,8 +30,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
-set_option linter.unusedSectionVars false
-
 /-- The finite product distribution whose record mass is the product of the coordinate
 distribution masses. -/
 def independentSampleLaw {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
@@ -96,9 +94,9 @@ theorem independentSampleLaw_expect_coord {n : ℕ} {X : Type} [Fintype X] [Deci
   have hsplit : ∀ ω : Fin n → X, h (ω k) = ∏ j, (if j = k then h (ω j) else 1) := by
     intro ω
     rw [Finset.prod_eq_single k]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro j _ hjk
-      simp only [hjk, if_false]
+      simp only [hjk, ite_false]
     · intro hcon
       exact absurd (Finset.mem_univ k) hcon
   calc (independentSampleLaw p).expect (fun ω => h (ω k))
@@ -108,10 +106,10 @@ theorem independentSampleLaw_expect_coord {n : ℕ} {X : Type} [Fintype X] [Deci
         independentSampleLaw_expect_prod p (fun j x => if j = k then h x else 1)
     _ = (p k).expect h := by
         rw [Finset.prod_eq_single k]
-        · simp only [if_true]
+        · simp only [ite_true]
           rfl
         · intro j _ hjk
-          simp only [hjk, if_false, mul_one]
+          simp only [hjk, ite_false, mul_one]
           exact (p j).sum_one
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
@@ -166,7 +164,7 @@ theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [Decidabl
     intro i j
     by_cases hij : i = j
     · subst hij
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       have h1 : (independentSampleLaw p).expect
             (fun ω => (w i * (f i (ω i) - μ i)) * (w i * (f i (ω i) - μ i)))
           = (w i)^2 * (independentSampleLaw p).expect (fun ω => (f i (ω i) - μ i)^2) := by
@@ -179,7 +177,7 @@ theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [Decidabl
       rw [hμ]
       show (w i)^2 * (p i).variance (f i) = w i * w i * (p i).variance (f i)
       ring
-    · rw [if_neg hij]
+    · rw [ite_eq_right hij]
       have hprod : ∀ ω : Fin n → X,
           ∏ m, (if m = i ∨ m = j then f m (ω m) - μ m else 1)
             = (f i (ω i) - μ i) * (f j (ω j) - μ j) := by
@@ -187,14 +185,14 @@ theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [Decidabl
         rw [← Finset.prod_subset (Finset.subset_univ (insert i {j}))
           (fun m _ hm => by
             simp only [Finset.mem_insert, Finset.mem_singleton] at hm
-            rw [if_neg (fun hor => by tauto)]),
+            rw [ite_eq_right (fun hor => by tauto)]),
           Finset.prod_insert (Finset.notMem_singleton.mpr hij), Finset.prod_singleton]
-        simp only [true_or, or_true, if_true]
+        simp only [true_or, or_true, ite_true]
       have hz : ∏ m, (∑ x, (p m).prob x * (if m = i ∨ m = j then f m x - μ m else 1))
           = 0 := by
         have hz0 : (∑ x, (p i).prob x * (if i = i ∨ i = j then f i x - μ i else 1))
             = 0 := by
-          simp only [eq_self, true_or, if_true]
+          simp only [eq_self, true_or, ite_true]
           rw [hμ]
           exact Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_sub_mean (p i) (f i)
         exact Finset.prod_eq_zero (Finset.mem_univ i) hz0
@@ -252,9 +250,9 @@ theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [Decidabl
         = if i = j then w i * w i * (p i).variance (f i) else 0 := by
       intro j
       by_cases h : i = j
-      · subst h; rw [if_pos rfl, if_pos rfl]
-      · rw [if_neg h, if_neg h, mul_zero]
-    rw [Finset.sum_congr rfl fun j _ => h1 j, Finset.sum_ite_eq, if_pos (Finset.mem_univ i)]
+      · subst h; rw [ite_eq_left rfl, ite_eq_left rfl]
+      · rw [ite_eq_right h, ite_eq_right h, mul_zero]
+    rw [Finset.sum_congr rfl fun j _ => h1 j, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ i)]
   rw [hsumj]
   ring
 

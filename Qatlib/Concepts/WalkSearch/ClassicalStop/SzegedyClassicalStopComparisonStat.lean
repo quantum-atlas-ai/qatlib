@@ -24,8 +24,6 @@ empty marked set and a constant lower bound after the prescribed number of steps
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Matrix
 

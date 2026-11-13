@@ -24,8 +24,6 @@ that clears a selected matrix entry, as needed in the half-support construction 
 * [Jordan, 2008][Jordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

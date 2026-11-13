@@ -29,8 +29,6 @@ For background on matrix maps expressed as sums of conjugated products, see [Wat
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators
 

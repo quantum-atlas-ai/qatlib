@@ -28,8 +28,6 @@ The theorem `hadamard_test_bias_bound` bounds the probability of empirical-mean 
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
 
 open scoped Classical BigOperators

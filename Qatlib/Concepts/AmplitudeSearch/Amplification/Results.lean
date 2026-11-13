@@ -39,7 +39,6 @@ modules, including `theorem1ChargedBudgetCorrected` and `theorem1QueryBudgetCorr
 * [Dürr and Høyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeSearch.Amplification

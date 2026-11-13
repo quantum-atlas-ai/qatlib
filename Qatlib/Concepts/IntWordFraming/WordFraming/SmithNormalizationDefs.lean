@@ -32,7 +32,6 @@ layers explicit.
 * [Cheung and Mosca, 2001][CheungMosca2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CfOrder

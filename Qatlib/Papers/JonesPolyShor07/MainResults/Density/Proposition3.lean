@@ -24,8 +24,6 @@ for `PhaseDenseOn` yields `proposition3_base` for the generator matrices `rhoSS 
 * [Shor and Jordan, 2008][ShorJordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

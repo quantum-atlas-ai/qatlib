@@ -28,8 +28,6 @@ inequality, and identifies configurations with a constant selected eigenvalue. S
 * [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

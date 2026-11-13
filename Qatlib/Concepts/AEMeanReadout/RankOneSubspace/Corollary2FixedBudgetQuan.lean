@@ -23,7 +23,6 @@ the setting of [BrassardHoyerTapp1998Counting].
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

@@ -34,20 +34,16 @@ these estimates with the counted division bound and correctness of the resulting
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
 open Matrix
 open Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib
-set_option warningAsError false
 
 /-- The condition that the natural absolute value of every integer matrix entry is at most `b`. -/
 def MatrixEntryBound {ι κ : Type*} (A : Matrix ι κ ℤ) (b : ℕ) : Prop :=
@@ -427,7 +423,7 @@ theorem exposeRow_entryBound {m n dim : ℕ} (hd : 2 ≤ dim) (r : Fin (m+1))
     have htwo : max b (2 * (1 * b)) ≤ elimSupStep dim b := by
       have h := two_mul_le_elimSupStep (dim := dim) (b := b) hd
       omega
-    simp only [exposeRow, if_neg hr]
+    simp only [exposeRow, ite_eq_right hr]
     exact ⟨(rowMix_entry_le 0 r hC hA).mono htwo,
       (rowMix_entry_le 0 r hC (matrix_one_entryBound hb)).mono htwo,
       (rowMix_entry_le 0 r hCi (matrix_one_entryBound hb)).mono htwo⟩

@@ -29,8 +29,6 @@ For the mathematical background, see [Grover1997].
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SearchStopping.KnownCount
 
 /-- For finite search spaces with at least two elements, both `SingleTargetSearchClaim` and the

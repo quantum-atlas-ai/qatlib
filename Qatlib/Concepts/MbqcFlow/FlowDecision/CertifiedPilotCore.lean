@@ -39,7 +39,6 @@ open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 noncomputable section
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -51,7 +50,6 @@ open Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision.CertifiedPilotCore
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open scoped BigOperators Classical
-set_option warningAsError false
 
 /-- For a positive clipping threshold, the pointwise clipping error is at most the fourth power
 of the input divided by the cube of the threshold. -/

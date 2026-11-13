@@ -65,7 +65,6 @@ monotonicity, unboundedness, and domination of any fixed multiple of the quantum
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -82,13 +81,13 @@ def quantumHittingTimeOnelink : ℝ := Real.pi / 2
 def quantumHittingTimeTwolink : ℝ := Real.pi / Real.sqrt 2
 
 /-- For every dimension parameter, the one-link quantum hitting-time constant equals `π / 2`. -/
-theorem quantum_hitting_time_onelink_constant (d : ℕ) :
+theorem quantum_hitting_time_onelink_constant (_d : ℕ) :
     quantumHittingTimeOnelink = Real.pi / 2 :=
   rfl
 
 /-- For every dimension parameter, the two-link quantum hitting-time constant equals `π / sqrt
 2`. -/
-theorem quantum_hitting_time_twolink_constant (d : ℕ) :
+theorem quantum_hitting_time_twolink_constant (_d : ℕ) :
     quantumHittingTimeTwolink = Real.pi / Real.sqrt 2 :=
   rfl
 

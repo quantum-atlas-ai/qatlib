@@ -38,7 +38,6 @@ the generated forms used in subsequent analysis.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
@@ -97,7 +96,7 @@ theorem card_SDG (p r : ℕ) (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) :
   rw [SDG, SemidirectProduct.card, card_Cyc, card_Cyc]
 
 /-- For prime `p`, the natural cardinality of `SDG p r φ` is `p ^ (r + 2)` [CosmePortugal2007]. -/
-theorem card_SDG_prime_pow (p r : ℕ) (hp : p.Prime)
+theorem card_SDG_prime_pow (p r : ℕ) (_hp : p.Prime)
     (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) :
     Nat.card (SDG p r φ) = p ^ (r + 2) := by
   rw [card_SDG, ← pow_add]

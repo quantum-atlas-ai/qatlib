@@ -28,10 +28,7 @@ repetitions to observe an event of positive probability.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1600000
 noncomputable section
 open scoped BigOperators
@@ -77,7 +74,7 @@ theorem expect_prod_factor (p : α → ℝ) {n : ℕ} (f : Fin n → α → ℝ)
 /-- A finite product with a single potentially nonunit factor equals that factor. -/
 theorem prod_ite_one {n : ℕ} {β : Type*} (u : Fin n → β) (g : β → ℝ) (i : Fin n) :
     (∏ k, (if k = i then g (u k) else (1 : ℝ))) = g (u i) := by
-  rw [Finset.prod_eq_mul_prod_diff_singleton i
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton i
     (fun k => if k = i then g (u k) else (1 : ℝ)) (by simp)]
   simp
 
@@ -87,11 +84,11 @@ theorem prod_ite_two {n : ℕ} {β : Type*} (u : Fin n → β) (f g : β → ℝ
     (hij : i ≠ j) :
     (∏ k, (if k = i then f (u k) else if k = j then g (u k) else (1 : ℝ)))
       = f (u i) * g (u j) := by
-  rw [Finset.prod_eq_mul_prod_diff_singleton i
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton i
     (fun k => if k = i then f (u k) else if k = j then g (u k) else (1 : ℝ)) (by simp)]
   have hmemj : j ∈ Finset.univ \ ({i} : Finset (Fin n)) := by
     simp [show j ≠ i from Ne.symm hij]
-  rw [Finset.prod_eq_mul_prod_diff_singleton_of_mem hmemj
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton_of_mem hmemj
     (fun k => if k = i then f (u k) else if k = j then g (u k) else (1 : ℝ))]
   have hrest : (∏ x ∈ (Finset.univ \ ({i} : Finset (Fin n))) \ {j},
       (if x = i then f (u x) else if x = j then g (u x) else (1 : ℝ))) = 1 := by
@@ -101,9 +98,9 @@ theorem prod_ite_two {n : ℕ} {β : Type*} (u : Fin n → β) (f g : β → ℝ
       simpa only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_univ, true_and] using hx
     simp [hx'.1, hx'.2]
   rw [hrest]
-  rw [if_pos rfl]
-  rw [if_neg (show j ≠ i from Ne.symm hij)]
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
+  rw [ite_eq_right (show j ≠ i from Ne.symm hij)]
+  rw [ite_eq_left rfl]
   ring
 
 /-- Under product weights whose base weights sum to one, a function of one coordinate has its
@@ -121,7 +118,7 @@ theorem expect_coord (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (g : α 
       = ∏ k, expect p (fun a => if k = i then g a else (1 : ℝ)) :=
     expect_prod_factor (p := p) (n := n) (f := fun k a => if k = i then g a else (1 : ℝ))
   rw [hfac]
-  rw [Finset.prod_eq_mul_prod_diff_singleton i
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton i
     (fun k => expect p (fun a => if k = i then g a else (1 : ℝ))) (by simp)]
   have hself : expect p (fun a => if i = i then g a else (1 : ℝ)) = expect p g := by
     simp
@@ -149,7 +146,7 @@ theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α
     expect_prod_factor (p := p) (n := n)
       (f := fun k a => if k = i then f a else if k = j then g a else (1 : ℝ))
   rw [hfac]
-  rw [Finset.prod_eq_mul_prod_diff_singleton i
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton i
     (fun k => expect p (fun a => if k = i then f a else if k = j then g a else (1 : ℝ)))
     (by simp)]
   have hself : expect p (fun a => if i = i then f a else if i = j then g a else (1 : ℝ))
@@ -157,7 +154,7 @@ theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α
     simp
   have hmemj : j ∈ Finset.univ \ ({i} : Finset (Fin n)) := by
     simp [show j ≠ i from Ne.symm hij]
-  rw [Finset.prod_eq_mul_prod_diff_singleton_of_mem hmemj
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton_of_mem hmemj
     (fun k => expect p (fun a => if k = i then f a else if k = j then g a else (1 : ℝ)))]
   have hselfj : expect p (fun a => if j = i then f a else if j = j then g a else (1 : ℝ))
       = expect p g := by
@@ -170,6 +167,8 @@ theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α
     simp [hk'.1, hk'.2, expect_const p hsum]
   rw [hself, hselfj, Finset.prod_eq_one hrest]
   ring
+
+omit [DecidableEq α] in
 
 /-- The expectation of a product of finite sums expands into the double sum of expectations of
 pairwise products. -/

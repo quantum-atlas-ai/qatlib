@@ -28,7 +28,6 @@ reference systems, giving an effective input version of the qDRIFT setting of [C
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 600000

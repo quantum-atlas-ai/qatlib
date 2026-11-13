@@ -39,7 +39,6 @@ hypotheses.
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -47,8 +46,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 open Qatlib.Concepts.GateVocabulary.GateVocab
@@ -647,7 +644,7 @@ theorem counted_hhl_exact_grid_clean_branch :
   funext i
   have hin := countedHHLBranchInput_eq D M hMpos j
   have hval := hpt (⟨0, hMpos⟩ : Fin M) i
-  simp only [countedHHLCleanBranch, dif_pos hMpos]
+  simp only [countedHHLCleanBranch, dite_eq_left hMpos]
   show (ApplyGate (evaluate (countedHHLOracleLift (D := D) (M := M) (gridHHLOracle label V))
         (countedHHLWord M c B))
       (TensorState (Ket (⟨0, hMpos⟩ : Fin M))
@@ -755,7 +752,7 @@ theorem norm_oracleLift_sub (D M : ℕ) (hM : 0 < M) (U V : Operator D) :
           (controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) U)
             - controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) V)) := by
     rw [countedHHLOracleLift, countedHHLOracleLift, ← tensorGate_sub_right]
-  haveI : Nonempty (Fin M) := ⟨⟨0, hM⟩⟩
+  have : Nonempty (Fin M) := ⟨⟨0, hM⟩⟩
   have hinner : ‖controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) U)
       - controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) V)‖ ≤ ‖U - V‖ := by
     calc ‖controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) U)
@@ -794,9 +791,9 @@ theorem norm_countedHHLBranchInput (D M : ℕ) (hM : 0 < M) (j : Fin D) :
 ε` times the input norm to at most `(n + 1) * ε` times that norm. -/
 theorem norm_query_step_le {I : Type*} [Fintype I] [DecidableEq I]
     {X Y EO EP : Matrix I I ℂ}
-    (hX : X ∈ Matrix.unitaryGroup I ℂ) (hY : Y ∈ Matrix.unitaryGroup I ℂ)
-    (hEO : EO ∈ Matrix.unitaryGroup I ℂ) (hEP : EP ∈ Matrix.unitaryGroup I ℂ)
-    (ψ : QState I) {n ε : ℝ} (hε : 0 ≤ ε) (hXY : ‖X - Y‖ ≤ ε)
+    (hX : X ∈ Matrix.unitaryGroup I ℂ) (_hY : Y ∈ Matrix.unitaryGroup I ℂ)
+    (_hEO : EO ∈ Matrix.unitaryGroup I ℂ) (hEP : EP ∈ Matrix.unitaryGroup I ℂ)
+    (ψ : QState I) {n ε : ℝ} (_hε : 0 ≤ ε) (hXY : ‖X - Y‖ ≤ ε)
     (h : ‖toEuclidean_fromVec (EO *ᵥ ψ - EP *ᵥ ψ)‖ ≤ n * ε * ‖toEuclidean_fromVec ψ‖) :
     ‖toEuclidean_fromVec (X *ᵥ (EO *ᵥ ψ) - Y *ᵥ (EP *ᵥ ψ))‖
       ≤ (n + 1) * ε * ‖toEuclidean_fromVec ψ‖ := by
@@ -925,11 +922,11 @@ theorem counted_hhl_unitary_oracle_clean_branch_noise :
   have hbrU : countedHHLCleanBranch U M c B j
       = (fun i => runU ((⟨0, hMpos⟩ : Fin M), (false, (true, i)))) := by
     funext i
-    simp only [countedHHLCleanBranch, dif_pos hMpos, hrunUdef, hψ₀def]
+    simp only [countedHHLCleanBranch, dite_eq_left hMpos, hrunUdef, hψ₀def]
   have hbrV : countedHHLCleanBranch V M c B j
       = (fun i => runV ((⟨0, hMpos⟩ : Fin M), (false, (true, i)))) := by
     funext i
-    simp only [countedHHLCleanBranch, dif_pos hMpos, hrunVdef, hψ₀def]
+    simp only [countedHHLCleanBranch, dite_eq_left hMpos, hrunVdef, hψ₀def]
   have hsub : (fun i : Fin D => runU ((⟨0, hMpos⟩ : Fin M), (false, (true, i))))
       - (fun i : Fin D => runV ((⟨0, hMpos⟩ : Fin M), (false, (true, i))))
       = (fun i : Fin D => (runU - runV) ((⟨0, hMpos⟩ : Fin M), (false, (true, i)))) := by

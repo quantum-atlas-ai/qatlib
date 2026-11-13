@@ -30,8 +30,6 @@ eigenvector as an orthonormal two-dimensional walk subspace with rotation angle 
 * [Somma et al., 2008][SommaEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

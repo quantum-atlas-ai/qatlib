@@ -28,7 +28,6 @@ makes the Chebyshev multi-product formula exact at every real time.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

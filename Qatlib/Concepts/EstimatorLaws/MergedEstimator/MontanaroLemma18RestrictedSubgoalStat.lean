@@ -24,7 +24,6 @@ the variance under the second preparation; the proposition itself supplies no pr
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

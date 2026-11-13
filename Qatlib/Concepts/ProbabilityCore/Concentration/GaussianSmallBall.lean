@@ -33,7 +33,6 @@ such as those in [KoehlerLeung2026].
 * [Koehler and Leung, 2026][KoehlerLeung2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 set_option autoImplicit false

@@ -13,8 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 # Quantum Zeno effect and the circuit success probability
 
 Source: R. D. Somma, S. Boixo, H. Barnum, *Quantum Simulated Annealing*,
-fixed arXiv:0712.1008v1 (6 Dec 2007). Local PDF `local archive
-tmp/prove/assets/0712.1008.pdf`, text twin `0712.1008.txt`.
+fixed arXiv:0712.1008v1 (6 Dec 2007).
 
 This file covers Section III (p.4, the paragraph below Eq. (20)) and
 Appendix B, Eq. (B12), p.7.

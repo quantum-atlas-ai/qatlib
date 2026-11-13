@@ -35,7 +35,6 @@ associated with the cited paper to computational-basis input and success measure
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

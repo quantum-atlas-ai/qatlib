@@ -8,7 +8,7 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Data.Real.Sqrt
+import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Tactic
 
 /-!
@@ -36,10 +36,8 @@ here.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix
@@ -218,7 +216,7 @@ def evals (P : SpanProgram β V) (x : β → Bool) : Bool := by
   exact if ∃ u, P.PosWitness x u then true else false
 
 /-- The sum of the squared positive-witness coefficient norms weighted by `s`. -/
-def posCost (P : SpanProgram β V) (s : β → ℝ) (u : β → ℂ) : ℝ :=
+def posCost (_P : SpanProgram β V) (s : β → ℝ) (u : β → ℂ) : ℝ :=
   ∑ b, ‖u b‖ ^ 2 * s b
 
 /-- The sum of the squared input-vector dot products with the negative witness, weighted by `s`. -/

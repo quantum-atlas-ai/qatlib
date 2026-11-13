@@ -28,8 +28,6 @@ square-root overlap for the Markov-chain sampling construction. The mathematical
 * [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

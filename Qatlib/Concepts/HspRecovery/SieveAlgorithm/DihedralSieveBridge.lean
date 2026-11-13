@@ -32,7 +32,6 @@ the explicit half-period hit bound at the square-root stage count.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist

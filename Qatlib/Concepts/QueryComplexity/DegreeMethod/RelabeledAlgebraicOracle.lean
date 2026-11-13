@@ -29,7 +29,6 @@ prepared state's measurement weights on value fibers. The circuit has one gate a
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

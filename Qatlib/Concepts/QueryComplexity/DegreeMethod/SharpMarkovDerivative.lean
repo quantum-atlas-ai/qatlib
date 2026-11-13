@@ -33,8 +33,6 @@ and Chebyshev–Lobatto estimates near the endpoints.
 * [Nayak and Wu, 1998, Fact A.5][NayakWu1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

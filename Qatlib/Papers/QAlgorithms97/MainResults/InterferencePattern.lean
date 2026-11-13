@@ -30,7 +30,6 @@ giving the exact prescribed phase pattern for `conditionalAddWord` in the settin
 * [Cleve et al., 1998][CleveEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

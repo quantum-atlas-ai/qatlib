@@ -23,7 +23,6 @@ the Johnson walk to the oracle-query model of collision search
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

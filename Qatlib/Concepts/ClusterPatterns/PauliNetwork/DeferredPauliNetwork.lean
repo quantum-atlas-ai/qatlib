@@ -39,7 +39,6 @@ and terminal correction gates.
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -60,8 +59,6 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 
 /-- A pair of Boolean registers recording the local Pauli X and Z exponents on `n` wires. -/
 abbrev PauliFrame (n : ℕ) := Reg n×Reg n

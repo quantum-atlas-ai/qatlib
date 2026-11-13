@@ -28,7 +28,6 @@ developed in [HarrowHassidimLloyd2009].
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.BornMetrics.EventProbability
@@ -45,8 +44,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.QsvtCore.LinearSystems
@@ -162,7 +159,7 @@ theorem gridHHLb2_output :
     norm_num
   rw [((grid_hhl_actual_probability_and_output gridHHLLabel2 _ (1 / 4) gridHHLb2
       (by norm_num) hV (by norm_num) (by norm_num)).2.1 (by norm_num : (0 : ℝ) < 1 / 4)),
-    gridHHLb2_pseudoinverse (by norm_num), ConditionalState, if_pos hmp]
+    gridHHLb2_pseudoinverse (by norm_num), ConditionalState, ite_eq_left hmp]
   congr 1
   funext i
   show (Real.sqrt (MeasureProb ((Real.sqrt 2 : ℂ)⁻¹
@@ -171,7 +168,7 @@ theorem gridHHLb2_output :
         • ((4 : ℂ) • Ket (0 : Fin 2) + (2 : ℂ) • Ket (1 : Fin 2))) Finset.univ i
       = ((Real.sqrt 5 : ℂ)⁻¹ • ((2 : ℂ) • Ket (0 : Fin 2) + Ket (1 : Fin 2))) i
   rw [gridHHLb2_successBlock_measure, collapse_apply]
-  simp only [Finset.mem_univ, if_pos]
+  simp only [Finset.mem_univ, ite_eq_left]
   match i with
   | 0 => simp [Ket]; rw [← mul_assoc, hinv, hpoint, h4]
   | 1 => simp [Ket]; rw [← mul_assoc, hinv, hpoint]; norm_num

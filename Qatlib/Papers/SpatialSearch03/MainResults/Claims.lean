@@ -27,8 +27,6 @@ elementary repetition estimates for the spatial-search analysis of [ChildsGoldst
 * [Childs and Goldstone, 2004][ChildsGoldstone2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -29,7 +29,6 @@ motivated by [HarrowHassidimLloyd2009] and compares retry and amplification ledg
 * [Harrow, Hassidim and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.CoherentSim.CoherentOAA

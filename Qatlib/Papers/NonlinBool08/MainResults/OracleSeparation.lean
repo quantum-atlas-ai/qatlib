@@ -25,8 +25,6 @@ bound for deterministic nonadaptive strengthened-oracle algorithms. See [Roettel
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -42,7 +42,6 @@ background, see [BrassardHoyerTapp1998Counting].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open scoped BigOperators
 

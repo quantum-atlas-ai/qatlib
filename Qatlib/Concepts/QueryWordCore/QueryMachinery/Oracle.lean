@@ -36,8 +36,6 @@ namespace Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- The diagonal Boolean oracle multiplying a basis vector by minus one exactly at inputs where
@@ -52,6 +50,8 @@ theorem phaseOracle_mul_self (f : I → Bool) : PhaseOracle f * PhaseOracle f = 
   congr 1
   funext a
   split_ifs <;> ring
+
+omit [Fintype I] in
 
 /-- A Boolean phase oracle equals its conjugate transpose. -/
 theorem phaseOracle_conjTranspose (f : I → Bool) : (PhaseOracle f)ᴴ = PhaseOracle f := by
@@ -88,6 +88,8 @@ noncomputable def SetOracle (A : Finset I) : Matrix I I ℂ := PhaseOracle fun x
 theorem setOracle_unitary (A : Finset I) : SetOracle A ∈ Matrix.unitaryGroup I ℂ :=
   phaseOracle_unitary _
 
+omit [Fintype I] in
+
 /-- Marking one label agrees with the set oracle for its singleton set. -/
 theorem markOracle_eq_setOracle (w₀ : I) : MarkOracle w₀ = SetOracle {w₀} := by
   simp [MarkOracle, SetOracle]
@@ -95,6 +97,8 @@ theorem markOracle_eq_setOracle (w₀ : I) : MarkOracle w₀ = SetOracle {w₀} 
 /-- The basis permutation that XORs the oracle value into an answer bit while preserving the
 input label. -/
 def BitFlip (f : I → Bool) (p : I × Bool) : I × Bool := (p.1, p.2 ^^ f p.1)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Applying the Boolean answer-bit flip twice restores the original basis label. -/
 theorem bitFlip_involutive (f : I → Bool) : Function.Involutive (BitFlip f) := by
@@ -156,7 +160,7 @@ theorem bitOracle_apply_eq_bitOracleOn (f : Reg n → Bool) (x y : Reg (n + 1)) 
     BitOracle f x y = BitOracleOn f (regSuccEquiv n x) (regSuccEquiv n y) := by
   have heq : x = (regSuccEquiv n).symm (BitFlip f (regSuccEquiv n y)) ↔
       regSuccEquiv n x = BitFlip f (regSuccEquiv n y) :=
-    (Equiv.apply_eq_iff_eq_symm_apply _).symm
+    Equiv.eq_symm_apply _
   simp only [BitOracle, BitOracleOn, permMatrix, Matrix.of_apply, BitFlipReg]
   simp only [heq]
 

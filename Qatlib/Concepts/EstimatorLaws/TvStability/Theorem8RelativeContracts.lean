@@ -30,7 +30,6 @@ sorted median provide the amplified factor estimator.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.SketchArith.TransposeAccess.FinDist
 

@@ -22,8 +22,6 @@ property of the randomized channel construction used in qDRIFT [Campbell2019].
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ReferenceError.RefTraceError
 
 namespace Qatlib.Concepts.DiamondQdrift.FairQdrift

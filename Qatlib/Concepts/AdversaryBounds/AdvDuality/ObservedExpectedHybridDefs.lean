@@ -30,8 +30,6 @@ at most one, and a consequence for distinguishing gaps under a common expected q
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath

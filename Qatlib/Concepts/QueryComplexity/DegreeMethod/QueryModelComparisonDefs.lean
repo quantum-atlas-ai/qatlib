@@ -43,7 +43,6 @@ in Grover search.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery

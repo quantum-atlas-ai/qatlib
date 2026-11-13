@@ -24,8 +24,6 @@ string occurs in the oracle image, as used in [BennettEtAl1997]. The background 
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib
 
 open Qatlib.Foundations.QueryWordCore.Circuit

@@ -28,7 +28,6 @@ second-oracle query count. Its query-analysis ingredients use the hybrid method 
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -38,7 +37,6 @@ open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithACl
 namespace Qatlib.Concepts.QmaCompleteness.WitnessSampler
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Matrix
 
@@ -66,6 +64,8 @@ private theorem list_map_sum_nonneg' {α : Type} (f : α → ℝ) (hf : ∀ x, 0
   | nil => simp
   | cons a L ih => simp only [List.map_cons, List.sum_cons]; linarith [hf a, ih]
 
+omit [DecidableEq W] in
+
 /-- The controlled fiber measurement mass `controlFiberMass n S Δ W φ` is nonnegative for every
 vector `φ`. -/
 private theorem controlFiberMass_nonneg' (S Δ : Reg n → Bool)
@@ -88,6 +88,8 @@ private theorem regOfList_subset (hist : List (Reg n)) (S : Reg n → Bool)
   by_cases hxh : x ∈ hist
   · exact hsub x hxh
   · exact absurd (of_decide_eq_true hx) hxh
+
+omit [DecidableEq W] in
 
 /-- The sum of `sQueryBornMass n W φ x` over addresses `x` in `T` equals the measurement mass of
 all basis states whose first oracle address lies in `T`. -/
@@ -123,7 +125,7 @@ private theorem cumDirectSuccess_nonneg (S U : Reg n → Bool)
     refine Finset.sum_nonneg fun x _ => ?_
     refine mul_nonneg ?_ (ih _)
     by_cases hx : S x ∧ x ∉ hist
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       exact directTransitionMass_nonneg S U C ψ hist x
     · simp [hx]
 
@@ -264,7 +266,7 @@ private theorem cumDirectSuccess_ge (S U : Reg n → Bool)
       by_cases hx : S x ∧ x ∉ hist
       · have h1 : (0 : ℝ) ≤ directTransitionMass n W S U C ψ hist x :=
           directTransitionMass_nonneg S U C ψ hist x
-        rw [if_pos hx]
+        rw [ite_eq_left hx]
         refine mul_le_mul_of_nonneg_left ?_ h1
         refine ih (x :: hist) (List.nodup_cons.mpr ⟨hx.2, hnodup⟩) ?_ ?_
         · intro y hy

@@ -30,7 +30,6 @@ The polynomial payoff-rotation setting is described in [WoernerEgger2019].
 * [Woerner and Egger, 2019][WoernerEgger2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -48,7 +47,6 @@ namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The Boolean conjunction of the register bits on the listed control wires. -/
 def subsetControlTrue {N : ℕ} (S : List (Fin N)) (x : Reg N) : Bool :=

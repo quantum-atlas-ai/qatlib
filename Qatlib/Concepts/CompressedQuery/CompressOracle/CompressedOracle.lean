@@ -34,10 +34,7 @@ The mathematical context is discussed in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -150,7 +147,6 @@ private theorem decompressEntry_gram (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (
   cases a <;> cases a' <;>
     simp [decompressEntry, Complex.conj_ofReal] <;>
     first
-    | rfl
     | simp [mul_comm]
     | (rw [← Complex.ofReal_mul, ← Complex.ofReal_mul, ← Complex.ofReal_add, hs1, hs2]; simp)
 
@@ -187,7 +183,7 @@ theorem decompressGate_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
       by_contra hall
       push Not at hall
       exact hxx (funext hall)
-    rw [Finset.prod_eq_zero (Finset.mem_univ j₀) (by rw [if_neg hj₀]), if_neg hxx]
+    rw [Finset.prod_eq_zero (Finset.mem_univ j₀) (by rw [ite_eq_right hj₀]), ite_eq_right hxx]
 
 /-- The coherent Bernoulli table state is normalized when `p` lies in [0, 1]. -/
 theorem bernoulliState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
@@ -220,9 +216,9 @@ theorem decompressGate_empty_database (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) 
   have hpos : ∀ j : I, 0 ≤ (if x j then p else 1 - p) := by
     intro j
     by_cases hxj : x j = true
-    · rw [if_pos hxj]
+    · rw [ite_eq_left hxj]
       linarith
-    · rw [if_neg hxj]
+    · rw [ite_eq_right hxj]
       linarith
   have hfactor : ∀ j : I, decompressEntry p (x j) false
       = Complex.ofReal (Real.sqrt (if x j then p else 1 - p)) := by
@@ -236,12 +232,14 @@ theorem decompressGate_empty_database (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) 
       Real.sqrt_prod _ (fun j _ => hpos j)]
   simp only [ApplyGate, Matrix.mulVec, dotProduct, decompressGate, Matrix.of_apply, Qatlib.Foundations.PureStateMath.Ket,
     mul_ite, mul_one, mul_zero]
-  rw [Finset.sum_eq_single (fun _ => false), if_pos rfl,
+  rw [Finset.sum_eq_single (fun _ => false), ite_eq_left rfl,
     Finset.prod_congr rfl fun j _ => hfactor j, hprod]
   rfl
   · intro d _ hd
-    rw [if_neg (fun h : d = fun _ => false => hd h)]
+    rw [ite_eq_right (fun h : d = fun _ => false => hd h)]
   · simp
+
+omit [Fintype I] [Fintype W] in
 
 /-- The conversion from bit query circuits to phase query circuits preserves the query count. -/
 theorem bitToPhaseCircuit_queryCount (C : Circuit ((I × Bool) × W)) :
@@ -308,7 +306,7 @@ private theorem tensorGate_one_hadamard_mulVec (g : QState (I × Bool)) (j : I) 
   rw [Finset.sum_eq_single j]
   · simp
   · intro x _ hx
-    rw [if_neg (fun h : j = x => hx h.symm)]
+    rw [ite_eq_right (fun h : j = x => hx h.symm)]
     simp
   · simp
 
@@ -327,15 +325,15 @@ theorem tensor_hadamard_conj_phase (f : I → Bool) :
     by_cases hj : jc.1 = j₀
     · subst hj
       rw [Finset.sum_eq_single b₀]
-      · rw [ket_self, mul_one, if_pos rfl]
+      · rw [ket_self, mul_one, ite_eq_left rfl]
       · intro c' _ hc'
         rw [ket_ne (fun h : (jc.1, c') = (jc.1, b₀) => hc' (congrArg Prod.snd h)), mul_zero]
       · simp
-    · rw [if_neg hj]
+    · rw [ite_eq_right hj]
       refine Finset.sum_eq_zero fun c' _ => ?_
       have hket : Qatlib.Foundations.PureStateMath.Ket (j₀, b₀) (jc.1, c') = 0 := by
         rw [Qatlib.Foundations.PureStateMath.Ket,
-            if_neg (fun h : (jc.1, c') = (j₀, b₀) => hj (congrArg Prod.fst h))]
+            ite_eq_right (fun h : (jc.1, c') = (j₀, b₀) => hj (congrArg Prod.fst h))]
       rw [hket, mul_zero]
   have step2 : ((TensorGate (1 : Matrix I I ℂ) Hadamard) *
       (PhaseOracle fun jb : I × Bool => jb.2 && f jb.1) *
@@ -350,10 +348,10 @@ theorem tensor_hadamard_conj_phase (f : I → Bool) :
     rw [tensorGate_one_hadamard_mulVec]
     by_cases hj : jc.1 = j₀
     · subst hj
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       refine Finset.sum_congr rfl fun c' _ => ?_
       simp
-    · rw [if_neg hj]
+    · rw [ite_eq_right hj]
       refine Finset.sum_eq_zero fun c' _ => ?_
       simp [hj]
   rw [step2, show BitOracleOn f *ᵥ Qatlib.Foundations.PureStateMath.Ket (j₀, b₀)
@@ -362,17 +360,16 @@ theorem tensor_hadamard_conj_phase (f : I → Bool) :
   obtain ⟨j₁, b₁⟩ := jc
   by_cases hj : j₁ = j₀
   · subst hj
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     cases hf : f j₁ <;> cases b₁ <;> cases b₀ <;>
       simp [Hadamard, inv_sqrt2_mul_self, Qatlib.Foundations.PureStateMath.Ket,
           Prod.mk.injEq] <;>
       first
-      | rfl
       | norm_num
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     have hket : Qatlib.Foundations.PureStateMath.Ket (j₀, b₀ ^^ f j₀) (j₁, b₁) = 0 := by
       rw [Qatlib.Foundations.PureStateMath.Ket,
-          if_neg (fun h : (j₁, b₁) = (j₀, b₀ ^^ f j₀) => hj (congrArg Prod.fst h))]
+          ite_eq_right (fun h : (j₁, b₁) = (j₀, b₀ ^^ f j₀) => hj (congrArg Prod.fst h))]
     rw [hket]
 
 /-- Conjugating the workspace phase oracle by the target Hadamard gives the workspace bit
@@ -626,6 +623,8 @@ private theorem decompressEntry_star (p : ℝ) (a b : Bool) :
     star (decompressEntry p a b) = decompressEntry p a b := by
   cases a <;> cases b <;> simp [decompressEntry]
 
+omit [DecidableEq I] in
+
 /-- The product decompression matrix is equal to its conjugate transpose. -/
 private theorem decompressGate_selfadjoint (p : ℝ) :
     (decompressGate (I := I) p)ᴴ = decompressGate p := by
@@ -652,16 +651,16 @@ private theorem compressed_oracle_block (p : ℝ) (q q' : (I × Bool) × W)
   · by_cases h : q = q'
     · subst q'
       simp only [ite_true, one_mul, mul_assoc]
-    · simp only [ite_true, if_neg h, zero_mul, mul_zero, Finset.sum_const_zero]
+    · simp only [ite_true, ite_eq_right h, zero_mul, mul_zero, Finset.sum_const_zero]
   · intro r _ hr
-    simp only [if_neg (Ne.symm hr), zero_mul, Finset.sum_const_zero]
+    simp only [ite_eq_right (Ne.symm hr), zero_mul, Finset.sum_const_zero]
   · simp
 
 /-- A compressed oracle entry is zero when its algorithm basis indices differ. -/
 theorem compressed_oracle_offdiag (p : ℝ) (q q' : (I × Bool) × W)
     (d d' : I → Bool) (h : q ≠ q') :
     compressedOracle p (q,d) (q',d') = 0 := by
-  rw [compressed_oracle_block, if_neg h]
+  rw [compressed_oracle_block, ite_eq_right h]
 
 /-- For `p` in [0, 1], conjugating the one-bit sign phase by decompression gives
 `compressedQueryEntry`. -/
@@ -691,7 +690,7 @@ theorem compressed_oracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
       if b then
         if ∀ k, k ≠ j → d k = d' k then compressedQueryEntry p (d j) (d' j) else 0
       else if d = d' then 1 else 0 := by
-  rw [compressed_oracle_block, if_pos rfl]
+  rw [compressed_oracle_block, ite_eq_left rfl]
   cases b with
   | false =>
     simp only [Bool.false_and, Bool.false_eq_true, ↓reduceIte, one_mul]
@@ -718,15 +717,15 @@ theorem compressed_oracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
           = if k = j then compressedQueryEntry p (d k) (d' k)
             else if d k = d' k then 1 else 0 := by
       by_cases h : k = j
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         exact decompressEntry_phase_gram p hp0 hp1 _ _
-      · simp only [if_neg h, one_mul]
+      · simp only [ite_eq_right h, one_mul]
         exact decompressEntry_gram p hp0 hp1 _ _
     simp_rw [hcoord]
     rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ j)]
     simp only [ite_true]
     by_cases h : ∀ k, k ≠ j → d k = d' k
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have he : (∏ k ∈ Finset.univ.erase j,
           if k = j then compressedQueryEntry p (d k) (d' k)
             else if d k = d' k then 1 else 0) = 1 := by
@@ -735,7 +734,7 @@ theorem compressed_oracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
         have hk' := (Finset.mem_erase.mp hk).1
         simp [hk', h k hk']
       rw [he, mul_one]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       push Not at h
       obtain ⟨k,hkj,hdd⟩ := h
       have he : (∏ k ∈ Finset.univ.erase j,
@@ -758,7 +757,9 @@ theorem compressed_oracle_locality (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     cases b
     · have hne : d ≠ d' := by intro he; subst d'; exact h (fun _ _ => rfl)
       simp [hne]
-    · simp only [↓reduceIte, if_neg h]
+    · simp only [↓reduceIte, ite_eq_right h]
+
+omit [DecidableEq I] in
 
 /-- The all-false database has cardinality zero. -/
 private theorem databaseCard_empty : databaseCard (I := I) (fun _ => false) = 0 := by
@@ -900,9 +901,13 @@ addresses. -/
 private def databaseAt (j : I) (r : {k : I // k ≠ j} → Bool) (b : Bool) : I → Bool :=
   (Equiv.funSplitAt j Bool).symm (b,r)
 
+omit [Fintype I] in
+
 /-- The reconstructed database has value `b` at the selected address `j`. -/
 private theorem databaseAt_self (j : I) (r : {k : I // k ≠ j} → Bool) (b : Bool) :
     databaseAt j r b j = b := by simp [databaseAt,Equiv.funSplitAt,Equiv.piSplitAt]
+
+omit [Fintype I] in
 
 /-- Away from the selected address, `databaseAt` equals the supplied residual database. -/
 private theorem databaseAt_other (j k : I) (hk : k ≠ j)
@@ -1124,6 +1129,8 @@ private theorem compressedRunState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p
   normalized_run _ (compressedOracle_unitary p hp0 hp1) _ (tensorLiftCircuit_unitary C hC)
     (normalized_tensorState hψ (normalized_ket _))
 
+omit [DecidableEq W] in
+
 /-- The zeroth binomial database moment of a normalized state is one. -/
 private theorem databaseMoment_zero (v : QState (((I × Bool) × W) × (I → Bool)))
     (hv : Normalized v) : databaseMoment 0 v = 1 := by
@@ -1133,6 +1140,8 @@ private theorem databaseMoment_zero (v : QState (((I × Bool) × W) × (I → Bo
   unfold Normalized at h
   rw [Fintype.sum_prod_type] at h
   exact h
+
+omit [DecidableEq W] in
 
 /-- For a normalized algorithm state tensored with the empty database, the order-`i` database
 moment is `Nat.choose 0 i`. -/
@@ -1219,7 +1228,7 @@ theorem compressed_oracle_unfiltered_entry_counterexample :
     have h : ¬ (∀ k : Bool, k ≠ false → (false : Bool) = k) := by
       intro h
       simpa using h true (by decide)
-    simp only [↓reduceIte,if_neg h]
+    simp only [↓reduceIte,ite_eq_right h]
   · norm_num [compressedQueryEntry]
 
 end Qatlib.Concepts.CompressedQuery.CompressOracle

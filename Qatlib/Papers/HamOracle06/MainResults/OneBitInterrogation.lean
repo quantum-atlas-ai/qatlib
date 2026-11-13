@@ -95,8 +95,6 @@ speed at most π/2. See [Mochon2007] for the Hamiltonian oracle formulation.
 * [Mochon, 2007][Mochon2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

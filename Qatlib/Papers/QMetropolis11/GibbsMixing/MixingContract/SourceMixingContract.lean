@@ -16,19 +16,19 @@ set_option backward.isDefEq.respectTransparency false
 Fixed source: arXiv:0911.3635v2, Section 3.2, printed pages 8 and 19.
 
 * Eq. (8) quotes [34]: `‖E^m[ρ] - σ*‖₁ ≤ C_exp (1-Δ)^m` for a map obeying
-  quantum detailed balance.  The contraction-side content is the frozen
+  quantum detailed balance.  The contraction-side content is the established
   `ContractionMixingDecay` (Eq. (43) contraction with coefficient `η`), which
   this file bridges.  The identification `η = 1-Δ` with the spectral gap and
-  the constant `C_exp` scaling are *not* proved by the frozen layer.
+  the constant `C_exp` scaling are *not* proved by the semantic layer.
 * Eq. (10): for `p_fail(n) ≤ 1/(2e(n+1))` one gets
-  `(1-p_fail(n*))^{m_mix} ≥ c` whenever `n* > m_mix/(2e(1-c))`.  The frozen
+  `(1-p_fail(n*))^{m_mix} ≥ c` whenever `n* > m_mix/(2e(1-c))`.  The established
   `rejectionBudget` proves the same Bernoulli step with the *strict* pointwise
   bound `1/(2(n+1))`; here we also prove the paper's `e`-constant version,
-  which the frozen layer explicitly leaves open.
+  which the semantic layer explicitly leaves open.
 
 Reused FQNs:
-* `QuantumAlgorithm.Concepts.MixedInstrument.Contraction.contractionMixingDecay`;
-* `QuantumAlgorithm.Concepts.QuantumGibbs.RejectionRewind.rejectionBudget`.
+* `Qatlib.Concepts.MixedInstrument.Contraction.contractionMixingDecay`;
+* `Qatlib.Concepts.QuantumGibbs.RejectionRewind.rejectionBudget`.
 -/
 
 set_option autoImplicit false
@@ -74,7 +74,7 @@ theorem source_rejectionBudget : RejectionBudget :=
 pointwise bound `p_fail(n) ≤ 1/(2e(n+1))` and the paper's budget
 `n* > m_mix/(2e(1-c))` (written `(n+1)·2e(1-c) ≥ m`), the success probability
 after `m` steps is at least `c`.  This is the Bernoulli step of Eq. (10) with
-the sharper constant that the frozen `rejectionBudget` does not supply.  New
+the sharper constant that the `rejectionBudget` does not supply.  New
 proof here; the underlying sharp pointwise bound is the asymptotic reading of
 Eq. (7) (see `RejectionRecovery.source_rejection_failure_le` for the exact
 strict bound actually available in the library). -/

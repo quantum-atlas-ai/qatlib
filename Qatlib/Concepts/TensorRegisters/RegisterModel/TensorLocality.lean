@@ -25,7 +25,6 @@ linear combinations and adjoints. For background, see [KitaevShenVyalyi2002].
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

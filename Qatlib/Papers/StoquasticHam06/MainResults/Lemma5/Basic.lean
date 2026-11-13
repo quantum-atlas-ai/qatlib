@@ -24,8 +24,6 @@ is exact when the all-ones vector has a nonzero eigenvalue. See [BravyiEtAl2008S
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

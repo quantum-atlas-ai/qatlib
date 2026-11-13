@@ -25,8 +25,6 @@ differences of ensembles. See [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric.FourierLabelHelpers
 open scoped BigOperators

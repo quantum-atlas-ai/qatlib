@@ -34,7 +34,6 @@ bounded-error verification within this model, with oracle-free families required
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QmaCompleteness.WitnessSampler
 open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithAClassicalOracle2025

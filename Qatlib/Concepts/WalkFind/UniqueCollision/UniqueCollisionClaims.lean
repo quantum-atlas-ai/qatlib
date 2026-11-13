@@ -32,7 +32,6 @@ theorem, and the native data-access and reduced-search interfaces for Algorithms
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.WalkFind.UniqueCollision
@@ -42,7 +41,6 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- The proposition that for each `k ≥ 2`, a positive constant bounds every seed's query count

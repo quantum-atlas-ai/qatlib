@@ -35,7 +35,6 @@ connect the runtime to `FiniteNetwork`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

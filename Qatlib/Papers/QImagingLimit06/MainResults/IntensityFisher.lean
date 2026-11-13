@@ -30,8 +30,6 @@ variance hypotheses then give the ordinary and sub-Poissonian resolution bounds.
 * [Delaubert et al., 2008][DelaubertEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -25,8 +25,6 @@ quadratic expression yields a bent dual that is quadratic up to a constant. See 
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

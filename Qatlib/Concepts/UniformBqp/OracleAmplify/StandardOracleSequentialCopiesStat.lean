@@ -26,8 +26,6 @@ shared oracle register and the exact costs of routing queries. The background is
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

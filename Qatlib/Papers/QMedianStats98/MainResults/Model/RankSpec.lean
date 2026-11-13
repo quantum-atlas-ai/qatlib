@@ -29,8 +29,6 @@ at zero weight, `IsRelativeCount` explicitly requires the estimate to be zero on
 [Nayak and Wu, 1998][NayakWu1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QMedianStats98.MainResults.Model

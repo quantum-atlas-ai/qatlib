@@ -29,8 +29,6 @@ The mathematical background is described in [LeeEtAl2011].
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section

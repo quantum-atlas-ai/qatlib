@@ -10,11 +10,10 @@ import Mathlib.Tactic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# QTrainLiu24.MainResults.EmpiricalResults — source layer
+# QTrainLiu24.MainResults.EmpiricalResults
 
 Paper: Chen-Yu Liu et al., *Quantum-Train: Rethinking Hybrid Quantum-Classical
 Machine Learning in the Model Compression Perspective*, fixed arXiv:2405.11304v2.
-PDF `prove/assets/2405.11304v2.pdf`.
 
 Claim c003: the empirical classification results of §III–IV and Tables I–III
 (p.12). These are *observations* on MNIST, FashionMNIST and CIFAR-10; the claim
@@ -33,8 +32,7 @@ facts about them:
 * Parameter-ratio upper bounds match the text's "24.3% / 27.2% / 8.1%" remarks
   (reported as safe decimal ceilings).
 
-Nothing here asserts a bound on unseen-data error. No `sorry`, no extra axiom,
-no `unsafe`.
+Nothing here asserts a bound on unseen-data error.
 -/
 
 set_option autoImplicit false

@@ -29,7 +29,6 @@ basis semantics and explicit gate bounds for native PRN jump construction. See [
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 3000000
 open Qatlib.Concepts.MatrixAccess.RitzPipeline

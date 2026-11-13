@@ -31,14 +31,11 @@ Monte Carlo setting of [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
-
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.StoppingCore.BranchCostCore
 
@@ -61,9 +58,13 @@ noncomputable def weightedRunFor (next : S → PMF (O ⊕ S)) (cost : S → ℕ)
   | fuel + 1, cfg => CostedLaw.bind (weightedTick next cost cfg)
       (weightedRunFor next cost fuel)
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- Zero fuel returns the initial configuration with zero cost. -/
 @[simp] theorem weightedRunFor_zero (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : weightedRunFor next c 0 cfg = CostedLaw.ret cfg := rfl
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- A weighted execution starting from a halted output returns that output with zero cost for
 every fuel. -/
@@ -73,6 +74,8 @@ every fuel. -/
   induction fuel with
   | zero => rfl
   | succ fuel ih => simpa [weightedRunFor, weightedTick] using ih
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- A weighted run with fuel `m + n` equals an `m`-step run followed by an `n`-step
 continuation, adding their costs. -/
@@ -95,6 +98,8 @@ theorem costedLaw_map_fst_bind {α β : Type*} (p : CostedLaw α)
       (p.map Prod.fst).bind (fun a => (f a).map Prod.fst) := by
   simp only [CostedLaw.bind, CostedLaw.charge, PMF.map_bind, PMF.map_comp,
     PMF.bind_map, Function.comp_def]
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- State-dependent costs leave the configuration marginal of finite execution unchanged. -/
 theorem weightedRunFor_marginal (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -121,6 +126,8 @@ theorem weighted_finite_run_resume_and_marginal :
   intro S O _ _ _ _ next c m n cfg
   exact ⟨weightedRunFor_add next c m n cfg, weightedRunFor_marginal next c n cfg⟩
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- Constant unit costs recover the original randomized finite execution law. -/
 theorem weightedRunFor_unit_cost (next : S → PMF (O ⊕ S)) (n : ℕ) (cfg : O ⊕ S) :
     weightedRunFor next (fun _ => 1) n cfg = RandomizedExecution.runFor next n cfg := by
@@ -138,6 +145,8 @@ theorem weightedRunFor_unit_cost (next : S → PMF (O ⊕ S)) (n : ℕ) (cfg : O
 noncomputable def weightedHaltJoint (next : S → PMF (O ⊕ S)) (cost : S → ℕ)
     (cfg : O ⊕ S) (o : O) (k : ℕ) : ℝ≥0∞ :=
   weightedRunFor next cost k cfg (.inl o, k)
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- A weighted run from `s` first samples `next s`, then continues with one less fuel and
 charges `c s`. -/
@@ -175,7 +184,7 @@ theorem weightedRunFor_halt_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
         cases fuel with
         | zero => rfl
         | succ n =>
-          rw [weightedRunFor_succ_running_point, if_neg (by have := hc s; omega)]
+          rw [weightedRunFor_succ_running_point, ite_eq_right (by have := hc s; omega)]
           simp [CostedLaw.ret, PMF.pure_apply]
       | succ k =>
         obtain ⟨n, rfl⟩ : ∃ n, fuel = n+1 := ⟨fuel-1, by omega⟩

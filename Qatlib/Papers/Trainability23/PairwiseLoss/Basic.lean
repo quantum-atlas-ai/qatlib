@@ -31,7 +31,6 @@ clipped relative-entropy losses and relates disjoint supports to maximal total v
 * [Rudolph et al., 2024][RudolphEtAl2024]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Papers.Trainability23.PairwiseLoss

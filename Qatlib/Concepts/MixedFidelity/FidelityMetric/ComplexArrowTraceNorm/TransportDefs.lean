@@ -23,8 +23,6 @@ providing the matrix representation used in isometric trace-norm transport. See 
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option autoImplicit false
 noncomputable section

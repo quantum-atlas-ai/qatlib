@@ -28,8 +28,6 @@ a ring equivalence under an explicit bijectivity hypothesis. See [AharonovJonesL
 * [Aharonov et al., 2009][AharonovJonesLandau2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

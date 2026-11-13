@@ -30,7 +30,6 @@ instrument and completely positive map framework is described in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -43,9 +42,6 @@ open Matrix
 open scoped ComplexOrder ENNReal
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- A sequence of finite complex matrices converges exactly when each matrix entry converges. -/
 theorem tendsto_matrix_iff_entrywise {m n : Type} [Fintype m] [Fintype n]

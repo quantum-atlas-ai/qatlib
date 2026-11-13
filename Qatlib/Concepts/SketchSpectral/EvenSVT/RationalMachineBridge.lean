@@ -30,7 +30,6 @@ source-field counts, connecting machine costs to the sampling-based arithmetic s
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 

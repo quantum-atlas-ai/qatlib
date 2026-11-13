@@ -27,7 +27,6 @@ the corresponding imported endpoint for downstream use.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

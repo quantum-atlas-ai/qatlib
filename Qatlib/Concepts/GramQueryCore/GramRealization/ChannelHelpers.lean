@@ -35,7 +35,6 @@ on the tag register; see [Watrous2018] for the underlying state-space formalism.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.GramQueryCore.GramRealization.GramMarginalReadout

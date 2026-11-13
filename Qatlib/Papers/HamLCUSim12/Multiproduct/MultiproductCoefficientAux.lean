@@ -44,8 +44,6 @@ the terminal coefficient as at least 1 and the penultimate coefficient as negati
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct

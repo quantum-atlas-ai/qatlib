@@ -27,8 +27,6 @@ motivated by the bounded-error extension in [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 open Qatlib.Concepts.HspRecovery.ReductionCore

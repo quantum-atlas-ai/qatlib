@@ -23,9 +23,6 @@ lower entry is the lower response polynomial multiplied by `sqrt (1 - x^2)`. See
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing

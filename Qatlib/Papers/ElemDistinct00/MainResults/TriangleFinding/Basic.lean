@@ -17,6 +17,9 @@ using symmetry of adjacency in a simple graph.
 This witness symmetry is a basic tool for the triangle-finding framework associated with Theorem
 10 of [BuhrmanEtAl2005].
 
+Only the witness-predicate equivalence is proved; no triangle-search algorithm
+or query-complexity bound is established in this module.
+
 ## Main statements
 
 * `isTriangle_swap`: `IsTriangle G a b c` is equivalent to `IsTriangle G b a c`.
@@ -28,7 +31,6 @@ This witness symmetry is a basic tool for the triangle-finding framework associa
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

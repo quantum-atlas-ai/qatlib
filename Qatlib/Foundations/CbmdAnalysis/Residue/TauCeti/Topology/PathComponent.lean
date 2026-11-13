@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -32,7 +34,6 @@ These component tools support the topological contour framework associated with 
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -78,7 +79,7 @@ abbrev pathComponentSelf : (pathComponent x₀ : Set X) :=
   ⟨x₀, mem_pathComponent_self x₀⟩
 
 /-- Points joined by a path in a totally disconnected space are equal. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Joined.eq_of_totallyDisconnectedSpace [TotallyDisconnectedSpace X] {x y : X}
+theorem _root_.Joined.eq_of_totallyDisconnectedSpace [TotallyDisconnectedSpace X] {x y : X}
     (h : Joined x y) : x = y := by
   obtain ⟨γ⟩ := h
   simpa using (isPreconnected_range γ.continuous).subsingleton
@@ -86,7 +87,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Joined.eq_of_totallyDisco
 
 /-- The map from points to their path-component classes is injective in a totally disconnected
 space. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ZerothHomotopy.mk_injective_of_totallyDisconnectedSpace
+theorem _root_.ZerothHomotopy.mk_injective_of_totallyDisconnectedSpace
     [TotallyDisconnectedSpace X] : Function.Injective (ZerothHomotopy.mk (X := X)) :=
   fun _ _ h ↦ Joined.eq_of_totallyDisconnectedSpace (Quotient.exact h)
 

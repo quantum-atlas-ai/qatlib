@@ -31,8 +31,6 @@ corresponding bounded specification is supplied separately.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 

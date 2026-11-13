@@ -40,7 +40,6 @@ response-round and coefficient-visit counts.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 set_option autoImplicit false

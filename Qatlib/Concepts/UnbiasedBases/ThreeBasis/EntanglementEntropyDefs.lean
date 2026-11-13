@@ -35,7 +35,6 @@ partial trace and mixed-state partial trace describe the same left subsystem.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Foundations.PureStateMath.Reflection

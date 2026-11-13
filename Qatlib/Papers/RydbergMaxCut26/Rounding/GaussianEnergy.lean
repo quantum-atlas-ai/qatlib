@@ -26,7 +26,6 @@ rounded QMC energy as a finite sum of normalized Gaussian projection expectation
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

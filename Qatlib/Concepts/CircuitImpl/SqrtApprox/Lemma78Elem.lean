@@ -31,7 +31,6 @@ error on every normalized input state.
 * [Barenco et al., 1995, Section 7][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

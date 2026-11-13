@@ -44,7 +44,6 @@ lower bound corresponding to [BealsEtAl2001].
 * [Atici and Servedio, 2007][AticiServedio2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

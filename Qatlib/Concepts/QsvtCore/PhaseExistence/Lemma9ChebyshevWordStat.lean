@@ -24,8 +24,6 @@ module.
 * [Gilyén et al., Lemma 9][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 open Matrix Polynomial

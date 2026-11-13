@@ -118,8 +118,6 @@ and hence an exact norm formula, supporting the adversary matrices used for [Amb
 * [Ambainis et al., 2009][AmbainisEtAl2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

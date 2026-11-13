@@ -25,7 +25,6 @@ trace-norm contraction under environment discard to the normalized-environment s
 * [Lloyd et al., 2020][LloydEtAl2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

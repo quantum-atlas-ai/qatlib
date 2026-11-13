@@ -27,7 +27,6 @@ five forward costs and two additional forward costs, as used in reversible quant
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 

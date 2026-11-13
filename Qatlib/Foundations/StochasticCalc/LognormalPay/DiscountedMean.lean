@@ -24,7 +24,6 @@ The mathematical background is discussed in [RebentrostGuptBromley2018].
 * [Rebentrost et al., 2018][RebentrostGuptBromley2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.StochasticCalc.LognormalPay

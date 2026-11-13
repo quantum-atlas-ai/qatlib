@@ -191,7 +191,6 @@ theorem majorant_tail {c η Y : ℝ} (hc : 0 < c) (hη : 0 < η)
     hc (mul_pos hη (Real.sinh_pos_iff.mpr hY))
 
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=

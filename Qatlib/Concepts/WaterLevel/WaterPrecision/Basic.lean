@@ -19,7 +19,6 @@ These estimates support the water-level viewpoint of quantum rejection sampling
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

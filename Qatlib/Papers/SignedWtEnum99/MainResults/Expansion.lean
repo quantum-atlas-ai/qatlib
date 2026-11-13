@@ -26,8 +26,6 @@ binary choices of Pauli factors. The phase is expressed by the strictly lower tr
 * [Knill and Laflamme, 1999][KnillLaflamme1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

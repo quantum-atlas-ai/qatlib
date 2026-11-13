@@ -46,7 +46,6 @@ set_option autoImplicit false
 set_option maxHeartbeats 900000
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 variable {C : Type} [Fintype C] [DecidableEq C]
 

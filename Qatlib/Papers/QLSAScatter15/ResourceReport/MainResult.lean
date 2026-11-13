@@ -26,8 +26,6 @@ depth, and gate count by factors of at least 1000. See [SchererEtAl2017] for the
 * [Scherer et al., 2017][SchererEtAl2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

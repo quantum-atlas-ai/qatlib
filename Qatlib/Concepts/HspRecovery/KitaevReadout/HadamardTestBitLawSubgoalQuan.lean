@@ -25,8 +25,6 @@ probabilities used in the phase estimation method of [Kitaev1995].
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath

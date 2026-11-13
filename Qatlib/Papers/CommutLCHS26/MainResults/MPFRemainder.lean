@@ -28,7 +28,6 @@ The concrete fourth-order construction combines one Strang step and two half-ste
 * [Aftab et al., 2026][AftabAnTrivisa2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

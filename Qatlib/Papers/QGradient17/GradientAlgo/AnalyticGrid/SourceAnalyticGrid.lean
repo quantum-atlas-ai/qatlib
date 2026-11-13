@@ -31,7 +31,7 @@ via faster quantum gradient computation*.
   `√2 (r √(dk/2))^k`.
 
 Both use the paper's actual grid functions `gridCenter` / `gridPoint` and are
-bridges to the Frozen v2.0.2 contracts `analyticCentralDifferenceGridError`
+bridges to the library theorems `analyticCentralDifferenceGridError`
 and `tensorChebyshevGridBound`.
 -/
 

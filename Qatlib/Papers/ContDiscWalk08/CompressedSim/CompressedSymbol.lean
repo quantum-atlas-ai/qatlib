@@ -25,10 +25,7 @@ linear phase.
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 
 noncomputable section
 

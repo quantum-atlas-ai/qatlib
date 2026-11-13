@@ -37,7 +37,6 @@ error estimates for Hermitian inputs, in the setting of product-formula error an
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding

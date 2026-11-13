@@ -25,7 +25,6 @@ gridSize)^3` tends to infinity. These statements concern the formulas and models
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

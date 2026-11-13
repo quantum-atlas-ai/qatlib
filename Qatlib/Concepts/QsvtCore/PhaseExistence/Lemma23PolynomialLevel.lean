@@ -28,8 +28,6 @@ odd singular transform, while even degree selects the right singular transform.
 * [Gilyén et al., Lemma 23][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA

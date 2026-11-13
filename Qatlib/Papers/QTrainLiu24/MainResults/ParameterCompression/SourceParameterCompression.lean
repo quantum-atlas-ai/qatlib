@@ -10,11 +10,10 @@ import Mathlib.Tactic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# QTrainLiu24.MainResults.ParameterCompression — source layer
+# QTrainLiu24.MainResults.ParameterCompression
 
 Paper: Chen-Yu Liu et al., *Quantum-Train: Rethinking Hybrid Quantum-Classical
 Machine Learning in the Model Compression Perspective*, fixed arXiv:2405.11304v2.
-PDF `prove/assets/2405.11304v2.pdf`.
 
 Claim c004 (main result): a classical network with `M` parameters (Eq. (1),
 p.2) is trained through an `N = ⌈log₂ M⌉`-qubit QNN plus a classical mapping
@@ -39,7 +38,7 @@ This module formalises the counting content only:
 
 Boundary: this is the *counting* statement, not a trainability, accuracy or
 generalisation guarantee. The source's tables are recorded as data in the
-sibling `EmpiricalResults` module. No `sorry`, no extra axiom, no `unsafe`.
+sibling `EmpiricalResults` module.
 -/
 
 set_option autoImplicit false

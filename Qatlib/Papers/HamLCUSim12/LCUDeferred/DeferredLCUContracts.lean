@@ -32,7 +32,6 @@ success amplitude and failure estimate for these legacy definitions.
 - [Childs and Wiebe, 2012][ChildsWiebe2012], Theorem 3.
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 open Matrix

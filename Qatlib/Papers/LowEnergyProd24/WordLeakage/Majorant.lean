@@ -24,8 +24,6 @@ exponent with these majorants and derives the corresponding product-word leakage
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 250000
 noncomputable section

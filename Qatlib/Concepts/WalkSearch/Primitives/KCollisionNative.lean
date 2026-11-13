@@ -28,8 +28,6 @@ These results clarify the realization conditions used in collision and subset-fi
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.WalkSearch.QuantumAccess
 

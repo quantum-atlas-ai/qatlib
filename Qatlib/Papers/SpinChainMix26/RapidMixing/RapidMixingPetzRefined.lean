@@ -28,7 +28,6 @@ under their positivity hypotheses, together with the arithmetic entries of `petz
 * [Kim, 2026][Kim2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.SpinChainMix26.RapidMixing
@@ -42,8 +41,6 @@ open Matrix Qatlib
 open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The influence constant of a nonnegative influence profile is nonnegative. -/
 theorem aEta_nonneg (η : InfluenceProfile) : 0 ≤ aEta η := by
@@ -98,7 +95,7 @@ theorem clause4_endpoint (blocks angleGates classicalBits : ℕ) :
 /-- A positive semidefinite reference with positive definite complementary marginal is fixed by
 its Petz update; for a positive scalar reference, site marginals are uniformized inside the
 cut block and preserved outside it. -/
-theorem clause5_endpoint {n ℓ d : ℕ} (c : PetzCut n ℓ) (β : ℝ) (chain : PeriodicChain n d)
+theorem clause5_endpoint {n ℓ d : ℕ} (c : PetzCut n ℓ) (_β : ℝ) (_chain : PeriodicChain n d)
     (σ : Operator (d ^ n)) (hd : 0 < d) (hσ : σ.PosSemidef)
     (hσA : (PartialTrace (Matrix.reindex (c.matrixEquiv (d := d)) (c.matrixEquiv (d := d)) σ)).PosDef)
     (k : ℝ) (hk : 0 < k) (i : Fin n) (out : Fin d) :

@@ -27,11 +27,9 @@ and per-round failure bounds yield costs at most `400 / sqrt a` whenever the ini
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 800000
 
 open Qatlib
@@ -414,7 +412,7 @@ private theorem event_zero_nosup {α : Type} (p : PMF α) (P : α → Prop)
   intro x hx hPx
   have hsingle : p x ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P := by
     show p x ≤ ∑' a, p a * (if P a then (1:ℝ≥0∞) else 0)
-    calc p x = p x * (if P x then (1:ℝ≥0∞) else 0) := by rw [if_pos hPx, mul_one]
+    calc p x = p x * (if P x then (1:ℝ≥0∞) else 0) := by rw [ite_eq_left hPx, mul_one]
       _ ≤ ∑' a, p a * (if P a then (1:ℝ≥0∞) else 0) := ENNReal.le_tsum (f := fun a => p a * (if P a then (1:ℝ≥0∞) else 0)) x
   rw [h] at hsingle
   rw [PMF.mem_support_iff] at hx
@@ -422,10 +420,10 @@ private theorem event_zero_nosup {α : Type} (p : PMF α) (P : α → Prop)
 
 /-- The uniform distribution on all elements of `Fin m` assigns each element mass `m⁻¹` for
 positive `m`. -/
-private theorem uniform_apply_univ {m : ℕ} (hm : 0 < m)
+private theorem uniform_apply_univ {m : ℕ} (_hm : 0 < m)
     (hs : (Finset.univ : Finset (Fin m)).Nonempty) (j : Fin m) :
     PMF.uniformOfFinset (Finset.univ : Finset (Fin m)) hs j = ((m : ℕ) : ℝ≥0∞)⁻¹ := by
-  rw [PMF.uniformOfFinset_apply hs j, if_pos (Finset.mem_univ j), Finset.card_univ,
+  rw [PMF.uniformOfFinset_apply hs j, ite_eq_left (Finset.mem_univ j), Finset.card_univ,
     Fintype.card_fin]
 
 section Round
@@ -467,7 +465,7 @@ private theorem round_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
   rw [qSearchRound_eq] at hout
   obtain ⟨st, hst, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   by_cases hS : st.1.1 ∈ S
-  · rw [if_pos hS] at hout
+  · rw [ite_eq_left hS] at hout
     have hout' : out = (some st.1.1, 1, 1) := by
       simpa [PMF.mem_support_pure_iff] using hout
     subst hout'
@@ -475,7 +473,7 @@ private theorem round_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
     · rw [← Option.some.inj hy]; exact hS
     · show (1:ℕ) ≤ 2*qSearchWindow l; omega
     · show (1:ℕ) ≤ 2*qSearchWindow l; omega
-  · rw [if_neg hS] at hout
+  · rw [ite_eq_right hS] at hout
     obtain ⟨j, hj, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     obtain ⟨st2, hst2, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     have hout' : out = (if st2.1.1 ∈ S then some st2.1.1 else none, 2 + 2*j.val, 2 + j.val) := by
@@ -484,8 +482,8 @@ private theorem round_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
     have hjlt : j.val < qSearchWindow l := j.isLt
     refine ⟨fun y hy => ?_, ?_, ?_⟩
     · by_cases h2 : st2.1.1 ∈ S
-      · rw [if_pos h2] at hy; rw [← Option.some.inj hy]; exact h2
-      · rw [if_neg h2] at hy; exact absurd hy (by simp)
+      · rw [ite_eq_left h2] at hy; rw [← Option.some.inj hy]; exact h2
+      · rw [ite_eq_right h2] at hy; exact absurd hy (by simp)
     · show (2 + 2*j.val : ℕ) ≤ 2*qSearchWindow l; omega
     · show (2 + j.val : ℕ) ≤ 2*qSearchWindow l; omega
 
@@ -580,9 +578,9 @@ private theorem round_succ_split (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
             (MeasureProb (Run (preparedMark S) (preparedAACircuit A j₀ (j : ℕ)) (Ket j₀)) S)) := by
     intro st
     by_cases hS : st.1.1 ∈ S
-    · rw [if_pos hS, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
-      rw [if_pos ⟨st.1.1, rfl⟩, if_pos hS]
-    · rw [if_neg hS]
+    · rw [ite_eq_left hS, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+      rw [ite_eq_left ⟨st.1.1, rfl⟩, ite_eq_left hS]
+    · rw [ite_eq_right hS]
       have inner : ∀ j : Fin (qSearchWindow l),
           Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (PMF.bind (preparedAATrial A hA j₀ S j) fun st2 =>
               PMF.pure (if st2.1.1 ∈ S then some st2.1.1 else none, 2 + 2*j.val, 2 + j.val))
@@ -598,7 +596,7 @@ private theorem round_succ_split (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind,
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr (fun j => (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq _ _).symm),
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr inner,
-        uniform_trial_event A hA j₀ S (window_pos l), if_neg hS]
+        uniform_trial_event A hA j₀ S (window_pos l), ite_eq_right hS]
   rw [houter, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit]
   have hfun : ∀ st : (I × ℕ) × ℕ,
       (if st.1.1 ∈ S then (1:ℝ≥0∞)
@@ -771,13 +769,13 @@ private theorem round_none_of_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unita
   rw [qSearchRound_eq] at hout
   obtain ⟨st, hst, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   have hstS : ¬ st.1.1 ∈ S := event_zero_nosup _ _ (hzero _ _) st hst
-  rw [if_neg hstS] at hout
+  rw [ite_eq_right hstS] at hout
   obtain ⟨j, hj, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   obtain ⟨st2, hst2, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   have hst2S : ¬ st2.1.1 ∈ S := event_zero_nosup _ _ (hzero _ _) st2 hst2
   have hout' : out = (if st2.1.1 ∈ S then some st2.1.1 else none, 2 + 2*j.val, 2 + j.val) := by
     simpa [PMF.mem_support_pure_iff] using hout
-  rw [hout', if_neg hst2S]
+  rw [hout', ite_eq_right hst2S]
 
 /-- The expected first cost counter of a round is at most `4 * (6/5)^l`. -/
 private theorem round_cost1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -900,7 +898,7 @@ private theorem loop_expect_succ1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
           intro r
           rw [show (((r.1, r.2.1 + o2, r.2.2 + o3)).2.1 : ℕ) = r.2.1 + o2 from rfl, Nat.cast_add]
         rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hfun,
-          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, if_pos rfl]
+          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, ite_eq_left rfl]
         ring
     | some y =>
         show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.pure (some y, o2, o3))
@@ -910,7 +908,7 @@ private theorem loop_expect_succ1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
                 Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S T (off+1))
                   (fun out => (out.2.1 : ℝ≥0∞))
               else 0)
-        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_neg (by simp)]
+        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_right (by simp)]
         ring
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add,
     expectation_indicator_mul']
@@ -951,7 +949,7 @@ private theorem loop_expect_succ2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
           intro r
           rw [show (((r.1, r.2.1 + o2, r.2.2 + o3)).2.2 : ℕ) = r.2.2 + o3 from rfl, Nat.cast_add]
         rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hfun,
-          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, if_pos rfl]
+          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, ite_eq_left rfl]
         ring
     | some y =>
         show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.pure (some y, o2, o3))
@@ -961,7 +959,7 @@ private theorem loop_expect_succ2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
                 Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S T (off+1))
                   (fun out => (out.2.2 : ℝ≥0∞))
               else 0)
-        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_neg (by simp)]
+        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_right (by simp)]
         ring
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add,
     expectation_indicator_mul']

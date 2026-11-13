@@ -31,7 +31,6 @@ The mathematical background is described in [Campbell2019].
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths

@@ -48,7 +48,6 @@ namespace Qatlib.Papers.QLinearODE17.EndToEnd
 open Qatlib
 open Matrix
 open scoped Classical Matrix.Norms.L2Operator BigOperators
-set_option warningAsError false
 
 /-- The sum of entry norms in a row equals the sum restricted to its nonzero positions. -/
 theorem sparseRowMass_eq_positions {O I : Type} [Fintype O] [Fintype I]

@@ -25,7 +25,6 @@ diamond error, and branchwise circuit and sampling bounds for the simulation fra
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject

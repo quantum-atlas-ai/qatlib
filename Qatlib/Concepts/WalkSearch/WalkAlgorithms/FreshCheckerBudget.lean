@@ -30,8 +30,6 @@ These are supporting estimates for graph checking in quantum-walk search
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

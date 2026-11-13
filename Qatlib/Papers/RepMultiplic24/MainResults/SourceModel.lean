@@ -15,8 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 # RepMultiplic24.MainResults — source model
 
 Paper: *Quantum Algorithms for Representation-Theoretic Multiplicities*,
-fixed arXiv:2407.17649 (2024). The source PDF/text were read locally; the qatlas
-markdown endpoint was unavailable (server-side 503, issue #4).
+arXiv:2407.17649 (2024).
 
 This file provides the paper-layer vocabulary shared by the individual claim files:
 
@@ -31,14 +30,12 @@ This file provides the paper-layer vocabulary shared by the individual claim fil
 * the combinatorics needed to state Proposition 1: cells, standard Young
   tableaux and Yamanouchi words (Def. around Eq. (26)-(28)).
 
-Boundary. There is no representation theory of the symmetric group in the
-library (neither in `QuantumAlgorithmDev/` nor in Frozen v2.0.2), so the actual
-irreps, their restriction/induction and their characters are **not** formalised.
-The statements below are therefore stated in the paper's computational
-vocabulary: dimensions, multiplicities and shot frequencies. The probability
-content is genuine (finite distributions, Chebyshev); the representation-theoretic
-content is carried by the dimension/multiplicity parameters exactly as in the
-paper's formulas.
+Scope note: this module formalizes dimensions, multiplicities and shot
+frequencies in the paper's computational vocabulary, including finite
+distributions and Chebyshev bounds. The irreducible representations of the
+symmetric group, their restriction and induction, and their characters are
+outside the scope of this file. The representation-theoretic content is carried
+by the dimension and multiplicity parameters in the paper's formulas.
 -/
 
 set_option autoImplicit false

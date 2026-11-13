@@ -31,7 +31,6 @@ degree based analysis complements the polynomial method for query complexity in 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.ProbabilityCore.DistributionAA
 open Qatlib

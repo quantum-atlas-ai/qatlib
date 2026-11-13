@@ -30,8 +30,6 @@ derivative control used in the two approximate-degree lower-bound terms.
 [Nayak and Wu, 1998][NayakWu1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth

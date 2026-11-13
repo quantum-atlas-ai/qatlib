@@ -33,7 +33,6 @@ matrix.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge
 
 set_option autoImplicit false

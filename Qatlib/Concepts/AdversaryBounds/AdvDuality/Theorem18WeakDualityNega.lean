@@ -17,7 +17,6 @@ Adversary lower bounds originate in [Ambainis2002]; the broader state-conversion
 framework is [Lee et al., quantum query complexity of state conversion][LeeEtAl2011].
 The predicate used here specifically concerns the nonnegative adversary.
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv

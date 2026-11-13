@@ -36,17 +36,20 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 namespace Qatlib.Concepts.SketchArith.TransposeAccess
 
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 400000
 
 namespace FinDist
 
 variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
+omit [Fintype X] [DecidableEq X] in
+
 /-- Summing a constant mass over the unique value equal to `f x` returns that mass. -/
 private theorem fiber_mass (f : X → Y) (c : ℝ) (x : X) :
     (∑ y, if f x = y then c else 0) = c := by
-  rw [Finset.sum_ite_eq, if_pos (Finset.mem_univ (f x))]
+  rw [Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ (f x))]
+
+omit [Fintype X] [DecidableEq X] in
 
 /-- Summing an observable over the unique value equal to `f x` returns its value at `f x`. -/
 private theorem fiber_sum (f : X → Y) (φ : Y → ℝ) (x : X) :
@@ -54,11 +57,12 @@ private theorem fiber_sum (f : X → Y) (φ : Y → ℝ) (x : X) :
   have hsingle : (∑ y ∈ (Finset.univ : Finset Y), if f x = y then φ y else 0)
       = if f x = f x then φ (f x) else 0 := by
     refine Finset.sum_eq_single (f x) (fun b _ hb => ?_) ?_
-    · rw [if_neg (fun h => hb h.symm)]
+    · rw [ite_eq_right (fun h => hb h.symm)]
     · intro hcontra
       exact absurd (Finset.mem_univ (f x)) hcontra
-  exact hsingle.trans (if_pos rfl)
+  exact hsingle.trans (ite_eq_left rfl)
 
+omit [Fintype X] [DecidableEq X] in
 /-- A fiber-supported weighted sum evaluates to `c * g (f x)`. -/
 private theorem fiber_mass_mul (f : X → Y) (c : ℝ) (g : Y → ℝ) (x : X) :
     (∑ y, (if f x = y then c else 0) * g y) = c * g (f x) := by
@@ -66,11 +70,12 @@ private theorem fiber_mass_mul (f : X → Y) (c : ℝ) (g : Y → ℝ) (x : X) :
       = if f x = y then c * g y else 0 := by
     intro y
     by_cases h : f x = y
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, if_neg h, zero_mul]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, ite_eq_right h, zero_mul]
   rw [Finset.sum_congr rfl fun y _ => hshift y]
   exact fiber_sum f (fun y => c * g y) x
 
+omit [DecidableEq X] in
 /-- Every map between the finite types has a pushforward distribution whose masses are sums over
 its fibers. -/
 theorem exists_pushforward (p : FinDist X) (f : X → Y) :
@@ -78,14 +83,15 @@ theorem exists_pushforward (p : FinDist X) (f : X → Y) :
   refine ⟨⟨fun y => ∑ x, if f x = y then p.prob x else 0, fun y => ?_, ?_⟩, fun y => rfl⟩
   · refine Finset.sum_nonneg fun x _ => ?_
     by_cases h : f x = y
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact p.nonneg x
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
   · calc (∑ y, ∑ x, if f x = y then p.prob x else 0)
       = ∑ x, ∑ y, if f x = y then p.prob x else 0 := Finset.sum_comm
     _ = ∑ x, p.prob x := Finset.sum_congr rfl fun x _ => fiber_mass f (p.prob x) x
     _ = 1 := p.sum_one
 
+omit [DecidableEq X] in
 /-- Expectation under the stated pushforward law equals expectation of the observable composed
 with the map. -/
 theorem expect_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (h : Y → ℝ)
@@ -175,8 +181,8 @@ theorem exists_pushforward_pmf (p : FinDist X) (f : X → Y) :
         = ∑ x, if f x = y then p.prob x else 0 :=
       Finset.sum_congr rfl fun x _ => by
         by_cases hc : y = f x
-        · rw [if_pos hc, if_pos hc.symm]
-        · rw [if_neg hc, if_neg (fun h => hc h.symm)]
+        · rw [ite_eq_left hc, ite_eq_left hc.symm]
+        · rw [ite_eq_right hc, ite_eq_right (fun h => hc h.symm)]
     rw [h3, ← hq y, hν y]
   · exact expect_eq_of_pushforward p q f h hq
 

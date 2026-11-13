@@ -30,8 +30,6 @@ These formulas give the coordinate expression underlying the Boolean Hadamard tr
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Concepts.PauliClifford.ExactRank

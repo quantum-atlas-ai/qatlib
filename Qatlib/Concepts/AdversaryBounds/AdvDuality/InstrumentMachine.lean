@@ -35,7 +35,6 @@ costs and success probabilities to be studied without a fixed running-time bound
 * [Watrous, 2018][Watrous2018], The Theory of Quantum Information.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

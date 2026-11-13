@@ -36,7 +36,6 @@ diamond-norm background, see [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

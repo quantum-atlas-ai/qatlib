@@ -24,8 +24,6 @@ projection range, as in the amplification analysis of [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 
 open Matrix

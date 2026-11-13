@@ -28,7 +28,6 @@ the distinguished label.
 * [Kuperberg, Algorithm 1 and Theorem 3.1][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HspRecovery.RecordExtract

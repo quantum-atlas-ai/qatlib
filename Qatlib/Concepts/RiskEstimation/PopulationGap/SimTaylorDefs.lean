@@ -39,9 +39,7 @@ forward and adjoint resource counts with an embedded Hamiltonian evolution error
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -63,7 +61,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.CoherentSim.TimeDependent
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 

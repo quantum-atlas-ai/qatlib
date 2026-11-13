@@ -28,7 +28,6 @@ measurement-based universality [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath

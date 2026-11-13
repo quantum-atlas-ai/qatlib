@@ -42,8 +42,6 @@ subgroup, together with its image in the abelianization.
 * [Ivanyos et al., 2007][IvanyosSanselmeSantha2007a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

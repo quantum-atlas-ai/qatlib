@@ -31,8 +31,6 @@ sorting time and space estimates. See [Kuperberg2005] for the mathematical backg
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.HspRecovery.ReductionCore
 

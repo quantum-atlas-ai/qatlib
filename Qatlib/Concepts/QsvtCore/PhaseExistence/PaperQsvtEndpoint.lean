@@ -39,7 +39,6 @@ coefficient approximation budget.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery
 open Qatlib.Concepts.QsvtCore.PhaseExistence.EffectiveBesselCutoff
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
@@ -239,7 +238,6 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence.BesselCutoffRate
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The even Chebyshev truncation using the rational coefficient table `J` in place of the
 integral Bessel coefficients. -/

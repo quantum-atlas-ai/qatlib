@@ -36,11 +36,9 @@ results. The quantum walk spectral framework is developed in [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower

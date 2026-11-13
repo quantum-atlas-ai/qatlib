@@ -34,8 +34,6 @@ framework of [GilyenSuLowWiebe2019].
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU
-set_option warningAsError false
-
 
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.WalkSearch.Spectral

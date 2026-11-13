@@ -27,8 +27,6 @@ ratios and their positive unit-ratio resolutions. See [DelaubertEtAl2008] for th
 * [Delaubert et al., 2008][DelaubertEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

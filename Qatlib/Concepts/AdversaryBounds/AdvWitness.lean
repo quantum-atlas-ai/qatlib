@@ -34,7 +34,6 @@ respective square-root and linear dependence on the number of input bits.
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

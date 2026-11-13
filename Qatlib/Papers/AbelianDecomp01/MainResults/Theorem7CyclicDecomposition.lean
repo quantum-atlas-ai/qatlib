@@ -23,7 +23,6 @@ set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 
 open Qatlib.Concepts.IntWordFraming.WordFraming
-set_option warningAsError false
 
 namespace Qatlib.Papers.AbelianDecomp01.MainResults
 

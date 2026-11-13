@@ -28,8 +28,6 @@ gives `coefficient_weighted_mass`; the time-budget estimate then yields
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 300000
 noncomputable section

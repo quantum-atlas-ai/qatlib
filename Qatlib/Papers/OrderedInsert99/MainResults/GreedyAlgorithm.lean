@@ -29,8 +29,6 @@ calculation of [FarhiEtAl1999].
 * [Farhi et al., 1999][FarhiEtAl1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

@@ -25,8 +25,6 @@ exact recovery of all shifts from fewer than 2m answer bits. See [Roetteler2008]
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

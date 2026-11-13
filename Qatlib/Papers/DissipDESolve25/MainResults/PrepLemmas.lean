@@ -26,8 +26,7 @@ set_option backward.isDefEq.respectTransparency false
 - `history_norm_bound` is the per-time solution-norm core of Result 3: the
   Duhamel solution satisfies `‖u(t)‖ ≤ ‖u₀‖ + ∫₀ᵗ ‖b‖`, which is what makes
   the history-state preparation cost explicit.
-
-No axiom, no `admit`, no `native_decide`. -/
+-/
 set_option autoImplicit false
 
 open MeasureTheory intervalIntegral

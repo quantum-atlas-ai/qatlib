@@ -60,7 +60,6 @@ open Matrix Polynomial
 open scoped BigOperators Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 section G8
 

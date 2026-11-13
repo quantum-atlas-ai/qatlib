@@ -27,7 +27,6 @@ local-Hamiltonian constructions in the circuit-to-Hamiltonian framework of
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription

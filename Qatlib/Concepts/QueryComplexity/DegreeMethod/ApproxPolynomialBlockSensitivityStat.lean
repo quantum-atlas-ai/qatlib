@@ -24,8 +24,6 @@ component of the polynomial method for total Boolean functions [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix

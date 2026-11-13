@@ -34,7 +34,6 @@ branch list and its expected query cost.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -460,7 +459,6 @@ private theorem sum_map_mul_const {α : Type*} (l : List α) (f : α → ℝ) (r
     rw [ih]
     ring
 
-set_option linter.unusedVariables false in
 
 /-- For a unitary oracle and well-formed prefix and continuations, expected queries of the
 continued circuit equal the prefix expectation plus the sum of continuation expectations on

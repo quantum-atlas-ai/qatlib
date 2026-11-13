@@ -88,7 +88,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped Classical BigOperators ComplexOrder ENNReal Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- An isometric matrix has operator norm at most one. -/
 private theorem isometry_norm_le_one {H O : Type} [Fintype H] [DecidableEq H]

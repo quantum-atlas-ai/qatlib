@@ -20,10 +20,10 @@ Paper statement. Let `a` be chosen uniformly at random from `(ℤ/Nℤ)ˣ`, wher
 probability at least `1/2` the multiplicative order `r` of `a` modulo `N` is
 even and `a^{r/2} ≢ −1 (mod N)`.
 
-Lean decomposition:
+The formalization separates the event and its probability:
 
 * `lemma1_event_characterization` — the *event* "`r` even and `a^{r/2} ≠ −1`" is
-  exactly the success event of the Frozen v2.0.2 checked factor program
+  exactly the success event of the checked factor program
   (`randomBaseGood`), via `random_base_exact_order_factor_characterization`;
 * `lemma1_success_probability` — under the uniform law on `(ZMod N)ˣ` the
   success mass is at least `1/2`, obtained from the counting bound
@@ -32,8 +32,8 @@ Lean decomposition:
   for the paper's event `{a | Even (orderOf a) ∧ a^{orderOf a/2} ≠ −1}`.
 
 Both dependencies live in
-`QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery`
-(Frozen v2.0.2). The uniform distribution is Mathlib's `Fintype` counting
+`Qatlib.Papers.ShorFactoring97.OrderRecovery`.
+The uniform distribution is Mathlib's `Fintype` counting
 measure on `(ZMod N)ˣ`; no sampling oracle is postulated.
 -/
 
@@ -48,8 +48,8 @@ open Qatlib.Concepts.PeriodSampling.OrderRecovery
 `a : (ZMod N)ˣ`, the checked factor program succeeds (`randomBaseGood N a`) iff
 the order `orderOf a` is even and `a^{orderOf a / 2} : ZMod N` is not `−1`.
 
-Bridges the Frozen v2.0.2 theorem
-`QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery.random_base_exact_order_factor_characterization`. -/
+Uses the theorem
+`Qatlib.Papers.ShorFactoring97.OrderRecovery.random_base_exact_order_factor_characterization`. -/
 theorem lemma1_event_characterization (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (hN : 1 < N) (hodd : Odd N) :
     randomBaseGood N a ↔ Even (orderOf a) ∧
@@ -63,7 +63,7 @@ and `N` has at least two distinct prime factors, then a uniformly random unit
 
 `randomBaseSuccess N` is the uniform success mass
 `|(ZMod N)ˣ|⁻¹ · |{a | randomBaseGood N a}|`. The proof instantiates the
-Frozen v2.0.2 counting bound `random_base_crt_success_bound` at
+counting bound `random_base_crt_success_bound` at
 `k = N.primeFactors.card ≥ 2` and bounds `2^{-(k-1)} ≤ 1/2`. -/
 theorem lemma1_success_probability (N : ℕ) [NeZero N] (hN : 1 < N) (hodd : Odd N)
     (hk : 2 ≤ N.primeFactors.card) :

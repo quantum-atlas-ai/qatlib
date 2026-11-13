@@ -32,7 +32,6 @@ open scoped BigOperators
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.GoodEvent
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
-set_option warningAsError false
 
 /-- A nonnegative function that is at least a nonnegative `a` on an event of mass at least `b`
 has expectation at least a·b. -/

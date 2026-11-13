@@ -27,8 +27,6 @@ g(x)*x` to `Rᴴ*R`.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SpectralSketch.SketchSpectral
 
 open Matrix

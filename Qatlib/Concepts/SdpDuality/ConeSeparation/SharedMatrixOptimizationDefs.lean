@@ -32,7 +32,6 @@ quantum SDP algorithms; see [BrandaoSvore2017].
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree

@@ -26,7 +26,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.ClassShadows20.LowerBound
@@ -36,8 +35,6 @@ namespace Qatlib.Papers.ClassShadows20.MainTheorem
 
 open Qatlib
 open Qatlib.Papers.ClassShadows20.MainTheorem
-
-set_option linter.unusedSectionVars false
 
 /-- The `MemberSampler` with `m` members and `b` fair bits, using the supplied positivity and
 capacity proofs. -/

@@ -10,8 +10,8 @@ import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
-import Mathlib.Data.Rat.Star
-import Mathlib.Data.Real.StarOrdered
+import Mathlib.Algebra.Order.Star.Rat
+import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
@@ -47,16 +47,12 @@ diagonal phase gate in the circuit setting of [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 
 open Matrix
 open scoped Matrix.Norms.L2Operator
-
-set_option linter.unusedSectionVars false
 
 /-- A pair of rational numbers representing the real and imaginary parts of a complex number. -/
 abbrev GaussianRat := ℚ × ℚ

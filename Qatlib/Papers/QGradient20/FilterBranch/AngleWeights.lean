@@ -25,8 +25,6 @@ for either update sign. The mathematical context is [GaoEtAl2021].
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Matrix.Norms.L2Operator

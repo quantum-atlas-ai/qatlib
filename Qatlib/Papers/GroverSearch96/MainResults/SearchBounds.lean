@@ -34,8 +34,6 @@ singleton marked sets, together with a matching square root lower bound.
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.GroverSearch96.MainResults

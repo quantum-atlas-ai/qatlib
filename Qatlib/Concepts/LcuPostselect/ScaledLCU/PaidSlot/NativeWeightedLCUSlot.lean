@@ -27,8 +27,6 @@ normalization and error while tracking forward and adjoint execution costs.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

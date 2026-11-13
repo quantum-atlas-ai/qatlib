@@ -22,13 +22,13 @@ fraction of grid points.  Then the output `(k_1,…,k_d)` of Algorithm 2 obeys
 `Pr[|k_i − g_i| > 4/N] ≤ 1/3` for every coordinate `i`.
 
 This file states the paper conclusion against the actual single-query word
-(`gradientReadout`) and obtains it from the frozen contract
-`QuantumAlgorithm.Papers.QGradient17.ReadoutTools.almostAffineCoordinateReadout`
-(Frozen v2.0.2).  The only bridge is the affine reparametrisation of the
+(`gradientReadout`) and obtains it from
+`Qatlib.Concepts.GradientOracle.ReadoutTools.almostAffineCoordinateReadout`.
+The bridge is the affine reparametrisation of the
 centred source grid `G_n` of Definition 17 (p.24):
 `(x_j).val = N · sourceGradientGridPoint n (x_j) + N/2 − 1/2`, so the constant
 `N·c` of the scaled phase table absorbs the centring shift.  Queries, gates and
-the actual word are exactly those of the frozen readout; no extra assumption is
+the actual word are exactly those of the shared readout; no extra assumption is
 introduced.
 -/
 
@@ -72,7 +72,7 @@ theorem source_lemma_twenty
   have hNpos : 0 < N := by positivity
   let φ : GradientGrid d (2 ^ n) → ℝ := fun x => N * f x
   let c' : ℝ := N * c - (N / 2 - 1 / 2) * ∑ j : Fin d, g j
-  -- The paper's hypothesis becomes the frozen good-grid hypothesis.
+  -- The paper's hypothesis becomes the shared good-grid hypothesis.
   have hgood' : ∀ x ∈ S, |φ x - (c' + ∑ j : Fin d, g j * (x j).val)| ≤ 1 / (42 * Real.pi) := by
     intro x hx
     have hx' := hgood x hx
@@ -112,7 +112,7 @@ theorem source_lemma_twenty
     calc N * |f x - (c + ∑ j : Fin d, g j * sourceGradientGridPoint n (x j))|
         ≤ N * (1 / (42 * Real.pi * N)) := hkey
       _ = 1 / (42 * Real.pi) := by field_simp
-  -- Frozen contract: simultaneous `2/3` mass for every coordinate.
+  -- The readout theorem gives simultaneous `2/3` mass for every coordinate.
   have hmain := almostAffineCoordinateReadout d n hN φ g c' S hg hbad hgood'
   obtain ⟨hmass, -, -, -⟩ := hmain
   -- The actual readout is a normalized state of the unitary word.

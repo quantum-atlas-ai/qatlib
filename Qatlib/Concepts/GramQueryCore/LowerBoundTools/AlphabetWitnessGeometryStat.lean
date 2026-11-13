@@ -28,7 +28,6 @@ annihilation, and norm estimates used in the state conversion construction of [L
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

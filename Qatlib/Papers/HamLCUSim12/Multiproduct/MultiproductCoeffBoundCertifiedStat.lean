@@ -26,7 +26,6 @@ every coefficient indexed below k is bounded by √2 k^(3/2) exp(2k(1 + log η /
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct

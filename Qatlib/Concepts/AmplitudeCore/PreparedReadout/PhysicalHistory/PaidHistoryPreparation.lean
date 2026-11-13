@@ -76,7 +76,6 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 
 open MeasureTheory
 open scoped Classical BigOperators Interval Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 

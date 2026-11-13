@@ -40,7 +40,6 @@ generators, and relates Pauli-rotation derivatives to the Figure 1 readout circu
 * [McArdle and Tew, 2020][McArdleTew2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -29,7 +29,6 @@ The normalized sine ratio measures deviation from linearized amplitude amplifica
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase

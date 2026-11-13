@@ -27,7 +27,6 @@ This development follows [Regev2004a].
 * [Regev, 2004][Regev2004a]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

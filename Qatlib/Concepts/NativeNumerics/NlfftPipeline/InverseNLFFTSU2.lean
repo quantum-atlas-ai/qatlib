@@ -29,7 +29,6 @@ The counted work is bounded by `2048 * n * (Nat.clog 2 n + 5)^2` for positive `n
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.NativeNumerics.NlfftPipeline
 

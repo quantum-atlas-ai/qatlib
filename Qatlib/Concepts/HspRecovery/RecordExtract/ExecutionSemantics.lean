@@ -46,8 +46,6 @@ namespace Qatlib.Concepts.HspRecovery.RecordExtract
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- A finite quantum machine specified by a complex step matrix and a proof that the matrix is
@@ -68,7 +66,7 @@ the `k`th power of its matrix. -/
 theorem run_repeatCircuit_gate (U : Matrix I I ℂ) (k : ℕ) (ψ : QState I) :
     Run 1 (RepeatCircuit [Step.gate U] k) ψ = (U ^ k) *ᵥ ψ := by
   induction k generalizing ψ with
-  | zero => simp [Run, RepeatCircuit, pow_zero, Matrix.one_mulVec]
+  | zero => simp [RepeatCircuit, pow_zero, Matrix.one_mulVec]
   | succ k ih =>
     rw [RepeatCircuit, run_append, run_gate, ih, run_nil]
     simp only [ApplyGate]
@@ -102,8 +100,6 @@ namespace Qatlib.Concepts.HspRecovery.RecordExtract
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- A cyclic simulation configuration consists of a program counter in `Fin (2 * n + 1)` and a
@@ -134,24 +130,26 @@ theorem permMatrix_unitary_of_injective {C : Type*} [Fintype C] [DecidableEq C] 
     Matrix.one_apply]
   by_cases hij : i = j
   · subst j
-    rw [if_pos rfl, Finset.sum_eq_single (σ i) (fun k _ hk => by simp [hk])
+    rw [ite_eq_left rfl, Finset.sum_eq_single (σ i) (fun k _ hk => by simp [hk])
       (fun h => absurd (Finset.mem_univ _) h)]
     simp
-  · rw [if_neg hij]
+  · rw [ite_eq_right hij]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hki : k = σ i
     · by_cases hkj : k = σ j
       · exact (hij (hσ (hki.symm.trans hkj))).elim
-      · rw [if_neg hkj]
+      · rw [ite_eq_right hkj]
         simp
-    · rw [if_neg hki]
+    · rw [ite_eq_right hki]
       simp
 
 /-- The permutation matrix that increments the cyclic program counter and preserves the data
 register. -/
 noncomputable def cyclicPcStep (n : ℕ) : Matrix (CyclicConfig n I) (CyclicConfig n I) ℂ :=
   permMatrix fun c : CyclicConfig n I => (c.1 + 1, c.2)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Incrementing the cyclic program counter while preserving the data register is injective. -/
 theorem cyclicPcSucc_injective (n : ℕ) :
@@ -183,6 +181,8 @@ noncomputable def cyclicGateStep {n : ℕ} (gates : Fin n → Matrix I I ℂ) :
     Matrix (CyclicConfig n I) (CyclicConfig n I) ℂ :=
   Matrix.of fun (p, i) (q, j) => if p = q then cyclicFiberGate gates p i j else 0
 
+omit [Fintype I] in
+
 /-- A cyclic gate-step entry is the corresponding fiber-gate entry when the program counters
 agree, and zero otherwise. -/
 theorem cyclicGateStep_apply {n : ℕ} (gates : Fin n → Matrix I I ℂ)
@@ -202,7 +202,7 @@ theorem cyclicGateStep_unitary {n : ℕ} (gates : Fin n → Matrix I I ℂ)
     rw [Finset.sum_eq_single p
       (fun r _ hr => Finset.sum_eq_zero fun l _ => by
         rw [Matrix.conjTranspose_apply, cyclicGateStep_apply, cyclicGateStep_apply,
-          if_neg hr, if_neg hr]
+          ite_eq_right hr, ite_eq_right hr]
         simp)
       (fun h => absurd (Finset.mem_univ _) h)]
     have hFp : (cyclicFiberGate gates p)ᴴ * cyclicFiberGate gates p = 1 := by
@@ -212,18 +212,18 @@ theorem cyclicGateStep_unitary {n : ℕ} (gates : Fin n → Matrix I I ℂ)
           * cyclicGateStep gates (p, l) (p, j))
         = ((cyclicFiberGate gates p)ᴴ * cyclicFiberGate gates p) i j := by
       simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, cyclicGateStep_apply,
-        if_true]
+        ite_true]
     rw [hsum, hFp, Matrix.one_apply]
     simp
-  · rw [if_neg (show (p, i) ≠ (q, j) from fun h => hpq (Prod.ext_iff.mp h).1)]
+  · rw [ite_eq_right (show (p, i) ≠ (q, j) from fun h => hpq (Prod.ext_iff.mp h).1)]
     apply Finset.sum_eq_zero
     intro r _
     apply Finset.sum_eq_zero
     intro l _
     by_cases hrp : r = p
     · subst r
-      rw [cyclicGateStep_apply, if_neg hpq, mul_zero]
-    · rw [Matrix.conjTranspose_apply, cyclicGateStep_apply, if_neg hrp]
+      rw [cyclicGateStep_apply, ite_eq_right hpq, mul_zero]
+    · rw [Matrix.conjTranspose_apply, cyclicGateStep_apply, ite_eq_right hrp]
       simp
 
 /-- Applying the cyclic gate step to a valid counter fiber applies its fiber gate to the data
@@ -239,23 +239,23 @@ theorem cyclicGateStep_mulVec_fiber {n : ℕ} (gates : Fin n → Matrix I I ℂ)
   by_cases hq : q.val = m
   · have hqm : q = ⟨m, hmM⟩ := Fin.ext hq
     subst hqm
-    rw [if_pos hq]
+    rw [ite_eq_left hq]
     rw [Finset.sum_eq_single ⟨m, hmM⟩
       (fun r _ hr => Finset.sum_eq_zero fun l _ => by
-        rw [if_neg (show (⟨m, hmM⟩ : Fin (2 * n + 1)) ≠ r from fun h => hr h.symm), zero_mul])
+        rw [ite_eq_right (show (⟨m, hmM⟩ : Fin (2 * n + 1)) ≠ r from fun h => hr h.symm), zero_mul])
       (fun h => absurd (Finset.mem_univ _) h)]
     apply Finset.sum_congr rfl
     intro l _
-    rw [if_pos rfl, if_pos hq]
-  · rw [if_neg hq]
+    rw [ite_eq_left rfl, ite_eq_left hq]
+  · rw [ite_eq_right hq]
     apply Finset.sum_eq_zero
     intro r _
     apply Finset.sum_eq_zero
     intro l _
     by_cases hqr : q = r
     · subst r
-      rw [if_neg hq, mul_zero]
-    · rw [if_neg hqr, zero_mul]
+      rw [ite_eq_right hq, mul_zero]
+    · rw [ite_eq_right hqr, zero_mul]
 
 /-- Applying the cyclic counter step moves a state to the next cyclic counter fiber and
 preserves its data state. -/
@@ -268,20 +268,20 @@ theorem cyclicPcStep_mulVec_fiber (n : ℕ) (m : ℕ) (hmM : m < 2 * n + 1) (χ 
     Matrix.of_apply, cyclicFiberState]
   by_cases hq : q.val = ((⟨m, hmM⟩ : Fin (2 * n + 1)) + 1).val
   · have hqs : q = ⟨m, hmM⟩ + 1 := Fin.ext hq
-    rw [if_pos hq]
+    rw [ite_eq_left hq]
     rw [Finset.sum_eq_single ⟨m, hmM⟩
       (fun r _ hr => Finset.sum_eq_zero fun l _ => by
         by_cases hrm : r.val = m
         · exact absurd (Fin.ext hrm) hr
-        · rw [if_neg hrm, mul_zero])
+        · rw [ite_eq_right hrm, mul_zero])
       (fun h => absurd (Finset.mem_univ _) h)]
     rw [Finset.sum_eq_single j
       (fun l _ hl => by
-        rw [if_neg (show (q, j) ≠ (⟨m, hmM⟩ + 1, l) from
+        rw [ite_eq_right (show (q, j) ≠ (⟨m, hmM⟩ + 1, l) from
           fun h => hl (Prod.ext_iff.mp h).2.symm), zero_mul])
       (fun h => absurd (Finset.mem_univ _) h)]
     simp [hqs]
-  · rw [if_neg hq]
+  · rw [ite_eq_right hq]
     apply Finset.sum_eq_zero
     intro r _
     apply Finset.sum_eq_zero
@@ -289,9 +289,9 @@ theorem cyclicPcStep_mulVec_fiber (n : ℕ) (m : ℕ) (hmM : m < 2 * n + 1) (χ 
     by_cases hrm : r.val = m
     · have hr' : r = ⟨m, hmM⟩ := Fin.ext hrm
       subst hr'
-      rw [if_neg (show (q, j) ≠ (⟨m, hmM⟩ + 1, l) from
+      rw [ite_eq_right (show (q, j) ≠ (⟨m, hmM⟩ + 1, l) from
         fun h => hq (congrArg Fin.val (Prod.ext_iff.mp h).1)), zero_mul]
-    · rw [if_neg hrm, mul_zero]
+    · rw [ite_eq_right hrm, mul_zero]
 
 /-- The cyclic simulation step first applies the counter-dependent gate and then increments the
 program counter. -/
@@ -341,7 +341,7 @@ theorem cyclicStep_pow_mulVec_fiber {n : ℕ} (gates : Fin n → Matrix I I ℂ)
       cyclicStep_mulVec_fiber gates k hkn hkM (Run 1 (circuitPrefix gates k hk') ψ)]
     have hval : ((⟨k, hkM⟩ : Fin (2 * n + 1)) + 1).val = k + 1 := by
       have h1 : (1 : Fin (2 * n + 1)).val = 1 := by
-        haveI : NeZero (2 * n + 1) := ⟨by omega⟩
+        have : NeZero (2 * n + 1) := ⟨by omega⟩
         rw [Fin.val_one']
         exact Nat.mod_eq_of_lt (by omega)
       have hlt : (⟨k, hkM⟩ : Fin (2 * n + 1)).val + (1 : Fin (2 * n + 1)).val < 2 * n + 1 := by
@@ -374,6 +374,7 @@ theorem circuit_run_semantics_full {n : ℕ} (gates : Fin n → Matrix I I ℂ)
       = cyclicFiberState n n (Run 1 (gateCircuit gates) ψ) :=
   cyclicStep_pow_mulVec_fiber gates ψ n (le_refl n)
 
+omit [Fintype I] [DecidableEq I] in
 /-- A circuit prefix of length `k` uses zero oracle queries and has gate count and total size
 both equal to `k`. -/
 theorem stepCount_cyclicSimulation {n : ℕ} (gates : Fin n → Matrix I I ℂ) :

@@ -25,12 +25,12 @@ Algorithm 2 runs, on the grid `G_n^d = [0, 2^n−1]^d`:
 4. apply the inverse coordinate QFTs (`gradientQFTWord` reversed and adjointed);
 5. measure and read out the `d` registers as a gradient estimate.
 
-Frozen v2.0.2 already contains exactly this word as `gradientWord d M` together
+The library contains this word as `gradientWord d M` together
 with the resource/unitarity proof `gradient_coordinate_qft_word_unitarity` and
 the phase-oracle unitarity `gradientPhase_unitary`.  The paper-layer theorem
 below is a bridging restatement, naming the paper's Algorithm 2 and recording
 its single query, `2d` fixed gates and prepared output state; it is proved in
-full by invoking the Frozen results.
+full by invoking these results.
 -/
 
 set_option autoImplicit false

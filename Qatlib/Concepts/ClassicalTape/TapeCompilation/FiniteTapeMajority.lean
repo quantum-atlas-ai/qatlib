@@ -42,7 +42,6 @@ background on probabilistic computation and error reduction, see [NielsenChuang2
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Foundations.PureStateMath

@@ -28,8 +28,6 @@ the source development.
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SingleQuery97.MainResults.CoinWeighing
 
 open Finset

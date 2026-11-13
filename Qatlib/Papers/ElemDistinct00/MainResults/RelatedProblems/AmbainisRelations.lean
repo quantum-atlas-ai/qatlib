@@ -21,6 +21,10 @@ these update counts. The final inequality `parity_collision_ambainis` bounds the
 square-root relation parameter below by `(4 * t) / 12`, providing combinatorial estimates for
 the parity-collision lower-bound setting of Theorem 8 in [BuhrmanEtAl2005].
 
+These are combinatorial counts and a numerical parameter inequality. The module
+does not apply an adversary theorem to an evaluation circuit or prove the
+predicate `ParityCollisionLowerBound`.
+
 ## Main statements
 
 * `card_gain_one`: the gain count is `fibreMult f 1 ^ 2 + 2 * fibreMult f 2 ^ 2 - N`.
@@ -35,8 +39,6 @@ the parity-collision lower-bound setting of Theorem 8 in [BuhrmanEtAl2005].
 * [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
   arXiv:quant-ph/0007016 (2000 preprint).
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -204,7 +206,8 @@ theorem card_empty_add (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
       = ∑ _z, (1 : ℕ) := Finset.sum_congr rfl fun z _ => hpoint z
     _ = N := by simp
 
-/-- Under `FibresLeTwo`, the sum of each fibre size times the multiplicity of that size equals
+/-- Under `FibresLeTwo`, summing over codomain values the fibre size times the
+multiplicity of that size equals
 the square of the singleton-fibre count plus twice the square of the double-fibre count. -/
 theorem sum_fibreMult (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
     (∑ z, (fibre f z).card * fibreMult f (fibre f z).card)

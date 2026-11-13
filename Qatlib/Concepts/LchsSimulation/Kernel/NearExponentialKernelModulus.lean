@@ -35,7 +35,6 @@ noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.Kernel
 open MeasureTheory
 open scoped ContDiff
-set_option warningAsError false
 
 /-- The real-axis modulus of `highKernelG β` is continuous. -/
 theorem highKernelG_abs_continuous (β : ℝ) : Continuous (fun k : ℝ => ‖highKernelG β k‖) :=

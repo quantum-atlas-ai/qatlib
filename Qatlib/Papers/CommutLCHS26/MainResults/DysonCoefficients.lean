@@ -36,7 +36,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.DysonCoefficients
 open Matrix
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled BCHCommMass BCHMassProducts BCHPerturbation MixedDyson
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

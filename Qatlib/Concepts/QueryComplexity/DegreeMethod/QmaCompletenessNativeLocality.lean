@@ -29,7 +29,6 @@ propagation representation used in the circuit-to-Hamiltonian framework of
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open Qatlib.Foundations.PureStateMath

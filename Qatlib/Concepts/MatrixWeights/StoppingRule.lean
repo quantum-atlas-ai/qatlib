@@ -48,7 +48,6 @@ open Qatlib.Concepts.MatrixWeights.WeightsCore
 namespace Qatlib.Concepts.MatrixWeights.StoppingRule
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Sets the stopping horizon to the natural ceiling of `log D / (eta*(epsilon-eta))` plus one. -/
 def mmwSdpStopRounds (η ε : ℝ) (D : ℕ) : ℕ := Nat.ceil (Real.log D/(η*(ε-η))) + 1

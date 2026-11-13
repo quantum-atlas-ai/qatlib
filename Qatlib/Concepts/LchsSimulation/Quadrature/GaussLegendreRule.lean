@@ -32,7 +32,6 @@ placed inside the integral. See [AnChildsLin2026] for the mathematical setting.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

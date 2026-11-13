@@ -24,7 +24,6 @@ setting is described in [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -38,7 +37,6 @@ open scoped BigOperators Classical ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- For the displayed budget with three one-record blocks, the native selector cell count
 differs from `confidencePeakSpace`. -/

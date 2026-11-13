@@ -26,7 +26,6 @@ noise-intensity moments across all frequencies in the amplified-transform settin
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments

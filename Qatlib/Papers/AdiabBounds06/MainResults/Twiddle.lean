@@ -24,7 +24,6 @@ block and commutator identities used in the adiabatic analysis of [JansenRuskaiS
 * [Jansen et al., 2007][JansenRuskaiSeiler2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

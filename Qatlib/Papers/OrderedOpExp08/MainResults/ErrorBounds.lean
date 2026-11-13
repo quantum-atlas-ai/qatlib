@@ -36,7 +36,6 @@ open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 

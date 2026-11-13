@@ -27,7 +27,7 @@ is the triangle-inequality split
 using the reverse triangle inequality. The paper only assumes `x, y ≠ 0`.
 
 A restricted form is already in the shared library:
-`QuantumAlgorithm.Papers.QSingValue19.QsVtStability.normalize_error_of_gap`
+`Qatlib.Papers.QSingValue19.QsVtStability.normalize_error_of_gap`
 covers the case `‖x - y‖ < ‖x‖` (it additionally needs the formal normalization gap
 so that `normalize y` is guaranteed non-zero).  The present theorem removes that
 extra hypothesis by treating the complementary regime `‖x‖ ≤ ‖x - y‖` with the

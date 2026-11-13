@@ -41,8 +41,6 @@ namespace Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- The type of Boolean registers of length `n`. -/
@@ -75,14 +73,14 @@ def bitVecEquiv : (n : ℕ) → Reg n ≃ Fin (2 ^ n)
 
 /-- Every register of length zero is sent to zero by `bitVecEquiv`. -/
 @[simp] theorem bitVecEquiv_zero (x : Reg 0) : bitVecEquiv 0 x = 0 := by
-  haveI : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
+  have : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
   exact Subsingleton.elim _ _
 
 /-- The all-zero register is sent to zero by `bitVecEquiv`. -/
 theorem bitVecEquiv_zeroStr (n : ℕ) : bitVecEquiv n (ZeroStr n) = 0 := by
   induction n with
   | zero =>
-    haveI : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
+    have : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
     exact Subsingleton.elim _ _
   | succ n ih =>
     have h2 : bitVecEquiv (n + 1) (ZeroStr (n + 1))
@@ -112,11 +110,17 @@ abbrev QState (I : Type*) := I → ℂ
 /-- The computational basis vector with amplitude one at `i` and zero elsewhere. -/
 def Ket (i : I) : QState I := fun j => if j = i then 1 else 0
 
+omit [Fintype I] in
+
 /-- The amplitude of `Ket i` at `i` is one. -/
 @[simp] theorem ket_self (i : I) : Ket i i = 1 := by simp [Ket]
 
+omit [Fintype I] in
+
 /-- The amplitude of a computational basis vector is given by the Kronecker delta. -/
 theorem ket_apply (i j : I) : Ket i j = if j = i then 1 else 0 := rfl
+
+omit [Fintype I] in
 
 /-- A computational basis vector has zero amplitude at every distinct index. -/
 theorem ket_ne {i j : I} (h : j ≠ i) : Ket i j = 0 := by simp [Ket, h]
@@ -128,9 +132,13 @@ noncomputable def Normalized (ψ : QState I) : Prop := ∑ i, ‖ψ i‖ ^ 2 = 1
 state. -/
 noncomputable def BornProb (ψ : QState I) (i : I) : ℝ := ‖ψ i‖ ^ 2
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Every squared amplitude norm is nonnegative. -/
 theorem bornProb_nonneg (ψ : QState I) (i : I) : 0 ≤ BornProb ψ i := by
   unfold BornProb; positivity
+
+omit [Fintype I] in
 
 /-- A computational basis state has Born weight one at its own index and zero elsewhere. -/
 theorem bornProb_ket (i j : I) : BornProb (Ket i) j = if j = i then 1 else 0 := by
@@ -142,15 +150,20 @@ theorem normalized_ket (i : I) : Normalized (Ket i) := by
   rw [Finset.sum_eq_single i (fun j _ hj => by simp [Ket, hj]) (by simp)]
   simp
 
+omit [DecidableEq I] in
+
 /-- The Born probabilities of a normalized state sum to one. -/
 theorem bornProb_sum_eq_one {ψ : QState I} (hψ : Normalized ψ) : ∑ i, BornProb ψ i = 1 := hψ
 
 /-- The sum of Born weights over a finite set of basis outcomes. -/
 noncomputable def MeasureProb (ψ : QState I) (S : Finset I) : ℝ := ∑ i ∈ S, BornProb ψ i
 
+omit [Fintype I] [DecidableEq I] in
 /-- The Born weight of any finite set of outcomes is nonnegative. -/
 theorem measureProb_nonneg (ψ : QState I) (S : Finset I) : 0 ≤ MeasureProb ψ S :=
   Finset.sum_nonneg fun i _ => bornProb_nonneg ψ i
+
+omit [DecidableEq I] in
 
 /-- Measuring a normalized state in the full basis has total probability one. -/
 theorem measureProb_univ {ψ : QState I} (hψ : Normalized ψ) :
@@ -159,6 +172,8 @@ theorem measureProb_univ {ψ : QState I} (hψ : Normalized ψ) :
 /-- The constant amplitude vector with amplitude `1 / sqrt (Fintype.card I)`. -/
 noncomputable def Uniform (I : Type*) [Fintype I] : QState I :=
   fun _ => (Real.sqrt (Fintype.card I) : ℂ)⁻¹
+
+omit [DecidableEq I] in
 
 /-- The uniform amplitude vector is normalized when the basis has positive cardinality. -/
 theorem normalized_uniform (hN : 0 < Fintype.card I) : Normalized (Uniform I) := by
@@ -176,6 +191,8 @@ noncomputable def ApplyGate (U : Matrix I I ℂ) (ψ : QState I) : QState I := U
 /-- The identity matrix acts as the identity on states. -/
 @[simp] theorem applyGate_one (ψ : QState I) : ApplyGate 1 ψ = ψ := by
   unfold ApplyGate; simp
+
+omit [DecidableEq I] in
 
 /-- Applying a matrix product is equivalent to applying the right factor followed by the left
 factor. -/
@@ -228,9 +245,9 @@ theorem sum_mul_conj_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
     _ = ∑ j, ψ j * (starRingEnd ℂ) (ψ j) := by
         apply Finset.sum_congr rfl
         intro j _
-        rw [Finset.sum_eq_single j (fun k _ hkj => by rw [if_neg hkj, mul_zero])
+        rw [Finset.sum_eq_single j (fun k _ hkj => by rw [ite_eq_right hkj, mul_zero])
           (fun h => absurd (Finset.mem_univ j) h)]
-        rw [if_pos rfl, mul_one]
+        rw [ite_eq_left rfl, mul_one]
 
 /-- A unitary matrix preserves the sum of squared complex amplitude norms. -/
 theorem sum_normSq_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
@@ -258,9 +275,11 @@ theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ * permMatrix σ = 1 := by
   ext i j
   simp only [permMatrix, Matrix.mul_apply, Matrix.of_apply, Matrix.one_apply]
-  rw [Finset.sum_eq_single (σ j) (fun k _ hk => by rw [if_neg hk, mul_zero])
+  rw [Finset.sum_eq_single (σ j) (fun k _ hk => by rw [ite_eq_right hk, mul_zero])
     (fun h => absurd (Finset.mem_univ (σ j)) h)]
   simp [hσ j]
+
+omit [Fintype I] in
 
 /-- The matrix associated with an involution equals its conjugate transpose. -/
 theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
@@ -269,9 +288,9 @@ theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
   simp only [permMatrix, Matrix.conjTranspose_apply, Matrix.of_apply, RCLike.star_def]
   by_cases hji : j = σ i
   · have hij : i = σ j := by rw [← hσ i, ← hji]
-    rw [if_pos hji, if_pos hij, map_one]
+    rw [ite_eq_left hji, ite_eq_left hij, map_one]
   · have hij : i ≠ σ j := fun e => hji (by rw [← hσ j, ← e])
-    rw [if_neg hji, if_neg hij, map_zero]
+    rw [ite_eq_right hji, ite_eq_right hij, map_zero]
 
 /-- The matrix associated with an involution is unitary. -/
 theorem permMatrix_unitary {σ : I → I} (hσ : Function.Involutive σ) :
@@ -476,7 +495,7 @@ theorem hadamardN_mulVec_ket_zero :
     (HadamardN n).mulVec (Ket (ZeroStr n)) = fun _ => ((Real.sqrt 2 : ℂ)⁻¹) ^ n := by
   funext z
   simp only [Matrix.mulVec, dotProduct, Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   exact hadamardN_apply_zero_right z
 
 /-- The register Hadamard gate prepares the uniform state from the all-zero basis state. -/
@@ -562,9 +581,9 @@ theorem hadamardN_unitary (n : ℕ) : HadamardN n ∈ Matrix.unitaryGroup (Reg n
   rw [key]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos (fun _ => rfl), if_pos rfl, ← mul_pow, inv_sqrt2_mul_self, ← mul_pow,
+    rw [ite_eq_left (fun _ => rfl), ite_eq_left rfl, ← mul_pow, inv_sqrt2_mul_self, ← mul_pow,
       inv_mul_cancel₀ (by norm_num : (2 : ℂ) ≠ 0), one_pow]
-  · rw [if_neg (by rwa [← funext_iff]), if_neg hxy, mul_zero]
+  · rw [ite_eq_right (by rwa [← funext_iff]), ite_eq_right hxy, mul_zero]
 
 /-- The matrix exponential of a skew-Hermitian matrix is unitary. -/
 theorem exp_unitary_of_skewHermitian {A : Matrix I I ℂ} (h : Aᴴ = -A) :
@@ -610,10 +629,13 @@ theorem hamiltonianEvolution_neg (H : Matrix I I ℂ) (t : ℝ) :
 /-- The complex inner product of amplitude vectors, conjugate-linear in the first argument. -/
 noncomputable def Inner (ψ φ : QState I) : ℂ := star ψ ⬝ᵥ φ
 
+omit [DecidableEq I] in
+
 /-- The inner product is the sum of conjugated first amplitudes times second amplitudes. -/
 theorem inner_apply (ψ φ : QState I) : Inner ψ φ = ∑ i, (starRingEnd ℂ) (ψ i) * φ i := by
   simp only [Inner, dotProduct, Pi.star_apply, RCLike.star_def]
 
+omit [DecidableEq I] in
 /-- The inner product of a vector with itself is the complex embedding of its sum of squared
 amplitude norms. -/
 theorem inner_self (ψ : QState I) : Inner ψ ψ = ∑ i, ((‖ψ i‖ ^ 2 : ℝ) : ℂ) := by
@@ -621,6 +643,7 @@ theorem inner_self (ψ : QState I) : Inner ψ ψ = ∑ i, ((‖ψ i‖ ^ 2 : ℝ
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+omit [DecidableEq I] in
 /-- An amplitude vector is normalized exactly when its inner product with itself is one. -/
 theorem normalized_iff_inner_self (ψ : QState I) : Normalized ψ ↔ Inner ψ ψ = 1 := by
   rw [inner_self, ← Complex.ofReal_sum]
@@ -649,7 +672,6 @@ end Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped ComplexOrder
 
-set_option linter.unusedSectionVars false
 namespace Qatlib.Foundations.PureStateMath
 
 /-- A diagonal complex matrix is unitary if all its diagonal entries have norm one. -/
@@ -672,17 +694,15 @@ theorem applyGate_diagonal {I : Type*} [Fintype I] [DecidableEq I] (d : I → �
   funext i
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Matrix.diagonal_apply]
   rw [Fintype.sum_eq_single i]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro k hk
-    rw [if_neg (Ne.symm hk), zero_mul]
+    rw [ite_eq_right (Ne.symm hk), zero_mul]
 end Qatlib.Foundations.PureStateMath
 
 open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.PureStateMath
@@ -694,7 +714,7 @@ theorem applyGate_eq_mulVec_ket (A : Matrix I I ℂ) (j : I) (i : I) :
   rw [Finset.sum_eq_single j]
   · simp
   · intro k _ hk
-    rw [if_neg hk, mul_zero]
+    rw [ite_eq_right hk, mul_zero]
   · intro hcon
     exact absurd (Finset.mem_univ j) hcon
 end Qatlib.Foundations.PureStateMath
@@ -707,6 +727,7 @@ set_option autoImplicit false
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.PureStateMath
 
+omit [DecidableEq I] in
 /-- For an orthonormal family, the squared norm of a finite linear combination is the sum of the
 squared coefficient norms. -/
 theorem sum_norm_sq_orthonormal {J : Type} [Fintype J]
@@ -735,9 +756,6 @@ theorem state_ket_expansion {I : Type*} [Fintype I] [DecidableEq I] (ψ : QState
   funext z
   simp [Ket, Finset.sum_apply]
 end Qatlib.Foundations.PureStateMath
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 

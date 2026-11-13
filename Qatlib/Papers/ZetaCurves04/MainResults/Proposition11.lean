@@ -17,9 +17,10 @@ applies an order routine to sampled generating sets and returns failure on sets 
 generate the group.
 
 `proposition11_compose` transfers the Monte Carlo property to group cardinality computation and
-preserves the stored sampler cost. `proposition11_class_number` gives a `ClassNumberAlgorithm`
-record satisfying success and cost bounds at a fixed descriptor and extension degree; its
-conclusion concerns these two fields.
+adds a supplied order-computation budget to the sampler cost. This is a semantic
+composition; validity of that budget for an implementation is assumed separately.
+`proposition11_class_number_statement` is an unproved uniform specification with
+execution contracts and probability of the correct class-number output.
 
 ## Main statements
 
@@ -27,15 +28,12 @@ conclusion concerns these two fields.
   sum.
 * `proposition11_compose`: a correct order routine on generating sets yields a Monte Carlo group
   cardinality computation.
-* `proposition11_class_number`: existence of an algorithm record with success field at least 3/4
-  and the displayed cost bound.
+* `proposition11_class_number_statement`: **Statement only — not proved in Qatlib.**
 
 ## References
 
 * [Kedlaya, 2006][Kedlaya2006]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -87,43 +85,50 @@ theorem proposition11_cost_decomposition
 
 /-- Compose a finite-subset sampler with an order routine defined on generating sets, returning
 failure whenever the sampled subset does not generate the group. -/
+noncomputable def orderPostprocess {G : Type*} [AddCommGroup G] [Fintype G]
+    (ord : (T : Finset G) → AddSubgroup.closure (T : Set G) = ⊤ → ℕ)
+    (T : Finset G) : Option ℕ := by
+  classical
+  exact if h : AddSubgroup.closure (T : Set G) = ⊤ then some (ord T h) else none
+
+/-- Semantic composition charging a supplied budget for the entire order
+postprocessor, including its generating-set test. -/
 noncomputable def composeOrder {G : Type*} [AddCommGroup G] [Fintype G]
-    (Ag : CoinAlgo (Finset G))
+    (Ag : CoinAlgo (Finset G)) (orderCost : ℕ)
     (ord : (T : Finset G) → AddSubgroup.closure (T : Set G) = ⊤ → ℕ) : CoinAlgo ℕ := by
   classical
-  exact Ag.bind (fun T =>
-    if h : AddSubgroup.closure (T : Set G) = ⊤ then some (ord T h) else none)
+  exact Ag.bindCosted (orderPostprocess ord) orderCost
 
 /-- A Monte Carlo sampler of generating sets, composed with a routine that returns the group
-cardinality on every generating set, remains Monte Carlo for that cardinality and preserves
-the sampler's stored cost. This is a composition step for [Kedlaya, Proposition
-11][Kedlaya2006]. -/
+cardinality on every generating set, remains Monte Carlo for that cardinality and adds
+the supplied order budget. Its primitive-step implementation is an explicit
+hypothesis, including the generating-set test; no implementation is constructed. -/
 theorem proposition11_compose
     (G : Type*) [AddCommGroup G] [Fintype G]
-    (Ag : CoinAlgo (Finset G))
+    (Ag : CoinAlgo (Finset G)) (orderCost : ℕ)
     (hAg : Ag.IsMC (fun T => AddSubgroup.closure (T : Set G) = ⊤))
     (ord : (T : Finset G) → AddSubgroup.closure (T : Set G) = ⊤ → ℕ)
+    (implementation : PostprocessingContract (orderPostprocess ord) orderCost)
     (hord : ∀ T hT, ord T hT = Fintype.card G) :
-    (composeOrder Ag ord).IsMC (fun n => n = Fintype.card G)
-      ∧ (composeOrder Ag ord).cost = Ag.cost := by
+    (composeOrder Ag orderCost ord).IsMC (fun n => n = Fintype.card G)
+      ∧ (composeOrder Ag orderCost ord).cost = Ag.cost + implementation.program.length := by
   classical
   unfold composeOrder
-  refine ⟨?_, rfl⟩
-  apply CoinAlgo.isMC_bind Ag _ hAg
-  intro T hT
-  exact ⟨ord T hT, by simp [dif_pos hT], hord T hT⟩
+  constructor
+  · apply CoinAlgo.isMC_bind Ag _ hAg
+    intro T hT
+    exact ⟨ord T hT, by simp [orderPostprocess, dif_pos hT], hord T hT⟩
+  · change Ag.cost + orderCost = _
+    exact congrArg (fun n => Ag.cost + n) implementation.cost_eq
 
-/-- Under the stated half-power bound, there exists a `ClassNumberAlgorithm` whose success field
-at `desc` and `e` is at least 3/4 and whose cost there satisfies the displayed polynomial
-bound. This record-existence statement is associated with [Kedlaya, Proposition
-11][Kedlaya2006]. -/
-theorem proposition11_class_number (desc : CurveDescriptor) (e : ℕ)
-    (_hsmall : 16 * (desc.g : ℝ) < halfPower desc.q e) :
-    ∃ A : ClassNumberAlgorithm,
-      (3 / 4 : ℝ) ≤ A.successProb desc e ∧
-      (∃ c k : ℕ, A.cost desc e ≤ c * (desc.g + desc.logq + e + 1) ^ k) := by
-  refine ⟨⟨fun _ _ => 0, fun _ _ => 0, fun _ _ => 1⟩, ?_, ?_⟩
-  · norm_num
-  · exact ⟨0, 0, by simp⟩
+/-- **Statement only — not proved in Qatlib.** Uniform class-number computation
+with correctness probability and primitive-step execution contracts. The supplied
+machine fixes the initialization/decoding cost convention. -/
+def proposition11_class_number_statement (M : PrimitiveMachine (CurveData × ℕ) ℕ)
+    (logq : CurveData → ℕ) : Prop :=
+  ∃ (program : CurveData → ℕ → List M.Step) (c k : ℕ), ∀ C e,
+    16 * (C.g : ℝ) < halfPower C.q e →
+    (M.algorithm (C, e) (program C e)).IsMC (fun n => n = C.classNumber e) ∧
+    (M.algorithm (C, e) (program C e)).cost ≤ c * (C.g + logq C + e + 1) ^ k
 
 end Qatlib.Papers.ZetaCurves04.MainResults.Proposition11

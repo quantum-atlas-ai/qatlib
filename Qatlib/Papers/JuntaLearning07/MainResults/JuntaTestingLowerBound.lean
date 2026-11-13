@@ -33,7 +33,6 @@ gives the elementary query obstruction used in the lower-bound setting.
   Juntas, Theorem III.5.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

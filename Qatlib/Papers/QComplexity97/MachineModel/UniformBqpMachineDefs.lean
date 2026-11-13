@@ -33,7 +33,6 @@ resource parameters.
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
 open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs

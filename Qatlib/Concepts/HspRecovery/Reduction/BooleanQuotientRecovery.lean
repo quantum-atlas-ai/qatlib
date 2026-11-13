@@ -31,9 +31,6 @@ mass. See [Simon1997] for the mathematical background.
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.WalkFind.UniformThree

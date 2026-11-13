@@ -42,7 +42,6 @@ the quantum-proof setting is discussed by [MarriottWatrous2005].
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

@@ -35,8 +35,6 @@ exactly to frozen-table entries and to its full uniform sample list. See [WangEt
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -60,7 +58,6 @@ namespace Qatlib.Papers.Cbmd26.Algorithms
 
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 800000
 noncomputable section
 namespace CBMD
@@ -177,6 +174,8 @@ private theorem suppliedGridTick_mono {τ : ℕ → ℝ} (hτ : Monotone τ) {h 
   intro i j hij
   exact Nat.ceil_mono (div_le_div_of_nonneg_right (hτ hij) hh.le)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Extending the frozen table by one supplied interval appends the corresponding number of
 copies of its matrix `B N`. -/
 private theorem suppliedFrozenTable_succ (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ) (h : ℝ) (N : ℕ) :
@@ -284,6 +283,8 @@ private theorem suppliedGrid_interval_unique {τ : ℕ → ℝ} (hτ : Monotone 
   · have := hτ (show j+1 ≤ i by omega)
     linarith [hj.2, hi.1]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- On the half-open interval from `τ j` to `τ (j+1)`, the supplied field equals `B j` when `j <
 N` and the breakpoints are monotone. -/
 theorem suppliedGridField_on_interval {τ : ℕ → ℝ} (hτ : Monotone τ)
@@ -294,7 +295,7 @@ theorem suppliedGridField_on_interval {τ : ℕ → ℝ} (hτ : Monotone τ)
   have hex : ∃ i : ℕ, i < N ∧ τ i ≤ u ∧ u < τ (i+1) := ⟨j,hj,hu⟩
   have hi := Nat.find_spec hex
   have he := suppliedGrid_interval_unique hτ hi.2 hu
-  simp only [suppliedGridField, dif_pos hex, he]
+  simp only [suppliedGridField, dite_eq_left hex, he]
 
 /-- If the first `N` interval matrices are Hermitian with norm at most a nonnegative `Λ`, then
 the supplied field has these properties at every time. -/
@@ -387,8 +388,8 @@ theorem suppliedGridField_sample_list {τ : ℕ → ℝ} (hτ : Monotone τ) (h�
     rw [List.getD_eq_getElem?_getD, hlook] at hs
     simp only [Option.getD_some] at hs
     have ht : T*(j:ℝ)/M = (j:ℝ)*(T/M) := by ring
-    simpa only [List.getElem?_ofFn, dif_pos hj, ht, hs] using hlook.symm
-  · simp only [List.getElem?_ofFn, dif_neg hj]
+    simpa only [List.getElem?_ofFn, dite_eq_left hj, ht, hs] using hlook.symm
+  · simp only [List.getElem?_ofFn, dite_eq_right hj]
     exact (List.getElem?_eq_none (by omega)).symm
 
 end Matrices

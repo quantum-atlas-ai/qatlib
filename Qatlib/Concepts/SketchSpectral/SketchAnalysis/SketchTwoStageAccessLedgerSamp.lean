@@ -24,7 +24,6 @@ sampling-based sketch framework [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.SketchArith.SketchBuild
 
 namespace Qatlib.Concepts.SketchSpectral.SketchAnalysis

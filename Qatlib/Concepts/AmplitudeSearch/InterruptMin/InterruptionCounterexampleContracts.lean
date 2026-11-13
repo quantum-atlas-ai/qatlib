@@ -29,8 +29,6 @@ The contracts concern the interrupted search calls used in minimum finding [Durr
 * [Dürr and Høyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 

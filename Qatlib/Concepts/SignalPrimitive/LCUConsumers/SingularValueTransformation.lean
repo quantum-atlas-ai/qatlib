@@ -32,13 +32,9 @@ have unit modulus.
 
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.SignalPrimitive.LCUConsumers
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 
@@ -117,6 +113,8 @@ theorem fiberPhaseGate_unitary (j₀ : J) {c : ℂ} (hc : c * (starRingEnd ℂ) 
   rw [one_sub_fiberProjector_mul_self, hc, one_smul]
   module
 
+omit [DecidableEq I] in
+
 /-- Embedding a matrix in the selected coordinate fiber commutes with complex scalar
 multiplication. -/
 theorem fiberEmbed_smul (j₀ : J) (c : ℂ) (M : Matrix I I ℂ) :
@@ -126,6 +124,8 @@ theorem fiberEmbed_smul (j₀ : J) (c : ℂ) (M : Matrix I I ℂ) :
   by_cases h : a = j₀ ∧ b = j₀
   · simp [h]
   · simp [h]
+
+omit [DecidableEq I] in
 
 /-- Embedding matrices in the selected coordinate fiber preserves their sum. -/
 theorem fiberEmbed_add (j₀ : J) (M N : Matrix I I ℂ) :

@@ -15,6 +15,9 @@ This module defines natural logarithm iteration `iterLog` and the stopping index
 proves that the iterates of a natural number eventually reach a value at most one, using a bound
 that decreases by at least one per iteration while all preceding iterates exceed one.
 
+These are scalar iteration results using the natural logarithm. They do not
+prove a query-complexity bound for finding a claw in two ordered lists.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -28,7 +31,6 @@ The mathematical setting follows [BuhrmanEtAl2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

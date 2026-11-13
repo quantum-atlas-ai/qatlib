@@ -28,8 +28,6 @@ operators and their total. See [HejaziZiniArrazola2024].
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

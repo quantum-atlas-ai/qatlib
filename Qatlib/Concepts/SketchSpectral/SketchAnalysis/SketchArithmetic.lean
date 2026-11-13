@@ -42,7 +42,6 @@ open Qatlib.Concepts.SketchSpectral.EvenSVT.ConstructionStageB.StageBSQNUMERICS.
 open Qatlib.Concepts.SketchSpectral.SketchAnalysis.ConstructionStageB.StageBSQSKETCHARITHMETIC
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.SketchSpectral.SketchAnalysis
 namespace ConstructionStageB

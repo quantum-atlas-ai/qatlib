@@ -27,7 +27,6 @@ the QSP convention of [LowChuang2017].
   Processing*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QsvtCore.PhaseExistence

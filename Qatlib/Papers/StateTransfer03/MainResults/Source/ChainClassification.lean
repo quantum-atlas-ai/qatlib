@@ -27,8 +27,6 @@ least four vertices. See [ChristandlEtAl2004].
 * [Christandl et al., 2004][ChristandlEtAl2004]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 open scoped BigOperators
@@ -36,7 +34,6 @@ open Qatlib.Papers.StateTransfer03.MainResults.Defs
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -533,7 +530,7 @@ theorem chain_no_perfect_transfer_four (N : ℕ) (hN : 4 ≤ N) :
     push_cast
     ring_nf
   have hex : ∃ k : ℤ, (k : ℝ) = (2 * Real.cos (Real.pi / ((N : ℝ) + 1))) :=
-    (IsIntegral.exists_int_iff_exists_rat hint).mp ⟨_, hq.symm⟩
+    (IsIntegral.mem_range_ratCast_iff hint).mp ⟨_, hq.symm⟩
   rcases hex with ⟨k, hk⟩
   have hk := hk.symm
   have h3N : (3 : ℝ) < (N : ℝ) + 1 := by

@@ -28,8 +28,6 @@ results compare Q1 data and give the search budget. The mathematical context is
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

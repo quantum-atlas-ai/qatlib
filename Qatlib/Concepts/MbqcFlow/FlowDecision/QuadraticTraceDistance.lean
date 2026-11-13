@@ -29,7 +29,6 @@ These estimates express the control of measurement expectations by trace distanc
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 
 set_option autoImplicit false

@@ -28,7 +28,6 @@ The mathematical background is described in [AnLiuLin2023].
 -/
 
 open Qatlib.Foundations.PureStateMath.Reflection
-set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.CoherentSim.CoherentOAA

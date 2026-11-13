@@ -26,11 +26,9 @@ stays polynomial in `n` precisely because the depth is capped at
   neighbourhood size is at most `n`. This is the arithmetic that makes
   "ε log n-local" a sublinear-depth regime.
 
-The probabilistic w.h.p. statements themselves (random hypergraph
-concentration, cycle counts) are not formalized here; see the PR work
-log.
-
-No axiom, no `admit`, no `native_decide`. -/
+Scope note: this module formalizes geometric growth and the deterministic
+depth-cap bound. The probabilistic w.h.p. statements (random hypergraph
+concentration and cycle counts) are outside the scope of this file. -/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.OGPQAOAGoh25.MainResults.NeighborhoodGrowth

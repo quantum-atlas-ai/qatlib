@@ -49,8 +49,6 @@ open Qatlib.Concepts.FourierRecovery.ModularFourier
 open Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
@@ -59,7 +57,6 @@ open Qatlib
 open Qatlib.Concepts.QspSimulation.JacobiAnger
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
-set_option warningAsError false
 
 /-- A complex exponential with a purely imaginary real argument has norm one. -/
 private theorem probabilityPhaseCoeff_norm (p : ℝ) :

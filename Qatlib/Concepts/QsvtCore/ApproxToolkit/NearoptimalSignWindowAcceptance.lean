@@ -25,7 +25,6 @@ bound. Background and related constructions are discussed in [GilyenSuLowWiebe20
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignWindow

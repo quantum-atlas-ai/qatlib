@@ -27,7 +27,6 @@ missing-dimension contribution to `Re (trace (exp D))` and controls its error re
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.SketchSpectral.MatrixFunctions

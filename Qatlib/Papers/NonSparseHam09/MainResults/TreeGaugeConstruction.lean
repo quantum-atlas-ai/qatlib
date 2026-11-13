@@ -25,11 +25,7 @@ and preserves `specNorm`. This development accompanies [ChildsKothari2010].
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -44,18 +40,22 @@ variable {H : Matrix ι ι ℂ}
 def edgePhase (H : Matrix ι ι ℂ) (i j : ι) : ℂ :=
   if H i j = 0 then 1 else H i j / (‖H i j‖ : ℂ)
 
+omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
+
 /-- Every edge phase has complex norm one. -/
 lemma edgePhase_norm_eq_one (H : Matrix ι ι ℂ) (i j : ι) : ‖edgePhase H i j‖ = 1 := by
   by_cases h : H i j = 0
   · simp [edgePhase, h]
-  · rw [edgePhase, if_neg h, norm_div, Complex.norm_real,
+  · rw [edgePhase, ite_eq_right h, norm_div, Complex.norm_real,
       Real.norm_of_nonneg (norm_nonneg _)]
     exact div_self (ne_of_gt (norm_pos_iff.mpr h))
+
+omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
 /-- For a nonzero entry, `edgePhase` is the entry divided by its norm. -/
 lemma edgePhase_of_ne (H : Matrix ι ι ℂ) (i j : ι) (h : H i j ≠ 0) :
     edgePhase H i j = H i j / (‖H i j‖ : ℂ) := by
-  rw [edgePhase, if_neg h]
+  rw [edgePhase, ite_eq_right h]
 
 /-- The product of a complex conjugate with the original number is the square of its norm. -/
 lemma star_mul_self_eq_sq (z : ℂ) : star z * z = ((‖z‖ : ℝ) : ℂ) ^ 2 := by
@@ -118,22 +118,26 @@ namespace RootedForest
 /-- The vertex phase obtained recursively by multiplying edge phases along parent links, with
 phase one at each root. -/
 noncomputable def gauge (F : RootedForest H) (i : ι) : ℂ :=
-  if h : F.parent i = i then 1
+  if _h : F.parent i = i then 1
   else gauge F (F.parent i) * edgePhase H (F.parent i) i
 termination_by F.depth i
-decreasing_by exact F.parent_depth i h
+decreasing_by exact F.parent_depth i _h
+
+omit [Fintype ι] [Nonempty ι] in
 
 /-- The gauge at a root is one. -/
 lemma gauge_eq_root (F : RootedForest H) {i : ι} (h : F.parent i = i) : F.gauge i = 1 := by
   rw [gauge]
-  simp only [dif_pos h]
+  simp only [dite_eq_left h]
+
+omit [Fintype ι] [Nonempty ι] in
 
 /-- The gauge at a nonroot vertex is the parent gauge multiplied by the phase of the
 parent-to-child entry. -/
 lemma gauge_eq_child (F : RootedForest H) {i : ι} (h : F.parent i ≠ i) :
     F.gauge i = F.gauge (F.parent i) * edgePhase H (F.parent i) i := by
   rw [gauge]
-  simp only [dif_neg h]
+  simp only [dite_eq_right h]
 
 /-- Every vertex gauge has complex norm one. See [ChildsKothari2010]. -/
 lemma gauge_norm_eq_one (F : RootedForest H) (i : ι) : ‖F.gauge i‖ = 1 := by

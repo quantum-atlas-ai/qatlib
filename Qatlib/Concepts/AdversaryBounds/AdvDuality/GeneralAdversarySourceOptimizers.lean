@@ -46,7 +46,6 @@ the weighted adversary framework of [HoyerLeeSpalek2007].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -58,8 +57,6 @@ open Qatlib
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

@@ -29,8 +29,6 @@ differential defects, and multiplicative error. For background, see [ChildsEtAl2
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option backward.isDefEq.respectTransparency false

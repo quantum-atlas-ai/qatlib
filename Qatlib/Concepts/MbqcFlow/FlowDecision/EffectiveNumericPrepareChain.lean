@@ -39,7 +39,6 @@ refinement count.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

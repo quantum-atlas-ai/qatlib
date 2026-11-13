@@ -26,7 +26,6 @@ matrix-arithmetic setting is represented by [ChiaEtAl2022].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridProgram

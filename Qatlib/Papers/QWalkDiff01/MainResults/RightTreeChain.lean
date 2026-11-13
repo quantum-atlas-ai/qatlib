@@ -26,8 +26,6 @@ probability of reaching the root in the classical propagation analysis of
 * [Childs et al., 2002][ChildsFarhiGutmann2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

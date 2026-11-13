@@ -30,7 +30,6 @@ The mathematical background is developed in [MarriottWatrous2005].
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -51,7 +50,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators
-set_option linter.unusedSectionVars false
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
@@ -115,7 +113,7 @@ theorem record_cross_inner (R S : Matrix H H ℂ)
             (branchState S R rest (S *ᵥ φ)) = _
           rw [ih S R hS hR (S *ᵥ ψ) (S *ᵥ φ) hψ' hφ' heψ' heφ',
             same_cross_inner R S hR hS ψ φ q hψ heφ]
-          simp only [recordWeight, if_true, Complex.ofReal_mul]
+          simp only [recordWeight, ite_true, Complex.ofReal_mul]
           ring
       | false =>
           obtain ⟨hψ', heψ'⟩ := different_invariant R S hS ψ p hψ heψ
@@ -125,7 +123,7 @@ theorem record_cross_inner (R S : Matrix H H ℂ)
           rw [ih (1 - S) (1 - R) (isOrthogonalProjector_compl hS)
             (isOrthogonalProjector_compl hR) ((1 - S) *ᵥ ψ) ((1 - S) *ᵥ φ)
             hψ' hφ' heψ' heφ', different_cross_inner R S hR hS ψ φ q hψ heφ]
-          simp only [recordWeight, Bool.false_eq_true, if_false, Complex.ofReal_mul,
+          simp only [recordWeight, Bool.false_eq_true, ite_false, Complex.ofReal_mul,
             Complex.ofReal_sub, Complex.ofReal_one]
           ring
 
@@ -178,6 +176,8 @@ theorem record_mass_spectral_sum {J : Type*} [Fintype J]
     simp
   · simp [hij]
 
+omit [DecidableEq H] in
+
 /-- An isometric frame satisfying `A * Aᴴ = Q` and diagonalizing `Aᴴ * P * A` has orthonormal
 columns fixed by `Q`, each satisfying the compressed eigenvector relation with its parameter
 `t j`. -/
@@ -209,6 +209,8 @@ theorem spectral_frame_columns {J : Type*} [Fintype J] [DecidableEq J]
     funext h
     simp only [Matrix.mul_diagonal, Pi.smul_apply, smul_eq_mul]
     ring
+
+omit [DecidableEq H] in
 
 /-- If `A * Aᴴ = Q`, every vector fixed by `Q` expands in the columns of `A` with coefficients
 `Aᴴ *ᵥ ψ`. -/

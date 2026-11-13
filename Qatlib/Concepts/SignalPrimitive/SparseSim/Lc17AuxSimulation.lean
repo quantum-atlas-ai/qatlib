@@ -33,7 +33,6 @@ most `ε ^ 2` and output mass at least `1 - 2 * ε` when `ε ≤ 1 / 2`.
 - [Low and Chuang, 2017][LowChuang2017].
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.BlockEncoding.EncodingCore
@@ -52,7 +51,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.SignalPrimitive.SparseSim
 

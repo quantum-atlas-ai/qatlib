@@ -28,8 +28,6 @@ The state, unitary circuit, and measurement framework follows the standard setti
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 

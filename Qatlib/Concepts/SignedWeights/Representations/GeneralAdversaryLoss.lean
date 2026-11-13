@@ -40,7 +40,6 @@ total expected queries and `K` times its mass.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.Execution.CircuitCompile
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

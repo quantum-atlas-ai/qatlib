@@ -33,7 +33,6 @@ with exactly its selected precision as query count and with the same label law `
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -37,7 +37,6 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
-set_option warningAsError false
 
 /-- The rows containing an element of `W` in column `j`. -/
 def colRows {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]

@@ -32,7 +32,7 @@ here the claim is recorded as a cost model (`dbqiteEntanglingWith`,
 correctness the count refers to is proved in `DBQITERecursion`
 (`dbqite_step_implements`).
 
-No axiom, no `admit`, no `native_decide`. -/
+-/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.RiemannQITE25.MainResults.GateCount

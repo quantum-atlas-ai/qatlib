@@ -32,7 +32,6 @@ For nonnegative inverse temperature and energies in `[0, R]`,
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
@@ -42,9 +41,6 @@ namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Matrix
 
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The finite partition function obtained by summing the Boltzmann weights `exp (-β * E j)`. -/
 noncomputable def diagonalGibbsPartition (D : ℕ) (E : Fin D → ℝ) (β : ℝ) : ℝ :=
@@ -94,7 +90,7 @@ noncomputable def thermalKernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : 
 state-space size. -/
 theorem thermalKernel_offdiag (D : ℕ) (E : Fin D → ℝ) (β : ℝ) {i j : Fin D} (hij : i ≠ j) :
     thermalKernel D E β i j = thermalAcceptance E β i j / (D : ℝ) :=
-  if_neg hij
+  ite_eq_right hij
 
 /-- The Gibbs probability of a state is its Boltzmann weight divided by the partition function. -/
 theorem diagonalGibbsDist_prob (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
@@ -174,7 +170,7 @@ private theorem thermalKernel_diag_ge (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     rw [hfinal, div_le_div_iff_of_pos_right hDpos]
     exact hsum.trans (le_of_eq hsum')
   have hid : (1:ℝ) - ((D:ℝ)-1)/(D : ℝ) - 1/(D : ℝ) = 0 := by field_simp; ring
-  rw [thermalKernel, if_pos rfl]
+  rw [thermalKernel, ite_eq_left rfl]
   linarith
 
 /-- Every entry of the nonempty finite Metropolis kernel is nonnegative. -/
@@ -188,7 +184,7 @@ private theorem thermalKernel_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) 
     exact div_nonneg (thermalAcceptance_pos E β i j).le (by exact_mod_cast hD.le)
 
 /-- Every row of the nonempty finite Metropolis kernel sums to one. -/
-private theorem thermalKernel_row_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
+private theorem thermalKernel_row_sum (D : ℕ) (_hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) : ∑ j : Fin D, thermalKernel D E β i j = 1 := by
   have hins : (Finset.univ : Finset (Fin D)) = insert i (Finset.univ.erase i) :=
     (Finset.insert_erase (Finset.mem_univ i)).symm
@@ -196,7 +192,7 @@ private theorem thermalKernel_row_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
   rw [hins, Finset.sum_insert hni]
   have hdiag : thermalKernel D E β i i
       = 1 - ∑ j' ∈ Finset.univ.erase i, thermalAcceptance E β i j' / (D : ℝ) :=
-    if_pos rfl
+    ite_eq_left rfl
   have hoff : ∀ j ∈ Finset.univ.erase i,
       thermalKernel D E β i j = thermalAcceptance E β i j / (D : ℝ) :=
     fun j hj => thermalKernel_offdiag D E β (Ne.symm (Finset.ne_of_mem_erase hj))

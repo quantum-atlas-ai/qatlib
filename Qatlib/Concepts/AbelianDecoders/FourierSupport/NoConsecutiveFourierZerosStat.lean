@@ -23,7 +23,6 @@ positions as the original support size. For background, see [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical
 open Qatlib.Foundations.PureStateMath

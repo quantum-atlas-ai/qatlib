@@ -37,8 +37,6 @@ derives an averaged success bound from a lower bound on units with sufficiently 
 * [Chau and Lo, 1995][ChauLo1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

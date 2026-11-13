@@ -26,8 +26,6 @@ out an antitone real function taking the specified values at `1` and at any `M >
 * [Meyer and Wong, 2015][MeyerWong2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

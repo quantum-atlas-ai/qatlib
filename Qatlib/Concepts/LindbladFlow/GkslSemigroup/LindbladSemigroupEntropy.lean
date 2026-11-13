@@ -46,7 +46,6 @@ conclusion to `KMSNormalForm`, following the entropy monotonicity principle of [
 * [Lindblad, 1975][Lindblad1975]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 

@@ -44,7 +44,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.D
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 namespace Qatlib.Papers.KoopmanSim26.LiftedDynamics.Calculus
 

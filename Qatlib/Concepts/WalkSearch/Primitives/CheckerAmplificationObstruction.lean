@@ -26,7 +26,6 @@ selects marked vertices exactly. On the three-vertex triangle these primitives r
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 set_option autoImplicit false

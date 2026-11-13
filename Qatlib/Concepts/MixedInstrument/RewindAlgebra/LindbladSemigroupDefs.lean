@@ -35,7 +35,6 @@ semigroup setting is that of [Lindblad1976].
 * [Lindblad, 1976][Lindblad1976]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

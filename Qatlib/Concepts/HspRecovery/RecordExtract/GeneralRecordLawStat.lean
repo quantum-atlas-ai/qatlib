@@ -24,8 +24,6 @@ labelled phase qubit.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.RecordExtract

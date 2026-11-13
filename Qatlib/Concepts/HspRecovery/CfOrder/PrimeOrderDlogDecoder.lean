@@ -30,10 +30,7 @@ probability `1 - (1 / p) ^ m`. This specializes the discrete logarithm postproce
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.HspRecovery.CfOrder
 
@@ -240,7 +237,7 @@ private theorem prod_omega0 (m : ℕ) (ω : Fin m → ZMod p × ZMod p) :
       by_contra hcon
       exact hall (fun i => Classical.byContradiction (fun h => hcon ⟨i, h⟩))
     obtain ⟨j, hj⟩ := hex
-    have hzj : (if ω j = (0, 0) then (1 : ℝ) else 0) = 0 := by rw [if_neg hj]
+    have hzj : (if ω j = (0, 0) then (1 : ℝ) else 0) = 0 := by rw [ite_eq_right hj]
     have hz : (∏ i : Fin m, (if ω i = (0, 0) then (1 : ℝ) else 0)) = 0 := by
       rw [Finset.prod_eq_zero (Finset.mem_univ j) hzj]
     have hne : ¬(ω = (fun _ : Fin m => (0, 0))) :=
@@ -377,7 +374,7 @@ theorem prime_dlog_fresh_actual_verified_success (p : ℕ) [Fact p.Prime] (C : T
           rw [← hP] at hg
           by_cases hz3 : (ω i).2 = d * (ω i).1
           · exact absurd hz3 hi
-          · rw [hg, if_neg hz3]
+          · rw [hg, ite_eq_right hz3]
         have hz2 : (∏ j : Fin m, P.prob (ω j)) = 0 :=
           Finset.prod_eq_zero (Finset.mem_univ i) hpi
         rwa [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf]
@@ -410,10 +407,10 @@ theorem prime_dlog_fresh_actual_verified_success (p : ℕ) [Fact p.Prime] (C : T
     · have hne0 : ¬(ω = (fun _ : Fin m => (0 : ZMod p × ZMod p))) := by
         intro he
         exact (he ▸ hEω0) hω
-      rw [if_pos hω, mul_zero, if_neg hne0, mul_zero]
-    · rw [if_neg hω, mul_one]
+      rw [ite_eq_left hω, mul_zero, ite_eq_right hne0, mul_zero]
+    · rw [ite_eq_right hω, mul_one]
       rcases hz ω (hEnot ω hω) with hzero | hzero
-      · rw [hzero, if_pos, mul_one]
+      · rw [hzero, ite_eq_left, mul_one]
         rfl
       · rw [hzero, zero_mul]
   have hsplit : (∑ ω : Fin m → ZMod p × ZMod p, P.probOf ω * if E ω then 0 else 1) =
@@ -438,7 +435,7 @@ theorem prime_dlog_fresh_actual_verified_success (p : ℕ) [Fact p.Prime] (C : T
           have : P.prob (0, 0) = 1 / (p : ℝ) := by
             show (primeDlogRecordDist p g h).prob (0, 0) = 1 / (p : ℝ)
             have hz : (0 : ZMod p) = (d : ZMod p) * 0 := by ring
-            simp only [hg, if_pos hz]
+            simp only [hg, ite_eq_left hz]
           rw [this, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
   calc
     P.probEvent E = ∑ ω : Fin m → ZMod p × ZMod p, P.probOf ω * (if E ω then 1 else 0) := by

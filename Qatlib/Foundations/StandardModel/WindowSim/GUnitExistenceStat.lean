@@ -25,7 +25,6 @@ fixed-family and transition requirements for the local G gate in the circuit sim
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.StandardDefs.WindowSim
 

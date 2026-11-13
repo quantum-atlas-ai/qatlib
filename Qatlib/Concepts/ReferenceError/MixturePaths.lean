@@ -30,7 +30,6 @@ fresh-sample circuit model used in random compilation [Campbell2019].
 -/
 
 open Qatlib.Foundations.QueryWordCore.Circuit
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -44,9 +43,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- The circuit applying `U (ω i)` in increasing sample-index order. -/
 def mixturePathCircuit {J : Type} {D : ℕ} [Fintype J] [DecidableEq J]
@@ -161,7 +157,7 @@ theorem mixturePowerMap_eq_sum_paths {J : Type} [Fintype J] [DecidableEq J] {D :
         simp [mixturePathOperator, List.ofFn_zero]
       have hprob : ((independentSampleLaw (fun _ : Fin 0 => d)).prob
           (default : Fin 0 → J) : ℂ) = 1 := by
-        simp [(independent_sample_product_law _ _).1, Fin.prod_univ_zero]
+        simp [(independent_sample_product_law _ _).1]
       have hsingle : ∑ ω : Fin 0 → J,
           ((independentSampleLaw (fun _ : Fin 0 => d)).prob ω : ℂ) •
             (mixturePathOperator U ω * ρ * (mixturePathOperator U ω)ᴴ)
@@ -199,7 +195,7 @@ theorem mixturePowerMap_eq_sum_paths {J : Type} [Fintype J] [DecidableEq J] {D :
       rw [show (Fin.consEquiv (fun _ : Fin (n + 1) => J)) (j, ω) = Fin.cons j ω from rfl,
         independentSampleLaw_prob_cons d j ω, mixturePathOperator_cons,
         Matrix.conjTranspose_mul, ← Complex.ofReal_mul, mul_comm]
-      simp only [Matrix.mul_assoc, Complex.ofReal_mul, mul_comm]
+      simp only [Matrix.mul_assoc, Complex.ofReal_mul]
 
 /-- The iterated mixture output equals the independent-law average of conjugations by actual
 path operators. This identifies the fresh-sample output used in [Campbell2019]. -/

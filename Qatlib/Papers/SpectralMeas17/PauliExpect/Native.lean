@@ -26,7 +26,6 @@ of [PoulinEtAl2018] to Pauli observables.
 * [Poulin et al., 2018][PoulinEtAl2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.SpectralMeas17.PauliExpect

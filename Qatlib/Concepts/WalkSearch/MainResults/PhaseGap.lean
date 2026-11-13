@@ -109,7 +109,6 @@ analysis. For background on search via quantum walks, see [MagniezNayakRolandSan
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.PhaseGap
 

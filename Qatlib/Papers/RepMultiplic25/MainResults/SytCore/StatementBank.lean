@@ -12,14 +12,12 @@ theoretic multiplicities" (arXiv:2502.20253, 2025).
 This file records faithful `Prop` statements for the claims whose content
 is purely mathematical (c003, c004, c005, c006), on top of the model of
 `Definitions.lean` (Young diagrams, `aft`, `fDim`, standard Young
-tableaux).  The algorithmic claims (c001, c002, c007–c013) are all
-runtime bounds of the form "coefficient can be computed in time O(…)":
-formalising them needs a model of computation with runtime accounting for
-Young-tableaux enumeration algorithms, which neither Mathlib nor this
-repository provides — recorded as substantive obstacles in the PR work
-log.
+tableaux).
 
-No axiom, no `admit`, no `native_decide`.
+Scope note: the algorithmic claims (c001, c002, c007–c013), which assert
+that a coefficient can be computed in time O(…), are outside the scope
+of this file. Their formalization requires a model of computation with
+runtime accounting for Young-tableaux enumeration algorithms.
 -/
 import Qatlib.Papers.RepMultiplic25.MainResults.SytCore.Definitions
 

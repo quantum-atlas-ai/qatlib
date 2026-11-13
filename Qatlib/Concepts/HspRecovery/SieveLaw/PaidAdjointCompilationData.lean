@@ -29,8 +29,6 @@ and output circuits.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 

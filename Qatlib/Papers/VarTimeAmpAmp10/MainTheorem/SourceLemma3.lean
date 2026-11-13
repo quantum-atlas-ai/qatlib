@@ -33,7 +33,7 @@ argument establishes and what its statement consumes; the extra factor is
 exposed rather than silently dropped.
 
 Frozen reuse:
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.MainTheorem.clause68_endpoint`
+`Qatlib.Papers.VarTimeAmpAmp10.MainTheorem.clause68_endpoint`
 (core, from the `VtOverlapChain` telescoping) and
 `...MainTheorem.lemma3_product_bound_with_stage_gain` (the factorization).
 -/

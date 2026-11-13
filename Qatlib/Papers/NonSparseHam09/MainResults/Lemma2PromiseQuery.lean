@@ -26,11 +26,7 @@ predicate `AvgAlgo`. The proposition `lemma2Statement` records matching bounds p
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -57,7 +53,7 @@ def AvgAlgo (M B q : ℕ) : Prop :=
 
 /-- The proposition asserting a positive-constant lower query bound proportional to `M / B` and
 an algorithm with budget `ceil(c₂ * M / B)`, for positive `B` and a nonempty promise set. -/
-def lemma2Statement (M B : ℕ) (hB : 0 < B) (hP : (promiseStrings M B).Nonempty) : Prop :=
+def lemma2Statement (M B : ℕ) (_hB : 0 < B) (_hP : (promiseStrings M B).Nonempty) : Prop :=
   ∃ c₁ c₂ : ℝ, 0 < c₁ ∧ 0 < c₂ ∧
     (∀ q : ℕ, AvgAlgo M B q → c₁ * (M : ℝ) / (B : ℝ) ≤ (q : ℝ)) ∧
     AvgAlgo M B (Nat.ceil (c₂ * (M : ℝ) / (B : ℝ)))

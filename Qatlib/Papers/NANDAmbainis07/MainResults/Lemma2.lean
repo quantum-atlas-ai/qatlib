@@ -27,8 +27,6 @@ Lemma 2 in [Ambainis2007].
 * [Ambainis, 2007][Ambainis2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.NANDAmbainis07.MainResults

@@ -26,7 +26,6 @@ on γ: control of the negative coefficient mass by the positive mass and a bound
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators

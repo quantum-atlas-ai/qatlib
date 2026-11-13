@@ -34,7 +34,6 @@ updates agree with the quantum circuit action on computational basis states.
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Concepts.CircuitImpl.MultiControl

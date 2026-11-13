@@ -32,7 +32,6 @@ distance estimates described in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

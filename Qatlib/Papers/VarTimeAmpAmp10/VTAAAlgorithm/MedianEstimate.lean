@@ -48,7 +48,6 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The sorted median of the amplitude estimates from `2 * r + 1` outcome labels. -/

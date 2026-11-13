@@ -25,8 +25,6 @@ couplings, reflection symmetry, and vanishing entries away from neighboring site
 * [Christandl et al., 2004][ChristandlEtAl2004]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 open Matrix
@@ -35,7 +33,6 @@ open Qatlib.Papers.StateTransfer03.MainResults.Defs
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -84,14 +81,14 @@ theorem engineeredAdj_eq_zero (N : ℕ) (lam : ℝ) (i j : Fin N)
     (hij : i.val + 1 ≠ j.val) (hji : j.val + 1 ≠ i.val) :
     engineeredAdj N lam i j = 0 := by
   unfold engineeredAdj
-  rw [if_neg hij, if_neg hji]
+  rw [ite_eq_right hij, ite_eq_right hji]
 
 /-- Every diagonal entry of the engineered chain matrix is zero. See [ChristandlEtAl2004]. -/
 theorem engineeredAdj_diag (N : ℕ) (lam : ℝ) (i : Fin N) :
     engineeredAdj N lam i i = 0 := by
   unfold engineeredAdj
   have h1 : ¬ i.val + 1 = i.val := by omega
-  rw [if_neg h1, if_neg h1]
+  rw [ite_eq_right h1, ite_eq_right h1]
 
 end
 

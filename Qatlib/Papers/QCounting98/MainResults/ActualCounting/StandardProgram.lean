@@ -47,7 +47,6 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Foundations.PureStateMath.BornBridge (relabelState)
 open scoped Classical BigOperators
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The standard Boolean-workspace circuit obtained by compiling the padded amplitude-estimation

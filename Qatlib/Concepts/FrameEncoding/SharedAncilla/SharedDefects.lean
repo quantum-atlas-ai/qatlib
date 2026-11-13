@@ -31,8 +31,6 @@ workspace block encoding framework associated with [GilyenSuLowWiebe2019].
   exponential improvements for quantum matrix arithmetics.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.FrameEncoding.SharedAncilla
 

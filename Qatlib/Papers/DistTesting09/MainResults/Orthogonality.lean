@@ -42,7 +42,6 @@ open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Papers.DistTesting09.MainResults.Defs
 open Qatlib.Papers.DistTesting09.MainResults.Concentration
-set_option warningAsError false
 
 namespace Qatlib.Papers.DistTesting09.MainResults.Orthogonality
 

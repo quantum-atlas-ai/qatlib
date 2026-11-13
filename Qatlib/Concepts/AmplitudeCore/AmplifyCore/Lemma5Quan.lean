@@ -37,7 +37,6 @@ dimensional change of coordinates. See [BrassardEtAl2002] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore

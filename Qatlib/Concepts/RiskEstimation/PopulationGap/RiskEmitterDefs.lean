@@ -40,7 +40,6 @@ error window.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
@@ -60,8 +59,6 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open Qatlib
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {n N : ℕ}

@@ -25,7 +25,6 @@ Real.sqrt 5 / 5`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal

@@ -31,9 +31,6 @@ oracle is unitary. The compiler results support the QSVT circuit framework of
   transformation and beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Concepts.CopyEvolution.Discriminate
 

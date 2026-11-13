@@ -28,7 +28,6 @@ framework of [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend

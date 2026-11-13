@@ -23,7 +23,6 @@ known reflection gate for each walk call. Related mathematical background is giv
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

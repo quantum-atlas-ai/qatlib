@@ -32,7 +32,6 @@ The closed form in terms of `descents` and `ascents` yields the signed descent f
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

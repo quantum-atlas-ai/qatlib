@@ -38,7 +38,6 @@ execution model is described in [KitaevShenVyalyi2002].
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

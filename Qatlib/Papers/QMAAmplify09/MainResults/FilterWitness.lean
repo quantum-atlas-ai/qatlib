@@ -32,8 +32,6 @@ also compares the previously defined amplification cost with the real-valued
 * [Nagaj et al., 2009][NagajWocjanZhang2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

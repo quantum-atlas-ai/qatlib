@@ -26,7 +26,7 @@ The attack of Section 3 (p. 6) is:
 2. otherwise run Simon's algorithm on the hiding function `f_s` of Theorem 2.
 
 The proof below reuses the compiled verified Simon chain
-`QuantumAlgorithm.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry`:
+`Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry`:
 
 * `simon_verified_actual_trial_success_and_soundness` — one fresh block
   succeeds with probability at least `1/2` and never outputs a wrong key;

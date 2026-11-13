@@ -34,9 +34,6 @@ input space, and `computedSignalWord` repeats this amplified segment.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LocalMachine.LocalTransport

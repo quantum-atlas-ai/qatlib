@@ -9,25 +9,25 @@ import Qatlib.Papers.TriangleFind14.MainResults.SourceModel
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Theorem 1.1 of TriangleFind14
+# Theorem 1.1 of TriangleFind14: an assembly cost contract
 
 François Le Gall, *Improved Quantum Algorithm for Triangle Finding via
 Combinatorial Arguments*, fixed version arXiv:1407.0085v2 (8 Sep 2014),
 Theorem 1.1, printed p. 3.
 
-"There exists a quantum algorithm that, given as input the oracle of an
-unweighted graph `G` on `n` vertices, outputs a triangle of `G` with probability
-at least `2/3` if a triangle exists, and uses `Õ(n^{5/4})` queries to the
-oracle."
+This file does not claim to construct the paper's quantum algorithm.  It gives an
+honest interface for an oracle algorithm and proves the final exponent bookkeeping
+from an assembly certificate.  A run carries a finite random seed, an explicit
+edge-query transcript whose answers agree with the graph oracle, and an output that
+is invariant under changing the graph without changing that transcript.  Thus the
+query bound is tied to the transcript length and the output cannot inspect the graph
+outside the recorded queries.
 
-The source model records the observable interface of such an algorithm: an
-`outcomes` type (measurement records) with a probability distribution on every
-graph, and a three-vertex output on every graph and outcome.  The success
-probability is the probability that the output is a triangle of the input
-graph.  The field `queries` is the worst-case number of adjacency-oracle
-queries; the `Õ` notation is represented by a constant, the exponent `5/4`, and
-a polylogarithmic factor `(log n)^d` of unspecified degree `d` (the paper
-writes `Õ(·)` for "up to `poly(log n)` factors", footnote 1, p. 3).
+`source_theorem_1_1` is a conditional composition theorem.  Its hypothesis gives
+separate `O(n polylog n)` bounds for the setup, walk/checking, and amplification
+parts at the paper's parameters `a = 3/4`, `k = 1/2`, together with the assembled
+algorithm's correctness.  The conclusion only adds those three costs and absorbs
+`n ≤ n^(5/4)` for `n ≥ 2`; it does not assume an `O(n)` triangle-finding algorithm.
 -/
 
 set_option autoImplicit false
@@ -37,84 +37,131 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.TriangleFind14.MainResults
 
-/-- The observable input/output interface of a triangle-finding algorithm on
-`n` vertices: a finite family of outcomes, a probability law on each graph, and
-a three-vertex output for each graph and outcome. -/
-structure TriangleFindingQuantumAlgorithm (n : ℕ) where
-  /-- Worst-case number of adjacency-oracle queries. -/
-  queries : ℕ
-  /-- Measurement records of the algorithm. -/
-  outcomes : Type
-  outcomesFintype : Fintype outcomes
-  /-- Probability of each measurement record on a given graph. -/
-  prob : SimpleGraph (Fin n) → outcomes → ℝ
-  prob_nonneg : ∀ (G : SimpleGraph (Fin n)) (ω : outcomes), 0 ≤ prob G ω
-  prob_sum : ∀ G : SimpleGraph (Fin n),
-    (@Finset.univ outcomes outcomesFintype).sum (fun ω => prob G ω) = 1
-  /-- The three-vertex set output on a given graph and measurement record. -/
-  output : SimpleGraph (Fin n) → outcomes → Finset (Fin n)
-  output_card : ∀ (G : SimpleGraph (Fin n)) (ω : outcomes), (output G ω).card = 3
+/-- An unordered edge queried from an `n`-vertex graph. -/
+abbrev EdgeQuery (n : ℕ) := Fin n × Fin n
 
-/-- Probability that the algorithm outputs a triangle of the input graph. -/
-def TriangleFindingQuantumAlgorithm.successProbability
-    {n : ℕ} (A : TriangleFindingQuantumAlgorithm n) (G : SimpleGraph (Fin n)) : ℝ :=
-  letI := A.outcomesFintype
+/-- One oracle answer paired with the queried edge. -/
+abbrev EdgeQueryAnswer (n : ℕ) := EdgeQuery n × Bool
+
+/-- The Boolean answer supplied by the graph adjacency oracle. -/
+noncomputable def edgeQueryAnswer {n : ℕ} (G : SimpleGraph (Fin n)) (e : EdgeQuery n) : Bool :=
   letI := Classical.propDecidable
-  ∑ ω : A.outcomes,
-    A.prob G ω * (if IsTriangle G (A.output G ω) then (1 : ℝ) else 0)
+  decide (G.Adj e.1 e.2)
 
-/-- Theorem 1.1 of arXiv:1407.0085v2 (printed p. 3).  There is a quantum
-algorithm that, on every `n`-vertex unweighted graph, uses `Õ(n^{5/4})`
-adjacency-oracle queries and outputs a triangle with probability at least `2/3`
-whenever a triangle exists.
+/-- A finite-seed graph-oracle algorithm.
 
-The `Õ` is represented by `c · n^{5/4} · (log n)^d` with constants `c > 0` and a
-polylog degree `d`.  The algorithm's construction is Section 4 of the paper:
-Grover search over `X` for a triangle through a sampled vertex, then the
-quantum walk of Proposition 4.1 over the Johnson graph `J(V, ⌈n^a⌉)` with
-`a = 3/4` and `k = 1/2` (proof of Theorem 1.1, pp. 9–10).
+The transcript records every edge query and answer.  `trace_valid` ties those answers
+to the graph oracle, `output_trace_invariant` prevents the output from using any
+other graph information, and `trace_length_le` makes the query bound an actual
+bound on the recorded transcript length. -/
+structure TriangleFindingQuantumAlgorithm (n : ℕ) where
+  /-- Finite random seed space for the measurement/randomness interface. -/
+  Seed : Type
+  seedFintype : Fintype Seed
+  seedNonempty : Nonempty Seed
+  /-- Oracle transcript produced on a graph and random seed. -/
+  trace : SimpleGraph (Fin n) → Seed → List (EdgeQueryAnswer n)
+  /-- Every answer in a transcript is the corresponding adjacency-oracle answer. -/
+  trace_valid : ∀ (G : SimpleGraph (Fin n)) (r : Seed) (q : EdgeQueryAnswer n),
+    q ∈ trace G r → q.2 = edgeQueryAnswer G q.1
+  /-- Three-vertex output produced after the transcript. -/
+  output : SimpleGraph (Fin n) → Seed → Finset (Fin n)
+  output_card : ∀ (G : SimpleGraph (Fin n)) (r : Seed), (output G r).card = 3
+  /-- The output depends on the graph only through the recorded transcript. -/
+  output_trace_invariant : ∀ (G H : SimpleGraph (Fin n)) (r : Seed),
+    trace G r = trace H r → output G r = output H r
+  /-- Claimed worst-case query bound. -/
+  queryBound : ℕ
+  /-- The claimed bound is an upper bound on every transcript length. -/
+  trace_length_le : ∀ (G : SimpleGraph (Fin n)) (r : Seed),
+    (trace G r).length ≤ queryBound
 
-This layer is a conditional theorem.  The hypothesis `hAssembly` isolates the
-unformalized component: a checking assembly with the Õ(n)·polylog query bound
-and the `2/3` success guarantee on every graph with a triangle — Proposition 4.1
-at `a = 3/4`, `k = 1/2` (all three of its exponents `1/2+k`, `1/2+2a/3`,
-`1/2+a-k/2` evaluate to `1`), together with the seed handling of Lemma 4.1.
-What is proved here is the paper's final exponent bookkeeping: the assembly
-bound `c₀ · n · (log n)^{d₀}` is absorbed into `c₀ · n^{5/4} · (log n)^{d₀}`
-because `n^1 ≤ n^{5/4}` for `n ≥ 2` and `(log n)^{d₀} ≥ 0`.
+/-- Compatibility projection for code that used the former `queries` field.  Its value is now the
+transcript-derived `queryBound`, whose validity is supplied by `trace_length_le`. -/
+abbrev TriangleFindingQuantumAlgorithm.queries {n : ℕ}
+    (A : TriangleFindingQuantumAlgorithm n) : ℕ := A.queryBound
 
-Candidate dependencies for closing `hAssembly`: `source_proposition_4_1`
-(statement registered in this module series) and
-`QuantumAlgorithm.Concepts.WalkSearch.MnrsAmplify` (MNRS walk guarantee and
-cost ledger). -/
+/-- Probability that the transcript-constrained algorithm outputs a triangle. -/
+noncomputable def TriangleFindingQuantumAlgorithm.successProbability
+    {n : ℕ} (A : TriangleFindingQuantumAlgorithm n) (G : SimpleGraph (Fin n)) : ℝ :=
+  letI := A.seedFintype
+  uniformProb (fun r : A.Seed => IsTriangle G (A.output G r))
+
+/-- The setup, walk/checking, and amplification costs of one assembled run. -/
+structure TriangleFindingAssembly (n : ℕ) where
+  /-- The transcript-constrained assembled algorithm. -/
+  algorithm : TriangleFindingQuantumAlgorithm n
+  /-- Setup cost, corresponding to sampling and preparing the good set. -/
+  setupCost : ℝ
+  /-- Walk/checking cost, corresponding to Proposition 4.1. -/
+  walkCost : ℝ
+  /-- Amplification and final checking cost. -/
+  amplificationCost : ℝ
+  setup_nonneg : 0 ≤ setupCost
+  walk_nonneg : 0 ≤ walkCost
+  amplification_nonneg : 0 ≤ amplificationCost
+  /-- The actual transcript query bound is paid for by the three subroutines. -/
+  queryBound_le :
+    (algorithm.queryBound : ℝ) ≤ setupCost + walkCost + amplificationCost
+
+/-- Conditional exponent bookkeeping for Theorem 1.1.
+
+The hypothesis supplies a transcript-constrained assembled algorithm and separate
+`O(n (log n)^d)` bounds for its setup, walk/checking, and amplification costs.
+The correctness clause is also supplied by the assembly certificate.  The proof combines
+those costs and changes only the polynomial exponent from `1` to `5/4`. -/
 theorem source_theorem_1_1
     (hAssembly : ∃ c₀ d₀ : ℕ, 0 < c₀ ∧ ∀ n : ℕ, 2 ≤ n →
-      ∃ A : TriangleFindingQuantumAlgorithm n,
-        (A.queries : ℝ) ≤
-            (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ ∧
+      ∃ A : TriangleFindingAssembly n,
+        A.setupCost ≤ (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ ∧
+          A.walkCost ≤ (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ ∧
+          A.amplificationCost ≤ (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ ∧
           ∀ G : SimpleGraph (Fin n), HasTriangle G →
-            (2 : ℝ) / 3 ≤ A.successProbability G) :
+            (2 : ℝ) / 3 ≤ A.algorithm.successProbability G) :
     ∃ c d : ℕ, 0 < c ∧ ∀ n : ℕ, 2 ≤ n →
       ∃ A : TriangleFindingQuantumAlgorithm n,
-        (A.queries : ℝ) ≤
+        (A.queryBound : ℝ) ≤
             (c : ℝ) * Real.rpow (n : ℝ) (5 / 4) * (Real.log (n : ℝ)) ^ d ∧
           ∀ G : SimpleGraph (Fin n), HasTriangle G →
             (2 : ℝ) / 3 ≤ A.successProbability G := by
   obtain ⟨c₀, d₀, hc₀, hA⟩ := hAssembly
-  refine ⟨c₀, d₀, hc₀, fun n hn => ?_⟩
-  obtain ⟨A, hq, hs⟩ := hA n hn
-  refine ⟨A, ?_, hs⟩
-  have hn1 : (1 : ℝ) < (n : ℝ) := by exact_mod_cast (by omega : (1 : ℕ) < n)
+  refine ⟨3 * c₀, d₀, by omega, fun n hn => ?_⟩
+  obtain ⟨A, hsetup, hwalk, hamp, hsuccess⟩ := hA n hn
+  refine ⟨A.algorithm, ?_, hsuccess⟩
+  have hn1 : (1 : ℝ) < (n : ℝ) := by
+    exact_mod_cast (by omega : (1 : ℕ) < n)
   have hlog : (0 : ℝ) ≤ Real.log (n : ℝ) :=
     (Real.log_pos (by exact_mod_cast (by omega : (1 : ℕ) < n))).le
+  have hsum : (A.algorithm.queryBound : ℝ) ≤
+      3 * (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ := by
+    calc
+      (A.algorithm.queryBound : ℝ) ≤
+          A.setupCost + A.walkCost + A.amplificationCost := A.queryBound_le
+      _ ≤ (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ +
+          (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ +
+          (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ := by
+            linarith
+      _ = 3 * (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ := by ring
   have hn54 : (n : ℝ) ≤ Real.rpow (n : ℝ) (5 / 4 : ℝ) := by
-    calc (n : ℝ) = Real.rpow (n : ℝ) (1 : ℝ) := (Real.rpow_one _).symm
+    calc
+      (n : ℝ) = Real.rpow (n : ℝ) (1 : ℝ) := (Real.rpow_one _).symm
       _ ≤ Real.rpow (n : ℝ) (5 / 4 : ℝ) :=
-          (Real.rpow_le_rpow_left_iff (y := (1 : ℝ)) (z := (5 / 4 : ℝ)) hn1).mpr
-            (by norm_num)
-  calc (A.queries : ℝ) ≤ (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ := hq
-    _ ≤ (c₀ : ℝ) * Real.rpow (n : ℝ) (5 / 4) * (Real.log (n : ℝ)) ^ d₀ := by
-        apply mul_le_mul_of_nonneg_right _ (pow_nonneg hlog d₀)
-        exact mul_le_mul_of_nonneg_left hn54 (Nat.cast_nonneg c₀)
+        (Real.rpow_le_rpow_left_iff (y := (1 : ℝ)) (z := (5 / 4 : ℝ)) hn1).mpr
+          (by norm_num)
+  calc
+    (A.algorithm.queryBound : ℝ) ≤
+        3 * (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ := hsum
+    _ ≤ (3 * c₀ : ℝ) * Real.rpow (n : ℝ) (5 / 4) *
+        (Real.log (n : ℝ)) ^ d₀ := by
+          have hmul :
+              3 * (c₀ : ℝ) * (n : ℝ) * (Real.log (n : ℝ)) ^ d₀ ≤
+                3 * (c₀ : ℝ) * Real.rpow (n : ℝ) (5 / 4) *
+                  (Real.log (n : ℝ)) ^ d₀ := by
+            apply mul_le_mul_of_nonneg_right _ (pow_nonneg hlog d₀)
+            exact mul_le_mul_of_nonneg_left hn54 (by positivity)
+          exact hmul
+    _ = ((3 * c₀ : ℕ) : ℝ) * Real.rpow (n : ℝ) (5 / 4) *
+        (Real.log (n : ℝ)) ^ d₀ := by
+          norm_num [Nat.cast_mul]
 
 end Qatlib.Papers.TriangleFind14.MainResults

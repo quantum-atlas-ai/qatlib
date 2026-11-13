@@ -38,15 +38,11 @@ assertion that this formula holds for every angle assignment under the present d
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 
 set_option autoImplicit false
-set_option warningAsError false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic

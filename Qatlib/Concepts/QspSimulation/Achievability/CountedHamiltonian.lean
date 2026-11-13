@@ -33,8 +33,6 @@ well-formedness, and exposes exact query and gate counts for the QSP constructio
   transformation and beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Concepts.CopyEvolution.Discriminate

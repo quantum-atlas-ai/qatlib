@@ -26,8 +26,6 @@ later perturbation estimates; matrix analysis background is provided by [Bhatia1
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.PhaseGeometry.Phase

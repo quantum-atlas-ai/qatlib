@@ -28,7 +28,6 @@ multiplication is an isometry on states supported on units. See [VanDamSeroussi2
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

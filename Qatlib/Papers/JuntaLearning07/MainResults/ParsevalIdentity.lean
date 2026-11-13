@@ -29,7 +29,6 @@ the normalization required for the Fourier-sampling distribution.
   Juntas, Lemma II.1.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

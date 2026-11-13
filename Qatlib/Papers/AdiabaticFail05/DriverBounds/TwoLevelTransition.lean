@@ -34,7 +34,6 @@ to bound the transition probability. The mathematical context is
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

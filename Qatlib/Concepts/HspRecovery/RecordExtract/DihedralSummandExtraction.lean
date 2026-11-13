@@ -28,9 +28,6 @@ the conditional-state identities needed for extraction.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentCore.Measurement

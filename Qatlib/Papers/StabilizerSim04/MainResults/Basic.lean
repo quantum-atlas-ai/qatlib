@@ -34,7 +34,6 @@ statements concerning canonical circuits, stabilizer counts, and simulation outc
 * [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -180,7 +179,7 @@ theorem theorem1_measurement_closure {n : ℕ} {ψ : QState (Reg n)}
     (initial (standardStabilizer n) []) (KetZero n)
   exact ⟨gateChain gs, [], ⟨m', _, 1⟩, hm', rfl⟩
 
-/-- The proposed equivalence, for normalized states, of Clifford preparation, physical-program
+/-- **Statement only — not proved in Qatlib.** The proposed equivalence, for normalized states, of Clifford preparation, physical-program
 preparation, having `2 ^ n` fixing Pauli elements, and determination by the Pauli
 stabilizer. -/
 def theorem1_four_conditions_statement : Prop :=
@@ -440,7 +439,7 @@ theorem lemma5_tableaus_eq_of_actionWord_eq {n : ℕ} (gs1 gs2 : List (CliffordG
   have := congrArg encode hdec
   simpa [encode_decode] using! this
 
-/-- The statement that two legal Clifford circuits have equal operators exactly when their
+/-- **Statement only — not proved in Qatlib.** The statement that two legal Clifford circuits have equal operators exactly when their
 evolved standard destabilizer and stabilizer tableaus agree. -/
 def lemma5_tableau_equivalence_statement : Prop :=
   ∀ (n : ℕ) (gs1 gs2 : List (CliffordGate n)),
@@ -459,7 +458,7 @@ def hadamardPoints {n : ℕ} (mask : Fin n → Bool) (r : Row n) : Row n :=
   ⟨fun j => if mask j then r.z j else r.x j,
     fun j => if mask j then r.x j else r.z j, r.phase⟩
 
-/-- The statement that a consistent square tableau possesses a mask of X/Z exchanges for which
+/-- **Statement only — not proved in Qatlib.** The statement that a consistent square tableau possesses a mask of X/Z exchanges for which
 the resulting X matrix has trivial kernel. -/
 def lemma6_hadamard_full_rank_statement : Prop :=
   ∀ (n : ℕ) (t : Tableau n n), ConsistentTableau t →
@@ -474,7 +473,7 @@ def lemma7_symmetric_decomposition_statement : Prop :=
     ∃ (Λ M : Matrix (Fin n) (Fin n) (ZMod 2)),
       (∀ i j, i ≠ j → Λ i j = 0) ∧ IsUnit M ∧ A + Λ = M * Mᵀ
 
-/-- The statement that every legal Clifford word has an equivalent word whose length times
+/-- **Statement only — not proved in Qatlib.** The statement that every legal Clifford word has an equivalent word whose length times
 `Nat.log 2 n` is at most `4 * (n + 1) ^ 2`. -/
 def corollary9_gate_count_statement : Prop :=
   ∀ (n : ℕ) (gs : List (CliffordGate n)), (∀ g ∈ gs, legalGate g) →
@@ -506,13 +505,13 @@ def CanonicalCircuit {n : ℕ} (gs : List (CliffordGate n)) : Prop :=
       (∀ g ∈ h2, isHadamard g) ∧ (∀ g ∈ p3, isPhase g) ∧ (∀ g ∈ c4, isCNOT g) ∧
       (∀ g ∈ p4, isPhase g) ∧ (∀ g ∈ c5, isCNOT g)
 
-/-- The statement that every legal Clifford word possesses an operator-equivalent word
+/-- **Statement only — not proved in Qatlib.** The statement that every legal Clifford word possesses an operator-equivalent word
 satisfying `CanonicalCircuit`. -/
 def theorem8_canonical_form_statement : Prop :=
   ∀ (n : ℕ) (gs : List (CliffordGate n)), (∀ g ∈ gs, legalGate g) →
     ∃ gs' : List (CliffordGate n), CanonicalCircuit gs' ∧ CircuitEquiv gs gs'
 
-/-- The statement that `PureStabilizerStateCount n` equals `2 ^ n` times the product of `2 ^ (n
+/-- **Statement only — not proved in Qatlib.** The statement that `PureStabilizerStateCount n` equals `2 ^ n` times the product of `2 ^ (n
 - k) + 1` over `k < n`. -/
 def proposition2_stabilizer_count_statement : Prop :=
   ∀ n : ℕ,
@@ -528,7 +527,7 @@ respectively. -/
 def OppositeSignInGroups {n : ℕ} (Gs Hs : List (PauliElem n)) : Prop :=
   ∃ p : PauliElem n, p ∈ generatedGroup Gs ∧ negPauliElem p ∈ generatedGroup Hs
 
-/-- The proposed inner-product formula for normalized states with length-`n` stabilizer
+/-- **Statement only — not proved in Qatlib.** The proposed inner-product formula for normalized states with length-`n` stabilizer
 generator lists minimizing `generatorMismatch`: zero for opposite signs, and the specified
 inverse power of `sqrt 2` otherwise. -/
 def inner_product_characterization_statement : Prop :=

@@ -38,9 +38,6 @@ open Matrix
 
 open scoped Classical BigOperators
 
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
 /-- The query-index, answer-bit, and auxiliary-register basis used for polynomial circuit
@@ -50,6 +47,8 @@ abbrev PolynomialWorkspace (I W : Type) := (I × Bool) × W
 /-- Converts a Boolean function to its zero-one values in a commutative semiring. -/
 def boolValue {σ : Type} {R : Type} [CommSemiring R] (f : σ → Bool) : σ → R :=
   fun i => if f i then 1 else 0
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Casting the real zero-one values of a Boolean function to the complexes gives its complex
 zero-one values. -/
@@ -84,6 +83,8 @@ noncomputable def amplitudePolynomial (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) : PolynomialWorkspace I W → MvPolynomial I ℂ :=
   amplitudeFold (fun q => MvPolynomial.C (ψ q)) C
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- The amplitude polynomial of the empty circuit is the constant initial amplitude. -/
 @[simp] theorem amplitudePolynomial_nil (ψ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) : amplitudePolynomial [] ψ q = MvPolynomial.C (ψ q) := rfl
@@ -94,6 +95,8 @@ noncomputable def amplitudeState' (s : Step (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) : PolynomialWorkspace I W → MvPolynomial I ℂ :=
   fun r => amplitudeStep s (fun t => MvPolynomial.C (ψ t)) r
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- Folding a circuit with a first instruction equals folding its tail after the corresponding
 polynomial update. -/
 theorem amplitudeFold_cons (P : PolynomialWorkspace I W → MvPolynomial I ℂ)
@@ -103,6 +106,7 @@ theorem amplitudeFold_cons (P : PolynomialWorkspace I W → MvPolynomial I ℂ)
   simp only [amplitudeFold, List.reverse_cons, List.foldr_append, List.foldr_cons,
     List.foldr_nil]
 
+omit [DecidableEq I] [DecidableEq W] in
 /-- The amplitude polynomials of a nonempty circuit are obtained by folding the tail from the
 first instruction's polynomial state. -/
 theorem amplitudePolynomial_cons (s : Step (PolynomialWorkspace I W))
@@ -113,6 +117,8 @@ theorem amplitudePolynomial_cons (s : Step (PolynomialWorkspace I W))
   rw [amplitudePolynomial, amplitudeFold_cons]
   rfl
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- Appending one instruction to a circuit applies its polynomial update to the circuit's
 amplitude polynomials. -/
 theorem amplitudePolynomial_append_last (C : Circuit (PolynomialWorkspace I W))
@@ -121,6 +127,7 @@ theorem amplitudePolynomial_append_last (C : Circuit (PolynomialWorkspace I W))
   simp only [amplitudePolynomial, amplitudeFold, List.reverse_append, List.reverse_singleton,
     List.foldr_append, List.foldr_cons, List.foldr_nil]
 
+omit [DecidableEq I] [DecidableEq W] in
 /-- Gives the empty-circuit, gate, and query recurrences for the amplitude polynomial at a
 workspace basis label; see [Beals et al., Lemma 4.1][BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_step_recursion
@@ -152,15 +159,21 @@ noncomputable def amplitudeState (f : I → Bool) (s : Step (PolynomialWorkspace
   | .gate U => ApplyGate U χ
   | .query => χ ∘ flipWorkspace f
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- A gate instruction in `amplitudeState` acts by `ApplyGate`. -/
 @[simp] theorem amplitudeState_gate (f : I → Bool)
     (U : Matrix (PolynomialWorkspace I W) (PolynomialWorkspace I W) ℂ)
     (χ : QState (PolynomialWorkspace I W)) (q : PolynomialWorkspace I W) :
     amplitudeState f (Step.gate U) χ q = ApplyGate U χ q := rfl
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- A query instruction in `amplitudeState` acts by composition with `flipWorkspace`. -/
 @[simp] theorem amplitudeState_query (f : I → Bool) (χ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) : amplitudeState f Step.query χ q = χ (flipWorkspace f q) := rfl
+
+omit [DecidableEq I] in
 
 /-- A matrix tensored with the identity acts independently on each slice of the auxiliary
 register. -/
@@ -176,8 +189,8 @@ theorem polynomial_applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) 
         = if w = x_2 then a * c x_2 else 0 := by
       intro x_2
       by_cases h : w = x_2
-      · rw [Matrix.one_apply, if_pos h, mul_one, if_pos h]
-      · rw [Matrix.one_apply, if_neg h, if_neg h]
+      · rw [Matrix.one_apply, ite_eq_left h, mul_one, ite_eq_left h]
+      · rw [Matrix.one_apply, ite_eq_right h, ite_eq_right h]
         simp
     rw [show (∑ x_2 : W, a * (1 : Matrix W W ℂ) w x_2 * c x_2)
         = ∑ x_2 ∈ (Finset.univ : Finset W), (if w = x_2 then a * c x_2 else 0) from
@@ -234,6 +247,8 @@ theorem amplitudeState_run_cons (f : I → Bool) (s : Step (PolynomialWorkspace 
     show Run (TensorGate (BitOracleOn f) 1) C (ApplyGate (TensorGate (BitOracleOn f) 1) ψ) = _
     rw [← amplitudeState_run f Step.query ψ]
     exact run_query _ _ _
+
+omit [DecidableEq I] [DecidableEq W] in
 
 /-- Evaluation of a polynomial step at Boolean oracle values agrees with the corresponding state
 update whenever the input polynomials evaluate to the input state. -/
@@ -298,6 +313,8 @@ def stepDegreeCost : Step (PolynomialWorkspace I W) → ℕ
   | .gate _ => 0
   | .query => 1
 
+omit [DecidableEq I] [DecidableEq W] in
+
 /-- A polynomial instruction increases a uniform amplitude-degree bound by at most
 `stepDegreeCost`. -/
 theorem amplitudeStep_totalDegree_le {s : Step (PolynomialWorkspace I W)}
@@ -348,6 +365,7 @@ theorem amplitudeStep_totalDegree_le {s : Step (PolynomialWorkspace I W)}
       · exact hC
     exact hsub
 
+omit [DecidableEq I] [DecidableEq W] in
 /-- Every circuit amplitude polynomial has total degree at most the circuit's oracle-query
 count; see [BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_query_degree
@@ -396,6 +414,8 @@ polynomial. -/
 noncomputable def imagPart (p : MvPolynomial I ℂ) : MvPolynomial I ℝ :=
   ∑ d ∈ p.support, MvPolynomial.C (p.coeff d).im * MvPolynomial.monomial d 1
 
+omit [DecidableEq I] in
+
 /-- Expands the complex cast of a real coefficientwise polynomial evaluation as a sum of cast
 coefficients times complex monomial values. -/
 private theorem cast_eval_part (k : ℂ → ℝ) (s : Finset (I →₀ ℕ)) (c : (I →₀ ℕ) → ℂ) (x : I → ℝ) :
@@ -409,6 +429,7 @@ private theorem cast_eval_part (k : ℂ → ℝ) (s : Finset (I →₀ ℕ)) (c 
     fun j => Finset.prod_congr rfl fun i _ => Complex.ofReal_pow (x i) (j i)
   simp only [Complex.ofReal_mul, one_mul, Complex.ofReal_prod, hpow]
 
+omit [DecidableEq I] in
 /-- At real inputs, the evaluations of the coefficientwise real and imaginary parts reconstruct
 the complex polynomial's evaluation. -/
 private theorem realImag_eval_complex (p : MvPolynomial I ℂ) (x : I → ℝ) :
@@ -449,6 +470,8 @@ theorem imagPart_eval (p : MvPolynomial I ℂ) (x : I → ℝ) :
   have h := congrArg Complex.im (realImag_eval_complex p x)
   simpa using h
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Taking real parts of polynomial coefficients cannot increase total degree. -/
 theorem realPart_totalDegree_le (p : MvPolynomial I ℂ) :
     (realPart p).totalDegree ≤ p.totalDegree := by
@@ -466,6 +489,8 @@ theorem realPart_totalDegree_le (p : MvPolynomial I ℂ) :
     MvPolynomial.totalDegree_monomial_le d 1
   have h4 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Taking imaginary parts of polynomial coefficients cannot increase total degree. -/
 theorem imagPart_totalDegree_le (p : MvPolynomial I ℂ) :
@@ -551,7 +576,9 @@ theorem acceptance_polynomial_actual_born_and_degree
 
 /-- Replaces each positive exponent of a finitely supported monomial by one. -/
 noncomputable def clampExponent (d : I →₀ ℕ) : I →₀ ℕ :=
-  Finsupp.indicator d.support (fun i _ => 1)
+  Finsupp.indicator d.support (fun _i _ => 1)
+
+omit [Fintype I] in
 
 /-- A clamped exponent is zero exactly when the original exponent is zero, and is one otherwise. -/
 @[simp] theorem clampExponent_apply (d : I →₀ ℕ) (i : I) :
@@ -559,21 +586,23 @@ noncomputable def clampExponent (d : I →₀ ℕ) : I →₀ ℕ :=
   classical
   by_cases h : d i = 0
   · rw [clampExponent, Finsupp.indicator_apply,
-      dif_neg (Finsupp.notMem_support_iff.mpr h)]
+      dite_eq_right (Finsupp.notMem_support_iff.mpr h)]
     simp [h]
   · rw [clampExponent, Finsupp.indicator_apply,
-      dif_pos (Finsupp.mem_support_iff.mpr h)]
+      dite_eq_left (Finsupp.mem_support_iff.mpr h)]
     simp [h]
 
+omit [Fintype I] in
 /-- Clamping an exponent cannot increase any coordinate. -/
 theorem clampExponent_le (d : I →₀ ℕ) (i : I) : clampExponent d i ≤ d i := by
   rw [clampExponent_apply]
   by_cases h : d i = 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     omega
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     omega
 
+omit [Fintype I] in
 /-- Every coordinate of an exponent equal to `clampExponent d` is at most one. -/
 theorem clampExponent_mul_le (d : I →₀ ℕ) (e : I →₀ ℕ) (h : clampExponent d = e) (i : I) :
     e i ≤ 1 := by
@@ -619,6 +648,7 @@ theorem multilinearize_coeff_multilinear (p : MvPolynomial I ℝ) (d : I →₀ 
     simpa [MvPolynomial.coeff_monomial, ne_eq] using hne'
   exact clampExponent_mul_le d' d hne''.1 i
 
+omit [Fintype I] in
 /-- At a zero-one input coordinate, clamping a monomial exponent preserves its power value. -/
 private theorem boolPow_clamp (x : I → ℝ) (d : I →₀ ℕ) (i : I)
     (h : x i = 0 ∨ x i = 1) : x i ^ (clampExponent d i) = x i ^ d i := by

@@ -29,7 +29,6 @@ This supplies finite circuit identities for the one-way universality constructio
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 

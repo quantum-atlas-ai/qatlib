@@ -24,7 +24,6 @@ quantum channel and normalized nonnegative weights, following the criterion in [
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 

@@ -34,7 +34,6 @@ error budgets.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HhlAlgorithms.Postselection
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter

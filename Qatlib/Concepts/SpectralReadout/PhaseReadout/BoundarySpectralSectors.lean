@@ -34,7 +34,6 @@ phase reflection fixes the embedding.
 -/
 
 open Qatlib.Foundations.InstrumentCore.Measurement
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase

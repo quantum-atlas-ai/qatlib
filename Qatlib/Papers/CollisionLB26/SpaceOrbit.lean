@@ -27,8 +27,6 @@ space analysis in [MagniezZur2026].
 * [Magniez and Zur, 2026][MagniezZur2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 350000
 noncomputable section

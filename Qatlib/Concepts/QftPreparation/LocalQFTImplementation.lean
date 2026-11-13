@@ -48,8 +48,6 @@ module proves exact gate counts and bounds both forward and adjoint operator err
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 

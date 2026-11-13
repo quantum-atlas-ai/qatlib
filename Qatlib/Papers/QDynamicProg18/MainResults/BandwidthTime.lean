@@ -47,14 +47,13 @@ The exponential part of the sum is bounded by `A·μ₀^n` with `A = O*(5^n)` us
 Proposition 7 (`BandwidthScaling.proposition7`), giving
 `√(5^n·μ₀^n) ≈ 2.945^n` (Section 4.3, p. 11).
 
-Lean gap: the sum-over-assignments cost analysis and the variable-time search
-composition are not formalised; only the scaling inequality (Proposition 7)
-that powers the argument is proved in this paper layer.  Candidate
-dependencies: `BandwidthScaling.proposition7`,
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.*` for variable-time search, and
-`BandwidthScaling.gamma_scaling`.  Suggested tactics: formalise the finite sum
-`∑_σ γ_{μ(σ)}²^n ≤ 5^n·μ₀^{2n}`, then take square roots with `Real.sqrt_le_sqrt`
-and `nlinarith` for the numerical constant. -/
+Scope note: the theorem gives a bounded-error specification.  The
+sum-over-assignments cost analysis and the variable-time search composition
+are outside the scope of this file; the scaling inequality is proved in
+`BandwidthScaling.proposition7`, with `BandwidthScaling.gamma_scaling`
+providing the corresponding scaling relation.  The cost comparison uses a
+finite-sum bound of the form `∑_σ γ_{μ(σ)}²^n ≤ 5^n·μ₀^{2n}` and then takes
+square roots to obtain the exponential base. -/
 theorem theorem6_bandwidth (n : ℕ) :
     SolvesValueInTime (bandwidthProblem n) (2.945 : ℝ) := by
   unfold SolvesValueInTime

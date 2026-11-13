@@ -38,8 +38,6 @@ transition counts equal read counts.
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.StoppingCore.BranchCostCore

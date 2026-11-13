@@ -28,8 +28,6 @@ to the five-dimensional local gate statement used in [Jordan2008].
 * [Jordan, 2008][Jordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

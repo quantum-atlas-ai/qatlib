@@ -16,26 +16,25 @@ set_option backward.isDefEq.respectTransparency false
 # Spectrum of the quantized walk and the zero-overlap lemma
 
 Source: R. D. Somma, S. Boixo, H. Barnum, *Quantum Simulated Annealing*,
-fixed arXiv:0712.1008v1 (6 Dec 2007). Local PDF `local archive
-tmp/prove/assets/0712.1008.pdf`, text twin `0712.1008.txt`.
+fixed arXiv:0712.1008v1 (6 Dec 2007).
 
 This file covers Section III / Eqs. (14)–(16), p.3.
 
 * Eq. (14): the eigenphases of the bipartite walk `W(M)` are `±2φ_j` where
   `λ_j = cos φ_j`.  We prove that with `λ = cos φ` the shared walk phase
   `bipartitePhase (cos φ) s` is exactly `exp(∓2iφ)`, and then bridge the
-  eigenvector half of Eq. (14) to the Frozen theorem
-  `QuantumAlgorithm.Concepts.SpectralFilter.BusySpectrum.bipartite_normalized_tau_pair`
-  (verified: normalized eigenpair, eigen-equation, mutual orthogonality).
+  eigenvector half of Eq. (14) to the library theorem
+  `Qatlib.Concepts.SpectralFilter.BusySpectrum.bipartite_normalized_tau_pair`
+  (normalized eigenpair, eigen-equation, mutual orthogonality).
 * Eq. (15): at `j = 0`, `λ = 1`, the walk phase is `1` (zero eigenphase).
 * Eq. (16): the Gibbs state `|ψ0(β)⟩`, expanded in the `β'` eigenbasis as
   `c0|ψ0(β')⟩ + ∑_j (c_j/√2)(|ψ_{+j}(β')⟩+|ψ_{-j}(β')⟩)`, has zero overlap
   with every other zero-eigenphase eigenstate.  The key orthogonality of
   distinct unit eigenphases of an isometry is proved from scratch.
 
-The chain-specific `W(M)` built from the paper's `U_X, U_Y` is not reconstructed
-here; the abstract bipartite-frame walk of the Frozen module is the reusable
-model (its own docstring records the same boundary).
+Scope note: this file uses the abstract bipartite-frame walk of the shared
+module.  Constructing the chain-specific `W(M)` from the paper's `U_X, U_Y`
+is outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -122,11 +121,11 @@ theorem bipartitePhase_one (s : Bool) : bipartitePhase 1 s = 1 := by
   simp
   norm_num
 
-/-- Fixed arXiv:0712.1008v1, Eq. (14), p.3 — bridge to the Frozen theorem
-`QuantumAlgorithm.Concepts.SpectralFilter.BusySpectrum.bipartite_normalized_tau_pair`.
+/-- Fixed arXiv:0712.1008v1, Eq. (14), p.3 — bridge to the library theorem
+`Qatlib.Concepts.SpectralFilter.BusySpectrum.bipartite_normalized_tau_pair`.
 Under the interior eigenvalue hypotheses `(AᴴB)b = cos φ • a`,
 `(BᴴA)a = cos φ • b`, the pair `bipartiteTau A B a b (cos φ) s` is a normalized
-eigenpair of `bipartiteWalk A B` with the paper's `±2φ` eigenphase.  The Frozen
+eigenpair of `bipartiteWalk A B` with the paper's `±2φ` eigenphase.  The library
 theorem already gives the eigen-equation with eigenvalue `bipartitePhase`; the
 phase identities above identify that eigenvalue with `exp(∓2iφ)`. -/
 theorem source_eq14_normalized_eigenpair

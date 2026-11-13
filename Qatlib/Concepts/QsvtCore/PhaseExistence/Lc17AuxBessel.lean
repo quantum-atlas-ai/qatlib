@@ -34,15 +34,12 @@ negative frequencies. A final estimate bounds the norm error after truncation.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 open NormedSpace
 

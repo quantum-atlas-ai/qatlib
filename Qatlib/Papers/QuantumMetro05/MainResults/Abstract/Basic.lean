@@ -29,8 +29,6 @@ derives the corresponding equality formulas from saturation hypotheses. See
 * [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

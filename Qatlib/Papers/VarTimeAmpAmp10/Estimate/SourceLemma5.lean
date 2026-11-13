@@ -40,7 +40,7 @@ The Lean statement below is that assembly step in ℓ² form: the good part of
 and the two parts are added before the triangle inequality is applied.  The two
 source claims are hypotheses; the file proves the Lemma from them, so this is a
 faithful partial formalisation (the good/bad branch analyses themselves are
-QuantumAlgorithm.Papers.VarTimeAmpAmp10.VTAAAlgorithm.MedianEstimate and the
+Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.MedianEstimate and the
 per-stage estimation-error accumulation, which remain frozen partial support).
 -/
 

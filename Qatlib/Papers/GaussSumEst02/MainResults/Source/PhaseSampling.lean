@@ -33,7 +33,6 @@ with a reciprocal-precision query bound and an expected absolute angular-error g
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

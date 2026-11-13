@@ -38,7 +38,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Segment parameters satisfying the domain conditions have positive grid size and squared
 cutoff at most the grid size. -/

@@ -22,7 +22,6 @@ every edge, and integrability of each edge dot product. See [CrostaSaubanereHube
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Matrix

@@ -34,7 +34,6 @@ Hamiltonian Hermiticity under the stated hypotheses, and explicit resource ident
 * [Byrnes and Yamamoto, 2006][ByrnesYamamoto2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -31,12 +31,10 @@ underlying randomized computation fits the computational framework of [KitaevShe
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -144,7 +142,7 @@ theorem movingPrice_weighted_point (m n k : ℕ)
   rw [costClock_weighted_point]
   simp only [movingPrice]
   by_cases hfit : m+1 ≤ k
-  · simp only [if_pos hfit]
+  · simp only [ite_eq_left hfit]
     change Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (movingPriceNext (m,cfg))
       (fun x => weightedRunFor movingPriceNext movingPrice n x (.inl o,k-(m+1))) = _
     rw [movingPrice_expectation m cfg hq]
@@ -152,7 +150,7 @@ theorem movingPrice_weighted_point (m n k : ℕ)
       Prod.mk.injEq, Sum.inl.injEq]
     have he : k-(m+1)=0 ↔ k=m+1 := by omega
     simp only [he]
-  · simp only [if_neg hfit]
+  · simp only [ite_eq_right hfit]
 
 /-- The weighted process has zero mass at output false from a configuration in control state
 zero. -/
@@ -164,7 +162,7 @@ theorem movingPrice_weighted_false (m n k : ℕ)
   | succ n ih =>
     rw [movingPrice_weighted_point m n k cfg hq false]
     have hi := ih (m+1) (k-(m+1)) (movingTapeRight cfg) rfl
-    simp only [hi, Bool.false_eq_true, false_and, if_false, mul_zero, zero_add]
+    simp only [hi, Bool.false_eq_true, false_and, ite_false, mul_zero, zero_add]
     split_ifs <;> rfl
 
 /-- The weighted mass at output true is the finite sum of geometric weights whose block charges
@@ -178,7 +176,7 @@ theorem movingPrice_weighted_true (m n k : ℕ)
   | succ n ih =>
     rw [movingPrice_weighted_point m n k cfg hq true]
     by_cases hfit : m+1 ≤ k
-    · rw [if_pos hfit, ih (m+1) (k-(m+1)) (movingTapeRight cfg) rfl]
+    · rw [ite_eq_left hfit, ih (m+1) (k-(m+1)) (movingTapeRight cfg) rfl]
       rw [Finset.sum_range_succ', Finset.mul_sum, add_comm]
       simp only [Nat.zero_add, movingPriceBlock_one, true_and, pow_one,
         mul_ite, mul_one, mul_zero]
@@ -195,11 +193,11 @@ theorem movingPrice_weighted_true (m n k : ℕ)
         rw [hb]
         omega
       simp only [he, pow_succ']
-    · rw [if_neg hfit]
+    · rw [ite_eq_right hfit]
       symm
       apply Finset.sum_eq_zero
       intro j hj
-      apply if_neg
+      apply ite_eq_right
       intro he
       have hl : m+1 ≤ movingPriceBlock m (j+1) := by rw [movingPriceBlock_succ]; omega
       omega
@@ -228,7 +226,7 @@ theorem moving_price_actual_joint_triangular_charge : ∀ (input : List Bool) (k
   symm
   apply tsum_eq_sum
   intro j hj
-  apply if_neg
+  apply ite_eq_right
   have hl : j+1 ≤ movingPriceTriangle (j+1) := by
     rw [← movingPriceBlock_triangle]
     exact movingPriceBlock_lower 0 (j+1)
@@ -314,7 +312,7 @@ theorem moving_price_native_tape_expected_charge_consumer : ∀ (input : List Bo
       intro j
       simp only [mul_ite, mul_zero]
       rw [tsum_eq_single (movingPriceTriangle (j+1)) (fun k hk => by simp [Ne.symm hk])]
-      simp only [if_true]
+      simp only [ite_true]
     rw [he, movingPrice_triangle_series]
   have htime : generalUnboundedTime next cfg = 4 := by
     have he := (general_unbounded_actual_expected_time _ _ next cfg).1
@@ -345,7 +343,7 @@ theorem moving_price_native_tape_expected_charge_consumer : ∀ (input : List Bo
   change _ ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
       (runFor next B cfg) _ + generalUnboundedTime next cfg/(B+1:ℝ≥0∞) at he
   rw [htime, hev] at he
-  simp only [tsum_fintype, Fintype.sum_bool, Bool.false_eq_true, if_false, if_true,
+  simp only [tsum_fintype, Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
     add_zero, hwtrue] at he
   exact ⟨hp, he⟩
 

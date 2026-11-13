@@ -57,8 +57,6 @@ The development follows [Lomont2004].
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -127,7 +125,7 @@ def theorem_A17_part1Statement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
       l2 ψ = 1 ∧
         l2 (fun p => algOutput L M N u p - tensorVec (cyclicQFT u) ψ p) ≤ ε
 
-/-- The proposition asserting constants in the stated intervals and power-of-two parameters L
+/-- **Statement only — not proved in Qatlib.** The proposition asserting constants in the stated intervals and power-of-two parameters L
 and M within the displayed factors of the target sizes, with combined error at most ε√2 for
 every eligible N and ε. -/
 def theorem_A17_part2Statement : Prop :=

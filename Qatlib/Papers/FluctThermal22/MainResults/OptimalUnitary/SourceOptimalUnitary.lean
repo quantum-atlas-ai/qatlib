@@ -55,10 +55,10 @@ Lean statement: given a permutation `σ` that realizes the optimal max-min work
 of `H0` to the `n`-th eigenvector of `H1`.  The greedy algorithm itself is not
 reified; the statement records the *outcome* (existence of the optimal unitary).
 
-Lean gap: the greedy selection on `Finset` minima/maxima together with the
-exchange argument.  Candidate dependencies: `Finset.min'`, `Finset.max'`,
-`Equiv.Perm`.  Suggested follow-up: define the greedy permutation recursively on
-`Finset.range N` and prove `min`-work optimality by induction, then invoke the
+Scope note: the greedy selection and its exchange argument are outside the
+scope of this file.  The greedy permutation is a recursion on the remaining
+indices (`Finset.range N` initially), using minima and maxima; its minimum-work
+optimality follows by induction and yields the optimal unitary through the
 unitary-existence argument of Corollary B.2.
 -/
 /-- Theorem B.1: existence of the greedy optimal non-equilibrium unitary. -/

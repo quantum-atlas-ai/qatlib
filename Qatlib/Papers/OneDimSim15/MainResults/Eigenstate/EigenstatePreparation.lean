@@ -46,14 +46,14 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 def vNormGen {α : Type*} [Fintype α] (v : α → ℂ) : ℝ :=
   Real.sqrt (Finset.sum Finset.univ (fun i => Complex.normSq (v i)))
 
-/-- Fixed arXiv:1503.06319v2, Lemma 9 (p. 12, Eq. (C2)): there is `lambda > 0`
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 9 (p. 12, Eq. (C2)): there is `lambda > 0`
 and `C > 0` such that for every `N >= 2` and `delta > 0`, with
 `sigma^2 = delta pi / N`, `t = sqrt(sigma^2 (2 - 4 sigma^2))/2`,
 `t' = 1/(4t + 4 sigma^4/t)`, there is a global phase `alpha` with
 `|| |psi_0^d> - e^{-i alpha} e^{i (x^d)^2 t'} e^{i (p^d)^2 t} |phi^d> || <=
 C exp(-lambda delta)`, where `|phi^d>` is the Gaussian state of Eq. (C1)
 (normalized here; the paper's `1/sqrt(kappa)` normalization is absorbed). -/
-def lemma9_gaussian_ground_state : Prop :=
+def lemma9_gaussian_ground_state_statement : Prop :=
     ∃ lam C : ℝ, 0 < lam ∧ 0 < C ∧
       ∀ (N : ℕ) (δ : ℝ), 2 ≤ N → 0 < δ →
         (let σ2 : ℝ := δ * Real.pi / (N : ℝ)
@@ -66,14 +66,14 @@ def lemma9_gaussian_ground_state : Prop :=
                 ((NormedSpace.exp ((Complex.I * (tt : ℂ)) • (momOp N) ^ 2)).mulVec
                   (normalize (gaussVec N δ)))))) ≤ C * Real.exp (-lam * δ))
 
-/-- Fixed arXiv:1503.06319v2, Theorem 4 (p. 9, Eq. (36)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 4 (p. 9, Eq. (36)): there are constants
 `C > 0`, `N_0 >= 1` and `m : ℕ` such that for every `eps > 0`, every
 `N >= N_0`, there is a compiled unitary `W` with
 `|| |phi_0^d> - W |0> || <= C eps` and gate count
 `O((log(N/eps))^m)`, where `|phi_0^d>` is a normalized approximate ground
 state of `H^d` (eigenvalue within `C eps` of `1/2`, residual at most
 `C eps`). -/
-def theorem4_ground_state_preparation : Prop :=
+def theorem4_ground_state_preparation_statement : Prop :=
     ∃ C N₀ : ℝ, 0 < C ∧ 1 ≤ N₀ ∧ ∃ m : ℕ,
       ∀ (ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
         ∀ (N : ℕ), N₀ ≤ (N : ℝ) →
@@ -84,12 +84,12 @@ def theorem4_ground_state_preparation : Prop :=
               C * ε ∧
             W.gateCount ≤ C * (Real.log ((N : ℝ) / ε)) ^ m
 
-/-- Fixed arXiv:1503.06319v2, Lemma 10 (p. 10, Eq. (D1)): there is `c > 0`
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 10 (p. 10, Eq. (D1)): there is `c > 0`
 and `beta > 0` such that for all `N >= 2`, `n <= c N`, and all normalized
 approximate eigenstates `phi_n, phi_{n+1}` of `H^d` with residuals
 `exp(-beta N)`, the JC states `|gamma_{n,pm}^d>` satisfy
 `||(H_JC^d ∓ sqrt(n+1)) |gamma_{n,pm}^d>|| <= exp(-beta N)`. -/
-def lemma10_jc_approximate_eigenstates : Prop :=
+def lemma10_jc_approximate_eigenstates_statement : Prop :=
     ∃ c β : ℝ, 0 < c ∧ 0 < β ∧
       ∀ (N n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) →
         ∀ (φn φn1 : Fin N → ℂ),
@@ -102,14 +102,14 @@ def lemma10_jc_approximate_eigenstates : Prop :=
                 (1 : Matrix (Fin N × Fin 2) (Fin N × Fin 2) ℂ)).mulVec
                 (gammaVec φn φn1 (-1))) ≤ Real.exp (-β * (N : ℝ))
 
-/-- Fixed arXiv:1503.06319v2, Theorem 5 (p. 10, Eq. (41)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 5 (p. 10, Eq. (41)): there are constants
 `C > 0`, `N_0 >= 1` and `beta > 0` such that for every `eps > 0` and every
 `N'` there is `N = O(log(1/eps) + N')` with `N' <= C N` for which, for all
 `n <= N'` and all approximate eigenstates `phi_n, phi_{n+1}` of `H^d`
 (residual `exp(-beta N)`),
 `|| e^{-i H_JC^d t_n} |phi_n>|0> + i |phi_{n+1}>|1> || <= C eps`, where
 `t_n = pi/(2 sqrt(n+1))`. -/
-def theorem5_jc_eigenstate_step : Prop :=
+def theorem5_jc_eigenstate_step_statement : Prop :=
     ∃ C N₀ β : ℝ, 0 < C ∧ 1 ≤ N₀ ∧ 0 < β ∧
       ∀ (ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
         ∀ (N' : ℕ),
@@ -122,13 +122,13 @@ def theorem5_jc_eigenstate_step : Prop :=
                   vNormGen ((jcEvolve N (Real.pi / (2 * Real.sqrt ((n : ℝ) + 1)))).mulVec
                     (tensorVec φn qubit0) + Complex.I • tensorVec φn1 qubit1) ≤ C * ε
 
-/-- Fixed arXiv:1503.06319v2, Lemma 11 (p. 11, Eq. (45)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 11 (p. 11, Eq. (45)): there are constants
 `c > 0`, `K > 0`, `beta > 0` such that for `N >= 2`, `n <= c N`, every
 `eps in (0, 1/2]` and every `|s| <= C eps/sqrt(n+1)`, the JC word
 `W(s) = e^{-i(x^d⊗sigma_x)s/sqrt 2} e^{i(p^d⊗sigma_y)s/sqrt 2}` differs from
 `e^{-iH_JC^d s}` on the approximate eigenstates `|gamma_{n,pm}^d>` by at most
 `K eps^2`. -/
-def lemma11_jc_word_error : Prop :=
+def lemma11_jc_word_error_statement : Prop :=
     ∃ c K β : ℝ, 0 < c ∧ 0 < K ∧ 0 < β ∧
       ∀ (N n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) →
         ∀ (s ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
@@ -139,13 +139,13 @@ def lemma11_jc_word_error : Prop :=
               vNormGen ((jcWord N s - jcEvolve N s).mulVec (gammaVec φn φn1 1)) ≤ K * ε ^ 2 ∧
               vNormGen ((jcWord N s - jcEvolve N s).mulVec (gammaVec φn φn1 (-1))) ≤ K * ε ^ 2
 
-/-- Fixed arXiv:1503.06319v2, Theorem 6 (p. 10, Eq. (46)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 6 (p. 10, Eq. (46)): there are constants
 `C > 0`, `c > 0`, `beta > 0` such that for every `eps in (0, 1/2]`, every
 `N >= 2` and every `n <= c N`, and every pair of normalized approximate
 eigenstates `phi_0, phi_n` of `H^d` (residual `exp(-beta N)`), there is a
 circuit `Q` with gate count `O((n^2/eps) polylog(N/eps))` and
 `|Q.amplitude - 1| <= C eps`, i.e. `W^d |phi_0>|0> = |phi_n>|0> + O(eps)`. -/
-def theorem6_eigenstate_circuit : Prop :=
+def theorem6_eigenstate_circuit_statement : Prop :=
     ∃ C c β : ℝ, 0 < C ∧ 0 < c ∧ 0 < β ∧
       ∀ (ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
         ∀ (N n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) →

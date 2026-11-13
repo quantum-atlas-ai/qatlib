@@ -13,7 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 the double-excitation operator
 
 Source: Whitfield, Biamonte, Aspuru-Guzik, fixed arXiv:1001.3855v3, Eqs. (18)–(21)
-(p. 13–14, `assets/1001.3855.txt` lines 860–905).  For four distinct spin orbitals
+(pp. 13–14).  For four distinct spin orbitals
 `p < q < r < s` the paper defines
 
 ```
@@ -42,9 +42,7 @@ strings are products of the per-site `xOp`/`yOp` from `PauliAlgebra`.
 
 * This file fixes the paper's objects for Eq. (21) (spin delta, coefficient
   family `h^(1..3)`, `orbitSum`, `pauliBracket`).  The coefficient identity
-  itself is the open formalization gap documented below; it is deliberately
-  **not** introduced as a theorem, and the file contains no unproved
-  declaration.
+  itself is outside the scope of this file, as explained below.
 -/
 
 set_option autoImplicit false
@@ -111,11 +109,10 @@ def pauliBracket (p q r s : Fin n) (h1 h2 h3 : ℂ) : Matrix (Reg n) (Reg n) ℂ
       (yOp p * xOp q * xOp r * yOp s + xOp p * yOp q * yOp r * xOp s))
 
 /-!
-### Open gap for Eq. (21)
+### Scope of the formalization of Eq. (21)
 
-**Fixed source version:** arXiv:1001.3855v3 (2010-12-19), Eq. (21) on p. 14
-(text lines 895–905 of `assets/1001.3855.txt`), coefficients Eqs. (18)–(20) on
-p. 13 (lines 865–870).
+**Source:** arXiv:1001.3855v3 (2010-12-19), Eq. (21) on p. 14,
+coefficients Eqs. (18)–(20) on p. 13.
 
 **Paper proof steps.** (i) Jordan–Wigner `a_i = (∏_{j<i} σ^z_j) σ^-_i`,
 `a†_i = (∏_{j<i} σ^z_j) σ^+_i` (Eqs. (5a)/(5b)).  (ii) Multiply
@@ -129,46 +126,44 @@ four sites; the surviving `Z`-string is only over the “inside” gaps
 (iv) The `1/8` comes from `(1/2)^3` in the four `σ^±` expansions times the `1/2`
 of the Hamiltonian term.
 
-**Current Lean gap.**  The objects above are formalized faithfully (frozen
-`creation`/`annihilation`, the `24`-ordering sum, the middle `zString`, the
-exact eight-term `pauliBracket`, and `h^(1..3)` from Eqs. (18)–(20)).  What is
-missing is the proof of the coefficient identity; it is documented in the
-`Status of Eq. (21)` section below and is **not** declared as a Lean theorem.
-Doing it requires
-(1) the frozen Jordan–Wigner isomorphism `(g1 n).2.2.2.2.1 : annihilation i = jwPauliWord i`
+**Scope note.** The formalized objects are `creation`/`annihilation`, the
+`24`-ordering sum, the middle `zString`, the exact eight-term `pauliBracket`,
+and `h^(1..3)` from Eqs. (18)–(20).
+The coefficient identity is outside the scope of this file; its symmetry
+conditions are described in the `Coefficient identity and symmetry assumptions` section below.
+The entry-wise calculation involves
+(1) the Jordan–Wigner isomorphism `(g1 n).2.2.2.2.1 : annihilation i = jwPauliWord i`
 and its conjugate-transpose form for `creation`, (2) a normal form for products
 of `σ^z`/`σ^±` at a site (`σ^z σ^+ = σ^+`, `σ^+ σ^z = -σ^+`, `σ^z σ^- = -σ^-`,
 `σ^- σ^z = σ^-`), and (3) a case analysis on the four bits `x_p x_q x_r x_s`,
 where both sides are non-zero only for the two patterns `0011 ↦ 1100` and
 `1100 ↦ 0011` with the middle `Z`-string contributing the sign.
 
-**Candidate reusable dependencies.** `Fermion.Fermion.g1` (JW isomorphism,
+**Related algebra.** `Fermion.Fermion.g1` (JW isomorphism,
 adjoint, CAR); `PauliAlgebra.xOp`/`yOp`/`zOp`/`zString` (this paper);
 `GateVocabulary.GateVocab` (`pauli_multiplication`, `tensorPauliProduct`) for the
 Pauli-word algebra.
 
-**Suggested tactics.** Reduce to `Matrix.ext y x`; split with
-`by_cases y = Function.update (Function.update (Function.update (Function.update x p _) q _) r _) s _`;
-in the non-vanishing case unfold `creation`/`annihilation` and `jwSign`, use
-`simp [xOp_apply, yOp_apply, zString_apply]` plus `Complex.I_mul_I`, and finish
-with `field_simp; ring`.  A cleaner route is to build 4-site Pauli-product lemmas
-over `Fin 4` first (as in `GateVocab`) and transport along `quartet`.
+Entry-wise, the calculation separates matrix entries according to whether
+`y` is obtained from `x` by flipping the four sites `p`, `q`, `r`, `s`.
+The nonzero entries are determined by `creation`, `annihilation`, `jwSign`,
+`xOp_apply`, `yOp_apply`, `zString_apply`, and the identity `Complex.I_mul_I`.
+Equivalently, four-site Pauli products over `Fin 4` can be transported along
+`quartet`.
 -/
 
-/-! ## Status of Eq. (21)
+/-! ## Coefficient identity and symmetry assumptions
 
 The target identity (fixed arXiv:1001.3855v3,
 p. 14) would state, for four distinct spin orbitals `p < q < r < s`,
 `orbitSum h p q r s = (1/8) • (zString (midIndex p q r s) *
 pauliBracket p q r s (hOne h σ p q r s) (hTwo h σ p q r s) (hThree h σ p q r s))`.
-This equality is an open formalization gap and is therefore **not** declared as
-a Lean theorem here: the available arguments cover only the entry-wise
-Jordan–Wigner structure, not the full `24`-term coefficient identity.  Note in
+Scope note: this file formalizes the entry-wise Jordan–Wigner structure;
+the full `24`-term coefficient identity is outside its scope.  Note in
 particular that the unrestricted form is *false* for an arbitrary integral
 family `h`; it is true only under the molecular-integral symmetries of the
 paper's Eq. (4) (electron exchange `h a b c d = h b a d c`, reversal
 `h a b c d = h d c b a`, and the spin-selection rule `σ a = σ d`,
-`σ b = σ c`).  Asserting it without those hypotheses would be unsound, so no
-such declaration appears in this file. -/
+`σ b = σ c`).  These hypotheses are essential to the identity. -/
 
 end Qatlib.Papers.ElecStructure10.MainResults.DoubleExcitation

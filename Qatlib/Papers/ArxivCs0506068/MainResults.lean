@@ -31,12 +31,9 @@ threshold estimate `prop43_qam_threshold_probability`. See [MarriottWatrous2005]
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.ArxivCs0506068.MainResults
 
@@ -340,12 +337,12 @@ def thm33_qma_amplification_statement {a b : ℕ → ℝ} {q : ℕ → ℕ}
       (fun n => 1 - (2 : ℝ) ^ (-(r n) : ℤ))
       (fun n => (2 : ℝ) ^ (-(r n) : ℤ))
 
-/-- The proposition that QMA with thresholds two thirds and one third is contained in `PP`,
+/-- **Statement only — not proved in Qatlib.** The proposition that QMA with thresholds two thirds and one third is contained in `PP`,
 corresponding to Theorem 3.4 of [MarriottWatrous2005]. -/
 def thm34_qma_subset_pp_statement : Prop :=
     QMA (fun _ => 2 / 3) (fun _ => 1 / 3) ⊆ PP
 
-/-- The proposition that logarithmic-witness QMA with standard thresholds equals `BQP`,
+/-- **Statement only — not proved in Qatlib.** The proposition that logarithmic-witness QMA with standard thresholds equals `BQP`,
 corresponding to Theorem 3.6 of [MarriottWatrous2005]. -/
 def thm36_qma_log_eq_bqp_statement : Prop :=
     QMAlog (fun _ => 2 / 3) (fun _ => 1 / 3) = BQP
@@ -430,7 +427,7 @@ theorem prop43_qam_threshold_probability {s : ℕ} (μ : Reg s → ℝ)
     rwa [hfilter] at h
   · exact markov_card_complement μ h0 hsound
 
-/-- The proposition that QAM with standard thresholds is contained in `BPdotPP`, corresponding
+/-- **Statement only — not proved in Qatlib.** The proposition that QAM with standard thresholds is contained in `BPdotPP`, corresponding
 to Theorem 4.4 of [MarriottWatrous2005]. -/
 def thm44_qam_subset_bp_pp_statement : Prop :=
     QAM (fun _ => 2 / 3) (fun _ => 1 / 3) ⊆ BPdotPP

@@ -32,7 +32,6 @@ instrument-access accounting, and a normalized-vector perturbation bound for the
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL

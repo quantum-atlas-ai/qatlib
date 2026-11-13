@@ -30,7 +30,6 @@ For background, see [Ambainis2007ElementDistinctness].
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp
@@ -38,9 +37,6 @@ namespace Qatlib.Concepts.WalkFind.GroverInterp
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unnecessarySeqFocus false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 noncomputable section

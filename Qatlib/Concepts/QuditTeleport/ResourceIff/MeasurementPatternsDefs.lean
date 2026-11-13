@@ -29,8 +29,6 @@ expresses a pure maximally entangled resource using two orthonormal families.
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath.Reflection

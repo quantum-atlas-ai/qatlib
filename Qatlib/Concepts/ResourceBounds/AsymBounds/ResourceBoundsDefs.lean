@@ -39,7 +39,6 @@ by later modules.
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum

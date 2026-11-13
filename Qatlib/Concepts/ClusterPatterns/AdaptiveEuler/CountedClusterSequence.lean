@@ -41,7 +41,6 @@ reference system and composition under concatenation.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -66,8 +65,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Matrix application commutes with scalar multiplication of the input state. -/
 theorem applyGate_smul' {I : Type*} [Fintype I] (U : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :

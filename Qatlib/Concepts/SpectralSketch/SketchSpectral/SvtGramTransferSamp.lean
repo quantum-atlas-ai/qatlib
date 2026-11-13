@@ -27,7 +27,6 @@ spectral function on a Hermitian eigenvector.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 

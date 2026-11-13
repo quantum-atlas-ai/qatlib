@@ -32,7 +32,6 @@ algorithmic specifications.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QuantumGibbs.FormAlgebra.GeneralWalkAccessDefs
 

@@ -24,7 +24,6 @@ are the phase-estimation concentration properties associated with Appendix A.3 o
 * [Harrow et al., 2009, Appendix A.3][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HHL2009

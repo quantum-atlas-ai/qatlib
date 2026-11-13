@@ -42,8 +42,8 @@ Boundary: the Gaussian covariance-matrix prescription of Eq. (54)–(57) and the
 symplectic-entropy sum of Eq. (56) are the paper's computational machinery;
 this file states the Calabrese–Cardy output scaling and its central-charge
 content.  The von Neumann entropy `S(ρ_A) = -tr[ρ_A log ρ_A]` of Eq. (51) is the
-frozen `QuantumAlgorithm.Foundations.QuantumEntropy.EntropyCalculus.entropy`
-interface (claim bind `QuantumEntropy.EntropyCalculus`).
+shared `Qatlib.Foundations.QuantumEntropy.EntropyCalculus.entropy`
+interface.
 -/
 set_option backward.isDefEq.respectTransparency false
 

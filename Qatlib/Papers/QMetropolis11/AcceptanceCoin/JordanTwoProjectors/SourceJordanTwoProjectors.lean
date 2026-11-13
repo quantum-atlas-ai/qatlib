@@ -21,16 +21,16 @@ the projection onto the first `p` coordinates and `Q₁` has the block form
 displayed in Eq. (73), with a `p × p` diagonal matrix `D` whose real diagonal
 entries satisfy `0 ≤ d₁ ≤ … ≤ d_p ≤ 1`.
 
-The frozen semantic layer encodes the *coordinate-free and rank-agnostic*
+The semantic layer encodes the *coordinate-free and rank-agnostic*
 content of this normal form as the predicate `JordanTwoProjectors`: it retains
 all `P`-range axes, normalizes only the interior partners `0 < d_i < 1`,
 lets the endpoint partners (`d_i ∈ {0,1}`) be zero, and carries the remaining
 one-dimensional sectors by an orthogonal projection `W` commuting with `Q`.
 The module docstring of that file records why the literal printed rank
 hypotheses cannot be imposed at arbitrary ranks.  This paper-layer file only
-re-exports the frozen result and unpacks it in the paper's own symbols.
+re-exports the established result and unpacks it in the paper's own symbols.
 
-Reused FQNs (namespace `QuantumAlgorithm.Concepts.MixedInstrument.RewindAlgebra`):
+Reused FQNs (namespace `Qatlib.Concepts.MixedInstrument.RewindAlgebra`):
 * `JordanTwoProjectors` (definition, Eq. (73));
 * `jordanTwoProjectors` (the lemma itself).
 -/
@@ -45,7 +45,7 @@ open Qatlib.Concepts.MixedInstrument.RewindAlgebra
 open Qatlib.Concepts.MixedInstrument.RewindAlgebra.Temme2011
 
 /-- **c015, Sec. 7 Lemma "Jordan 1875" (Eq. (73), printed p. 23).**  The
-frozen contract: every pair of Hermitian idempotents has the diagonal
+formal contract: every pair of Hermitian idempotents has the diagonal
 block normal form (73) together with the complete Parseval decomposition and
 the two block actions of `Q` on the range and partner axes.  Reused FQN:
 `...RewindAlgebra.jordanTwoProjectors`. -/

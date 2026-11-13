@@ -33,7 +33,6 @@ arbitrary coefficient vectors, without a rootwise norm or unitarity assumption.
   search.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -38,7 +38,6 @@ source words. The numeric compiler is primitive recursive.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -453,12 +452,12 @@ theorem phaseWorkMarked_move_right (T : Turing.Tape CellCore) (off : ℤ) (n : �
 /-- Writing the current cell leaves every tape cell at a nonzero relative index unchanged. -/
 theorem phaseWriteNth_of_ne (T : Turing.Tape CellCore) (c : CellCore) (i : ℤ)
     (h0 : i ≠ 0) : (T.write c).nth i = T.nth i := by
-  rw [Turing.Tape.write_nth, if_neg h0]
+  rw [Turing.Tape.write_nth, ite_eq_right h0]
 
 /-- The cell at relative index zero after a write is the written symbol. -/
 theorem phaseWriteNth_zero (T : Turing.Tape CellCore) (c : CellCore) :
     (T.write c).nth 0 = c := by
-  rw [Turing.Tape.write_nth, if_pos rfl]
+  rw [Turing.Tape.write_nth, ite_eq_left rfl]
 
 /-- Every unmarked cell retains its initial work symbol at the corresponding absolute position. -/
 def PhaseUnmarkedWork (initial T : Turing.Tape CellCore) (off : ℤ) : Prop :=
@@ -579,7 +578,7 @@ theorem coinConfigRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inh
         (coinConfigRunAux M cs ⟨q', T'⟩).reads + 1,
         (coinConfigRunAux M cs ⟨q', T'⟩).transitions + 1⟩ := by
   simp only [coinConfigRunAux, hchf, hstep]
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
 
 /-- At a live configuration, consuming a coin and taking a successful step preserves the
 remaining acceptance result and adds one read. -/
@@ -591,7 +590,7 @@ theorem coinTapeRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhab
     coinTapeRunAux M accept (c :: cs) cfg =
       Prod.map id (· + 1) (coinTapeRunAux M accept cs ⟨q', T'⟩) := by
   simp only [coinTapeRunAux, hchf, hstep]
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
 
 /-- A live marked-run configuration does not satisfy the coin-halting predicate. -/
 theorem markRun_coinHalt_live {Λ : Type} [Inhabited Λ]
@@ -711,7 +710,7 @@ theorem markRun_coin_run {Λ : Type} [Inhabited Λ]
       split at hstop
       · next h => exact absurd h hcon
       · simp at hstop
-    simp only [coinConfigRunAux, if_pos hch] at hstop hread
+    simp only [coinConfigRunAux, ite_eq_left hch] at hstop hread
     have hfin : final = ⟨q, T.map phaseWorkMap⟩ := (Option.some.inj hstop).symm
     subst final
     have h1 : (T.map phaseWorkMap).head = T.head.2.1 := by
@@ -771,7 +770,7 @@ theorem markRun_coin_run {Λ : Type} [Inhabited Λ]
       by_contra hcon
       have hch' : coinHalt M ⟨q, T.map phaseWorkMap⟩ = true := by
         cases hh : coinHalt M ⟨q, T.map phaseWorkMap⟩ <;> simp_all
-      simp only [coinConfigRunAux, if_pos hch'] at hread
+      simp only [coinConfigRunAux, ite_eq_left hch'] at hread
       simp at hread
     obtain ⟨f, fs', rfl⟩ : ∃ f fs', fs = f :: fs' := by
       cases fs with
@@ -2710,7 +2709,7 @@ theorem phase1DecodeAction_index (stmt : Turing.TM0.Stmt CellCore) :
         omega
       have h2 : ¬ (2 + phase1CellIndex s = 0) := by omega
       have h3 : ¬ (2 + phase1CellIndex s = 1) := by omega
-      rw [phase1DecodeAction, phase1ActionIndex, h1, if_neg h2, if_neg h3,
+      rw [phase1DecodeAction, phase1ActionIndex, h1, ite_eq_right h2, ite_eq_right h3,
         Nat.add_sub_cancel_left, phase1DecodeCell_index]
 
 /-- Encode an optional transition using zero for halting and a base-`56` control-and-action code
@@ -2736,7 +2735,7 @@ theorem phase1DecodeAction_mul56 (k : ℕ) (stmt : Turing.TM0.Stmt CellCore) :
       cases d with
       | left =>
           simp only [phase1ActionIndex, Nat.add_zero, Nat.mul_mod_right, phase1DecodeAction,
-            if_true]
+            ite_true]
       | right =>
           have h1 : (56 * k + 1) % 56 = 1 := by omega
           simp only [phase1ActionIndex, phase1DecodeAction, h1]
@@ -2746,7 +2745,7 @@ theorem phase1DecodeAction_mul56 (k : ℕ) (stmt : Turing.TM0.Stmt CellCore) :
       have h1 : (56 * k + (2 + phase1CellIndex s)) % 56 = 2 + phase1CellIndex s := by omega
       have h2 : ¬ (2 + phase1CellIndex s = 0) := by omega
       have h3 : ¬ (2 + phase1CellIndex s = 1) := by omega
-      rw [phase1ActionIndex, phase1DecodeAction, h1, if_neg h2, if_neg h3,
+      rw [phase1ActionIndex, phase1DecodeAction, h1, ite_eq_right h2, ite_eq_right h3,
         Nat.add_sub_cancel_left, phase1DecodeCell_index]
 
 /-- Decoding an encoded optional phase transition recovers the original transition. -/
@@ -3137,12 +3136,12 @@ theorem phase1RowNat_rowIndex (code : Code) (c : Bool) (l : ℕ)
   cases c with
   | false =>
       have hn : ¬ (phase1Bound (controlSize code) + 1 ≤ l) := by omega
-      simp only [Bool.toNat_false, Nat.zero_mul, Nat.zero_add, Nat.mod_eq_of_lt hl, if_neg hn]
+      simp only [Bool.toNat_false, Nat.zero_mul, Nat.zero_add, Nat.mod_eq_of_lt hl, ite_eq_right hn]
   | true =>
       have hp : phase1Bound (controlSize code) + 1
           ≤ phase1Bound (controlSize code) + 1 + l := Nat.le_add_right _ _
       simp only [Bool.toNat_true, Nat.one_mul, Nat.add_mod, Nat.mod_self, Nat.zero_add,
-        Nat.mod_eq_of_lt hl, if_pos hp]
+        Nat.mod_eq_of_lt hl, ite_eq_left hp]
 
 /-- Setting the home marker has the stated mixed-radix cell-index formula. -/
 theorem phase1CellIndex_homeSet (a w : Option Bool) (hb : Bool) (m : Option Bool) :
@@ -3156,7 +3155,6 @@ theorem phase1CellIndex_homeSet (a w : Option Bool) (hb : Bool) (m : Option Bool
   simp only [phase1CellIndex]
   cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
 
-set_option linter.unusedSimpArgs false in
 
 /-- The compiled transition table agrees with the structured phase-dispatch table after encoding
 its control labels. -/
@@ -3181,10 +3179,10 @@ theorem phase1Table_compile (code : Code) (c : Bool)
   rw [phase1RowNat_rowIndex code c _ hlt _ (phase1CellIndex_lt _)]
   rcases p with qc | pr | hst | ss
   · fin_cases qc
-    · simp only [phase1ControlLabel, Fin.val_mk]
-      rw [if_pos (by simp)]
+    · simp only [phase1ControlLabel]
+      rw [ite_eq_left (by simp)]
       simp only [phase1CopyRowNat]
-      rw [if_pos (by simp)]
+      rw [ite_eq_left (by simp)]
       simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
         Option.map_some]
       have henc : 56 * 1 + (2 + 18 * (phase1CellIndex (a, w, hb, m) / 18)
@@ -3199,18 +3197,18 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         omega
       rw [henc, phase1DecodeTransition_encode]
       rfl
-    · simp only [phase1ControlLabel, Fin.val_mk]
-      rw [if_pos (by simp)]
+    · simp only [phase1ControlLabel]
+      rw [ite_eq_left (by simp)]
       simp only [phase1CopyRowNat]
-      rw [if_neg (by simp), if_pos (by simp)]
+      rw [ite_eq_right (by simp), ite_eq_left (by simp)]
       rcases a with _ | a'
       · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-          Option.map_some, Option.isSome_none]
+          Option.isSome_none]
         have h0 : phase1CellIndex (none, w, hb, m) / 18 = 0 := by
           have hsn : symbolIndex (none : Option Bool) = 0 := rfl
           simp only [phase1CellIndex, hsn]
           cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
-        rw [h0, if_pos rfl]
+        rw [h0, ite_eq_left rfl]
         have henc : 56 * 3 + (2 + phase1CellIndex (none, w, hb, m)) + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code) (Sum.inl (⟨3, by omega⟩ : Fin 5)),
@@ -3220,12 +3218,12 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rw [henc, phase1DecodeTransition_encode]
         rfl
       · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-          Option.map_some, Option.isSome_some]
+          Option.isSome_some]
         have h0 : ¬ (phase1CellIndex (some a', w, hb, m) / 18 = 0) := by
           cases a' <;> cases hb <;>
             simp only [phase1CellIndex, symbolIndex, Bool.toNat_false, Bool.toNat_true] <;>
             omega
-        rw [if_neg h0]
+        rw [ite_eq_right h0]
         have henc : 56 * 2 + (2 + 18 * (phase1CellIndex (some a', w, hb, m) / 18)
               + 6 * (phase1CellIndex (some a', w, hb, m) / 18)
               + 3 * (phase1CellIndex (some a', w, hb, m) / 3 % 2)
@@ -3239,12 +3237,11 @@ theorem phase1Table_compile (code : Code) (c : Bool)
           omega
         rw [henc, phase1DecodeTransition_encode]
         rfl
-    · simp only [phase1ControlLabel, Fin.val_mk]
-      rw [if_pos (by simp)]
+    · simp only [phase1ControlLabel]
+      rw [ite_eq_left (by simp)]
       simp only [phase1CopyRowNat]
-      rw [if_neg (by simp), if_neg (by simp), if_pos (by simp)]
-      simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-        Option.map_some]
+      rw [ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_left (by simp)]
+      simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, Option.map_some]
       have henc : 56 * 1 + 1 + 1
           = phase1EncodeTransition (phase1Bound (controlSize code))
               (some (phase1ControlFin (controlSize code) (Sum.inl (⟨1, by omega⟩ : Fin 5)),
@@ -3253,14 +3250,13 @@ theorem phase1Table_compile (code : Code) (c : Bool)
           phase1ControlLabel]
       rw [henc, phase1DecodeTransition_encode]
       rfl
-    · simp only [phase1ControlLabel, Fin.val_mk]
-      rw [if_pos (by simp)]
+    · simp only [phase1ControlLabel]
+      rw [ite_eq_left (by simp)]
       simp only [phase1CopyRowNat]
-      rw [if_neg (by simp), if_neg (by simp), if_neg (by simp), if_pos (by simp)]
+      rw [ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_left (by simp)]
       cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] at d3
-      · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-          Option.map_some]
-        rw [d3, if_neg (by omega)]
+      · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker]
+        rw [d3, ite_eq_right (by omega)]
         have henc : 56 * 3 + 0 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code) (Sum.inl (⟨3, by omega⟩ : Fin 5)),
@@ -3269,9 +3265,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-          Option.map_some]
-        rw [d3, if_pos rfl]
+      · simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker]
+        rw [d3, ite_eq_left rfl]
         have henc : 56 * 4 + (2 + phase1CellIndex (a, w, true, m)) + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code) (Sum.inl (⟨4, by omega⟩ : Fin 5)),
@@ -3280,12 +3275,11 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-    · simp only [phase1ControlLabel, Fin.val_mk]
-      rw [if_pos (by simp)]
+    · simp only [phase1ControlLabel]
+      rw [ite_eq_left (by simp)]
       simp only [phase1CopyRowNat]
-      rw [if_neg (by simp), if_neg (by simp), if_neg (by simp), if_neg (by simp)]
-      simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
-        Option.map_some]
+      rw [ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_right (by simp)]
+      simp only [phaseDispatchTable, liftMarkerTable, markerCopyTable]
       have hd0 : (default : Fin (controlSize code + 1)).val = 0 := rfl
       have henc : 56 * 5 + (2 + phase1CellIndex (a, w, hb, m)) + 1
           = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3301,9 +3295,9 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       have hbt : b.toNat ≤ 1 := by cases b <;> simp
       cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] at d3
       all_goals
-        simp only [phase1ControlLabel, phase1LiveBase, Fin.val_mk]
+        simp only [phase1ControlLabel, phase1LiveBase]
       all_goals
-        rw [if_neg (by omega), if_pos (by omega)]
+        rw [ite_eq_right (by omega), ite_eq_left (by omega)]
       all_goals
         simp only [phase1MarkLiveRowNat]
       all_goals
@@ -3318,7 +3312,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rw [table_eq_sourceNat code c qv hq w]
       · cases hsrc : phase1SourceNat code c.toNat qv (symbolIndex w) with
         | zero =>
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             have henc : 56 * (5 + 8 * (controlSize code + 1) + 2 * qv + b.toNat)
                   + (2 + 18 * (phase1CellIndex (a, w, false, m) / 18) + 6 * symbolIndex w
                     + 3 * (phase1CellIndex (a, w, false, m) / 3 % 2) + 2) + 1
@@ -3333,12 +3327,12 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             rw [henc, phase1DecodeTransition_encode]
             rfl
         | succ n =>
-            rw [if_neg (by omega)]
+            rw [ite_eq_right (by omega)]
             have hn1 : n + 1 - 1 = n := by omega
             rw [hn1]
             have hn5 : n % 5 = 0 ∨ n % 5 = 1 ∨ n % 5 = 2 ∨ n % 5 = 3 ∨ n % 5 = 4 := by omega
             rcases hn5 with hn | hn | hn | hn | hn
-            · rw [hn, if_pos (by omega), if_pos rfl]
+            · rw [hn, ite_eq_left (by omega), ite_eq_left rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1))
                       + (if phase1CellIndex (a, w, false, m) / 3 % 2 = 1 then 1 else b.toNat))
@@ -3354,7 +3348,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                         Turing.TM0.Stmt.write (a, w, false, some true))) := by
                 simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
                   phase1ControlLabel, phase1PendingBase]
-                rw [phase1CellIndex_write a w false m w, d3, if_neg (by omega)]
+                rw [phase1CellIndex_write a w false m w, d3, ite_eq_right (by omega)]
                 omega
               have hdec : decodeTransition (controlSize code) (n + 1)
                   = some (⟨n / 5 % (controlSize code + 1), Nat.mod_lt _ (by omega)⟩,
@@ -3362,7 +3356,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_pos (by omega), if_neg (by omega)]
+            · rw [hn, ite_eq_left (by omega), ite_eq_right (by omega)]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1))
                       + (if phase1CellIndex (a, w, false, m) / 3 % 2 = 1 then 0 else b.toNat))
@@ -3378,7 +3372,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                         Turing.TM0.Stmt.write (a, w, false, some true))) := by
                 simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
                   phase1ControlLabel, phase1PendingBase]
-                rw [phase1CellIndex_write a w false m w, d3, if_neg (by omega)]
+                rw [phase1CellIndex_write a w false m w, d3, ite_eq_right (by omega)]
                 omega
               have hdec : decodeTransition (controlSize code) (n + 1)
                   = some (⟨n / 5 % (controlSize code + 1), Nat.mod_lt _ (by omega)⟩,
@@ -3386,7 +3380,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (2 - 2 : ℕ) = symbolIndex none from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3409,7 +3403,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (3 - 2 : ℕ) = symbolIndex (some false) from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3433,7 +3427,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (4 - 2 : ℕ) = symbolIndex (some true) from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3459,7 +3453,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
               rfl
       · cases hsrc : phase1SourceNat code c.toNat qv (symbolIndex w) with
         | zero =>
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             have henc : 56 * (5 + 8 * (controlSize code + 1) + 2 * qv + b.toNat)
                   + (2 + 18 * (phase1CellIndex (a, w, true, m) / 18) + 6 * symbolIndex w
                     + 3 * (phase1CellIndex (a, w, true, m) / 3 % 2) + 2) + 1
@@ -3474,12 +3468,12 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             rw [henc, phase1DecodeTransition_encode]
             rfl
         | succ n =>
-            rw [if_neg (by omega)]
+            rw [ite_eq_right (by omega)]
             have hn1 : n + 1 - 1 = n := by omega
             rw [hn1]
             have hn5 : n % 5 = 0 ∨ n % 5 = 1 ∨ n % 5 = 2 ∨ n % 5 = 3 ∨ n % 5 = 4 := by omega
             rcases hn5 with hn | hn | hn | hn | hn
-            · rw [hn, if_pos (by omega), if_pos rfl]
+            · rw [hn, ite_eq_left (by omega), ite_eq_left rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1))
                       + (if phase1CellIndex (a, w, true, m) / 3 % 2 = 1 then 1 else b.toNat))
@@ -3495,7 +3489,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                         Turing.TM0.Stmt.write (a, w, true, some true))) := by
                 simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
                   phase1ControlLabel, phase1PendingBase]
-                rw [phase1CellIndex_write a w true m w, d3, if_pos rfl,
+                rw [phase1CellIndex_write a w true m w, d3, ite_eq_left rfl,
                   show true.toNat = 1 from rfl]
                 omega
               have hdec : decodeTransition (controlSize code) (n + 1)
@@ -3504,7 +3498,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_pos (by omega), if_neg (by omega)]
+            · rw [hn, ite_eq_left (by omega), ite_eq_right (by omega)]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1))
                       + (if phase1CellIndex (a, w, true, m) / 3 % 2 = 1 then 0 else b.toNat))
@@ -3520,7 +3514,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                         Turing.TM0.Stmt.write (a, w, true, some true))) := by
                 simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
                   phase1ControlLabel, phase1PendingBase]
-                rw [phase1CellIndex_write a w true m w, d3, if_pos rfl,
+                rw [phase1CellIndex_write a w true m w, d3, ite_eq_left rfl,
                   show false.toNat = 0 from rfl]
                 omega
               have hdec : decodeTransition (controlSize code) (n + 1)
@@ -3529,7 +3523,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (2 - 2 : ℕ) = symbolIndex none from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3552,7 +3546,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (3 - 2 : ℕ) = symbolIndex (some false) from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3576,7 +3570,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                 simp only [decodeTransition, decodeAction, hn]
               rw [henc, phase1DecodeTransition_encode, hdec]
               rfl
-            · rw [hn, if_neg (by omega),
+            · rw [hn, ite_eq_right (by omega),
                 show (4 - 2 : ℕ) = symbolIndex (some true) from rfl]
               have henc : 56 * (5 + 2 * (controlSize code + 1)
                     + 3 * (2 * (n / 5 % (controlSize code + 1)) + b.toNat))
@@ -3604,8 +3598,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       rcases q with ⟨qv, hq⟩
       have hbt : b.toNat ≤ 1 := by cases b <;> simp
       rcases d with _ | d | d
-      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase, Fin.val_mk]
-        rw [if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase]
+        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
         simp only [phase1PendingRowNat]
         have hq3 : (5 + 2 * (controlSize code + 1) + 3 * (2 * qv + b.toNat)
               - (5 + 2 * (controlSize code + 1))) / 6 = qv
@@ -3615,7 +3609,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
               - (5 + 2 * (controlSize code + 1))) % 3 = 0 := by
           cases b <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
         obtain ⟨e1, e2, e3⟩ := hq3
-        rw [e1, e2, e3, if_pos rfl]
+        rw [e1, e2, e3, ite_eq_left rfl]
         simp only [phaseDispatchTable, markRunTable, Option.map_some]
         have henc : 56 * (5 + 2 * qv + b.toNat) + (2 + phase1CellIndex (a, w, hb, m)) + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3626,8 +3620,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel, phase1LiveBase]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase, Fin.val_mk]
-        rw [if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase]
+        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
         simp only [phase1PendingRowNat]
         have hq3 : (5 + 2 * (controlSize code + 1) + 3 * (2 * qv + b.toNat) + 1
               - (5 + 2 * (controlSize code + 1))) / 6 = qv
@@ -3637,7 +3631,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
               - (5 + 2 * (controlSize code + 1))) % 3 = 1 := by
           cases b <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
         obtain ⟨e1, e2, e3⟩ := hq3
-        rw [e1, e2, e3, if_neg (by omega), if_pos rfl]
+        rw [e1, e2, e3, ite_eq_right (by omega), ite_eq_left rfl]
         simp only [phaseDispatchTable, markRunTable, Option.map_some]
         have henc : 56 * (5 + 2 * qv + b.toNat) + 0 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3648,8 +3642,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel, phase1LiveBase]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase, Fin.val_mk]
-        rw [if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+      · simp only [phase1ControlLabel, phase1PendingBase, phase1LiveBase]
+        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
         simp only [phase1PendingRowNat]
         have hq3 : (5 + 2 * (controlSize code + 1) + 3 * (2 * qv + b.toNat) + 2
               - (5 + 2 * (controlSize code + 1))) / 6 = qv
@@ -3659,7 +3653,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
               - (5 + 2 * (controlSize code + 1))) % 3 = 2 := by
           cases b <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
         obtain ⟨e1, e2, e3⟩ := hq3
-        rw [e1, e2, e3, if_neg (by omega), if_neg (by omega)]
+        rw [e1, e2, e3, ite_eq_right (by omega), ite_eq_right (by omega)]
         simp only [phaseDispatchTable, markRunTable, Option.map_some]
         have henc : 56 * (5 + 2 * qv + b.toNat) + 1 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3672,8 +3666,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rfl
     · rcases q with ⟨qv, hq⟩
       have hbt : b.toNat ≤ 1 := by cases b <;> simp
-      simp only [phase1ControlLabel, phase1MarkHaltBase, phase1HomeBase, Fin.val_mk]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_pos (by omega)]
+      simp only [phase1ControlLabel, phase1MarkHaltBase, phase1HomeBase]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
       simp only [phase1MarkHaltRowNat]
       have hq4 : (5 + 8 * (controlSize code + 1) + 2 * qv + b.toNat
             - (5 + 8 * (controlSize code + 1))) / 2 = qv
@@ -3683,7 +3677,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       obtain ⟨e1, e2⟩ := hq4
       rw [e1, e2]
       rcases Nat.mod_two_eq_zero_or_one (code.getD (1 + qv) 0) with hv | hv
-      · rw [hv, if_neg (by omega)]
+      · rw [hv, ite_eq_right (by omega)]
         simp only [phaseDispatchTable, Option.map_some]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 2 * b.toNat + 0)
               + (2 + phase1CellIndex (a, w, hb, m)) + 1
@@ -3698,7 +3692,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel, phase1HomeBase, hro, Bool.toNat_false]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · rw [hv, if_pos rfl]
+      · rw [hv, ite_eq_left rfl]
         simp only [phaseDispatchTable, Option.map_some]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 2 * b.toNat + 1)
               + (2 + phase1CellIndex (a, w, hb, m)) + 1
@@ -3718,22 +3712,21 @@ theorem phase1Table_compile (code : Code) (c : Bool)
     have hlt2 : hleft.toNat ≤ 1 := by cases hleft <;> simp
     cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] at d3
     all_goals
-      simp only [phase1ControlLabel, phase1HomeBase, Fin.val_mk]
+      simp only [phase1ControlLabel, phase1HomeBase]
     all_goals
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_pos (by omega)]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_left (by omega)]
     all_goals
       simp only [phase1HomeRowNat]
     · have hl2 : (5 + 10 * (controlSize code + 1) + 2 * hleft.toNat + hbit.toNat
             - (5 + 10 * (controlSize code + 1))) / 2 = hleft.toNat := by
         cases hleft <;> cases hbit <;>
           simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
-      rw [hl2, d3, if_neg (by omega)]
+      rw [hl2, d3, ite_eq_right (by omega)]
       cases hleft with
       | false =>
-          rw [if_neg (by decide : ¬ (false.toNat = 1))]
-          simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker,
-            Option.map_some]
+          rw [ite_eq_right (by decide : ¬ (false.toNat = 1))]
+          simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker]
           have henc : 56 * (5 + 10 * (controlSize code + 1) + 2 * false.toNat + hbit.toNat)
                 + 0 + 1
               = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3741,14 +3734,12 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                       (Sum.inr (Sum.inr (Sum.inl (false, hbit)))),
                     Turing.TM0.Stmt.move Turing.Dir.left)) := by
             simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
-              phase1ControlLabel, phase1HomeBase, homeDirection, Bool.toNat_false,
-              Bool.false_eq_true]
+              phase1ControlLabel, phase1HomeBase, Bool.toNat_false]
           rw [henc, phase1DecodeTransition_encode]
           rfl
       | true =>
-          rw [if_pos (by decide : true.toNat = 1)]
-          simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker,
-            Option.map_some]
+          rw [ite_eq_left (by decide : true.toNat = 1)]
+          simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker]
           have henc : 56 * (5 + 10 * (controlSize code + 1) + 2 * true.toNat + hbit.toNat)
                 + 1 + 1
               = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3756,16 +3747,15 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                       (Sum.inr (Sum.inr (Sum.inl (true, hbit)))),
                     Turing.TM0.Stmt.move Turing.Dir.right)) := by
             simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
-              phase1ControlLabel, phase1HomeBase, homeDirection, Bool.toNat_true]
+              phase1ControlLabel, phase1HomeBase, Bool.toNat_true]
           rw [henc, phase1DecodeTransition_encode]
           rfl
     · have hb2 : (5 + 10 * (controlSize code + 1) + 2 * hleft.toNat + hbit.toNat
             - (5 + 10 * (controlSize code + 1))) % 2 = hbit.toNat := by
         cases hleft <;> cases hbit <;>
           simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
-      rw [hb2, d3, if_pos rfl]
-      simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker,
-        Option.map_some]
+      rw [hb2, d3, ite_eq_left rfl]
+      simp only [phaseDispatchTable, liftMarkerTable, markerHomeTable, phaseMarker]
       have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + hbit.toNat)
             + (2 + phase1CellIndex (a, w, true, m)) + 1
           = phase1EncodeTransition (phase1Bound (controlSize code))
@@ -3773,7 +3763,7 @@ theorem phase1Table_compile (code : Code) (c : Bool)
                   (Sum.inr (Sum.inr (Sum.inr (SweepPhase.rightErase, hbit)))),
                 Turing.TM0.Stmt.write (a, w, true, m))) := by
         simp only [phase1EncodeTransition, phase1ActionIndex, phase1ControlFin, Fin.val_mk,
-          phase1ControlLabel, phase1HomeBase, phase1ResetBase, sweepIdx]
+          phase1ControlLabel, phase1ResetBase, sweepIdx]
       rw [henc, phase1DecodeTransition_encode]
       rfl
   · obtain ⟨sp, b⟩ := ss
@@ -3787,11 +3777,11 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       cases b <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
     rcases sp with _ | _ | _ | _ | _ | _
     · obtain ⟨e1, e2⟩ := hbt2 0 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_pos rfl]
+      rw [e1, e2, ite_eq_left rfl]
       cases hbusy : phaseBusy (a, w, hb, m)
       · have hP : ¬ (phase1CellIndex (a, w, hb, m) / 6 % 3 ≠ 0
             ∨ phase1CellIndex (a, w, hb, m) % 3 ≠ 0) := by
@@ -3799,9 +3789,9 @@ theorem phase1Table_compile (code : Code) (c : Bool)
           rw [(phaseBusy_digits a w hb m).mpr hp] at hbusy
           exact absurd hbusy (by simp)
         simp only [Bool.or_eq_true, decide_eq_true_eq]
-        rw [if_neg hP]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
-        rw [hbusy, if_neg (by simp)]
+        rw [ite_eq_right hP]
+        simp only [phaseDispatchTable, sweepResetTable, eraseCellP]
+        rw [hbusy, ite_eq_right (by simp)]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 1 + b.toNat) + 0 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code)
@@ -3815,9 +3805,9 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             ∨ phase1CellIndex (a, w, hb, m) % 3 ≠ 0 :=
             (phaseBusy_digits a w hb m).mp hbusy
         simp only [Bool.or_eq_true, decide_eq_true_eq]
-        rw [if_pos hP]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
-        rw [hbusy, if_pos (by simp)]
+        rw [ite_eq_left hP]
+        simp only [phaseDispatchTable, sweepResetTable, eraseCellP]
+        rw [hbusy, ite_eq_left (by simp)]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 4 + b.toNat)
               + (2 + 18 * (phase1CellIndex (a, w, hb, m) / 18)
                 + 3 * (phase1CellIndex (a, w, hb, m) / 3 % 2)) + 1
@@ -3832,14 +3822,14 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rw [henc, phase1DecodeTransition_encode]
         rfl
     · obtain ⟨e1, e2⟩ := hbt2 1 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_neg (by omega), if_pos rfl]
+      rw [e1, e2, ite_eq_right (by omega), ite_eq_left rfl]
       cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] at d3
-      · rw [d3, if_neg (by omega)]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
+      · rw [d3, ite_eq_right (by omega)]
+        simp only [phaseDispatchTable, sweepResetTable]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 1 + b.toNat) + 0 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code)
@@ -3849,8 +3839,8 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel, phase1ResetBase, sweepIdx]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · rw [d3, if_pos rfl]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
+      · rw [d3, ite_eq_left rfl]
+        simp only [phaseDispatchTable, sweepResetTable]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 2 + b.toNat) + 0 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code)
@@ -3861,11 +3851,11 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rw [henc, phase1DecodeTransition_encode]
         rfl
     · obtain ⟨e1, e2⟩ := hbt2 2 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_neg (by omega), if_neg (by omega), if_pos rfl]
+      rw [e1, e2, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
       cases hbusy : phaseBusy (a, w, hb, m)
       · have hP : ¬ (phase1CellIndex (a, w, hb, m) / 6 % 3 ≠ 0
             ∨ phase1CellIndex (a, w, hb, m) % 3 ≠ 0) := by
@@ -3873,9 +3863,9 @@ theorem phase1Table_compile (code : Code) (c : Bool)
           rw [(phaseBusy_digits a w hb m).mpr hp] at hbusy
           exact absurd hbusy (by simp)
         simp only [Bool.or_eq_true, decide_eq_true_eq]
-        rw [if_neg hP]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
-        rw [hbusy, if_neg (by simp)]
+        rw [ite_eq_right hP]
+        simp only [phaseDispatchTable, sweepResetTable, eraseCellP]
+        rw [hbusy, ite_eq_right (by simp)]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 3 + b.toNat) + 1 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code)
@@ -3889,9 +3879,9 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             ∨ phase1CellIndex (a, w, hb, m) % 3 ≠ 0 :=
             (phaseBusy_digits a w hb m).mp hbusy
         simp only [Bool.or_eq_true, decide_eq_true_eq]
-        rw [if_pos hP]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
-        rw [hbusy, if_pos (by simp)]
+        rw [ite_eq_left hP]
+        simp only [phaseDispatchTable, sweepResetTable, eraseCellP]
+        rw [hbusy, ite_eq_left (by simp)]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 5 + b.toNat)
               + (2 + 18 * (phase1CellIndex (a, w, hb, m) / 18)
                 + 3 * (phase1CellIndex (a, w, hb, m) / 3 % 2)) + 1
@@ -3906,14 +3896,14 @@ theorem phase1Table_compile (code : Code) (c : Bool)
         rw [henc, phase1DecodeTransition_encode]
         rfl
     · obtain ⟨e1, e2⟩ := hbt2 3 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_neg (by omega), if_neg (by omega), if_neg (by omega), if_pos rfl]
+      rw [e1, e2, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
       cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] at d3
-      · rw [d3, if_neg (by omega)]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
+      · rw [d3, ite_eq_right (by omega)]
+        simp only [phaseDispatchTable, sweepResetTable]
         have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 3 + b.toNat) + 1 + 1
             = phase1EncodeTransition (phase1Bound (controlSize code))
                 (some (phase1ControlFin (controlSize code)
@@ -3923,18 +3913,17 @@ theorem phase1Table_compile (code : Code) (c : Bool)
             phase1ControlLabel, phase1ResetBase, sweepIdx]
         rw [henc, phase1DecodeTransition_encode]
         rfl
-      · rw [d3, if_pos rfl]
-        simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some,
-          Option.map_none]
+      · rw [d3, ite_eq_left rfl]
+        simp only [phaseDispatchTable, sweepResetTable]
         rfl
     · obtain ⟨e1, e2⟩ := hbt2 4 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_pos rfl]
-      simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
+      rw [e1, e2, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_left rfl]
+      simp only [phaseDispatchTable, sweepResetTable, Option.map_some]
       have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 0 + b.toNat) + 1 + 1
           = phase1EncodeTransition (phase1Bound (controlSize code))
               (some (phase1ControlFin (controlSize code)
@@ -3945,13 +3934,13 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       rw [henc, phase1DecodeTransition_encode]
       rfl
     · obtain ⟨e1, e2⟩ := hbt2 5 (by omega)
-      simp only [phase1ControlLabel, phase1ResetBase, Fin.val_mk, sweepIdx]
-      rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
+      simp only [phase1ControlLabel, phase1ResetBase, sweepIdx]
+      rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
       simp only [phase1ResetRowNat]
-      rw [e1, e2, if_neg (by omega), if_neg (by omega), if_neg (by omega), if_neg (by omega),
-        if_neg (by omega)]
-      simp only [phaseDispatchTable, sweepResetTable, eraseCellP, Option.map_some]
+      rw [e1, e2, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+        ite_eq_right (by omega)]
+      simp only [phaseDispatchTable, sweepResetTable, Option.map_some]
       have henc : 56 * (5 + 10 * (controlSize code + 1) + 4 + 2 * 2 + b.toNat) + 0 + 1
           = phase1EncodeTransition (phase1Bound (controlSize code))
               (some (phase1ControlFin (controlSize code)
@@ -4004,39 +3993,39 @@ theorem phase1ReadoutNat_accept (code : Code) (p : ControlCore (Fin (controlSize
   rcases p with qc | pr | hst | ss
   · have hq := qc.isLt
     simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept]
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · rcases pr with ⟨q, b⟩ | pp | ⟨q, b⟩
     · have hq := q.isLt; have hbb := hb b
       simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept, phase1LiveBase]
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
     · obtain ⟨⟨q, b⟩, d⟩ := pp
       have hq := q.isLt; have hbb := hb b
       cases d with
       | none =>
           simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept, phase1PendingBase]
-          rw [if_neg (by omega)]
+          rw [ite_eq_right (by omega)]
       | some d' =>
           cases d' with
           | left =>
               simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept,
                 phase1PendingBase]
-              rw [if_neg (by omega)]
+              rw [ite_eq_right (by omega)]
           | right =>
               simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept,
                 phase1PendingBase]
-              rw [if_neg (by omega)]
+              rw [ite_eq_right (by omega)]
     · have hq := q.isLt; have hbb := hb b
       simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept, phase1MarkHaltBase]
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
   · obtain ⟨left, bit⟩ := hst
     have hbl := hb left; have hbt := hb bit
     simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept, phase1HomeBase]
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · obtain ⟨sp, b⟩ := ss
     have hs : sweepIdx sp ≤ 5 := by cases sp <;> simp [sweepIdx]
     have hbb := hb b
     simp only [phase1ControlLabel, phase1ReadoutNat, phaseDispatchAccept, phase1ResetBase]
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
     have hsub : 5 + 10 * (controlSize code + 1) + 4 + 2 * sweepIdx sp + b.toNat
           - (5 + 10 * (controlSize code + 1) + 4) = 2 * sweepIdx sp + b.toNat := by omega
     have hmod : (2 * sweepIdx sp + b.toNat) % 2 = b.toNat := by omega
@@ -4079,17 +4068,17 @@ theorem tmCompile_coinConfigRunAux (code : Code) (coins : List Bool)
       simp only [coinConfigRunAux]
       rw [tmCompile_coinHalt code cfg]
       by_cases hh : coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = true
-      · simp only [hh, if_true]
+      · simp only [hh, ite_true]
         exact ⟨trivial, trivial, rfl⟩
-      · simp only [if_neg hh]
+      · simp only [ite_eq_right hh]
         exact ⟨trivial, trivial, rfl⟩
   | cons c cs ih =>
       simp only [coinConfigRunAux]
       rw [tmCompile_coinHalt code cfg]
       by_cases hh : coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = true
-      · simp only [hh, if_true]
+      · simp only [hh, ite_true]
         exact ⟨trivial, trivial, rfl⟩
-      · simp only [if_neg hh, tmCompile_step code c cfg]
+      · simp only [ite_eq_right hh, tmCompile_step code c cfg]
         cases Turing.TM0.step
             (phaseDispatchTable (table code) (readout code) default c) cfg with
         | none =>
@@ -4115,14 +4104,14 @@ theorem tmCompile_coinTapeRunAux (code : Code) (coins : List Bool)
       simp only [coinTapeRunAux]
       rw [tmCompile_coinHalt code cfg]
       by_cases hh : coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = true
-      · simp only [hh, if_true, phase1EmbedCfg_q, tmCompile_readout code cfg.q]
-      · simp only [if_neg hh]
+      · simp only [hh, ite_true, phase1EmbedCfg_q, tmCompile_readout code cfg.q]
+      · simp only [ite_eq_right hh]
   | cons c cs ih =>
       simp only [coinTapeRunAux]
       rw [tmCompile_coinHalt code cfg]
       by_cases hh : coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = true
-      · simp only [hh, if_true, phase1EmbedCfg_q, tmCompile_readout code cfg.q]
-      · simp only [if_neg hh, tmCompile_step code c cfg]
+      · simp only [hh, ite_true, phase1EmbedCfg_q, tmCompile_readout code cfg.q]
+      · simp only [ite_eq_right hh, tmCompile_step code c cfg]
         cases Turing.TM0.step
             (phaseDispatchTable (table code) (readout code) default c) cfg with
         | none =>
@@ -4269,7 +4258,7 @@ theorem coinPrefixCfg_halted {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
     (h : coinHalt M cfg = true) (l : List Bool) : coinPrefixCfg M l cfg = cfg := by
   cases l with
   | nil => rfl
-  | cons c cs => simp only [coinPrefixCfg, h, if_true]
+  | cons c cs => simp only [coinPrefixCfg, h, ite_true]
 
 /-- For a machine with coin-independent halting, following concatenated prefixes equals
 following them successively. -/
@@ -4283,7 +4272,7 @@ theorem coinPrefixCfg_append {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
   | nil => rfl
   | cons a as' ih =>
     by_cases hh : coinHalt M cfg = true
-    · simp only [List.cons_append, coinPrefixCfg, hh, if_true]
+    · simp only [List.cons_append, coinPrefixCfg, hh, ite_true]
       exact (coinPrefixCfg_halted M hh bs).symm
     · have hch : coinHalt M cfg = false := by
         cases hc : coinHalt M cfg with
@@ -4350,7 +4339,7 @@ theorem coinConfigRunAux_cons_some {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inh
         (coinConfigRunAux M cs next).reads + 1,
         (coinConfigRunAux M cs next).transitions + 1⟩ := by
   simp only [coinConfigRunAux, hchf, hstep]
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
 
 /-- A configuration run reads at most the number of coins supplied. -/
 theorem coinConfigRunAux_reads_le {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
@@ -4362,13 +4351,13 @@ theorem coinConfigRunAux_reads_le {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inha
   | nil => rw [coinConfigRunAux_nil_reads]; exact Nat.zero_le _
   | cons c cs ih =>
     by_cases hh : coinHalt M cfg = true
-    · simp only [coinConfigRunAux, hh, if_true]
+    · simp only [coinConfigRunAux, hh, ite_true]
       exact Nat.zero_le _
     · have hch : coinHalt M cfg = false := by
         cases hc : coinHalt M cfg with
         | false => rfl
         | true => exact absurd hc hh
-      rw [coinConfigRunAux, if_neg hh]
+      rw [coinConfigRunAux, ite_eq_right hh]
       cases hs : Turing.TM0.step (M c) cfg with
       | none => exact Nat.succ_le_succ (Nat.zero_le _)
       | some next =>
@@ -4403,15 +4392,15 @@ theorem coinConfigRunAux_app {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
   | cons c cs ih =>
     by_cases hh : coinHalt M cfg = true
     · have hL : coinConfigRunAux M (c :: (cs ++ suf)) cfg = ⟨some cfg, 0, 0⟩ := by
-        simp only [coinConfigRunAux, hh, if_true]
+        simp only [coinConfigRunAux, hh, ite_true]
       have hP : coinConfigRunAux M (c :: cs) cfg = ⟨some cfg, 0, 0⟩ := by
-        simp only [coinConfigRunAux, hh, if_true]
+        simp only [coinConfigRunAux, hh, ite_true]
       have hC : coinConfigRunAux M suf cfg = ⟨some cfg, 0, 0⟩ := by
         cases suf with
-        | nil => simp only [coinConfigRunAux, hh, if_true]
-        | cons c' cs' => simp only [coinConfigRunAux, hh, if_true]
+        | nil => simp only [coinConfigRunAux, hh, ite_true]
+        | cons c' cs' => simp only [coinConfigRunAux, hh, ite_true]
       have hpc : coinPrefixCfg M (c :: cs) cfg = cfg := by
-        simp only [coinPrefixCfg, hh, if_true]
+        simp only [coinPrefixCfg, hh, ite_true]
       refine ⟨?_, ?_, ?_⟩
       · show (coinConfigRunAux M (c :: (cs ++ suf)) cfg).stopped
             = (coinConfigRunAux M suf (coinPrefixCfg M (c :: cs) cfg)).stopped
@@ -4529,9 +4518,9 @@ theorem phaseHomeAt_write_head (T : Turing.Tape CellCore) (s : CellCore) (off : 
   rw [Turing.Tape.write_nth]
   by_cases hi : i = 0
   · subst hi
-    rw [if_pos rfl, hs]
+    rw [ite_eq_left rfl, hs]
     exact h 0
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     exact h i
 
 /-- Writing a symbol with the same input-track entry preserves the input-track invariant. -/
@@ -4542,9 +4531,9 @@ theorem phaseInputSame_write_head (initial T : Turing.Tape CellCore) (s : CellCo
   rw [Turing.Tape.write_nth]
   by_cases hi : i = 0
   · subst hi
-    rw [if_pos rfl, hs]
+    rw [ite_eq_left rfl, hs]
     exact h 0
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     exact h i
 
 /-- A write preserves a busy-cell envelope if every old busy cell and any new busy head cell lie
@@ -4557,9 +4546,9 @@ theorem phaseEnvBusy_write (T : Turing.Tape CellCore) (s : CellCore) (off Wlo Wh
   rw [Turing.Tape.write_nth] at hi
   by_cases h0i : i = 0
   · subst h0i
-    rw [if_pos rfl] at hi
+    rw [ite_eq_left rfl] at hi
     exact h0 hi
-  · rw [if_neg h0i] at hi
+  · rw [ite_eq_right h0i] at hi
     exact h i hi
 
 /-- Moving right preserves a busy-cell envelope after increasing the head offset by one. -/
@@ -4767,10 +4756,10 @@ theorem dispatchCopyPrefix {Λ : Type} [Inhabited Λ]
         rw [Turing.Tape.write_nth] at hi
         by_cases h0i : i = 0
         · subst h0i
-          rw [if_pos rfl] at hi
+          rw [ite_eq_left rfl] at hi
           simp only [phaseBusy, hw1, hw2, Bool.or_self] at hi
           exact absurd hi (by simp)
-        · rw [if_neg h0i] at hi
+        · rw [ite_eq_right h0i] at hi
           exact absurd hi (by rw [phaseInputTape_busy input i]; simp)
       have hhome1 : PhaseHomeAt
           ((Turing.Tape.mk₁ (phaseInput input)).write
@@ -4781,7 +4770,7 @@ theorem dispatchCopyPrefix {Λ : Type} [Inhabited Λ]
         rw [Turing.Tape.write_nth]
         by_cases hi : i = 0
         · subst hi; simp
-        · rw [if_neg hi, phaseInputTape_home]
+        · rw [ite_eq_right hi, phaseInputTape_home]
           simp [hi]
       have hbase : PhaseInputSame (Turing.Tape.mk₁ (phaseInput input))
           (Turing.Tape.mk₁ (phaseInput input)) 0 := by
@@ -5095,7 +5084,7 @@ theorem coinPrefixEnvelope {Λ : Type*} [Inhabited Λ]
         ring
       by_cases hh : coinHalt M cfg = true
       · refine ⟨cfg, off, ?_, ?_, ?_, ?_⟩
-        · simp only [coinPrefixCfg, hh, if_true]
+        · simp only [coinPrefixCfg, hh, ite_true]
         · omega
         · omega
         · intro i hi
@@ -5233,7 +5222,7 @@ theorem tmCompile_coinPrefixCfg (code : Code) :
       rw [tmCompile_coinHalt code cfg]
       by_cases hh :
         coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = true
-      · simp only [hh, if_true]
+      · simp only [hh, ite_true]
       · have hch :
           coinHalt (phaseDispatchTable (table code) (readout code) default) cfg = false := by
           cases hc :

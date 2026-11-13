@@ -29,7 +29,6 @@ establish terminal-node separation and a logarithmic estimate for the first k co
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical

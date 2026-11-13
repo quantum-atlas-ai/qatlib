@@ -27,8 +27,6 @@ multiplicative norm formula for the complex hardness scale, and its zero criteri
 * [Aharonov et al., 2007][AharonovEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

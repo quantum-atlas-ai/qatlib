@@ -47,8 +47,6 @@ open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBrid
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.ReferenceError.RefTraceError
@@ -56,7 +54,6 @@ namespace Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
-set_option warningAsError false
 
 /-- The value phase coefficient on `ZMod Q` equals the standard additive character. -/
 theorem valuePhaseCoeff_eq_stdAddChar (Q : ℕ) [NeZero Q] (a : ZMod Q) :

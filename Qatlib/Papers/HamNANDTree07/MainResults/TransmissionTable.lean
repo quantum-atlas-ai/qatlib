@@ -32,7 +32,6 @@ NAND-tree setting.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.HamNANDTree07.MainResults.TransmissionTable
@@ -123,7 +122,7 @@ lemma norm_two_sin_I (E : ℝ) (hs : 0 ≤ sinTheta E) :
 amplitude has norm less than 8√N |E|. See [FarhiGoldstoneGutmann2008]. -/
 theorem reflect_transmission_bound (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     (hE0 : E ≠ 0)
-    (hE : |E| < 1 / (16 * Real.sqrt N))
+    (_hE : |E| < 1 / (16 * Real.sqrt N))
     (hy : 1 / (4 * Real.sqrt N * |E|) < |y|) :
     ‖transmissionCoeff E y‖ < 8 * Real.sqrt N * |E| := by
   have hNpos : (0 : ℝ) < Real.sqrt N := by

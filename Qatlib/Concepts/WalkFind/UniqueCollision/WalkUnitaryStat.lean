@@ -22,7 +22,6 @@ product, together with real entries for the walk. The proposition retains the si
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.UniqueCollision

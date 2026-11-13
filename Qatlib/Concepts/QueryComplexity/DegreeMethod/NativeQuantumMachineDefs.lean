@@ -45,7 +45,6 @@ isometry to a finite unitary swap. These constructions support the quantum machi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

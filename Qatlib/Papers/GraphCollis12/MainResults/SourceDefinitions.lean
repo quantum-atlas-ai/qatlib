@@ -31,8 +31,8 @@ This file fixes, on finite vertex set `Fin n`, the paper's §2 vocabulary:
   independently with probability `p`.
 
 The graph itself is given explicitly and is *not* queried; only `x ∈ {0,1}^V` is
-oracle input (Definition 1, p.3).  The decision predicate is the shared Frozen
-definition `QuantumAlgorithm.Foundations.GraphQuery.EdgeQuery.graphCollision`,
+oracle input (Definition 1, p.3).  The decision predicate is the shared
+definition `Qatlib.Concepts.GraphQuery.EdgeQuery.graphCollision`,
 which we bridge to `SimpleGraph` through `adjOf` below.
 
 Boundary: this file declares the vocabulary and elementary bridge lemmas only.
@@ -49,7 +49,7 @@ open Qatlib.Concepts.GraphQuery.EdgeQuery
 namespace Qatlib.Papers.GraphCollis12.MainResults
 
 /-- The adjacency matrix (as a `Bool`-valued function on `Fin n`) of a `SimpleGraph`,
-fed to the shared Frozen `graphCollision` decision predicate. -/
+fed to the shared `graphCollision` decision predicate. -/
 def adjOf {n : ℕ} (G : SimpleGraph (Fin n)) : Fin n → Fin n → Bool :=
   fun u v => decide (G.Adj u v)
 

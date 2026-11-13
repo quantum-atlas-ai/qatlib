@@ -29,13 +29,11 @@ Taylor system for diagonal matrices. See [BerryEtAl2017ODE] for the paper's sett
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- A bound `c²` on the sum of squared entry norms implies the operator-norm bound `‖M‖ ≤ c` for
 nonnegative `c`. -/

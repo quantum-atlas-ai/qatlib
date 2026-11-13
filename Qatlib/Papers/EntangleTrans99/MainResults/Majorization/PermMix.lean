@@ -27,8 +27,6 @@ permutation.
 * [Nielsen, 1999][Nielsen1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

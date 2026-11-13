@@ -31,7 +31,6 @@ Removing a reference exponential defines `interaction`, whose derivative is cont
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.MatrixAlgebra.CommutatorExp

@@ -50,10 +50,8 @@ open Qatlib.Concepts.MonteCarloMean.LayeredMean
 namespace Qatlib.Concepts.AmplitudeCore.PayoffMedian
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
-set_option linter.unusedSectionVars false
 
 /-- The record of repeated amplitude estimation outcomes for the `k + 2` payoff layers at the
 grid and repetition counts specified by `k`. -/
@@ -177,6 +175,7 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 /-- The total probability mass of a predicate under a finite distribution. -/
 noncomputable def mass (p : FinDist I) (E : I → Prop) : ℝ := ∑ x with E x, p.prob x
 
+omit [DecidableEq I] in
 /-- The masses of a predicate and its complement sum to one. -/
 theorem mass_complement (p : FinDist I) (E : I → Prop) :
     mass p E + mass p (fun x => ¬E x)=1 := by
@@ -186,6 +185,7 @@ theorem mass_complement (p : FinDist I) (E : I → Prop) :
     _ = ∑ x, p.prob x := Finset.sum_congr rfl (fun x _ => by by_cases hx : E x <;> simp [hx])
     _ = 1 := p.sum_one
 
+omit [DecidableEq I] in
 /-- Probability mass is monotone under inclusion of predicates. -/
 theorem mass_mono (p : FinDist I) {E F : I → Prop} (h : ∀ x, E x → F x) :
     mass p E ≤ mass p F := by
@@ -195,6 +195,7 @@ theorem mass_mono (p : FinDist I) {E F : I → Prop} (h : ∀ x, E x → F x) :
   · intro x _ _
     exact p.nonneg x
 
+omit [DecidableEq I] in
 /-- The second moment about `c` is the variance plus the squared difference between the mean and
 `c`. -/
 theorem shifted_second_moment (p : FinDist I) (f : I → ℝ) (c : ℝ) :
@@ -214,6 +215,7 @@ theorem chebyshev (p : FinDist I) (f : I → ℝ) (ε : ℝ) (hε : 0 < ε) :
     mass p (fun x => ε < |f x-p.expect f|) ≤ p.variance f/ε^2 :=
   ProbabilityInterfaces.chebyshev_strict p f ε hε
 
+omit [DecidableEq I] in
 /-- For two conditionally independent records, the mass of the three specified events factors
 into a sum of the center weight times the two conditional event masses. -/
 theorem conditional_two_event {J K : Type} [Fintype J] [Fintype K]
@@ -227,7 +229,7 @@ theorem conditional_two_event {J K : Type} [Fintype J] [Fintype K]
   apply Finset.sum_congr rfl
   intro x _
   by_cases hx : E x
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     unfold mass
     rw [Finset.sum_filter, Finset.sum_filter, Finset.sum_mul_sum]
     simp only [Finset.mul_sum]
@@ -238,6 +240,7 @@ theorem conditional_two_event {J K : Type} [Fintype J] [Fintype K]
     by_cases hu : F x u <;> by_cases hv : G x v <;> simp [hx, hu, hv, mul_assoc]
   · simp [hx]
 
+omit [DecidableEq I] in
 /-- A nonnegative function bounded below by nonnegative `t` on an event of mass at least `s` has
 expectation at least `s * t`. -/
 theorem conditional_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
@@ -252,10 +255,12 @@ theorem conditional_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     _ ≤ _ := Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
       (fun x _ _ => mul_nonneg (p.nonneg x) (hv x))
 
+omit [DecidableEq I] in
 /-- The mass of every predicate under a finite distribution is nonnegative. -/
 theorem mass_nonneg (p : FinDist I) (E : I → Prop) : 0 ≤ mass p E :=
   Finset.sum_nonneg (fun x _ => p.nonneg x)
 
+omit [DecidableEq I] in
 /-- The weighted sum of a function over an event of mass at least `s` is at least `s * t` when
 the function is at least nonnegative `t` on that event. -/
 theorem conditional_good_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
@@ -323,6 +328,7 @@ theorem sorted_median_failure (p : FinDist I) (v : I → ℝ) (r : ℕ) (μ ε :
       have hp : 0 ≤ (8/9 : ℝ)^r := by positivity
       nlinarith
 
+omit [DecidableEq I] in
 /-- The mass of a source event and a conditional record event is the source weighted sum of the
 conditional event masses. -/
 theorem conditional_one_event {J : Type} [Fintype J]
@@ -333,7 +339,7 @@ theorem conditional_one_event {J : Type} [Fintype J]
   apply Finset.sum_congr rfl
   intro x _
   by_cases hx : E x
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     unfold mass
     rw [Finset.sum_filter, Finset.mul_sum]
     apply Finset.sum_congr rfl
@@ -416,7 +422,7 @@ theorem signed_centered_actual_access_ledger (I : Type) [Fintype I] [DecidableEq
         (payoffPreparation A (layerPayoff (if b then centerPositive f σ x else centerNegative f σ x) l.val))
         (j,false))) = 2*q*(layerGrid k-1) := by
   rw [Fintype.sum_bool]
-  simp only [Bool.false_eq_true, if_false, if_true]
+  simp only [Bool.false_eq_true, ite_false, ite_true]
   rw [layered_quantum_mean_actual_query_ledger, layered_quantum_mean_actual_query_ledger]
   ring
 
@@ -554,7 +560,6 @@ theorem signed_centered_fresh_median_failure (I : Type) [Fintype I] [DecidableEq
       8*σ*(1/2 : ℝ)^k)
   simp only [not_le] at hc
   apply SignedMean.sorted_median_failure _ (signedMeanEstimate k f σ) r _ _ (by positivity)
-  change SignedMean.mass _ _ ≤ 1/3
   change 2/3 ≤ SignedMean.mass _ _ at hg
   linarith
 

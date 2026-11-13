@@ -34,7 +34,6 @@ For background, see [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher

@@ -33,9 +33,7 @@ positive even degree and explicit endpoint rotations.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
@@ -45,7 +43,6 @@ open Qatlib.Concepts.QsvtCore.QsVtMain
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 open Polynomial
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis

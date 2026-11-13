@@ -45,7 +45,6 @@ values from a gate level simulation.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.QsvtCore.HamiltonianSim
 open Qatlib.Concepts.QsvtCore.LinearSystems

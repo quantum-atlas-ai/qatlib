@@ -34,9 +34,7 @@ identities, and the quadratic relation satisfied by each nontrivial eigenvalue. 
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 set_option autoImplicit false
 open Matrix Polynomial

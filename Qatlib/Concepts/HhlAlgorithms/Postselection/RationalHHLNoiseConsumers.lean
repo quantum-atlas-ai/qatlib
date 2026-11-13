@@ -34,9 +34,7 @@ of [BrassardEtAl2002].
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LocalMachine.LocalTransport
@@ -325,7 +323,6 @@ theorem rational_hhl_numeric_table_work (M bits : ℕ) (d : ℚ) (hd : 0 < d) :
 end Qatlib.Concepts.HhlAlgorithms.Postselection
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
@@ -448,7 +445,7 @@ rotation parameters. -/
 private theorem table_getElem (M bits : ℕ) (d : ℚ) (y : Fin M) :
     (rationalHHLTable M d bits)[y.val]? = some (rationalHHLCS d (rationalHHLDecode M y) bits) := by
   simp only [rationalHHLTable, List.getElem?_toArray, List.getElem?_ofFn]
-  rw [dif_pos y.isLt]
+  rw [dite_eq_left y.isLt]
 
 set_option autoImplicit false
 open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -514,7 +511,6 @@ theorem evaluatePrepared_amplified (U B : Matrix I I ℂ) (cs : List (PreparedSt
     evaluatePrepared_amplifiedBlock]
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
@@ -546,22 +542,32 @@ def isInpFwd {I : Type} : PreparedStep I → Bool
 def isInpBwd {I : Type} : PreparedStep I → Bool
   | .prepareBackward => true | _ => false
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The forward data-oracle count equals the number of instructions satisfying `isDataFwd`. -/
 theorem dataForwardCalls_eq_countP (cs : List (PreparedStep I)) :
     dataForwardCalls cs = cs.countP (isDataFwd (I := I)) := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The backward data-oracle count equals the number of instructions satisfying `isDataBwd`. -/
 theorem dataBackwardCalls_eq_countP (cs : List (PreparedStep I)) :
     dataBackwardCalls cs = cs.countP (isDataBwd (I := I)) := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The forward input-preparation count equals the number of instructions satisfying `isInpFwd`. -/
 theorem inputForwardCalls_eq_countP (cs : List (PreparedStep I)) :
     inputForwardCalls cs = cs.countP (isInpFwd (I := I)) := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The backward input-preparation count equals the number of instructions satisfying
 `isInpBwd`. -/
 theorem inputBackwardCalls_eq_countP (cs : List (PreparedStep I)) :
     inputBackwardCalls cs = cs.countP (isInpBwd (I := I)) := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The adjoint query count is the sum of its forward and backward query counts. -/
 theorem adjointQueryCount_eq (cs : List (AdjointStep I)) :
@@ -570,6 +576,8 @@ theorem adjointQueryCount_eq (cs : List (AdjointStep I)) :
   | nil => simp [adjointQueryCount, fwdCount, bwdCount]
   | cons c cs ih =>
       cases c <;> simp [adjointQueryCount, fwdCount, bwdCount, ih] <;> omega
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Taking the adjoint circuit exchanges its backward query count with the forward count. -/
 theorem fwdCount_adjointCircuit (cs : List (AdjointStep I)) :
@@ -584,6 +592,8 @@ theorem fwdCount_adjointCircuit (cs : List (AdjointStep I)) :
       cases c <;>
         simp [adjointInstruction, fwdCount, bwdCount]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Taking the adjoint circuit exchanges its forward query count with the backward count. -/
 theorem bwdCount_adjointCircuit (cs : List (AdjointStep I)) :
     bwdCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit cs) = fwdCount cs := by
@@ -596,6 +606,8 @@ theorem bwdCount_adjointCircuit (cs : List (AdjointStep I)) :
       rw [Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit, h, ih]
       cases c <;>
         simp [adjointInstruction, fwdCount, bwdCount]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Counting a predicate after embedding adjoint instructions into prepared instructions equals
 counting its pullback on the original circuit. -/
@@ -623,6 +635,8 @@ theorem dataBackwardCalls_map (cs : List (AdjointStep I)) :
   apply List.countP_congr
   intro c _
   cases c <;> simp
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Counting a predicate on an inverse word equals counting its pullback under `inverseStep` on
 the original word. -/
@@ -660,6 +674,8 @@ theorem inputBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
   rw [inputBackwardCalls_eq_countP, inputForwardCalls_eq_countP,
     countP_inverseWord isInpBwd isInpFwd (by intro x; cases x <;> rfl)]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Each forward and backward data and input call count is additive under word concatenation. -/
 theorem piecewise_counts_append (cs ds : List (PreparedStep I)) :
     dataForwardCalls (cs ++ ds) = dataForwardCalls cs + dataForwardCalls ds ∧
@@ -668,6 +684,8 @@ theorem piecewise_counts_append (cs ds : List (PreparedStep I)) :
     inputBackwardCalls (cs ++ ds) = inputBackwardCalls cs + inputBackwardCalls ds :=
   ⟨List.countP_append, List.countP_append, List.countP_append, List.countP_append⟩
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The prepared data-query count is the sum of forward and backward data calls. -/
 theorem dataQueries_split (cs : List (PreparedStep I)) :
     preparedDataQueries cs = dataForwardCalls cs + dataBackwardCalls cs := by
@@ -675,6 +693,8 @@ theorem dataQueries_split (cs : List (PreparedStep I)) :
   | nil => simp [preparedDataQueries, dataForwardCalls, dataBackwardCalls]
   | cons c cs ih =>
       cases c <;> simp [preparedDataQueries, dataForwardCalls, dataBackwardCalls, ih] <;> omega
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The prepared input-query count is the sum of forward and backward preparation calls. -/
 theorem inputQueries_split (cs : List (PreparedStep I)) :
@@ -759,12 +779,12 @@ theorem mixed_window_avg {I : Type} [Fintype I] [DecidableEq I]
     intro x hx
     have hxlt : x < m := Finset.mem_range.mp hx
     show f (if x < m then 0 else x - m) = a
-    rw [if_pos hxlt, hf0]
+    rw [ite_eq_left hxlt, hf0]
   have hgb : ∀ x ∈ Finset.range m, g (m + x) = f x := by
     intro x _
     have hnot : ¬ (m + x < m) := by omega
     show f (if m + x < m then 0 else m + x - m) = f x
-    rw [if_neg hnot, Nat.add_sub_cancel_left]
+    rw [ite_eq_right hnot, Nat.add_sub_cancel_left]
   have hsplit : (∑ s : Fin (2*m),
       MeasureProb (Run (preparedMark S) (preparedAACircuit A j (depth m s)) (Qatlib.Foundations.PureStateMath.Ket j)) S) =
       (m:ℝ) * a + ∑ x ∈ Finset.range m, f x := by
@@ -950,6 +970,8 @@ theorem countP_flatten_replicate {α : Type} (p : α → Bool) (block : List α)
 def isGate {I : Type} : PreparedStep I → Bool
   | .gate _ => true
   | _ => false
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The prepared fixed-gate count equals the number of instructions satisfying `isGate`. -/
 theorem preparedFixedGates_eq_countP (cs : List (PreparedStep I)) :
@@ -1560,9 +1582,13 @@ private theorem collapse_idem (v : QState I) (S : Finset I) :
     (Projector S : Matrix I I ℂ) *ᵥ v
   rw [Matrix.mulVec_mulVec, projector_mul_self]
 
+omit [DecidableEq I] in
+
 /-- Applying a matrix gate distributes over addition of states. -/
 private theorem gate_add (U : Matrix I I ℂ) (x y : QState I) :
     ApplyGate U (x + y) = ApplyGate U x + ApplyGate U y := Matrix.mulVec_add U x y
+
+omit [DecidableEq I] in
 
 /-- Applying a matrix gate commutes with complex scalar multiplication. -/
 private theorem gate_smul (U : Matrix I I ℂ) (c : ℂ) (x : QState I) :

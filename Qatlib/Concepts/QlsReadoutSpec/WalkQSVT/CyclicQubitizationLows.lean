@@ -25,7 +25,6 @@ absolute value one or less than one. Related mathematical background is given in
 * [Low and Su, 2026, Lemma 17][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.BlockEncoding

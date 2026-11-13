@@ -32,7 +32,6 @@ retain the control-cross-block obstruction for the blockwise lifted map.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.RandCompile.EffectiveInput
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject

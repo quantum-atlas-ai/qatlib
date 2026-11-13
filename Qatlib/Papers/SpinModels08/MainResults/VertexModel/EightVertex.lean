@@ -27,8 +27,6 @@ three-site gates.
 * [Van den Nest et al., 2009][VanDenNestEtAl2009]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open scoped BigOperators Matrix

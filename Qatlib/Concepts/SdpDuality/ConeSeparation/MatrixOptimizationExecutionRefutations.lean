@@ -37,7 +37,6 @@ establish the counting and probability facts needed by those counterexamples.
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree

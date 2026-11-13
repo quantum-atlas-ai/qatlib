@@ -27,7 +27,6 @@ twelve samples in the parameter range of [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist

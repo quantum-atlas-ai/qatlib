@@ -28,8 +28,6 @@ by a source envelope, as required for compact sketch access in [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 

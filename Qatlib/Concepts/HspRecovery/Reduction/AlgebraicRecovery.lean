@@ -29,7 +29,6 @@ one-query count of the sampling circuit. See [Lomont2004] for the mathematical b
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.BackendAudit
@@ -39,7 +38,6 @@ open Qatlib.Concepts.HspRecovery.ReductionCore
 open Qatlib.Concepts.HspRecovery.ReductionCore.CompactPresentation
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 

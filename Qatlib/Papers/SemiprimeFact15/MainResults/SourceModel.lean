@@ -26,8 +26,8 @@ This file fixes the paper's model objects:
 * a safe semiprime `N = p₁p₂ = (2q₁+1)(2q₂+1)` (`SafeSemiprime`);
 * the ideal (perfect) quantum order-finding output `d = r/gcd(t,r)` produced by
   the continued-fraction post-processing on the uniform phase `t/ord_N(2)`
-  (`qofaOutput`, §III.B, and the frozen decoder
-  `QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery.reduced_order_denominator_of_every_good_phase`);
+  (`qofaOutput`, §III.B, and the library's decoder
+  `Qatlib.Concepts.PeriodSampling.OrderRecovery.reduced_order_denominator_of_every_good_phase`);
 * the even/odd unification `s = d` (resp. `2d`) of Algorithm 1 lines 4–5
   (`sComplement`);
 * the two output sets of Lemma 1(2): the six useful values and the two bad
@@ -176,8 +176,8 @@ end SafeSemiprime
 true order `r` and the uniformly random continued-fraction numerator
 `t ∈ {1,…,r}`, the post-processing returns `d = r / gcd(t,r)`
 (arXiv:1511.04385v3, §III.B, "QOFA then uses a continued fraction expansion to
-get `d = ord_N(a)/gcd(t, ord_N(a))`").  This is the value computed by the frozen
-decoder `QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery.reduced_order_denominator_of_every_good_phase`. -/
+get `d = ord_N(a)/gcd(t, ord_N(a))`").  This is the value computed by the library's
+decoder `Qatlib.Concepts.PeriodSampling.OrderRecovery.reduced_order_denominator_of_every_good_phase`. -/
 def qofaOutput (r t : ℕ) : ℕ := r / Nat.gcd t r
 
 /-- Algorithm 1, lines 4–5: unify the odd and even cases of the QOFA output `d`

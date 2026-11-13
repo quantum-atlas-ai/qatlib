@@ -24,8 +24,6 @@ associated with Theorem 1.3 of [Regev2004] as a proposition.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QLattice03.MainResults

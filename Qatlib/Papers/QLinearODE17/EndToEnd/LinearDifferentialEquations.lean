@@ -38,7 +38,6 @@ noncomputable section
 namespace Qatlib.Papers.QLinearODE17.EndToEnd
 
 open Qatlib.Papers.QLinearODE17.EndToEnd
-set_option warningAsError false
 
 /-- The source-access ledger records (m + 1)ρ controlled preparations, m + 1 oracle calls, and
 the supplied classical-bit and workspace counts. -/

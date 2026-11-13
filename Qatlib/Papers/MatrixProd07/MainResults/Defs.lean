@@ -31,7 +31,6 @@ polynomial bounds on natural-valued costs. These constructions are associated wi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

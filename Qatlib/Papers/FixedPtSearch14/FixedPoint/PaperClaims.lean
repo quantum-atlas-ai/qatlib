@@ -31,8 +31,8 @@ notation already fixed by the Dev/Frozen construction layer:
 * Abstract + p. 4 — Dolph–Chebyshev maximality of the λ-range.
 
 The underlying constructions and long proofs live in the sibling modules of
-`QuantumAlgorithmDev.Papers.FixedPtSearch14.FixedPoint` and in the Frozen
-v2.0.2 package under `QuantumAlgorithm.Papers.FixedPtSearch14.FixedPoint`.
+`QuantumAlgorithmDev.Papers.FixedPtSearch14.FixedPoint` and in the package
+under `Qatlib.Papers.FixedPtSearch14.FixedPoint`.
 Each bridge theorem below names the exact reused fully-qualified result.
 -/
 
@@ -80,8 +80,8 @@ word is at most `C·log(2/δ)/√λ₀` for every `λ ≥ λ₀` simultaneously.
 `L = 2l+1` and each iterate makes `2` oracle queries (`wordQueryCount l = 2l`),
 this yields the paper's query complexity `L = O(log(2/δ)/√λ)`.
 
-Reused result: `clause2_uniform_constant_before_good_mass` (Frozen v2.0.2,
-`QuantumAlgorithm.Papers.FixedPtSearch14.FixedPoint.OptimalWordConstruction`),
+Reused result: `clause2_uniform_constant_before_good_mass` from
+`Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalWordConstruction`,
 whose proof is unconditional (`accessCountOBound`); the length/query-count
 identification is `MarkedSearch.publicLength_as_iterates` in this block. -/
 theorem claim_c002_query_complexity :
@@ -170,8 +170,8 @@ outer error bound `δ₂ = δ`; then running an `L₁`-word at `δ₁` inside an
 `L₂`-word at `δ` gives the response of a single word of length `L₁L₂`:
 `P_{L₂}(P_{L₁}(λ,δ₁),δ₂) = P_{L₁L₂}(λ,δ)`.
 
-Reused result: `nestedResponseIdentity` (Frozen v2.0.2,
-`QuantumAlgorithm.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`),
+Reused result: `nestedResponseIdentity` from
+`Qatlib.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`,
 proved from the Chebyshev semigroup law. -/
 theorem claim_c005_nesting_composition (L1 L2 : ℕ) (delta lam : ℝ)
     (hL1 : 1 ≤ L1) (hL2 : 1 ≤ L2) (hd : 0 < delta) (hdu : delta < 1)
@@ -190,8 +190,8 @@ failure amplitude `a = √(1−λ)`, this says that the set of `λ` on which the
 success probability can be kept at least `1−δ²` is widest for the
 Chebyshev/Dolph response — the paper's "broadest possible range of λ".
 
-Reused result: `chebyshev_suppression_optimal` (Frozen v2.0.2,
-`QuantumAlgorithm.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`),
+Reused result: `chebyshev_suppression_optimal` from
+`Qatlib.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`,
 proved from Mathlib's Chebyshev extremal property. -/
 theorem claim_c006_optimal_lambda_range {L : ℕ} {delta : ℝ} {q : ℝ[X]} {a : ℝ}
     (hL : 1 ≤ L) (hd : 0 < delta) (hdu : delta < 1)

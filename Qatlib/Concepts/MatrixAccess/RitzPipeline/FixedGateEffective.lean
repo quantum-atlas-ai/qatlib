@@ -29,15 +29,10 @@ reused. Fixed-gate approximation is discussed in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
-set_option linter.unnecessarySeqFocus false
-set_option linter.unreachableTactic false
 
 noncomputable section
 

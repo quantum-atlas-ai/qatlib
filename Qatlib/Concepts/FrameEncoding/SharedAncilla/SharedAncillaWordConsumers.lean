@@ -30,7 +30,6 @@ the block encoding and postselection viewpoint of [GilyenSuLowWiebe2019].
   exponential improvements for quantum matrix arithmetics.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding

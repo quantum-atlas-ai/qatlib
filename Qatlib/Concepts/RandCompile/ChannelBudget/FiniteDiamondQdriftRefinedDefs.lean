@@ -35,7 +35,6 @@ allowances and phase-estimation chain count expressions.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 

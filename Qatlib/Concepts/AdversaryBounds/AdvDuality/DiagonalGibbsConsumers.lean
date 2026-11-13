@@ -28,7 +28,6 @@ The examples use the Gibbs-state and quantum-channel formalism of [NielsenChuang
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -44,11 +43,6 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Matrix
 
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
 
 /-- At zero inverse temperature, every positive thermal-channel iterate maps a joint operator to
 the Gibbs density tensored with its reference marginal. -/

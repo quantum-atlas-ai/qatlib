@@ -27,7 +27,7 @@ in-paper proof.
   regime. The proof identifies the cross term with an AM–GM product
   `(1−x)(1−y)·xy` whose mean dominates `2√·`.
 
-No axiom, no `admit`, no `native_decide`. -/
+-/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AlgGeomCode25.MainResults.HopiFraction

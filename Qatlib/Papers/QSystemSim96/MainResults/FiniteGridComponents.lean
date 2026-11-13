@@ -33,8 +33,6 @@ unitarity theorem under the stated lattice compatibility and invertibility condi
 * [Zalka, 1998][Zalka1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 

@@ -30,7 +30,6 @@ analyze the complete minimum-finding run.
 * [Durr and Hoyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeSearch.Amplification.RankedCallLaw

@@ -27,7 +27,6 @@ and −1 on these parts. The quantum walk spectral framework is developed in [Sz
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath

@@ -28,8 +28,6 @@ and equals the explicit inverse applied to its forcing data, as in the history e
 * [Lloyd et al., 2020][LloydEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 600000
 noncomputable section

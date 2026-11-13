@@ -23,7 +23,6 @@ correspondence used in ordered-search semidefinite programming [ChildsLandahlPar
 * [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge

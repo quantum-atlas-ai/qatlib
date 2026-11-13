@@ -39,7 +39,6 @@ open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 open Qatlib.Foundations.MatrixAlgebra.FrameProject.Tensor
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Purification
-set_option warningAsError false
 
 /-- The purification obtained by multiplying the actual path-coefficient matrix by the histogram
 basis matrix. -/

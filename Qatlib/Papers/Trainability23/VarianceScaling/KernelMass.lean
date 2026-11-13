@@ -27,8 +27,6 @@ a geometric upper bound in the register size. See [RudolphEtAl2024].
 * [Rudolph et al., 2024][RudolphEtAl2024]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Foundations.PureStateMath

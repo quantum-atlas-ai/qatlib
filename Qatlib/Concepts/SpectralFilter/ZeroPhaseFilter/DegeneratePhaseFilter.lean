@@ -33,7 +33,6 @@ selected branch.
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase

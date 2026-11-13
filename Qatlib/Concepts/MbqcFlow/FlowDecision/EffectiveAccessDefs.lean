@@ -35,9 +35,7 @@ arithmetic and resource-accounting data used by effective-access constructions.
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
 

@@ -43,7 +43,6 @@ including for the concrete preparation supplied by `thermalActualOAAWord`.
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits

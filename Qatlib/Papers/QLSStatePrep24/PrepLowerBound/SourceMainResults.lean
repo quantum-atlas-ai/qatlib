@@ -19,17 +19,16 @@ system with `‖A⁻¹ b‖² / ‖A⁻¹‖² = Θ(p)` such that any algorithm 
 normalized solution to small constant accuracy needs `Ω(1/√p)` queries to the
 state-preparation oracle `O_b`.
 
-The frozen library contains the *corrected explicit-instance* form: an
+The library contains the *corrected explicit-instance* form: an
 explicit Grover instance with `d ≥ 150` dimensions, oracle accuracy
 `ε ≤ 1/100`, and any unitary circuit with quantum state-preparation oracle
 satisfies `d ≤ 64 (QueryCount C)²`, whose ratio `p_d = (5d² - 8d + 4)/d³` is
-`Θ(1/d)` for `d ≥ 8`. The frozen contract
-`InitialStatePreparationLowerBoundSubgoalCorrected` is proved in Frozen v2.0.2
-by `initialStatePreparationLowerBoundSubgoalCorrected`.
+`Θ(1/d)` for `d ≥ 8`. The statement
+`InitialStatePreparationLowerBoundSubgoalCorrected` is proved by `initialStatePreparationLowerBoundSubgoalCorrected`.
 
-Boundary: the frozen form is the explicit Grover family, not the paper's
-`∀ 0 < p < 1` abstract parameterized family; see its `covered_by` note. The
-implication "lower bound ⇒ QLS upper bound" is not part of this file.
+Scope note: this module formalizes the explicit Grover family. The paper's
+`∀ 0 < p < 1` abstract parameterized family and the implication
+"lower bound ⇒ QLS upper bound" are outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -42,12 +41,12 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 namespace Qatlib.Papers.QLSStatePrep24.PrepLowerBound
 
 /-- Fixed arXiv:2410.18178v2, Theorem 3 (p.42, Eqs. (172)–(173)): the initial
-state preparation query lower bound on the explicit Grover instance. The frozen
-contract states that for any finite instance of dimension `≥ 150`, oracle
+state preparation query lower bound on the explicit Grover instance. The
+statement establishes that for any finite instance of dimension `≥ 150`, oracle
 accuracy `≤ 1/100`, normalized product initial state and unitary circuit whose
 output is within `ε` of the solution target, the dimension is bounded by
 `64 (QueryCount C)²`, giving the `Ω(1/√p)` lower bound with
-`p = (5d² - 8d + 4)/d³ = Θ(1/d)`. Proved in Frozen v2.0.2 by
+`p = (5d² - 8d + 4)/d³ = Θ(1/d)`. Proved by
 `initialStatePreparationLowerBoundSubgoalCorrected`. -/
 theorem theorem3_initial_state_preparation_lower_bound :
     InitialStatePreparationLowerBoundSubgoalCorrected :=

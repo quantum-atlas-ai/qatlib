@@ -36,7 +36,6 @@ set_option autoImplicit false
 open Qatlib Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
-set_option warningAsError false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.PaidPairMultiplication
 
 /-- The four argument slots, the embedded sum-of-products workspace, and a separate final output

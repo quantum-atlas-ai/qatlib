@@ -29,13 +29,14 @@ of that statement:
 
 The shared Moore–Penrose contract behind the identification `X⁺ = VΣ⁻¹Uᵀ` is
 the one proved at complex level in
-`QuantumAlgorithm.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_unique`
+`Qatlib.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_unique`
 and its normal-equation corollary
-`QuantumAlgorithm.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_normal`;
+`Qatlib.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_normal`;
 the paper's data are real, so the real Moore–Penrose identities are re-proved
 here with the paper's transpose convention.
 
-Not formalised: the asymptotic runtime `O(log N κ² ε⁻³)` of Section IV. Its
+Scope note: the asymptotic runtime `O(log N κ² ε⁻³)` of Section IV is outside
+the scope of this file. Its
 `log N` and `ε⁻³` factors come from the quantum-PCA/density-matrix
 exponentiation subroutine of [14] (Lloyd–Mohseni–Rebentrost), which is not part
 of this paper's own mathematical derivation; the κ-dependence is covered by
@@ -163,7 +164,7 @@ theorem pseudoinverse_mul_dataMatrix_symm (σ : Fin R → ℝ)
 least-squares normal equations `Xᵀ X w = Xᵀ y`. This is the stationarity
 condition of the (unregularised) least-squares problem minimised in the paper,
 and the real-level counterpart of
-`QuantumAlgorithm.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_normal`
+`Qatlib.Concepts.CoherentSim.CoherentOAA.matrixPseudoinverse_normal`
 (which states `Aᴴ (A x − b) = 0` over `ℂ`). -/
 theorem fittedWeights_normal_equations (σ : Fin R → ℝ)
     (U : Matrix (Fin M) (Fin R) ℝ) (V : Matrix (Fin N) (Fin R) ℝ)

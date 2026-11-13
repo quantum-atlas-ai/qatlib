@@ -37,7 +37,6 @@ the logarithm of the inverse error divided by the transition width.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.PureStateMath
@@ -45,7 +44,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open Matrix Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
@@ -60,7 +58,6 @@ open Qatlib
 open scoped Matrix.Norms.L2Operator Classical BigOperators
 set_option autoImplicit false
 open Polynomial Real
-set_option warningAsError false
 noncomputable section
 
 /-- States the existence of odd sign-approximating polynomials on `[-2, 2]` with the specified

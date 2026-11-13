@@ -31,7 +31,6 @@ self-adjoint unitaries, providing the frame construction for [ClaudonPiquemalMon
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

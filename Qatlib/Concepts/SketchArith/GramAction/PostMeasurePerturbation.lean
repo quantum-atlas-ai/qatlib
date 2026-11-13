@@ -32,8 +32,6 @@ unitary gate.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Foundations.PureStateMath.BornBridge

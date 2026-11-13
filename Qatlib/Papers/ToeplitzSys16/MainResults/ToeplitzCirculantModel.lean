@@ -27,8 +27,8 @@ This file provides the concrete matrix model used by every result of the paper:
 * `circulantMatrix n f` — the associated circulant `Cₙ(f)` with entry `(i,j) ↦ c_{(i-j) mod n}`;
 * `relativeFrobeniusError n f` — the ratio `‖Tₙ(f) − Cₙ(f)‖_F / ‖Tₙ(f)‖_F` of eq. (10).
 
-The Frobenius norm `spectralFrobenius` and its structural identities are reused from the Frozen
-concept block `QuantumAlgorithm.Concepts.SpectralSketch.SpectrumPerturb`
+The Frobenius norm `spectralFrobenius` and its structural identities are reused from
+`Qatlib.Concepts.SpectralSketch.SpectrumPerturb`
 (`spectralFrobenius`, `spectralFrobenius_sq`, `spectralFrobenius_sq_trace`,
 `spectralFrobenius_sq_singular`).
 

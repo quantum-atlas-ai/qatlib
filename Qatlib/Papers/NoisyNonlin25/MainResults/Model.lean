@@ -15,8 +15,8 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # NoisyNonlin25 — Kolmogorov-equation operator model
 
-Fixed source: arXiv:2507.06198 (paper *Quantum simulation of a noisy classical nonlinear
-dynamics*). Prefetched PDF `assets/2507.06198.pdf`, text `assets/2507.06198.txt`.
+Fixed source: arXiv:2507.06198 (*Quantum simulation of a noisy classical nonlinear
+dynamics*).
 
 This file provides the paper-layer abstraction used by every claim in
 `NoisyNonlin25.MainResults`.  The paper works on the Fock space `𝓕` of `N` bosonic modes and

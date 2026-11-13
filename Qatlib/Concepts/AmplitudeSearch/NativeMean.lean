@@ -67,7 +67,6 @@ def nativeSignedQueryBudget (k : ℕ) : ℕ :=
 noncomputable section
 open scoped Classical
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
-set_option warningAsError false
 
 /-- For nonnegative σ, every rational signed output differs from the corresponding real
 `signedMeanEstimate` by at most σ·2⁻ᵏ. -/

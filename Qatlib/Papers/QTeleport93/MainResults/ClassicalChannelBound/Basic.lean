@@ -34,7 +34,6 @@ the alphabet bound, while `c003_quantum_code_bits` expresses it using `Nat.clog`
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

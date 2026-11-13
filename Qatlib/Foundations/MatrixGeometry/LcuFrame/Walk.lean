@@ -25,7 +25,6 @@ background.
 * [Poulin et al., 2018][PoulinEtAl2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.MatrixGeometry.LcuFrame

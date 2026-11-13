@@ -31,7 +31,6 @@ channels. The channel and trace-distance background is described in [NielsenChua
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -49,11 +48,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unreachableTactic false
-set_option linter.unusedTactic false
 
 /-- The qubit diagonal matrix with diagonal entries `1` and `ζ`. -/
 noncomputable def noisyHadamardPhase (ζ : ℂ) : Operator 2 :=

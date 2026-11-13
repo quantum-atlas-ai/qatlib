@@ -111,8 +111,6 @@ trace norm. These finite-dimensional quantum information constructions follow th
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

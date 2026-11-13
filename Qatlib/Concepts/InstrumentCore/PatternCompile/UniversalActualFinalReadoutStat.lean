@@ -28,7 +28,6 @@ final-readout requirements for the measurement-based scheme of [RaussendorfBrieg
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.Measurement

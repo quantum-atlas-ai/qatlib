@@ -30,8 +30,6 @@ directed successor graph, is strongly connected exactly when the input parity is
 * [Durr et al., 2003][DurrMhallaLei2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 noncomputable section

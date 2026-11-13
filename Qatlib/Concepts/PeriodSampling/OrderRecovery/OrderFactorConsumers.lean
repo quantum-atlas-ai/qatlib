@@ -28,7 +28,6 @@ gives a concrete base-two example modulo fifteen.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -31,7 +31,7 @@ when the entry is a cell `(2, i, j)` at which `(AB)ᵢⱼ ≠ Cᵢⱼ`; when `AB
 is accepted (there is no witness to find).  A constant-error algorithm of this shape
 decides `AB = C` with one-sided error.
 
-What is proved here (sorry-free):
+The following results are proved here:
 
 * `matrixProductMismatch_eq_empty_iff`: the mod-`2` product `AB = C` holds iff there is
   no mismatch cell.  This is the soundness/completeness core of the witness verifier.
@@ -45,13 +45,12 @@ What is proved here (sorry-free):
   two-level product `N · N^(2/3)` (an `√N`-style outer amplification over the `N` candidate
   rows/columns, each level costing `N^(2/3)`), the shape of the [16] construction.
 
-Residual gap (the actual algorithmic content): no frozen model of the Buhrman–Špalek
-matrix-product algorithm exists.  Its query accounting uses element distinctness as a
-subroutine on the `N²` entries with a two-level search over rows/columns
-(`QuantumAlgorithm.Papers.QTriangle03.th4Alg` is the closest frozen pattern), and would
-require a new oracle-access model for multi-entry objects, so the `O(N^(5/3))` *upper
-bound* is not proved.  The verifier semantics above is what the fixed-space phase-query
-model can currently certify. -/
+Scope note: this module formalizes verifier semantics in the fixed-space phase-query
+model. The Buhrman–Špalek matrix-product algorithm and its `O(N^(5/3))` query upper
+bound are outside the scope of this file. Its query accounting uses element distinctness
+as a subroutine on the `N²` entries with a two-level search over rows/columns, requiring
+an oracle-access model for multi-entry objects. A related construction is
+`Qatlib.Concepts.WalkSearch.WalkAlgorithms.th4Alg`. -/
 
 set_option autoImplicit false
 noncomputable section

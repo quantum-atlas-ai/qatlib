@@ -30,8 +30,6 @@ completing the matrix construction associated with [Reichardt2011].
 * [Reichardt, Eqs. (2.2)-(2.6)][Reichardt2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

@@ -29,8 +29,6 @@ estimator of [Tang2021]. With `Z = averageNormSq u V`, each mean uses `ceil(256 
   speedup because of its state preparation assumptions*, Theorem 4 and Algorithm 4.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

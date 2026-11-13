@@ -31,9 +31,7 @@ between threshold-sector operators. The statement is associated with Theorem 41 
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

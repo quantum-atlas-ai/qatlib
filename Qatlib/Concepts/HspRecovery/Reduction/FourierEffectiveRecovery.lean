@@ -28,7 +28,6 @@ sum weighted by squared coefficients. The phase estimation framework is describe
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability

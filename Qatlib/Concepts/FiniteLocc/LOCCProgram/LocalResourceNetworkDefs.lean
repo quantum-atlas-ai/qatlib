@@ -35,7 +35,6 @@ repetition charges.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -53,7 +52,6 @@ open scoped Classical BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The positive real number `1 / √2`, viewed in `ℂ`. -/
 noncomputable def invSqrtTwo : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹

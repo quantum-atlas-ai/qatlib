@@ -27,8 +27,6 @@ coordinate subsets, providing a tool for the spectral arguments of [Nielsen1999]
 * [Nielsen, 1999][Nielsen1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

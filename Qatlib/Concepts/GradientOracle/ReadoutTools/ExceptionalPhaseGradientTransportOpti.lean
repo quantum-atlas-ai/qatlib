@@ -210,7 +210,6 @@ private theorem uniform_state_sq (d M : ℕ) (hM : 0 < M) (x : GradientGrid d M)
 
 end ExceptionalPhaseGradientTransportAux
 open Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportAux
-set_option warningAsError false
 
 /-- Proves normalization and bounds the squared readout-state distance by `(2*π*B)^2+4*η` when
 phases differ by at most `B` outside a fraction `η` of the grid. Every event-probability

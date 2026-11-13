@@ -23,7 +23,7 @@ gates; the precision `n` is the sum of the signed dyadic precisions
 `n_ε = ⌈log₂ 4/(rε)⌉` and `n_L = ⌈log₂ 3rL⌉`.
 
 This is the source-scaling form of the paper's Theorem 21 and is a bridge to
-the Frozen v2.0.2 contract `sourceAlmostAffineGradient`.
+the library theorem `sourceAlmostAffineGradient`.
 -/
 
 set_option autoImplicit false

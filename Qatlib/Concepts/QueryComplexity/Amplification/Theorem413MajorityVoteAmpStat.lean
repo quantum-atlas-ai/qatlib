@@ -25,7 +25,6 @@ success at least 2/3 can be repeated an odd number of times to achieve majority 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 

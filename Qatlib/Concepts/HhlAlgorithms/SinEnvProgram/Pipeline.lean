@@ -33,7 +33,6 @@ A.1 of [HarrowHassidimLloyd2009].
 * [Harrow et al., 2009, Appendix A.1][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

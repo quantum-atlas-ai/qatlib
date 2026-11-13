@@ -33,9 +33,6 @@ parity, using the averaged clean frames and an exact instruction count.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.MatrixAccess.FrameFilterProd
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.QsvtCore.LinearSystems

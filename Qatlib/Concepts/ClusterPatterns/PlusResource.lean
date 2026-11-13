@@ -32,7 +32,6 @@ scheme in [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -50,8 +49,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The one-qubit plus state with computational basis indexed by `Fin 2`. -/
 noncomputable def clusterPlusState : QState (Fin 2) := relabelState boolEquivFin2 Plus

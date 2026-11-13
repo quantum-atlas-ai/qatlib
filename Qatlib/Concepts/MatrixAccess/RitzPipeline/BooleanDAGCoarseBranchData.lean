@@ -28,7 +28,6 @@ compilation in the framework of [NielsenChuang2010].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

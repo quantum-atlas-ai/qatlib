@@ -31,7 +31,6 @@ unitary on the same circuit. The mathematical background is developed in [Gilyen
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -65,7 +64,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 section PhaseWord
 
@@ -182,6 +180,8 @@ theorem parallelOracle_norm (W : Matrix H H ℂ) :
     ‖parallelOracle (J := J) W‖ = ‖W‖ := by
   rw [parallelOracle_eq_kronecker, l2_norm_kronecker, l2_norm_one_eq, one_mul]
 
+omit [Nonempty J] in
+
 /-- Parallel oracle lifting preserves subtraction of matrices. -/
 theorem parallelOracle_sub (U V : Matrix H H ℂ) :
     parallelOracle (J := J) (V - U) = parallelOracle (J := J) V - parallelOracle (J := J) U := by
@@ -192,6 +192,8 @@ theorem parallelOracle_sub (U V : Matrix H H ℂ) :
 theorem parallelOracle_dist (U V : Matrix H H ℂ) :
     ‖parallelOracle (J := J) U - parallelOracle (J := J) V‖ = ‖U - V‖ := by
   rw [← parallelOracle_sub, parallelOracle_norm]
+
+omit [Nonempty J] in
 
 /-- A well formed adjoint circuit evaluated with a unitary parallel oracle has norm at most one. -/
 theorem evaluate_parallelOracle_norm_le {U : Matrix H H ℂ}

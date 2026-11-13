@@ -28,7 +28,6 @@ identifies the target Hamiltonian and supplies a trace-norm approximation bound.
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -40,7 +39,6 @@ open Qatlib.Concepts.RandCompile.ReferenceModel
 
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical

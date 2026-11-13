@@ -30,7 +30,6 @@ value, and adversary value with their Boolean definitions in the framework of [L
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

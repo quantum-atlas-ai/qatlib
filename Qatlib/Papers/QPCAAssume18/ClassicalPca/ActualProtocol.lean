@@ -26,8 +26,6 @@ access protocol, as used in the sample-and-query construction of [Tang2021].
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

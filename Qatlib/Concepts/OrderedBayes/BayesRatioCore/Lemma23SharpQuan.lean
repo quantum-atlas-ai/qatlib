@@ -27,8 +27,6 @@ the exact information identity with a quadratic bound on the answer entropy defi
 * [Ben-Or and Hassidim, Lemma 2.3][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 

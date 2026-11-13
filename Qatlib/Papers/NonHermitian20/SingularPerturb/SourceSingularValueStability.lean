@@ -22,8 +22,8 @@ theorem. The library already contains the rectangular Weyl/Mirsky theorem for th
 standard singular-value sequence; the paper's square statement is the special case with
 `B = M + E`, using `M - (M + E) = -E` and `‖-E‖ = ‖E‖`.
 
-Reuse FQN:
-`QuantumAlgorithm.Concepts.SpectralSketch.SpectrumPerturb.rectangular_singular_weyl_and_mirsky`.
+The rectangular theorem is
+`Qatlib.Concepts.SpectralSketch.SpectrumPerturb.rectangular_singular_weyl_and_mirsky`.
 -/
 
 set_option autoImplicit false

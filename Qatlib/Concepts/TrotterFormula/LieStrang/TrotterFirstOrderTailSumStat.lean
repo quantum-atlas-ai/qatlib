@@ -23,7 +23,6 @@ in [ChildsEtAl2021Trotter].
 * [Childs et al., Proposition 15][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

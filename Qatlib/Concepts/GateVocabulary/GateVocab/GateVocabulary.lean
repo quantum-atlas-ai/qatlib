@@ -32,7 +32,6 @@ identities. The Pauli expansion and shadow reconstruction kernel use the gate co
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 open Qatlib.Concepts.ChannelTheory.Stinespring

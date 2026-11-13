@@ -35,7 +35,6 @@ and Kronecker matrix algebra has standard background in [HornJohnson1991].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra
 

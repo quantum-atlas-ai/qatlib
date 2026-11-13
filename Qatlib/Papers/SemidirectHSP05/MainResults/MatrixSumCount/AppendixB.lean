@@ -24,8 +24,6 @@ differences of `matSumLin`, then counts collisions to bound the second moment of
 * [Bacon et al., 2005][BaconChildsVanDam2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

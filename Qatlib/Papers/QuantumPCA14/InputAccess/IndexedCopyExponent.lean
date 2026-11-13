@@ -33,7 +33,6 @@ conjugated access. See [LloydMohseniRebentrost2014].
 * [Lloyd et al., 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

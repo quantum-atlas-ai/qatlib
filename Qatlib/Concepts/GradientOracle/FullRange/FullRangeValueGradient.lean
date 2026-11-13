@@ -25,9 +25,7 @@ the value-oracle precision setup associated with [Jordan2005Gradient].
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 open Qatlib.Concepts.GradientOracle.ReadoutWindow

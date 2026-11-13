@@ -26,8 +26,6 @@ available. Total variation as a measure of distinguishability is discussed in [W
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.RationalLikelihoodTransport

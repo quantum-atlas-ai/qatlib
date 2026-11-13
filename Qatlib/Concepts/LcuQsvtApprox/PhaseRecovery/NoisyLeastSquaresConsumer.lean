@@ -34,7 +34,6 @@ normalized two-entry column. These examples illustrate the quantum data-fitting 
 * [Wiebe et al., 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding

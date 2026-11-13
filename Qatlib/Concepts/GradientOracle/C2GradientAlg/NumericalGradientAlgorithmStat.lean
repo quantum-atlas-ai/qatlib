@@ -26,7 +26,6 @@ probability of simultaneous coordinate errors and records exact query and gate c
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient

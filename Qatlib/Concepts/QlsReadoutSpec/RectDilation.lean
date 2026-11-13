@@ -26,7 +26,6 @@ Related mathematical background is given in [HarrowHassidimLloyd2009].
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

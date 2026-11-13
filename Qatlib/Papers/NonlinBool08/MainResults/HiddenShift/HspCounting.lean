@@ -24,8 +24,6 @@ fraction of informative tuples under the stated sample-count inequality. See [Ro
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

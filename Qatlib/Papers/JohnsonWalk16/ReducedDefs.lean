@@ -28,8 +28,6 @@ eigenvalue at the candidate rate, and a counterexample to the printed normalizat
 * [Wong, 2016][Wong2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.JohnsonWalk16.ReducedDefs

@@ -29,8 +29,6 @@ and the identity `1 - badMass 0 r = 1`. See [NagajWocjanZhang2009] for the paper
 * [Nagaj et al., 2009][NagajWocjanZhang2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

@@ -26,8 +26,6 @@ fiber is the difference term √κ(Ub − Ua)/(κ + 1), both applied to the inpu
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Papers.HamLCUSim12.LCUDeferred
 
 set_option autoImplicit false

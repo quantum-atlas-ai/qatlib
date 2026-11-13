@@ -29,7 +29,6 @@ the permutation. These are linear-algebraic ingredients for label-symmetry argum
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

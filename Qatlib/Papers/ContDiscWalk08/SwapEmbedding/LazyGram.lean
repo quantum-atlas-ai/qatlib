@@ -25,11 +25,7 @@ positive mixing parameter at most one.
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -47,9 +43,13 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 /-- Defines the state obtained by exchanging the two coordinates of each basis index. -/
 def swapQState (ψ : QState (I × I)) : QState (I × I) := fun p => ψ (Prod.swap p)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Swapping state coordinates preserves addition. -/
 theorem swapQState_add (ψ φ : QState (I × I)) :
     swapQState (ψ + φ) = swapQState ψ + swapQState φ := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Swapping state coordinates commutes with complex scalar multiplication. -/
 theorem swapQState_smul (c : ℂ) (ψ : QState (I × I)) :
@@ -162,18 +162,18 @@ theorem inner_lazyState_self (L : LazyData I) (ε : ℝ) (hε0 : 0 ≤ ε) (hε1
   by_cases hjk : j = k
   · subst hjk
     unfold lazyState
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp only [inner_add_left, inner_add_right, inner_smul_left, inner_smul_right,
-      psi, GramData.inner_gramState_self, if_pos rfl, if_true, L.bot_orthonormal,
+      psi, GramData.inner_gramState_self, ite_true, L.bot_orthonormal,
       L.bot_psi, L.psi_bot, mul_one, mul_zero, zero_add, add_zero]
     rw [sqrt_mul_conj_sqrt ε hε0, sqrt_mul_conj_sqrt (1 - ε) hε1']
     push_cast
     ring
   · unfold lazyState
-    rw [if_neg hjk]
+    rw [ite_eq_right hjk]
     simp only [inner_add_left, inner_add_right, inner_smul_left, inner_smul_right,
-      psi, GramData.inner_gramState_self, if_neg hjk, if_false, L.bot_orthonormal,
-      L.bot_psi, L.psi_bot, mul_one, mul_zero, zero_add, add_zero]
+      psi, GramData.inner_gramState_self, ite_eq_right hjk, L.bot_orthonormal,
+      L.bot_psi, L.psi_bot, mul_zero, add_zero]
 
 /-- For nonnegative `ε`, the inner product of a lazy state with a swapped lazy state is `ε`
 times the normalized base Hamiltonian entry. -/
@@ -184,7 +184,7 @@ theorem inner_lazyState_swap (L : LazyData I) (ε : ℝ) (hε0 : 0 ≤ ε) (j k 
   rw [swapGate_mulVec_add, swapGate_mulVec_smul, swapGate_mulVec_smul]
   simp only [inner_add_left, inner_add_right, inner_smul_left, inner_smul_right,
     psi, GramData.inner_gramState_swap, L.bot_swap_psi, L.psi_swap_bot,
-    L.bot_swap_bot, mul_zero, add_zero, mul_one]
+    L.bot_swap_bot, mul_zero, add_zero]
   rw [← mul_assoc, sqrt_mul_conj_sqrt ε hε0]
 
 /-- Defines the matrix whose columns are the lazy states. -/

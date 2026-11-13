@@ -24,18 +24,17 @@ than `1 − exp(−log^ξ(nm))` Algorithm 10 outputs `y` with
 * `∑ bᵢ yᵢ ≤ α(1 + 2R(κ+ν))` (Eq. (40)), and
 * `∑ yᵢ tr(Aᵢρ) ≥ tr(Cρ) − 2α(κ+ν)` (Eq. (41)).
 
-The scalar good-event bridge is the Frozen answer theorem
-`QuantumAlgorithm.Concepts.SdpMmwSolver.OracleError.sdpStep2SampledOracleOnGoodEvent`:
+The scalar good-event bridge is the library theorem
+`Qatlib.Concepts.SdpMmwSolver.OracleError.sdpStep2SampledOracleOnGoodEvent`:
 from the grid bound `κN ≤ α` and the two empirical deviations it derives exactly
 Eqs. (40)–(41) for `y = κN · q`.  The present module restates that conclusion in
 the paper's own `α(1+2R(κ+ν))` / `2α(κ+ν)` notation.
 
-The probabilistic clause `1 − exp(−log^ξ(nm))` and the Chernoff + union bound
-over the grid `k ≤ γ` are **not** encoded: no probability space for the `M`
-independent draws from `q_{ρ,k}` exists in the Frozen release.  The Frozen
-*unconditional* contract `SdpStep2SampledOracle` is refuted separately
-(`not_sdpStep2SampledOracle`), which is why the good-event hypotheses are
-explicit here.
+Scope note: the probabilistic clause `1 − exp(−log^ξ(nm))` and the Chernoff +
+union bound over the grid `k ≤ γ` are outside the scope of this file. The
+probability space for the `M` independent draws from `q_{ρ,k}` is not modeled.
+The *unconditional* statement `SdpStep2SampledOracle` is refuted separately
+(`not_sdpStep2SampledOracle`), so the good-event hypotheses are explicit here.
 -/
 
 set_option autoImplicit false
@@ -54,7 +53,7 @@ bounds
 
 `∑ bᵢ yᵢ ≤ α(1 + 2R(κ+ν))` and `∑ yᵢ eᵢ ≥ c − 2α(κ+ν)`,
 
-where `eᵢ = tr(Aᵢρ)` and `c = tr(Cρ)`.  This is exactly the Frozen answer theorem
+where `eᵢ = tr(Aᵢρ)` and `c = tr(Cρ)`.  This is exactly the library theorem
 `sdpStep2SampledOracleOnGoodEvent`, rewritten through the definitions of
 `sdpSampledWidthBudget` and `sdpSampledSeparationSlack`. -/
 theorem lemma11_goodEvent (m M N : ℕ) (b e q : Fin m → ℝ) (idx : Fin M → Fin m)

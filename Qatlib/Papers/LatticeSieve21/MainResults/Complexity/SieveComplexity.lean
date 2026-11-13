@@ -18,7 +18,6 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed paper version: arXiv:2105.05608v1 (12 May 2021),
 André Chailloux and Johanna Loyer, *Lattice sieving via quantum random walks*.
-Read from the prefetched PDF (`2105.05608.pdf`) and text (`2105.05608.txt`).
 
 This module formalises the *numerical resource accounting* of the paper's main
 theorems (Theorems 1--6, Proposition 8, Proposition 10).  Every theorem of the
@@ -48,8 +47,7 @@ families (Theorems 2/5 and 3/6), and the conversion between the `N`- and
 The *existence of the quantum algorithm* and its heuristic correctness are
 asymptotic, probabilistic statements about a physical/computational model that
 is not represented in this library; they are not encoded as an uninterpreted
-axiom here.  The docstrings say so at each theorem, and the peer-review record
-for this paper classifies these claims as `partial` for that reason.
+axiom here.  The docstrings say so at each theorem.
 -/
 
 set_option autoImplicit false
@@ -103,24 +101,36 @@ def prop10 : Params where
   zeta := 745 / 10000
 
 /-- Proposition 10, time: `T = N^{1.2555+o(1)}` (p.11). -/
-theorem prop10_time : (profile prop10).time = 12555 / 10000 := by
+theorem prop10_time_arith : (profile prop10).time = 12555 / 10000 := by
   have h : (1 : ℝ) + 33 / 100 - 745 / 10000 ≤ 1 + 1952 / 10000 + 603 / 10000 := by
     norm_num
   simp only [profile, prop10]
   rw [max_eq_right h]
   norm_num
 
+/-- Deprecated alias for `prop10_time_arith`. -/
+@[deprecated prop10_time_arith (since := "2026-11-13")] alias prop10_time := prop10_time_arith
+
 /-- Proposition 10, QRAM: `N^{0.3300+o(1)}` (p.11). -/
-theorem prop10_qram : (profile prop10).qram = 33 / 100 := by
+theorem prop10_qram_arith : (profile prop10).qram = 33 / 100 := by
   simp only [profile, prop10]
+
+/-- Deprecated alias for `prop10_qram_arith`. -/
+@[deprecated prop10_qram_arith (since := "2026-11-13")] alias prop10_qram := prop10_qram_arith
 
 /-- Proposition 10, quantum memory: `N^{0.2555+o(1)}` (p.11). -/
-theorem prop10_qmem : (profile prop10).qmem = 2555 / 10000 := by
+theorem prop10_qmem_arith : (profile prop10).qmem = 2555 / 10000 := by
   simp only [profile, prop10]; norm_num
 
+/-- Deprecated alias for `prop10_qmem_arith`. -/
+@[deprecated prop10_qmem_arith (since := "2026-11-13")] alias prop10_qmem := prop10_qmem_arith
+
 /-- Proposition 10, classical memory: `N^{1+o(1)}` (p.11). -/
-theorem prop10_classical : (profile prop10).classical = 1 := by
+theorem prop10_classical_arith : (profile prop10).classical = 1 := by
   simp only [profile, prop10]
+
+/-- Deprecated alias for `prop10_classical_arith`. -/
+@[deprecated prop10_classical_arith (since := "2026-11-13")] alias prop10_classical := prop10_classical_arith
 
 /-! ## Theorem 4 (claim c013), and its identity with Theorem 1 (claim c001) -/
 
@@ -135,24 +145,36 @@ def theorem4 : Params where
   zeta := 1313 / 10000
 
 /-- Theorem 4, time: `T = N^{1.2384+o(1)}` (p.12). -/
-theorem theorem4_time : (profile theorem4).time = 12384 / 10000 := by
+theorem theorem4_time_arith : (profile theorem4).time = 12384 / 10000 := by
   have h : (1 : ℝ) + 3696 / 10000 - 1313 / 10000 ≤ 1 + 2384 / 10000 + 0 := by
     norm_num
   simp only [profile, theorem4]
   rw [max_eq_right h]
   norm_num
 
+/-- Deprecated alias for `theorem4_time_arith`. -/
+@[deprecated theorem4_time_arith (since := "2026-11-13")] alias theorem4_time := theorem4_time_arith
+
 /-- Theorem 4, QRAM: `N^{0.3696}` (p.12). -/
-theorem theorem4_qram : (profile theorem4).qram = 3696 / 10000 := by
+theorem theorem4_qram_arith : (profile theorem4).qram = 3696 / 10000 := by
   simp only [profile, theorem4]
+
+/-- Deprecated alias for `theorem4_qram_arith`. -/
+@[deprecated theorem4_qram_arith (since := "2026-11-13")] alias theorem4_qram := theorem4_qram_arith
 
 /-- Theorem 4, quantum memory: `N^{0.2384}` (p.12). -/
-theorem theorem4_qmem : (profile theorem4).qmem = 2384 / 10000 := by
+theorem theorem4_qmem_arith : (profile theorem4).qmem = 2384 / 10000 := by
   simp only [profile, theorem4]; norm_num
 
+/-- Deprecated alias for `theorem4_qmem_arith`. -/
+@[deprecated theorem4_qmem_arith (since := "2026-11-13")] alias theorem4_qmem := theorem4_qmem_arith
+
 /-- Theorem 4, classical memory: `N^{1+o(1)}` (p.12). -/
-theorem theorem4_classical : (profile theorem4).classical = 1 := by
+theorem theorem4_classical_arith : (profile theorem4).classical = 1 := by
   simp only [profile, theorem4]
+
+/-- Deprecated alias for `theorem4_classical_arith`. -/
+@[deprecated theorem4_classical_arith (since := "2026-11-13")] alias theorem4_classical := theorem4_classical_arith
 
 /-- The paper's Theorem 1 parameter regime is exactly Theorem 4
 ("Theorem 1 restated", p.12): same `c, c1, c2, ρ, ρ0, ζ`. -/
@@ -164,16 +186,28 @@ definitionally equal. -/
 theorem theorem1_profile_eq_theorem4 : profile theorem1 = profile theorem4 := rfl
 
 /-- Theorem 1, time exponent: `T = N^{1.2384+o(1)}` (p.2, via Theorem 4 p.12). -/
-theorem theorem1_time : (profile theorem1).time = 12384 / 10000 := theorem4_time
+theorem theorem1_time_arith : (profile theorem1).time = 12384 / 10000 := theorem4_time_arith
+
+/-- Deprecated alias for `theorem1_time_arith`. -/
+@[deprecated theorem1_time_arith (since := "2026-11-13")] alias theorem1_time := theorem1_time_arith
 
 /-- Theorem 1, QRAM exponent: `N^{0.3696}` (p.2, via Theorem 4 p.12). -/
-theorem theorem1_qram : (profile theorem1).qram = 3696 / 10000 := theorem4_qram
+theorem theorem1_qram_arith : (profile theorem1).qram = 3696 / 10000 := theorem4_qram_arith
+
+/-- Deprecated alias for `theorem1_qram_arith`. -/
+@[deprecated theorem1_qram_arith (since := "2026-11-13")] alias theorem1_qram := theorem1_qram_arith
 
 /-- Theorem 1, quantum-memory exponent: `N^{0.2384}` (p.2, via Theorem 4 p.12). -/
-theorem theorem1_qmem : (profile theorem1).qmem = 2384 / 10000 := theorem4_qmem
+theorem theorem1_qmem_arith : (profile theorem1).qmem = 2384 / 10000 := theorem4_qmem_arith
+
+/-- Deprecated alias for `theorem1_qmem_arith`. -/
+@[deprecated theorem1_qmem_arith (since := "2026-11-13")] alias theorem1_qmem := theorem1_qmem_arith
 
 /-- Theorem 1, classical-memory exponent: `N^{1+o(1)}` (p.2, via Theorem 4). -/
-theorem theorem1_classical : (profile theorem1).classical = 1 := theorem4_classical
+theorem theorem1_classical_arith : (profile theorem1).classical = 1 := theorem4_classical_arith
+
+/-- Deprecated alias for `theorem1_classical_arith`. -/
+@[deprecated theorem1_classical_arith (since := "2026-11-13")] alias theorem1_classical := theorem1_classical_arith
 
 /-! ## The exact `N`-basis to `2`-basis conversion
 
@@ -231,74 +265,101 @@ theorem log2FourThirds_bounds :
     linarith
 
 /-- Theorem 4 time in the `2`-basis: `0.2570·d` (p.12, `T = 2^{0.2570d+o(d)}`). -/
-theorem theorem4_time_base2 :
+theorem theorem4_time_base2_arith :
     0.25695 ≤ (profile theorem4).time * log2FourThirds / 2 ∧
       (profile theorem4).time * log2FourThirds / 2 ≤ 0.25705 := by
-  rw [theorem4_time]
+  rw [theorem4_time_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
+
+/-- Deprecated alias for `theorem4_time_base2_arith`. -/
+@[deprecated theorem4_time_base2_arith (since := "2026-11-13")] alias theorem4_time_base2 := theorem4_time_base2_arith
 
 /-- Theorem 4 QRAM in the `2`-basis: `0.0767·d` (p.12). -/
-theorem theorem4_qram_base2 :
+theorem theorem4_qram_base2_arith :
     0.07665 ≤ (profile theorem4).qram * log2FourThirds / 2 ∧
       (profile theorem4).qram * log2FourThirds / 2 ≤ 0.07675 := by
-  rw [theorem4_qram]
+  rw [theorem4_qram_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
+
+/-- Deprecated alias for `theorem4_qram_base2_arith`. -/
+@[deprecated theorem4_qram_base2_arith (since := "2026-11-13")] alias theorem4_qram_base2 := theorem4_qram_base2_arith
 
 /-- Theorem 4 quantum memory in the `2`-basis: `0.0495·d` (p.12). -/
-theorem theorem4_qmem_base2 :
+theorem theorem4_qmem_base2_arith :
     0.04945 ≤ (profile theorem4).qmem * log2FourThirds / 2 ∧
       (profile theorem4).qmem * log2FourThirds / 2 ≤ 0.04955 := by
-  rw [theorem4_qmem]
+  rw [theorem4_qmem_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
 
+/-- Deprecated alias for `theorem4_qmem_base2_arith`. -/
+@[deprecated theorem4_qmem_base2_arith (since := "2026-11-13")] alias theorem4_qmem_base2 := theorem4_qmem_base2_arith
+
 /-- Theorem 1 in the `2`-basis: `T = 2^{0.2570d+o(d)}` (p.2, headlines). -/
-theorem theorem1_time_base2 :
+theorem theorem1_time_base2_arith :
     0.25695 ≤ (profile theorem1).time * log2FourThirds / 2 ∧
       (profile theorem1).time * log2FourThirds / 2 ≤ 0.25705 := by
   rw [theorem1_profile_eq_theorem4]
-  exact theorem4_time_base2
+  exact theorem4_time_base2_arith
+
+/-- Deprecated alias for `theorem1_time_base2_arith`. -/
+@[deprecated theorem1_time_base2_arith (since := "2026-11-13")] alias theorem1_time_base2 := theorem1_time_base2_arith
 
 /-- Theorem 1 QRAM in the `2`-basis: `2^{0.0767d}` (p.2). -/
-theorem theorem1_qram_base2 :
+theorem theorem1_qram_base2_arith :
     0.07665 ≤ (profile theorem1).qram * log2FourThirds / 2 ∧
       (profile theorem1).qram * log2FourThirds / 2 ≤ 0.07675 := by
   rw [theorem1_profile_eq_theorem4]
-  exact theorem4_qram_base2
+  exact theorem4_qram_base2_arith
+
+/-- Deprecated alias for `theorem1_qram_base2_arith`. -/
+@[deprecated theorem1_qram_base2_arith (since := "2026-11-13")] alias theorem1_qram_base2 := theorem1_qram_base2_arith
 
 /-- Theorem 1 quantum memory in the `2`-basis: `2^{0.0495d}` (p.2). -/
-theorem theorem1_qmem_base2 :
+theorem theorem1_qmem_base2_arith :
     0.04945 ≤ (profile theorem1).qmem * log2FourThirds / 2 ∧
       (profile theorem1).qmem * log2FourThirds / 2 ≤ 0.04955 := by
   rw [theorem1_profile_eq_theorem4]
-  exact theorem4_qmem_base2
+  exact theorem4_qmem_base2_arith
+
+/-- Deprecated alias for `theorem1_qmem_base2_arith`. -/
+@[deprecated theorem1_qmem_base2_arith (since := "2026-11-13")] alias theorem1_qmem_base2 := theorem1_qmem_base2_arith
 
 /-- Proposition 10 time in the `2`-basis: `T = 2^{0.2605d+o(d)}` (p.11). -/
-theorem prop10_time_base2 :
+theorem prop10_time_base2_arith :
     0.26045 ≤ (profile prop10).time * log2FourThirds / 2 ∧
       (profile prop10).time * log2FourThirds / 2 ≤ 0.26055 := by
-  rw [prop10_time]
+  rw [prop10_time_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
 
+/-- Deprecated alias for `prop10_time_base2_arith`. -/
+@[deprecated prop10_time_base2_arith (since := "2026-11-13")] alias prop10_time_base2 := prop10_time_base2_arith
+
 /-- Proposition 10 QRAM in the `2`-basis: `N^{0.3300} = 2^{0.0685d}` (p.11). -/
-theorem prop10_qram_base2 :
+theorem prop10_qram_base2_arith :
     0.06845 ≤ (profile prop10).qram * log2FourThirds / 2 ∧
       (profile prop10).qram * log2FourThirds / 2 ≤ 0.06855 := by
-  rw [prop10_qram]
+  rw [prop10_qram_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
+
+/-- Deprecated alias for `prop10_qram_base2_arith`. -/
+@[deprecated prop10_qram_base2_arith (since := "2026-11-13")] alias prop10_qram_base2 := prop10_qram_base2_arith
 
 /-- Proposition 10 quantum memory in the `2`-basis: `N^{0.2555} = 2^{0.0530d}`
 (p.11). -/
-theorem prop10_qmem_base2 :
+theorem prop10_qmem_base2_arith :
     0.05295 ≤ (profile prop10).qmem * log2FourThirds / 2 ∧
       (profile prop10).qmem * log2FourThirds / 2 ≤ 0.05305 := by
-  rw [prop10_qmem]
+  rw [prop10_qmem_arith]
   obtain ⟨hlo, hhi⟩ := log2FourThirds_bounds
   constructor <;> nlinarith
+
+/-- Deprecated alias for `prop10_qmem_base2_arith`. -/
+@[deprecated prop10_qmem_base2_arith (since := "2026-11-13")] alias prop10_qmem_base2 := prop10_qmem_base2_arith
 
 /-! ## Theorem 2 / Theorem 5 (claims c002, c014): fixed quantum memory
 

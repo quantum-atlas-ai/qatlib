@@ -28,8 +28,6 @@ with inverse eigenvalue separations controlling the error as in [AharonovEtAl200
 * [Aharonov et al., 2001][AharonovEtAl2001Walks]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -51,7 +51,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuantumGibbs.DetailedBalance
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -60,7 +59,6 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Qatlib.Concepts.AmplitudeSearch.Amplification
 open Qatlib.Concepts.MeasureStats.MedianOfMeans Qatlib.Concepts.QuantumGibbs.DetailedBalance
 open scoped Classical ENNReal BigOperators
-set_option warningAsError false
 
 /-- The singleton identity ensemble is a correct finite design of degree zero in every
 dimension. -/

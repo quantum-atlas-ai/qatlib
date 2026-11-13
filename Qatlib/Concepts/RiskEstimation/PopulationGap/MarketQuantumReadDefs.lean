@@ -73,8 +73,6 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open Qatlib
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {n N : ℕ}
@@ -84,7 +82,6 @@ open scoped Matrix.Norms.L2Operator
 open Qatlib.Concepts.RiskEstimation.PopulationGap (clause11 euclid_gcd_fuel)
 open Qatlib.Concepts.RiskEstimation.PopulationGap (shorBitLength euclidGcd euclidStepBound)
 open Qatlib.Concepts.RiskEstimation.PopulationGap (SpaceSchedule)
-set_option warningAsError false
 
 /-- States that the loss lies strictly within distance `(1 / 2) ^ k` of threshold `t`. -/
 def marketWindow {n : ℕ} (loss : Option (Fin n) → ℝ) (k : ℕ) (t : ℝ)

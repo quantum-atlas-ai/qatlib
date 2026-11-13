@@ -23,8 +23,6 @@ corresponding phase label in each summand. [Kitaev1995]
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling

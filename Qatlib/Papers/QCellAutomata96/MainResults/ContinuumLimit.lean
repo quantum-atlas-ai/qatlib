@@ -33,8 +33,6 @@ the odd limit is also expressed using the order-zero Bessel function. See [Meyer
 * [Meyer, 1996][Meyer1996a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

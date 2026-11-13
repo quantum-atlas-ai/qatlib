@@ -52,15 +52,19 @@ def writeCurlRc (tmpDir : System.FilePath) (auth? : Option String) : IO Unit := 
   IO.FS.writeFile (tmpDir / ".curlrc") (auth ++
     "connect-timeout = 15\nmax-time = 120\nspeed-time = 20\nspeed-limit = 1024\nretry = 2\nretry-delay = 1\n")
 
-def runLakeManifestGet (pkg : String) (mode : String) (value : String)
+def manifestHasEntries (path : System.FilePath) : IO Bool := do
+  let contents ← IO.FS.readFile path
+  let nonEmpty := contents.splitOn "\n" |>.filter fun line => !line.trimAscii.isEmpty
+  return nonEmpty.length >= 2
+
+def runLakeManifestGet (pkg repoSlug : String)
     (cfgPath manifest : System.FilePath) (auth? : Option String) : IO UInt32 := do
-  let args := #[("cache"), ("get"), manifest.toString, s!"--package={pkg}"] ++
-    if mode == "repo" then #[s!"--repo={value}"] else #[s!"--scope={value}"]
+  let args := #["cache", "get", manifest.toString, s!"--package={pkg}", s!"--repo={repoSlug}"]
   IO.FS.withTempDir fun tmpDir => do
     writeCurlRc tmpDir auth?
     runCmd "lake" args #[ ("LAKE_CONFIG", some cfgPath.toString), ("CURL_HOME", some tmpDir.toString) ]
 
-def fetchRepoCache (pkg repoSlug legacyScope tcDir : String) (repo cfgPath : System.FilePath)
+def fetchRepoCache (pkg repoSlug tcDir : String) (repo cfgPath : System.FilePath)
     (inputPaths : Array String) (keyEnv : String := "LAKE_CACHE_KEY") : IO UInt32 := do
   unless ← cfgPath.pathExists do
     IO.println s!"Note: {pkg} cache configuration unavailable; compile locally."
@@ -83,8 +87,7 @@ def fetchRepoCache (pkg repoSlug legacyScope tcDir : String) (repo cfgPath : Sys
     let env := #[ ("LAKE_CONFIG", some cfgPath.toString), ("CURL_HOME", some tmpDir.toString) ]
     let manifest := tmpDir / "outputs.jsonl"
     let canonicalBase := s!"{endpoint}/{repoSlug}/tc/{tcDir}"
-    let legacyBase := s!"{endpoint}/{legacyScope}"
-    let tryBase (base mode value : String) : IO Bool := do
+    let tryBase (base : String) : IO Bool := do
       for key in keys do
         -- A failed curl may leave an existing output file untouched. Remove it
         -- first so a previous key cannot be mistaken for this response.
@@ -95,12 +98,11 @@ def fetchRepoCache (pkg repoSlug legacyScope tcDir : String) (repo cfgPath : Sys
         if result.exitCode == 0 then
           try
             let metadata ← manifest.metadata
-            if metadata.byteSize > 0 then
-              if (← runLakeManifestGet pkg mode value cfgPath manifest auth?) == 0 then return true
+            if metadata.byteSize > 0 && (← manifestHasEntries manifest) then
+              if (← runLakeManifestGet pkg repoSlug cfgPath manifest auth?) == 0 then return true
           catch _ => pure ()
       return false
-    if ← tryBase canonicalBase "repo" repoSlug then return 0
-    if ← tryBase legacyBase "scope" legacyScope then return 0
+    if ← tryBase canonicalBase then return 0
     IO.println s!"Note: No usable {pkg} cache found; lake build will compile locally."
     return 1
 
@@ -134,7 +136,7 @@ def main (args : List String) : IO UInt32 := do
     let dir ← if (← (cwd / "Qatlib.lean").pathExists) then pure cwd else pure (cwd / ".lake" / "packages" / "Qatlib")
     let cfg := dir / "lake-cache.toml"
     if ← cfg.pathExists then
-      let rc ← fetchRepoCache "Qatlib" "quantum-atlas-ai/qatlib" (s!"qatlib-main/{tcLegacy}/qatlib") tcDir dir cfg
+      let rc ← fetchRepoCache "Qatlib" "quantum-atlas-ai/qatlib" tcDir dir cfg
         #["Qatlib", "Qatlib.lean", "lakefile.toml", "lean-toolchain", "lake-manifest.json"]
       if rc != 0 then IO.println "Note: No prebuilt Qatlib cache found; lake build will compile locally."
   return 0

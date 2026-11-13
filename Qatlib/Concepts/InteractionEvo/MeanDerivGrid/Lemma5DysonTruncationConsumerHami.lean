@@ -33,7 +33,6 @@ open Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPicture2018
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Bounds the error of the order-3, 38-point Dyson grid sum for `interactionPictureField` at
 time 2/5 by 1/8, as an instance of [Low and Wiebe, Lemma 5][LowWiebe2018]. -/

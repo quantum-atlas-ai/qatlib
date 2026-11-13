@@ -59,7 +59,6 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

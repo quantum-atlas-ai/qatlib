@@ -61,7 +61,7 @@ last angle is `arcsin ψ_last`, the prefix is renormalized by `cos θ`, and the 
 The source's *cost* accounting (K rotations plus `F (log F)^2` subspace-change logic)
 lives in `MainResults/ResourceCount`, not here.
 
-No shared `QuantumAlgorithm.*` declaration states any of these facts, so no
+No shared `Qatlib.*` declaration states any of these facts, so no
 representation bridge into a frozen interface is asserted here.
 -/
 

@@ -29,7 +29,6 @@ Exact product formulas for their norms lead to a uniform bound by `integerWeight
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 

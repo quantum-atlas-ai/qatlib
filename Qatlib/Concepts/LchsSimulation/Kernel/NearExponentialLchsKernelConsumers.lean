@@ -32,7 +32,6 @@ namespace Qatlib.Concepts.LchsSimulation.Kernel
 
 open MeasureTheory Set
 open scoped Classical ComplexOrder
-set_option warningAsError false
 
 /-- For `0 < β < 1` and real `x`, the product of `highKernelG β k` with `Complex.exp (-Complex.I
 * k * x)` is integrable in `k`. -/

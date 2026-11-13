@@ -32,7 +32,6 @@ systems.
 * [Choi, 1975][Choi1975]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring

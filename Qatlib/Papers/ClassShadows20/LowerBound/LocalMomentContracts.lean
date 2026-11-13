@@ -28,7 +28,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ShadowModels.ShadowChannel
@@ -41,7 +40,7 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators
 
-/-- The legacy proposition asserting local code-state shot mean `w` and second moment at most
+/-- **Statement only — not proved in Qatlib.** The legacy proposition asserting local code-state shot mean `w` and second moment at most
 `w² * (1 + 9ε² / 3^k)` under the stated ensemble premises. Its second-moment premise ranges
 over arbitrary complex operators. -/
 def LocalShotPauliMomentSubgoalLegacy : Prop :=
@@ -67,7 +66,7 @@ def LocalShotPauliMomentSubgoalLegacy : Prop :=
         (localShotValue Uf w ψ uw (theorem6CodeState n ε a)) ^ 2 ≤
       w ^ 2 * (1 + 9 * ε ^ 2 / (3 ^ k : ℝ)))
 
-/-- The legacy proposition asserting `9Nε² / 3^k ≥ (1 - δ) log M - 1` for uniformly successful
+/-- **Statement only — not proved in Qatlib.** The legacy proposition asserting `9Nε² / 3^k ≥ (1 - δ) log M - 1` for uniformly successful
 outcome-record predictors under the stated measurement and ensemble premises, including an
 unrestricted complex second-moment identity. -/
 def LocalMeasurementLowerBoundSubgoalLegacy : Prop :=

@@ -40,7 +40,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The homogeneous trapezoidal quadrature bound implies the explicit schedule with positive
 subdivision count and operator-norm error at most `ε`. -/

@@ -31,7 +31,6 @@ CNOT branch; later modules provide the verified Clifford action.
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Foundations.PureStateMath

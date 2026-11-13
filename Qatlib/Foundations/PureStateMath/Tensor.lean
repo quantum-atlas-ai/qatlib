@@ -30,8 +30,6 @@ namespace Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped Kronecker
 
-set_option linter.unusedSectionVars false
-
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
 /-- The product amplitude vector on `I × J` obtained by multiplying the amplitudes of the two
@@ -39,9 +37,13 @@ factors. -/
 noncomputable def TensorState (ψ : QState I) (φ : QState J) : QState (I × J) :=
   fun p => ψ p.1 * φ p.2
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- A tensor-state amplitude at `(i, j)` is the product of the factor amplitudes. -/
 @[simp] theorem tensorState_apply (ψ : QState I) (φ : QState J) (i : I) (j : J) :
     TensorState ψ φ (i, j) = ψ i * φ j := rfl
+
+omit [Fintype I] [Fintype J] in
 
 /-- The tensor product of two computational basis vectors is the basis vector indexed by their
 pair. -/
@@ -51,11 +53,14 @@ theorem tensorState_ket_ket (i : I) (j : J) : TensorState (Ket i) (Ket j) = Ket 
   simp only [TensorState, Ket, Prod.mk.injEq]
   by_cases ha : a = i <;> by_cases hb : b = j <;> simp [ha, hb]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- Born weights of product states factor into the Born weights of their components. -/
 theorem bornProb_tensorState (ψ : QState I) (φ : QState J) (i : I) (j : J) :
     BornProb (TensorState ψ φ) (i, j) = BornProb ψ i * BornProb φ j := by
   simp [BornProb, TensorState, mul_pow]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- The Born weight of a Cartesian product of outcome sets factors for a product state. -/
 theorem measureProb_tensorState_prod (ψ : QState I) (φ : QState J) (S : Finset I)
     (T : Finset J) :
@@ -65,6 +70,7 @@ theorem measureProb_tensorState_prod (ψ : QState I) (φ : QState J) (S : Finset
   refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
   exact bornProb_tensorState ψ φ i j
 
+omit [Fintype I] [DecidableEq I] [DecidableEq J] in
 /-- Summing over the full second basis of a normalized second factor leaves the first factor's
 outcome weight. -/
 theorem measureProb_tensorState_left {φ : QState J} (hφ : Normalized φ) (ψ : QState I)
@@ -72,6 +78,7 @@ theorem measureProb_tensorState_left {φ : QState J} (hφ : Normalized φ) (ψ :
     MeasureProb (TensorState ψ φ) (S ×ˢ Finset.univ) = MeasureProb ψ S := by
   rw [measureProb_tensorState_prod, measureProb_univ hφ, mul_one]
 
+omit [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- Summing over the full first basis of a normalized first factor leaves the second factor's
 outcome weight. -/
 theorem measureProb_tensorState_right {ψ : QState I} (hψ : Normalized ψ) (φ : QState J)
@@ -79,6 +86,7 @@ theorem measureProb_tensorState_right {ψ : QState I} (hψ : Normalized ψ) (φ 
     MeasureProb (TensorState ψ φ) (Finset.univ ×ˢ T) = MeasureProb φ T := by
   rw [measureProb_tensorState_prod, measureProb_univ hψ, one_mul]
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- The tensor product of two normalized states is normalized. -/
 theorem normalized_tensorState {ψ : QState I} {φ : QState J} (hψ : Normalized ψ)
     (hφ : Normalized φ) : Normalized (TensorState ψ φ) := by
@@ -90,9 +98,13 @@ theorem normalized_tensorState {ψ : QState I} {φ : QState J} (hψ : Normalized
 noncomputable def TensorGate (U : Matrix I I ℂ) (V : Matrix J J ℂ) :
     Matrix (I × J) (I × J) ℂ := U ⊗ₖ V
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- A tensor-gate entry is the product of the corresponding entries of its two factors. -/
 theorem tensorGate_apply (U : Matrix I I ℂ) (V : Matrix J J ℂ) (i k : I) (j l : J) :
     TensorGate U V (i, j) (k, l) = U i k * V j l := rfl
+
+omit [DecidableEq I] [DecidableEq J] in
 
 /-- Multiplication of tensor gates agrees with componentwise multiplication of their factors. -/
 theorem tensorGate_mul (U U' : Matrix I I ℂ) (V V' : Matrix J J ℂ) :
@@ -100,9 +112,13 @@ theorem tensorGate_mul (U U' : Matrix I I ℂ) (V V' : Matrix J J ℂ) :
   simp only [TensorGate]
   rw [← Matrix.mul_kronecker_mul]
 
+omit [Fintype I] [Fintype J] in
+
 /-- The tensor product of two identity matrices is the identity on the product basis. -/
 theorem tensorGate_one : TensorGate (1 : Matrix I I ℂ) (1 : Matrix J J ℂ) = 1 :=
   Matrix.one_kronecker_one
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The conjugate transpose of a tensor gate is the tensor gate of the conjugate transposes. -/
 theorem tensorGate_conjTranspose (U : Matrix I I ℂ) (V : Matrix J J ℂ) :
@@ -116,6 +132,8 @@ theorem tensorGate_unitary {U : Matrix I I ℂ} {V : Matrix J J ℂ}
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hU hV ⊢
   rw [TensorGate, Matrix.conjTranspose_kronecker, ← Matrix.mul_kronecker_mul, hU, hV,
     Matrix.one_kronecker_one]
+
+omit [DecidableEq I] [DecidableEq J] in
 
 /-- A tensor gate acts on a product state by applying each factor gate to its corresponding
 state. -/
@@ -139,6 +157,7 @@ theorem liftGate_unitary {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I 
     LiftGate U ∈ Matrix.unitaryGroup (I × Bool) ℂ :=
   tensorGate_unitary hU (Submonoid.one_mem _)
 
+omit [DecidableEq I] in
 /-- A lifted gate acts on the first factor of a product state and leaves the Boolean factor
 unchanged. -/
 theorem applyGate_liftGate (U : Matrix I I ℂ) (ψ : QState I) (χ : QState Bool) :

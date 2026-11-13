@@ -24,7 +24,6 @@ using `aeLaw` with Fourier preparation. The module also checks that the success 
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

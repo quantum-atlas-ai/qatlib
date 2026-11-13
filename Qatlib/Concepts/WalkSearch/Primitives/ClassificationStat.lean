@@ -23,7 +23,6 @@ guarantees for use in graph-search constructions; see [Ambainis2005] for backgro
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.WalkSearch.Primitives

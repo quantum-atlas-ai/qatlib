@@ -33,8 +33,6 @@ implementation of the cluster gate scheme in [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -54,8 +52,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The partial trace over the first Boolean pair preserves addition of four-qubit matrices. -/
 theorem traceLeft_add4 (A B : Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ) :

@@ -26,7 +26,6 @@ short time interval. These estimates support the interaction-picture simulation 
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

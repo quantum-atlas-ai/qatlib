@@ -25,7 +25,6 @@ range. These operations support the amplification-based simulation framework of 
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

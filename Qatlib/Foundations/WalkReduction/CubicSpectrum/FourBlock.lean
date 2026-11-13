@@ -29,8 +29,6 @@ The mathematical background is discussed in [Wong2016].
 * [Wong, 2016][Wong2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.WalkReduction.CubicSpectrum

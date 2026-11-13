@@ -34,8 +34,8 @@ resource ledger itself is numerical input from the paper, so the theorems below
 are stated as explicit rational inequalities, not derived from a symbolic cost
 model.
 
-Related but different Frozen vocabulary:
-`QuantumAlgorithm.Concepts.ResourceBounds.AsymBounds` supplies uniform
+Related library vocabulary:
+`Qatlib.Concepts.ResourceBounds.AsymBounds` supplies uniform
 growth-rate predicates, not these concrete FeMoco counts.
 -/
 

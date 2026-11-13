@@ -31,9 +31,8 @@ What is proved here:
   constructed in this library; the accuracy arithmetic turning
   `|λ̂ − λ*| ≤ ε'''` into both case antecedents is proved.
 
-Suggested continuation: define game (6) as a `Fin (n+3) × Fin (m+2)` matrix,
-formalise `min_{y∈Δ} max_i (A⁰⁰⁰y)_i` by finite max/min over `Finset.univ`, and
-prove the row-wise implications `A⁰⁰⁰y* ≤ λ*e`.
+The explicit game (6), its finite max/min formulation, and the row-wise implications
+`A⁰⁰⁰y* ≤ λ*e` are outside the scope of this module.
 -/
 
 set_option autoImplicit false

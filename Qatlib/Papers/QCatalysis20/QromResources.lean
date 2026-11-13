@@ -24,8 +24,6 @@ arithmetic costs and differ in their flat-table query cost. See [VonBurgEtAl2021
 * [von Burg et al., 2021][VonBurgEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

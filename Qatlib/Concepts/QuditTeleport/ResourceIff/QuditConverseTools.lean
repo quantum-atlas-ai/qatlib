@@ -28,8 +28,6 @@ unconditioned resource marginal unchanged, apart from the input trace factor.
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
 open Qatlib.Foundations.PureStateMath

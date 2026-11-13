@@ -25,8 +25,6 @@ matrix and its entrywise absolute value, respectively, in the graph-lift constru
 * [Janzing and Wocjan, 2006][JanzingWocjan2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

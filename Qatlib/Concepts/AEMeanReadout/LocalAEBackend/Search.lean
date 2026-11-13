@@ -38,7 +38,6 @@ of the chosen center, quantities relevant to quantum mean estimation [Montanaro2
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 set_option autoImplicit false

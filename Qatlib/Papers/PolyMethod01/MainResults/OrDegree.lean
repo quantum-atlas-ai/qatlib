@@ -19,7 +19,6 @@ case. The final result expresses the same value through the local
 
 The polynomial method in quantum query complexity is developed in [BealsEtAl2001].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

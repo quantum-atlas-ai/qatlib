@@ -14,17 +14,17 @@ set_option backward.isDefEq.respectTransparency false
 arXiv:1412.4687v1, p. 3, Eq. (18): the truncation order is
 `K = O(log(T/ε) / log log(T/ε))` with `T = (Σ α_ℓ) t`.
 
-The frozen native search `factorialTaylorCutoff m` is the least `K` with
+The native search `factorialTaylorCutoff m` is the least `K` with
 `(K+1)! ≥ 2^m`, and `factorial_taylor_native_cutoff_and_rate` proves the
 integer rate `K · log₂ m ≤ C m` (its proof uses `C = 12`, `m₀ = 4`).
 Dividing by `log₂ m` gives the source's order bound with some absolute
 constant.  The program's precision parameter is
 `m = factorialTaylorPrecision s k = 2(k + ⌈log₂ max 1 s⌉ + 8)`, which is
 `Θ(log(T/ε))` for `k = Θ(log 1/ε)` and `s = Θ(T)`; the theorem is stated in
-`m`, exactly as the frozen cutoff is defined.
+`m`, exactly as the cutoff is defined.
 
-Frozen FQNs reused:
-`QuantumAlgorithm.Papers.TruncTaylor14.FactorialTaylor.factorialTaylorCutoff`,
+Library definitions and theorems:
+`Qatlib.Concepts.CoherentSim.FactorialTaylor.factorialTaylorCutoff`,
 `factorialTaylorPrecision`,
 `factorial_taylor_native_cutoff_and_rate`.
 -/

@@ -28,10 +28,7 @@ gate and prepared word accounting, following amplitude amplification in [Brassar
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -77,9 +74,13 @@ noncomputable def workspaceLiftStep (s : Step (I × Bool)) : Step ((I × Bool) �
 noncomputable def workspaceLiftCircuit (C : Circuit (I × Bool)) : Circuit ((I × Bool) × W) :=
   C.map workspaceLiftStep
 
+omit [Fintype I] [DecidableEq I] [Fintype W] in
+
 /-- Lifting an empty circuit gives the empty circuit. -/
 theorem workspaceLiftCircuit_nil :
     workspaceLiftCircuit ([] : Circuit (I × Bool)) = ([] : Circuit ((I × Bool) × W)) := rfl
+
+omit [Fintype I] [DecidableEq I] [Fintype W] in
 
 /-- Lifting a leading gate tensors that gate with the workspace identity and lifts the remaining
 circuit. -/
@@ -87,6 +88,8 @@ theorem workspaceLiftCircuit_gate (U : Matrix (I × Bool) (I × Bool) ℂ)
     (C : Circuit (I × Bool)) :
     workspaceLiftCircuit (Step.gate U :: C)
       = Step.gate (TensorGate U (1 : Matrix W W ℂ)) :: workspaceLiftCircuit C := rfl
+
+omit [Fintype I] [DecidableEq I] [Fintype W] in
 
 /-- Lifting a leading query preserves the query and lifts the remaining circuit. -/
 theorem workspaceLiftCircuit_query (C : Circuit (I × Bool)) :

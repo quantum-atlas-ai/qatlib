@@ -77,7 +77,7 @@ well defined up to isomorphism). -/
 def IsCore {V : Type*} [Fintype V] [DecidableEq V] (H C : FinGraph V) : Prop :=
   IsRetract H C ∧ ∀ D : FinGraph V, IsRetract H D → edgeCount C ≤ edgeCount D
 
-/-- Hadwiger's conjecture, as used in Theorem 1.3 (iii): every graph contains a
+/-- **Open conjecture / complexity hypothesis — not proved in Qatlib.** Hadwiger's conjecture, as used in Theorem 1.3 (iii): every graph contains a
 `K_{χ(G)}` minor. -/
 def HadwigerConjecture : Prop :=
   ∀ (V : Type) [Fintype V] [DecidableEq V] (G : FinGraph V),

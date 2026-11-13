@@ -30,7 +30,6 @@ when its initial success angle is known. The chosen number of iterations is `Nat
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open scoped BigOperators
 

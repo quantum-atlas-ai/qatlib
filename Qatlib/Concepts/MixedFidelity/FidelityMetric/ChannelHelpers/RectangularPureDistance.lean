@@ -26,8 +26,6 @@ isometry. See [FuchsVanDeGraaf1999].
 * [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

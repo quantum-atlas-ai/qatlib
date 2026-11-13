@@ -42,7 +42,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.D
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.DysonSeries22.ExactSource
 open Qatlib.Foundations.TimeEvolution.DysonError
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The sum of the ordered Dyson evolution terms indexed from zero through `K`. -/

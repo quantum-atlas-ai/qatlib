@@ -32,7 +32,6 @@ for the ODE construction in [BerryEtAl2017ODE].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Qatlib.Concepts.BlockEncoding.Postselection
@@ -42,7 +41,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Papers.QLinearODE17.StructureCore
 
 open Matrix
-set_option warningAsError false
 
 /-- The state on eight scalar labels with amplitude 1 at labels six and seven and zero
 elsewhere. -/

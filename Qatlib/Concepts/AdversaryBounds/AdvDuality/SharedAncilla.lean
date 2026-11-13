@@ -30,7 +30,6 @@ the guard error vanishes and both normalization parameters equal one.
   transformation and beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.FrameEncoding.SharedAncilla
 

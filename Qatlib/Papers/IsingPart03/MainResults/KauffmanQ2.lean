@@ -27,8 +27,6 @@ identities give the weight-enumerator reduction and its nonzero scalar prefactor
 * [Lidar, 2004][Lidar2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

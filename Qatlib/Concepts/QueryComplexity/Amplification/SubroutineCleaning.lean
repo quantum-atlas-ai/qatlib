@@ -30,13 +30,11 @@ open Qatlib.Foundations.CircuitReversal.ReversalAlgebra
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
-
 namespace Qatlib.Concepts.QueryComplexity.Amplification
 
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
@@ -47,6 +45,8 @@ def answerCopyPerm (v : I → Bool) : I × Bool → I × Bool :=
 /-- The permutation matrix that copies the Boolean value `v` into an answer bit by XOR. -/
 noncomputable def AnswerCopyGate (v : I → Bool) : Matrix (I × Bool) (I × Bool) ℂ :=
   permMatrix (answerCopyPerm v)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- XORing `v` of the first register into the answer bit is an involution. -/
 theorem answerCopyPerm_involutive (v : I → Bool) : Function.Involutive (answerCopyPerm v) := by

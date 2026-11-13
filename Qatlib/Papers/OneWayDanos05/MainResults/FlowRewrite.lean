@@ -30,7 +30,6 @@ the all-plus vector, and the outcome conjugation identity for XY-plane projector
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

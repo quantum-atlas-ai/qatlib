@@ -32,7 +32,6 @@ quantities select entries of powers of the forward and conjugate-transposed tran
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Foundations.PureStateMath

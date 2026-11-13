@@ -32,7 +32,6 @@ mathematical background.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
 set_option autoImplicit false

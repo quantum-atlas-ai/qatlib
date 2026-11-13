@@ -30,7 +30,6 @@ set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 open scoped BigOperators
-set_option warningAsError false
 
 namespace Qatlib.Concepts.ShadowModels.UStatBackend.StreamingCollision
 

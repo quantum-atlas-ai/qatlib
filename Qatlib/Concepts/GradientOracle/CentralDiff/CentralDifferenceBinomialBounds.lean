@@ -30,7 +30,6 @@ central-difference weights. `centralDiff_ratio_power_bound` controls a ratio tim
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1600000

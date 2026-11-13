@@ -32,14 +32,14 @@ open Qatlib.Papers.OneDimSim15.MainResults
 open Matrix MeasureTheory
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
-/-- Fixed arXiv:1503.06319v2, Theorem 1 (p. 5, Eq. (20)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 1 (p. 5, Eq. (20)): there are constants
 `C > 0` and `T > 0` such that for every `eps > 0`, every pair of coefficient
 sequences `c, c'` supported in `0 .. N'` with unit norm, and every evolution
 time `1 <= |t| <= T`, there is a dimension `N = O(log(1/eps) + N')` (with
 `N' <= C N`) for which the discrete overlap `<phi'^d|U^d(t)|phi^d>` and both
 position-eigenstate overlaps `<x_j|U(t)|phi>` are within `O(eps)` of their
 continuous-variable values. -/
-def theorem1_scattering_approximation : Prop :=
+def theorem1_scattering_approximation_statement : Prop :=
     ∃ C T : ℝ, 0 < C ∧ 0 < T ∧
       ∀ (ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
         ∀ (N' : ℕ) (c c' : ℕ → ℂ),
@@ -54,14 +54,14 @@ def theorem1_scattering_approximation : Prop :=
                 ‖vInner (basisVec j) ((evolveOp N t).mulVec (normalize (coeffVec N' N c))) -
                     cvPositionOverlap N N' c t j‖ ≤ C * ε)
 
-/-- Fixed arXiv:1503.06319v2, Theorem 2 (p. 7, Eq. (31)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 2 (p. 7, Eq. (31)): there are constants
 `C > 0`, `T > 0`, `gamma > 0` such that for every initial state `phi^d` of
 unit norm supported in `0 .. N'`, every `1 <= |t| <= T` and every `eps > 0`,
 there are `N = O(exp(C sqrt(log(N'/eps))) + N')`, `p = Theta(sqrt(log(N'/eps)))`,
 `k s = t` with `|s| = Theta(5^{-p})`, such that the `k`-th power of `U_p^d(s)`
 approximates `U^d(t)` on `phi^d` to `O(eps)`, with at most
 `O(exp(gamma sqrt(log(N'/eps))))` elementary exponentials. -/
-def theorem2_trotter_state_error : Prop :=
+def theorem2_trotter_state_error_statement : Prop :=
     ∃ C T γ : ℝ, 0 < C ∧ 0 < T ∧ 0 < γ ∧
       ∀ (ε : ℝ), 0 < ε → ε ≤ 1 / 2 →
         ∀ (N' : ℕ) (c : ℕ → ℂ),
@@ -80,7 +80,7 @@ def theorem2_trotter_state_error : Prop :=
               (trotterCount p : ℝ) * (k : ℝ) ≤
                 C * Real.exp (γ * Real.sqrt (Real.log ((N' : ℝ) / ε)))
 
-/-- Fixed arXiv:1503.06319v2, Theorem 3 (p. 7, Eq. (32)): there are constants
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Theorem 3 (p. 7, Eq. (32)): there are constants
 `C > 0`, `T > 0`, `gamma' > 0` such that for every pair of unit-norm
 coefficient sequences supported in `0 .. N'`, every `1 <= |t| <= T` and every
 `eps > 0`, there is a circuit `Q` with `O(exp(gamma' sqrt(log(N'/eps))))`
@@ -88,7 +88,7 @@ two-qubit gates whose amplitude is within `eps` of `<phi'|U(t)|phi>`, and for
 every grid point `j` a circuit `Q_j` (same gate bound) approximating
 `<x_j|U(t)|phi>`; the required dimension is
 `N = O(exp(C sqrt(log(N'/eps))) + N')` with `N' <= C N`. -/
-def theorem3_scattering_algorithm : Prop :=
+def theorem3_scattering_algorithm_statement : Prop :=
     ∃ C T γ' : ℝ, 0 < C ∧ 0 < T ∧ 0 < γ' ∧
       ∀ (N' : ℕ) (c c' : ℕ → ℂ),
         (∀ n, N' < n → c n = 0) → (∀ n, N' < n → c' n = 0) →

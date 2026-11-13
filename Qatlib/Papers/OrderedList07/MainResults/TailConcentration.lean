@@ -27,8 +27,6 @@ nonnegative query cost with the stated expectation and lower-tail hypotheses.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

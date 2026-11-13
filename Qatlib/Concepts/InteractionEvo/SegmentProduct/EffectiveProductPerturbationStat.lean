@@ -23,7 +23,6 @@ norm at most one. These estimates support the interaction-picture simulation ana
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.EffCosts
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid

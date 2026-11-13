@@ -31,7 +31,6 @@ packages amplification errors, bit costs, and the sequential record-space count.
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

@@ -36,7 +36,6 @@ phase label interpretation uses the phase estimation setting of [NielsenChuang20
 * [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

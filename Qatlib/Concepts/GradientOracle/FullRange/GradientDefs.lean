@@ -43,7 +43,6 @@ error bounds, and implementation resources. The specifications connect the gradi
 * [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -64,7 +63,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.GradientOracle.FullRange
 

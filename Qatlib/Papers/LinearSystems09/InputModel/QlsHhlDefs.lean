@@ -28,7 +28,6 @@ input-model interface theorems.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HhlAlgorithms.Postselection

@@ -25,7 +25,6 @@ every input, following [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 open Qatlib.Foundations.QueryWordCore.Circuit

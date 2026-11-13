@@ -25,8 +25,6 @@ multiplication, and products, and controls transitions between separated spectra
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 noncomputable section

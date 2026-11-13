@@ -24,7 +24,6 @@ distance for `|t| ≤ 1`, illustrating the randomized simulation setting of [Cam
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath

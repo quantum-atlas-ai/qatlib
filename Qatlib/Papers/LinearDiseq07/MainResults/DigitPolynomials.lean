@@ -94,8 +94,6 @@ with the stated degree bounds. See [Ivanyos2008] for the paper context.
 * [Ivanyos, 2008][Ivanyos2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

@@ -19,7 +19,7 @@ ratio written here as `kappa k N = posMass k N / negMass k N`, where `N = e^{gam
 is the last repetition node of Eq. (16).
 
 Everything is stated on top of the frozen coefficient system
-`QuantumAlgorithm.Papers.HamLCUSim12.Multiproduct.mCoeff`/`mNode`; no coefficient is
+`Qatlib.Papers.HamLCUSim12.Multiproduct.mCoeff`/`mNode`; no coefficient is
 redefined here. This module only introduces the two partial sign masses used by
 Lemma 6, Corollary 7 and Theorem 3, and proves their positivity from the frozen
 mass-structure statement (`multiproductMassStructure`).

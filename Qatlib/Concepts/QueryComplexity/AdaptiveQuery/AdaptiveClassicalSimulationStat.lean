@@ -27,8 +27,6 @@ adaptive circuit model.
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Foundations.PureStateMath

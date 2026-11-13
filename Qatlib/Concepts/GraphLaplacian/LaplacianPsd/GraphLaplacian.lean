@@ -25,7 +25,6 @@ symmetry, positive semidefiniteness, and zero row sums. Matrix positivity is tre
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GraphStationary.StationaryLaw
 
 set_option autoImplicit false

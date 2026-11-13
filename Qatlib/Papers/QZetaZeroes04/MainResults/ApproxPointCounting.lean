@@ -30,8 +30,6 @@ polynomial cost annotation for the diagonal unitary.
 * [van Dam, 2004][VanDam2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

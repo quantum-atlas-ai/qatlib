@@ -23,8 +23,6 @@ prerequisites for the restricted linear-system setting inspired by [HarrowHassid
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
 /-- For `κ ≥ 1`, positive `ε`, and grid size `M ≥ κ / ε`, the quantity `1 / κ²` is positive and

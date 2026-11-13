@@ -32,7 +32,6 @@ synthesis in quantum signal processing; see [LowChuang2017] for background.
 -/
 
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-set_option warningAsError false
 open Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability
 open Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability.CertLayerStrip
 

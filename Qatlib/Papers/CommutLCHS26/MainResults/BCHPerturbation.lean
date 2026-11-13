@@ -44,7 +44,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHFormal BCHConvergence BCHControlled BCHHalfBudget BCHOddEvaluation BCHCommMass
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _

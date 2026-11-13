@@ -152,13 +152,13 @@ with binary index at most that of `x`. -/
 def doubleEdgeIn {no : ℕ} (x y : Finset (Fin no)) : ℕ :=
   graphEdgeIn ciDoubleAdjacent ciIndex x y
 
-/-- Appendix A.5, Main Theorem for single-excitation edges (faithful statement
+/-- **Statement only — not proved in Qatlib.** Appendix A.5, Main Theorem for single-excitation edges (faithful statement
 contract): for any trio of states `x < y < z` whose graph nodes are connected by
 single-orbital excitations, the two adjacent single-excitation edges do not carry the
 same label pair `(e_{x→y}, e_{y→x}) = (e_{y→z}, e_{z→y})`.  This is the statement whose
 proof is the remaining gap; the printed Appendix A formulas need the erratum recorded in
 the module docstring before the case analysis (A24)-(A37) can be mechanized. -/
-def ci_single_edgeLabel_no_collision : Prop :=
+def ci_single_edgeLabel_no_collision_statement : Prop :=
   ∀ (no ne : ℕ) (x y z : Finset (Fin no)),
     x.card = ne → y.card = ne → z.card = ne →
     ciIndex x < ciIndex y → ciIndex y < ciIndex z →
@@ -166,12 +166,12 @@ def ci_single_edgeLabel_no_collision : Prop :=
     ¬ (singleEdgeOut x y = singleEdgeOut y z ∧
        singleEdgeIn x y = singleEdgeIn y z)
 
-/-- Appendix A.5, Main Theorem for pair-excitation edges (faithful statement contract):
+/-- **Statement only — not proved in Qatlib.** Appendix A.5, Main Theorem for pair-excitation edges (faithful statement contract):
 for any trio of states `x < y < z` whose graph nodes are connected by two-orbital
 excitations, the two adjacent pair-excitation edges do not carry the same label pair.
 The pair-excitation counting formulas (A16)-(A17) require the correction described in
 the module docstring before the case analysis (A38)-(A54) can be mechanized. -/
-def ci_double_edgeLabel_no_collision : Prop :=
+def ci_double_edgeLabel_no_collision_statement : Prop :=
   ∀ (no ne : ℕ) (x y z : Finset (Fin no)),
     x.card = ne → y.card = ne → z.card = ne →
     ciIndex x < ciIndex y → ciIndex y < ciIndex z →
@@ -179,13 +179,13 @@ def ci_double_edgeLabel_no_collision : Prop :=
     ¬ (doubleEdgeOut x y = doubleEdgeOut y z ∧
        doubleEdgeIn x y = doubleEdgeIn y z)
 
-/-- Claim c002 (paper Section III D, p.7), main direction: for CI graphs the standard
+/-- **Statement only — not proved in Qatlib.** Claim c002 (paper Section III D, p.7), main direction: for CI graphs the standard
 `(i,j)` colouring needs no third label.  Since Section III D separates the two excitation
 classes before labelling, it suffices that neither class has a collision on adjacent
 edges; mixed-class adjacent edges are distinguished by the disjoint colour ranges.
 This is the `Prop`-valued contract combining the two same-class Main Theorems. -/
-def ci_third_color_label_not_needed : Prop :=
-  ci_single_edgeLabel_no_collision ∧ ci_double_edgeLabel_no_collision
+def ci_third_color_label_not_needed_statement : Prop :=
+  ci_single_edgeLabel_no_collision_statement ∧ ci_double_edgeLabel_no_collision_statement
 
 /-! ## General graphs do need a third colour label (claim c002, second half) -/
 

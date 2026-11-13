@@ -35,10 +35,7 @@ These statements develop the battleship analysis of [HunzikerEtAl2003].
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -91,7 +88,7 @@ theorem bs_eigenvalue_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j 
           * ((Real.sin (((2 * r + 1 : ℕ) : ℝ)
                 * (Real.pi * (j.val : ℝ) / (N : ℝ)))
               / Real.sin (Real.pi * (j.val : ℝ) / (N : ℝ)) : ℝ) : ℂ) := by
-  rw [eigen_bsCoeff, bs_eigenvalue, if_neg hj, bs_window_sine h hj (bs_theta_sin_ne_zero hj)]
+  rw [eigen_bsCoeff, bs_eigenvalue, ite_eq_right hj, bs_window_sine h hj (bs_theta_sin_ne_zero hj)]
   ring
 
 /-- If 2r + 1 ≤ N, the zero-frequency battleship eigenvalue is (N - 2(2r + 1))/√N. -/
@@ -609,6 +606,8 @@ otherwise. -/
 noncomputable def bsValue (r : ℕ) (a x : ZMod N) : ℂ :=
   if a - x ∈ shipWindow (N := N) r then 1 else 0
 
+omit [NeZero N] in
+
 /-- A residue lies in the ship window exactly when it equals t - r for some natural number t ≤
 2r. -/
 lemma mem_shipWindow_iff {r : ℕ} (k : ZMod N) :
@@ -621,6 +620,8 @@ lemma mem_shipWindow_iff {r : ℕ} (k : ZMod N) :
     exact ⟨t, Nat.lt_succ_iff.mp (Finset.mem_range.mp ht), rfl⟩
   · rintro ⟨t, ht, rfl⟩
     exact ⟨t, Finset.mem_range.mpr (Nat.lt_succ_iff.mpr ht), rfl⟩
+
+omit [NeZero N] in
 
 /-- If 2r + 1 ≤ N, equal shifted residues with natural parameters at most 2r have equal
 parameters. -/
@@ -671,14 +672,14 @@ theorem equiv_oracle_iff {r : ℕ} (h : 2 * r + 1 < N) (a a' : ZMod N) :
   constructor
   · intro heq
     constructor
-    · rw [heq, bsValue, if_pos (hvalr ▸ neg_r_mem_window (N := N) r)]
-    · rw [heq, bsValue, if_neg (hvals ▸ neg_succ_r_not_mem_window h)]
+    · rw [heq, bsValue, ite_eq_left (hvalr ▸ neg_r_mem_window (N := N) r)]
+    · rw [heq, bsValue, ite_eq_right (hvals ▸ neg_succ_r_not_mem_window h)]
   · rintro ⟨h1, h2⟩
 
     have hd1 : a' - (a + ((r : ℕ) : ZMod N)) ∈ shipWindow (N := N) r := by
       by_contra hc
       have : bsValue (N := N) r a' (a + ((r : ℕ) : ZMod N)) = 0 := by
-        unfold bsValue; rw [if_neg hc]
+        unfold bsValue; rw [ite_eq_right hc]
       rw [this] at h1
       norm_num at h1
     obtain ⟨t, ht, ht_eq⟩ := (mem_shipWindow_iff (N := N) (r := r) _).mp hd1
@@ -691,7 +692,7 @@ theorem equiv_oracle_iff {r : ℕ} (h : 2 * r + 1 < N) (a a' : ZMod N) :
     have hd2_not : a' - (a + (((r + 1 : ℕ)) : ZMod N)) ∉ shipWindow (N := N) r := by
       by_contra hc
       have : bsValue (N := N) r a' (a + (((r + 1 : ℕ)) : ZMod N)) = 1 := by
-        unfold bsValue; rw [if_pos hc]
+        unfold bsValue; rw [ite_eq_left hc]
       rw [this] at h2
       norm_num at h2
     have ht0 : t = 0 := by

@@ -49,7 +49,6 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.RiskEstimation.CDFEstimation
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- If a single amplitude-estimation sample is within error `e` with mass at least `8 / π²`, the
 native median exceeds error `e + 2⁻ᵇⁱᵗˢ` with probability at most `(8 / 9) ^ r`. -/

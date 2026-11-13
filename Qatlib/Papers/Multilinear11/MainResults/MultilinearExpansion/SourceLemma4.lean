@@ -19,8 +19,7 @@ set_option backward.isDefEq.respectTransparency false
 # Lemma 4 of arXiv:1105.3310v3 (Montanaro, 2012)
 
 Paper: Ashley Montanaro, *The quantum query complexity of learning multilinear
-polynomials*, arXiv:1105.3310v3 (8 Mar 2012), fixed at
-`prove/assets/1105.3310.pdf`.
+polynomials*, arXiv:1105.3310v3 (8 Mar 2012).
 
 Source location: Lemma 4, §2 p.4 (statement), Appendix B p.6 (proof).
 

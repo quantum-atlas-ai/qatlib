@@ -41,8 +41,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The product law for `2 * r + 1` independent blocks of `B` observations, with a separate
 finite distribution for each block component. -/
@@ -91,20 +89,20 @@ theorem blockRecordLaw_expect_prod_mem {X : Type} [Fintype X] [DecidableEq X] (r
     funext ω
     have e1 : ∏ j ∈ J, (if j ∈ J then g j (ω j) else 1)
         = ∏ j, (if j ∈ J then g j (ω j) else 1) :=
-      Finset.prod_subset (Finset.subset_univ J) (fun j _ hj => if_neg hj)
+      Finset.prod_subset (Finset.subset_univ J) (fun j _ hj => ite_eq_right hj)
     have e2 : (∏ j ∈ J, g j (ω j))
         = ∏ j ∈ J, (if j ∈ J then g j (ω j) else 1) :=
-      Finset.prod_congr rfl fun j hj => (if_pos hj).symm
+      Finset.prod_congr rfl fun j hj => (ite_eq_left hj).symm
     rw [← e1, e2]
   rw [hfun, hfull]
   have hb : ∏ j ∈ J, (∑ u : Fin B → X, (∏ b, (p j b).prob (u b)) * (if j ∈ J then g j u else 1))
       = ∏ j, (∑ u : Fin B → X, (∏ b, (p j b).prob (u b)) * (if j ∈ J then g j u else 1)) :=
     Finset.prod_subset (Finset.subset_univ J) (fun j _ hj => by
-      rw [Finset.sum_congr rfl fun u (_ : u ∈ Finset.univ) => by rw [if_neg hj, mul_one]]
+      rw [Finset.sum_congr rfl fun u (_ : u ∈ Finset.univ) => by rw [ite_eq_right hj, mul_one]]
       exact (independentSampleLaw (p j)).sum_one)
   have ha : ∏ j ∈ J, (∑ u : Fin B → X, (∏ b, (p j b).prob (u b)) * (if j ∈ J then g j u else 1))
       = ∏ j ∈ J, (∑ u : Fin B → X, (∏ b, (p j b).prob (u b)) * g j u) :=
-    Finset.prod_congr rfl fun j hj => Finset.sum_congr rfl fun u _ => by rw [if_pos hj]
+    Finset.prod_congr rfl fun j hj => Finset.sum_congr rfl fun u _ => by rw [ite_eq_left hj]
   exact hb.symm.trans ha
 
 /-- A function of one block has the same expectation under the full record law as under that
@@ -188,12 +186,12 @@ theorem heterogeneous_block_bad_subset_product {X : Type} [Fintype X] [Decidable
     by_cases hall : ∀ j ∈ J, ε < |weightedBlock r B w f ω j - θ|
     · have hprod1 : (∏ j' ∈ J,
           (if ε < |∑ b, w j' b * f j' b (ω j' b) - θ| then (1:ℝ) else 0)) = 1 :=
-        Finset.prod_eq_one (fun j hj => if_pos (hall j hj))
-      rw [if_pos hall, hprod1]
+        Finset.prod_eq_one (fun j hj => ite_eq_left (hall j hj))
+      rw [ite_eq_left hall, hprod1]
     · push Not at hall
       obtain ⟨j, hjJ, hjbad⟩ := hall
-      rw [if_neg (fun hall => not_lt.mpr hjbad (hall j hjJ)),
-        Finset.prod_eq_zero hjJ (if_neg (by
+      rw [ite_eq_right (fun hall => not_lt.mpr hjbad (hall j hjJ)),
+        Finset.prod_eq_zero hjJ (ite_eq_right (by
           show ¬ (ε < |∑ b, w j b * f j b (ω j b) - θ|)
           exact not_lt.mpr hjbad))]
   have hR : ∀ j : Fin (2*r+1),
@@ -354,7 +352,7 @@ noncomputable def sortedBlockMedian (r : ℕ) (v : Fin (2*r+1) → ℝ) : ℝ :=
 farther than `ε` from `θ`. This gives the numerical majority step for repetition
 amplification in [BrassardHoyerTapp1998Counting]. -/
 theorem heterogeneous_sorted_median_majority_witness (r : ℕ) (v : Fin (2*r+1) → ℝ) (θ ε : ℝ)
-    (hε : 0 ≤ ε) (hmed : ε < |sortedBlockMedian r v - θ|) :
+    (_hε : 0 ≤ ε) (hmed : ε < |sortedBlockMedian r v - θ|) :
     r+1 ≤ (Finset.univ.filter (fun j => ε < |v j - θ|)).card := by
   have hlen : ((insertionSortCounted (List.ofFn v)).1).length = 2*r+1 := by
     rw [insertionSortCounted_length, List.length_ofFn]
@@ -420,7 +418,7 @@ theorem fintype_union_bound_mass {ι Ω : Type} [Fintype ι] [Fintype Ω] (mass 
   have hpt : ∀ ω : Ω, (∃ i, A i ω) →
       mass ω ≤ ∑ i, mass ω * (if A i ω then (1:ℝ) else 0) := by
     intro ω ⟨i₀, hA⟩
-    have h1 : (1:ℝ) ≤ (if A i₀ ω then 1 else 0) := by rw [if_pos hA]
+    have h1 : (1:ℝ) ≤ (if A i₀ ω then 1 else 0) := by rw [ite_eq_left hA]
     have h2 : mass ω * (if A i₀ ω then (1:ℝ) else 0)
         ≤ ∑ i, mass ω * (if A i ω then (1:ℝ) else 0) :=
       Finset.single_le_sum (f := fun i => mass ω * (if A i ω then (1:ℝ) else 0))

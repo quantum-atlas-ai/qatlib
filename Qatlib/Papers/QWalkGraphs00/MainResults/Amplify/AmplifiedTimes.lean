@@ -26,8 +26,6 @@ error bound on every subset. Combining this observation with contraction gives
 * [Aharonov et al., 2001][AharonovEtAl2001Walks]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -34,8 +34,6 @@ Cauchy--Schwarz estimate combines the query visit contributions.
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

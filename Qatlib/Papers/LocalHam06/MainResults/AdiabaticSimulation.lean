@@ -28,7 +28,6 @@ the padded history Hamiltonian with the yes/no energy promises used in the const
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 

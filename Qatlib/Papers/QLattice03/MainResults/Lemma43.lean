@@ -24,8 +24,6 @@ many ordered pairs inside `T`. The parameters include a density condition on `T`
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped Classical BigOperators

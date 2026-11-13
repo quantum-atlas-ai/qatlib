@@ -27,7 +27,6 @@ differing coordinate in the intersection of their certificate sets. For backgrou
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv

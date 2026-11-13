@@ -27,7 +27,6 @@ The reliability conditions strengthen the basic interfaces used for quantum sear
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
 noncomputable section

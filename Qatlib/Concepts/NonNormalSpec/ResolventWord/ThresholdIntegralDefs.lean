@@ -26,8 +26,6 @@ transformation setting of [GilyenSuLowWiebe2019]
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalshMoment.Forrelation
 
 namespace Qatlib.Concepts.NonNormalSpec.ResolventWord

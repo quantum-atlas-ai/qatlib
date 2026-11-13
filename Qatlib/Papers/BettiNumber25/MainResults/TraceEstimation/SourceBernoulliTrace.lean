@@ -21,12 +21,11 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # TraceEstimation — Bernoulli trace estimation and the Hoeffding bridge
 
-Fixed source: arXiv:2408.16934v3 (Quantum 9, 1901, 2025), PDF SHA-256
-`dcf534a47e98fb6bb6bc34039e64bac6e7ba07fdb7d9b17f781dae1a01fe7848`.
+Fixed source: arXiv:2408.16934v3 (Quantum 9, 1901, 2025).
 
 * Source Lemma 3.1 (p. 4, "Hoeffding") is the two-sided Hoeffding bound.  It is
-  reused from the frozen library as
-  `QuantumAlgorithm.Foundations.ProbabilityCore.Concentration.ProbabilityInterfaces.independent_weighted_hoeffding`
+  reused from the shared library as
+  `Qatlib.Foundations.ProbabilityCore.Concentration.ProbabilityInterfaces.independent_weighted_hoeffding`
   and specialised to `q` i.i.d. `{0,1}`-valued records below
   (`lemma_3_1_hoeffding_iid`).
 * Source Lemma 3.3 (p. 7): each sample `s_i` of Algorithm 2 is Bernoulli with
@@ -83,7 +82,7 @@ theorem lemma_3_3_bernoulli_trace {N : ℕ} (D : Matrix (Fin N) (Fin N) ℂ) (d 
       = (((Dᴴ * D) ^ d).trace).re / (N : ℝ) := by
   rw [bernoulli_expect_indicator, hp, lemma_3_2_normalised D d hd hN]
 
-/-- A plain average over `L` records equals the frozen library's weighted sum
+/-- A plain average over `L` records equals the shared library's weighted sum
 with uniform weights `1/L` (for `L > 0`). -/
 theorem avg_eq_weightedSum {L : ℕ} (hL : 0 < L) (f : Bool → ℝ) (ω : Fin L → Bool) :
     (∑ k, f (ω k)) / (L : ℝ)

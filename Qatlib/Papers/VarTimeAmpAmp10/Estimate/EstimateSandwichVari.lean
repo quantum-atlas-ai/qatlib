@@ -41,7 +41,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Papers.VarTimeAmpAmp10.Estimate
 
 open Matrix
-set_option warningAsError false
 
 /-- For `0 ≤ a ≤ 1`, the zero estimate satisfies the stated amplitude-estimation error bound at
 resolution two. -/

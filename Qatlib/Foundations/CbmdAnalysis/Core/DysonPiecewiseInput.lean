@@ -30,8 +30,6 @@ This supplies piecewise input data for the contour-based matrix decomposition in
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false

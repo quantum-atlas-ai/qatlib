@@ -22,8 +22,6 @@ estimates support subset-finding reductions [ChildsEisenberg2003].
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.Primitives
 
 /-- The proposition `fact5`, bounding triangle count from common-neighbor counts along an edge

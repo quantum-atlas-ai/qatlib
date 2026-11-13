@@ -65,16 +65,14 @@ entry oracle `O[h]` can output all estimates `e_i` of `tr(A_i ρ)` to accuracy
 `O(s h_precision⁻² log⁴(nms/(p_e h_precision)))` (displayed closed forms drop the
 `O` constant).
 
-*Statement-only.*  No phase estimation / cost model and no coherent
-oracle-execution model exist in the library.
+Scope note: this statement records the claimed estimator bounds without a phase
+estimation, cost, or coherent oracle-execution model.
 
-* Fixed version: arXiv:1609.05537v5, Lemma 13, printed p. 15.
-* Proof pointer (source, p. 15): Lemma 12 with `p_e' = p_e/m` per coordinate,
+* Source: arXiv:1609.05537v5, Lemma 13, printed p. 15.
+* Proof outline (source, p. 15): Lemma 12 with `p_e' = p_e/m` per coordinate,
   then the union bound over `i ∈ [m]`; output `∑ c_i |i⟩ ↦ ∑ c_i |i, e_i⟩`.
-* Current Lean gap: oracle execution model and Lemma 12.
-* Candidate reusable dependency: `lemma12_traceEstimation` (source Lemma 12).
-* Suggested continuation: choose `M = m * M₁`, apply `Finset.sum_le_sum` for the
-  union bound, and reuse the Lemma 12 cost bound with `p_e ↦ p_e/m`. -/
+Scope note: the oracle execution model and the proof of Lemma 12 are outside the
+scope of this formalisation. -/
 theorem lemma13_entryOracle (n m s : ℕ) (A : Fin m → Operator n) (ρ : Operator n)
     (hprec pe : ℝ) (hA : ∀ i, (A i).IsHermitian)
     (hsparse : ∀ i, RowSparse13 (A i) s) (hnorm : ∀ i, ‖A i‖ ≤ 1)

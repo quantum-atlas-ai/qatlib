@@ -31,15 +31,15 @@ expansion of `f(x) = (1-(1-x²)^b)/x`.
 What is proved here:
 
 * `lemma14_chebyshev_reciprocal` — source **Lemma 14** (2ε closeness of the
-  truncated series), reused from the frozen `QSingValue19` near-optimal
+  truncated series), using the `QSingValue19` near-optimal
   reciprocal development (same literal polynomial, ceiling cutoffs).
 * `lemma17_geometric_reciprocal` — source **Lemma 17**, proved here for an
-  arbitrary integer cutoff `b ≥ (κd)² log(κd/ε)` (the frozen library only
+  arbitrary integer cutoff `b ≥ (κd)² log(κd/ε)` (the imported theorem
   provides the ceiling instance `b = ⌈κ² log(κ/ε)⌉`).
 * `lemma18_full_expansion` — source **Lemma 18** (exact Chebyshev expansion),
-  reused from the frozen full-expansion identity plus the geometric closed form.
+  using the full-expansion identity plus the geometric closed form.
 * `lemma19_truncation_error` — source **Lemma 19** (truncation error at
-  `j₀ = √(b log(4b/ε))`), reused from the frozen truncation theorem.
+  `j₀ = √(b log(4b/ε))`), using the truncation theorem.
 -/
 
 set_option autoImplicit false
@@ -62,8 +62,8 @@ error of the printed cutoffs).  With `b = ⌈κ² log(κ/ε)⌉` and
 the truncated series `g(x) = 4 Σ_{j≤j₀} (-1)^j [Σ_{i=j+1}^{b} C(2b,b+i)/2^{2b}] T_{2j+1}(x)`
 is `2ε`-close to `1/x` on the signed gap domain `D_κ = {x | 1/κ ≤ |x| ≤ 1}`.
 
-Reuses the frozen `QSingValue19` theorem `nearOptimalReciprocal_error_of_abs`
-(full FQN `QuantumAlgorithm.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_error_of_abs`),
+Uses the `QSingValue19` theorem `nearOptimalReciprocal_error_of_abs`
+(full FQN `Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_error_of_abs`),
 whose `nearOptimalReciprocalPolynomial κ ε` is definitionally the paper's `g`. -/
 theorem lemma14_chebyshev_reciprocal (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε)
     (hε1 : ε ≤ 1 / 2) (x : ℝ) (hx : |x| ∈ Set.Icc κ⁻¹ 1) :
@@ -152,8 +152,8 @@ theorem lemma17_geometric_reciprocal (κd ε : ℝ) (hκd : 1 < κd) (hε : 0 < 
 `b`, on `[-1,1]` and away from the origin,
 `f(x) = (1-(1-x²)^b)/x = 4 Σ_{j=0}^{b-1} (-1)^j [Σ_{i=j+1}^{b} C(2b,b+i)/2^{2b}] T_{2j+1}(x)`.
 
-Reuses the frozen polynomial identity `nearOptimalReciprocal_full_expansion`
-(full FQN `QuantumAlgorithm.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_full_expansion`)
+Uses the polynomial identity `nearOptimalReciprocal_full_expansion`
+(full FQN `Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_full_expansion`)
 together with the geometric closed form `reciprocalPolynomial_eval_div`. -/
 theorem lemma18_full_expansion (b : ℕ) (x : ℝ) (hx0 : x ≠ 0) :
     (1 - (1 - x ^ 2) ^ b) / x =
@@ -171,8 +171,8 @@ theorem lemma18_full_expansion (b : ℕ) (x : ℝ) (hx0 : x ≠ 0) :
 Truncating (77) at `j₀ = ⌈√(b log(4b/ε))⌉`, `b = ⌈κ² log(κ/ε)⌉`, gives a
 polynomial `g` that is `ε`-close to `f` on `[-1,1]`.
 
-Reuses the frozen `nearOptimalReciprocal_truncation_error` (full FQN
-`QuantumAlgorithm.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_truncation_error`)
+Uses `nearOptimalReciprocal_truncation_error` (full FQN
+`Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_truncation_error`)
 and the geometric closed form of `reciprocalPolynomial`. -/
 theorem lemma19_truncation_error (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε)
     (hε1 : ε ≤ 1 / 2) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :

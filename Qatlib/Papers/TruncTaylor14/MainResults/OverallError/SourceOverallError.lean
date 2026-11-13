@@ -19,15 +19,15 @@ ancilla is traced out.  If `K` is chosen so that the per-segment error is
 Eq. (19)), subadditivity over the `r` steps gives final error `≤ ε` against
 `U|ψ⟩ = e^{-iHt}|ψ⟩`.
 
-Frozen FQN reused:
-`QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.ln2Segmentation`
-(`Ln2SegmentationCorrected`, `Statements/...`), which proves the concrete
+Library theorem:
+`Qatlib.Concepts.CoherentSim.ResetDiscard.ln2Segmentation`
+(`Ln2SegmentationCorrected`), which proves the concrete
 trace-norm bound `≤ ε` after all `r` corrected reset/discard iterations,
-for every density matrix.  The frozen statement assumes a supplied block
+for every density matrix.  The statement assumes a supplied block
 encoding `W` of the truncated ln-2 segment and a factorial tail budget
 `Σ_{j} (ln2)^{K+1+j}/(K+1+j)! ≤ ε/(69 r)`; both are exactly the paper's
 `δ = O(ε/r)` choices.  The paid actual-word variant is
-`QuantumAlgorithm.Papers.TruncTaylor14.SourceDiscard.sourceDiscardActualSimulation`.
+`Qatlib.Papers.TruncTaylor14.DiscardCore.sourceDiscardActualSimulation`.
 -/
 
 set_option autoImplicit false

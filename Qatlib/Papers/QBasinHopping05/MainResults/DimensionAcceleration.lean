@@ -30,7 +30,6 @@ gradient-value program under the displayed smoothness and parameter hypotheses.
 * [Bulger, 2005][Bulger2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -54,7 +54,6 @@ namespace Qatlib.Papers.SDPBrandao16.MainResults
 
 open Qatlib
 open scoped BigOperators ComplexOrder Matrix.Norms.L2Operator MatrixOrder
-set_option warningAsError false
 
 /-- The cost mean, payoff mean, and cell estimate associated with a Step 2 search cell. -/
 structure Step2Aggregates {m γ Nmax M L Q : ℕ} (S : Step2Search m γ Nmax M L Q)

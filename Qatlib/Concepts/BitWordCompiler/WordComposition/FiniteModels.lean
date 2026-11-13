@@ -33,7 +33,6 @@ The computational background is described in [KitaevShenVyalyi2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib.Foundations.PureStateMath

@@ -26,7 +26,6 @@ for individual good measurement outcomes in the setting of [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

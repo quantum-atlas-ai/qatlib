@@ -30,7 +30,6 @@ in [KitaevShenVyalyi2002].
 -/
 
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath

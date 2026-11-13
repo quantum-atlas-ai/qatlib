@@ -28,7 +28,6 @@ dihedral cosine statistics. This development accompanies [EttingerHoyer1999].
 * [Ettinger and Hoyer, 1999][EttingerHoyer1999]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

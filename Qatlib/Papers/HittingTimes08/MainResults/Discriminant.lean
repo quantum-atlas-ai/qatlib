@@ -24,7 +24,6 @@ rescaling, supplying the discriminant identities used for Theorem 3.18 of [Magni
 * [Magniez et al., 2008][MagniezEtAl2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

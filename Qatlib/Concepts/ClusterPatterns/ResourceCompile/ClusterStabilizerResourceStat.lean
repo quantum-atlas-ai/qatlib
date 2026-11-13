@@ -25,7 +25,6 @@ graph-resource setting of [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Foundations.QueryWordCore.Circuit

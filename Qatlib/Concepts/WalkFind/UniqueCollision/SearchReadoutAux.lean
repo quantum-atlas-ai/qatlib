@@ -25,7 +25,6 @@ zero-iteration state and marked amplitude reduce to the starting state and its o
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
 namespace Qatlib.Concepts.WalkFind.UniqueCollision

@@ -26,8 +26,6 @@ expected preparation calls, and sound successful outputs. For background, see
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection

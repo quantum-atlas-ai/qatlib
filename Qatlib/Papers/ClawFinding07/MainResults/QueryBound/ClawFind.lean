@@ -26,8 +26,6 @@ expressions to `k`-claw search through `kClawSearchCost` and `kClawSearchStandar
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

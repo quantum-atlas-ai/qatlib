@@ -40,8 +40,8 @@ This file fixes the objects shared by the claim statements of the paper block:
 * the exact time-ordered propagator as a field of `TimePeriodicModel` (Eq. (7));
 * the periodic-boundary-condition refined effective Hamiltonian of Eq. (101) and
   the two amplification unitaries of Eqs. (72), (102), (103);
-* the resource ledger `SimulationResources` used by Theorems 1 and 2, and the
-  truncation order of Eq. (59).
+* the legacy resource annotations `SimulationResources`, and the truncation order
+  of Eq. (59). Theorems 1 and 2 are not supplied in this checkout.
 
 All matrices are finite `Matrix H H ℂ` over the physical register `H`; the
 Fourier register is `Fin (2*lmax)` (window `D_lmax`) or `Fin (8*lmax)`
@@ -52,7 +52,10 @@ with respect to any chosen matrix norm.
 Boundary: the exact propagator `exactEvolution` is *not* derived from an ODE
 here (no differentiability of `H(t)` is assumed); it is a required field, so a
 theorem about it is a statement about any time-ordered propagator, not a
-construction.  No claim below is proved in this file.
+construction. Elementary identities below are proved. The operational resource
+contract below is conditional on a supplied primitive catalog and word; it does
+not synthesize Hamiltonian simulation. `Proposition5` proves an analytic tail
+bound and does not construct a protocol.
 -/
 
 set_option autoImplicit false
@@ -392,21 +395,71 @@ def truncationOrder (P : PeriodicHamiltonian H) (t ε : ℝ) : ℕ :=
         Real.log (Real.exp 1 + (Real.exp 1 * periodicGamma P * t)⁻¹ *
           Real.log (10 * (P.mmax : ℝ) / ε)))
 
-/-! ## Resource ledger for Theorems 1 and 2 -/
+/-! ## Resource annotations and conditional word semantics -/
 
-/-- Resource accounting of a time-periodic simulation protocol: number of
-ancillary qubits, query complexity, additional gates per query, and the
-achieved simulation error and failure probability. -/
+/-- Legacy independent resource annotations, retained for compatibility.
+This record alone certifies neither execution nor accuracy. The restricted
+deterministic word contract `SimulationImplementation` supplies those obligations. -/
 structure SimulationResources where
-  /-- Number of ancillary qubits. -/
+  /-- Annotated ancillary-qubit budget. -/
   ancillas : ℝ
-  /-- Query complexity (number of oracle queries). -/
+  /-- Annotated query budget. -/
   queries : ℝ
-  /-- Additional gates per query. -/
+  /-- Annotated additional-gate budget per query. -/
   gatesPerQuery : ℝ
-  /-- Achieved simulation error. -/
+  /-- Annotated error tolerance. -/
   error : ℝ
-  /-- Failure probability. -/
+  /-- Annotated failure-probability budget. -/
   failureProbability : ℝ
+
+/-- A named primitive call: `true` is a Hamiltonian-oracle call, `false` an
+additional gate. The catalog's physical implementation is an explicit hypothesis. -/
+abbrev SimulationStep := Bool × ℕ
+
+/-- Number of calls of a given kind. -/
+def simulationCount (query : Bool) (w : List SimulationStep) : ℕ :=
+  (w.filter (fun s => s.1 = query)).length
+
+/-- Evaluate a deterministic word on the physical register, in product order.
+This restricted model has no measurement, postselection, or explicit ancillary register. -/
+def simulationEval (primitive : SimulationStep → Matrix H H ℂ)
+    (w : List SimulationStep) : Matrix H H ℂ :=
+  w.foldr (fun s U => primitive s * U) 1
+
+/-- Implementation obligations for a deterministic word on `H`. The caller supplies
+the oracle/gate catalog, unitary primitives, an exact call count, a gate budget,
+and an accuracy proof. Ancillas are only a nonnegative budget in this restricted
+model; deterministic execution has zero failure, hence any budget in `[0,1]` suffices.
+This does not assert that such an implementation exists for a given Hamiltonian. -/
+structure SimulationImplementation (primitive : SimulationStep → Matrix H H ℂ)
+    (target : Matrix H H ℂ) (R : SimulationResources) where
+  steps : List SimulationStep
+  unitary : ∀ s ∈ steps, (primitive s)ᴴ * primitive s = 1 ∧
+    primitive s * (primitive s)ᴴ = 1
+  queries_eq : R.queries = (simulationCount true steps : ℝ)
+  gate_bound : (simulationCount false steps : ℝ) ≤ R.queries * R.gatesPerQuery
+  gates_nonneg : 0 ≤ R.gatesPerQuery
+  ancillas_nonneg : 0 ≤ R.ancillas
+  accuracy : ‖simulationEval primitive steps - target‖ ≤ R.error
+  failure_range : 0 ≤ R.failureProbability ∧ R.failureProbability ≤ 1
+
+/-- Conditional propagation of a supplied implementation's error through an
+analytic approximation. The call count remains exactly the supplied word's count. -/
+theorem simulation_error_transfer {primitive : SimulationStep → Matrix H H ℂ}
+    {approx target : Matrix H H ℂ} {R : SimulationResources}
+    (I : SimulationImplementation primitive approx R) {ε : ℝ}
+    (h : ‖approx - target‖ ≤ ε) :
+    ‖simulationEval primitive I.steps - target‖ ≤ R.error + ε ∧
+      R.queries = (simulationCount true I.steps : ℝ) := by
+  refine ⟨?_, I.queries_eq⟩
+  calc
+    ‖simulationEval primitive I.steps - target‖ ≤
+        ‖simulationEval primitive I.steps - approx‖ + ‖approx - target‖ :=
+      norm_sub_le_norm_sub_add_norm_sub _ _ _
+    _ ≤ R.error + ε := add_le_add I.accuracy h
+
+/-- An empty protocol implements only the identity in this word semantics. -/
+theorem simulationEval_nil (primitive : SimulationStep → Matrix H H ℂ) :
+    simulationEval primitive [] = 1 := rfl
 
 end Qatlib.Papers.TimePeriodic22.MainResults

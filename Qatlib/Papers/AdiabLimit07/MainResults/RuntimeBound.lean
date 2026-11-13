@@ -26,8 +26,6 @@ state. See [IoannouMosca2008].
 * [Ioannou and Mosca, 2008][IoannouMosca2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

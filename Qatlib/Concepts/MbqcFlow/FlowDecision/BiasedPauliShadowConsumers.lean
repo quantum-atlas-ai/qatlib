@@ -35,7 +35,6 @@ their variance bounds with finite-record resource counts.
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -52,8 +51,6 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The ensemble projector for a Pauli basis is the corresponding signed Pauli projector, with
 outcome 0 selecting the positive sign. -/

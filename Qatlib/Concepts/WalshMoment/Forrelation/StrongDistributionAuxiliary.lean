@@ -28,8 +28,6 @@ For Boolean Fourier and quantum register background, see [Roetteler, 2008][Roett
 - [Nielsen and Chuang, 2010][NielsenChuang2010].
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.WalshMoment.Forrelation

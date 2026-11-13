@@ -32,8 +32,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.StabilizerAlg.NearUniformGen.MeasurementOperator
 open scoped BigOperators Classical
 
-set_option linter.unusedSectionVars false
-
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.Assembly
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
@@ -84,6 +82,8 @@ theorem permMatrix_conj_apply (p : Equiv.Perm I) (M : Matrix I I ℂ) (x y : I) 
 
 variable {A D Ω : Type*} [Fintype A] [DecidableEq A] [Fintype D] [DecidableEq D]
   [Fintype Ω] [DecidableEq Ω]
+
+omit [Fintype Ω] [DecidableEq Ω] in
 
 /-- Conjugating a measurement operator by a product permutation relabels its control branches
 and conjugates each data operator by the data permutation, as used in [Kitaev1995]. -/

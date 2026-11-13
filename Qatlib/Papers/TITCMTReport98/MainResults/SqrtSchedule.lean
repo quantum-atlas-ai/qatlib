@@ -30,8 +30,6 @@ corresponding displayed complement tends to one as `c` tends to infinity.
 * [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

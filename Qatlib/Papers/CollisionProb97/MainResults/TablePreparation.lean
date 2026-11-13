@@ -32,7 +32,6 @@ input enumeration and stored value set are related to a chosen finite input tabl
 * [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -27,8 +27,6 @@ finite-dimensional framework of [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 

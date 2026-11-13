@@ -25,7 +25,6 @@ normalized adaptive-record probability bounds.
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum

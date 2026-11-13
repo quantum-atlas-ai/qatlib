@@ -24,7 +24,6 @@ and measurement ingredients of the quantum Metropolis construction in [TemmeEtAl
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 

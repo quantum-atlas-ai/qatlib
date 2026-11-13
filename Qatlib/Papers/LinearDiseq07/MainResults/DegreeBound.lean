@@ -63,8 +63,6 @@ and by `(2 * p) ^ k * k` for `p ≥ 2` and positive `k`. See [Ivanyos2008] for t
 * [Ivanyos, 2008][Ivanyos2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

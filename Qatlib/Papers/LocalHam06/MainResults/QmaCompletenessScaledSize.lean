@@ -29,7 +29,6 @@ cubic estimate `scaledEncoding_bitlength_polynomial`. See [KempeKitaevRegev2006]
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

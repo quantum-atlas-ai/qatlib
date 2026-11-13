@@ -26,7 +26,6 @@ The underlying density-operator and channel formalism is described in [Watrous20
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

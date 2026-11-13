@@ -38,10 +38,7 @@ factors.
 * [Cosme and Portugal, 2007][CosmePortugal2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
@@ -52,7 +49,7 @@ open scoped commutatorElement
 [CosmePortugal2007]. -/
 theorem card_mulAut_cyc (n : ℕ) [NeZero n] :
     Nat.card (MulAut (Cyc n)) = Nat.totient n := by
-  haveI : Finite (Cyc n) := Finite.of_fintype (Multiplicative (ZMod n))
+  have : Finite (Cyc n) := Finite.of_fintype (Multiplicative (ZMod n))
   have h : Nat.card (MulAut (Cyc n)) = Nat.totient (Nat.card (Cyc n)) :=
     IsCyclic.card_mulAut (Cyc n)
   simpa [card_Cyc] using h
@@ -79,10 +76,10 @@ theorem hom_to_mulAut_cyc_eq_one
     (hne : p ≠ q) (hnd : ¬ p ∣ (q - 1))
     (χ : Cyc (p ^ 2) →* MulAut (Cyc (q ^ s))) : χ = 1 := by
   obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hs)
-  haveI : NeZero (p ^ 2) := ⟨pow_ne_zero 2 hp.ne_zero⟩
-  haveI : NeZero (q ^ (n + 1)) := ⟨pow_ne_zero (n + 1) hq.ne_zero⟩
-  haveI : Finite (Cyc (p ^ 2)) := Finite.of_fintype (Multiplicative (ZMod (p ^ 2)))
-  haveI : Finite (Cyc (q ^ (n + 1))) :=
+  have : NeZero (p ^ 2) := ⟨pow_ne_zero 2 hp.ne_zero⟩
+  have : NeZero (q ^ (n + 1)) := ⟨pow_ne_zero (n + 1) hq.ne_zero⟩
+  have : Finite (Cyc (p ^ 2)) := Finite.of_fintype (Multiplicative (ZMod (p ^ 2)))
+  have : Finite (Cyc (q ^ (n + 1))) :=
     Finite.of_fintype (Multiplicative (ZMod (q ^ (n + 1))))
   have hpq : Nat.Coprime p q := (Nat.coprime_primes hp hq).mpr hne
   have hq1 : Nat.Coprime p (q - 1) := hp.coprime_iff_not_dvd.mpr hnd
@@ -181,8 +178,8 @@ theorem mulAut_prod_coprime_decomposes
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B)) (θ : MulAut (A × B)) :
     ∃ (γ : MulAut A) (η : MulAut B), ∀ a b, θ (a, b) = (γ a, η b) := by
-  haveI : Fintype A := Fintype.ofFinite A
-  haveI : Fintype B := Fintype.ofFinite B
+  have : Fintype A := Fintype.ofFinite A
+  have : Fintype B := Fintype.ofFinite B
   let gammaFun : A → A := fun a => (θ (a, 1)).1
   let etaFun : B → B := fun b => (θ (1, b)).2
   have hgamma_mul : ∀ a₁ a₂, gammaFun (a₁ * a₂) = gammaFun a₁ * gammaFun a₂ := by
@@ -243,8 +240,8 @@ theorem mulAut_prod_coprime_decomposes
 with explicit action `prodAct ψ` is multiplicatively equivalent to `Cyc (q ^ s) × (Cyc (p ^
 r) ⋊[ψ] Cyc (p ^ 2))` [CosmePortugal2007]. -/
 theorem source_isomorphism
-    (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime) (hs : 0 < s)
-    (hne : p ≠ q) (hnd : ¬ p ∣ (q - 1))
+    (p q r s : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hs : 0 < s)
+    (_hne : p ≠ q) (_hnd : ¬ p ∣ (q - 1))
     (ψ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) :
     Nonempty ((Cyc (q ^ s) × Cyc (p ^ r)) ⋊[prodAct ψ] Cyc (p ^ 2) ≃*
       Cyc (q ^ s) × (Cyc (p ^ r) ⋊[ψ] Cyc (p ^ 2))) :=

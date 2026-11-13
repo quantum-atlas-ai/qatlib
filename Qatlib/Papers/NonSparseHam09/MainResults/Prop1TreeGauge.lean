@@ -29,10 +29,7 @@ conjugating a matrix to its entrywise absolute values. The results `diagonal_gau
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix Finset
@@ -46,11 +43,15 @@ variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 lemma norm_one_matrix : ‖(1 : Matrix ι ι ℂ)‖ = 1 := by
   rw [← specNorm_eq_l2, specNorm_one]
 
+omit [Nonempty ι] in
+
 /-- A unitary matrix multiplied by its conjugate transpose is the identity. -/
 lemma unitary_mul_star (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ) :
     U * Uᴴ = 1 := by
   rw [← Matrix.star_eq_conjTranspose U]
   exact Matrix.mem_unitaryGroup_iff.mp hU
+
+omit [Nonempty ι] in
 
 /-- The conjugate transpose of a unitary matrix multiplied by that matrix is the identity. -/
 lemma unitary_star_mul (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ) :
@@ -125,6 +126,8 @@ theorem specNorm_abs_of_gauge (U : Matrix ι ι ℂ) (H : Matrix ι ι ℂ)
   rw [hconj] at h
   exact h
 
+omit [Nonempty ι] in
+
 /-- A diagonal matrix whose entries all have norm one is unitary [ChildsKothari2010]. -/
 lemma diagonal_mem_unitaryGroup (φ : ι → ℂ) (hφ : ∀ i, ‖φ i‖ = 1) :
     Matrix.diagonal φ ∈ Matrix.unitaryGroup ι ℂ := by
@@ -134,12 +137,14 @@ lemma diagonal_mem_unitaryGroup (φ : ι → ℂ) (hφ : ∀ i, ‖φ i‖ = 1) 
   rw [Matrix.diagonal_apply, Matrix.one_apply]
   by_cases h : i = j
   · subst h
-    rw [if_pos rfl, if_pos rfl]
+    rw [ite_eq_left rfl, ite_eq_left rfl]
     simp only [Pi.star_apply]
     have hz : φ i * star (φ i) = (‖φ i‖ : ℂ) ^ 2 := RCLike.mul_conj (φ i)
     rw [hz, hφ i]
     norm_num
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
+
+omit [Nonempty ι] in
 
 /-- If `φ i * H i j * star (φ j)` equals the norm of each entry, the product `Matrix.diagonal φ
 * H * (Matrix.diagonal φ)ᴴ` equals the complex entrywise absolute-value matrix of `H`

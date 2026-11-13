@@ -279,7 +279,6 @@ theorem clause60_forcedSolution_can_vanish :
     simp [toEuclidean_fromVec]
 open scoped ComplexOrder
 open Set
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 

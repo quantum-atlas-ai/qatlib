@@ -22,9 +22,9 @@ reference.  The source proof contracts the telecoping identity
 
 through the triangle inequality and the contractivity of channels.
 
-We formalize the iteration and the telescoping bound on the frozen
+We formalize the iteration and the telescoping bound on the library's
 finite-reference diamond norm `finiteDiamondNorm`.  Channel contractivity is
-`QuantumAlgorithm.Foundations.RawChannelWord.CptpWordBound.g1`, which proves
+`Qatlib.Concepts.RawChannelWord.CptpWordBound.g1`, which proves
 the sharp bound one for genuine CPTP maps over arbitrary complex raw inputs.
 -/
 

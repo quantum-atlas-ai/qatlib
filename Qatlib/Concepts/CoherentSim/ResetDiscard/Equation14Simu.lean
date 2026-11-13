@@ -24,7 +24,6 @@ with scale `s`. The result is the scaled cubic operator appearing in Eq. (14) of
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 

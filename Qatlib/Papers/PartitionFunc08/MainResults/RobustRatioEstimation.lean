@@ -28,8 +28,6 @@ of the partition-function scheme in [WocjanEtAl2009a].
 * [Wocjan et al., 2009][WocjanEtAl2009a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

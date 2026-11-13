@@ -30,7 +30,6 @@ The argument uses singular-value bounds and scaling properties of pseudoinverse 
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA

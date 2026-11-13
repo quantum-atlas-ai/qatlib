@@ -29,8 +29,6 @@ norms, over a dyadic descendant block equals its ancestor's mass.
 * [Grover and Rudolph, 2002][GroverRudolph2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

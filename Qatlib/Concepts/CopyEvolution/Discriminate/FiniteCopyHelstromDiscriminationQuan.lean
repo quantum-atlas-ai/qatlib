@@ -34,7 +34,6 @@ trace-norm discrimination formula to the copy-based application of [LloydMohseni
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 
-
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
@@ -44,7 +43,6 @@ noncomputable section
 namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix MatrixOrder
 open scoped Classical BigOperators ComplexOrder MatrixOrder Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The trace norm of a real diagonal matrix, viewed over an `RCLike` field, is the sum of the
 absolute diagonal entries. -/

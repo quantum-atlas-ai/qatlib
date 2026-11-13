@@ -12,8 +12,7 @@ set_option backward.isDefEq.respectTransparency false
 # Proposition 1 — the symmetry group of the projected Hamiltonian
 
 Fixed paper version: arXiv:2312.08867v3 (Quantum **8**, 1409 (2024)).
-Original text: `prove/assets/2312.08867.pdf`,
-Proposition 1 on p.24.
+Source location: Proposition 1 on p.24.
 
 Proposition 1: if `S` is the symmetry group of `H`, then `S` is a subgroup of
 the symmetry group of `H̄ = Π_{≤Δ'} H Π_{≤Δ'}`, i.e. every unitary `C`

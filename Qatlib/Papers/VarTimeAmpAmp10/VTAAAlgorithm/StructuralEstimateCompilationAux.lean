@@ -59,7 +59,6 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators
-set_option warningAsError false
 variable {C : Type} [Fintype C] [DecidableEq C]
 
 /-- The median of `2 * r + 1` amplitude estimates exceeds the data-dependent error radius with

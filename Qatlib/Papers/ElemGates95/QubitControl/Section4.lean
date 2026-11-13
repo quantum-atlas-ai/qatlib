@@ -33,7 +33,6 @@ give the three factors in `lemma4_3`, whose product is the identity and whose in
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -38,7 +38,6 @@ tensor-product matrices and controlled-Z phases.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib
@@ -46,7 +45,6 @@ open Matrix
 open scoped Classical ComplexOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -55,13 +53,11 @@ open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.PauliClifford.ExactRank
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
-  set_option linter.unusedSimpArgs false in
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 open Qatlib
 open scoped Classical
 set_option maxHeartbeats 400000
-set_option linter.unusedSimpArgs false
 
 /-- The four-vertex complete bipartite graph with parts `{0, 1}` and `{2, 3}` used for the
 generalized-flow checker counterexample. -/

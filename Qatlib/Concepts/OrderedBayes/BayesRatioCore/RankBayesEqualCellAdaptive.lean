@@ -34,8 +34,6 @@ ratio identity and final-answer factorization extend to adaptive programs.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch

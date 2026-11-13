@@ -75,7 +75,6 @@ noncomputable section
 namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Defines the Euler error constant from the normalization and chosen segment duration. -/
 def dynamicGridEulerConstant (Λ T : ℝ) : ℝ :=

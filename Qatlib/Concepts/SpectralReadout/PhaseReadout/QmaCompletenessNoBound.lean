@@ -32,7 +32,6 @@ homogeneous lower bound on the remaining operator and the penalty on illegal clo
 -/
 
 open Qatlib.Foundations.InstrumentCore.Measurement
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath

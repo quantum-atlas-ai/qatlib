@@ -38,8 +38,6 @@ the square root of the distance of U from the identity.
   Solovay-Kitaev algorithm.
 -/
 
-set_option warningAsError false
-
 section
 
 open Matrix

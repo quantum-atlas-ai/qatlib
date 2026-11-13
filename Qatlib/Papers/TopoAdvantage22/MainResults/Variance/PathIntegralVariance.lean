@@ -14,7 +14,7 @@ set_option backward.isDefEq.respectTransparency false
 # PathIntegralVariance — vanishing PIMC variance on disconnected complexes and complete graphs
 
 Source: *Analyzing Prospects for Quantum Advantage in Topological Data Analysis*,
-McArdle–Gilyén–Turaev (arXiv:2209.13581), PDF `assets/2209.13581.pdf`.
+McArdle–Gilyén–Turaev (arXiv:2209.13581).
 
 Propositions 12 (`c021`) and 13 (`c022`), Appendix G §4: the path-integral
 Monte-Carlo (PIMC) estimator of the Betti number has **zero variance** when the
@@ -72,9 +72,8 @@ zero.
 
 Fixed arXiv:2209.13581. Modeling gap: the PIMC path measure is not constructed;
 the geometric fact "disconnected ⟹ all path weights equal" is taken as the
-hypothesis `hconst`. Suggested route: build the path measure as a finite
-distribution over spanning-tree weightings and show connectivity forces a single
-weight. -/
+hypothesis `hconst`. A full geometric account requires a path measure on
+spanning-tree weightings and a proof of constancy of the weights. -/
 theorem proposition12_variance_zero_disconnected (weights : Finset ℝ) (c : ℝ)
     (hne : weights.Nonempty) (hconst : ∀ x ∈ weights, x = c) :
     pimcVariance weights = 0 :=
@@ -84,9 +83,8 @@ theorem proposition12_variance_zero_disconnected (weights : Finset ℝ) (c : ℝ
 `K_N`, the PIMC path weights are constant, hence the estimator variance is zero.
 
 Fixed arXiv:2209.13581. Same modeling gap as Prop. 12: the completeness argument
-yielding constant path weights is the hypothesis `hconst`. Suggested route: show
-every `K_N` path has equal weight by edge-transitivity / regularity of the complete
-graph. -/
+yielding constant path weights is the hypothesis `hconst`. Edge-transitivity and
+regularity of the complete graph are relevant to the geometric constancy argument. -/
 theorem proposition13_variance_zero_complete (weights : Finset ℝ) (c : ℝ)
     (hne : weights.Nonempty) (hconst : ∀ x ∈ weights, x = c) :
     pimcVariance weights = 0 :=

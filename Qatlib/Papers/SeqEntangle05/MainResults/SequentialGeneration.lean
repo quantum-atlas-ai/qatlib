@@ -36,7 +36,6 @@ arbitrary boundary-contracted amplitudes.
 * [Schoen et al., 2005][SchoenEtAl2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

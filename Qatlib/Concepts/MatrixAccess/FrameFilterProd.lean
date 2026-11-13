@@ -32,7 +32,6 @@ quantitative conditional-output guarantees.
 * [Gilyen et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -54,7 +53,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The flagged operator `I ⊗ P + X ⊗ (I - P)`, where `P` is `rangeProjector F`. -/
 noncomputable def frameFlagFilter {H M : Type} [Fintype H] [DecidableEq H] [Fintype M]
@@ -143,6 +141,8 @@ section
 variable {H I M O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   [Fintype M] [DecidableEq M] [Fintype O] [DecidableEq O]
 
+omit [DecidableEq H] [Fintype I] [DecidableEq I] in
+
 /-- The flag-preserving lift of `W` applied to a flagged frame has entries of `W * R` in the
 false sector and zero elsewhere. -/
 private theorem tensorGate_one_mul_flagFrame_apply (W : Matrix H H ℂ) (R : Matrix H I ℂ)
@@ -156,13 +156,15 @@ private theorem tensorGate_one_mul_flagFrame_apply (W : Matrix H H ℂ) (R : Mat
           = ∑ x : H, W h x * R x i := by
         simp [Matrix.mul_apply, TensorGate, Matrix.one_apply, flagFrame_apply,
           Fintype.sum_prod_type]
-      rw [hval, if_pos rfl]
+      rw [hval, ite_eq_left rfl]
       rfl
   | true =>
       have hval : (TensorGate (1 : Matrix Bool Bool ℂ) W * flagFrame R) (true, h) i = 0 := by
         simp [Matrix.mul_apply, TensorGate, Matrix.one_apply, flagFrame_apply,
           Fintype.sum_prod_type]
-      rw [hval, if_neg (by simp)]
+      rw [hval, ite_eq_right (by simp)]
+
+omit [DecidableEq H] [Fintype I] [DecidableEq I] in
 
 /-- The operator `X ⊗ Y` sends a flagged frame to the true sector with entries of `Y * R`. -/
 private theorem tensorGate_pauliX_mul_flagFrame_apply (Y : Matrix H H ℂ) (R : Matrix H I ℂ)
@@ -175,13 +177,13 @@ private theorem tensorGate_pauliX_mul_flagFrame_apply (Y : Matrix H H ℂ) (R : 
       have hval : (TensorGate PauliX Y * flagFrame R) (false, h) i = 0 := by
         simp [Matrix.mul_apply, TensorGate, PauliX, permMatrix, flagFrame_apply,
           Fintype.sum_prod_type]
-      rw [hval, if_neg (by simp)]
+      rw [hval, ite_eq_right (by simp)]
   | true =>
       have hval : (TensorGate PauliX Y * flagFrame R) (true, h) i
           = ∑ x : H, Y h x * R x i := by
         simp [Matrix.mul_apply, TensorGate, PauliX, permMatrix, flagFrame_apply,
           Fintype.sum_prod_type]
-      rw [hval, if_pos rfl]
+      rw [hval, ite_eq_left rfl]
       rfl
 
 /-- Applying `I ⊗ W` to a flagged frame equals flagging `W * R`. -/
@@ -191,6 +193,8 @@ private theorem tensorGate_one_mul_flagFrame (W : Matrix H H ℂ) (R : Matrix H 
   rw [tensorGate_one_mul_flagFrame_apply]
   obtain ⟨b, h⟩ := p
   cases b <;> simp
+
+omit [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O] in
 
 /-- Multiplying the adjoint of one flagged frame by another recovers the corresponding unflagged
 product. -/
@@ -203,12 +207,14 @@ private theorem flagFrame_conjTranspose_mul_flagFrame (L : Matrix H O ℂ) (X : 
     rw [flagFrame_conjTranspose_apply]
     obtain ⟨b, h⟩ := p
     cases b with
-    | false => rw [if_pos rfl, if_pos rfl]; rfl
-    | true => rw [if_neg (by simp), if_neg (by simp), zero_mul]
+    | false => rw [ite_eq_left rfl, ite_eq_left rfl]; rfl
+    | true => rw [ite_eq_right (by simp), ite_eq_right (by simp), zero_mul]
   show ∑ p : Bool × H, (flagFrame L)ᴴ o p * flagFrame X p i = (Lᴴ * X) o i
   rw [Finset.sum_congr rfl fun p _ => h1 p, Fintype.sum_prod_type, Fintype.sum_bool]
   simp
   rfl
+
+omit [Fintype O] [DecidableEq O] in
 
 /-- Compression of `X ⊗ Y` between two false-flag frames is zero. -/
 private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y : Matrix H H ℂ)
@@ -222,8 +228,8 @@ private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y 
     rw [flagFrame_conjTranspose_apply, tensorGate_pauliX_mul_flagFrame_apply]
     obtain ⟨b, h⟩ := p
     cases b with
-    | false => rw [if_pos rfl, if_neg (by simp), mul_zero]
-    | true => rw [if_neg (by simp), zero_mul]
+    | false => rw [ite_eq_left rfl, ite_eq_right (by simp), mul_zero]
+    | true => rw [ite_eq_right (by simp), zero_mul]
   show ∑ p : Bool × H,
       (flagFrame L)ᴴ o p * (TensorGate PauliX Y * flagFrame R) p i = (0 : Matrix O I ℂ) o i
   rw [Finset.sum_congr rfl fun p _ => h1 p]

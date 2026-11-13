@@ -30,10 +30,8 @@ constructions. Background and related constructions are discussed in [GilyenSuLo
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 

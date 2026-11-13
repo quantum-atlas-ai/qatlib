@@ -28,14 +28,12 @@ subsequently be combined across samples to recover the full order.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 
 namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- Replaces the final clock label by zero and preserves every other clock value for rational
 decoding. -/

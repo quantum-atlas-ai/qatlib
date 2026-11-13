@@ -23,7 +23,6 @@ The background is [Lindblad1976], [GoriniKossakowskiSudarshan1976], and
 [Breuer & Petruccione, *The Theory of Open Quantum Systems*][BreuerPetruccione2007].
 `Clause22Complete` specifies the exact package proved here.
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 

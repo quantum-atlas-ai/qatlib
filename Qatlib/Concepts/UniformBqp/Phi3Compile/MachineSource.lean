@@ -28,7 +28,6 @@ sub-quasipolynomial time bounds to the classical comparison threshold used with
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
 
 set_option autoImplicit false

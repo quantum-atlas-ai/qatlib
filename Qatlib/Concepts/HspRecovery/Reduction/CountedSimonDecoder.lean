@@ -28,8 +28,6 @@ following the sampling principle of [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkFind.UniformThree
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.HspRecovery.Distinguisher

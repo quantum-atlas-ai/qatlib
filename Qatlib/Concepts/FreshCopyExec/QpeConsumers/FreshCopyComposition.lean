@@ -29,7 +29,6 @@ runs `freshCopyRun` and `freshCopyReferenceRun` are related to the channel compo
 - [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -43,8 +42,6 @@ namespace Qatlib.Concepts.FreshCopyExec.QpeConsumers
 
 open Matrix
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The one-gate circuit applying the partial swap matrix at angle `θ` to two registers of
 dimension `D`. -/

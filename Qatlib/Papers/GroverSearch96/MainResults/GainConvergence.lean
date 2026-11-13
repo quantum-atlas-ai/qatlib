@@ -32,7 +32,6 @@ probability strictly above one half for registers with at least two qubits. See 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

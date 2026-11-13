@@ -44,7 +44,6 @@ namespace Qatlib.Concepts.LchsSimulation.Kernel
 open MeasureTheory Set
 open Filter
 open scoped ENNReal ComplexConjugate
-set_option warningAsError false
 
 /-- For nonnegative `x`, `Real.exp (-x) ≤ 1 / (1 + x)`. -/
 private theorem exp_neg_le_inv_one_add (x : ℝ) (hx : 0 ≤ x) :

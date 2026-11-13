@@ -50,7 +50,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -67,7 +66,6 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 

@@ -29,21 +29,18 @@ A distinguishing measurement is a two-outcome POVM `out : Bool → Matrix H H �
 (`IsPovm`) whose Born probabilities (`povmProb`) of the correct outcomes are at
 least `1 − ε` for both states.
 
-The theorem is recorded as the closed `Prop` contract
-`theorem3DistinguishabilitySpec`; it is **not** proved in this repository.  Fixed
-version: quant-ph/0611054v2.  Source: Theorem 3 on p. 4.  Residual Lean gap: the
-library has the POVM/Born-probability interface (`IsPovm`, `povmProb`) and the
-complex inner product (`Inner`), but it has neither the Helstrom pure-state
-distinguishability iff nor the supporting facts (the optimal two-outcome POVM
-for a pair of pure states and the trace-distance expression
-`1/2 + 1/2√(1 − |⟨ψx|ψy⟩|²)` of its success probability).  Candidate
-dependencies: `povmProb`, `IsPovm`, `Inner`, and the operator-norm machinery of
-`QuantumInfo.ForMathlib.MatrixNorm.TraceNorm`.  Suggested continuation: show
-that for a two-outcome POVM with elements `E` and `1 − E` the worst-case success
-probability is at most `1/2 + 1/2‖⟨ψx|ψy⟩‖` (trace-norm duality route of
-Theorem 4), and that it is attained by the projection onto the positive part of
-`|ψx⟩⟨ψx| − |ψy⟩⟨ψy|`; then invert the bound
-`1 − ε ≤ (1 + ‖⟨ψx|ψy⟩‖)/2`.
+Scope note: this module records quant-ph/0611054v2, Theorem 3 (p. 4), as the
+closed `Prop` specification `theorem3DistinguishabilitySpec`, using the
+POVM/Born-probability interface (`IsPovm`, `povmProb`) and complex inner product
+(`Inner`). A proof of the Helstrom pure-state characterization, the optimal
+two-outcome POVM, and its trace-distance success formula
+`1/2 + 1/2√(1 − |⟨ψx|ψy⟩|²)` is outside the scope of this file.
+
+The trace-norm duality approach of Theorem 4 compares two-outcome effects `E`
+and `1 − E` with the projection onto the positive part of
+`|ψx⟩⟨ψx| − |ψy⟩⟨ψy|`. Inverting the resulting success-probability bound
+gives the overlap criterion above. Related norm machinery is provided by
+`QuantumInfo.ForMathlib.MatrixNorm.TraceNorm`.
 -/
 
 open Matrix
@@ -64,9 +61,9 @@ at most `ε` if and only if `|⟨psix|psiy⟩| ≤ 2√(ε(1−ε))`.
 The measurement `out : Bool → Matrix H H ℂ` reads outcome `true` for `psix` and
 `false` for `psiy`; "error at most `ε`" means both correct-outcome Born
 probabilities are at least `1 − ε`.  This is quant-ph/0611054v2 Theorem 3
-(p. 4), recorded as a closed `Prop`; it is not proved here.  See the module
-docstring for the fixed version, the proof route, the current Lean gap, the
-candidate dependencies, and the suggested continuation. -/
+(p. 4), recorded as a closed `Prop`. Scope note: the measurement construction
+and the proof of the equivalence are outside the scope of this file; the module
+docstring describes the trace-norm approach. -/
 def theorem3DistinguishabilitySpec : Prop :=
   ∀ {H : Type} [Fintype H] [DecidableEq H]
     (psix psiy : QState H) (eps : ℝ),
@@ -79,8 +76,8 @@ def theorem3DistinguishabilitySpec : Prop :=
 half): an inner-product bound yields a measurement with error at most `ε`.
 
 This is the forward implication of quant-ph/0611054v2 Theorem 3 (p. 4),
-recorded as a closed `Prop` and not proved here; it is implied by
-`theorem3DistinguishabilitySpec`. -/
+recorded as a closed `Prop`; it is implied by
+`theorem3DistinguishabilitySpec`. Its proof is outside the scope of this file. -/
 def theorem3MeasurementOfInnerSpec : Prop :=
   ∀ {H : Type} [Fintype H] [DecidableEq H]
     (psix psiy : QState H) (eps : ℝ),

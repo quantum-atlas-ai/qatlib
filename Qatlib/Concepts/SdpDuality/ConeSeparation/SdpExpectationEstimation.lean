@@ -26,7 +26,6 @@ the result here concerns the specific formal diagnostic contract.
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 

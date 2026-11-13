@@ -27,7 +27,6 @@ occupy at most a `1 / n ^ 3` fraction of tapes, with separate versions for posit
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives

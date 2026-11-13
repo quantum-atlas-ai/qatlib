@@ -30,8 +30,6 @@ finite-dimensional identities support the generator analysis of [Kim2026].
 * [Kim, 2026][Kim2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Foundations.DirichletForm.KmsDirichlet

@@ -85,10 +85,7 @@ fibers. See [Severini2003].
 * [Severini, 2003][Severini2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.Complete
@@ -268,11 +265,11 @@ theorem isUnitaryDigraph_of_fiber_complete (D : Defs.Digraph V) (r c : V → o)
     show Matrix.blockDiagonal' (fun k => completeMat (d k)) (ρ i) (κ j) ≠ 0 ↔ r i = c j
     rw [Matrix.blockDiagonal'_apply]
     by_cases h : (ρ i).1 = (κ j).1
-    · rw [dif_pos h]
-      haveI : Nonempty {i' : V // r i' = (ρ i).1} := ⟨⟨i, hρ.symm⟩⟩
+    · rw [dite_eq_left h]
+      have : Nonempty {i' : V // r i' = (ρ i).1} := ⟨⟨i, hρ.symm⟩⟩
       have hpos : 0 < d (ρ i).1 := Nat.card_pos
       refine ⟨fun _ => hcond.mp h, fun _ => completeMat_ne_zero (d (ρ i).1) hpos _ _⟩
-    · rw [dif_neg h]
+    · rw [dite_eq_right h]
       exact ⟨fun h0 => absurd rfl h0, fun hc _ => h (hcond.mpr hc)⟩
 
 end Qatlib.Papers.UnitaryDigraph.MainResults.Complete

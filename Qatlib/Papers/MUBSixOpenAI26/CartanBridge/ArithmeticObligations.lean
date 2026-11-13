@@ -11,36 +11,39 @@ import Mathlib.Tactic.Linarith
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# MUBSixOpenAI26 — Appendix A arithmetic/compiler obligations
+# MUBSixOpenAI26 — numerical literal and scalar comparison helpers
 
 Source: OpenAI, *The maximum number of mutually unbiased bases in dimension six*,
 fixed Git source `openai/math@fd4aeeb2ee4fc729c18d98444fed42fd0529eeeb`,
 `rounding.tex`.
 
-Two displayed obligations are transcribed here:
+This file proves a rational approximation bound for π and a conditional real
+inequality motivated by Appendix A. It does not resolve the dimension-six MUB
+existence problem or verify a certificate or a binary64 implementation.
+
+The two numerical ingredients are:
 
 * `round:pi-error` (lines 151--179): the binary64 literal
   `0x1.921fb54442d18p+1` is the rational `π̂ = 884279719003555 / 281474976710656`,
-  and `|π̂ − π| < 1.225418·10⁻¹⁶ < 2·10⁻¹⁶`. The proof below only needs the
+  and the theorem here proves `|π̂ − π| < 2·10⁻¹⁶`. The proof only needs the
   Mathlib decimal enclosure `3.14159265358979323846 < π < 3.14159265358979323847`
   and exact rational arithmetic on `π̂`; no Machin series needs to be replayed,
   because this statement is the numerical endpoint, not the derivation.
 
 * `round:ell-upper-code` (lines 938--957): the code expression
   `(dotv + 10⁻¹⁰ s_z) + ((√un + 10⁻¹⁰)(√res + 10⁻¹⁰ s_z))/gap`
-  is an upper bound for the exact inverse quadratic form once the stored
-  quantities dominate the exact ones and `gap > 0`. The exact resolvent identity
-  and the binary64 error estimates are the paper's hypotheses (recorded as the
-  comparison hypotheses `hUz`, `hUn`, `hRn`); the Lean lemma isolates and proves
-  the monotone-division step that turns those comparisons into the displayed
-  code upper bound, including the nonnegativity needed for the denominator.
+  dominates `Uz + Unorm * rnorm / gap` under explicit scalar comparison and
+  nonnegativity hypotheses and `gap > 0`. All quantities are arbitrary reals;
+  the lemma proves monotonicity of multiplication and division. It does not
+  identify these scalars with an inverse quadratic form or prove the comparison
+  hypotheses from floating-point computations.
 
 The full arithmetic contract of the paper also includes the degree-18/19
 `expair` polynomial error (`round:expair`) and the tensor/root invariant bounds
 (`round:tensor-c`, `round:root-invariants`). Those depend on a concrete binary64
-implementation that this repository does not model; they are recorded as the
-opaque field `expair_budget` of `ArithmeticCompilerObligations` with the paper's
-numeric value `ε_exp = 6·10⁻¹⁴` (line 192).
+implementation not modeled here. The field `expair_budget` of
+`ArithmeticCompilerObligations` proves only `0 ≤ 6·10⁻¹⁴`, using the paper's
+numeric budget (line 192); it does not state any approximation error bound.
 -/
 
 set_option autoImplicit false
@@ -69,11 +72,10 @@ theorem pi_hat_error : |piHat - Real.pi| < 2 / 10 ^ 16 := by
 /-- The code's fixed outward slack `10⁻¹⁰` used in `round:ell-upper-code`. -/
 noncomputable def codeEps10 : ℝ := 1 / 10 ^ 10
 
-/-- Equation `round:ell-upper-code` (`rounding.tex` lines 938--943): if the
-stored dot product dominates `U^*z`, the stored `√un` dominates `‖U‖`, the
-stored `√res` dominates `‖r‖`, and `gap > 0`, then the displayed code expression
-is an upper bound for `U^*z + ‖U‖‖r‖/gap` (the exact right side of
-`round:resolvent-residual`), with all outward `10⁻¹⁰ s_z` allowances. -/
+/-- Conditional scalar inequality motivated by `round:ell-upper-code`
+(`rounding.tex` lines 938--943). Given the three comparison bounds, nonnegative
+`sz`, `Unorm`, and `rnorm`, and positive `gap`, the enlarged expression dominates
+`Uz + Unorm * rnorm / gap`. No matrix or floating-point semantics are asserted. -/
 theorem ell_upper_code_dominates
     (dotv un res gap sz Uz Unorm rnorm : ℝ)
     (hsz : 0 ≤ sz) (hgap : 0 < gap)
@@ -98,16 +100,14 @@ theorem ell_upper_code_dominates
     div_le_div_of_nonneg_right hprod hgap.le
   linarith
 
-/-- Appendix A arithmetic/compiler contract, restricted to the two obligations
-that the paper states as the endpoint inequalities used by Stage C and by the
-spectral bootstrap. `expair_budget` is the paper's common unit-exponential
-error (line 192), left opaque because no binary64 `expair` exists in this
-library. -/
+/-- Package of a π-literal error bound, nonnegativity of a numerical budget,
+and a conditional scalar domination inequality. Despite the historical name,
+this structure does not specify compiler correctness or exponential errors. -/
 structure ArithmeticCompilerObligations where
   /-- `round:pi-error`: the stored π literal is within `2·10⁻¹⁶`. -/
   pi_error : |piHat - Real.pi| < 2 / 10 ^ 16
-  /-- `round:exp-budget`: the common exponential error used everywhere in the
-  certificate (line 192), stated as a nonnegative numeric budget. -/
+  /-- Nonnegativity of the numeric budget from line 192; this field contains no
+  exponential approximation or implementation error assertion. -/
   expair_budget : 0 ≤ (6 : ℝ) / 10 ^ 14
   /-- `round:ell-upper-code`: monotone domination by the stored code expression. -/
   ell_upper_code : ∀ (dotv un res gap sz Uz Unorm rnorm : ℝ),
@@ -120,7 +120,8 @@ structure ArithmeticCompilerObligations where
       dotv + codeEps10 * sz +
         (Real.sqrt un + codeEps10) * (Real.sqrt res + codeEps10 * sz) / gap
 
-/-- The provable part of the arithmetic/compiler contract. -/
+/-- Construct the package from the π approximation theorem, numeric
+nonnegativity, and the conditional scalar inequality. -/
 def arithmeticCompilerObligations : ArithmeticCompilerObligations where
   pi_error := pi_hat_error
   expair_budget := by norm_num

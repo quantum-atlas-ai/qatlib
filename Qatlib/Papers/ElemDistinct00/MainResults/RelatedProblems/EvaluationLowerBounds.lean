@@ -18,6 +18,9 @@ indices.
 This elementary counting estimate belongs to the collision-problem framework used for the
 evaluation-complexity discussion of [BuhrmanEtAl2005].
 
+Despite the file name, the result bounds a finite collision count, not an
+evaluation algorithm's query count. No evaluation-query lower bound is proved.
+
 ## Main statements
 
 * `collisionCount_le_sq`: every function `Fin N → Fin N` has at most `N * N` counted collisions.
@@ -29,7 +32,6 @@ evaluation-complexity discussion of [BuhrmanEtAl2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

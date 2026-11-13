@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -38,7 +40,6 @@ The construction supports winding-number and contour-domain arguments associated
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -80,7 +81,7 @@ theorem filledHull_mono (h : K ⊆ L) : filledHull K ⊆ filledHull L := fun _ h
 
 /-- In a locally connected space, the difference between the filled hull of a closed set and
 that set is open. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.isOpen_filledHull_sdiff
+theorem _root_.IsClosed.isOpen_filledHull_sdiff
     [LocallyConnectedSpace E] (hK : IsClosed K) :
     IsOpen (filledHull K \ K) := by
   rw [isOpen_iff_mem_nhds]
@@ -92,7 +93,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.isOpen_filledHul
     connectedComponentIn_subset Kᶜ x hy⟩
 
 /-- In a locally connected space, the filled hull of a closed set is closed. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.isClosed_filledHull [LocallyConnectedSpace E] (hK : IsClosed K) :
+theorem _root_.IsClosed.isClosed_filledHull [LocallyConnectedSpace E] (hK : IsClosed K) :
     IsClosed (filledHull K) := by
   rw [← isOpen_compl_iff, isOpen_iff_mem_nhds]
   intro x hx
@@ -103,7 +104,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.isClosed_filledH
 
 /-- In a locally connected space, the frontier of the added portion of the filled hull of a
 closed set lies in the original set. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.frontier_filledHull_sdiff_subset
+theorem _root_.IsClosed.frontier_filledHull_sdiff_subset
     [LocallyConnectedSpace E] (hK : IsClosed K) :
     frontier (filledHull K \ K) ⊆ K := by
   intro x hx
@@ -129,7 +130,7 @@ theorem filledHull_eq_self_of_isPreconnected_frontier [LocallyConnectedSpace E]
 
 /-- A preconnected set disjoint from `K` that meets the filled hull of `K` lies entirely in that
 filled hull. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.subset_filledHull (hS : IsPreconnected S) (hSK : Disjoint S K)
+theorem _root_.IsPreconnected.subset_filledHull (hS : IsPreconnected S) (hSK : Disjoint S K)
     (hne : (S ∩ filledHull K).Nonempty) : S ⊆ filledHull K := by
   obtain ⟨x, hxS, hxH⟩ := hne
   have hScompl : S ⊆ Kᶜ := fun y hy => Set.disjoint_left.mp hSK hy

@@ -38,8 +38,8 @@ Formalized here: the vertex-cover / independent-set combinatorics (the step that
 bounds the negative-witness count by `α**`), the `α** ≤ α*` remark of the paper,
 and the real-arithmetic step `√(2(n + α**)) ≤ 2√2(√n + √α**)`.  The span
 program itself, its witness sizes, and the constant of Reichardt's Theorem 3 are
-the remaining gap.  The final statement is recorded as a `Prop`-valued
-definition; its proof is not formalised.
+outside the scope of this file.  The final statement is a `Prop`-valued
+definition whose proof is not formalised.
 -/
 
 set_option autoImplicit false
@@ -172,7 +172,7 @@ theorem span_program_witness_bound (G : SimpleGraph (Fin n)) (C : Finset (Fin n)
       2 * Real.sqrt 2 * (Real.sqrt (n : ℝ) + Real.sqrt (coverWitnessBound G C)) :=
   witness_arith n (coverWitnessBound G C)
 
-/-- **Theorem 4 (arXiv:1305.1021v1, page 5).**  There is a universal constant `C`
+/-- **Statement only — not proved in Qatlib.** **Theorem 4 (arXiv:1305.1021v1, page 5).**  There is a universal constant `C`
 such that graph collision on any graph satisfies
 `Q(COL(G)) ≤ C·(√|V(G)| + √α**(G))`.
 
@@ -180,17 +180,14 @@ The constant is uniform in the graph, which is the content of the paper's `O(·)
 The proof combines the span program of §3.2 (`wsize1 ≤ 2`, `wsize0 ≤ |V| + α**`,
 the latter via `sum_deg_le_coverWitnessBound`) with Reichardt's Theorem 3.
 
-Formal gap: the span program is not constructed as a `SpanProgram` object, so the
-witness-size estimates are not available as Lean theorems, and Reichardt's
-Theorem 3 is not available in the repository (`QuantumAlgorithm.*` contains the
-query model but no span-program-to-query-complexity reduction).  Candidate
-follow-up: define `SpanProgram` over `EuclideanSpace ℂ (Option (Fin n))` with
-availability sets as in §3.1, prove `wsize1 ≤ 2` by exhibiting the positive
-witness `|0⟩` and `wsize0 ≤ n + α**` via `sum_deg_le_coverWitnessBound`, then
-apply a Reichardt reduction (Mathlib has no such theorem; the frozen library's
-`Concepts.QueryComplexity` may be extendable with an adversary/span-program
-bridge). -/
-def theorem4_span_program_bound : Prop :=
+Scope note: this file formalizes the combinatorial and real-arithmetic estimates.
+The span-program construction, its witness-size estimates, and Reichardt's
+span-program-to-query-complexity reduction are outside its scope.
+The span program can be represented over `EuclideanSpace ℂ (Option (Fin n))`
+with availability sets as in §3.1.  The positive witness `|0⟩` gives
+`wsize1 ≤ 2`, and `sum_deg_le_coverWitnessBound` supplies the combinatorial
+estimate for `wsize0 ≤ n + α**`. -/
+def theorem4_span_program_bound_statement : Prop :=
     ∃ C : ℝ, 1 ≤ C ∧ ∀ (n : ℕ) (adj : Fin n → Fin n → Bool),
       ∃ q : ℕ, GraphCollisionQueryUpperBound adj q ∧
         (q : ℝ) ≤ C * (Real.sqrt (n : ℝ) + Real.sqrt (alphaStarStar (adjGraph adj)))

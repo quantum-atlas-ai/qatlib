@@ -27,7 +27,6 @@ the paper context.
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -37,9 +36,6 @@ open Qatlib.Papers.QLSStatePrep24.SpectralLeak
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 
 set_option autoImplicit false
-set_option linter.unreachableTactic false
-set_option linter.unnecessarySeqFocus false
-set_option linter.unusedTactic false
 set_option maxHeartbeats 800000
 noncomputable section
 
@@ -951,8 +947,8 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
             ‖ζ (x.val + 1) u‖ ^ 2 * ((9 : ℝ) ^ (x.val + 1) / (9 : ℝ) ^ m) else 0) := by
             refine Finset.sum_congr rfl (fun x _ => ?_)
             by_cases h : x.val + 1 = k u ∨ x.val + 1 = k u + 1
-            · rw [if_pos h, if_pos h]; exact @mul_assoc ℝ _ _ _ _
-            · rw [if_neg h, if_neg h]; ring
+            · rw [ite_eq_left h, ite_eq_left h]; exact @mul_assoc ℝ _ _ _ _
+            · rw [ite_eq_right h, ite_eq_right h]; ring
         _ = ‖γ u‖ ^ 2 * ∑ x : Fin m, (if x.val + 1 = k u ∨ x.val + 1 = k u + 1 then
             ‖ζ (x.val + 1) u‖ ^ 2 * ((9 : ℝ) ^ (x.val + 1) / (9 : ℝ) ^ m) else 0) :=
             (Finset.mul_sum _ _ _).symm
@@ -972,14 +968,14 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
     · have h2 : ¬(j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1) := by
         intro hne
         exact absurd (h1.resolve_right hne.2) hne.1
-      rw [if_pos h1, if_neg h2]
+      rw [ite_eq_left h1, ite_eq_right h2]
       exact sub_self _
     · have h2 : j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1 := by
         constructor
         · intro h; exact h1 (Or.inl h)
         · intro h; exact h1 (Or.inr h)
-      rw [if_neg h1, if_pos h2, mul_div_assoc]
-      simp only [if_true]
+      rw [ite_eq_right h1, ite_eq_left h2, mul_div_assoc]
+      simp only [ite_true]
       exact sub_zero _
 
   have hleak_nonneg : 0 ≤ bandLeakage m k γ ζ true := by
@@ -1004,8 +1000,8 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
     apply Finset.sum_nonneg
     intro j _
     by_cases h : j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1
-    · rw [if_pos h]; exact sq_nonneg _
-    · rw [if_neg h]
+    · rw [ite_eq_left h]; exact sq_nonneg _
+    · rw [ite_eq_right h]
 
   have hcompl : ∀ (u : I) (f : Fin m → ℝ),
       (∑ j : Fin m, (if j.val + 1 = k u ∨ j.val + 1 = k u + 1 then f j else 0))
@@ -1019,11 +1015,11 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
     · have h2 : ¬(j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1) := by
         intro hne
         exact absurd (h.resolve_right hne.2) hne.1
-      rw [if_pos h, if_neg h2]
+      rw [ite_eq_left h, ite_eq_right h2]
       exact add_zero _
     · have h2 : j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1 :=
         ⟨fun heq => h (Or.inl heq), fun heq => h (Or.inr heq)⟩
-      rw [if_neg h, if_pos h2]
+      rw [ite_eq_right h, ite_eq_left h2]
       exact zero_add _
 
   have hin_out : ∀ u : I,
@@ -1064,18 +1060,18 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
       rw [Finset.mul_sum]
       refine Finset.sum_congr rfl fun j _ => ?_
       by_cases h : j.val + 1 = k u ∨ j.val + 1 = k u + 1
-      · rw [if_pos h, if_pos h]; ring
-      · rw [if_neg h, if_neg h]; ring
+      · rw [ite_eq_left h, ite_eq_left h]; ring
+      · rw [ite_eq_right h, ite_eq_right h]; ring
     rw [h1]
     apply Finset.sum_le_sum
     intro j _
     by_cases h : j.val + 1 = k u ∨ j.val + 1 = k u + 1
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       exact mul_le_mul_of_nonneg_left
         (by rw [div_eq_mul_inv, div_eq_mul_inv]
             exact mul_le_mul_of_nonneg_right (hpt_ge u j h)
               (inv_nonneg.mpr (pow_nonneg (by norm_num) _))) (sq_nonneg _)
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
 
   have hS_le : ∀ u : I,
       ∑ j : Fin m, (if j.val + 1 = k u ∨ j.val + 1 = k u + 1 then
@@ -1090,18 +1086,18 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
       rw [Finset.mul_sum]
       refine Finset.sum_congr rfl fun j _ => ?_
       by_cases h : j.val + 1 = k u ∨ j.val + 1 = k u + 1
-      · rw [if_pos h, if_pos h]; ring
-      · rw [if_neg h, if_neg h]; ring
+      · rw [ite_eq_left h, ite_eq_left h]; ring
+      · rw [ite_eq_right h, ite_eq_right h]; ring
     rw [h1]
     apply Finset.sum_le_sum
     intro j _
     by_cases h : j.val + 1 = k u ∨ j.val + 1 = k u + 1
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       exact mul_le_mul_of_nonneg_left
         (by rw [div_eq_mul_inv, div_eq_mul_inv]
             exact mul_le_mul_of_nonneg_right (hpt_le u j h)
               (inv_nonneg.mpr (pow_nonneg (by norm_num) _))) (sq_nonneg _)
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
 
   have hp1_div : p1 / 9 = ∑ u : I, ‖γ u‖ ^ 2 * (9:ℝ)^(k u) / (9:ℝ)^m := by
     show (singleBandProbability m k γ) / 9 = _
@@ -1170,8 +1166,8 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
       rw [Finset.sum_div]
       refine Finset.sum_congr rfl fun j _ => ?_
       by_cases h : j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1
-      · rw [if_pos h, if_pos h]
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_left h, ite_eq_left h]
+      · rw [ite_eq_right h, ite_eq_right h]
         exact (zero_div _).symm
     have hrew : (∑ u : I, ‖γ u‖ ^ 2 * ∑ j : Fin m,
         (if j.val + 1 ≠ k u ∧ j.val + 1 ≠ k u + 1 then
@@ -1205,7 +1201,7 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
         ‖γ u‖ ^ 2 * ((9:ℝ)^(k u + 2) * (∑ j : Fin m, δ (j.val + 1)) ^ 2 / (9:ℝ)^m)
         = (‖γ u‖ ^ 2 * (9:ℝ)^(k u + 2) / (9:ℝ)^m) * (∑ j : Fin m, δ (j.val + 1)) ^ 2 := by
       intro u
-      field_simp <;> try ring
+      field_simp
     have h2 : (∑ u : I, ‖γ u‖ ^ 2 * ((9:ℝ)^(k u + 2) * (∑ j : Fin m, δ (j.val + 1)) ^ 2 / (9:ℝ)^m))
         = (∑ u : I, ‖γ u‖ ^ 2 * (9:ℝ)^(k u + 2) / (9:ℝ)^m) * (∑ j : Fin m, δ (j.val + 1)) ^ 2 := by
       rw [Finset.sum_mul]
@@ -1219,12 +1215,12 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
           rw [pow_add, show (9:ℝ)^2 = 81 by norm_num]
           ring
         rw [hpow]
-        field_simp <;> try ring
+        field_simp
       rw [show (∑ u : I, ‖γ u‖ ^ 2 * (9:ℝ)^(k u + 2) / (9:ℝ)^m)
           = ∑ u : I, (81:ℝ) * (‖γ u‖ ^ 2 * (9:ℝ)^(k u) / (9:ℝ)^m) by
         exact Finset.sum_congr rfl fun u _ => h1' u]
       rw [← Finset.mul_sum, ← hp1_div]
-      field_simp <;> try ring
+      field_simp; try ring
     rw [hsum9] at h1
     exact h1
 
@@ -1235,7 +1231,7 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
       have := mul_le_mul_of_nonneg_left h (le_of_lt h9pos)
       have h9 : (9:ℝ) * (p1 / 9 * (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2))
           = p1 * (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2) := by
-        field_simp <;> try ring
+        field_simp
       rw [← h9]
       exact this
     rw [le_div_iff₀ hE2_pos]
@@ -1261,13 +1257,13 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
           * (∑ j : Fin m, δ (j.val + 1)) ^ 2
           = (81:ℝ) * pn * (∑ j : Fin m, δ (j.val + 1)) ^ 2
             / (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2) := by
-        field_simp <;> try ring
+        field_simp; try ring
       exact le_trans h1 (le_trans houter (le_of_eq h4))
     have hre : pn + (81:ℝ) * pn * (∑ j : Fin m, δ (j.val + 1)) ^ 2
         / (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2)
         = pn * (1 + (81:ℝ) * (∑ j : Fin m, δ (j.val + 1)) ^ 2
           / (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2)) := by
-      field_simp <;> try ring
+      field_simp
     have hstep1 : pf ≤ pn * (1 + (81:ℝ) * (∑ j : Fin m, δ (j.val + 1)) ^ 2
         / (1 - (∑ j : Fin m, δ (j.val + 1)) ^ 2)) := by
       have hpf_eq2' : pf = pn + bandLeakage m k γ ζ true := by linarith [hpf_pn]
@@ -1302,8 +1298,8 @@ theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabiliti
       rw [hpn_eq]
       exact Finset.sum_nonneg fun u _ => mul_nonneg (sq_nonneg _) (Finset.sum_nonneg fun j _ => by
         by_cases h : j.val + 1 = k u ∨ j.val + 1 = k u + 1
-        · rw [if_pos h]; positivity
-        · rw [if_neg h])
+        · rw [ite_eq_left h]; positivity
+        · rw [ite_eq_right h])
     have hre2 : pn * (1 + (729:ℝ) * (∑ j : Fin m, δ (j.val + 1)) ^ 2
         / (1 - (∑ j : Fin m, δ (j.val + 1))) ^ 2)
         = pn * (1 + (9:ℝ)^3 * (∑ j : Fin m, δ (j.val + 1)) ^ 2

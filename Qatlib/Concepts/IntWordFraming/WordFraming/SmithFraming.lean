@@ -31,7 +31,6 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib.Concepts.IntWordFraming.WordFraming
-set_option warningAsError false
 
 /-- Evaluate the Boolean span loop on `n` true bits followed by a false delimiter, retaining the
 accumulated prefix. -/

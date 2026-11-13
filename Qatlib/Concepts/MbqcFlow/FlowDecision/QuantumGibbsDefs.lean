@@ -27,7 +27,6 @@ The block representation is part of the standard operator-sum description of mea
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

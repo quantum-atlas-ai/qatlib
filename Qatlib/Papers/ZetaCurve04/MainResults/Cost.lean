@@ -28,8 +28,6 @@ This development forms part of the formalization of [Kedlaya2006].
 * [Kedlaya, 2006][Kedlaya2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

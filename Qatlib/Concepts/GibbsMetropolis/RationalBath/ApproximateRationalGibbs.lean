@@ -31,7 +31,6 @@ application at the selected precision. See [TemmeEtAl2011] for background.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -44,8 +43,6 @@ namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Matrix
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 /-- The diagonal matrix with normalized weights `exp (-E i)` for rational energies `E`. -/

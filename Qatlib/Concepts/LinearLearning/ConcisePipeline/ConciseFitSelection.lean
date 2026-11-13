@@ -49,9 +49,6 @@ the residual and tail explicitly.
 * [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LocalMachine.LocalTransport

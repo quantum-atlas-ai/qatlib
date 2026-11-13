@@ -28,8 +28,6 @@ These real-parameter estimates supply norm control for special-function decompos
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false

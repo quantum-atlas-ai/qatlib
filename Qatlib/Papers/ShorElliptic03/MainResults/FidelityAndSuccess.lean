@@ -123,7 +123,6 @@ source development.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open scoped BigOperators
@@ -243,7 +242,7 @@ theorem peakWeight_le_inv_four_sq (N : ℕ) (δ : ℝ) (d : ℤ)
     (hangle : |Real.pi * ((d : ℝ) + δ) / (N : ℝ)| ≤ Real.pi / 2) :
     peakWeight N δ d ≤ 1 / (4 * ((d : ℝ) + δ) ^ 2) := by
   unfold peakWeight
-  rw [if_neg hne]
+  rw [ite_eq_right hne]
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
   have hpi : 0 < Real.pi := Real.pi_pos
   rw [div_pow, mul_pow]
@@ -474,7 +473,7 @@ lemma peakWeight_neg_le (N K : ℕ) (δ : ℝ) (j : ℕ)
 /-- For `0 ≤ δ < 1`, `1 ≤ Δ ≤ K`, and `2 * (K + 1) ≤ N`, the sum of the positive and negative
 peak weights from `Δ + 1` through `K` is at most `2 / Δ`. See [ProosZalka2003]. -/
 theorem peak_tail_bound (N K : ℕ) (δ : ℝ) (Δ : ℕ)
-    (hK : 1 ≤ K) (hN : 2 * (K + 1) ≤ N)
+    (_hK : 1 ≤ K) (hN : 2 * (K + 1) ≤ N)
     (hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hΔ1 : 1 ≤ Δ) (hΔK : Δ ≤ K) :
     (∑ j ∈ Finset.Ico (Δ + 1) (K + 1),
         (peakWeight N δ (j : ℤ) + peakWeight N δ (-(j : ℤ)))) ≤ 2 / (Δ : ℝ) := by

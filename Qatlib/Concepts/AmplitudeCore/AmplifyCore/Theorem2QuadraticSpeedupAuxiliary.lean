@@ -36,7 +36,6 @@ preparation and its inverse to form the Grover iterate. See [BrassardEtAl2002] f
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 /-- The orthogonal projection onto the closed span of basis vectors marked by `χ`. -/

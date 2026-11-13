@@ -82,7 +82,6 @@ on q and form parameters into register-size bounds [Schmidt2009].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults

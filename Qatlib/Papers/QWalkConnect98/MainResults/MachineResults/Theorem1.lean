@@ -27,8 +27,6 @@ The inclusion is stated for the abstract language predicates and reduction relat
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
 
 set_option autoImplicit false

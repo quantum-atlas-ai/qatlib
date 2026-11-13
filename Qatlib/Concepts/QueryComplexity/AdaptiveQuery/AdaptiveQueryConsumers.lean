@@ -32,7 +32,6 @@ adversary statements retain the explicit error dependent prefactor of [HoyerLeeS
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -106,7 +106,6 @@ bound used in the certification analysis of [AmbainisEtAl2009].
 * [Ambainis et al., 2009][AmbainisEtAl2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -28,7 +28,6 @@ The proposition records the comparison of adversary values associated with Theor
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.NegativeWeightsMakeAdversariesStronger2006

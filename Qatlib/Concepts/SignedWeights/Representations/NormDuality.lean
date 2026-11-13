@@ -25,8 +25,6 @@ adjoint.
   stronger, Theorem 4.
 -/
 
-set_option warningAsError false
-
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 

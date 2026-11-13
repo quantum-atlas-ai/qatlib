@@ -32,7 +32,6 @@ proofs.
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -43,7 +42,6 @@ open Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open Qatlib.Concepts.StabilizerAlg.NearUniformGen.AspRecordKernel
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -89,7 +87,7 @@ def clause14_endpoint : Prop :=
       (aspOrbitBranchLaw G).prob χ = (Fintype.card G : ℝ)⁻¹)
   ∧ (∀ (I : Type) [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (l : ℕ),
       ControlledPowers U (2 ^ l) = BlockDiag (fun x : Fin (2 ^ l) => U ^ (x.val : ℕ)))
-  ∧ (∀ (l j : ℕ) (hj : j < l), 2 ^ j ≤ 2 ^ l - 1)
+  ∧ (∀ (l j : ℕ) (_hj : j < l), 2 ^ j ≤ 2 ^ l - 1)
   ∧ (∀ (l : ℕ) (o : ℕ → Bool),
       (aspBisectionRun l o).queries = aspBisectionCost l ∧
         (aspBisectionRun l o).level = aspBisectionCost l ∧
@@ -105,7 +103,7 @@ def walkGoal_endpoint : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (l : ℕ),
       ControlledPowers U (2 ^ l) = BlockDiag (fun x : Fin (2 ^ l) => U ^ (x.val : ℕ)))
   ∧ (∀ (l : ℕ) (x : Fin (2 ^ l)), x.val ≤ 2 ^ l - 1)
-  ∧ (∀ (l j : ℕ) (hj : j < l), 2 ^ j ≤ 2 ^ l - 1 ∧ (2 ^ j : ℕ) < 2 ^ l)
+  ∧ (∀ (l j : ℕ) (_hj : j < l), 2 ^ j ≤ 2 ^ l - 1 ∧ (2 ^ j : ℕ) < 2 ^ l)
   ∧ (∀ l : ℕ, aspLocalisationCost l = 2 ^ l - 1)
   ∧ (∀ l : ℕ, aspLocalisationCost l ≤ 2 ^ l)
 

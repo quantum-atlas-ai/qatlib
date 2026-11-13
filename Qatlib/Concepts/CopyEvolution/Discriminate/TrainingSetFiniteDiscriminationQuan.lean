@@ -30,11 +30,9 @@ explicit QPE resource tuple. This formalizes the training-set application descri
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
-
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.CopyEvolution.Discriminate

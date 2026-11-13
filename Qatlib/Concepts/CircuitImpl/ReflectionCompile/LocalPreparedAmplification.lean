@@ -34,7 +34,6 @@ after one query and 44 gates.
 -/
 
 open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

@@ -110,10 +110,9 @@ Proof: instantiate
 with `c = 0`, `w = a` and `f z = Complex.exp (z * T)`; differentiability and
 the empty off-countable set are immediate.
 
-Lean gap: the general matrix-valued Cauchy formula for
-`NormedSpace.exp (A * T)` together with the resolvent `(zI - A)⁻¹` is not yet
-formalized, and the discretization/LCU cost analysis is outside this scalar
-statement. -/
+Scope note: this theorem formalizes the scalar Cauchy representation.  The
+matrix-valued formula for `NormedSpace.exp (A * T)` with resolvent `(zI - A)⁻¹`
+and the discretization/LCU cost analysis are outside its scope. -/
 theorem contour_integral_representation
     (a : ℂ) (T R : ℝ) (hR : 0 < R) (ha : ‖a‖ < R) :
     ((2 * Real.pi * Complex.I : ℂ))⁻¹ *

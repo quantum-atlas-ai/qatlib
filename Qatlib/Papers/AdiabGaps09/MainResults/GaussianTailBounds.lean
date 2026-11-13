@@ -30,7 +30,6 @@ and lower estimates used as analytic tools in the probabilistic context of [Farh
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

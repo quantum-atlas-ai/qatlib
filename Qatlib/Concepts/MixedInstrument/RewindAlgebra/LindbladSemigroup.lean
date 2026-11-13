@@ -37,7 +37,6 @@ Background on quantum dynamical semigroups is given in [Lindblad1976].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000

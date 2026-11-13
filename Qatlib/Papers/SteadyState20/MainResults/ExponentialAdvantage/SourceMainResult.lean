@@ -48,9 +48,9 @@ Formalisation:
 
 Boundary: this file formalises the quantitative separation and the assembly of the
 guarantee.  It does not formalise the QPE circuit construction itself (state preparation
-`P`, controlled-`U^{2^j}` oracles); the circuit-level zero-phase mass is the Frozen theorem
-`QuantumAlgorithm.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`,
-and the GKSL dynamics interface is `QuantumAlgorithm.Concepts.GkslBridge.GkslBridge`.
+`P`, controlled-`U^{2^j}` oracles); the circuit-level zero-phase mass is given by
+`Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`,
+and the GKSL dynamics interface is `Qatlib.Concepts.GkslBridge.GkslBridge`.
 -/
 
 set_option autoImplicit false

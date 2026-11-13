@@ -35,7 +35,7 @@ This file fixes the operational objects used by every paper-layer contract of
 * The diamond norm is the finite-reference cb trace norm of Appendix A
   (`‖T‖_◇ = sup_{r, ‖X‖_1 ≤ 1} ‖(I_r ⊗ T)(X)‖_1`), specialized to general finite
   index types.  For `Fin d` indices it is definitionally the Frozen
-  `QuantumAlgorithm.Papers.RandCompiler19.ChannelBudget.finiteDiamondNorm`.
+  `Qatlib.Papers.RandCompiler19.ChannelBudget.finiteDiamondNorm`.
 
 The paper works at `d_A = d_B = d` in the closed-form statements; the general
 definitions below keep `A` and `B` separate because Appendix A also covers

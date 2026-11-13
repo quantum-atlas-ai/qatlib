@@ -10,7 +10,7 @@ import Qatlib.Concepts.QcaDynamics.ParityWeights
 import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Complex.Basic
+import Mathlib.Basic.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 
@@ -36,15 +36,11 @@ parameterization of Equation (24), up to a common complex phase. See [Meyer1996a
 * [Meyer, 1996][Meyer1996a]
 -/
 
-set_option warningAsError false
-
 open Complex Matrix
 open scoped Matrix
 open Qatlib.Concepts.QcaDynamics.ParityWeights
 
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unnecessarySeqFocus false
 
 noncomputable section
 
@@ -72,8 +68,7 @@ lemma red19m (A B C D : ℂ) :
   fin_cases i <;> fin_cases j <;>
     simp only [Matrix.add_apply, Matrix.mul_apply, Fin.sum_univ_two, Matrix.conjTranspose_apply,
       star_zero, mul_zero, add_zero, zero_add, Matrix.of_apply, Matrix.cons_val_zero,
-      Matrix.cons_val_one, Matrix.cons_val', Matrix.empty_val', Matrix.tail_cons,
-      Fin.cons_zero, Fin.cons_succ, Fin.reduceFinMk, Fin.isValue, Fin.succ_zero_eq_one] <;>
+      Matrix.cons_val_one, Matrix.cons_val', Matrix.empty_val', Fin.reduceFinMk, Fin.isValue] <;>
     ring_nf
 
 /-- The mixed reduced-weight constraint expands to the displayed two-by-two matrix of scalar
@@ -86,9 +81,8 @@ lemma red19z (A B C D : ℂ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp only [Matrix.add_apply, Matrix.mul_apply, Fin.sum_univ_two, Matrix.conjTranspose_apply,
-      star_zero, mul_zero, add_zero, zero_add, Matrix.of_apply, Matrix.cons_val_zero,
-      Matrix.cons_val_one, Matrix.cons_val', Matrix.empty_val', Matrix.tail_cons,
-      Fin.cons_zero, Fin.cons_succ, Fin.reduceFinMk, Fin.isValue, Fin.succ_zero_eq_one] <;>
+      star_zero, mul_zero, zero_add, Matrix.of_apply, Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.cons_val', Matrix.empty_val', Fin.reduceFinMk, Fin.isValue] <;>
     ring_nf
 
 /-- The `(0, 0)` entry of the mixed reduced-weight expression is `D * star A + B * star C`. -/
@@ -424,13 +418,16 @@ theorem eq24_classification_of_eq19 {A B C D : ℂ} (hA : A ≠ 0)
   obtain ⟨ψ, ρ, θ, hAe, hBe, hCe, hDe⟩ := eq24_classification hA h1' h2'
   refine ⟨ψ, ρ, θ, ?_, ?_, ?_⟩
   · ext i j
-    fin_cases i <;> fin_cases j <;>
-      simp [redM, eq24wm, Matrix.smul_apply, hAe, hBe] <;> ring
+    fin_cases i <;> fin_cases j
+    all_goals simp [redM, eq24wm, Matrix.smul_apply, hAe, hBe]
+    all_goals ring
   · ext i j
-    fin_cases i <;> fin_cases j <;>
-      simp [red0, eq24w0, Matrix.smul_apply, hCe, hDe] <;> ring
+    fin_cases i <;> fin_cases j
+    all_goals simp [red0, eq24w0, Matrix.smul_apply, hCe, hDe]
+    all_goals ring
   · ext i j
-    fin_cases i <;> fin_cases j <;>
-      simp [redP, eq24wp, Matrix.smul_apply, hAe, hBe] <;> ring
+    fin_cases i <;> fin_cases j
+    all_goals simp [redP, eq24wp, Matrix.smul_apply, hAe, hBe]
+    all_goals ring
 
 end Qatlib.Papers.QCellAutomata96.MainResults

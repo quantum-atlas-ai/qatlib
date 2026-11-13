@@ -31,10 +31,7 @@ factor and is therefore cyclic.
 * [Cosme and Portugal, 2007][CosmePortugal2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults

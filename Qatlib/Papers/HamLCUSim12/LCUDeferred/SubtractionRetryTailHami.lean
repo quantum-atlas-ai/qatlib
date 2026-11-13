@@ -27,7 +27,6 @@ tail estimate used in the analysis of [ChildsWiebe2012].
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.HamLCUSim12.LCUDeferred

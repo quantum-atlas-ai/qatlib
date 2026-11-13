@@ -24,7 +24,6 @@ providing the circuit quantities for linear-combination analysis [ChildsWiebe201
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib

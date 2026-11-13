@@ -34,10 +34,7 @@ context.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open scoped Classical BigOperators
 
@@ -47,6 +44,8 @@ variable {N : ℕ} [NeZero N]
 
 /-- The sum modulo `N` of the coordinates selected by the finite subset `B`. -/
 def ssum {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) : ZMod N := ∑ j ∈ B, a j
+
+omit [NeZero N] in
 
 /-- Adding `c` to coordinate `i` adds `c` to the subset sum exactly when `i` belongs to `B`. -/
 theorem sum_update_add {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) (i : Fin n)
@@ -63,7 +62,7 @@ theorem sum_update_add {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) (i 
     · simp [hji]
   rw [Finset.sum_congr rfl h, Finset.sum_add_distrib]
   congr 1
-  simpa using Finset.sum_ite_eq' (s := B) (a := i) (b := fun _ => c)
+  simp
 
 /-- If `B` contains an index, the fiber of its subset sum over `t` has cardinality at most the
 fiber over `t + c`. -/
@@ -78,7 +77,7 @@ theorem card_fiber_le_shift {n : ℕ} (B : Finset (Fin n)) {i : Fin n} (hi : i �
         {a : Fin n → ZMod N // ssum B a = t + c})) ?_
   · show ssum B (Function.update a.1 i (a.1 i + c)) = t + c
     unfold ssum
-    rw [sum_update_add, if_pos hi]
+    rw [sum_update_add, ite_eq_left hi]
     have h := a.2
     unfold ssum at h
     rw [h]
@@ -177,6 +176,8 @@ theorem card_nonempty_finset (n : ℕ) :
 def countNonempty {n : ℕ} (a : Fin n → ZMod N) (t : ZMod N) : ℕ :=
   (Finset.univ.filter (fun B : Finset (Fin n) => B.Nonempty ∧ ssum B a = t)).card
 
+omit [NeZero N] in
+
 /-- A nonempty subset summing to `t` makes `countNonempty a t` positive. -/
 theorem countNonempty_pos_of_nonempty_subset {n : ℕ} {a : Fin n → ZMod N} {t : ZMod N}
     {B : Finset (Fin n)} (hB : B.Nonempty) (h : ssum B a = t) : 0 < countNonempty a t := by
@@ -196,7 +197,7 @@ theorem sum_countNonempty {n : ℕ} (t : ZMod N) :
         if B.Nonempty then N ^ (n - 1) else 0 := by
     intro B
     by_cases hB : B.Nonempty
-    · rw [if_pos hB]
+    · rw [ite_eq_left hB]
       have hset : (Finset.univ.filter (fun a : Fin n → ZMod N => B.Nonempty ∧ ssum B a = t))
           = Finset.univ.filter (fun a : Fin n → ZMod N => ssum B a = t) := by
         ext a
@@ -208,7 +209,7 @@ theorem sum_countNonempty {n : ℕ} (t : ZMod N) :
           (fun a => by simp)).symm
       rw [← Finset.card_filter, hset, hcard]
       exact card_fiber B hB t
-    · rw [if_neg hB]
+    · rw [ite_eq_right hB]
       have hset : (Finset.univ.filter (fun a : Fin n → ZMod N => B.Nonempty ∧ ssum B a = t))
           = ∅ := by
         ext a

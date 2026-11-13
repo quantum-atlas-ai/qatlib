@@ -168,8 +168,6 @@ Nonzero initial states remain nonzero, so their normalized curves have unit norm
 * [McArdle and Tew, 2020][McArdleTew2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

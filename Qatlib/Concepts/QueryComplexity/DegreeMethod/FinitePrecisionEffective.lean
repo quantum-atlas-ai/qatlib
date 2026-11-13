@@ -37,10 +37,8 @@ separation and error accounting.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.GuardedCounter

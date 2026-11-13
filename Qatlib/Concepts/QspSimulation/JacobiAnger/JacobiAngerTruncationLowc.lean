@@ -31,16 +31,13 @@ yield `jacobiAngerTruncation`, with uniform error at most 4Ï„^q/(2^q q!) for 0 â
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.QspSimulation.JacobiAnger
 

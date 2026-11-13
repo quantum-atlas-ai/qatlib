@@ -20,7 +20,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Anshu–Breuckmann–Nirkhe, *NLTS Hamiltonians from good quantum codes*,
 fixed arXiv:2206.13228v4 (STOC 2023; v4 dated 2024-12-05),
-PDF `prove/assets/2206.13228v4.pdf`.
+PDF https://arxiv.org/pdf/2206.13228v4.
 
 This module fixes the source-level vocabulary shared by the four active claims:
 bit strings over `F₂`, Hamming weight, classical binary codes, the clustering

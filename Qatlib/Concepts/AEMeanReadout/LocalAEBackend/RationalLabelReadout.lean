@@ -62,14 +62,11 @@ open scoped ENNReal Classical
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 

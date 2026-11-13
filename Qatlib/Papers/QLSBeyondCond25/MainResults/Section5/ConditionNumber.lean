@@ -109,9 +109,7 @@ latter for any unit `v`), and the binomial asymptotics `√C(h,⌊h/2⌋) = Θ(2
 coefficient, page 30).  Candidate reusable dependencies: `LinearMap.singularValues`,
 `LinearMap.singularValues_antitone`, `LinearMap.singularValues_nonneg`,
 `Nat.choose` estimates from `Mathlib.Analysis.SpecialFunctions.Stirling` (not yet used in the
-library; `QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse` covers the least-squares side).
-Suggested next tactic: prove `σmax(T) ≥ ‖T v‖` from the spectral theorem for `T.adjoint ∘ₗ T`, then
-instantiate `proposition57_lower_bound` with `c2 = ‖A e_jlarge‖`. -/
+library; `Qatlib.Concepts.QlsReadoutSpec.PseudoInverse` covers the least-squares side). -/
 def proposition57_statement
     {N : ℕ} (A : Matrix (Fin N) (Fin N) ℝ) (d : Fin N → ℝ) (h : ℕ)
     (hh : 0 < h) (hdpos : ∀ i, 0 < d i)
@@ -181,9 +179,7 @@ of `Hᵀ H` with that of `Aᵀ A` under `b ∈ col(A)`.  The arithmetic core (3)
 `LinearMap.singularValues`, `LinearMap.singularValues_antitone`,
 `LinearMap.sq_singularValues_fin` (singular values as square roots of eigenvalues of
 `T.adjoint ∘ₗ T`), `LinearMap.range_adjoint_comp_self`; Mathlib's `Matrix.IsHermitian` spectral
-theorem provides the eigenbasis but not interlacing.  Suggested next tactic: prove
-`σmax(T) = ‖T‖` for the upper bound and use `Submodule.finrank_mono` together with the
-min-max characterisation of singular values for the lower bound. -/
+theorem provides the eigenbasis but not interlacing. -/
 def theoremC1_statement
     {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℝ) (b : EuclideanSpace ℝ (Fin m))
     (y : EuclideanSpace ℝ (Fin n))

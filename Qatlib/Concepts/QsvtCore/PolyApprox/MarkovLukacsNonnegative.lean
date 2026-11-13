@@ -31,7 +31,6 @@ transformation [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.QsvtCore.PolyApprox
 

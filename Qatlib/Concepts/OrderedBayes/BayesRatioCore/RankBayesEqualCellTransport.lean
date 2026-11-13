@@ -31,8 +31,6 @@ k < i` when the denominator rank has positive prior mass.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch

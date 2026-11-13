@@ -36,7 +36,6 @@ duality and the comparison between masked and unmasked query filters used in [Le
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
@@ -51,7 +50,6 @@ open Matrix
 open scoped ENNReal ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 section Definitions
 
@@ -139,8 +137,8 @@ private theorem sum_if_single {E : Type} [DecidableEq E] [Fintype E] (e₀ : E) 
       (Finset.mem_univ e₀)]
     congr 1
     refine Finset.sum_congr rfl fun e he => ?_
-    rw [if_neg (Ne.symm (Finset.ne_of_mem_erase he))]
-  rw [← h1, if_pos rfl, Finset.sum_const, nsmul_eq_mul,
+    rw [ite_eq_right (Ne.symm (Finset.ne_of_mem_erase he))]
+  rw [← h1, ite_eq_left rfl, Finset.sum_const, nsmul_eq_mul,
     Finset.card_erase_of_mem (Finset.mem_univ e₀), Finset.card_univ]
   ring
 
@@ -161,16 +159,16 @@ private theorem sum_if_two {E : Type} [DecidableEq E] [Fintype E] {e₁ e₂ : E
       (Finset.mem_univ e₁)]
     congr 1
     refine Finset.sum_congr rfl fun e he => ?_
-    rw [if_neg (Ne.symm (Finset.ne_of_mem_erase he))]
+    rw [ite_eq_right (Ne.symm (Finset.ne_of_mem_erase he))]
   have h2 : ∑ e ∈ (Finset.univ.erase e₁).erase e₂, c + (if e₂ = e₂ then b else c)
       = ∑ e ∈ Finset.univ.erase e₁, (if e₂ = e then b else c) := by
     rw [← Finset.sum_erase_add (Finset.univ.erase e₁)
       (fun e => if e₂ = e then b else c : E → ℝ) he₂]
     congr 1
     refine Finset.sum_congr rfl fun e he => ?_
-    rw [if_neg (Ne.symm (Finset.ne_of_mem_erase he))]
+    rw [ite_eq_right (Ne.symm (Finset.ne_of_mem_erase he))]
   have hsub : (Fintype.card E - 1 - 1 : ℕ) = Fintype.card E - 2 := by omega
-  rw [← h1, ← h2, if_pos rfl, if_pos rfl, Finset.sum_const, nsmul_eq_mul,
+  rw [← h1, ← h2, ite_eq_left rfl, ite_eq_left rfl, Finset.sum_const, nsmul_eq_mul,
     Finset.card_erase_of_mem he₂, Finset.card_erase_of_mem (Finset.mem_univ e₁),
     Finset.card_univ, hsub]
   ring
@@ -194,10 +192,10 @@ theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [Decida
     refine gramFilteredCert_zero _ ?_
     rw [hc]
     norm_num
-  · haveI hsub : Subsingleton E := Equiv.subsingleton (Fintype.equivFinOfCardEq h1)
+  · have hsub : Subsingleton E := Equiv.subsingleton (Fintype.equivFinOfCardEq h1)
     have hzero : gramFunctionEvaluationMatrix f = 0 := by
       ext x y
-      simp only [gramFunctionEvaluationMatrix, if_pos (Subsingleton.elim (f x) (f y)),
+      simp only [gramFunctionEvaluationMatrix, ite_eq_left (Subsingleton.elim (f x) (f y)),
         Matrix.zero_apply]
     have hc : ((Fintype.card E : ℕ) : ℝ) = 1 := by exact_mod_cast h1
     rw [hzero]
@@ -275,22 +273,22 @@ theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [Decida
             = if f x = e then (-α) * γ else (γ / s) * (α / s) := by
           intro e
           by_cases h : f x = e
-          · simp only [if_pos h, if_pos (hxy.symm.trans h)]
-          · simp only [if_neg h, if_neg (fun hc => h (hxy.trans hc))]
+          · simp only [ite_eq_left h, ite_eq_left (hxy.symm.trans h)]
+          · simp only [ite_eq_right h, ite_eq_right (fun hc => h (hxy.trans hc))]
         rw [Finset.sum_congr rfl fun e _ => hterm e, sum_if_single (f x) _ _, hcast1,
-          if_pos hxy]
+          ite_eq_left hxy]
       · have hterm : ∀ e : E,
             (if f x = e then -α else γ / s) * (if f y = e then γ else α / s)
             = if f x = e then (-α) * (α / s) else
               if f y = e then (γ / s) * γ else (γ / s) * (α / s) := by
           intro e
           by_cases h1 : f x = e
-          · simp only [if_pos h1, if_neg (fun hc : f y = e => hxy (h1.trans hc.symm))]
+          · simp only [ite_eq_left h1, ite_eq_right (fun hc : f y = e => hxy (h1.trans hc.symm))]
           · by_cases h2 : f y = e
-            · simp only [if_neg h1, if_pos h2]
-            · simp only [if_neg h1, if_neg h2]
+            · simp only [ite_eq_right h1, ite_eq_left h2]
+            · simp only [ite_eq_right h1, ite_eq_right h2]
         rw [Finset.sum_congr rfl fun e _ => hterm e, sum_if_two hxy hcard2 _ _ _,
-          hcast2, if_neg hxy]
+          hcast2, ite_eq_right hxy]
     refine ⟨E, inferInstance,
       fun _ x e => ((c * (if f x = e then -α else γ / s) : ℝ) : ℂ),
       fun _ y e => ((c * (if f y = e then γ else α / s) : ℝ) : ℂ), ?_, ?_, ?_⟩
@@ -302,8 +300,8 @@ theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [Decida
         intro e
         rw [Complex.normSq_ofReal]
         by_cases h : f x = e
-        · simp only [if_pos h]; ring
-        · simp only [if_neg h]; ring
+        · simp only [ite_eq_left h]; ring
+        · simp only [ite_eq_right h]; ring
       rw [Finset.sum_congr rfl fun e _ => hterm e, ← Finset.mul_sum,
         sum_if_single (f x) _ _, hcast1, hmassid, hc2, mul_one]
     · intro y
@@ -314,8 +312,8 @@ theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [Decida
         intro e
         rw [Complex.normSq_ofReal]
         by_cases h : f y = e
-        · simp only [if_pos h]; ring
-        · simp only [if_neg h]; ring
+        · simp only [ite_eq_left h]; ring
+        · simp only [ite_eq_right h]; ring
       rw [Finset.sum_congr rfl fun e _ => hterm e, ← Finset.mul_sum,
         sum_if_single (f y) _ _, hcast1, hmassid', hc2, mul_one]
     · intro x y
@@ -333,14 +331,14 @@ theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [Decida
       rw [Finset.sum_congr rfl fun e _ => hcast e, ← Complex.ofReal_sum, ← Finset.mul_sum,
         hinner x y]
       by_cases hxy : f x = f y
-      · rw [if_pos hxy, if_pos hxy]
+      · rw [ite_eq_left hxy, ite_eq_left hxy]
         have hz : c * c * (-α * γ + (k - 1) * ((γ / s) * (α / s))) = 0 := by
           rw [show (γ / s) * (α / s) = α * γ / s ^ 2 by field_simp, hs2,
             show (k - 1) * (α * γ / (k - 1)) = α * γ by field_simp]
           ring
         rw [hz]
         norm_num
-      · rw [if_neg hxy, if_neg hxy]
+      · rw [ite_eq_right hxy, ite_eq_right hxy]
         have hone : c * c * ((-α) * (α / s) + (γ / s) * γ + (k - 2) * ((γ / s) * (α / s)))
             = 1 := by
           have e0 : (γ / s) * (α / s) = α * γ / s ^ 2 := by field_simp
@@ -380,6 +378,8 @@ private theorem abs_dotProduct_le {Q : Type} [Fintype Q] [DecidableEq Q] (a b : 
         norm_inner_le_norm (𝕜 := ℂ) _ _
     _ ≤ Real.sqrt (∑ q, Complex.normSq (a q)) * Real.sqrt (∑ q, Complex.normSq (b q)) := by
         rw [h1, h2]
+
+omit [DecidableEq X] in
 
 /-- A filtered factorization with budget `W` and a dual-feasible multiplier bound every entry of
 the resulting entrywise product by `max W 0`. -/
@@ -519,6 +519,8 @@ private theorem filteredWitnessMap_norm {Q : Type} [Fintype Q] {n : ℕ}
   have hs := Real.sq_sqrt (le_max_right W 0)
   nlinarith [norm_nonneg (filteredWitnessMap u),Real.sqrt_nonneg (max W 0)]
 
+omit [DecidableEq X] in
+
 /-- Applying a block-diagonal matrix acts on each block slice by the corresponding component
 matrix. -/
 private theorem blockDiagonal_slice {B : Type} [Fintype B] [DecidableEq B]
@@ -656,13 +658,13 @@ theorem filteredGamma2_queryDelta_le_of_evalRelaxed {X : Type} [Fintype X] [Deci
       · have hE : IsEmpty E := Fintype.card_eq_zero_iff.mp (Nat.lt_one_iff.mp h0)
         intro x y
         exact (hE.false (f x)).elim
-      · haveI : Subsingleton E :=
+      · have : Subsingleton E :=
           Equiv.subsingleton (Fintype.equivFinOfCardEq (by omega : Fintype.card E = 1))
         intro x y
         exact Subsingleton.elim _ _
     have hzero : gramFunctionEvaluationMatrix f = 0 := by
       ext x y
-      simp only [gramFunctionEvaluationMatrix, if_pos (hconst x y), Matrix.zero_apply]
+      simp only [gramFunctionEvaluationMatrix, ite_eq_left (hconst x y), Matrix.zero_apply]
     have hL : filteredGamma2 (gramFunctionEvaluationMatrix f) (gramFilterDelta input)
         ≤ ENNReal.ofReal 0 := by
       rw [hzero]

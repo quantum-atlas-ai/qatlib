@@ -28,7 +28,6 @@ the walk acts with coefficients `2 * x ^ 2 - 1` and `2 * x * y`, where `y > 0` a
 - [Low and Chuang, 2019][LowChuang2019].
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AmplitudeCore.InvFreePhase
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding Qatlib.Concepts.SignalPrimitive.LCUConsumers
 open Qatlib.Concepts.BlockEncoding.LinearCombination

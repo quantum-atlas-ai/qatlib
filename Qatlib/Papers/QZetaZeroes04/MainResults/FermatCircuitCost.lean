@@ -30,8 +30,6 @@ Summing these assigned costs gives `algorithm1Cost` and an explicit polynomial u
 * [van Dam, 2004][VanDam2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -24,8 +24,6 @@ illustrates why an expected query budget requires a separate formulation.
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped Classical
 open Qatlib.Foundations.PureStateMath

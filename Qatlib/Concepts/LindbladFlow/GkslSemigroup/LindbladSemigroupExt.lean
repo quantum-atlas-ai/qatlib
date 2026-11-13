@@ -32,7 +32,6 @@ sampling framework of [TemmeEtAl2011].
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup

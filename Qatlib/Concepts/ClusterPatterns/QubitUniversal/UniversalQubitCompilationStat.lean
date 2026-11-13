@@ -24,7 +24,6 @@ scalar. This is the one-qubit compilation property used in the cluster-measureme
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.InstrumentCore.PatternCompile
 open Qatlib.Concepts.ClusterPatterns.AdaptiveEuler

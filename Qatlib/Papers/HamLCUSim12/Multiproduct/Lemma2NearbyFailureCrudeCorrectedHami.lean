@@ -26,8 +26,6 @@ using the squared-norm difference bound 4 for two unitaries acting on a normaliz
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Papers.HamLCUSim12.LCUDeferred
 
 set_option autoImplicit false

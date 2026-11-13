@@ -37,7 +37,6 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 /-- For norm-bounded Hermitian inputs and nonnegative responses of cost at most α with α ≥ 1,
 every normalized dual payoff is Hermitian and lies in the operator interval from zero to the

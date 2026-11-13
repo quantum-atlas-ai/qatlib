@@ -27,7 +27,6 @@ See [GilyenArunachalamWiebe2019] for background.
 * [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
 set_option autoImplicit false

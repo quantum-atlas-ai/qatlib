@@ -31,9 +31,7 @@ cases provide exact limiting identities.
 -/
 
 open Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 
@@ -44,8 +42,6 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 
 open Matrix
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The projector onto the zero computational basis state is a density operator. -/
 private theorem hrho0 : IsDensityOperator (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) :=

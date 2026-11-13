@@ -26,8 +26,6 @@ of [GrasslEtAl2015].
 * [Grassl et al., 2015][GrasslEtAl2015]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.GroverAES15.NativeOracle
 set_option autoImplicit false
 noncomputable section

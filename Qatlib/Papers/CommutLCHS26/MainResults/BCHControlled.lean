@@ -50,7 +50,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal Topolo
 open BCHHalfBudget BCHConvergence BCHFormal
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

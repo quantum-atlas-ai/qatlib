@@ -29,8 +29,6 @@ the overhead between 4.6 and 4.9 under the stated cycle interval.
 * [Amy et al., 2017][AmyEtAl2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

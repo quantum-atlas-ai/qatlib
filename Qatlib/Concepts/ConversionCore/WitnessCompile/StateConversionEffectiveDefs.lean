@@ -35,7 +35,6 @@ elementary Hadamard-phase-Hadamard construction described by the circuit formali
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -43,7 +42,6 @@ noncomputable section
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
-
 
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 

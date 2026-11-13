@@ -17,6 +17,9 @@ method. It relates the round count to the inverse square root of `clawSuccessPro
 the total cost, and evaluates `clawCost` at the choices `sqrt M` and `N`. Choosing the smaller
 of these gives the piecewise bound in `clawCost_min_bound`.
 
+All quantities here are real-valued expressions. No circuit is constructed and
+no equality with an actual success probability or query count is proved.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -30,14 +33,14 @@ The mathematical setting follows [BuhrmanEtAl2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.ElemDistinct00.MainResults.Claw
 
-/-- The scalar success probability expression `L³ / (2 * N * M)`. -/
+/-- The scalar expression `L³ / (2 * N * M)` motivated by a success-probability
+calculation. For arbitrary real arguments it need not lie in `[0, 1]`. -/
 def clawSuccessProb (N M L : ℝ) : ℝ := L ^ 3 / (2 * N * M)
 
 /-- The round count expression `sqrt (2 * N * M / L³)`. -/

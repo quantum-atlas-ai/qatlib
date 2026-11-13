@@ -27,7 +27,6 @@ finite families, providing probabilistic input to the remainder analysis associa
 * [Goh and Müller, 2026][GohMuller2026]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

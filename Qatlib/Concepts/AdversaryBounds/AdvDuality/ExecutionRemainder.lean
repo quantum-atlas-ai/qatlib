@@ -39,7 +39,6 @@ computes branch probabilities, coherence, and expected costs.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

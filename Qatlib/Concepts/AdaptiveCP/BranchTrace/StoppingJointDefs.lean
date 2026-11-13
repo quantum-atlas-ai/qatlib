@@ -39,7 +39,6 @@ fair-bit sampling programs. For background, see [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.StoppingCore.BranchCostCore
@@ -51,7 +50,6 @@ open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -368,7 +366,6 @@ def PaidWalkReferenceEvents : Prop :=
         (ρ : Operator D), IsDensityOperator ρ → jointProb P ρ fuel cfg o x k = 0 →
         jointStopMap P fuel cfg o x k ρ = 0)
 
-set_option linter.unusedVariables false in
 
 /-- The proposition specifying fair-bit program transitions and charges, geometric rejection
 tails, finite-fuel charge bounds, and the equality between missing terminal weight and

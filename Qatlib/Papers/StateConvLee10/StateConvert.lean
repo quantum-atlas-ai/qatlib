@@ -31,7 +31,6 @@ control the query count, target overlap, and small-phase components used in the 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -30,7 +30,6 @@ zero query count, and the doubled cost of appending its reverse.
 * [Abrams and Lloyd, 1997][AbramsLloyd1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

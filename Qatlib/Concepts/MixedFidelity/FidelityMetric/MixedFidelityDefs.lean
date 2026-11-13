@@ -34,7 +34,6 @@ existence of a simultaneous unitary diagonalization into probability matrices. S
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 

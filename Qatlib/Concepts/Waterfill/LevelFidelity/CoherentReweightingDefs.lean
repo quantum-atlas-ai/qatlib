@@ -29,12 +29,10 @@ gate words, in the quantum rejection-sampling framework of [OzolsRoettelerRoland
 * [Ozols et al., 2013][OzolsRoettelerRoland2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 

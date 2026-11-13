@@ -32,8 +32,6 @@ execution with expected time two.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.ClassicalTape.FairCoinTape

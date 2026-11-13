@@ -38,7 +38,6 @@ parameter, coordinate count, and state dimension.
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

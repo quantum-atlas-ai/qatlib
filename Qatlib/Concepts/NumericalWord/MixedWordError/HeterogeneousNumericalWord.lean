@@ -30,7 +30,6 @@ standard circuit approximation principles described in [NielsenChuang2010]
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.OperatorErrors.OperatorError

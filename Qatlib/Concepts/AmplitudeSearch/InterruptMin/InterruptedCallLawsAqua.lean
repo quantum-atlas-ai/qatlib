@@ -32,8 +32,6 @@ These identities provide circuit semantics for interruptions in quantum minimum 
 * [Dürr and Høyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 
 open Qatlib.Foundations.QueryWordCore.Circuit

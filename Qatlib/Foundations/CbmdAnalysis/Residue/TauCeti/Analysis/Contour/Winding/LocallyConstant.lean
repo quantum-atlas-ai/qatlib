@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Chris Birkbeck, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -40,8 +42,6 @@ used in [WangEtAl2026].
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
 section
@@ -63,7 +63,7 @@ theorem eq_of_dist_intCast_lt_one {m n : ℤ} (h : dist (m : ℂ) (n : ℂ) < 1)
 
 /-- For a continuous curve with interval-integrable derivative and integer winding numbers off
 its image, the winding number is locally constant on the complement of the image. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.isLocallyConstant_windingNumber_of_integer {γ : ℝ → ℂ} {a b : ℝ}
+theorem _root_.ContinuousOn.isLocallyConstant_windingNumber_of_integer {γ : ℝ → ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (uIcc a b))
     (hderiv_int : IntervalIntegrable (deriv γ) volume a b)
     (hint : ∀ z, z ∉ γ '' uIcc a b → ∃ n : ℤ, windingNumber γ a b z = n) :
@@ -102,7 +102,7 @@ theorem isLocallyConstant_windingNumber_of_closed {γ : ℝ → ℂ} {a b : ℝ}
 
 /-- Under continuity, derivative integrability, and integer-valued winding numbers, the winding
 number agrees at points in the same connected component of the image complement. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eq_of_mem_connectedComponentIn_of_integer
+theorem _root_.ContinuousOn.windingNumber_eq_of_mem_connectedComponentIn_of_integer
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (uIcc a b))
     (hderiv : IntervalIntegrable (deriv γ) volume a b)
     (hint : ∀ z, z ∉ γ '' uIcc a b → ∃ n : ℤ, windingNumber γ a b z = n)

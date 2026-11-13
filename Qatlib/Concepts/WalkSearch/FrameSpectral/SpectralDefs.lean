@@ -47,11 +47,9 @@ argument gives a fraction of at least one sixth at this length, as required by
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.Execution.WorkspaceCP

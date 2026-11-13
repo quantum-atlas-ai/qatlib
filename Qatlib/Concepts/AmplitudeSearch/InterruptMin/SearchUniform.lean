@@ -30,7 +30,6 @@ the uniform final marked-output law, in the search setting of [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib.Foundations.PureStateMath

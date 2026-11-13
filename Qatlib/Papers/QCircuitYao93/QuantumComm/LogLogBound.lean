@@ -26,8 +26,6 @@ satisfying the stated weight-threshold acceptance gap. It rewrites the feature c
 * [Yao, 1993][Yao1993]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

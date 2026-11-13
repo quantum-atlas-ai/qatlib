@@ -24,8 +24,6 @@ the robustness setting of [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding

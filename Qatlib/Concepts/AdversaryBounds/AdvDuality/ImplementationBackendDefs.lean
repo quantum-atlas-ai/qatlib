@@ -43,8 +43,6 @@ generation conditions stated by `ThresholdComplexPrepareResidual` and
 - [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.IntervalArith.IntervalOps

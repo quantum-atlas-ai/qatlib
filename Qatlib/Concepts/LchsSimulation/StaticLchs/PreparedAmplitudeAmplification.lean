@@ -34,11 +34,9 @@ The mathematical background is described in [BrassardEtAl2002].
 -/
 
 open Qatlib.Foundations.PureStateMath.Reflection
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -47,7 +45,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.LchsSimulation.StaticLchs
 
@@ -89,11 +86,15 @@ section Helpers
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
+
 /-- The state inner product distributes over addition in its first argument. -/
 private theorem inner_add_left' (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (ψ + φ) χ = Qatlib.Foundations.PureStateMath.Inner ψ χ + Qatlib.Foundations.PureStateMath.Inner φ χ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.add_apply, Pi.star_apply, RCLike.star_def, map_add,
     add_mul, Finset.sum_add_distrib]
+
+omit [DecidableEq I] in
 
 /-- Negating the second argument negates the state inner product. -/
 private theorem inner_neg_right' (ψ φ : QState I) :
@@ -102,6 +103,7 @@ private theorem inner_neg_right' (ψ φ : QState I) :
   rw [← Finset.sum_neg_distrib]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- The state inner product is conjugate symmetric. -/
 private theorem inner_conj_symm' (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ φ = star (Qatlib.Foundations.PureStateMath.Inner φ ψ) := by
@@ -109,12 +111,16 @@ private theorem inner_conj_symm' (ψ φ : QState I) :
   exact Finset.sum_congr rfl fun i _ => by
     rw [Complex.star_def, map_mul, starRingEnd_self_apply, mul_comm]
 
+omit [DecidableEq I] in
+
 /-- A matrix acting on the second inner-product argument transfers to its conjugate transpose
 acting on the first argument. -/
 private theorem inner_mulVec_conjTranspose_right' (A : Matrix I I ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (A *ᵥ φ) = Qatlib.Foundations.PureStateMath.Inner (Aᴴ *ᵥ ψ) φ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
   rw [Matrix.dotProduct_mulVec, Matrix.star_mulVec, Matrix.conjTranspose_conjTranspose]
+
+omit [DecidableEq I] in
 
 /-- Conjugating a state outer product by a matrix gives the outer product of the transformed
 state. -/
@@ -130,6 +136,7 @@ private theorem outerProduct_conj (A : Matrix I I ℂ) (φ : QState I) :
   conv_rhs => rw [star_mul]
   ring
 
+omit [DecidableEq I] in
 /-- Applying the outer product of `ψ` to `φ` gives the inner product of `ψ` with `φ` times `ψ`. -/
 private theorem applyGate_outerProduct (ψ φ : QState I) :
     ApplyGate (outerProduct ψ) φ = Qatlib.Foundations.PureStateMath.Inner ψ φ • ψ :=
@@ -139,9 +146,13 @@ private theorem applyGate_outerProduct (ψ φ : QState I) :
 private theorem collapse_mulVec (x : QState I) (S : Finset I) :
     Collapse x S = (Projector S) *ᵥ x := rfl
 
+omit [DecidableEq I] in
+
 /-- Applying a matrix distributes over addition of states. -/
 private theorem applyGate_add (U : Matrix I I ℂ) (x y : QState I) :
     ApplyGate U (x + y) = ApplyGate U x + ApplyGate U y := Matrix.mulVec_add U x y
+
+omit [DecidableEq I] in
 
 /-- Applying a matrix commutes with complex scalar multiplication of states. -/
 private theorem applyGate_smul (U : Matrix I I ℂ) (c : ℂ) (x : QState I) :
@@ -301,6 +312,8 @@ private theorem iterate_split {I : Type} [Fintype I] [DecidableEq I]
 section RunHelpers
 
 variable {I : Type} [Fintype I] [DecidableEq I]
+
+omit [DecidableEq I] in
 
 /-- One query-and-preparation block acts by the matrix `A * R₀ * Aᴴ * M`. -/
 private theorem run_preparedBlock (M A R₀ : Matrix I I ℂ) (ψ : QState I) :
@@ -702,6 +715,8 @@ private theorem evaluatePrepared_flatten_replicate (U B : Matrix I I ℂ)
   | zero => simp [evaluatePrepared]
   | succ k ih =>
       rw [List.replicate_succ, List.flatten_cons, evaluatePrepared_append, ih, pow_succ']
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Replicating a prepared block `k` times multiplies each data-query, input-query, and
 fixed-gate count by `k`. -/

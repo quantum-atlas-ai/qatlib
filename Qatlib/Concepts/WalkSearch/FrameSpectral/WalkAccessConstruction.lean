@@ -24,13 +24,11 @@ the finite gate access construction supporting the walk framework of [Szegedy200
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 

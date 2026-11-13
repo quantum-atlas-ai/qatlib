@@ -40,7 +40,6 @@ see [DaviesLewis1970].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ChannelTheory.Stinespring
 
@@ -56,8 +55,6 @@ namespace Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Matrix
 open scoped ComplexOrder
 open scoped Kronecker
-
-set_option linter.unusedSectionVars false
 
 variable {D E F R : ℕ}
 
@@ -174,12 +171,11 @@ theorem instrumentProb_eq_zero_iff (I : Instrument O D E) {ρ : Operator D}
     rw [instrumentProb, hz]
     simp
 
-set_option linter.unusedVariables false in
 
 /-- The branch output divided by its strictly positive probability, defining the normalized
 conditional operator. -/
 noncomputable def Instrument.conditionalState (I : Instrument O D E) (ρ : Operator D)
-    (o : O) (h : 0 < instrumentProb I ρ o) : Operator E :=
+    (o : O) (_h : 0 < instrumentProb I ρ o) : Operator E :=
   ((instrumentProb I ρ o : ℝ) : ℂ)⁻¹ • I.branch o ρ
 
 /-- Conditioning an instrument outcome of positive probability on a density operator produces a
@@ -218,7 +214,7 @@ theorem instrumentProb_eq_forget_trace (I : Instrument O D E) (ρ : Operator D) 
   rw [Instrument.forget_apply, I.total ρ]
   exact sum_instrumentProb I ρ
 
-variable {P : Type*} [Fintype P] [DecidableEq P]
+variable {P : Type*} [Fintype P] [instDecidableEqP : DecidableEq P]
 
 /-- Coarse-grain an instrument along an outcome map by summing the branches with the same image. -/
 noncomputable def Instrument.coarsen (I : Instrument O D E) (f : O → P) :
@@ -304,6 +300,8 @@ noncomputable def Instrument.seq (I : Instrument O D E) (J : Instrument P E F) :
           rw [← Matrix.trace_sum]
           exact I.total A
 
+omit [DecidableEq P] in
+
 /-- The joint branch probability of sequential instruments is the second branch probability
 evaluated on the first unnormalized branch output. -/
 theorem instrumentProb_seq (I : Instrument O D E) (J : Instrument P E F)
@@ -314,8 +312,9 @@ theorem instrumentProb_seq (I : Instrument O D E) (J : Instrument P E F)
 outcome probability. -/
 theorem sum_instrumentProb_seq_snd (I : Instrument O D E) (J : Instrument P E F)
     (ρ : Operator D) (o : O) :
-    ∑ p : P, instrumentProb (I.seq J) ρ (o, p) = instrumentProb I ρ o :=
-  calc ∑ p : P, instrumentProb (I.seq J) ρ (o, p)
+    ∑ p : P, instrumentProb (I.seq J) ρ (o, p) = instrumentProb I ρ o := by
+  let _ := instDecidableEqP
+  exact calc ∑ p : P, instrumentProb (I.seq J) ρ (o, p)
       = ∑ p : P, instrumentProb J (I.branch o ρ) p :=
           Finset.sum_congr rfl fun p _ => instrumentProb_seq I J ρ o p
     _ = instrumentProb I ρ o := sum_instrumentProb J (I.branch o ρ)
@@ -539,7 +538,7 @@ noncomputable def projectiveInstrument : Instrument (Fin D) D D where
     have hentry : (Matrix.trace (conjBranch (Projector ({i} : Finset (Fin D))) A)).re
         = (A i i).re := by
       rw [conjBranch_projector_apply, Matrix.trace_diagonal, Finset.sum_ite_eq',
-          if_pos (Finset.mem_univ _)]
+          ite_eq_left (Finset.mem_univ _)]
     have htotal : (Matrix.trace A).re = ∑ j : Fin D, (A j j).re := by
       simp only [Matrix.trace, Matrix.diag_apply, Complex.re_sum]
     calc (Matrix.trace (conjBranch (Projector ({i} : Finset (Fin D))) A)).re
@@ -553,7 +552,7 @@ noncomputable def projectiveInstrument : Instrument (Fin D) D D where
         = A i i := by
       intro i
       rw [conjBranch_projector_apply, Matrix.trace_diagonal, Finset.sum_ite_eq',
-          if_pos (Finset.mem_univ _)]
+          ite_eq_left (Finset.mem_univ _)]
     calc Matrix.trace (∑ i, conjBranch (Projector ({i} : Finset (Fin D))) A)
         = ∑ i : Fin D, A i i := by
           rw [Matrix.trace_sum]
@@ -565,7 +564,7 @@ corresponding diagonal entry. -/
 theorem instrumentProb_projective (ρ : Operator D) (i : Fin D) :
     instrumentProb projectiveInstrument ρ i = (ρ i i).re := by
   rw [instrumentProb, projectiveInstrument, conjBranch_projector_apply,
-    Matrix.trace_diagonal, Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+    Matrix.trace_diagonal, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
 
 /-- On a pure-state outer product, the projective instrument probability equals the
 corresponding Born probability. -/
@@ -650,7 +649,7 @@ theorem instrumentPMF_projective_pure {ψ : QState (Fin D)} (hψ : Normalized ψ
 
 section ClassicalOutput
 
-variable [DecidableEq O]
+variable [instDecidableEqO : DecidableEq O]
 
 /-- The channel retaining the quantum branch output together with a classical outcome register
 as a block-diagonal operator. -/
@@ -724,6 +723,8 @@ theorem Instrument.toCQChannel_classicalMarginal (I : Instrument O D E) (ρ : Op
       I.toCQChannel_off_diagonal ρ hop, Finset.sum_const_zero,
       Matrix.diagonal_apply_ne _ hop]
 
+omit [DecidableEq O] in
+
 /-- The positive square roots of the effects of a POVM satisfy the Kraus completeness identity. -/
 theorem povm_sqrt_complete (Λ : POVM O (Fin D)) :
     ∑ o, ((Λ.mats o ^ (1 / 2 : ℝ)).mat).conjTranspose *
@@ -742,6 +743,7 @@ effect. -/
 @[simp] theorem Instrument.ofPOVM_branch (Λ : POVM O (Fin D)) (o : O) (ρ : Operator D) :
     (Instrument.ofPOVM Λ).branch o ρ =
       (Λ.mats o ^ (1 / 2 : ℝ)).mat * ρ * (Λ.mats o ^ (1 / 2 : ℝ)).mat := by
+  let _ := instDecidableEqO
   simp only [Instrument.ofPOVM, Instrument.ofKraus_branch, HermitianMat.conjTranspose_mat]
 
 /-- The channel retaining the outcome of a POVM instrument agrees pointwise with the POVM
@@ -809,9 +811,7 @@ end Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Matrix
 open scoped ComplexOrder
 
-set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.AdaptiveCP.BranchTrace
-set_option linter.unusedVariables false in
 
 /-- If an operator map acts as scalar multiplication by `c`, extending it by a reference
 identity also acts as scalar multiplication by `c`. -/
@@ -828,7 +828,6 @@ end Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Matrix
 open scoped ComplexOrder
 
-set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.AdaptiveCP.BranchTrace
 
 /-- Coarse graining along an outcome equivalence relabels each branch by the inverse

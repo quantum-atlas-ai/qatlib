@@ -33,7 +33,6 @@ The mathematical background is developed in [Ambainis2007ElementDistinctness].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.WalkFind.SearchAlgorithm
 
@@ -45,7 +44,6 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open scoped BigOperators Classical
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- The proposition that, for each `k ≥ 2`, a uniform positive constant bounds the query cost of

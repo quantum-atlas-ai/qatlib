@@ -10,15 +10,15 @@ import Qatlib.Concepts.HhlErrorBridge.FilterStability
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Bridge: the frozen one-run HHL certificate behind run-time (1a)
+# Bridge: the one-run HHL certificate behind run-time (1a)
 
 Fixed source: A. W. Harrow, *Review of Quantum Algorithms for Systems of Linear
 Equations*, arXiv:1501.00008v1, §2.1, PDF p. 2. The quoted run-time (1a)
 `Õ(κT_B + log(N) s² κ² T_A / ε)` is the HHL 2009 [5] result, whose
-one-run success/cost certificate is formalized in Frozen under
-`QuantumAlgorithm.Papers.LinearSystems09.SinEnvProgram.SinEnvelopeHHLConsumers`.
+one-run success/cost certificate is formalized in the existing library under
+`Qatlib.Papers.LinearSystems09.SinEnvProgram.SinEnvelopeHHLConsumers`.
 
-The paper-layer bridges below do not reprove the frozen content: they restate
+The paper-layer bridges below do not reprove the established content: they restate
 it under the `QLinearSys15` namespace so that the review's §2.1 result is tied
 to the concrete HHL program and the three-flag filter ledger bound by the claim
 `c002` (`HhlErrorBridge`).
@@ -35,11 +35,11 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs
 open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
 open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
 
-/-- **One-run success and macro-cost of the HHL program (frozen certificate for
+/-- **One-run success and macro-cost of the HHL program (certificate for
 (1a)).** With a well-conditioned spectrum (`2d ≤ eig ≤ 1/4`), a repetition
 count `k ≤ ⌈1/(5d)⌉+1` succeeds with Born mass at least `1/4` and stays inside
-the frozen macro-query budget. Reused FQN:
-`QuantumAlgorithm.Papers.LinearSystems09.SinEnvProgram.SinEnvelopeHHLConsumers.
+the established macro-query budget. Reused FQN:
+`Qatlib.Papers.LinearSystems09.SinEnvProgram.SinEnvelopeHHLConsumers.
 sin_envelope_aa_success_and_cost`; this is the program-level content that the
 review's HHL run-time (1a) charges. -/
 theorem sinEnvelope_aa_success_and_cost_bridge {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
@@ -66,7 +66,7 @@ theorem sinEnvelope_aa_success_and_cost_bridge {D : ℕ} (M : ℕ) (hM : 2 ≤ M
 /-- **Three-flag filter normalization (bound `HhlErrorBridge`).** The
 three-flag amplitude vector of the HHL error bridge is normalized, for every
 `sine-envelope width d > 0` and phase `θ`. Reused FQN:
-`QuantumAlgorithm.Concepts.HhlErrorBridge.FilterStability.sin_envelope_h_normalized`;
+`Qatlib.Concepts.HhlErrorBridge.FilterStability.sin_envelope_h_normalized`;
 this is the `HhlErrorBridge` ledger that the `c002` bind names. -/
 theorem sinEnvelopeHVector_normalized_bridge (d θ : ℝ) (hd : 0 < d) :
     ∑ s : Fin 3, ‖Qatlib.Concepts.HhlErrorBridge.FilterStability.sinEnvelopeHVector

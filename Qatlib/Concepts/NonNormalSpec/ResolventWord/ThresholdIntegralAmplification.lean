@@ -28,8 +28,6 @@ for this construction in the context of [GilyenSuLowWiebe2019]
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 3000000
 

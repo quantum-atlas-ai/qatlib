@@ -33,8 +33,6 @@ logarithm.
 * [Wang et al., 2008][WangEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

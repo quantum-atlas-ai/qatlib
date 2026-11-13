@@ -25,8 +25,6 @@ refining the variance expressions associated with Theorems 9 and 10 of [Cornwell
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
 /-- Proves the affine noise-intensity variance formula with the additional terms at nonzero

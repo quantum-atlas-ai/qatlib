@@ -21,14 +21,14 @@ PDF SHA-256 5bc33df5fbcd340bd3381e798bb80a436fdc6596027697440f882c15769de5a6.
 
 This module connects the paper's projection lemmas -- Lemma 10 (p.41),
 Proposition 11 (p.42), Proposition 12 (p.42), Lemma 13 (p.43),
-Proposition 14 (p.44), Proposition 15 (p.45) -- to the frozen G-goal contracts
+Proposition 14 (p.44), Proposition 15 (p.45) -- to the library statements
 `Clause2ProjectorOrder`, `Clause3ClockFlagResolutions`, `Clause4StoppedStageTransport` and
-`Clause6AmplifiedSuffixRays`. The full proofs of those contracts are part of the
-Frozen v2.0.2 package; here they are consumed as verified library theorems.
+`Clause6AmplifiedSuffixRays`. These statements are proved by the corresponding
+library theorems.
 
-Boundary: statements live at the paper's abstraction level (finite Hilbert
-space, orthogonal projections, unitaries fixing clock projections). No cost
-statements and no compiler claims are included.
+Scope note: statements use the paper's abstraction level (finite Hilbert
+space, orthogonal projections, unitaries fixing clock projections). Cost
+bounds and compilation are outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -48,7 +48,7 @@ namespace Qatlib.Papers.QLSStatePrep24.Amplification
 `P Q` (paper `Π₁ = P`, `Π₂ = Q`), the inclusion of images, the two products
 `QP = P` and `PQ = P`, the projector character of `Q - P`, the compression
 identity `PQP = P`, positive semidefiniteness of `Q - P`, and pointwise norm
-domination are all equivalent. Bridge to the frozen
+domination are all equivalent. Bridge to
 `Clause2ProjectorOrder_answer`. -/
 theorem lemma10_partially_ordered_projections {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q) :
@@ -123,7 +123,7 @@ theorem prop14_stopped_stage_transport {H : Type} [Fintype H] [DecidableEq H]
 
 /-- Fixed arXiv:2410.18178v2, Proposition 15 (p.45): amplified suffix rays are
 independent of the starting stage, and their potential-weighted ratios agree
-across suffixes. Bridge to the frozen `Clause6AmplifiedSuffixRays_answer`. -/
+across suffixes. Bridge to `Clause6AmplifiedSuffixRays_answer`. -/
 theorem prop15_amplified_suffix_rays : Clause6AmplifiedSuffixRays :=
   Clause6AmplifiedSuffixRays_answer
 

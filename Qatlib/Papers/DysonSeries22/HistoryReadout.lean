@@ -28,8 +28,6 @@ The mathematical setting follows [BerryCosta2024].
 * [Berry and Costa, 2024][BerryCosta2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

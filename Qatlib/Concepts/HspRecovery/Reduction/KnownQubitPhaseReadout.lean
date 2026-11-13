@@ -28,7 +28,6 @@ The calculations specialize the controlled-gate and phase readout methods descri
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
@@ -42,10 +41,6 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
 open Matrix
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
 
 /-- The known-qubit angle tuple `(π / 2, -π, π / 2, 0)` for the Hadamard gate. -/
 noncomputable def knownHadamardAngles : KnownQubitAngles :=

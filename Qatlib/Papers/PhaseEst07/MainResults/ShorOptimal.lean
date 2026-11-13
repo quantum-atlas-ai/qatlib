@@ -27,8 +27,6 @@ amplitude hypotheses. The phase-estimation setting is described in [VanDamEtAl20
 * [van Dam et al., 2007][VanDamEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

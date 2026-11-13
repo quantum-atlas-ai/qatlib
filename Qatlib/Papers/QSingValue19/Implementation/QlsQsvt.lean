@@ -28,7 +28,6 @@ declared program budget.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.QspSimulation.Achievability

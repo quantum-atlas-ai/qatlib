@@ -40,7 +40,6 @@ and `Alg3DegenerateBranch.legal` uses a guarded logarithmic failure budget.
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Concepts.ProbabilityCore.Concentration

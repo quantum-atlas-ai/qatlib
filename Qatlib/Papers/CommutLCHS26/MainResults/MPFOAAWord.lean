@@ -48,7 +48,6 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 

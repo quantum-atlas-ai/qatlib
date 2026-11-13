@@ -28,7 +28,6 @@ parameter and evaluation that factors through one queried value. See [BravyiEtAl
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

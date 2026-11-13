@@ -41,8 +41,6 @@ finite generating sets and prime power cyclic decompositions.
 * [Watrous, 2001][Watrous2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped BigOperators Classical

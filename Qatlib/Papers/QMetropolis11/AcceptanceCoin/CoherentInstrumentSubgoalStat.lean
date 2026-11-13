@@ -26,8 +26,6 @@ exact state after the controlled coin operation, and the Born mass of the accept
 * [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3).
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Qatlib.Foundations.PureStateMath

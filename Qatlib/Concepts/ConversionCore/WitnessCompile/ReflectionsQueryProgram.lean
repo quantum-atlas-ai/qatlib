@@ -38,8 +38,6 @@ probability at least 2/3 from the stated probability gap, in the reflection fram
 * [Reichardt, 2011][Reichardt2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option synthInstance.maxSize 4096
@@ -91,12 +89,12 @@ theorem reflectionsFrameMatrix_apply (addr : H → Fin n) (ψ : QState (A × H))
   rw [Finset.sum_eq_single p.2]
   · by_cases hp : p.1 = (addr p.2.2, false)
     · have he : p = ((addr p.2.2, false), p.2) := Prod.ext hp rfl
-      rw [if_pos he, if_pos hp, one_mul]
+      rw [ite_eq_left he, ite_eq_left hp, one_mul]
     · have he : p ≠ ((addr p.2.2, false), p.2) := fun he => hp (congrArg Prod.fst he)
-      simp only [he, hp, if_false, zero_mul]
+      simp only [he, hp, ite_false, zero_mul]
   · intro q _ hq
     have he : p ≠ ((addr q.2, false), q) := fun he => hq (congrArg Prod.snd he).symm
-    simp only [he, if_false, zero_mul]
+    simp only [he, ite_false, zero_mul]
   · simp
 
 /-- The query-frame embedding matrix is an isometry. -/
@@ -106,15 +104,15 @@ theorem reflectionsFrameMatrix_isometry (addr : H → Fin n) :
   ext p q
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, reflectionsFrameMatrix]
   rw [Finset.sum_eq_single ((addr p.2, false), p)]
-  · simp only [if_true, star_one, one_mul]
+  · simp only [ite_true, star_one, one_mul]
     by_cases hpq : p = q
     · subst q
       simp
     · have he : ((addr p.2, false), p) ≠ ((addr q.2, false), q) :=
         fun he => hpq (congrArg Prod.snd he)
-      simp only [he, if_false, Matrix.one_apply_ne hpq]
+      simp only [he, ite_false, Matrix.one_apply_ne hpq]
   · intro r _ hr
-    simp only [hr, if_false, star_zero, zero_mul]
+    simp only [hr, ite_false, star_zero, zero_mul]
   · simp
 
 /-- Every unitary logical gate extends to a unitary on the query-frame space that intertwines
@@ -165,8 +163,8 @@ theorem reflectionsControlled_apply (active : A → Bool) (U : Matrix H H ℂ)
     dotProduct, Fintype.sum_prod_type]
   rw [Finset.sum_eq_single a]
   · by_cases ha : active a = true
-    · simp only [ha, if_true]
-    · simp only [if_neg ha]
+    · simp only [ha, ite_true]
+    · simp only [ite_eq_right ha]
       exact congrFun (Matrix.one_mulVec (fun z => ψ (a, z))) h
   · intro b _ hb
     simp [Ne.symm hb]
@@ -225,7 +223,7 @@ theorem reflections_compute_phase_uncompute (addr : H → Fin n) (bit : H → Op
     have hpair2 : (i, t ^^ o i ^^ o i) ≠ (addr z, false) :=
       fun h => hi (congrArg Prod.fst h)
     have hpair : (i, t) ≠ (addr z, false) := fun h => hi (congrArg Prod.fst h)
-    simp only [hpair, hpair2, if_false, mul_zero]
+    simp only [hpair, hpair2, ite_false, mul_zero]
 
 variable {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
 
@@ -277,9 +275,9 @@ theorem reflectionsControlled_product_apply (active : A → Bool) (U V : Matrix 
   funext ⟨a, z⟩
   simp only [reflectionsControlled_apply]
   by_cases ha : active a = true
-  · simp only [ha, if_true]
+  · simp only [ha, ite_true]
     exact congrFun (Matrix.mulVec_mulVec (fun w => ψ (a, w)) U V) z
-  · simp only [if_neg ha]
+  · simp only [ite_eq_right ha]
 
 /-- A singleton circuit containing a unitary gate is a unitary circuit. -/
 theorem reflections_single_gate_wellFormed (U : Matrix H H ℂ)
@@ -291,8 +289,8 @@ theorem reflections_single_gate_wellFormed (U : Matrix H H ℂ)
   ext i j
   have he := congrFun (congrFun hU.1 i) j
   by_cases hij : i = j
-  · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_pos hij] using he
-  · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_neg hij] using he
+  · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_left hij] using he
+  · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_right hij] using he
 
 /-- Constructs a circuit implementing the controlled source two-reflection unitary on framed
 states using exactly two queries and two gates. -/
@@ -392,7 +390,7 @@ theorem reflections_clock_loop_fibre (τ k : ℕ) (U : Matrix H H ℂ)
     rw [reflectionsControlled_apply]
     cases b with
     | false => simpa only [reflectionsClockActive, Bool.false_and, Bool.false_eq_true,
-        if_false] using ih ψ t false z
+        ite_false] using ih ψ t false z
     | true =>
       have hf : (fun w => (reflectionsLoop (reflectionsClockActive τ) U k *ᵥ ψ)
           ((t, true), w)) = U ^ min k (t.val + 1) *ᵥ (fun w => ψ ((t, true), w)) := by
@@ -400,15 +398,15 @@ theorem reflections_clock_loop_fibre (τ k : ℕ) (U : Matrix H H ℂ)
         exact ih ψ t true w
       by_cases hk : k ≤ t.val
       · simp only [reflectionsClockActive, Bool.true_and, decide_eq_true_eq, hk,
-          if_true, hf]
+          ite_true, hf]
         rw [min_eq_left (by omega : k ≤ t.val + 1),
           min_eq_left (by omega : k + 1 ≤ t.val + 1), pow_succ', ← Matrix.mulVec_mulVec]
         rfl
       · simp only [reflectionsClockActive, Bool.true_and, decide_eq_true_eq, hk,
-          if_false, if_true]
+          ite_false, ite_true]
         rw [ih ψ t true z, min_eq_right (by omega : t.val + 1 ≤ k),
           min_eq_right (by omega : t.val + 1 ≤ k + 1)]
-        simp only [if_true]
+        simp only [ite_true]
 
 /-- A complete clocked loop applies `U ^ (t.val + 1)` on each true clock fibre and leaves false
 fibres unchanged. -/
@@ -482,7 +480,6 @@ theorem reflectionsTrialHadamard_apply (τ : ℕ) (ψ : QState ((Fin τ × Bool)
   cases b <;> simp [ite_mul, mul_ite, Finset.sum_add_distrib] <;> ring
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The clock-indexed sum and difference of `r` and its image under the corresponding positive
 power of `U`. -/
@@ -503,9 +500,9 @@ theorem reflections_trial_output (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) 
       (Uniform (Fin τ) t * (Real.sqrt 2 : ℂ)⁻¹) • r := by
     funext w
     simp [reflectionsTrialStart, TensorState, Plus, Hadamard, mul_assoc]
-  simp only [hf, Matrix.mulVec_smul, Pi.smul_apply, smul_eq_mul, if_true]
+  simp only [hf, Matrix.mulVec_smul, Pi.smul_apply, smul_eq_mul, ite_true]
   simp only [reflectionsTrialStart, TensorState, Plus, Hadamard, Matrix.of_apply,
-    Bool.and_false, Bool.false_eq_true, if_false, reflectionsTrialOutput]
+    Bool.and_false, Bool.false_eq_true, ite_false, reflectionsTrialOutput]
   have hs := inv_sqrt2_mul_self
   linear_combination (Uniform (Fin τ) t *
     (r z + (if b then -1 else 1) * (U ^ (t.val + 1) *ᵥ r) z)) * hs
@@ -581,6 +578,8 @@ private def copySwap (j : Fin k)
     (z : (Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   ((z.2 j).1, Function.update z.2 j (z.1, (z.2 j).2))
 
+omit [Fintype W] [DecidableEq W] in
+
 /-- Swapping the shared query register with a fixed copy twice is the identity. -/
 private theorem copySwap_involutive (j : Fin k) : Function.Involutive (copySwap (n := n) (W := W) j) := by
   intro z
@@ -647,12 +646,16 @@ theorem standardCopyCircuit_unitary (j : Fin k)
         (isUnitaryCircuit_query _).mpr ((isUnitaryCircuit_gate _ _).mpr
           ⟨copySwapGate_unitary j, ih htail⟩)⟩
 
+omit [Fintype W] in
+
 /-- Routing a circuit to one copy preserves its query count. -/
 theorem standardCopyCircuit_queries (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :
     QueryCount (StandardCopyCircuit j C) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [StandardCopyCircuit, QueryCount, ih]
+
+omit [Fintype W] in
 
 /-- Routing a circuit to one copy adds two gates for each original query. -/
 theorem standardCopyCircuit_gates (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :
@@ -761,7 +764,7 @@ theorem reflections_trial_born (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) :
       (Finset.univ.filter (fun p : (Fin τ × Bool) × H => p.1.2 = false)) =
       reflectionsPowerMean τ U r := by
   simp only [MeasureProb, Finset.sum_filter, Fintype.sum_prod_type, Fintype.sum_bool]
-  simp only [Bool.false_eq_true, if_true, if_false, reflectionsTrialOutput,
+  simp only [Bool.false_eq_true, ite_true, ite_false, reflectionsTrialOutput,
     BornProb, one_mul, norm_mul, norm_div, mul_pow, div_pow]
   have hc (t : Fin τ) : ‖Uniform (Fin τ) t‖ ^ 2 / ‖(2 : ℂ)‖ ^ 2 =
       (4 * (τ : ℝ))⁻¹ := by
@@ -841,14 +844,14 @@ theorem reflections_fresh100_born (φ : QState H) (hφ : Normalized φ) (S : Fin
     apply Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩
     rw [havg]
     cases b
-    · simp only [Bool.false_eq_true, if_false] at hgap
+    · simp only [Bool.false_eq_true, ite_false] at hgap
       have hc : 75 ≤ (Finset.univ.filter (fun j => ω j ∈ S)).card := by
         simpa [bad, reflectionsAccept100] using hω
       have hc' : (75 : ℝ) ≤ (Finset.univ.filter (fun j => ω j ∈ S)).card :=
         by exact_mod_cast hc
       apply le_trans _ (le_abs_self _)
       linarith
-    · simp only [if_true] at hgap
+    · simp only [ite_true] at hgap
       have hc : (Finset.univ.filter (fun j => ω j ∈ S)).card < 75 := by
         simpa [bad, reflectionsAccept100, not_le] using hω
       have hc' : ((Finset.univ.filter (fun j => ω j ∈ S)).card : ℝ) < 75 :=
@@ -875,7 +878,7 @@ theorem reflections_fresh100_born (φ : QState H) (hφ : Normalized φ) (S : Fin
       intro z hz hzc
       exact (Finset.mem_compl.mp hzc) hz))
   rw [Finset.union_compl] at hc
-  cases b <;> simp only [Bool.false_eq_true, if_false, if_true] at hbad ⊢ <;>
+  cases b <;> simp only [Bool.false_eq_true, ite_false, ite_true] at hbad ⊢ <;>
     dsimp [bad] at hbad <;> linarith
 
 /-- Amplifies the stated decision gap to success probability at least 2/3 using 100 copies and
@@ -902,7 +905,7 @@ theorem reflections_amplified_actual (X : Type) [Fintype X] [DecidableEq X]
   obtain ⟨hB, hBQ, hBG, hBr⟩ := ReflectionsFresh.standardCopiesCircuit_spec 100 C hC
   let V := Fin 100 → (Fin n × Bool) × W
   let j0 : V := fun _ => z
-  letI : Nonempty V := ⟨j0⟩
+  let : Nonempty V := ⟨j0⟩
   let r := Fintype.card V
   have hr : 0 < r := Fintype.card_pos
   let e0 : V ≃ Fin r := Fintype.equivFin V

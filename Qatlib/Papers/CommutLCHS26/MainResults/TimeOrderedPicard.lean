@@ -35,7 +35,6 @@ open Matrix Set
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Concepts.InteractionEvo.DysonGrid
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

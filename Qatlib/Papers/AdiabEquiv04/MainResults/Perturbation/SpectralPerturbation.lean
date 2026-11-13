@@ -28,7 +28,6 @@ bound `lemma_3_17_ground_upper`.
 * [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -77,7 +76,7 @@ theorem hzero_of_hvan {ι σ : Type} [Fintype ι] [DecidableEq ι] [Fintype σ]
     simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct] using h
   rw [Matrix.mul_assoc, hMV, Matrix.mul_zero]
 
-/-- The statement of Lemma 3.17: under the specified isometry, kernel, penalty, and bilinear
+/-- **Statement only — not proved in Qatlib.** The statement of Lemma 3.17: under the specified isometry, kernel, penalty, and bilinear
 bounds, the first two energies obey the stated perturbation estimates and a positive
 restricted gap gives a ground-vector overlap bound. See [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_17_perturbationStatement : Prop :=
@@ -122,7 +121,7 @@ theorem lemma_3_17_ground_upper {ι σ : Type} [Fintype ι] [DecidableEq ι]
       groundEnergy (restrict V H₁ hV) (by omega) :=
   ground_add_le_ground_restrict V hV H₁ H₂ (hzero_of_hvan V H₂ hvan) (by omega) (by omega)
 
-/-- The statement that, for each circuit and positive `ε`, a positive constant bounds the gap of
+/-- **Statement only — not proved in Qatlib.** The statement that, for each circuit and positive `ε`, a positive constant bounds the gap of
 `Hpath3` below by `c / (L + 1)³` uniformly on `[0, 1]`, with penalty `ε⁻² L⁶`. See
 [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_18_gap_three_localStatement : Prop :=
@@ -131,7 +130,7 @@ def lemma_3_18_gap_three_localStatement : Prop :=
       GapAtLeast (Hpath3 n L hL2 gates ((ε ^ 2)⁻¹ * (L : ℝ) ^ 6) s)
         (c / ((L : ℝ) + 1) ^ 3)
 
-/-- The statement that the final Hamiltonian of `Hpath3`, with penalty `ε⁻² L⁶`, possesses a
+/-- **Statement only — not proved in Qatlib.** The statement that the final Hamiltonian of `Hpath3`, with penalty `ε⁻² L⁶`, possesses a
 ground vector within `PhaseClose` tolerance `ε` of the history state for every positive `ε`.
 See [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_19_final_ground_closeStatement : Prop :=

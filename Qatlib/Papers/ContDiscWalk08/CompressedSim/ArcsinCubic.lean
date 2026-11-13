@@ -27,10 +27,8 @@ compressed continuous-time simulation by a discrete-time walk in [Childs2010].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 
 noncomputable section
 

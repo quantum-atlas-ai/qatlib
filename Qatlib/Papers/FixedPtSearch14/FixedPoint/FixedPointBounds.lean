@@ -63,7 +63,6 @@ namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 open Matrix Qatlib
 open Qatlib.Concepts.HhlErrorBridge.FilterStability
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The operator norm of a projector onto a subset of the three flag states is at most one. -/
 theorem projector_flag_norm_le_one (S : Finset (Fin 3)) : ‖Projector S‖ ≤ 1 := by

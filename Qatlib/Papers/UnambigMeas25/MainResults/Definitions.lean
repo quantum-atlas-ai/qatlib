@@ -19,10 +19,9 @@ The file fixes the finite model used by every claim statement:
 * the measurement quality `ρ(S, {F})` for a cost function `C`
   (Definition 15) and symmetric state sets (Definition 16).
 
-All objects are concrete matrices and functions; no axiom, no `admit`
-and no `native_decide` is used.  Claims whose full paper proof needs
-external machinery are stated in corrected or auxiliary scope directly in
-the claim files, with the gap recorded in the repository PR.
+All objects are concrete matrices and functions.  Claims whose full paper
+proof needs external machinery are stated in corrected or auxiliary scope
+directly in the claim files.
 -/
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.Complex.Basic

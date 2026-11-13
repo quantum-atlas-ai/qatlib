@@ -27,7 +27,6 @@ square root of the natural quotient `Fintype.card Y / t`. For the quantum-search
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 

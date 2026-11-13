@@ -46,7 +46,6 @@ comparison bound used by `sqMedianCounted`. For background, see [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false

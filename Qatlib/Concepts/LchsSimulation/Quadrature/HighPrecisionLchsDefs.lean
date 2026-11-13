@@ -35,7 +35,6 @@ See [AnChildsLin2026] for the mathematical setting.
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.LchsSimulation.TimeOrdered

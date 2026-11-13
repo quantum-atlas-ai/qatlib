@@ -30,8 +30,6 @@ gate per list entry.
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

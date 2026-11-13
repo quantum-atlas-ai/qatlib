@@ -17,13 +17,15 @@ quantum subroutines, direct sums of quantum subroutines on product registers
 
 ## Main definitions
 
-* `UniformSubroutine`, `UniformSubroutine.gateComplexity`: uniform quantum subroutine data and gate cost.
+* `UniformSubroutine`, `UniformSubroutine.gateComplexity`: selection data and a numerical proxy.
 
 ## Main statements
 
 * `polylogCost_one`: constant cost `1` is polylogarithmic.
-* `lemma2_6_uniform_algorithm`: Lemma 2.6, polylogarithmic gate complexity of uniform subroutines.
-* `lemma2_7_direct_sum`: Lemma 2.7, direct-sum implementation of `c` uniform-time quantum subroutines.
+* `lemma2_6_uniform_algorithm`: arithmetic closure of the assumed polylog bound under adding one;
+  no controlled circuit is synthesized.
+* `lemma2_7_direct_sum`: direct-sum construction with `c * T` abstract unitary steps;
+  no elementary-gate bound is asserted.
 * `corollary2_9_hypergeometric_tail`: Corollary 2.9, hypergeometric upper-tail estimate `2 e^c (c / μ)^{-c}`.
 
 ## References
@@ -47,11 +49,10 @@ theorem polylogCost_one (n : ℝ) : PolylogCost 1 n := by
 
 -- Lemma 2.6: uniform quantum algorithms (c001)
 
-/-- Data of a uniform quantum algorithm (Lemma 2.6, p. 16): unitaries
-`U_0, …, U_{Tmax-1}`, a number `ℓ = polylog(Tmax)` of base unitaries `W_j`
-(each implementable in `polylog(Tmax)` gates), and polylog-computable maps
-`g` and `g'` selecting, respectively, the base unitary and the qubits it acts
-on, with `U_t = W_{g(t)}(g'(t))`. -/
+/-- Selection data inspired by Lemma 2.6. Only `ell_polylog` carries a
+nonconstant resource bound. `W_gates`, `g_computable`, and `g'_computable`
+assert `PolylogCost 1` and do not certify gate decompositions or map computation.
+`select` identifies unitaries but does not use the qubit labels `g'`. -/
 structure UniformSubroutine (Z : Type*) [Fintype Z] [DecidableEq Z] where
   /-- The number of unitaries in the sequence. -/
   Tmax : ℕ
@@ -75,14 +76,15 @@ namespace UniformSubroutine
 
 variable {Z : Type*} [Fintype Z] [DecidableEq Z]
 
-/-- The gate complexity of the uniform implementation: `ℓ` controlled
-selections plus `O(1)` control overhead. -/
+/-- Numerical proxy `ell + 1`, retained under its legacy name.
+It is not the length of a constructed circuit. -/
 def gateComplexity (S : UniformSubroutine Z) : ℝ := (S.ell : ℝ) + 1
 
 end UniformSubroutine
 
-/-- **Lemma 2.6**, arXiv:2208.13492 p. 16. If `U_0, …, U_{Tmax-1}` are
-uniform, then `Σ_t |t⟩⟨t| ⊗ U_t` has polylogarithmic gate complexity `ℓ + 1`. -/
+/-- Arithmetic consequence of `ell_polylog`: `ell + 1` is polylog bounded.
+This proves only the resource arithmetic associated with Lemma 2.6;
+the controlled unitary and its gate decomposition are not constructed. -/
 theorem lemma2_6_uniform_algorithm {Z : Type*} [Fintype Z] [DecidableEq Z]
     (S : UniformSubroutine Z) :
     PolylogCost S.gateComplexity (S.Tmax : ℝ) := by

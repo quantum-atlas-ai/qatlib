@@ -53,8 +53,6 @@ open Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
@@ -62,7 +60,6 @@ namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
 open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
-set_option warningAsError false
 
 /-- Composing a value phase approximation with an affine phase residual bound gives joint
 success at least `1 - 16 * d / (M * w) - 4 * π * B - 4 * π * δ` under the stated hypotheses. -/

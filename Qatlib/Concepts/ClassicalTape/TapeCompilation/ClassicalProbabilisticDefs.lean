@@ -36,11 +36,9 @@ stored result.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.Amplification
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -327,7 +325,7 @@ def naiveMajorityTable (r : ℕ) : Bool → Turing.TM0.Machine (Tracks 2) (Naive
       | some w => some (.fake j w true, .write sym)
       | none => some (.fake j false true, .write sym)
   | _, .fake j v true, sym =>
-      if h : j + 1 < 2 * r then some (.fake (j + 1) v false, .write sym)
+      if _h : j + 1 < 2 * r then some (.fake (j + 1) v false, .write sym)
       else some (.outC v, .write sym)
   | _, .outC _, _ => none
 

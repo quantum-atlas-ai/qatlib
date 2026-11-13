@@ -43,7 +43,6 @@ properties without establishing them; proofs and counterexamples are supplied se
 * [Suzuki, 1990][Suzuki1990]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

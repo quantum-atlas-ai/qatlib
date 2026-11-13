@@ -30,8 +30,6 @@ bounded-error extension of Simon's sampling method [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.ReductionCore
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.PauliClifford.ExactRank

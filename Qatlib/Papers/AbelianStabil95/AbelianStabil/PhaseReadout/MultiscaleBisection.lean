@@ -26,7 +26,6 @@ eigenphase sampling bound to the phase multiplied by `2 ^ j`. The development fo
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

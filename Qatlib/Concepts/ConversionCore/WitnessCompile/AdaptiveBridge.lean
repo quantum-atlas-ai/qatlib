@@ -28,7 +28,6 @@ establish `AdaptiveBridgeSpec`, supporting the state conversion framework of [Le
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ConversionCore.WitnessCompile Matrix
 open Qatlib.Concepts.BitWordCompiler.WordComposition

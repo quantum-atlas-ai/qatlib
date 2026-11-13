@@ -24,7 +24,6 @@ the runtime discussion in Section II of [HarrowHassidimLloyd2009].
 * [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers

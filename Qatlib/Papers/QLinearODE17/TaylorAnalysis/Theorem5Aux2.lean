@@ -32,11 +32,9 @@ for the inverse-matrix analysis. See [BerryEtAl2017ODE] for the paper's setting.
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Set MeasureTheory
-set_option warningAsError false
 
 /-- The `n`th real derivative of `t ↦ exp(t * z)` is `t ↦ z^n * exp(t * z)`. -/
 theorem taylorExp_iteratedDeriv (z : ℂ) (n : ℕ) :

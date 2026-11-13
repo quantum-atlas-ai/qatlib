@@ -25,7 +25,6 @@ the price can occur. For the quantum-search analysis, see [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
 set_option autoImplicit false

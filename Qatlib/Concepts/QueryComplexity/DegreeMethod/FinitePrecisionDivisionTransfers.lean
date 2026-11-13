@@ -26,7 +26,6 @@ continuation. These routines use the finite machine setting described in [Kitaev
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit

@@ -38,7 +38,6 @@ background is described in [BrassardEtAl2002].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

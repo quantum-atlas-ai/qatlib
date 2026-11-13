@@ -19,8 +19,6 @@ measurement statistics; see [Watrous, *The Theory of Quantum Information*][Watro
 for the quantum statistical setting.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.FiniteStats.BornEstimator

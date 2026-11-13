@@ -28,7 +28,6 @@ with its resource counts and positivity guard stated explicitly in `Theorem9V3`.
 * [Berry et al., 2017][BerryEtAl2017ODE]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

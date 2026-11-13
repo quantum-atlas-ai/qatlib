@@ -33,7 +33,6 @@ and an expected cost at most two for the larger budget. For background, see [Nie
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -512,7 +511,6 @@ theorem geom_half_sum_le_two (n : ℕ) :
     have hpow : 0 ≤ (1 / 2 : ℝ) ^ n := pow_nonneg (by norm_num) _
     linarith [hpow]
 
-set_option linter.unusedVariables false in
 
 /-- For `B ≤ C`, Hadamard-based retries have true-success mass `1 - (1/2)^B` with budget `B` and
 expected cost at most two with budget `C`. -/

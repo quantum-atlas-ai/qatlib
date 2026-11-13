@@ -34,7 +34,6 @@ statements are provided in `MatrixOptimizationAlgorithms`.
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.RationalScan.Step2Scan
 

@@ -30,7 +30,6 @@ corresponding fresh copy blocks, while `runPlain` interprets schedules without a
 - [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing

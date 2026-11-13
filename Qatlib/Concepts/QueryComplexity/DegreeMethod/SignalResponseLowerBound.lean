@@ -790,7 +790,6 @@ theorem clause1_oracle_dependent_branch_counterexample :
     linarith
 
 open Qatlib
-set_option warningAsError false
 
 /-- The query counter of a dynamic-step list equals the sum of its step query counters. -/
 private theorem counters_queries : ∀ (l : List DynStep),

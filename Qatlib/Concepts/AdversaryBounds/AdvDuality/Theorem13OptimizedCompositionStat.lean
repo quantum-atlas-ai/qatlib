@@ -27,7 +27,6 @@ The proposition formalizes the composition principle associated with Theorem 13 
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv

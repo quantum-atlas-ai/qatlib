@@ -44,7 +44,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator
 open MPFRootProfile MPFRootBound MPFMomentSeries
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
-set_option warningAsError false
 
 /-- If η ≥ 0, ε ≤ 1, and rη ≤ ε/(12π), the repeated-step growth factor (1 + η)^(r - 1) is at
 most 3. -/

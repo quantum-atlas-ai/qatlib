@@ -24,8 +24,6 @@ contract concerns resource characterizations for teleportation [BennettEtAl1993T
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
 

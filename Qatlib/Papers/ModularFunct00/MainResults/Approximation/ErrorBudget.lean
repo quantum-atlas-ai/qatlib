@@ -27,8 +27,6 @@ closure of `PolyLogOverhead` under multiplication.
 * [Freedman et al., 2000][FreedmanLarsenWang2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

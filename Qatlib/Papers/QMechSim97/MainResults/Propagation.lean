@@ -30,7 +30,6 @@ permutation on arbitrary states and preserve fixed particle-number sectors.
 * [Boghosian and Taylor, 1998][BoghosianTaylor1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

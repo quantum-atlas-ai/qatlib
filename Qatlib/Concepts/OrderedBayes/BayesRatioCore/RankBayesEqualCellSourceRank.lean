@@ -29,8 +29,6 @@ explicit boundary belonging to two distinct cells.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore

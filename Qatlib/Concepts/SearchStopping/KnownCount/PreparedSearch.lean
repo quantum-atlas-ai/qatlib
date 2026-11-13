@@ -30,8 +30,6 @@ For the mathematical background, see [Grover1997].
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

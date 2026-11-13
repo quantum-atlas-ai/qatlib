@@ -27,8 +27,6 @@ slice estimate `coordinateGram_slice_bound`. See [MagniezZur2026] for related ba
 * [Magniez and Zur, 2026][MagniezZur2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 450000
 noncomputable section

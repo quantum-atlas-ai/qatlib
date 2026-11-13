@@ -64,19 +64,14 @@ at least `1 − p_e`, and which uses at most `O(s ε⁻² log⁴(ns/(p_e ε)))` 
 `O(log(1/p_e) ε⁻²)` copies of `ρ` (the displayed closed forms drop the `O`
 constant and use `Real.log` for the base-`2`/`e` logarithm up to a constant).
 
-*Statement-only.*  No phase-estimation execution model, no Hamiltonian
-simulation cost model, and no Chernoff repetition argument exist in the library.
+Scope note: this theorem formalizes a finite estimator and scalar time and copy
+bounds. A phase-estimation execution model, a sparse-Hamiltonian simulation cost
+model, and a Chernoff repetition argument are outside the scope of this file.
 
-* Fixed version: arXiv:1609.05537v5, Lemma 12, printed p. 15.
-* Proof pointer (source, p. 15): Hamiltonian simulation + phase estimation to
-  accuracy `ε/2` in time `Õ(s log⁴(ns/ε))`, repeated `O(1/ε²)` times, averaged.
-* Current Lean gap: phase estimation / sparse-Hamiltonian simulation resource
-  model.
-* Candidate reusable dependency: `Operator`, `IsDensityOperator`,
-  `OperatorSpectralNorm` (`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision`).
-* Suggested continuation: build the phase-estimation sampler from
-  `QuantumAlgorithm.Concepts.QSVT...`-style unitaries, then apply a finite
-  Chernoff bound on the `O(1/ε²)` independent runs. -/
+* Source: arXiv:1609.05537v5, Lemma 12, printed p. 15.
+* Source proof (p. 15): Hamiltonian simulation and phase estimation to accuracy
+  `ε/2` in time `Õ(s log⁴(ns/ε))`, repeated `O(1/ε²)` times and averaged;
+  concentration follows from a Chernoff bound on the independent runs. -/
 theorem lemma12_traceEstimation (n s : ℕ) (A ρ : Operator n) (ε pe : ℝ)
     (hA : A.IsHermitian) (hsparse : RowSparse A s) (hnorm : ‖A‖ ≤ 1)
     (hρ : IsDensityOperator ρ) (hε : 0 < ε) (hpe : 0 < pe) (hpe1 : pe < 1) :

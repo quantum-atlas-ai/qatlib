@@ -34,7 +34,6 @@ gate-length estimate.
 - [Dawson and Nielsen, 2006][DawsonNielsen2006], *The Solovay-Kitaev algorithm*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.SU2
 
 section

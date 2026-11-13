@@ -24,8 +24,6 @@ term and proves the desired leakage bound for [HejaziZiniArrazola2024].
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 200000
 noncomputable section

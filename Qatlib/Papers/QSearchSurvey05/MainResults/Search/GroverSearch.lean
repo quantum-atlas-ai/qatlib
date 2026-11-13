@@ -23,8 +23,6 @@ search algorithm with error at most one half and query budget at most (π/4)√N
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

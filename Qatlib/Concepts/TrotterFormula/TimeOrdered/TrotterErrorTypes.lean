@@ -48,7 +48,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.TrotterFormula.TimeOrdered
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The difference between the left generator `pfLeftGenerator xs τ` of an exponential word and

@@ -27,7 +27,6 @@ This exposes the constrained optimization form used for coherent state conversio
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.GramQueryCore.FilteredCert

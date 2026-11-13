@@ -29,11 +29,8 @@ positive stationary distribution is a contraction. Consequently, its singular va
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open scoped BigOperators ComplexConjugate
-
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 
@@ -211,8 +208,8 @@ every dimension-indexed discriminant singular value lies in `[0, 1]`. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_core
     (P : Matrix X X ℝ) (π : X → ℝ)
     (hP : ∀ x y, 0 ≤ P x y) (hrow : ∀ x, ∑ y, P x y = 1)
-    (hirr : ∀ x y, Relation.ReflTransGen (fun a b : X => 0 < P a b) x y)
-    (hπ : ∀ x, 0 < π x) (hmass : (∑ x, π x) = 1)
+    (_hirr : ∀ x y, Relation.ReflTransGen (fun a b : X => 0 < P a b) x y)
+    (hπ : ∀ x, 0 < π x) (_hmass : (∑ x, π x) = 1)
     (hstat : ∀ y, ∑ x, π x * P x y = π y) :
     ∀ i : Fin (Fintype.card X),
       (Matrix.toEuclideanLin (Matrix.diagonal (fun x => (Real.sqrt (π x) : ℂ)) *
@@ -255,7 +252,7 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval :
         Matrix.diagonal (fun x => (Real.sqrt (π x) : ℂ)⁻¹);
     ∀ i : Fin (Fintype.card X),
       (Matrix.toEuclideanLin D).singularValues i.val ∈ Set.Icc (0 : ℝ) 1 :=
-  fun X _ _ P π hP hrow hirr hπ hmass hstat =>
+  fun _X _ _ P π hP hrow hirr hπ hmass hstat =>
     mnrs_discriminant_singular_values_mem_unit_interval_core P π hP hrow hirr hπ hmass hstat
 
 /-- Establishes the discriminant singular-value contract `Lemma3WalkSpec.expected` [Magniez et

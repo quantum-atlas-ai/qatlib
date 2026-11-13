@@ -58,7 +58,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 variable {I J K : Type} [Fintype I] [DecidableEq I]
   [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
 

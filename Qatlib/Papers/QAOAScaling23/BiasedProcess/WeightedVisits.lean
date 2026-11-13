@@ -28,8 +28,6 @@ starting ranks, including the weighted visit formula used in the descent-cost an
 * [Shaydulin et al., 2024][ShaydulinEtAl2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess

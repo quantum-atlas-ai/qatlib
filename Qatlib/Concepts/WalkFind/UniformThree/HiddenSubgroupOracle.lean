@@ -30,8 +30,6 @@ subgroup algorithms [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery

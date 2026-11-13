@@ -20,7 +20,7 @@ two, and `Ũ` not necessarily unitary), the zero fiber of the amplified word is
 This is exactly the `P W P = (|0⟩⟨0| ⊗ Ũ)/s` consequence of Eq. (11) substituted
 into the cubic identity Eq. (13).
 
-Frozen FQN reused: `QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.equation14`
+Reusable FQN: `Qatlib.Papers.TruncTaylor14.ResetDiscard.equation14`
 (`Statements/Equation14.lean:12`).
 -/
 

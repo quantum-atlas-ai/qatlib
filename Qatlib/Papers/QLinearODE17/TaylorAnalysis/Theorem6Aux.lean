@@ -35,7 +35,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
-set_option warningAsError false
 
 /-- Every solution of the stated Taylor system has initial time block equal to `x_in`. -/
 theorem taylor_initial_block {N : Type} [Fintype N] [DecidableEq N]

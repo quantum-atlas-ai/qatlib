@@ -24,7 +24,7 @@ The proof below follows the paper's route: a `Gershgorin`-type row-sum bound giv
 operator-norm form of the same eigenvalue bound: every Rayleigh quotient is bounded
 by the row and column sums of entry moduli, hence by `s`.
 
-No sorry, no extra hypothesis beyond the paper's `s`-sparsity (row support ≤ `s`) and
+The hypotheses are Hermiticity, `s`-sparsity (row support ≤ `s`), and the
 entry bound `|h_{ij}| ≤ 1`.
 -/
 

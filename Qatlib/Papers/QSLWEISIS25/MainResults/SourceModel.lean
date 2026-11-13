@@ -19,10 +19,9 @@ set_option backward.isDefEq.respectTransparency false
 Source version fixed for this development: **arXiv:2510.06097v2** (quant-ph,
 11 May 2026), *On the Quantum Equivalence between S|LWE⟩ and ISIS*
 (Chailloux–Hermouet).  PDF/text used:
-`prove/assets/2510.06097.{pdf,txt}`.
+`arXiv:2510.06097v2`.
 
-This module fixes the notation of the paper once, so that the claim modules can
-state the paper's theorems verbatim:
+This module defines state identities and compatibility specifications:
 
 * `dot`, `dotChar` — the coordinate pairing and the additive character
   `v ↦ ω^{x·v}` on `Z_q^k`, built on Mathlib's `ZMod.stdAddChar`;
@@ -36,10 +35,12 @@ state the paper's theorems verbatim:
 * statistical distance, fidelity, and the randomness-recoverability interface
   (Definition 16).
 
-Only Mathlib's additive-character orthogonality is reused
-(`AddChar.sum_eq_ite`, `ZMod.stdAddChar`); no statement of the paper was found
-in Dev or in Frozen v2.0.2 (searched for `ISIS`, `S|LWE`, `stdAddChar`,
-`randomness recoverable`), so the whole block is built here.
+The `time` fields of `IsisSolver` and `ICLWEUnitary` are unverified labels.
+Recoverability and normalized output vectors do not certify runtime or unitary
+implementability. The execution contracts below require words in supplied primitive
+models and charge their lengths; their existence is specified, not proved.
+`FourierCalculations` proves state identities, not a runtime reduction or algorithm
+existence theorem. No native gate synthesis is provided here.
 -/
 
 open scoped BigOperators ComplexConjugate
@@ -246,10 +247,10 @@ power of `n`. -/
 def Negligible (f : ℕ → ℝ) : Prop :=
   ∀ k : ℕ, ∃ N : ℕ, ∀ n ≥ N, |f n| ≤ (n : ℝ) ^ (-(k : ℝ))
 
-/-- A randomized classical algorithm for `ISIS(A, T)` with random tape `{0,1}^ℓ`,
-uniform in the challenge matrix `A`.  `none` is the abort symbol.  The field
-`correct` is the property proved in Proposition 10: every non-aborting output is
-an ISIS solution. -/
+/-- ISIS output specification with an unverified nonnegative time label.
+`none` denotes abort. `correct` assumes that non-aborting outputs solve ISIS;
+it neither constructs Proposition 10's algorithm nor relates `time` to `out`.
+See `IsisExecution` for a conditional execution contract. -/
 structure IsisSolver (q n m ℓ : ℕ) [NeZero q] (T : Set (Vec q m)) where
   out : Matrix (Fin n) (Fin m) (ZMod q) → Secret q n → Tape ℓ → Option (Vec q m)
   time : ℝ
@@ -258,7 +259,7 @@ structure IsisSolver (q n m ℓ : ℕ) [NeZero q] (T : Set (Vec q m)) where
 
 /-- A randomness-recoverable classical ISIS algorithm (Definition 16): an ISIS
 solver together with an extractor `E` that recovers the random tape from the
-challenge matrix and the algorithm's output. -/
+challenge matrix and the algorithm's output. This adds no runtime semantics. -/
 structure RecoverableIsisAlg (q n m ℓ : ℕ) [NeZero q] (T : Set (Vec q m))
     extends IsisSolver q n m ℓ T where
   E : Matrix (Fin n) (Fin m) (ZMod q) → Option (Vec q m) → Tape ℓ
@@ -283,8 +284,9 @@ noncomputable def uniformOn {α : Type*} [Fintype α] (s : Finset α) (x : α) :
   classical
   exact if x ∈ s then ((s.card : ℝ))⁻¹ else 0
 
-/-- Definition 15: a unitary for `IC|LWE⟩(A, f)`, described by its output states
-`W' y` (which are unit vectors). -/
+/-- Output-state specification inspired by Definition 15. `unit` only normalizes
+each output vector; it does not exhibit a unitary operator. `time` is an unverified
+label. See `ICLWEExecution` for a conditional unitary-word contract. -/
 structure ICLWEUnitary {q n m : ℕ} [NeZero q]
     (A : Matrix (Fin n) (Fin m) (ZMod q)) (f : Vec q m → ℂ) where
   time : ℝ
@@ -293,12 +295,74 @@ structure ICLWEUnitary {q n m : ℕ} [NeZero q]
   unit : ∀ y, stateNormSq (W' y) = 1
 
 /-- The average overlap `E_y |⟨W_y | W'_y⟩|` of Definition 15, i.e. the fidelity
-of the IC|LWE⟩ unitary. -/
+of the specified IC|LWE⟩ output states. -/
 noncomputable def averageOverlap {q n m : ℕ} [NeZero q]
     {A : Matrix (Fin n) (Fin m) (ZMod q)} {f : Vec q m → ℂ}
     (U : ICLWEUnitary A f) : ℝ :=
   (Fintype.card (Secret q n) : ℝ)⁻¹ *
     ∑ y, ‖∑ v, (star (Wvec A f y v)) * U.W' y v‖
+
+/-- ISIS execution relative to supplied primitive semantics. Initialization and
+readout are part of the assumed model; this does not supply a classical machine
+implementation. Each primitive costs one time unit, including calls to subroutines
+only when those are explicitly included in the primitive model. Initialization,
+readout and word generation are excluded, so this is not a total runtime bound. -/
+structure IsisExecution {ℓ : ℕ} {T : Set (Vec q m)}
+    (S : IsisSolver q n m ℓ T) (State Instruction : Type)
+    (initial : Matrix (Fin n) (Fin m) (ZMod q) → Secret q n → Tape ℓ → State)
+    (step : State → Instruction → State) (readout : State → Option (Vec q m)) where
+  word : Matrix (Fin n) (Fin m) (ZMod q) → Secret q n → Tape ℓ → List Instruction
+  output_eq : ∀ A y r, S.out A y r = readout ((word A y r).foldl step (initial A y r))
+  time_bound : ∀ A y r, ((word A y r).length : ℝ) ≤ S.time
+
+/-- Any nonempty ISIS execution forces a positive primitive-time label. -/
+theorem IsisExecution.time_pos {ℓ : ℕ} {T : Set (Vec q m)}
+    {S : IsisSolver q n m ℓ T} {State Instruction : Type}
+    {initial : Matrix (Fin n) (Fin m) (ZMod q) → Secret q n → Tape ℓ → State}
+    {step : State → Instruction → State} {readout : State → Option (Vec q m)}
+    (h : IsisExecution S State Instruction initial step readout)
+    (A : Matrix (Fin n) (Fin m) (ZMod q)) (y : Secret q n) (r : Tape ℓ)
+    (hne : h.word A y r ≠ []) : 0 < S.time :=
+  lt_of_lt_of_le (Nat.cast_pos.mpr (List.length_pos_iff.mpr hne)) (h.time_bound A y r)
+
+/-- **Statement only — not proved in Qatlib.**
+The supplied ISIS specification has an execution in the given primitive model.
+This is an additional obligation even for a `RecoverableIsisAlg`. -/
+def isisSolver_statement {ℓ : ℕ} {T : Set (Vec q m)}
+    (S : IsisSolver q n m ℓ T) (State Instruction : Type)
+    (initial : Matrix (Fin n) (Fin m) (ZMod q) → Secret q n → Tape ℓ → State)
+    (step : State → Instruction → State) (readout : State → Option (Vec q m)) : Prop :=
+  Nonempty (IsisExecution S State Instruction initial step readout)
+
+/-- Conditional IC|LWE⟩ execution from the computational zero state. The caller
+supplies the primitive matrices; both unitary identities are required. Time counts
+primitive applications, not native gates or the computation of a word from `y`.
+No primitive library or word-generating algorithm is constructed here. -/
+structure ICLWEExecution {A : Matrix (Fin n) (Fin m) (ZMod q)} {f : Vec q m → ℂ}
+    (U : ICLWEUnitary A f) (Instruction : Type)
+    (primitive : Instruction → Matrix (Vec q m) (Vec q m) ℂ) where
+  word : Secret q n → List Instruction
+  unitary : ∀ i, (primitive i).conjTranspose * primitive i = 1 ∧
+    primitive i * (primitive i).conjTranspose = 1
+  output_eq : ∀ y, U.W' y = (word y).foldl
+    (fun ψ i => (primitive i).mulVec ψ) (Pi.single 0 1)
+  time_bound : ∀ y, ((word y).length : ℝ) ≤ U.time
+
+/-- Any nonempty preparation word forces a positive primitive-time label. -/
+theorem ICLWEExecution.time_pos {A : Matrix (Fin n) (Fin m) (ZMod q)}
+    {f : Vec q m → ℂ} {U : ICLWEUnitary A f} {Instruction : Type}
+    {primitive : Instruction → Matrix (Vec q m) (Vec q m) ℂ}
+    (h : ICLWEExecution U Instruction primitive) (y : Secret q n)
+    (hne : h.word y ≠ []) : 0 < U.time :=
+  lt_of_lt_of_le (Nat.cast_pos.mpr (List.length_pos_iff.mpr hne)) (h.time_bound y)
+
+/-- **Statement only — not proved in Qatlib.**
+The specified output states can be prepared within the time label using the
+supplied unitary primitives. Normalization alone does not discharge this obligation. -/
+def iclweUnitary_statement {A : Matrix (Fin n) (Fin m) (ZMod q)} {f : Vec q m → ℂ}
+    (U : ICLWEUnitary A f) (Instruction : Type)
+    (primitive : Instruction → Matrix (Vec q m) (Vec q m) ℂ) : Prop :=
+  Nonempty (ICLWEExecution U Instruction primitive)
 
 end Basic
 

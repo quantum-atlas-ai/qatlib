@@ -28,8 +28,6 @@ with the nested method of [KanekoEtAl2020].
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 500000
 set_option backward.isDefEq.respectTransparency false

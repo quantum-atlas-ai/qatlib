@@ -37,7 +37,6 @@ global phase, connecting the formal phase model to the rotation family in [Zhang
 - [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

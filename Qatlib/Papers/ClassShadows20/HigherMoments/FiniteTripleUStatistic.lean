@@ -28,8 +28,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ShadowModels.UStatBackend

@@ -28,7 +28,6 @@ The evaluator tracks iteration-plus-check costs for randomized search [BoyerEtAl
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SearchStopping.UnknownCount

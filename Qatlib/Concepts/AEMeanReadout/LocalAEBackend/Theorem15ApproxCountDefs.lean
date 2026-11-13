@@ -35,7 +35,6 @@ separate masses for output zero and for integer outputs within the relative-erro
 * [Brassard et al., Theorem 15][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open scoped Classical

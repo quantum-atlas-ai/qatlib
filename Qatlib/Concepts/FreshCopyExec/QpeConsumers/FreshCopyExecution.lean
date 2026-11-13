@@ -59,7 +59,6 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped BigOperators ComplexOrder
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 3000000
 noncomputable section

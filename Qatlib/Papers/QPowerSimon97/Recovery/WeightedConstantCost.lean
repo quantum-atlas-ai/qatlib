@@ -23,8 +23,6 @@ the analysis of [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

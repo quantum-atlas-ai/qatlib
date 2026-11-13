@@ -50,9 +50,7 @@ open Matrix Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped BigOperators Classical
-set_option warningAsError false
 noncomputable section
-set_option linter.unusedSectionVars false
 
 variable {H W : Type} [Fintype H] [DecidableEq H] [Fintype W] [DecidableEq W]
 

@@ -28,8 +28,6 @@ This realizes the witness-to-algorithm conclusion associated with [Reichardt2011
 * [Reichardt, Theorem 1.3][Reichardt2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option synthInstance.maxSize 4096

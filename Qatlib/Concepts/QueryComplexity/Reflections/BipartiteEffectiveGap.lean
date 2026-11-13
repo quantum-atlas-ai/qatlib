@@ -39,7 +39,6 @@ formulation is developed separately in the reflection-query framework of [Reicha
 * [Reichardt, 2011][Reichardt2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false

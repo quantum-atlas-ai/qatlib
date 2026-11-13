@@ -29,7 +29,6 @@ extensions of quantum maps are discussed in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
@@ -39,9 +38,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.ReferenceError.RefTraceError
 

@@ -34,7 +34,6 @@ quantum information background in [Wilde2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
@@ -43,7 +42,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

@@ -32,8 +32,6 @@ scalar spectral gap bound from the stated coupling time and exponential estimate
 * [Magniez and Nayak, 2005][MagniezNayak2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.GrpCommTest05.MainResults

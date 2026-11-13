@@ -26,8 +26,6 @@ model associated with [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.RiskEstimation.PopulationGap
 

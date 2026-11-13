@@ -270,7 +270,7 @@ noncomputable def quaternionRealify {n : ℕ} (A : Matrix (Fin n) (Fin n) ℍ) :
 noncomputable def studyDetSq {n : ℕ} (A : Matrix (Fin n) (Fin n) ℍ) : ℝ :=
   Real.sqrt (Matrix.det (quaternionRealify A))
 
-/-- The gamma product identities for `studyDetSq` of quaternionic Gaussian matrices and for its
+/-- **Statement only — not proved in Qatlib.** The gamma product identities for `studyDetSq` of quaternionic Gaussian matrices and for its
 factorial-normalized version, in positive dimensions. -/
 def StudyGammaBenchmark : Prop :=
   (∀ n : ℕ, 1 ≤ n →

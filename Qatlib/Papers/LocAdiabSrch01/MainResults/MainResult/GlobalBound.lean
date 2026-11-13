@@ -24,8 +24,6 @@ one, and `T ≥ N / ε`, then `global_adiabatic_condition` bounds the resulting 
 * [Roland and Cerf, 2002][RolandCerf2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -32,7 +32,6 @@ between a finite family and its list representation.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -29,8 +29,6 @@ with an inner-product estimation bound.
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

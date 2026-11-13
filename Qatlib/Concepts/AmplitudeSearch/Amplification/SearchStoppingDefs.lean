@@ -37,7 +37,6 @@ exhaustion of the round bound, and the window-average definitions distinguish de
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

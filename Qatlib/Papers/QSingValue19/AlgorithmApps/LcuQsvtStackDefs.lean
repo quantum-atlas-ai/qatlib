@@ -31,7 +31,6 @@ frame resources, and dynamic machine instruction lists.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

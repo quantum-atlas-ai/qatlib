@@ -28,8 +28,6 @@ for these constructions in [DehaeneDeMoor2003].
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 
 namespace Qatlib.Concepts.PauliClifford.ExactRank

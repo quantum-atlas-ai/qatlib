@@ -26,8 +26,6 @@ strongly connected, and bounds the associated query-cost expression.
 * [Durr et al., 2003][DurrMhallaLei2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section

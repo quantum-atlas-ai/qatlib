@@ -31,12 +31,10 @@ framework of [Campbell2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.DiamondQdrift.QuantizerCert
 open Qatlib.Concepts.DiamondQdrift.SignedBridge
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject

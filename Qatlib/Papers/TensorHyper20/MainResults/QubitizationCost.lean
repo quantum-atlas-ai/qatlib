@@ -28,8 +28,6 @@ by the cost per step.
 * [Lee et al., 2021][LeeEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorHyper20.MainResults.QubitizationCost

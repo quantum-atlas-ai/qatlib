@@ -26,7 +26,6 @@ the identity, following the commutator analysis of [DawsonNielsen2006].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Papers.SolovayKitaev05.MainResults.CommutatorPerturbation
 

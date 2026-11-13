@@ -29,7 +29,6 @@ setting discussed in [PoulinWocjan2009].
 * [Poulin and Wocjan, 2009][PoulinWocjan2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

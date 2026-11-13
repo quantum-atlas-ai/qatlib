@@ -15,21 +15,21 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed source: arXiv:0911.3635v2 (*Quantum Metropolis sampling*), printed
 pages 22-23.  This file is the paper-layer interface.  It bridges the paper's
-Sec. 6 statements to the frozen semantic layer and adds the one *new* proof
+Sec. 6 statements to the semantic layer and adds the one *new* proof
 that the paper uses in Sec. 4.2 but never isolates: the detailed-balance
 criterion is linear in the superoperator (printed page 13: "The condition (25)
 is linear in the superoperators.  We can therefore conclude that, when each of
 the summands A and all the B's in (19) individually satisfy this condition, the
 total cp-map E is detailed balanced.").
 
-Reused frozen declarations (all in
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance`):
+Reused declarations (all in
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance`):
 
 * `QuantumDetailedBalance` (definition, Eq. (Sec. 6 Definition)) —
-  `QuantumAlgorithm/Concepts/QuantumGibbs/DetailedBalance/QuantumDetailedBalance/QuantumDetailedBalance.lean`;
+  `Qatlib/Concepts/QuantumGibbs/DetailedBalance/QuantumDetailedBalance/QuantumDetailedBalance.lean`;
 * `quantumDetailedBalanceFixedPoint` Sec. 6 Lemma "fixed point" (strict CPTP
   domain; the printed hypothesis "completely positive" alone is refuted by a
-  non-trace-preserving counterexample, recorded in the frozen statement file);
+  non-trace-preserving counterexample, recorded in the statement file);
 * `quantumDetailedBalanceCriterion` Sec. 6 Lemma "Detailed balance criterion"
   (Eq. (72), complete orthonormal basis, zero probabilities allowed).
 -/
@@ -48,10 +48,10 @@ variable {D : ℕ}
 /-- **c012, Sec. 6 Definition (printed p. 22).**  The paper defines quantum
 detailed balance by Hilbert-Schmidt symmetry of
 `E_σ[ρ] = E[σ^{1/2} ρ σ^{1/2}]`: `Tr[ρ† E_σ[φ]] = Tr[E_σ[ρ]† φ]` for all
-complex square matrices `ρ φ`.  This theorem records that the frozen predicate
+complex square matrices `ρ φ`.  This theorem records that the formal predicate
 is exactly that conjunction over all complex matrices, with the positive
 square root `densSqrt` supplied by functional calculus.  Reused FQN:
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance`. -/
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance`. -/
 theorem source_quantumDetailedBalance_iff_hilbertSchmidt
     (T : Operator D →ₗ[ℂ] Operator D) (σ : Operator D) :
     QuantumDetailedBalance T σ ↔
@@ -64,10 +64,10 @@ theorem source_quantumDetailedBalance_iff_hilbertSchmidt
 and `E[ρ] = Σ_μ A_μ ρ A_μ†` a completely positive map obeying quantum detailed
 balance with respect to `σ`; then `σ` is the steady state of `E`.  The paper's
 own proof ends with `σ^{1/2} (Σ_μ A_μ† A_μ) σ^{1/2} = σ` and therefore uses
-trace preservation; the frozen contract packages linearity, complete
+trace preservation; the formal contract packages linearity, complete
 positivity and trace preservation as a `QuantumChannel`, which is the honest
 reading of the printed proof.  Reused FQN:
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`. -/
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`. -/
 theorem source_fixedPoint : QuantumDetailedBalanceFixedPoint :=
   quantumDetailedBalanceFixedPoint
 
@@ -75,8 +75,8 @@ theorem source_fixedPoint : QuantumDetailedBalanceFixedPoint :=
 For every finite dimension, packaged channel `T` and density `σ`, detailed
 balance of `T.map` with respect to `σ` forces `T.map σ = σ`.  Restates the
 fixed-point lemma under the explicit CPTP domain, including singular `σ`
-(the frozen proof never inverts `σ`).  Reused FQN:
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`. -/
+(the existing proof never inverts `σ`).  Reused FQN:
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`. -/
 theorem source_fixedPoint_of_detailedBalance (T : QuantumChannel D D) (σ : Operator D)
     (hσ : IsDensityOperator σ) (hdb : QuantumDetailedBalance T.map σ) :
     T.map σ = σ :=
@@ -88,7 +88,7 @@ distribution `{p_i}`, and a completely positive map obeying
 `√(p_n p_m) ⟨ψ_i|E[|ψ_n⟩⟨ψ_m|]|ψ_j⟩ = √(p_i p_j) ⟨ψ_m|E[|ψ_j⟩⟨ψ_i|]|ψ_n⟩`,
 the state `σ = Σ_i p_i |ψ_i⟩⟨ψ_i|` and `E` obey detailed balance, hence `σ` is
 a fixed point.  Reused FQN:
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceCriterion`. -/
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceCriterion`. -/
 theorem source_detailedBalanceCriterion : QuantumDetailedBalanceCriterion :=
   quantumDetailedBalanceCriterion
 
@@ -96,7 +96,7 @@ theorem source_detailedBalanceCriterion : QuantumDetailedBalanceCriterion :=
 notation: complete basis, nonnegative normalized weights, matrix-element
 condition (72) imply Hilbert-Schmidt detailed balance and stationarity of the
 Gibbs-basis state.  Reused FQN:
-`QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceCriterion`. -/
+`Qatlib.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceCriterion`. -/
 theorem source_detailedBalanceCriterion_unpacked
     (T : QuantumChannel D D) (ψ : Fin D → QState (Fin D)) (p : Fin D → ℝ)
     (horth : ∀ i j : Fin D, Inner (ψ i) (ψ j) = if i = j then 1 else 0)
@@ -114,7 +114,7 @@ theorem source_detailedBalanceCriterion_unpacked
 linear in the superoperators: if two superoperators both obey quantum detailed
 balance with respect to the same `σ`, then so does their sum.  This is the step
 the paper uses to reduce "verify A and all B_n individually" to "E = A + B_0 +
-Σ B_n is detailed balanced".  New proof in this file; no frozen theorem
+Σ B_n is detailed balanced".  New proof in this file; no established theorem
 isolates it. -/
 theorem quantumDetailedBalance_add
     {T₁ T₂ : Operator D →ₗ[ℂ] Operator D} {σ : Operator D}

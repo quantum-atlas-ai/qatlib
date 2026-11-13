@@ -100,7 +100,7 @@ generates it. -/
 def ClassicallyHard {m : ℕ} (p : ∀ n, CondLaw n m) : Prop :=
   ¬ ClassicallyEasy p
 
-/-- **Conjecture 1** (arXiv:2509.09033v1, Section 5, stated before Theorem 13): there is a
+/-- **Open conjecture / complexity hypothesis — not proved in Qatlib.** **Conjecture 1** (arXiv:2509.09033v1, Section 5, stated before Theorem 13): there is a
 family of conditional distributions that a quantum computer generates efficiently but no
 classical computer can.  The paper instantiates this family with instantaneously-deep QNN
 laws (Definition 17); the Lean statement only records the separation, because the IDQNN

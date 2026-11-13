@@ -47,7 +47,6 @@ strict-inequality criteria distinguish repetition counts at most two from counts
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.GeometricRetry
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.CappedFeedback

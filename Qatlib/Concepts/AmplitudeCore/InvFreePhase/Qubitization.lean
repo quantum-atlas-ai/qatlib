@@ -33,15 +33,11 @@ See [LowChuang2019] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 
 namespace Qatlib.Concepts.AmplitudeCore.InvFreePhase
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 
@@ -50,6 +46,7 @@ variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 /-- Complex conjugation fixes a real scalar embedded in `ℂ`. -/
 theorem starRingEnd_ofReal (r : ℝ) : (starRingEnd ℂ) ((r : ℂ)) = ((r : ℂ)) := by simp
 
+omit [DecidableEq I] in
 /-- Scaling the first argument of `Inner` conjugates the scalar. -/
 theorem inner_smul_left (c : ℂ) (ψ φ : QState I) :
     Inner (c • ψ) φ = (starRingEnd ℂ) c * Inner ψ φ := by
@@ -58,6 +55,7 @@ theorem inner_smul_left (c : ℂ) (ψ φ : QState I) :
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- Scaling the second argument of `Inner` multiplies the inner product by that scalar. -/
 theorem inner_smul_right (c : ℂ) (ψ φ : QState I) :
     Inner ψ (c • φ) = c * Inner ψ φ := by
@@ -66,22 +64,25 @@ theorem inner_smul_right (c : ℂ) (ψ φ : QState I) :
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- The state inner product distributes over subtraction in its first argument. -/
 theorem inner_sub_left (ψ φ χ : QState I) :
     Inner (ψ - φ) χ = Inner ψ χ - Inner φ χ := by
   rw [inner_apply, inner_apply, inner_apply]
-  simp only [Pi.sub_apply, smul_eq_mul, map_sub]
+  simp only [Pi.sub_apply, map_sub]
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- The state inner product distributes over subtraction in its second argument. -/
 theorem inner_sub_right (ψ φ χ : QState I) :
     Inner ψ (φ - χ) = Inner ψ φ - Inner ψ χ := by
   rw [inner_apply, inner_apply, inner_apply]
-  simp only [Pi.sub_apply, smul_eq_mul]
+  simp only [Pi.sub_apply]
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- Moving a matrix action from the first argument of the state inner product to the second
 replaces it by its conjugate transpose. -/
 theorem inner_mulVec_left (M : Matrix I I ℂ) (ψ φ : QState I) :

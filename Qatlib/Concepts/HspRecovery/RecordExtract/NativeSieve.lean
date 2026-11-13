@@ -32,9 +32,6 @@ instruction as a query or a local gate with bounded controlled-phase exponent.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.HspRecovery.ReductionCore
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

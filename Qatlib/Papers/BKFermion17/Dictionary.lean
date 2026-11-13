@@ -25,7 +25,6 @@ order, and the commutation conditions needed for the double-excitation formula. 
 * [Setia and Whitfield, 2018][SetiaWhitfield2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

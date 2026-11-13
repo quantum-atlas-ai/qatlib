@@ -33,8 +33,6 @@ the downstream guarantees.
 * [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout

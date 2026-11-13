@@ -24,7 +24,6 @@ contraction and midpoint gap conditions, with separate odd and even transform co
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

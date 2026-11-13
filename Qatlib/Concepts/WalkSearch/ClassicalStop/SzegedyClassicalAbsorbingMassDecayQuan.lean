@@ -24,8 +24,6 @@ background.
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge

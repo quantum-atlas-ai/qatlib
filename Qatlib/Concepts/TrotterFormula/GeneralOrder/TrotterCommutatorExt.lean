@@ -34,10 +34,6 @@ explicit propositions.
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
-
 
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
@@ -55,7 +51,6 @@ open Qatlib
 open Qatlib
 open Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff
-set_option warningAsError false
 
 noncomputable section
 

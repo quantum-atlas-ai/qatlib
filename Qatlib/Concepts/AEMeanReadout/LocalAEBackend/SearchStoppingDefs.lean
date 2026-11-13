@@ -62,7 +62,6 @@ source-clock cutoff event for the minimum-finding construction of [DurrHoyer1996
 * [Durr and Hoyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

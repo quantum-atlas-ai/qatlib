@@ -31,7 +31,6 @@ the bridge to a lower bound for concrete gate lists is developed separately.
 * [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.7.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

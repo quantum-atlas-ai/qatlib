@@ -37,7 +37,6 @@ specializes these results to three real phase parameters.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.GateVocabulary.GateVocab
@@ -60,8 +59,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Choose a phase or its complex conjugate according to the current X-frame bit. -/
 noncomputable def adaptivePhase (x : Bool) (z : ℂ) : ℂ := if x then star z else z

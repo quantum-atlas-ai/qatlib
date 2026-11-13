@@ -28,7 +28,6 @@ the exact success probability, and the zero and unit probability endpoint formul
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 

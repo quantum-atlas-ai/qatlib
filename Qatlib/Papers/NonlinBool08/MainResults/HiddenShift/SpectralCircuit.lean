@@ -26,7 +26,6 @@ promises, its evaluated state is exactly the basis state of the hidden shift. Se
 * [Roetteler, 2008][Roetteler2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

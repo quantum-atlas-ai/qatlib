@@ -23,7 +23,6 @@ ill-conditioned filter amplitudes on the specified phase ranges. Its coefficient
 * [Harrow et al., 2009, Lemma 3][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HHL2009

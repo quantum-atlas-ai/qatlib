@@ -35,8 +35,6 @@ for the mathematical background.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.ReductionCore
 
 open Qatlib.Foundations.PureStateMath
@@ -143,17 +141,16 @@ def windowAgreeMod (N q : ℕ) (k ℓ : ZMod N) : Prop := (q : ZMod N) ∣ (k - 
 entries. -/
 noncomputable def pairWindowMod {N : ℕ} (q : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod N) (L : List α) : List (α × α) := by
-  set_option linter.unusedVariables false in
   match L with
   | [] => exact []
   | r :: rest =>
-    match h : rest.find? (fun r' => decide (windowAgreeMod N q (label r) (label r'))) with
+    match _h : rest.find? (fun r' => decide (windowAgreeMod N q (label r) (label r'))) with
     | none => exact pairWindowMod q label rest
     | some r' => exact (r, r') :: pairWindowMod q label (rest.erase r')
 termination_by L.length
 decreasing_by
   · simp
-  · have hm : r' ∈ rest := List.mem_of_find?_eq_some h
+  · have hm : r' ∈ rest := List.mem_of_find?_eq_some _h
     have h1 := List.length_erase_add_one hm
     simp
     omega

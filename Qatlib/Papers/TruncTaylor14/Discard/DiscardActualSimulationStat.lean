@@ -25,7 +25,6 @@ most `2⁻ᵏ` on density matrices. See [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

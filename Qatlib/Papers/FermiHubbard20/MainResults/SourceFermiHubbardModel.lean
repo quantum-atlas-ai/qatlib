@@ -20,8 +20,8 @@ Eq. (2) together with the density-spread observables of Eq. (3).
 The single-particle modes are `2 * L` Majorana-Jordan-Wigner modes: site `j`,
 spin `ν` (`ν = false` is spin-up, `ν = true` is spin-down) is placed at
 `2 j + ν`.  All algebraic primitives (`creation`, `annihilation`, `numberOp`)
-are reused verbatim from the frozen concept library
-`QuantumAlgorithm.Concepts.FermionAlgebra.CarJordanWigner`, so no fermionic
+are reused verbatim from the shared concept library
+`Qatlib.Concepts.FermionAlgebra.CarJordanWigner`, so no fermionic
 algebra is re-axiomatised here.
 -/
 
@@ -77,9 +77,9 @@ sites with open boundaries:
 
 All amplitudes are real (`J U : ℝ`, `φ : Fin L → Bool → ℝ`) so that the
 resulting matrix is Hermitian (proved as `fermiHubbard1D_isHermitian` below
-would require the frozen Hermiticity helpers, which are private; the
-Hermiticity of the corresponding frozen Hamiltonian is the public theorem
-`QuantumAlgorithm.Concepts.FermionAlgebra.CarJordanWigner.g2`). -/
+would require the shared Hermiticity helpers, which are private; the
+Hermiticity of the corresponding shared Hamiltonian is the public theorem
+`Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g2`). -/
 noncomputable def fermiHubbard1D (L : ℕ) (J U : ℝ) (φ : Fin L → Bool → ℝ) :
     Matrix (Reg (2 * L)) (Reg (2 * L)) ℂ :=
   (∑ j : Fin L, ∑ ν : Bool,

@@ -156,16 +156,10 @@ proves positivity and completeness of their effects, and evaluates their total s
 * [Sasaki and Carlini, 2002][SasakiCarlini2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 4000000
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
-set_option linter.unreachableTactic false
-set_option linter.unnecessarySeqFocus false
 noncomputable section
 
 open Matrix
@@ -304,8 +298,8 @@ theorem aInvSqrt_mulVec_aPlus (θ : ℝ) :
     aInvSqrt *ᵥ aPlus θ = phiTilde θ := by
   funext i
   fin_cases i <;>
-    simp [aInvSqrt, aPlus, phiTilde, Matrix.mulVec, Fin.sum_univ_three] <;>
-    ring_nf
+    simp [aInvSqrt, aPlus, phiTilde, Matrix.mulVec]
+  all_goals ring_nf
   · have h2 : Real.sqrt 2 * Real.sqrt 2 = 2 := Real.mul_self_sqrt (by norm_num)
     have hc : ((Real.sqrt 2 : ℂ))^2 = (2 : ℂ) := by
       rw [pow_two,
@@ -324,20 +318,17 @@ theorem muTilde_posSemidef (θ : ℝ) : (muTilde θ).PosSemidef := by
 /-- The conjugate of `aPlus θ` is the explicit vector `starAPlus θ`. -/
 theorem star_aPlus (θ : ℝ) : star (aPlus θ) = starAPlus θ := by
   funext i; fin_cases i <;>
-    simp [aPlus, starAPlus, star_exp, Complex.star_def, map_mul, map_add, map_neg,
-      Complex.conj_I, Complex.conj_ofReal]
+    simp [aPlus, starAPlus, star_exp, Complex.conj_I, Complex.conj_ofReal]
 
 /-- The conjugate of `aZero θ` is the explicit vector `starAZero θ`. -/
 theorem star_aZero (θ : ℝ) : star (aZero θ) = starAZero θ := by
   funext i; fin_cases i <;>
-    simp [aZero, starAZero, star_exp, Complex.star_def, map_mul, map_add, map_neg,
-      Complex.conj_I, Complex.conj_ofReal]
+    simp [aZero, starAZero, star_exp, Complex.conj_I, Complex.conj_ofReal]
 
 /-- The conjugate of `aMinus θ` is the explicit vector `starAMinus θ`. -/
 theorem star_aMinus (θ : ℝ) : star (aMinus θ) = starAMinus θ := by
   funext i; fin_cases i <;>
-    simp [aMinus, starAMinus, star_exp, Complex.star_def, map_mul, map_add, map_neg,
-      Complex.conj_I, Complex.conj_ofReal]
+    simp [aMinus, starAMinus, star_exp, Complex.conj_I, Complex.conj_ofReal]
 
 /-- The explicit complex conjugate of `vOne θ`. -/
 def starVOne (θ : ℝ) : Fin 3 → ℂ :=
@@ -364,12 +355,12 @@ theorem main_identity (R θ : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
   simp [gammaTilde, gTilde, aPlus, aZero, aMinus, starAPlus, starAZero, starAMinus,
-    vOne, vTwo, coefOne, coefTwo, exp_pos, exp_neg, star_exp_pos, star_exp_neg, Fin.sum_univ_three]
+    vOne, vTwo, coefOne, coefTwo, exp_pos, exp_neg, star_exp_pos, star_exp_neg]
   all_goals
-    (ring_nf <;>
-     (try simp only [sq2c, sq6c, Complex.I_sq]) <;>
-     (try simp only [Complex.exp_neg]) <;>
-     (try field_simp) <;>
+    (ring_nf;
+     (try simp only [sq2c, Complex.I_sq]);
+     (try simp only [Complex.exp_neg]);
+     (try field_simp);
      (try ring))
 
 /-- The product of `exp a` and `exp (-a)` is one for any complex `a`. -/
@@ -513,7 +504,7 @@ theorem exp_neg_split (θ : ℝ) :
   have hsplit : -(Complex.I * ((θ : ℂ) + (Real.pi : ℂ) / 2))
       = (-(Complex.I * (θ : ℂ))) + (-((Real.pi : ℂ) / 2) * Complex.I) := by ring
   rw [hsplit, Complex.exp_add]
-  rw [show -((Real.pi : ℂ) / 2) * Complex.I = -(Real.pi / 2) * Complex.I by push_cast; ring]
+  rw [show -((Real.pi : ℂ) / 2) * Complex.I = -(Real.pi / 2) * Complex.I by ring]
   rw [exp_neg_pi_div_two]
   ring
 
@@ -523,14 +514,15 @@ theorem exp_pos_split (θ : ℝ) :
   have hsplit : Complex.I * ((θ : ℂ) + (Real.pi : ℂ) / 2)
       = Complex.I * (θ : ℂ) + ((Real.pi : ℂ) / 2) * Complex.I := by ring
   rw [hsplit, Complex.exp_add]
-  rw [show (Real.pi : ℂ) / 2 * Complex.I = Real.pi / 2 * Complex.I by push_cast; ring]
+  rw [show (Real.pi : ℂ) / 2 * Complex.I = Real.pi / 2 * Complex.I by ring]
   rw [Complex.exp_pi_div_two_mul_I]
   ring
 
 /-- The phase at index `i` is `2 * π / 3` times the real value of `i`. -/
 theorem discretePhase_eq (i : Fin 3) :
     discretePhase i = 2 * Real.pi / 3 * (i : ℝ) := by
-  fin_cases i <;> simp [discretePhase] <;> ring
+  fin_cases i <;> simp [discretePhase]
+  all_goals ring
 
 /-- The exponential of `i` times the discrete phase is the corresponding natural power of
 `zeta`. -/
@@ -573,8 +565,7 @@ theorem muTilde_eq (θ : ℝ) :
      ring_nf
      try simp only [Complex.I_sq]
      try ring_nf
-     try simp only [hfe, hef]
-     try ring)
+     try simp only [hfe, hef])
 
 /-- The sum of `muTilde` over the three discrete phases is three times the identity matrix. See
 [SasakiCarlini2002]. -/
@@ -583,16 +574,14 @@ theorem discrete_complete :
   ext r c
   fin_cases r <;> fin_cases c <;>
   simp [Matrix.sum_apply, muTilde_eq, Matrix.cons_val_zero, Matrix.cons_val_one,
-    Matrix.cons_val_two, Matrix.tail_cons, Matrix.head_cons, Matrix.one_apply,
-    Matrix.smul_apply, smul_eq_mul, E_eq, F_eq, Fin.sum_univ_three]
+    Matrix.cons_val_two, Matrix.tail_cons, Matrix.head_cons, Matrix.smul_apply, smul_eq_mul, E_eq, F_eq, Fin.sum_univ_three]
   all_goals
-    (try simp only [zeta_inv, zeta_sq_inv, zeta_four_inv, zeta_sq_sq]
+    (try simp only [zeta_inv, zeta_sq_inv, zeta_sq_sq]
      try ring_nf
      first
       | linear_combination hroot
       | linear_combination Complex.I * hroot
-      | linear_combination (-Complex.I) * hroot
-      | linear_combination (-1 : ℂ) * hroot)
+      | linear_combination (-Complex.I) * hroot)
 
 /-- For nonnegative `R`, the three discrete effects satisfy positivity, sum to three times the
 identity, and satisfy dominance and annihilation with `gammaTilde R`. See
@@ -644,7 +633,7 @@ theorem four_output_product_vonNeumann_pom :
   · ext p q
     fin_cases p <;> fin_cases q <;>
     simp [muProj, muProd, Aplus, Aminus, Bplus, Bminus, vecMulVec_apply, Matrix.sum_apply,
-      Matrix.one_apply, Fin.sum_univ_two, Fintype.sum_prod_type, Fin.sum_univ_four]
+      Fin.sum_univ_two, Fintype.sum_prod_type]
     all_goals
       (have h2 : ((Real.sqrt 2 : ℂ)) * ((Real.sqrt 2 : ℂ)) = 2 := by
          rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
@@ -654,10 +643,9 @@ theorem four_output_product_vonNeumann_pom :
               = (((Real.sqrt 2:ℂ))*((Real.sqrt 2:ℂ)))*(((Real.sqrt 2:ℂ))*((Real.sqrt 2:ℂ))) by ring, h2]
          norm_num
        field_simp
-       simp only [Complex.I_sq, h2, h4, mul_neg, one_mul, mul_one, neg_mul]
+       simp only [Complex.I_sq, h4, one_mul, neg_mul]
        ring_nf
-       try simp
-       try norm_num)
+)
 
 end Qatlib.Papers.QMatching02.MainResults.LearningStrategy
 

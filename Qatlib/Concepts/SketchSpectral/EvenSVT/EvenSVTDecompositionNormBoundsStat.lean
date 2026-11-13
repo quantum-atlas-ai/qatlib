@@ -26,8 +26,6 @@ squared-singular-value bands, providing a precise norm statement for the two-ske
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.RandCompile.ChannelBudget
 

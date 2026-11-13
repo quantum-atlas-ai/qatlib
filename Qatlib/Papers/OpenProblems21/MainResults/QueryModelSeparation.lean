@@ -231,7 +231,7 @@ theorem erasingOracleAnswer_mulVec_ket {N k g r : ℕ} (enc : Fin N ↪ Reg k ×
 
 /-! ## §4. Problem 11 -/
 
-/-- **Problem 11** (arXiv:2109.06917v1, §9, p. 6, open). Are there sets of
+/-- **Open conjecture / complexity hypothesis — not proved in Qatlib.** **Problem 11** (arXiv:2109.06917v1, §9, p. 6, open). Are there sets of
 injective functions for which a quantum computer can learn a property with few
 standard-oracle queries but not with few erasing-oracle queries?
 

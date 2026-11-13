@@ -32,7 +32,6 @@ these identities in the measurement-record estimation setting of [HuangKuengPres
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -48,8 +47,6 @@ open scoped Classical BigOperators
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O]
 

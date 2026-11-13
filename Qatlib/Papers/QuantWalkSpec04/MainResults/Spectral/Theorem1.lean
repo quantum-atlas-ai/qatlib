@@ -28,7 +28,6 @@ discriminant eigenvectors, and the endpoint eigenvalue dimension identities. See
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

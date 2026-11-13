@@ -21,17 +21,15 @@ The file fixes the finite semantic model used by the claim statements:
   `QPCP[k,q,c,s]`, `QMA`, `QCMA`;
 * phase-marking oracles for the oracle-separation claims (§5, Lemmas 20-21);
 * faithful `Prop` statements for the remaining claims (`c001_statement` …),
-  each docstring recording the claim id and the formalisation obstacle;
+  each docstring recording the claim id and the scope of the formalisation;
 * two fully proved numerical cores: the weighted-energy identity of Eq. (11)
   (c010) and the robustness bound behind Eq. (30)'s analysis (c026).
 
 Claims c004, c005, c013, c016, c017 are not stated here: their faithful
 formalisation needs partial-trace / tensor-product / quantum de Finetti
-infrastructure or full reduction syntax that the repository does not have
-yet (see the PR work log).
+infrastructure or full reduction syntax beyond the scope of this module.
 
-No axiom, no `admit`, no `native_decide`; all objects are concrete
-matrices and functions over `ZMod 2` index sets.
+All objects are concrete matrices and functions over `ZMod 2` index sets.
 -/
 import Mathlib.Data.Complex.Basic
 import Mathlib.Data.ZMod.Basic
@@ -135,8 +133,8 @@ def HasGap {n m q : ℕ} (H : LHInstance n m q) (a b : ℝ) : Prop :=
 /-- Semantic interface of a QPCP verifier on inputs of length `n` reading a
 proof register of `prf` qubits: its acceptance probability on a proof state
 `ξ` and input `x`.  The full circuit/PVM syntax of Definition 4 (adaptive
-queries, private randomness `p1`, classical postprocessing `p3`) is not
-reified; recorded as an obstacle in the PR work log. -/
+queries, private randomness `p1`, classical postprocessing `p3`) is outside
+the scope of this semantic interface. -/
 structure QPCPVerifier (n prf : ℕ) where
   /-- Number of quantum proof queries used. -/
   nq : ℕ
@@ -213,7 +211,7 @@ with success probability `1 − δ` and time `poly(n,1/ϵ,log(1/δ))`, a
 `q`-local Hamiltonian with `m = poly(n)` PSD terms and operator norm `≤ 1`
 such that `|Pr[V_x accepts ξ] − (1 − tr[H ξ])| ≤ ϵ` for all proofs `ξ`.
 The quantum reduction construction (and the norm/time side conditions) is
-the recorded obstacle; the statement keeps its universal shape. -/
+the outside the scope of this module; the statement keeps its universal shape. -/
 def c001_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
   ∀ n (x : BitStr n) (V : QPCPVerifier n (p2 n * k + p1 n)),
     ∃ H : LHInstance (p2 n * k + p1 n) m q,
@@ -241,7 +239,7 @@ def c003_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q l : ℕ) (c s c'
 every `(k,q,p1,p2,p3)`-QPCP verifier and proof admits a PSD `q`-local
 Hamiltonian with `Pr[V accepts ξ] = 1 − tr[H ξ]` exactly.  Constructing
 `H` from the verifier (Eq. (2) composed PVM operator) needs
-measurement-composition semantics, the recorded obstacle. -/
+measurement-composition semantics, the outside the scope of this module. -/
 def c006_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) : Prop :=
   ∀ n (x : BitStr n) (V : QPCPVerifier n (p2 n * k + p1 n)),
     ∃ H : LHInstance (p2 n * k + p1 n) m q,
@@ -250,14 +248,14 @@ def c006_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) : Prop :=
 /-- **c008 (Theorem 2)**: the reduction of Theorem 1 can output one fixed
 Hamiltonian `H̃_x` realising the error bound; i.e. the output does not
 resample across the `1 − δ` probability branch.  Reduction-output
-semantics beyond the acceptance interface is the recorded obstacle. -/
+semantics beyond the acceptance interface is the outside the scope of this module. -/
 def c008_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
   c001_statement k q p1 p2 m ϵ
 
 /-- **c009 (Lemma 5)**: gap amplification with locality doubling: a
 `q`-local instance with gap `b − a ≥ γ` yields a `2q`-local instance with
 normalised terms and gap at least `γ/2`.  The Kitaev-style clock/flag
-construction is the recorded obstacle. -/
+construction is the outside the scope of this module. -/
 def c009_statement {n m : ℕ} (q : ℕ) (a b γ : ℝ)
     (H : LHInstance n m q) (H' : LHInstance n m (2 * q)) : Prop :=
   HasGap H a b → b - a ≥ γ → ∃ a' b', b' - a' ≥ γ / 2 ∧ HasGap H' a' b'
@@ -274,7 +272,7 @@ def c010_statement {n m q : ℕ} (H : LHInstance n m q) : Prop :=
 /-- **c011 (Theorem 6)**: `q-LH[δ] ⊆ QPCPNA[q′]` for constant `q`: the
 promise problem `P` of `q`-local Hamiltonians with gap `δ` has
 constant-query non-adaptive QPCP verifiers.  The verifier construction is
-the recorded obstacle. -/
+the outside the scope of this module. -/
 def c011_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q' : ℕ) (δ : ℝ) :
     Prop :=
   InQPCPClass P 1 prf q' (1 - δ) δ
@@ -290,7 +288,7 @@ def c012_statement {n m l : ℕ} (q : ℕ) (a b γ' δ : ℝ)
 /-- **c014 (Theorem 8)**: if constant-gap `q`-local Hamiltonians are in
 QCMA for all constant `q`, then `QPCP[q] ⊆ QCMA` for all constant `q`.
 The derandomised Hamiltonian reproduction inside a QCMA verifier is the
-recorded obstacle. -/
+outside the scope of this module. -/
 def c014_statement (prf : ℕ → ℕ) : Prop :=
   ∀ P : RegisterPromise, InQPCPClass P 1 prf 1 (2 / 3) (1 / 3) →
     InQCMAClass P prf (2 / 3) (1 / 3)
@@ -317,7 +315,7 @@ def c018_statement (P Q : RegisterPromise) (prf : ℕ → ℕ) : Prop :=
 `QPCP[k′,q]` (class form of `QMA[2] ⊆ QPCP[k′,q]`), then every such problem
 is in QMA: compose the reduction to a `q`-local Hamiltonian (Theorem 1)
 with the QMA simulation of QPCP verifiers (Lemma 14).  The composed
-construction is the recorded obstacle. -/
+construction is the outside the scope of this module. -/
 def c020_statement (prf prf2 : ℕ → ℕ) (k' q : ℕ) : Prop :=
   ∀ P : RegisterPromise, InQPCPClass P k' prf2 q (2 / 3) (1 / 3) →
     InQMAClass P prf (2 / 3) (1 / 3)
@@ -326,7 +324,7 @@ def c020_statement (prf prf2 : ℕ → ℕ) (k' q : ℕ) : Prop :=
 -distance `ϵ`-net of size `≤ C (1/ϵ)^{5d}`, obtained by taking partial
 traces of an `h`-net of pure states in dimension `2d`.  The trace distance
 is abstracted as a parameter `dist`; the volumetric net construction is
-the recorded obstacle. -/
+the outside the scope of this module. -/
 def c021_statement (d : ℕ) (dist : Op d → Op d → ℝ) (C ϵ : ℝ) : Prop :=
   ∃ net : Finset (Op d),
     (∀ ρ : Op d, IsDensity ρ → ∃ σ ∈ net, IsDensity σ ∧ dist ρ σ ≤ ϵ) ∧
@@ -336,7 +334,7 @@ def c021_statement (d : ℕ) (dist : Op d → Op d → ℝ) (C ϵ : ℝ) : Prop 
 `ϵ`-net of density matrices degrades completeness/soundness by at most
 `ϵ`: `QPCP^U[k,q] ⊆ QPCP_ϵ^U[k,q,2/3−ϵ,1/3+ϵ]` for every oracle `U`
 (the oracle is abstracted away by the class predicate).  The
-net-projection verifier analysis is the recorded obstacle. -/
+net-projection verifier analysis is the outside the scope of this module. -/
 def c022_statement (P : RegisterPromise) (prf : ℕ → ℕ) (k q : ℕ) (ϵ : ℝ) : Prop :=
   InQPCPClass P k prf q (2 / 3) (1 / 3) →
     InQPCPClass P k prf q (2 / 3 - ϵ) (1 / 3 + ϵ)
@@ -346,7 +344,7 @@ lower bound: any algorithm distinguishing a marked oracle from the identity
 with bounded error, even granted `q` indices and `ϵ`-net density-matrix
 witnesses (absorbed into the algorithm interface), needs
 `Ω(√(2^n/(5·2^q log(1/ϵ) + q·polylog(n,q) + C)))` queries.  The
-polynomial-method lower bound is the recorded obstacle. -/
+polynomial-method lower bound is the outside the scope of this module. -/
 def c023_statement (n : ℕ) (T : ℝ) : Prop :=
   ∀ alg : OracleAlgorithm n, alg.nq < T → FailsMarkingDistinction alg
 
@@ -354,7 +352,7 @@ def c023_statement (n : ℕ) (T : ℝ) : Prop :=
 `QCMA^U ≠ QMA^U` and `QPCP[k,q]^U ≠ QMA^U` for all `q ∈ O(log n)` and
 `1 ≤ k ≤ poly(n)`: the marking-oracle separation defeats every
 sub-`√(2^n)`-query verifier.  The oracle-construction diagonalisation is
-the recorded obstacle. -/
+the outside the scope of this module. -/
 def c024_statement (n : ℕ) : Prop :=
   ∃ (U : Op n) (xs : BitStr n), IsMarkingOracle U xs ∧
     ∀ alg : OracleAlgorithm n, alg.nq < 2 ^ (n / 2) →

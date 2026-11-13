@@ -51,7 +51,6 @@ open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.Mix
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
-set_option warningAsError false
 
 /-- The function p is nonnegative on `Fin n` and sums to one. -/
 def IsProbDist (n : ℕ) (p : Fin n → ℝ) : Prop :=

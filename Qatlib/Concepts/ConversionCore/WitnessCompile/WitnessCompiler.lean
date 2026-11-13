@@ -29,7 +29,6 @@ The certificate framework is that of quantum state conversion [LeeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ConversionCore.WitnessCompile Matrix
 open Qatlib.Concepts.BitWordCompiler.WordComposition
@@ -41,7 +40,6 @@ open Qatlib.Concepts.GramQueryCore.ModelSemantics
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
 set_option autoImplicit false
-
 
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 open Qatlib.Concepts.GramQueryCore.GammaDuality

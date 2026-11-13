@@ -30,7 +30,6 @@ their reciprocal degree bounds for the BCH estimates in [AftabAnTrivisa2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

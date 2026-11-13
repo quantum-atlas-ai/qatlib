@@ -23,7 +23,6 @@ constant six under unit norm and trace bounds. See [RebentrostMohseniLloyd2014].
 * [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

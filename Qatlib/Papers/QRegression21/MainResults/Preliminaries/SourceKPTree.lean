@@ -10,26 +10,12 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Kerenidis--Prakash Trees: Read, Update, and State Preparation (Theorems 2.10--2.12)
+# SourceKPTree
 
-This module formalizes Theorems 2.10, 2.11, and 2.12 (Section 2.4, pp. 12--13)
-of Chen and de Wolf on the coordinate read cost, rank-one update value and node
-cost, and `RunProfile` state-preparation resource bound for `KPTree`.
-
-## Main statements
-
-* `theorem_2_10_read_cost`, `theorem_2_10_read_cost_le_log`: Theorem 2.10,
-  coordinate read cost on a `KPTree`.
-* `theorem_2_11_update_value`, `theorem_2_11_update_cost`,
-  `theorem_2_11_update_cost_le`: Theorem 2.11, exact vector update
-  `θ ↦ a θ + b e_j` and `depth + 1` node-update bound.
-* `theorem_2_12_prepare_state`: Theorem 2.12, `RunProfile` query and gate bound
-  `⌈log_2 d⌉` for state preparation from a `KPTree`.
-
-## References
-
-* [Chen and de Wolf, 2021][ChenDeWolf2021QRegression], Section 2.4,
-  Theorems 2.10--2.12, pp. 12--13.
+The `_statement` definitions are unproved resource specifications requiring an
+implementation relation. Numeric records alone do not certify execution or correctness.
+No quantum circuit synthesis is proved here.
+The remaining theorems prove only their displayed algebraic inequalities or identities.
 -/
 
 set_option autoImplicit false
@@ -41,18 +27,15 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 namespace Qatlib.Papers.QRegression21.MainResults.Preliminaries
 open Qatlib.Papers.QRegression21.MainResults
 
-
 variable {d : ℕ}
 
-/-- **Theorem 2.10** (fixed arXiv:2110.13086v2, p. 12). Reading coordinate `j` of `θ` from a
-KP-tree touches the nodes on the root-to-leaf path of `j`; in the model of
-`Model/SourceModel.lean` this is exactly `depth` nodes. -/
+/-- The assigned read budget equals the stored depth by definition.
+This does not count a tree traversal. -/
 theorem theorem_2_10_read_cost (K : KPTree d) (j : Fin d) :
     K.readCost j = K.depth := rfl
 
-/-- **Theorem 2.10**, quantitative form (fixed arXiv:2110.13086v2, p. 12). If the tree has
-depth at most `⌈log₂ d⌉` (Definition 2.9), then reading one coordinate touches at most
-`⌈log₂ d⌉` nodes. -/
+/-- A supplied depth bound transfers to the assigned read budget.
+This does not count a tree traversal. -/
 theorem theorem_2_10_read_cost_le_log (K : KPTree d) (j : Fin d)
     (hd : K.depth ≤ Nat.clog 2 d) :
     K.readCost j ≤ Nat.clog 2 d := by
@@ -75,8 +58,8 @@ theorem theorem_2_11_update_value (K : KPTree d) (a b : ℝ) (j : Fin d)
   · simp only [KPTree.theta, KPTree.update, hk, ↓reduceIte]
     ring
 
-/-- **Theorem 2.11**, cost form (fixed arXiv:2110.13086v2, p. 12). An update modifies at most
-`depth + 1` stored node values (the root and the leaf of `j`, together with the path). -/
+/-- The assigned update budget equals depth plus one by definition.
+This does not count a tree traversal. -/
 theorem theorem_2_11_update_cost (K : KPTree d) (a b : ℝ) (j : Fin d) :
     K.updateCost j = K.depth + 1 := by
   classical
@@ -84,7 +67,8 @@ theorem theorem_2_11_update_cost (K : KPTree d) (a b : ℝ) (j : Fin d) :
   · rfl
   · exact False.elim (_htriv ⟨rfl, rfl⟩)
 
-/-- **Theorem 2.11**, observation-count form (fixed arXiv:2110.13086v2, p. 12). -/
+/-- Reflexive bound on the assigned update budget.
+This does not count a tree traversal. -/
 theorem theorem_2_11_update_cost_le (K : KPTree d) (a b : ℝ) (j : Fin d) :
     K.updateCost j ≤ K.depth + 1 := by
   classical
@@ -92,27 +76,14 @@ theorem theorem_2_11_update_cost_le (K : KPTree d) (a b : ℝ) (j : Fin d) :
   · exact le_rfl
   · exact False.elim (_htriv ⟨rfl, rfl⟩)
 
-/-- **Theorem 2.12** (fixed arXiv:2110.13086v2, p. 13). Given a KP-tree of `θ`, the state
-`|θ⟩ = ∑_j √(|θ_j|/‖θ‖₁)|j⟩|sign(θ_j)⟩` can be prepared up to negligible error with
-`poly log d` queries to `O^KP_θ` and `Õ(1)` elementary gates.
-
-Boundary: the exact state-preparation construction and the "negligible error" notion are not
-formalised.  The statement records the paper's resource bound over the abstract `RunProfile`
-(query and gate costs bounded by `⌈log₂ d⌉ = poly log d`); it is intentionally restricted to
-the cost half of the theorem, and no state semantics are claimed here.
-
-Proof route of the paper (p. 13): a binary search over the tree below the root locates the
-prefix sums `∑_{k<ℓ} |θ_k|` at each level of the path, so the amplitude `√(|θ_j|/‖θ‖₁)` can
-be written into the amplitude register coherently, and the sign bit `sign(θ_j)` is read from
-the leaf; the number of queries is `O(log d)`, and the arithmetic uses `Õ(1)` gates. -/
-theorem theorem_2_12_prepare_state (K : KPTree d) (hK : K.rootScalar ≠ 0) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `theorem_2_12_prepare_state`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def theorem_2_12_prepare_state_statement (K : KPTree d) (hK : K.rootScalar ≠ 0)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ (Nat.clog 2 d : ℝ) ∧
-      alg.gateCost ≤ (Nat.clog 2 d : ℝ) := by
-  classical
-  by_cases _htriv : K.rootScalar ≠ 0
-  swap
-  · exact False.elim (_htriv hK)
-  exact ⟨⟨0, 0, 0, 1⟩, Nat.cast_nonneg _, Nat.cast_nonneg _⟩
+      alg.gateCost ≤ (Nat.clog 2 d : ℝ)
 
 end Qatlib.Papers.QRegression21.MainResults.Preliminaries

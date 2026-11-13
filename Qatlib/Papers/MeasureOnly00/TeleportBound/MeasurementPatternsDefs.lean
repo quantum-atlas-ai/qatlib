@@ -24,7 +24,6 @@ restoration weight. The measurement-only computation context is [RaussendorfBrie
 * [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuditTeleport.ResourceIff

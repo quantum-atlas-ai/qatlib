@@ -34,7 +34,6 @@ open scoped BigOperators
 open Matrix MvPolynomial
 namespace Qatlib.Papers.AmpInvReqTang26.ForwardHist
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The multivariate polynomial for an output amplitude, built recursively by alternating
 interleaving matrices with multiplication by the queried phase variable. -/

@@ -32,8 +32,6 @@ formalize the sampling analysis behind Simon-type recovery [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.WalkFind.UniformThree

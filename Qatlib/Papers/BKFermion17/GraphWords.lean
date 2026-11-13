@@ -26,7 +26,6 @@ weight bounds in terms of graph degree. The associated matrices are Hermitian an
 * [Setia and Whitfield, 2018][SetiaWhitfield2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.BKFermion17.GraphWords

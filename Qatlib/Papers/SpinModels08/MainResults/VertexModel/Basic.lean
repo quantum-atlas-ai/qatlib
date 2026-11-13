@@ -25,8 +25,6 @@ the corresponding entry and computational basis matrix element of the column pro
 * [Van den Nest et al., 2009][VanDenNestEtAl2009]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open scoped BigOperators Matrix

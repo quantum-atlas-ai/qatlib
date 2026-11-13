@@ -26,7 +26,6 @@ rational weight state preparation.
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw
@@ -44,7 +43,6 @@ open Matrix Qatlib SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 8000000
 
 /-- The canonical positive operator access data give a unitary diagonalization of E. -/

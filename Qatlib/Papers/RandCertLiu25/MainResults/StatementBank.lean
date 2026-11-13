@@ -17,18 +17,14 @@ core of c006 (Lemma 10, `collision_probability_lower`) and `GapLemma.lean`
 proves c009 (Lemma 13, `exists_threshold_gap`, with a real witness in
 place of the paper's rational one).
 
-The remaining claims are recorded as substantive obstacles: protocol
-soundness with smooth min-entropy and quantum-proof extractors (c001,
-c015), von-Neumann-entropy guarantees for (M)LXEB solvers (c002–c004),
-the Hoeffding/union-bound sampling lemma (c011), the promise-problem
-sampler (c012), the amplification lemma (c013) and the
+Scope note: protocol soundness with smooth min-entropy and quantum-proof
+extractors (c001, c015), von-Neumann-entropy guarantees for (M)LXEB solvers
+(c002–c004), the Hoeffding/union-bound sampling lemma (c011), the
+promise-problem sampler (c012), the amplification lemma (c013) and the
 restricted-adversary XEB bound with Chernoff/Gamma/hypergeometric tails
-(c014). Formalising them needs smooth min-entropy, QCAM-style complexity
-classes, quantum-proof extractors and the concrete concentration
-inequalities, none of which exist in Mathlib or in this repository — see
-the PR work log.
-
-No axiom, no `admit`, no `native_decide`.
+(c014) are outside the scope of this file. These claims require smooth
+min-entropy, QCAM-style complexity classes, quantum-proof extractors and
+the corresponding concentration inequalities.
 -/
 import Qatlib.Papers.RandCertLiu25.MainResults.Collision
 import Qatlib.Papers.RandCertLiu25.MainResults.GapLemma

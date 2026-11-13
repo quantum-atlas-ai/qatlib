@@ -36,8 +36,6 @@ The mathematical background is developed in [Ambainis2007ElementDistinctness].
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkFind.GroverInterp
 
 open Matrix

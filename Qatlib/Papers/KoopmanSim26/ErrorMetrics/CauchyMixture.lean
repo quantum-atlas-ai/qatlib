@@ -31,8 +31,6 @@ evolutions.
   Koopman method.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix MeasureTheory

@@ -44,13 +44,12 @@ measurement with POVM element `Π_j = Σ_{|b|=j} |b⟩⟨b|`: for every state `�
 
 Paper proof route: `Π_j` is diagonal, so `⟨ψ|Π_j|ψ⟩ = Σ_b [|b|=j] |ψ_b|²`.
 
-Lean gap: the bracket/`normSq` bookkeeping (the bracket is complex-valued, the
-probabilities real) is not yet assembled.
-Reusable deps: `bracket`, `Complex.normSq`, `Matrix.mulVec`, `Finset.sum_filter`,
-`Complex.normSq_eq_conj_mul_self`.
-Suggested tactics: `bracket` unfolds to `Σ_b star (ψ b) * (Π_j ψ) b`; rewrite
-`Π_j *ᵥ ψ` entrywise to `if weight b = j then ψ b else 0`, then pull out the
-`if` with `Finset.sum_filter` and identify `star z * z = (normSq z : ℂ)`.
+The bracket is complex-valued, while the probabilities are real.
+Expanding `bracket` gives `Σ_b star (ψ b) * (Π_j ψ) b`. The entrywise
+`Matrix.mulVec` action of `Π_j` is `if weight b = j then ψ b else 0`.
+The filtered sum can be expressed using `Finset.sum_filter`, and
+`Complex.normSq_eq_conj_mul_self` identifies
+`star z * z = (Complex.normSq z : ℂ)`.
 -/
 /-- Lemma 8 (F.51): the Hamming-weight POVM reproduces the distribution of the
 Hamming weight on a one-register state. -/
@@ -104,12 +103,12 @@ Paper proof route: `Π_j` is the tensor product of the diagonal layer
 projectors, hence diagonal on the product basis; the same computation as
 Lemma 8 applies.
 
-Lean gap: depends on Lemma 8 and on the tensor-product bookkeeping over
-`Fin d → BitString n`.
-Reusable deps: `source_lemma8_weight_measurement`, `blockProjector`,
-`layerProjector`, `bracket`.
-Suggested tactics: unfold `blockProjector`, rewrite `Π_j *ᵥ ψ` entrywise, pull
-out the conjunction with `Finset.sum_filter` and finish as in Lemma 8.
+On the product basis `Fin d → BitString n`, `blockProjector` represents the
+tensor product of the `layerProjector` operators. Its entrywise action keeps
+`ψ b` exactly when `∀ i, weight (b i) = j i` and is zero otherwise.
+The conjunction selects a filtered sum (`Finset.sum_filter`); expanding
+`bracket` and identifying each term with its squared norm gives the same
+calculation as `source_lemma8_weight_measurement`.
 -/
 /-- Proposition 7 (F.53): the tensor product of one-register layer projectors
 reproduces the joint weight distribution on `d` registers. -/

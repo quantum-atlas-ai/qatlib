@@ -33,7 +33,6 @@ noncomputable section
 namespace Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAChoice
 
 open scoped Classical
-set_option warningAsError false
 
 /-- The amplification angle π/(2q) associated with query count q. -/
 def angle (q : ℕ) : ℝ := Real.pi / (2 * (q : ℝ))

@@ -27,8 +27,6 @@ native gradient along bias perturbations and compares it with the full parameter
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 open MeasureTheory
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.NoBiasBarrenPlateau

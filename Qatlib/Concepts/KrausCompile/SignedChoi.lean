@@ -29,7 +29,6 @@ completeness for Hermitian-preserving, trace-preserving maps [CaiEtAl2026].
 * [Choi, 1975][Choi1975]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

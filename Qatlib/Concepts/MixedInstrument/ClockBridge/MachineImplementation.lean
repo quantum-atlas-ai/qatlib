@@ -26,10 +26,8 @@ background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.MixedInstrument.ClockBridge
 

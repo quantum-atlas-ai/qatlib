@@ -26,7 +26,6 @@ The reservation uses the logarithmic and square-root search cost structure assoc
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000

@@ -34,7 +34,6 @@ For background, see [Ambainis2007ElementDistinctness].
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp
@@ -44,7 +43,6 @@ open Matrix
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- The conjunction of the Grover interpolation contract and its version including eigenvalue

@@ -24,10 +24,7 @@ specularity is transported through digraph isomorphisms.
 * [Severini, 2003][Severini2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph
@@ -58,7 +55,7 @@ theorem lineDigraph_specular {V : Type} (D : Digraph V) : Specular (lineDigraph 
     have h : a.1.2 = b.1.2 := by
       obtain ⟨c, hc⟩ := hint
       simp only [Set.mem_inter_iff, theorem2_i_out D a, theorem2_i_out D b,
-        Set.mem_setOf_eq] at hc
+        Set.mem_ofPred_eq] at hc
       exact hc.1.symm.trans hc.2
     ext d
     simp [theorem2_i_out D a, theorem2_i_out D b, h]
@@ -66,7 +63,7 @@ theorem lineDigraph_specular {V : Type} (D : Digraph V) : Specular (lineDigraph 
     have h : a.1.1 = b.1.1 := by
       obtain ⟨c, hc⟩ := hint
       simp only [Set.mem_inter_iff, theorem2_i_in D a, theorem2_i_in D b,
-        Set.mem_setOf_eq] at hc
+        Set.mem_ofPred_eq] at hc
       exact hc.1.symm.trans hc.2
     ext d
     simp [theorem2_i_in D a, theorem2_i_in D b, h]

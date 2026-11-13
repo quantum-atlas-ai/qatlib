@@ -26,7 +26,6 @@ upper bound on the weighted negative-log loss.
 * [Amin et al., 2018][AminEtAl2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

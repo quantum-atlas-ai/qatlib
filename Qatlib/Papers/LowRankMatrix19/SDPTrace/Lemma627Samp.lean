@@ -24,8 +24,6 @@ of at most `θ`.
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Papers.LowRankMatrix19.SDPTrace.Lemma627Spec
 
 namespace Qatlib.Papers.LowRankMatrix19.SDPTrace

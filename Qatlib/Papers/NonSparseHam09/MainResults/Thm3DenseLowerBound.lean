@@ -26,11 +26,7 @@ accompanies [ChildsKothari2010].
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -61,6 +57,8 @@ def theorem3Statement (N : ℕ) [NeZero N] : Prop :=
 /-- The predicate that every entry of `H` is nonzero. -/
 def IsDense (H : Matrix ι ι ℂ) : Prop := ∀ i j, H i j ≠ 0
 
+omit [DecidableEq ι] [Nonempty ι] in
+
 /-- Every row of a dense matrix has as many nonzero entries as there are column indices. See
 [ChildsKothari2010]. -/
 lemma dense_row_card (H : Matrix ι ι ℂ) (hH : IsDense H) (a : ι) :
@@ -68,6 +66,8 @@ lemma dense_row_card (H : Matrix ι ι ℂ) (hH : IsDense H) (a : ι) :
   classical
   have h := Finset.filter_true_of_mem (fun b (_ : b ∈ Finset.univ) => hH a b)
   rw [h, Finset.card_univ]
+
+omit [Nonempty ι] in
 
 /-- A simulation using at most `q` queries also satisfies any larger query budget `q'`. See
 [ChildsKothari2010]. -/

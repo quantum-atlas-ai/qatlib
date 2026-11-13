@@ -27,11 +27,7 @@ promise membership and bound its finite counting probability between zero and on
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset Filter
@@ -39,7 +35,7 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 namespace Qatlib.Papers.NonSparseHam09.MainResults
 
-/-- The proposition that `probOf M (fun b => b ∈ promiseSet M)` is eventually bounded below by
+/-- **Statement only — not proved in Qatlib.** The proposition that `probOf M (fun b => b ∈ promiseSet M)` is eventually bounded below by
 `c₁ / M` and above by `c₂ / M` for positive constants `c₁` and `c₂`. -/
 def lemma4Statement : Prop :=
   ∃ c₁ c₂ : ℝ, 0 < c₁ ∧ 0 < c₂ ∧ ∀ᶠ M : ℕ in Filter.atTop,

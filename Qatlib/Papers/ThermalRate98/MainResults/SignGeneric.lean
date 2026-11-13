@@ -65,7 +65,6 @@ needed for uniqueness of the entire function.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 namespace Qatlib.Papers.ThermalRate98.MainResults
 

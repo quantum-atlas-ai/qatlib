@@ -24,7 +24,6 @@ unitary local cell operations, supporting the QTM-to-circuit simulation program 
 * [Yao, 1993][Yao1993]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

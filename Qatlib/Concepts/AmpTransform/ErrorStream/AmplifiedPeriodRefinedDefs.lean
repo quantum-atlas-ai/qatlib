@@ -34,7 +34,6 @@ The error-stream setting is developed in [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -53,7 +52,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -110,7 +108,7 @@ def aqNextRecoveryQuerySaving (N M L : ℕ) : ℕ :=
 progressions, exact fresh-consistency probability, and recovery after refuting false
 candidates. -/
 def Clause4TwoStageRecovery : Prop :=
-  (∀ (N s M : ℕ) (h : Fin N → Bool) (P : ℕ) (hP : P < N),
+  (∀ (N s M : ℕ) (h : Fin N → Bool) (P : ℕ) (_hP : P < N),
       (aqVerify h s M P).1 = true → P ∈ aqVerifiedCandidates N h s M)
   ∧ (∀ (N s M P P' : ℕ),
       ¬ aqPeriodProgression N s M P' ⊆ aqPeriodProgression N s M P →
@@ -120,7 +118,7 @@ def Clause4TwoStageRecovery : Prop :=
         (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
           (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
           = p ^ (aqPeriodSeparation N s M P P'))
-  ∧ (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (hP : P ∈ cands) (σ : Fin N → Bool),
+  ∧ (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (_hP : P ∈ cands) (σ : Fin N → Bool),
       (∀ P' ∈ cands \ {P},
         ¬ aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ)) →
         aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) = {P} ∧
@@ -168,7 +166,7 @@ def Clause5LayerStepDistinction : Prop :=
 the density-counting and layer-dependent resource comparisons. -/
 def Clause6ZeroMPromise : Prop :=
   HaarGeneralWN
-  ∧ (∀ (C fuel : ℕ) (hC : 0 < C),
+  ∧ (∀ (C fuel : ℕ) (_hC : 0 < C),
       ∀ j : Fin C,
         CostedLaw.event (aqFairLabelSampler C fuel)
             (fun z => z.1 = Sum.inl j) =
@@ -183,18 +181,18 @@ def Clause6ZeroMPromise : Prop :=
 
   ∧ (∀ (N : ℕ) (hN : 0 < N),
       QueryCount (countedAECircuit (32 * N) (QFTMatrix N) (⟨0, hN⟩ : Fin N)) = 32 * N - 1)
-  ∧ (∀ (N M L : ℕ) (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N),
+  ∧ (∀ (N M L : ℕ) (_hN : 0 < N) (_hM : 0 < M) (_hML : M ≤ L) (_hLN : 2 * L ≤ N),
       aqNextRecoveryQuerySaving N M L = aqRoundSaving N M L)
-  ∧ (∀ (N M L : ℕ) (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N),
+  ∧ (∀ (N M L : ℕ) (_hN : 0 < N) (_hM : 0 < M) (_hML : M ≤ L) (_hLN : 2 * L ≤ N),
       (5 * (32 * N - 1) + 3) + (3 * aqPublicRoundCount N M + 2) -
           ((5 * (32 * N - 1) + 3) + (3 * aqLayerRoundCount N M L + 2))
         = 3 * aqRoundSaving N M L)
-  ∧ (∀ (N M : ℕ) (hN : 0 < N) (hM : 0 < M),
+  ∧ (∀ (N M : ℕ) (_hN : 0 < N) (_hM : 0 < M),
       (∀ L : ℕ, M ≤ L → 2 * L ≤ N → aqRounds N (N / 2) ≤ aqRounds N L) ∧
         2 * (N / 2) ≤ N)
-  ∧ (∀ (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (L : ℕ), M ≤ L → 2 * L ≤ N →
+  ∧ (∀ (N M : ℕ) (_hN : 0 < N) (_hM : 0 < M) (L : ℕ), M ≤ L → 2 * L ≤ N →
       aqNextLayerRecoveryQueries N M (N / 2) ≤ aqNextLayerRecoveryQueries N M L)
-  ∧ (∀ (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (L : ℕ), M ≤ L → 2 * L ≤ N →
+  ∧ (∀ (N M : ℕ) (_hN : 0 < N) (_hM : 0 < M) (L : ℕ), M ≤ L → 2 * L ≤ N →
       aqNextPublicRecoveryQueries N M - aqNextLayerRecoveryQueries N M L
         = aqNextRecoveryQuerySaving N M L)
 
@@ -219,12 +217,12 @@ def Clause7FixedNoiseBoundary : Prop :=
 layer, query, and gate ledgers under the stated assumptions. -/
 def Clause8ZeroModeRuntime : Prop :=
   BernoulliErrorStreamZeroModeTransport
-  ∧ (∀ (N k : ℕ) [NeZero N] (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
+  ∧ (∀ (N k : ℕ) [NeZero N] (p : ℝ) (_hp : 0 ≤ p) (_hp1 : p ≤ 1)
       (d : FinDist (Finset (ZMod N)))
-      (hd : ∀ S : Finset (ZMod N), d.prob S = p ^ S.card * (1 - p) ^ (N - S.card))
+      (_hd : ∀ S : Finset (ZMod N), d.prob S = p ^ S.card * (1 - p) ^ (N - S.card))
       (s M P : ℕ) (θ : ℕ → ℝ)
-      (hM : 2 ≤ M) (hP : 0 < P) (hs : s + (M - 1) * P < N) (hMN : M + 2 ≤ N)
-      (hθ : ∀ L : ℕ, L < N - M →
+      (_hM : 2 ≤ M) (_hP : 0 < P) (_hs : s + (M - 1) * P < N) (_hMN : M + 2 ≤ N)
+      (_hθ : ∀ L : ℕ, L < N - M →
         0 < θ L ∧ θ L < Real.pi / 2 ∧
           (Real.sin (θ L)) ^ 2 = ((M + L : ℕ) : ℝ) / (N : ℝ)),
       (Finset.image (fun r : ℕ => (s + r * P : ZMod N)) (Finset.range M)).card = M ∧

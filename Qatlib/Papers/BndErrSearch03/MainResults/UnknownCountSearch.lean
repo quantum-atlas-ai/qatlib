@@ -35,7 +35,6 @@ square-root cost expression with `N / 2` when `N ≥ 81`.
 * [Høyer et al., 2003][HoyerMoscaDeWolf2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

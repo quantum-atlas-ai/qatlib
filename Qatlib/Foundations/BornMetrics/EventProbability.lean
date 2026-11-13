@@ -30,11 +30,13 @@ namespace Qatlib.Foundations.BornMetrics.EventProbability
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Born event mass is monotone under inclusion of finite events. -/
 theorem measureProb_mono (ψ : QState I) {S T : Finset I} (h : S ⊆ T) :
     MeasureProb ψ S ≤ MeasureProb ψ T :=
   Finset.sum_le_sum_of_subset_of_nonneg h (fun i _ _ => bornProb_nonneg ψ i)
 
+omit [DecidableEq I] in
 /-- The Born probability of any finite event is at most one in a normalized state. -/
 theorem measureProb_le_one {ψ : QState I} (hψ : Normalized ψ) (S : Finset I) :
     MeasureProb ψ S ≤ 1 := by
@@ -79,18 +81,17 @@ end Qatlib.Foundations.BornMetrics.EventProbability
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.BornMetrics.EventProbability
 
+omit [Fintype I] in
 /-- A basis ket multiplied by a scalar of norm one gives event probability one exactly when its
 basis index belongs to the event, and zero otherwise. -/
 theorem measureProb_smul_ket {c : ℂ} (hc : ‖c‖ = 1) (x : I) (S : Finset I) :
     MeasureProb (c • Ket x) S = if x ∈ S then 1 else 0 := by
   by_cases hxS : x ∈ S
-  · rw [if_pos hxS]
+  · rw [ite_eq_left hxS]
     have hpoint : ∀ y ∈ S, ‖c * Ket x y‖ ^ 2 = if y = x then 1 else 0 := by
       intro y _
       by_cases h : y = x
@@ -101,7 +102,7 @@ theorem measureProb_smul_ket {c : ℂ} (hc : ‖c‖ = 1) (x : I) (S : Finset I)
     simp only [Pi.smul_apply, smul_eq_mul]
     rw [Finset.sum_congr rfl hpoint, Finset.sum_ite_eq' S x (fun _ => (1 : ℝ))]
     simp [hxS]
-  · rw [if_neg hxS]
+  · rw [ite_eq_right hxS]
     unfold MeasureProb BornProb
     simp only [Pi.smul_apply, smul_eq_mul]
     apply Finset.sum_eq_zero

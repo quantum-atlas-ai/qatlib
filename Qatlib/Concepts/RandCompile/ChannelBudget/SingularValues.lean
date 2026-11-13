@@ -31,8 +31,6 @@ identify squared singular values with eigenvalues of the Gram matrix.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.RandCompile.ChannelBudget
 
 open Matrix Module

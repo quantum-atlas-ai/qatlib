@@ -18,14 +18,13 @@ set_option backward.isDefEq.respectTransparency false
 # SpanProgSt12 — shared paper vocabulary
 
 Fixed paper: Belovs & Reichardt, *Span programs and quantum algorithms for
-st-connectivity and claw detection*, arXiv:1203.2603v1 (12 Mar 2012),
-PDF at `assets/1203.2603.pdf`.
+st-connectivity and claw detection*, arXiv:1203.2603v1 (12 Mar 2012).
 
 This file fixes the graph vocabulary and the query-algorithm interfaces used by
 every active Claim of the paper.  The model reuse is deliberate:
 
 * `SimpleGraph (Fin n)` is the finite simple graph of the paper;
-* `QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`
+* `Qatlib.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`
   is the paper's bounded-error, fixed-space quantum query algorithm (Theorem 2's
   consumer side), with the addressed adjacency-matrix oracle built here;
 * `BoolQueryTree` is the finite randomized query tree model used for the

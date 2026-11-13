@@ -29,7 +29,6 @@ the branch semantics needed for the measurement-based model [RaussendorfBriegel2
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuditTeleport.TeleportCore

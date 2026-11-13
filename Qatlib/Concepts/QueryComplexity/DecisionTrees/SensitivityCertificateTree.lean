@@ -27,7 +27,6 @@ deterministic certificate bound of [BealsEtAl2001].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
 

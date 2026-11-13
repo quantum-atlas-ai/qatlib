@@ -28,8 +28,6 @@ zero for nontrivial characters, and applies this at zero Gauss-sum frequency. Se
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -39,7 +39,6 @@ open Matrix
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal
 open CommutatorProducts MPFRootProfile MPFGeometric BCHCommMass BCHMassProducts
 open BCHControlled BCHPerturbation DysonExpansion MPFMomentSeries MPFCommutatorBound
-set_option warningAsError false
 
 variable {I : Type} [Fintype I]
 

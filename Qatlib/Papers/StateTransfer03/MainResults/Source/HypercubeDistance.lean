@@ -45,7 +45,6 @@ identity expressed with `Nat.log` in `twolink_max_distance`. See [ChristandlEtAl
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

@@ -29,7 +29,6 @@ expressions to the `n√k` and `n√n` scales used in graph-query lower-bound ar
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000

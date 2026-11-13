@@ -16,7 +16,7 @@ Mutually Unbiased Product Bases in Dimension Six", fixed arXiv:1203.6887v2.
 
 The bipartite space `C² ⊗ C³` is represented on the product index type
 `Fin 2 × Fin 3`, using the shared tensor-state interface
-`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision.TensorState`.  A *product state*
+`Qatlib.Concepts.MbqcFlow.FlowDecision.TensorState`.  A *product state*
 is `TensorState φ Φ`, with amplitude `(φ ⊗ Φ)(i,j) = φ i * Φ j`; the inner product
 is the shared `Inner` from `FlowDecision.Qubit`.
 

@@ -34,7 +34,6 @@ finite-horizon failure probability tends to zero.
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 noncomputable section
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -708,7 +707,6 @@ namespace GeometricAdapter
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib
 open StopAdapter
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in

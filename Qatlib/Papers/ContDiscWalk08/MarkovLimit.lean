@@ -29,8 +29,6 @@ positivity, mass preservation, and derivatives of operator exponentials.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -43,6 +41,8 @@ variable {N : Type*} [Fintype N] [DecidableEq N]
 /-- Defines the lazy update `ε • (M *ᵥ p) + (1 - ε) • p`. -/
 def lazyStep (M : Matrix N N ℝ) (ε : ℝ) (p : N → ℝ) : N → ℝ :=
   ε • (M *ᵥ p) + (1 - ε) • p
+
+omit [DecidableEq N] in
 
 /-- The increment of a lazy step is `ε` times `M *ᵥ p - p`. -/
 theorem lazyStep_sub (M : Matrix N N ℝ) (ε : ℝ) (p : N → ℝ) :
@@ -104,7 +104,7 @@ def generator (M : Matrix N N ℝ) : (N → ℝ) →L[ℝ] (N → ℝ) :=
 /-- The generator acts on `p` as `M *ᵥ p - p`. -/
 theorem generator_apply (M : Matrix N N ℝ) (p : N → ℝ) :
     generator M p = M *ᵥ p - p := by
-  simp [generator, Matrix.sub_mulVec]
+  simp [generator]
 
 /-- For nonzero `ε`, the lazy-step difference quotient equals `generator M p`. -/
 theorem difference_quotient_eq_generator (M : Matrix N N ℝ) {ε : ℝ} (hε : ε ≠ 0)
@@ -123,7 +123,7 @@ theorem exp_walk_hasDerivAt {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ 
       (NormedSpace.exp (t • T) * T) t := hasDerivAt_exp_smul_const (𝕂 := ℝ) T t
   have hu : HasDerivAt (fun _ : ℝ => p₀) (0 : E) t := hasDerivAt_const t p₀
   have h := HasDerivAt.clm_apply hc hu
-  simpa [ContinuousLinearMap.mul_apply] using h
+  simpa [mul_apply_eq_comp] using h
 
 /-- The derivative at zero of `exp(s • T) p₀` is `T p₀`. -/
 theorem exp_walk_hasDerivAt_zero {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]

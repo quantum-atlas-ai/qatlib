@@ -55,16 +55,16 @@ def davies_conditional_entropy_bound (ρ : Density I) (E : Density I → Density
   --   χ⁰_min D(ρ‖E^0_A(ρ)) ≤ EP_{L^0_{A^∂}}(ρ)          (Lemma B.7, (63))
   --   EP_{L^0_{A^∂}}(ρ) ≤ e^{2gJβ|A^∂|} EP_{L^β_{A^∂}}(ρ)  (Lemma B.6, (61))
   -- and multiply the exponential factors, using `|A^∂| ≤ |A^{∂∂}|`.
-  -- Lean gap: the local Davies generators `L_A`, their conditional
+  -- Scope note: the local Davies generators `L_A`, their conditional
   -- expectations `E_A = lim e^{tL_A}`, the GNS-symmetric entropy production
   -- `EP_L`, and the constant `χ⁰_min` of eq. (1) are not formalised; they are
   -- interface parameters here. The analytic inputs (Pimsner–Popa index,
   -- [JLR22, Prop. 4.2/4.3]) are outside the imported API.
-  -- Candidate reusable dependencies: `finite_temperature_comparison`,
+  -- Related results: `finite_temperature_comparison`,
   -- `infinite_temperature_mlsi` (this file), `Real.exp_add`,
   -- `Real.exp_mul`, `mul_le_mul_of_nonneg_left`.
-  -- Suggested continuation: prove Lemma B.6 and Lemma B.7 first and chain
-  -- the three inequalities with `le_trans`.
+  -- The conclusion follows by transitivity from the three inequalities of
+  -- Lemmas B.6 and B.7.
 
 /-- **Lemma B.4**, arXiv:2412.01732v1 p.35, eq. (51). Let `L` be the
 generator of a GNS-symmetric quantum Markov semigroup with invariant state
@@ -89,17 +89,17 @@ def entropy_production_integral_bound (σ : Density I) (ρs : ℝ → Density I)
   --   F'(t) = √EP_L(ρ_t) − √(c₁ EP_L(ρ_t)/√(D(ρ_t‖σ) − c₂)) ≤ 0
   -- by the weak MLSI (eq. (53)); evaluating at `t` and `0` and using
   -- `D(ρ_t‖σ) ≥ c₂` for `t < t_{c₂}(ρ)` gives the claim.
-  -- Lean gap: (i) `ρs` is an abstract trajectory rather than `s ↦ e^{sL}(ρ)`;
+  -- Scope note: (i) `ρs` is an abstract trajectory rather than `s ↦ e^{sL}(ρ)`;
   -- (ii) the derivative computation needs the Fundamental Theorem of Calculus
   -- for the interval integral and differentiability of `s ↦ D(ρ_s‖σ)`, which
   -- are not available for the interface objects; (iii) `t_{c₂}(ρ)` is not
   -- modelled (we assume the weak MLSI on all of `[0,t]`).
-  -- Candidate reusable dependencies: `intervalIntegral.integral_le_of_forall_le`
+  -- Related analytic results: `intervalIntegral.integral_le_of_forall_le`
   -- / `intervalIntegral.integral_mono_on`, `Real.sqrt_le_sqrt`,
   -- `Real.sq_sqrt`, `MeasureTheory.intervalIntegrable_iff`.
-  -- Suggested continuation: prove the monotonicity `F' ≤ 0` directly with
-  -- `HasDerivAt` of the interval integral (`intervalIntegral.integral_hasDerivAt_right`)
-  -- and integrate the resulting differential inequality.
+  -- Analytically, `F' ≤ 0` follows from differentiation of the interval
+  -- integral (`intervalIntegral.integral_hasDerivAt_right`); integrating the
+  -- resulting differential inequality gives the monotonicity bound.
 
 /-- **Lemma B.6**, arXiv:2412.01732v1 p.37, eqs. (60) and (61). In the
 context of Appendix A.3, for `A ⊆ Λ`, with `E^β_A`, `E^0_A` the Davies
@@ -123,15 +123,14 @@ def finite_temperature_comparison (ρ : Density I) (Eβ E0 : Density I → Densi
   -- [JLR22, Proposition 4.3] gives
   --   EP^{D,0}_{L_A}(ρ) ≤ max_ω e^{|ω|/2} ‖(E^β_A(I_Λ))^{-1}‖∞ EP^{D,β}_{L_A}(ρ),
   -- with Bohr frequencies `|ω| ≤ 2gJ`; hence the exponent `2gJ(β|A^∂|+1)`.
-  -- Lean gap: the Bohr-frequency decomposition of the Davies generator, the
+  -- Scope note: the Bohr-frequency decomposition of the Davies generator, the
   -- E_A action on `e^{-βH_{A^∂}}`, and the operator-norm bounds are outside
   -- the formalised API; `Eβ`, `E0`, `EPβ`, `EP0` are interface data.
-  -- Candidate reusable dependencies: `OperatorSpectralNorm` bounds in
+  -- Related operator bounds: `OperatorSpectralNorm` bounds in
   -- `Concepts.MbqcFlow.FlowDecision.MixedState`, `Matrix.norm_mul`,
   -- `norm_smul`, `Real.exp_le_exp`.
-  -- Suggested continuation: formalise `‖H_{A^∂}‖∞ ≤ gJ|A^∂|` as a separate
-  -- lemma on the local Hamiltonian data, then apply the two [JLR22]
-  -- inequalities as hypotheses if they cannot be derived.
+  -- The local Hamiltonian estimate `‖H_{A^∂}‖∞ ≤ gJ|A^∂|` and the two
+  -- [JLR22] inequalities are the analytic inputs to this comparison.
 
 /-- **Lemma B.7**, arXiv:2412.01732v1 p.38, eq. (63). In the context of
 Appendix A.3, for `A ⊆ Λ` and `E^0_A = lim e^{t L^0_A}`:
@@ -147,14 +146,14 @@ def infinite_temperature_mlsi (ρ : Density I) (E0 : Density I → Density I)
   -- `χ⁰_min EP_{L̃}(ρ) ≤ EP_{L^0_{A^∂}}(ρ)`, and `L̃` is identified with the
   -- generator of the depolarising dynamics whose Dirichlet form is
   -- `D(ρ‖E^0_A(ρ))`.
-  -- Lean gap: the GNS/Dirichlet-form decomposition and the identification
+  -- Scope note: the GNS/Dirichlet-form decomposition and the identification
   -- `L̃ = L^0_A` (via [KB16, Theorem 31]) are not formalised; `EP0`, `E0` and
   -- `χ` are interface data.
-  -- Candidate reusable dependencies: the Frozen
+  -- Related interfaces:
   -- `EntropyProductionIneq`/`mlsi_relativeEntropy_decay` interface
   -- (GapWaveLindbladSemigroup) for the Dirichlet-form side.
-  -- Suggested continuation: instantiate the Frozen MLSI interface with the
-  -- infinite-temperature Davies generator once it is modelled.
+  -- The relevant generator for the MLSI interface is the
+  -- infinite-temperature Davies generator.
 
 /-- **Lemma B.9**, arXiv:2412.01732v1 p.39, eq. (68). A uniform polynomial
 lower bound `λ(L_A) ≥ C|A|^{-μ}` on the local gap implies the uniform lower
@@ -195,15 +194,15 @@ theorem poly_gap_to_cmlsi {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- (the logarithm of the index contributes `2 log 10`); inserting
   -- `λ(L_A) ≥ C|A|^{-μ}` yields (68), and since `|A^∂| ≤ c|A|` the bound is
   -- `Ω(|A|^{-μ-1})`.
-  -- Lean gap: the Pimsner–Popa index `C_cb(E_A)`, the Davies-channel
+  -- Scope note: the Pimsner–Popa index `C_cb(E_A)`, the Davies-channel
   -- decomposition (70), and the spectral-gap/cMLSI relation (27) are not
   -- formalised; `λ` and `αc` are functions of the region supplied as
   -- interface data, with `hlink` encoding (27); `bnd` is `|A^∂|`.
-  -- Candidate reusable dependencies: `div_le_iff`, `div_mul_eq_mul_div`,
-  -- `Real.rpow_le_rpow`, `Real.log_pos`; the Frozen
+  -- Related inequalities: `div_le_iff`, `div_mul_eq_mul_div`,
+  -- `Real.rpow_le_rpow`, `Real.log_pos`; the
   -- `EntropyProductionIneq` interface for (27).
-  -- Suggested continuation: prove `C|A|^{-μ} / denom ≤ gap A / denom` with
-  -- `div_le_div_of_nonneg_right` after establishing positivity of the
-  -- denominator, then combine with `hlink`.
+  -- Positivity of the denominator gives
+  -- `C|A|^{-μ} / denom ≤ gap A / denom`; combining with `hlink` yields
+  -- the stated bound.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.LocalDavies

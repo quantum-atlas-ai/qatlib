@@ -53,8 +53,6 @@ open Qatlib
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Foundations.PureStateMath
@@ -75,7 +73,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.LayeredMean
 open Qatlib.Concepts.MonteCarloMean.PilotVariance
 open Qatlib.Concepts.WalkSearch.QuantumAccess
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 namespace AmplitudeReadoutRefined

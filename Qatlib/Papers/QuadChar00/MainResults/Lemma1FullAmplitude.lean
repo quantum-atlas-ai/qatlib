@@ -31,8 +31,6 @@ giving the complete unnormalized Fourier-amplitude identity of Lemma 1 in [VanDa
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

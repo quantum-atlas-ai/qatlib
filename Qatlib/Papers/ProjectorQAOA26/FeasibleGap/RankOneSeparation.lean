@@ -25,7 +25,6 @@ perturbation parameter [ZhouAnLiu2026].
 * [Zhou et al., 2026][ZhouAnLiu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

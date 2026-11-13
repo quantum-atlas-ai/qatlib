@@ -32,7 +32,6 @@ exact expected cost of the returned record under regularity and half-image hypot
 * [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

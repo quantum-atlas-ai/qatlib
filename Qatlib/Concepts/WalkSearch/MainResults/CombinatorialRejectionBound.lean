@@ -31,7 +31,6 @@ their stated guarantees. For background on quantum search and amplitude amplific
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.Primitives
 

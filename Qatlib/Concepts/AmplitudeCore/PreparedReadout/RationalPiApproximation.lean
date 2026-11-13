@@ -6,7 +6,7 @@ Authors: Qatlib Contributors
 
 import Mathlib.Tactic.Common
 import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
+import Mathlib.Algebra.Order.GroupWithZero.Basic
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
@@ -36,12 +36,10 @@ These rational constants support numerical phase decoding in quantum algorithms;
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- The rational partial sum of the arctangent power series with `L` terms. -/
 def atanRatSeries (x : ℚ) : ℕ → ℚ
@@ -238,7 +236,7 @@ private theorem atanPoly_neg (L : ℕ) (t : ℝ) :
 /-- For rational inputs of absolute value at most `1 / 2`, the arctangent partial sum has error
 bounded by the absolute first omitted term. -/
 theorem rational_arctan_series_explicit_remainder (x : ℚ) (L : ℕ)
-    (hx : |(x : ℝ)| ≤ 1 / 2) :
+    (_hx : |(x : ℝ)| ≤ 1 / 2) :
     |((atanRatSeries x L : ℚ) : ℝ) - Real.arctan (x : ℝ)|
       ≤ |(x : ℝ)| ^ (2 * L + 1) / (2 * (L : ℝ) + 1) := by
   rw [atanRatSeries_cast]
@@ -415,7 +413,6 @@ theorem rational_machin_pi_computed_precision :
       linarith [hA1abs.1]
     have hBlow : Real.arctan ((1 / 239 : ℝ)) ≥ (1 / 239 : ℝ) - (1 / 239 : ℝ) ^ 3 / 3 := by
       linarith [hB1abs.2]
-    push_cast at hid ⊢
     nlinarith [hid, hAup, hBlow]
   have hnum : 16 * ((1 / 5 : ℝ) + (1 / 5 : ℝ) ^ 3 / 3)
       - 4 * ((1 / 239 : ℝ) - (1 / 239 : ℝ) ^ 3 / 3) < 4 - 1 / 300 := by norm_num

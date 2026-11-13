@@ -30,7 +30,6 @@ for the power-of-two case.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

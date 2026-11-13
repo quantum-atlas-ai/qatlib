@@ -16,8 +16,7 @@ set_option backward.isDefEq.respectTransparency false
 # PersistentHom22.MainResults.PersistentDiracOperator
 
 Paper-layer Lean for **PersistentHom22** = *Quantum Persistent Homology*
-(Ameneyro-Maroulas-Siopsis, arXiv:2202.12965), fixed at the prefetched PDF
-`2202.12965.pdf` (text dump `2202.12965.txt`). Claim **c002**.
+(Ameneyro-Maroulas-Siopsis, arXiv:2202.12965). Claim **c002**.
 
 Source anchors (page numbers are arXiv PDF pages):
 

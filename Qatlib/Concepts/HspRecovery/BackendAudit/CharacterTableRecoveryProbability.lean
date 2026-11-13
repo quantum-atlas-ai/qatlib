@@ -29,10 +29,7 @@ least `1 - card G * 2⁻ᵐ`. The budget `tableRecoverySamples` makes the failur
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -206,8 +203,10 @@ theorem tableGroupRecordDist_unsupported_eq_zero {m : ℕ} (f : G → R) (e : G 
       Finset.prod_eq_zero (Finset.mem_univ i)]
   have hz : (tableGroupRecordDist f e).prob (xs i) = 0 := by
     show (hiddenSubgroupSampleDist f e).prob (e (xs i)) = 0
-    rw [hiddenSubgroupSampleDist_prob f H hf e, if_neg hi]
+    rw [hiddenSubgroupSampleDist_prob f H hf e, ite_eq_right hi]
   simp [hz]
+
+omit [DecidableEq G] in
 
 /-- Every element outside `H` is separated from `H` by a character that annihilates `H` but does
 not take value one on that element. -/
@@ -392,9 +391,9 @@ theorem character_table_false_candidate_fresh_probability (f : G → R) (e : G �
       (hiddenSubgroupSampleDist f e).prob χ * (if χ x = 1 then (1 : ℝ) else 0) :=
     Finset.sum_nonneg fun χ _ => by
       by_cases h : χ x = 1
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         exact mul_nonneg ((hiddenSubgroupSampleDist f e).nonneg χ) (by norm_num)
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         exact mul_nonneg ((hiddenSubgroupSampleDist f e).nonneg χ) (by norm_num)
   exact pow_le_pow_left₀ hnonneg (killer_mass_le_half f e H hf x hx) m
 

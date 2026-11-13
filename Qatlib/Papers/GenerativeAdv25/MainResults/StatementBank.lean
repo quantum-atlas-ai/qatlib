@@ -66,8 +66,6 @@ The remaining nineteen claims are recorded as abstract statements:
   output distribution.
 - c020 (Proposition 4 / Conjecture 1): non-collapse of the non-uniform
   polynomial hierarchy implies the classical sampling hardness.
-
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

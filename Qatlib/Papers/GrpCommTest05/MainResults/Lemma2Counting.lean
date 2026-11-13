@@ -30,8 +30,6 @@ zero, `lemma2_counting` gives a squared lower bound on the number of such pairs.
 * [Magniez and Nayak, 2005][MagniezNayak2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 attribute [local instance] Classical.propDecidable

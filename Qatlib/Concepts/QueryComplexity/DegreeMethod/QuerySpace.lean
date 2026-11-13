@@ -30,7 +30,6 @@ query; the reverse conversion preserves both query and gate counts.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -47,7 +46,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.QuerySpace
 open Qatlib Matrix
 open scoped Classical BigOperators
 noncomputable section
-set_option linter.unusedSectionVars false
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
 /-- Every unitary workspace bit-oracle circuit has a unitary bare-phase simulation using a

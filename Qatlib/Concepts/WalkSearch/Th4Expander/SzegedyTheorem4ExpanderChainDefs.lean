@@ -25,7 +25,6 @@ The kernel is used for regular-graph instances of Szegedy walk search [Szegedy20
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 

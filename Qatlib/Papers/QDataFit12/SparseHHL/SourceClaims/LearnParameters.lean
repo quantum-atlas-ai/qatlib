@@ -28,9 +28,9 @@ Algorithm-2 sampling) and Eq. (17) (the tomography `log N · s³ M′²κ⁶/ε�
 the total cost, proves the decomposition, and proves the compressed-sensing measurement
 budget `M′²log(M′)²/ε²` of p.5.
 
-The cost `readoutHeadlineCost` is already fixed in the Frozen model
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL`; the monotonicity in `N, s, κ, M′` is the
-Frozen theorem `clause23_readout_headline_mono`, which this module reuses.
+The cost `readoutHeadlineCost` is already fixed in the reusable model
+`Qatlib.Papers.QDataFit12.SparseHHL`; the monotonicity in `N, s, κ, M′` is the
+reusable theorem `clause23_readout_headline_mono`, which this module reuses.
 -/
 
 set_option autoImplicit false
@@ -100,8 +100,8 @@ theorem compressedSensingMeasurements_mono_M' (M' M'' : ℕ) (hM : M' ≤ M'')
 
 /-- **c002 headline monotonicity.**  The Algorithm-3 total cost of p.5 is monotone in the
 dimension `N`, the sparsity `s`, the condition number `κ` and the number of significant
-terms `M′`, at fixed target precisions `ε`, `δ`.  Reuses the Frozen theorem
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL.clause23_readout_headline_mono`. -/
+terms `M′`, at fixed target precisions `ε`, `δ`.  Reuses the reusable theorem
+`Qatlib.Papers.QDataFit12.SparseHHL.clause23_readout_headline_mono`. -/
 theorem learnLambda_cost_mono (N N' s s' κ κ' M M' : ℕ) (ε δ : ℝ)
     (hε : 0 < ε) (hδ : 0 < δ)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') (hM : M ≤ M') :

@@ -26,8 +26,6 @@ bias for the stated probability and bias ranges. The mathematical context is [Ka
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

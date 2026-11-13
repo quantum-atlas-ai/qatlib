@@ -24,7 +24,6 @@ entanglement criteria developed in the setting of [Wilde2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Papers.QShannonWilde11.MainResults
 
@@ -34,7 +33,6 @@ open scoped BigOperators Classical ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The real part of trace(Wρ), used as the expectation of a bipartite witness operator W
 against ρ. -/

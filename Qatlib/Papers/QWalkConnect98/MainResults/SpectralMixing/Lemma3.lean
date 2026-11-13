@@ -29,8 +29,6 @@ support the connectivity analysis in [Watrous1998].
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing
 
 open Finset

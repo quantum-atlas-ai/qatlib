@@ -32,9 +32,7 @@ proposition used in the collision-search setting [Ambainis2007ElementDistinctnes
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 

@@ -170,7 +170,8 @@ def IsIccc (q n k : ℕ) (ε : ℝ) : Prop :=
     ε ≤ (q : ℝ) ^ (θ - 1) / (4 * Real.sqrt ((q : ℝ) ^ k))
 
 /-- A record of cost, success-probability value, and an output equal to the specified Potts
-partition sum. -/
+partition sum. This legacy numerical record has no execution semantics;
+its cost and probability fields alone certify no algorithm or runtime bound. -/
 structure PottsScheme {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
     (q : ℕ) (ends : E → V × V) (J : E → ℝ) where
 

@@ -33,7 +33,6 @@ event on normalized spectral inputs, using the phase-estimation framework of [Ki
 -/
 
 open Qatlib.Foundations.InstrumentCore.Measurement
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -42,7 +41,6 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -286,6 +284,8 @@ theorem clean_qpe_full_workspace_leakage_telescope
   rw [hn, (counted_offgrid_qpe_clean_flag M hM V ψ).2.1] at h
   exact h
 
+omit [Fintype I] in
+
 /-- Extending an isometric data frame to the phase and flag registers gives an isometric clean
 QPE frame. -/
 theorem cleanQPEFrame_isometry (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometry R) :
@@ -295,6 +295,8 @@ theorem cleanQPEFrame_isometry (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometry R
     Matrix.conjTranspose_one, ← Matrix.mul_kronecker_mul, Matrix.one_mul, hR,
     Matrix.one_kronecker_one]
 
+omit [DecidableEq H] in
+
 /-- The clean QPE event mass equals the left marginal probability of the same phase-label event. -/
 private theorem clean_event_marginal (M : ℕ)
     (out : QState (Fin M × (Bool × H))) (E : Finset (Fin M)) :
@@ -303,6 +305,8 @@ private theorem clean_event_marginal (M : ℕ)
   congr 1
   ext p
   simp
+
+omit [Fintype H] in
 
 /-- Each phase-label slice of a framed state is obtained by applying the flag identity tensored
 with `R` to the original slice. -/
@@ -349,7 +353,7 @@ private theorem clean_ideal_event_spectral (M : ℕ) (hM : 0 < M) (V : Matrix I 
     (counted_offgrid_qpe_clean_flag M hM V (∑ j, c j • v j)).1,
     clean_event_marginal]
   simp only [MarginalProbLeft, MeasureProb, BornProb, Finset.sum_product,
-    Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, if_false, if_true,
+    Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
     norm_zero, zero_pow (by decide : 2 ≠ 0), Finset.sum_const_zero, zero_add]
   have hl := (offgrid_qpe_eigen_and_spectral_law M V (0 : QState I) 0 hM).2
     J v c φ (by intro j l; by_cases h : j = l <;> simpa [h] using! hv j l) he

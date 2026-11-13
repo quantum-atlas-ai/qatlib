@@ -25,11 +25,7 @@ unitarity, and inner-product preservation, supplying the oracle representation u
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -52,6 +48,8 @@ to `x`. -/
 def oracleFlip (x : I → Bool) (p : I × Bool) : I × Bool :=
   (p.1, flipBit (x p.1) p.2)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The oracle permutation is involutive. -/
 theorem oracleFlip_involutive (x : I → Bool) : Function.Involutive (oracleFlip x) := by
   intro p
@@ -62,6 +60,8 @@ theorem oracleFlip_involutive (x : I → Bool) : Function.Involutive (oracleFlip
 /-- Defines the bit-query Hamiltonian as the permutation matrix of `oracleFlip x`. -/
 def oracleHamiltonian (x : I → Bool) : Matrix (I × Bool) (I × Bool) ℂ :=
   permMatrix (oracleFlip x)
+
+omit [Fintype I] in
 
 /-- The oracle Hamiltonian has entry one exactly when its row index is the oracle image of its
 column index, and zero otherwise. -/
@@ -107,6 +107,6 @@ theorem oracleHamiltonian_edge (x : I → Bool) (i : I) (b : Bool) :
     oracleHamiltonian x (i, flipBit (x i) b) (i, b) = 1 := by
   rw [oracleHamiltonian_apply]
   have h : (i, flipBit (x i) b) = oracleFlip x (i, b) := rfl
-  rw [h, if_pos rfl]
+  rw [h, ite_eq_left rfl]
 
 end Qatlib.Papers.ContDiscWalk08.QueryConvert

@@ -34,9 +34,7 @@ setting.
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
 

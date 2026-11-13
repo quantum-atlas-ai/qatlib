@@ -23,8 +23,6 @@ n), under the specified noise and threshold hypotheses.
 * [Ben-Or and Hassidim, Lemma 2.3][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
 /-- The proposition that a nonnegative normalized prior and a cut with prefix mass in [1/2 - ε,

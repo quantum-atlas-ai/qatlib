@@ -37,7 +37,6 @@ namespace Qatlib.Papers.AmpInvReqTang26.Reductions
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 open Qatlib.Concepts.QueryComplexity.MarkingOracle
-set_option warningAsError false
 
 /-- The zero-bias Fourier preparation matrix `Ftilde 0 d`. -/
 def sourcePreparation (d : ℕ) : Matrix (Fin d) (Fin d) ℂ := Ftilde 0 d

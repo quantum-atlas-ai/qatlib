@@ -32,7 +32,6 @@ control labels. Its receipts and compiled copy-run-reset execution are related t
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

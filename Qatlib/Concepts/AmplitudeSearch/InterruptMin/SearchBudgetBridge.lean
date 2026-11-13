@@ -30,7 +30,6 @@ search framework [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SearchStopping.UnknownCount

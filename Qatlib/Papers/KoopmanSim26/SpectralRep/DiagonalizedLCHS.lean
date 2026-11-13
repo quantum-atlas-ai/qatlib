@@ -31,8 +31,6 @@ integrability of every matrix entry.
 - [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 noncomputable section

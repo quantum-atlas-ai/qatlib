@@ -28,14 +28,11 @@ classical scale. See [ChristandlEtAl2004].
 * [Christandl et al., 2004][ChristandlEtAl2004]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 open Qatlib.Papers.StateTransfer03.MainResults.Defs
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

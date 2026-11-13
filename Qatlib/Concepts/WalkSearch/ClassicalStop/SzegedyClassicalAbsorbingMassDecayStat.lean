@@ -23,8 +23,6 @@ absorbing recurrence, with a symmetric-chain gap and a lower bound on the marked
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Matrix
 

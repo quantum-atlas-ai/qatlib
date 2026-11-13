@@ -26,8 +26,6 @@ the derivative growth condition used in [GilyenArunachalamWiebe2019].
 * [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2200000
 noncomputable section

@@ -30,8 +30,6 @@ standard oracle-circuit framework of [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -136,7 +134,7 @@ def regOfList (n : ℕ) (hist : List (Reg n)) : Reg n → Bool := fun x => decid
 instruction, obtained by executing fixed gates and the supplied oracle matrices. -/
 noncomputable def sQueryStates {I : Type} [Fintype I] [DecidableEq I] (oS oU : Matrix I I ℂ) :
     TOCircuit I → QState I → List (QState I)
-  | [], ψ => []
+  | [], _ψ => []
   | TOStep.gate U :: C, ψ => sQueryStates oS oU C (ApplyGate U ψ)
   | TOStep.queryS :: C, ψ => ψ :: sQueryStates oS oU C (ApplyGate oS ψ)
   | TOStep.queryU :: C, ψ => sQueryStates oS oU C (ApplyGate oU ψ)
@@ -166,7 +164,6 @@ noncomputable def witnessEmbed (n : ℕ) (ψ : QState (Reg n)) :
 end Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithAClassicalOracle2025
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Matrix
 namespace Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithAClassicalOracle2025

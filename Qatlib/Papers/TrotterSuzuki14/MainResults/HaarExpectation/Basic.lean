@@ -25,8 +25,6 @@ zero-sum coefficient condition. See [BabbushEtAl2015].
 * [Babbush et al., 2015][BabbushEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TrotterSuzuki14.MainResults

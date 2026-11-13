@@ -29,8 +29,6 @@ and constraint satisfaction of the normalized output.
 * [Sattath and Arad, 2015][SattathArad2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators Matrix Kronecker ComplexOrder
 namespace Qatlib.Papers.CommutingLLL13.NativeFix

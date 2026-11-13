@@ -28,7 +28,6 @@ water-fill analysis associated with [OzolsRoettelerRoland2013].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
 
 set_option autoImplicit false

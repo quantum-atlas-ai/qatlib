@@ -34,10 +34,7 @@ divisibility. See [IvanyosMagniezSantha2003] for the surrounding analysis.
 * [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 
@@ -73,44 +70,48 @@ noncomputable def zpowProd (h : ι → M) (hcomm : ∀ i j : ι, Commute (h i) (
     isMulCommutative_closure_range h hcomm
   ∏ i, closureGen h i ^ m i
 
+omit [DecidableEq ι] in
+
 /-- The product with all exponents zero is the identity. -/
 @[simp] theorem zpowProd_zero (h : ι → M) (hcomm : ∀ i j : ι, Commute (h i) (h j)) :
     zpowProd h hcomm 0 = 1 := by
-  letI : IsMulCommutative (Subgroup.closure (Set.range h)) :=
+  let : IsMulCommutative (Subgroup.closure (Set.range h)) :=
     isMulCommutative_closure_range h hcomm
   simp [zpowProd]
+
+omit [DecidableEq ι] in
 
 /-- Adding exponent vectors multiplies their corresponding `zpowProd` values. -/
 theorem zpowProd_add (h : ι → M) (hcomm : ∀ i j : ι, Commute (h i) (h j))
     (m n : ι → ℤ) :
     zpowProd h hcomm (m + n) = zpowProd h hcomm m * zpowProd h hcomm n := by
-  letI : IsMulCommutative (Subgroup.closure (Set.range h)) :=
+  let : IsMulCommutative (Subgroup.closure (Set.range h)) :=
     isMulCommutative_closure_range h hcomm
   simp only [zpowProd]
   rw [← Finset.prod_mul_distrib]
   refine Finset.prod_congr rfl (fun i _ => ?_)
   rw [Pi.add_apply, zpow_add]
 
+omit [DecidableEq ι] in
+
 /-- Negating the exponent vector inverts the corresponding `zpowProd` value. -/
 theorem zpowProd_neg (h : ι → M) (hcomm : ∀ i j : ι, Commute (h i) (h j))
     (m : ι → ℤ) :
     zpowProd h hcomm (-m) = (zpowProd h hcomm m)⁻¹ := by
-  letI : IsMulCommutative (Subgroup.closure (Set.range h)) :=
+  let : IsMulCommutative (Subgroup.closure (Set.range h)) :=
     isMulCommutative_closure_range h hcomm
   have key : (∏ i, closureGen h i ^ (-m) i) = ∏ i, (closureGen h i ^ m i)⁻¹ := by
     refine Finset.prod_congr rfl (fun i _ => ?_)
     rw [Pi.neg_apply, zpow_neg]
   simp only [zpowProd]
   rw [key]
-  simpa using
-    (Finset.prod_inv_distrib (s := (Finset.univ : Finset ι))
-      (f := fun i => closureGen h i ^ m i))
+  simp
 
 /-- The exponent vector supported at `i` with value one gives `closureGen h i`. -/
 theorem zpowProd_single (h : ι → M) (hcomm : ∀ i j : ι, Commute (h i) (h j))
     (i : ι) :
     zpowProd h hcomm (Pi.single i (1 : ℤ)) = closureGen h i := by
-  letI : IsMulCommutative (Subgroup.closure (Set.range h)) :=
+  let : IsMulCommutative (Subgroup.closure (Set.range h)) :=
     isMulCommutative_closure_range h hcomm
   simp [zpowProd, Pi.single_apply]
 
@@ -169,7 +170,7 @@ theorem exists_coprime_kernel_iff (h : ι → M)
       rw [Int.gcd_def]
       simpa using hcop
     have hdvd : Int.gcd n (orderOf g : ℕ) ∣ (1 : ℕ) := by
-      simpa [hgcd] using (dvd_refl (1 : ℕ))
+      simp [hgcd]
     obtain ⟨u, v, huv⟩ :=
       (Int.gcd_dvd_iff (a := n) (b := ((orderOf g : ℕ) : ℤ))).1 hdvd
 

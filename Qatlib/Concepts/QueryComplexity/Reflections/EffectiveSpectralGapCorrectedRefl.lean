@@ -30,7 +30,6 @@ with [Reichardt2011].
 * [Reichardt, 2011][Reichardt2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding

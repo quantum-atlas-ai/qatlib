@@ -28,7 +28,6 @@ teleportation in [BennettEtAl1993Teleportation].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound

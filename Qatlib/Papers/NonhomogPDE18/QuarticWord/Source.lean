@@ -24,8 +24,6 @@ quartic exponent 6t x_j^2 x_k x_l; separate constants record the reported gate c
 * [Arrazola et al., 2019][ArrazolaEtAl2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

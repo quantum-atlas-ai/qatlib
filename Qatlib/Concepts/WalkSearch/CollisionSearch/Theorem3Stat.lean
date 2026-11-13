@@ -22,7 +22,6 @@ statement used by the collision-search reduction with the corrected solver cost 
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 namespace Qatlib.Concepts.WalkSearch.CollisionSearch

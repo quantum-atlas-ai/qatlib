@@ -31,16 +31,17 @@ lake build Qatlib.Foundations.ChannelTheory.ChoiKraus
   - Formalizations of specific research papers belong in `Qatlib/Papers/`.
 - **Minimal imports**: Import only the specific modules needed by each file; do not `import Qatlib` inside library modules.
 - **Documentation**: Include a module docstring (`/-! ... -/`) at the top of each `.lean` file and docstrings (`/-- ... -/`) on public definitions and main theorems.
-- **Complete proofs**: Pull requests must compile cleanly with `autoImplicit = false` without `sorry`, `admit`, or custom `axiom` declarations (only Lean's standard axioms `propext`, `Quot.sound`, `Classical.choice` are permitted).
-- **Third-party attribution**: If any code is adapted or ported from an external project or repository, please note the original source, author(s), and license in the file header and PR description.
+- **Complete, warning-free proofs**: Pull requests must compile cleanly under `--wfail` (`autoImplicit = false`) without `sorry`, `admit`, `native_decide`, `debug.skipKernelTC`, custom `axiom` declarations (only Lean's standard axioms `propext`, `Quot.sound`, `Classical.choice` are permitted), or file-level `set_option warningAsError false`.
+- **Statement fidelity**: Formalizations in `Qatlib/Papers/` must faithfully capture implicit mathematical hypotheses from the source paper (e.g., Euclidean $\ell_2$ state norms, normalized probability laws, and query/gate budgets genuinely tied to circuit execution) rather than unconstrained record fields, and must never name unproved `Prop` definitions after proved theorems (any unproved specification or open conjecture must carry a `_statement` / `Spec` suffix and an explicit docstring banner).
+- **Third-party attribution**: If any code is adapted or ported from an external project or repository, preserve original copyright notices, record the upstream repository URL, commit SHA, and license in both root `NOTICE` and the file header, and note it in the PR description.
 
 ## Pre-PR Checks
 
 ```bash
-# 1. Build the modified module(s)
-lake build <YourModule>
+# 1. Build the modified module(s) with warnings as errors
+lake --wfail build <YourModule>
 
-# 2. Run static style/import checks and kernel axiom verification
+# 2. Run static style/import checks, semantic fidelity checks, and kernel axiom verification
 lake lint
 lake test
 ```

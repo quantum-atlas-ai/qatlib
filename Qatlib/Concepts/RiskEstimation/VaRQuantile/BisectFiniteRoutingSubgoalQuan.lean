@@ -38,7 +38,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 

@@ -35,7 +35,6 @@ set_option backward.isDefEq.respectTransparency false
 
 noncomputable section
 
-
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.LieStrang
 
@@ -51,7 +50,6 @@ open Qatlib
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 section Attached
 

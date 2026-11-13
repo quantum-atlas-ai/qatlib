@@ -36,8 +36,6 @@ rounded thresholds. For background on quantum search and amplitude amplification
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.WalkSearch.Primitives
 

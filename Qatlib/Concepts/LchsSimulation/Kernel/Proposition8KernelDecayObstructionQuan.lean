@@ -26,7 +26,6 @@ setting.
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.LchsSimulation.Kernel

@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -36,7 +38,6 @@ These geometric criteria support residue arguments associated with [WangEtAl2026
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -52,7 +53,7 @@ namespace TauCeti.Contour
 /-- For a continuous curve with interval-integrable derivative and integer winding numbers off
 its image, the winding number vanishes on every unbounded connected component of the
 complement. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eq_zero_of_unbounded_component_of_integer
+theorem _root_.ContinuousOn.windingNumber_eq_zero_of_unbounded_component_of_integer
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (uIcc a b))
     (hderiv : IntervalIntegrable (deriv γ) volume a b)
     (hint : ∀ z, z ∉ γ '' uIcc a b → ∃ n : ℤ, windingNumber γ a b z = n)

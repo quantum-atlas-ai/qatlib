@@ -27,7 +27,6 @@ The mathematical background is described in [NielsenChuang2010].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
 
 open Qatlib.Concepts.MatrixAccess.KnownFrameSynth

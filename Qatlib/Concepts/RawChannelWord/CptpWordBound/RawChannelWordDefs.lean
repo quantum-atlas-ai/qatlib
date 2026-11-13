@@ -27,7 +27,6 @@ channel comparison by the trace and diamond norms described in [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
 namespace Qatlib.Concepts.RawChannelWord.CptpWordBound

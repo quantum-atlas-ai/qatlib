@@ -29,8 +29,6 @@ consistent-label sum.
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
 
 open Classical

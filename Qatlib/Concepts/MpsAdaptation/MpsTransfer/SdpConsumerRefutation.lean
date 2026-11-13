@@ -32,7 +32,6 @@ diamond-norm SDP background is treated in [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.SdpDuality.StrongDuality
 
 set_option autoImplicit false

@@ -26,7 +26,6 @@ exact infeasibility certificate for the two-query size-seven case in [ChildsLand
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

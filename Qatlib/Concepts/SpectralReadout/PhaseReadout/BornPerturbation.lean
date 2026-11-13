@@ -31,7 +31,6 @@ The normalized bound also holds after applying a common unitary gate.
 
 open Qatlib.Foundations.InstrumentCore.Measurement
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -40,9 +39,9 @@ namespace Qatlib.Concepts.SpectralReadout.PhaseReadout
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Conversion of amplitude vectors to Euclidean space preserves subtraction. -/
 private theorem sub_toEuclidean_fromVec (ψ φ : QState I) :
@@ -55,6 +54,8 @@ private theorem collapse_sub_collapse (ψ φ : QState I) (S : Finset I) :
   funext i
   simp only [collapse_apply, Pi.sub_apply]
   split_ifs <;> simp
+
+omit [DecidableEq I] in
 
 /-- Applying a matrix gate preserves subtraction of states. -/
 private theorem applyGate_sub_applyGate (U : Matrix I I ℂ) (ψ φ : QState I) :
@@ -72,8 +73,8 @@ theorem norm_toEuclidean_collapse_le (ψ : QState I) (S : Finset I) :
   have hsum : (∑ i, ‖Collapse ψ S i‖ ^ 2) ≤ ∑ i, ‖ψ i‖ ^ 2 := by
     refine Finset.sum_le_sum fun i _ => ?_
     by_cases h : i ∈ S
-    · rw [collapse_apply, if_pos h]
-    · rw [collapse_apply, if_neg h]
+    · rw [collapse_apply, ite_eq_left h]
+    · rw [collapse_apply, ite_eq_right h]
       norm_num
   have hsq : ‖toEuclidean_fromVec (Collapse ψ S)‖ ^ 2 ≤ ‖toEuclidean_fromVec ψ‖ ^ 2 := by
     rw [norm_toEuclidean_fromVec_sq, norm_toEuclidean_fromVec_sq]

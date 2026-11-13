@@ -27,8 +27,6 @@ character factors. See [VanDamSeroussi2002].
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

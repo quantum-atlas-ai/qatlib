@@ -28,8 +28,6 @@ completeness and soundness conditions, yielding `lemma2_MA_eq_MAq`. See
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

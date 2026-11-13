@@ -28,7 +28,6 @@ on the absolute value of the time parameter; the signal processing setting is de
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.NonNormalSpec.ResolventWord

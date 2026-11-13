@@ -28,7 +28,6 @@ counting error less than one half. The mathematical context is [BrassardHoyerTap
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

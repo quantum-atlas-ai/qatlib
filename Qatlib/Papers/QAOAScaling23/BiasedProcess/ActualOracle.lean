@@ -29,7 +29,6 @@ for [ShaydulinEtAl2024].
 * [Shaydulin et al., 2024][ShaydulinEtAl2024]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 set_option maxHeartbeats 2400000

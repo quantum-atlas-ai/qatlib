@@ -27,8 +27,6 @@ Gauss sum at a unit frequency. It assumes the square-root norm at frequency one,
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

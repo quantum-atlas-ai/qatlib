@@ -26,7 +26,6 @@ system, with the factor `‖V‖ * ‖V⁻¹‖`. See [BerryEtAl2017ODE] for the
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

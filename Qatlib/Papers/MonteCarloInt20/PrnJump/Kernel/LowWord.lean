@@ -23,7 +23,6 @@ identity for the PRN circuit implementation associated with [KanekoEtAl2020].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.MatrixAccess.RitzPipeline
 open Qatlib.Foundations.PureStateMath

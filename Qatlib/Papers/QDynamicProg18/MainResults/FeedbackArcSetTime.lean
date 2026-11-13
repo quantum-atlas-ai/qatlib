@@ -45,13 +45,12 @@ are independent, so the same two-level quantum minimum finding as Algorithm 2
 computes the recurrence, at the identical cost `O*(1.728^n)` (no `log L`
 factor, since the edge terms are unit costs).
 
-Lean gap: the reduction to the TSP recurrence is not formalised; the statement
-reuses the TSP cost structure with unit weights.  Candidate dependencies:
-`theorem8_tsp` (this paper layer) with `w ≡ 1`, `feedbackArcSetSize` and
-`IsAcyclic` from the model layer.  Suggested tactics: instantiate the TSP
-algorithm with unit weights so that `log L = 0` is not used (the factor is
-dropped), and transport the `O*(1.728^n)` bound through the recurrence
-identification. -/
+Scope note: the theorem gives a bounded-error specification using the TSP
+cost structure with unit weights; the reduction to the TSP recurrence is
+outside the scope of this file.  The relevant objects are `theorem8_tsp`,
+`feedbackArcSetSize` and `IsAcyclic`.  In the paper's unit-weight comparison
+(`w ≡ 1`), the `log L` factor is omitted rather than evaluated as zero, and
+the recurrence identification transfers the `O*(1.728^n)` bound. -/
 theorem corollary9_feedbackArcSet (n : ℕ) :
     SolvesValueInTime (feedbackArcSetProblem n) (1.728 : ℝ) := by
   let A : BoundedErrorQuantumAlgorithm (Fin n → Fin n → Bool) ℕ :=

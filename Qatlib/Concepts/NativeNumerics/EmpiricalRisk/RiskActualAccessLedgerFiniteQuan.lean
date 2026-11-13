@@ -27,7 +27,6 @@ amplitude estimation. It provides a resource ledger for the risk-estimation sett
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian

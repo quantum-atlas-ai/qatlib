@@ -28,8 +28,6 @@ metric output space. See [TranEtAl2026] for the paper context.
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

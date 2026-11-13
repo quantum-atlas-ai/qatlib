@@ -22,7 +22,6 @@ its actual execution and resource bounds.
 The rotation comes from [Grover1996]; multiple-solution and unknown-count
 search are treated by [Boyer et al., *Tight Bounds on Quantum Searching*][BoyerEtAl1998].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

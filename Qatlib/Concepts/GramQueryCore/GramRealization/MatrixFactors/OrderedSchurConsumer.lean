@@ -30,7 +30,6 @@ diagonal weights; see [Bhatia2007] for matrix positivity background.
 * [Bhatia, 2007][Bhatia2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

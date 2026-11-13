@@ -25,8 +25,6 @@ measurement bias and equal-prior success probability. See [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators ComplexOrder

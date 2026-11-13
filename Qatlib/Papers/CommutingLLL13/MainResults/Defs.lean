@@ -33,7 +33,6 @@ commuting family.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open scoped BigOperators Matrix ComplexOrder
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus

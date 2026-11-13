@@ -30,7 +30,6 @@ meaningful for large tolerances.
 - [Low and Chuang, 2019][LowChuang2019], Theorem 1.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 
 set_option autoImplicit false

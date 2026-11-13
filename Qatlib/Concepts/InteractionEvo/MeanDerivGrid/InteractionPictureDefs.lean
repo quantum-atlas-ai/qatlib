@@ -38,7 +38,6 @@ expression. The interaction picture simulation setting is described in [LowWiebe
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Qatlib.Concepts.InteractionEvo.EffCosts
 open Qatlib.Concepts.InteractionEvo.SegmentProduct
@@ -48,7 +47,6 @@ open Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 

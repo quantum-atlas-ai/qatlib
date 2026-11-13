@@ -32,7 +32,6 @@ attempts in the setting of [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

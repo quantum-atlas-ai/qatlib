@@ -29,8 +29,6 @@ positive lower bound.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
 

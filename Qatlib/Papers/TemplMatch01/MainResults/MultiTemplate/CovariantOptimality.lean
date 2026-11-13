@@ -36,8 +36,6 @@ final identity identifies `gammaW0` with the score matrix `wZero`.
 * [Sasaki et al., 2001][SasakiCarliniJozsa2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate
 
 open Finset

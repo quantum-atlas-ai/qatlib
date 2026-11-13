@@ -35,7 +35,6 @@ calculations make the outcome dependence precise.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib
@@ -43,7 +42,6 @@ open Matrix
 open scoped Classical ComplexOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -386,7 +384,6 @@ private theorem wire_kraus_eq (a : ℝ) (b z : Bool) :
     rw [exp_neg_ofReal_I]
     ring
   rw [hU]
-  set_option linter.unusedSimpArgs false in
   cases z <;> cases b <;> fin_cases j' <;> fin_cases j <;>
     simp [plane_XY_entry, wire_corr_sum, boolEquivFin2, bitPhase, exp_ofReal_I, exp_neg_ofReal_I,
       exp_ofReal_I', exp_neg_ofReal_I'] <;>
@@ -1021,7 +1018,6 @@ theorem clause3_counter :
                 = Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix edges
                   * Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix edges)) :=
   fun h => clause3_counter_clause3 h.2.2.1
-  set_option linter.unusedSimpArgs false in
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 

@@ -31,8 +31,6 @@ three provide an explicit worked instance. See [TemmeEtAl2011] for background.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Concepts.LinearLearning.ConcisePipeline

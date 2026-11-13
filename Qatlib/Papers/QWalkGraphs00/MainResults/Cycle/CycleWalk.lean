@@ -15,17 +15,17 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 # The coined quantum walk on the odd cycle (Theorems 4.1, 4.2 and 5.3)
 
 Fixed source: arXiv:quant-ph/0012090v2 (25 May 2002), Aharonov–Ambainis–Kempe–Vazirani,
-*Quantum Walks On Graphs*; PDF at
-`prove/assets/quant-ph_0012090.pdf`.
+*Quantum Walks On Graphs*.
 
 This module models the walk of Section 4: nodes are `ZMod n` (the `n`-cycle), the coin is
 `Fin 2` with the Hadamard matrix, and one step is "Hadamard on the coin, then shift the node
 by `+1` for coin state `0` and by `-1` for coin state `1`".
 
-The analytic results of Section 4 (Theorem 4.1: uniform limiting distribution for odd `n`;
-Theorem 4.2: mixing time `O(n log n / ε³)`; Theorem 5.3: the amplified bounds) are not
-formalized here.  Their proofs need a Fourier/character basis of `cycleStep`, the eigenvalue
-spacing estimates of Claims 4.5–4.10, and the spectral error bound of Lemma 4.3.
+Scope note: this module formalizes the walk operator. The analytic results of
+Section 4 (Theorem 4.1: uniform limiting distribution for odd `n`; Theorem 4.2: mixing
+time `O(n log n / ε³)`) and the amplified bounds of Theorem 5.3 are outside its scope.
+Their proofs use a Fourier/character basis of `cycleStep`, the eigenvalue spacing
+estimates of Claims 4.5–4.10, and the spectral error bound of Lemma 4.3.
 -/
 
 set_option autoImplicit false

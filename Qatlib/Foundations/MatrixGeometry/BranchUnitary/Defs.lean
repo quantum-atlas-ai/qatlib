@@ -29,7 +29,6 @@ setting of [JefferyKothariMagniez2013].
 * [Jeffery et al., 2013][JefferyKothariMagniez2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

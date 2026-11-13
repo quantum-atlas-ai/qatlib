@@ -24,7 +24,6 @@ embedded input eigenvector. Background and related constructions are discussed i
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

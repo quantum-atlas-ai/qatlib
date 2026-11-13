@@ -26,7 +26,6 @@ unitary oracle noise, including exact cancellation with its adjoint, using the m
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit

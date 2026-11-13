@@ -27,7 +27,6 @@ coordinates and decomposes finite event counts by isolating one coordinate with
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000

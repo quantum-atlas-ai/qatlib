@@ -25,10 +25,9 @@ function `f : {0,1}^n → {0,1}^m`; they bound the number of quantum queries,
 the number of `Clifford+T+qRAM_R+qRAM_W` gates and the number of qubits, and
 guarantee `2^k` collision pairs as output.
 
-Dev/Frozen does not (currently) ship a general model of "a quantum algorithm
-with a query/gate/qubit cost profile that succeeds on a uniformly random
-function".  This file therefore fixes the *combinatorial resource contract*
-that the paper's theorems assert, in the smallest form that is not vacuous:
+This file does not construct a quantum collision algorithm. The legacy
+`CollisionAlgorithm` is an output specification with independent resource labels:
+neither `SolvesOn` nor `SucceedsWithProbability` constrains those labels.
 
 * `Domain n`/`Codomain m` are `{0,1}^n`/`{0,1}^m` identified with `[2^n]`,
   `[2^m]` (Section 2: "we identify `[N]` with `{0,1}^n`, the domain of `f`");
@@ -40,8 +39,11 @@ that the paper's theorems assert, in the smallest form that is not vacuous:
   function law (Problem 2).  Both are genuine constraints: the output is a
   concrete `Finset` and the success set has a real probability content.
 
-The model does not re-verify the *circuit* realizing the algorithm; this
-boundary is documented on each paper-layer theorem.
+`OracleProcedure` instead gives a restricted classical oracle execution: each round
+reads exactly one value of `f`, and all other maps are independent of `f`.
+`QueryRealization` ties a legacy output and query label to that execution.
+It does not certify quantum gates or qubits. No implementation of Theorems 3--6
+is constructed here; the other modules prove combinatorial and rotation facts.
 -/
 
 set_option autoImplicit false
@@ -86,21 +88,46 @@ finite success sets of this paper it is the usual counting ratio. -/
 def randomFunctionProb (n m : ℕ) (S : Set (Domain n → Codomain m)) : ℝ≥0∞ :=
   (randomFunctionPMF n m).toOuterMeasure S
 
-/-- A collision-finding algorithm, sliced down to the data the paper's
-resource theorems speak about: its output on every function, the set of
-functions on which it succeeds, and its worst-case query / gate / qubit
-counts. -/
+/-- Legacy output specification with unverified resource labels. Use an explicit
+realization before interpreting any label as an execution cost. -/
 structure CollisionAlgorithm (n m : ℕ) where
   /-- The collision pairs produced on input function `f`. -/
   output : (Domain n → Codomain m) → Finset (Domain n × Domain n)
   /-- The functions on which the algorithm returns a valid answer. -/
   good : Set (Domain n → Codomain m)
-  /-- Number of quantum queries to `f`. -/
+  /-- Claimed query count; not certified by this record. -/
   queries : ℕ
-  /-- Number of `Clifford+T+qRAM_R+qRAM_W` gates. -/
+  /-- Claimed gate count; not certified by this record. -/
   gates : ℕ
-  /-- Number of qubits. -/
+  /-- Claimed qubit count; not certified by this record. -/
   qubits : ℕ
+
+/-- Fixed-round classical oracle procedure. Only the charged query step sees `f`.
+This is a restricted execution model, not a quantum walk implementation. -/
+structure OracleProcedure (n m : ℕ) where
+  State : Type
+  initial : State
+  address : State → Domain n
+  update : State → Codomain m → State
+  readout : State → Finset (Domain n × Domain n)
+  rounds : ℕ
+
+/-- Execute one oracle call per round; initialization and readout cannot inspect `f`. -/
+def OracleProcedure.run {n m : ℕ} (P : OracleProcedure n m)
+    (f : Domain n → Codomain m) : Finset (Domain n × Domain n) :=
+  P.readout ((List.range P.rounds).foldl
+    (fun s _ => P.update s (f (P.address s))) P.initial)
+
+/-- An explicit query realization. Gate and space certification are separate obligations. -/
+structure QueryRealization {n m : ℕ} (A : CollisionAlgorithm n m) where
+  procedure : OracleProcedure n m
+  output_eq : A.output = procedure.run
+  queries_eq : A.queries = procedure.rounds
+
+/-- A realized query label counts the oracle calls in the fixed-round execution. -/
+theorem QueryRealization.query_count {n m : ℕ} {A : CollisionAlgorithm n m}
+    (R : QueryRealization A) : A.queries = (List.range R.procedure.rounds).length := by
+  simpa using R.queries_eq
 
 /-- The algorithm outputs `2^k` genuine collision pairs on every function in
 its success set. -/

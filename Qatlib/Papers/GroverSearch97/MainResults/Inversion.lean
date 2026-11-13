@@ -28,8 +28,6 @@ amplitude and a common ordinary amplitude. See [Grover1997].
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Matrix

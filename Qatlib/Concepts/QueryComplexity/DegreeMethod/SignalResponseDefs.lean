@@ -82,7 +82,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped Classical BigOperators ComplexOrder ENNReal Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 

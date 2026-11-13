@@ -32,7 +32,6 @@ times that length. The final theorem connects odd-list rational selection to the
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false

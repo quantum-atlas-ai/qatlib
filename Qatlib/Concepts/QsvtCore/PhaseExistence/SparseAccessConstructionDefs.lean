@@ -34,8 +34,6 @@ query, two value queries, and three gate steps. See [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.BlockEncoding

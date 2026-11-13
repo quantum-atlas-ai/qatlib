@@ -31,7 +31,6 @@ unitary, uses no queries, and executes diffusion on any input state. See [Grover
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -26,10 +26,7 @@ blocks as disjoint sets.
 * [Severini, 2003][Severini2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.Specular
@@ -57,7 +54,6 @@ theorem specular_inNbrs_disjoint {V : Type} {D : Defs.Digraph V} (hs : Specular 
 end Qatlib.Papers.UnitaryDigraph.MainResults.Specular
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.Specular

@@ -24,12 +24,10 @@ multiplicity over the terms assigned to a layer. See [ChildsEtAl2021Trotter].
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.TrotterError19.MainResults
 

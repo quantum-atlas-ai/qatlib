@@ -31,7 +31,6 @@ eigenspaces away from cost poles, as used in the uniform feasible-gap analysis o
 * [Zhou et al., 2026][ZhouAnLiu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

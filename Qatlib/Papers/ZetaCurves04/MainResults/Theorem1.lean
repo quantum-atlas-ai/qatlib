@@ -17,9 +17,10 @@ indices through the genus to indices through twice the genus using reciprocity.
 the recurrence expressed by `newtonGirardLHS`.
 
 `theorem1_compose` transfers a Monte Carlo class-number output through a reconstruction map
-while preserving the stored cost. `theorem1_zeta_numerator` supplies a `ZetaNumeratorAlgorithm`
-record with success and cost bounds at a descriptor whose `logq` field is zero; its conclusion
-concerns these two fields.
+with an explicit reconstruction budget added to its cost. This is semantic
+correctness propagation; execution of reconstruction is an external obligation.
+`theorem1_zeta_numerator_statement` is an unproved, uniform algorithm specification
+relative to supplied primitive semantics and a supplied zeta-numerator target.
 
 ## Main statements
 
@@ -28,16 +29,13 @@ concerns these two fields.
 * `theorem1_reciprocity_determines`: reciprocity extends equality of the lower coefficients.
 * `theorem1_newton_girard_unique`: the recurrence determines all positive-index coefficients
   uniquely.
-* `theorem1_compose`: reconstruction preserves the Monte Carlo property and stored cost.
-* `theorem1_zeta_numerator`: existence of an algorithm record satisfying the stated success and
-  cost bounds.
+* `theorem1_compose`: reconstruction preserves correctness and adds its supplied budget.
+* `theorem1_zeta_numerator_statement`: **Statement only — not proved in Qatlib.**
 
 ## References
 
 * [Kedlaya, 2006][Kedlaya2006]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -125,31 +123,36 @@ theorem theorem1_newton_girard_unique (q : ℕ) (s a b : ℕ → ℤ)
     exact mul_left_cancel₀ hn0 hEq
 
 /-- Mapping a Monte Carlo algorithm for `classNumbers` through a reconstruction map sending
-`classNumbers` to `P` yields a Monte Carlo algorithm for `P` with the same stored cost. This
-composition supports [Kedlaya, Theorem 1][Kedlaya2006]. -/
+`classNumbers` to `P` yields a Monte Carlo output for `P`, adding the supplied
+reconstruction budget. The supplied primitive implementation contract ties that
+budget to a step-list length; physical costs follow its external machine model. -/
 theorem theorem1_compose
     (A : CoinAlgo (ℕ → ℕ)) (Rec : (ℕ → ℕ) → Polynomial ℤ)
-    (classNumbers : ℕ → ℕ) (P : Polynomial ℤ)
+    (classNumbers : ℕ → ℕ) (P : Polynomial ℤ) (reconstructionCost : ℕ)
+    (implementation : PostprocessingContract (fun f => some (Rec f)) reconstructionCost)
     (hA : A.IsMC (fun f => f = classNumbers))
     (hRec : Rec classNumbers = P) :
-    (A.map Rec).IsMC (fun Q => Q = P) ∧ (A.map Rec).cost = A.cost := by
-  refine ⟨?_, rfl⟩
-  apply CoinAlgo.isMC_map A Rec hA
-  intro f hf
-  rw [hf]
-  exact hRec
+    (A.mapCosted Rec reconstructionCost).IsMC (fun Q => Q = P) ∧
+      (A.mapCosted Rec reconstructionCost).cost = A.cost + implementation.program.length := by
+  constructor
+  · change (A.map Rec).IsMC (fun Q => Q = P)
+    apply CoinAlgo.isMC_map A Rec hA
+    intro f hf
+    rw [hf]
+    exact hRec
+  · change A.cost + reconstructionCost = _
+    exact congrArg (fun n => A.cost + n) implementation.cost_eq
 
-/-- Under the stated half-power bound, there exists a `ZetaNumeratorAlgorithm` whose success
-field at `⟨C.q, C.g, C.d, 0⟩` is at least 3/4 and whose cost there satisfies the displayed
-polynomial bound. This record-existence statement is associated with [Kedlaya, Theorem
-1][Kedlaya2006]. -/
-theorem theorem1_zeta_numerator (C : CurveData)
-    (_hsmall : 16 * (C.g : ℝ) < halfPower C.q 1) :
-    ∃ A : ZetaNumeratorAlgorithm,
-      (3 / 4 : ℝ) ≤ A.successProb ⟨C.q, C.g, C.d, 0⟩ ∧
-      (∃ c k : ℕ, A.cost ⟨C.q, C.g, C.d, 0⟩ ≤ c * (C.g + 0 + 1) ^ k) := by
-  refine ⟨⟨fun _ => (0 : Polynomial ℤ), fun _ => 0, fun _ => 1⟩, ?_, ?_⟩
-  · norm_num
-  · exact ⟨0, 0, by simp⟩
+/-- **Statement only — not proved in Qatlib.** Uniform polynomial step bound and
+actual correctness probability relative to supplied primitive semantics.
+`target C` must be identified with the curve's zeta numerator externally;
+`CurveData` alone does not define a geometric curve or its numerator.
+Initialization/decoding are part of the supplied machine's cost convention. -/
+def theorem1_zeta_numerator_statement (M : PrimitiveMachine CurveData (Polynomial ℤ))
+    (target : CurveData → Polynomial ℤ) (logq : CurveData → ℕ) : Prop :=
+  ∃ (program : CurveData → List M.Step) (c k : ℕ), ∀ C,
+    16 * (C.g : ℝ) < halfPower C.q 1 →
+    (M.algorithm C (program C)).IsMC (fun P => P = target C) ∧
+    (M.algorithm C (program C)).cost ≤ c * (C.g + logq C + 1) ^ k
 
 end Qatlib.Papers.ZetaCurves04.MainResults.Theorem1

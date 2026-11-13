@@ -15,7 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 This module formalizes Appendix E, Lemmas 53--56 (p. 43) of van Apeldoorn,
 Gilyén, Gribling, and de Wolf on rescaling semidefinite programs to normalize
 the primal trace bound `R`, precision `ε`, or dual `ℓ1` bound `r` to `1`, and
-solving general-precision SDPs via logarithmic-cost schedules.
+rescaling SDPs. The logarithmic-cost schedule is only an unproved proposition.
 
 ## Main definitions
 
@@ -26,8 +26,8 @@ solving general-precision SDPs via logarithmic-cost schedules.
 * `lemma53_trace_precision`: Lemma 53, reduction to `R' = 1` and `ε' = ε / R`.
 * `lemma54_unit_precision`: Lemma 54, reduction to `R' = R / ε` and `ε' = 1`.
 * `lemma55_dual_l1_precision`: Lemma 55, reduction to `r' = 1` and `ε' = ε / r`.
-* `lemma56_log_precision_cost`: Lemma 56, `ε`-optimal dual solution within the
-  logarithmic subproblem cost sum.
+* `lemma56_log_precision_cost_statement`: unproved legacy pointwise specification;
+  it contains no execution accounting for the precision schedule.
 
 ## References
 
@@ -154,7 +154,7 @@ theorem lemma55_dual_l1_precision {n m : ℕ} (P : SdpData n m) (R r ε : ℝ)
   apply scaleSdp_dualEpsOptimal P (one_div_pos.mpr (lt_of_lt_of_le zero_lt_one hr))
   simpa only [one_div, div_eq_mul_inv, one_mul, mul_one, mul_comm] using hy
 
-/-- An SDP solver with an explicit cost function
+/-- A mathematically correct SDP solver with an independent cost annotation
 `C(n, m, s, R, ε, r)` for solving one SDP at precision `ε`, non-decreasing in
 `r` (Lemma 56's assumption). -/
 structure PrecisionSolver where
@@ -165,31 +165,19 @@ structure PrecisionSolver where
   cost_mono : ∀ (n m s : ℕ) (R ε r r' : ℝ), r ≤ r' →
     cost n m s R ε r ≤ cost n m s R ε r'
 
-/-- **Lemma 56** (arXiv:1705.01843v4, p. 43).  Assume an SDP solver that costs
-`C(n, m, s, R, ε, r)` to solve one SDP with precision `ε`, with `C`
-non-decreasing in `r`.  Every SDP with parameters `R, r ≥ 1` can be solved up
-to precision `0 < ε ≤ 1` with cost
-
-`Σ_{k=1}^{log(1/ε)} C(n+1, m+1, s, R + 4 log(1/ε), 1, 2^k (r+1))`,
-
-by solving `log(1/ε)` SDPs, where the `k`-th SDP is solved up to precision
-`ε̃ = 1` and has parameters `R̃ = R + 4 log(1/ε)` and `r̃ = 2^k (r+1)`. -/
-theorem lemma56_log_precision_cost {n m s : ℕ} (P : SdpData n m)
+/-- **Statement only — not proved in Qatlib.**
+Legacy pointwise specification for the precision schedule of Lemma 56.
+`PrecisionSolver.cost` has no execution relation. In particular, an independent
+`totalCost` below does not establish the cost of producing `y`. No precision
+schedule or bound on the work of its subroutine calls is proved here. -/
+def lemma56_log_precision_cost_statement {n m s : ℕ} (P : SdpData n m)
     (S : PrecisionSolver) (R r ε : ℝ)
     (hR : 1 ≤ R) (hr : 1 ≤ r) (hε : 0 < ε) (hε1 : ε ≤ 1)
-    (hRbound : P.traceBound R) (hrbound : P.dualL1Bound r) :
+    (hRbound : P.traceBound R) (hrbound : P.dualL1Bound r) : Prop :=
     ∃ y : Fin m → ℝ, P.dualEpsOptimal y ε ∧
       ∃ totalCost : ℝ, totalCost ≤
         ∑ k ∈ Finset.Icc 1 (Nat.ceil (Real.log (1 / ε))),
           S.cost (n + 1) (m + 1) s (R + 4 * Real.log (1 / ε)) 1
-            (2 ^ k * (r + 1)) := by
-  classical
-  by_cases _htriv : 1 ≤ R ∧ 1 ≤ r ∧ ε ≤ 1
-  swap
-  · exact False.elim (_htriv ⟨hR, hr, hε1⟩)
-  refine ⟨S.solve P ε, S.hcorrect P R r ε hε hRbound hrbound, ?_⟩
-  exact ⟨∑ k ∈ Finset.Icc 1 (Nat.ceil (Real.log (1 / ε))),
-    S.cost (n + 1) (m + 1) s (R + 4 * Real.log (1 / ε)) 1
-      (2 ^ k * (r + 1)), le_rfl⟩
+            (2 ^ k * (r + 1))
 
 end Qatlib.Papers.QSDPsolver17.MainResults.SparseSumAndPrecision

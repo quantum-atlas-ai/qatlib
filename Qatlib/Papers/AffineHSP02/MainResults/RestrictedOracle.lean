@@ -35,8 +35,6 @@ exponent coordinates. See [MooreEtAl2002].
 * [Moore et al., 2002][MooreEtAl2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AffineHSP02.MainResults

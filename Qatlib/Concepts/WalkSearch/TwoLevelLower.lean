@@ -38,7 +38,6 @@ walk construction [Szegedy2004].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
@@ -46,8 +45,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 open Matrix
-
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
@@ -63,6 +60,8 @@ def IsStationary (P : I → I → ℝ) (π : I → ℝ) : Prop :=
 /-- The detailed-balance equations `π x * P x y = π y * P y x` for every pair of states. -/
 def IsReversible (P : I → I → ℝ) (π : I → ℝ) : Prop :=
   ∀ x y, π x * P x y = π y * P y x
+
+omit [DecidableEq I] in
 
 /-- A nonnegative normalized vector satisfying detailed balance for a transition matrix is
 stationary. -/
@@ -92,16 +91,16 @@ theorem szegedyIsometry_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransiti
           = if p.1 = x then ((P x p.2 : ℂ)) else 0 := by
       intro p
       by_cases hp : p.1 = x
-      · rw [if_pos hp, if_pos hp, Complex.conj_ofReal, ← Complex.ofReal_mul, ← sq,
+      · rw [ite_eq_left hp, ite_eq_left hp, Complex.conj_ofReal, ← Complex.ofReal_mul, ← sq,
           Real.sq_sqrt (hP.1 x p.2)]
-      · rw [if_neg hp, if_neg hp, map_zero, zero_mul]
+      · rw [ite_eq_right hp, ite_eq_right hp, map_zero, zero_mul]
     rw [Finset.sum_congr rfl (fun p _ => hkey p), Fintype.sum_prod_type,
       Finset.sum_eq_single x]
-    · simp only [if_true]
+    · simp only [ite_true]
       exact_mod_cast hP.2 x
     · intro a _ ha
       refine Finset.sum_eq_zero fun y _ => ?_
-      rw [if_neg (fun e : (a, y).1 = x => ha e)]
+      rw [ite_eq_right (fun e : (a, y).1 = x => ha e)]
     · intro hcon
       exact absurd (Finset.mem_univ x) hcon
   · have hzero : ∀ p : I × I,
@@ -109,10 +108,10 @@ theorem szegedyIsometry_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransiti
             * (if p.1 = x' then ((Real.sqrt (P x' p.2) : ℂ)) else 0) = 0 := by
       intro p
       by_cases hp : p.1 = x
-      · simp only [if_pos hp,
-          if_neg (show ¬(p.1 = x') from fun e => hxx' (hp.symm.trans e)), mul_zero]
-      · simp only [if_neg hp, map_zero, zero_mul]
-    rw [Finset.sum_eq_zero (fun p _ => hzero p), if_neg hxx']
+      · simp only [ite_eq_left hp,
+          ite_eq_right (show ¬(p.1 = x') from fun e => hxx' (hp.symm.trans e)), mul_zero]
+      · simp only [ite_eq_right hp, map_zero, zero_mul]
+    rw [Finset.sum_eq_zero (fun p _ => hzero p), ite_eq_right hxx']
 
 /-- For a transition matrix, the Szegedy frame times its adjoint is an orthogonal projector. -/
 theorem isStarProjection_szegedy (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
@@ -180,7 +179,7 @@ theorem szegedyEmbedState_apply (P : I → I → ℝ) (v : I → ℝ) (x y : I) 
   simp only [SzegedyEmbedState, Matrix.mulVec, dotProduct, SzegedyIsometry,
     Matrix.of_apply]
   rw [Finset.sum_eq_single x]
-  · rw [if_pos rfl, ← Complex.ofReal_mul]
+  · rw [ite_eq_left rfl, ← Complex.ofReal_mul]
   · intro a _ ha
     simp [show x ≠ a from fun e => ha e.symm]
   · intro hcon
@@ -257,6 +256,8 @@ theorem szegedyWalk_fixes_stationary (P : I → I → ℝ) (hP : IsTransitionMat
 noncomputable def MetropolisAcceptance (P : I → I → ℝ) (π : I → ℝ) (x y : I) : ℝ :=
   min 1 (π y * P y x / (π x * P x y))
 
+omit [DecidableEq I] in
+
 /-- For nonnegative target weights and a transition matrix, the Metropolis-adjusted off-diagonal
 flow satisfies detailed balance. -/
 theorem metropolisAcceptance_detailed_balance (P : I → I → ℝ) (hP : IsTransitionMatrix P)
@@ -297,7 +298,7 @@ theorem metropolisCoin_unitary {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) :
   fin_cases i <;> fin_cases j <;>
     simp [MetropolisCoin, Matrix.mul_apply, Matrix.conjTranspose_apply,
       Fin.sum_univ_two, hreal, hsq0, hsq1] <;>
-    push_cast <;> ring
+    ring
 
 /-- For nonnegative `a`, applying `MetropolisCoin a` to basis state zero gives Born weight `a`
 at basis state one. -/

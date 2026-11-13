@@ -41,7 +41,6 @@ positivity. Matrix square roots and trace inequalities are treated in [Bhatia199
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

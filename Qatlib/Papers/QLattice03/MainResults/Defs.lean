@@ -5,7 +5,7 @@ Authors: Qatlib Contributors
 -/
 
 import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Real.Basic
+import Mathlib.Basic.Real.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
@@ -35,7 +35,6 @@ paper context.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open scoped Classical
 attribute [local instance] Classical.propDecidable
@@ -43,7 +42,7 @@ attribute [local instance] Classical.propDecidable
 namespace Qatlib.Papers.QLattice03.MainResults
 
 /-- An integer pair used as a DCP register, with modulus parameter `N`. -/
-abbrev DCPRegister (N : ℕ) := ℤ × ℤ
+abbrev DCPRegister (_N : ℕ) := ℤ × ℤ
 
 /-- The requirement that the routine return the second integer minus the first on every DCP
 register. -/

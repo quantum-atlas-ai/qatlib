@@ -36,7 +36,6 @@ pseudoinverse is bounded by the same scalar error. The mathematical background i
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

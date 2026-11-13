@@ -46,7 +46,6 @@ the evaluation procedures and their proposed resource bounds.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer
@@ -241,7 +240,7 @@ theorem netContract_norm_bound (N : TensorNet) (ext : ∀ o : OpenLeg N, Fin (N.
         have hkke : k' = k := by
           rw [hk] at hk'; exact (Option.some.inj hk').symm
         subst hkke
-        rw [dif_pos hlt]
+        rw [dite_eq_left hlt]
     have h2 : portValue N ext e' j = e' ⟨j, ⟨k, hk, hlt⟩⟩ := by
       unfold portValue
       split
@@ -250,7 +249,7 @@ theorem netContract_norm_bound (N : TensorNet) (ext : ∀ o : OpenLeg N, Fin (N.
         have hkke : k' = k := by
           rw [hk] at hk'; exact (Option.some.inj hk').symm
         subst hkke
-        rw [dif_pos hlt]
+        rw [dite_eq_left hlt]
     have hval := congrFun (congrFun heq (N.site j)) ⟨j, rfl⟩
     simp only [hΦ] at hval
     rw [h1, h2] at hval
@@ -315,18 +314,18 @@ def mpsSite (n : ℕ) (j : Fin (3 * n + 2)) : Fin (n + 2) :=
 
 /-- A bond half-edge in the capped MPS encoding has dimension `D`. -/
 theorem mpsDim_bond (n d D : ℕ) {j : ℕ} (h : j < 2 * (n + 1)) : mpsDim n d D j = D := by
-  rw [mpsDim, if_pos h]
+  rw [mpsDim, ite_eq_left h]
 
 /-- A physical half-edge in the capped MPS encoding has dimension `d`. -/
 theorem mpsDim_phys (n d D : ℕ) (i : ℕ) (h : ¬(2 * (n + 1) + i < 2 * (n + 1))) :
     mpsDim n d D (2 * (n + 1) + i) = d := by
-  rw [mpsDim, if_neg h]
+  rw [mpsDim, ite_eq_right h]
 
 /-- The physical half-edge indexed by `i` belongs to site `i`. -/
 theorem mpsSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * (n + 1) + i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
-  rw [if_neg (by omega), if_neg (by omega), dif_neg (by omega)]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), dite_eq_right (by omega)]
   refine Fin.ext ?_
   show 2 * (n + 1) + i - 2 * (n + 1) = i
   omega
@@ -335,7 +334,7 @@ theorem mpsSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
 theorem mpsSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
-  rw [if_neg (by omega), if_neg (by omega), dif_pos (by omega), dif_pos (by omega)]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), dite_eq_left (by omega), dite_eq_left (by omega)]
   refine Fin.ext ?_
   show 2 * i / 2 = i
   omega
@@ -344,7 +343,7 @@ theorem mpsSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
 theorem mpsSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * i + 3, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
-  rw [if_neg (by omega), if_neg (by omega), dif_pos (by omega), dif_neg (by omega)]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), dite_eq_left (by omega), dite_eq_right (by omega)]
   refine Fin.ext ?_
   show (2 * i + 3 - 3) / 2 = i
   omega
@@ -400,67 +399,67 @@ noncomputable def mpsNet (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (
     intro j k hj
     simp only [mpsPartner] at hj ⊢
     by_cases h : (j : ℕ) < 2 * (n + 1)
-    · rw [dif_pos h] at hj
+    · rw [dite_eq_left h] at hj
       simp only [Option.some.injEq] at hj
       have hkv : (k : ℕ) = (j : ℕ) + 1 ∧ (j : ℕ) % 2 = 0 ∨
           (k : ℕ) = (j : ℕ) - 1 ∧ ¬((j : ℕ) % 2 = 0) := by
         have hv := congrArg Fin.val hj
         by_cases h2 : (j : ℕ) % 2 = 0
         · left
-          simp only [if_pos h2] at hv
+          simp only [ite_eq_left h2] at hv
           exact ⟨by simpa using! hv.symm, h2⟩
         · right
-          simp only [if_neg h2] at hv
+          simp only [ite_eq_right h2] at hv
           exact ⟨by simpa using! hv.symm, h2⟩
       rcases hkv with ⟨hkv, h2⟩ | ⟨hkv, h2⟩
       · simp only [hkv]
-        rw [dif_pos (by omega : (j : ℕ) + 1 < 2 * (n + 1))]
-        simp only [if_neg (by omega : ¬(((j : ℕ) + 1) % 2 = 0))]
+        rw [dite_eq_left (by omega : (j : ℕ) + 1 < 2 * (n + 1))]
+        simp only [ite_eq_right (by omega : ¬(((j : ℕ) + 1) % 2 = 0))]
         cases j
         rfl
       · simp only [hkv]
-        rw [dif_pos (by omega : (j : ℕ) - 1 < 2 * (n + 1))]
-        simp only [if_pos (by omega : ((j : ℕ) - 1) % 2 = 0), Option.some.injEq]
+        rw [dite_eq_left (by omega : (j : ℕ) - 1 < 2 * (n + 1))]
+        simp only [ite_eq_left (by omega : ((j : ℕ) - 1) % 2 = 0), Option.some.injEq]
         cases j
         case _ val isLt =>
           have hodd : (val : ℕ) % 2 ≠ 0 := by simpa using! h2
           exact Fin.ext (by show val - 1 + 1 = val; omega)
-    · rw [dif_neg h] at hj
+    · rw [dite_eq_right h] at hj
       exact absurd hj (by simp)
   no_self_loop := by
     intro j k hj
     simp only [mpsPartner] at hj
     by_cases h : (j : ℕ) < 2 * (n + 1)
-    · rw [dif_pos h] at hj
+    · rw [dite_eq_left h] at hj
       simp only [Option.some.injEq] at hj
       have hv := congrArg Fin.val hj
       by_cases h2 : (j : ℕ) % 2 = 0
-      · simp only [if_pos h2] at hv
+      · simp only [ite_eq_left h2] at hv
         intro hcon
         have hval := congrArg Fin.val hcon
         omega
-      · simp only [if_neg h2] at hv
+      · simp only [ite_eq_right h2] at hv
         intro hcon
         have hval := congrArg Fin.val hcon
         omega
-    · rw [dif_neg h] at hj
+    · rw [dite_eq_right h] at hj
       exact absurd hj (by simp)
   dims_match := by
     intro j k hj
     simp only [mpsPartner] at hj
     by_cases h : (j : ℕ) < 2 * (n + 1)
-    · rw [dif_pos h] at hj
+    · rw [dite_eq_left h] at hj
       simp only [Option.some.injEq] at hj
       have hv := congrArg Fin.val hj
       have hk : (k : ℕ) < 2 * (n + 1) := by
         by_cases h2 : (j : ℕ) % 2 = 0
-        · simp only [if_pos h2] at hv
+        · simp only [ite_eq_left h2] at hv
           omega
-        · simp only [if_neg h2] at hv
+        · simp only [ite_eq_right h2] at hv
           omega
       show mpsDim n d D (j : ℕ) = mpsDim n d D (k : ℕ)
-      rw [mpsDim, mpsDim, if_pos h, if_pos hk]
-    · rw [dif_neg h] at hj
+      rw [mpsDim, mpsDim, ite_eq_left h, ite_eq_left hk]
+    · rw [dite_eq_right h] at hj
       exact absurd hj (by simp)
   tensor := fun v a =>
     mpsTensor n d D A v (fun h => a h)
@@ -476,14 +475,14 @@ theorem mpsPartner_isSome {n : ℕ} {j k : Fin (3 * n + 2)}
     (h : mpsPartner n j = some k) : (j : ℕ) < 2 * (n + 1) := by
   by_cases hlt : (j : ℕ) < 2 * (n + 1)
   · exact hlt
-  · rw [mpsPartner, dif_neg hlt] at h
+  · rw [mpsPartner, dite_eq_right hlt] at h
     exact absurd h (by simp)
 
 /-- An unpaired half-edge in the capped MPS encoding lies beyond the bond range. -/
 theorem mpsPartner_none_ge {n : ℕ} {j : Fin (3 * n + 2)} (h : mpsPartner n j = none) :
     2 * (n + 1) ≤ (j : ℕ) := by
   by_cases hlt : (j : ℕ) < 2 * (n + 1)
-  · rw [mpsPartner, dif_pos hlt] at h
+  · rw [mpsPartner, dite_eq_left hlt] at h
     exact absurd h (by simp)
   · omega
 
@@ -491,21 +490,21 @@ theorem mpsPartner_none_ge {n : ℕ} {j : Fin (3 * n + 2)} (h : mpsPartner n j =
 theorem mpsPartner_even (n : ℕ) (j : Fin (n + 1)) :
     mpsPartner n ⟨2 * (j : ℕ), by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩ := by
-  rw [mpsPartner, dif_pos (by have := j.isLt; omega : (2 * (j : ℕ)) < 2 * (n + 1))]
+  rw [mpsPartner, dite_eq_left (by have := j.isLt; omega : (2 * (j : ℕ)) < 2 * (n + 1))]
   refine congrArg some (Fin.ext ?_)
   show (if (2 * (j : ℕ)) % 2 = 0 then (2 * (j : ℕ)) + 1 else (2 * (j : ℕ)) - 1)
       = (2 * (j : ℕ)) + 1
-  rw [if_pos (by omega : 2 * (j : ℕ) % 2 = 0)]
+  rw [ite_eq_left (by omega : 2 * (j : ℕ) % 2 = 0)]
 
 /-- The partner of bond half-edge `2 * j + 1` is half-edge `2 * j`. -/
 theorem mpsPartner_odd (n : ℕ) (j : Fin (n + 1)) :
     mpsPartner n ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ), by have := j.isLt; omega⟩ := by
-  rw [mpsPartner, dif_pos (by have := j.isLt; omega : (2 * (j : ℕ) + 1) < 2 * (n + 1))]
+  rw [mpsPartner, dite_eq_left (by have := j.isLt; omega : (2 * (j : ℕ) + 1) < 2 * (n + 1))]
   refine congrArg some (Fin.ext ?_)
   show (if (2 * (j : ℕ) + 1) % 2 = 0 then (2 * (j : ℕ) + 1) + 1 else (2 * (j : ℕ) + 1) - 1)
       = (2 * (j : ℕ))
-  rw [if_neg (by omega : ¬(2 * (j : ℕ) + 1) % 2 = 0)]
+  rw [ite_eq_right (by omega : ¬(2 * (j : ℕ) + 1) % 2 = 0)]
   omega
 
 /-- The network bond dimension of `mpsNet n d D A` is at most `D`. -/
@@ -516,7 +515,7 @@ theorem netBondDimension_mpsNet_le (n d D : ℕ) (A : Fin n → Fin d → Matrix
   obtain ⟨j, k, hk, _⟩ := i
   have hb : (j : ℕ) < 2 * (n + 1) := mpsPartner_isSome hk
   show mpsDim n d D (j : ℕ) ≤ D
-  rw [mpsDim, if_pos hb]
+  rw [mpsDim, ite_eq_left hb]
 
 /-- Encodes the physical configuration `x` as an assignment to the open legs of `mpsNet`. -/
 noncomputable def mpsEnc (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
@@ -525,7 +524,7 @@ noncomputable def mpsEnc (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (
   Fin.cast (by
       show d = mpsDim n d D (o.val : ℕ)
       have hge := mpsPartner_none_ge (n := n) o.property
-      rw [mpsDim, if_neg (by omega)])
+      rw [mpsDim, ite_eq_right (by omega)])
     (x ⟨(o.val : ℕ) - 2 * (n + 1), by
       have hge := mpsPartner_none_ge (n := n) o.property
       have := o.val.isLt
@@ -560,15 +559,15 @@ theorem bondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) 
   obtain ⟨k, hk, hlt⟩ := i.property
   have hb : (i.val : ℕ) < 2 * (n + 1) := mpsPartner_isSome (n := n) hk
   have hk' : mpsPartner n i.val = some k := hk
-  rw [mpsPartner, dif_pos hb] at hk'
+  rw [mpsPartner, dite_eq_left hb] at hk'
   have hvk : (if (i.val : ℕ) % 2 = 0 then (i.val : ℕ) + 1 else (i.val : ℕ) - 1) = (k : ℕ) :=
     congrArg Fin.val (Option.some.inj hk')
   by_cases h2 : ((i.val : ℕ)) % 2 = 0
-  · rw [if_pos h2] at hvk
+  · rw [ite_eq_left h2] at hvk
     refine Subtype.ext (Fin.ext ?_)
     show 2 * ((i.val.val) / 2) = (i.val : ℕ)
     omega
-  · rw [if_neg h2] at hvk
+  · rw [ite_eq_right h2] at hvk
     exact absurd hlt (by omega)
 
 /-- Identifies internal-edge assignments of the capped MPS network with functions `Fin (n + 1) →
@@ -610,7 +609,7 @@ theorem portValue_of_partner_eq {N : TensorNet}
   · next k' hk' =>
     have hkk : k' = k := Option.some.inj (hk'.symm.trans hj)
     subst k'
-    rw [dif_pos hjk]
+    rw [dite_eq_left hjk]
 
 /-- At the larger endpoint of an internal edge, `portValue` equals the assigned edge index
 transported across the dimension equality. -/
@@ -627,7 +626,7 @@ theorem portValue_of_partner_eq_rev {N : TensorNet}
     have hkk : k' = k := Option.some.inj (hk'.symm.trans hj)
     subst k'
     have hnlt : ¬(j < k) := by omega
-    rw [dif_neg hnlt]
+    rw [dite_eq_right hnlt]
 
 /-- At an unpaired half-edge, `portValue` equals the supplied open-leg assignment. -/
 theorem portValue_of_partner_none {N : TensorNet}
@@ -690,7 +689,7 @@ theorem portValue_phys (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fi
   rw [portValue_of_partner_none (N := mpsNet n d D A) (mpsEnc n d D A x) e
       ⟨2 * (n + 1) + i, by show 2 * (n + 1) + i < 3 * n + 2; omega⟩
       (by show mpsPartner n ⟨2 * (n + 1) + i, by omega⟩ = none
-          rw [mpsPartner, dif_neg (by show ¬(2 * (n + 1) + i < 2 * (n + 1)); omega)])]
+          rw [mpsPartner, dite_eq_right (by show ¬(2 * (n + 1) + i < 2 * (n + 1)); omega)])]
   show (x ⟨2 * (n + 1) + i - 2 * (n + 1), by omega⟩).val = (x ⟨i, hi⟩).val
   have hij : (⟨2 * (n + 1) + i - 2 * (n + 1), by omega⟩ : Fin n) = ⟨i, hi⟩ := by
     apply Fin.ext
@@ -709,7 +708,7 @@ theorem siteTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
   show mpsTensor n d D A v
       (fun h => portValue (mpsNet n d D A) (mpsEnc n d D A x)
         ((edgeIdxEquiv n d D A).symm β) h.val) = _
-  simp only [mpsTensor, dif_pos hv]
+  simp only [mpsTensor, dite_eq_left hv]
   have hphys : (portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
       ⟨2 * (n + 1) + (v : ℕ), by show 2 * (n + 1) + (v : ℕ) < 3 * n + 2; omega⟩).val
       = (x ⟨(v : ℕ), hv⟩).val := portValue_phys n d D A x _ (v : ℕ) hv
@@ -757,9 +756,9 @@ theorem capLTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
   show mpsTensor n d D A (Fin.castSucc (Fin.last n))
       (fun h => portValue (mpsNet n d D A) (mpsEnc n d D A x)
         ((edgeIdxEquiv n d D A).symm β) h.val) = _
-  rw [mpsTensor, dif_neg (by simp only [Fin.val_castSucc, Fin.val_last]; omega :
+  rw [mpsTensor, dite_eq_right (by simp only [Fin.val_castSucc, Fin.val_last]; omega :
       ¬(((Fin.castSucc (Fin.last n) : Fin (n + 2)) : ℕ) < n)),
-    dif_pos (by simp only [Fin.val_castSucc, Fin.val_last] :
+    dite_eq_left (by simp only [Fin.val_castSucc, Fin.val_last] :
       ((Fin.castSucc (Fin.last n) : Fin (n + 2)) : ℕ) = n)]
   show (if (portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨1, by show 1 < 3 * n + 2; omega⟩).val = 0 then (1 : ℂ) else 0)
@@ -770,10 +769,10 @@ theorem capLTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
   by_cases h0 : (β ⟨0, by omega⟩ : Fin D).val = 0
   · have h1 : (portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨1, by show 1 < 3 * n + 2; omega⟩).val = 0 := by rw [hval]; exact h0
-    rw [if_pos h0, if_pos h1]
+    rw [ite_eq_left h0, ite_eq_left h1]
   · have h1 : ¬((portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨1, by show 1 < 3 * n + 2; omega⟩).val = 0) := by rw [hval]; exact h0
-    rw [if_neg h0, if_neg h1]
+    rw [ite_eq_right h0, ite_eq_right h1]
 
 /-- The right boundary tensor equals one precisely when the rightmost bond index is zero, and
 equals zero otherwise. -/
@@ -786,9 +785,9 @@ theorem capRTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
   show mpsTensor n d D A (Fin.last (n + 1))
       (fun h => portValue (mpsNet n d D A) (mpsEnc n d D A x)
         ((edgeIdxEquiv n d D A).symm β) h.val) = _
-  rw [mpsTensor, dif_neg (by simp only [Fin.val_last]; omega :
+  rw [mpsTensor, dite_eq_right (by simp only [Fin.val_last]; omega :
       ¬(((Fin.last (n + 1) : Fin (n + 2)) : ℕ) < n)),
-    dif_neg (by simp only [Fin.val_last]; omega :
+    dite_eq_right (by simp only [Fin.val_last]; omega :
       ¬(((Fin.last (n + 1) : Fin (n + 2)) : ℕ) = n))]
   show (if (portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨2 * n, by show 2 * n < 3 * n + 2; omega⟩).val = 0 then (1 : ℂ) else 0)
@@ -799,10 +798,10 @@ theorem capRTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
   by_cases h0 : (β ⟨(n : ℕ), by omega⟩ : Fin D).val = 0
   · have h1 : (portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨2 * n, by show 2 * n < 3 * n + 2; omega⟩).val = 0 := by rw [hval]; exact h0
-    rw [if_pos h0, if_pos h1]
+    rw [ite_eq_left h0, ite_eq_left h1]
   · have h1 : ¬((portValue (mpsNet n d D A) (mpsEnc n d D A x) ((edgeIdxEquiv n d D A).symm β)
         ⟨2 * n, by show 2 * n < 3 * n + 2; omega⟩).val = 0) := by rw [hval]; exact h0
-    rw [if_neg h0, if_neg h1]
+    rw [ite_eq_right h0, ite_eq_right h1]
 
 /-- Expands the capped MPS network contraction as a sum over all bond assignments, with
 zero-index constraints on both boundary bonds. -/
@@ -872,8 +871,8 @@ theorem capUnpin_pin (n D : ℕ) [NeZero D] (α : Fin (n - 1) → Fin D)
     (j : Fin (n - 1)) : capUnpin n D (capPin n D α) j = α j := by
   show capPin n D α ⟨(j : ℕ) + 1, by have := j.isLt; omega⟩ = α j
   simp only [capPin]
-  rw [dif_neg (by have := j.isLt; omega : ¬((j : ℕ) + 1 = 0)),
-    dif_neg (by have := j.isLt; omega : ¬((j : ℕ) + 1 = n))]
+  rw [dite_eq_right (by have := j.isLt; omega : ¬((j : ℕ) + 1 = 0)),
+    dite_eq_right (by have := j.isLt; omega : ¬((j : ℕ) + 1 = n))]
   rfl
 
 /-- A bond assignment with both boundary indices zero is recovered by restricting it and then
@@ -892,15 +891,15 @@ theorem capPin_unpin {n D : ℕ} [NeZero D] (β : Fin (n + 1) → Fin D)
     exact h0'.symm
   · rcases Nat.lt_trichotomy (j : ℕ) n with hlt | heq | hgt
     · simp only [capPin]
-      rw [dif_neg (by omega : ¬((j : ℕ) = 0)),
-        dif_neg (by omega : ¬((j : ℕ) = n))]
+      rw [dite_eq_right (by omega : ¬((j : ℕ) = 0)),
+        dite_eq_right (by omega : ¬((j : ℕ) = n))]
       exact congrArg β (Fin.ext (by show ((j : ℕ) - 1) + 1 = (j : ℕ); omega))
     · have hjn : j = ⟨(n : ℕ), by omega⟩ := Fin.ext heq
       rw [hjn]
       have hn' : β ⟨(n : ℕ), by omega⟩ = (0 : Fin D) :=
         Fin.ext (by simp only [Fin.val_zero]; exact hn)
       simp only [capPin]
-      rw [dif_neg (by omega : ¬((n : ℕ) = 0)), dif_pos trivial]
+      rw [dite_eq_right (by omega : ¬((n : ℕ) = 0)), dite_eq_left trivial]
       exact hn'.symm
     · exact absurd hgt (by have := j.isLt; omega)
 
@@ -912,8 +911,8 @@ theorem capPin_inj {n D : ℕ} [NeZero D] (α α' : Fin (n - 1) → Fin D)
       = capPin n D α' ⟨(j : ℕ) + 1, by have := j.isLt; omega⟩ :=
     congrFun h ⟨(j : ℕ) + 1, by have := j.isLt; omega⟩
   simp only [capPin,
-    dif_neg (by have := j.isLt; omega : ¬((j : ℕ) + 1 = 0)),
-    dif_neg (by have := j.isLt; omega : ¬((j : ℕ) + 1 = n))] at h1
+    dite_eq_right (by have := j.isLt; omega : ¬((j : ℕ) + 1 = 0)),
+    dite_eq_right (by have := j.isLt; omega : ¬((j : ℕ) + 1 = n))] at h1
   have hl : α j = α ⟨(j : ℕ) + 1 - 1, by have := j.isLt; omega⟩ :=
     congrArg α (Fin.ext (by show (j : ℕ) = (j : ℕ) + 1 - 1; omega))
   have hr : α' ⟨(j : ℕ) + 1 - 1, by have := j.isLt; omega⟩ = α' j :=
@@ -934,12 +933,12 @@ theorem capPin_image_eq (n D : ℕ) [NeZero D] :
     refine ⟨?_, ?_⟩
     · show (capPin n D α ⟨0, by omega⟩ : Fin D).val = 0
       simp only [capPin]
-      simp only [dif_pos trivial, Fin.val_zero]
+      simp only [dite_eq_left trivial, Fin.val_zero]
     · show (capPin n D α ⟨(n : ℕ), by omega⟩ : Fin D).val = 0
       simp only [capPin]
       by_cases hn0 : (n : ℕ) = 0
-      · simp only [dif_pos hn0, Fin.val_zero]
-      · simp only [dif_neg hn0, dif_pos trivial, Fin.val_zero]
+      · simp only [dite_eq_left hn0, Fin.val_zero]
+      · simp only [dite_eq_right hn0, dite_eq_left trivial, Fin.val_zero]
   · rintro ⟨h0, hn⟩
     exact ⟨capUnpin n D β, capPin_unpin β h0 hn⟩
 
@@ -949,19 +948,19 @@ theorem capPin_left {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : ℕ
     capPin n D α ⟨i, by omega⟩ = mpsLeftIdx α ⟨i, hi⟩ := by
   simp only [capPin, mpsLeftIdx]
   by_cases h0 : i = 0
-  · rw [dif_pos h0, if_pos h0]
-  · rw [dif_neg h0, if_neg h0, dif_neg (by omega : ¬(i = n)),
-      dif_pos (by omega : i - 1 < n - 1)]
+  · rw [dite_eq_left h0, ite_eq_left h0]
+  · rw [dite_eq_right h0, ite_eq_right h0, dite_eq_right (by omega : ¬(i = n)),
+      dite_eq_left (by omega : i - 1 < n - 1)]
 
 /-- The capped bond index immediately right of site `i` equals `mpsRightIdx` of the internal
 assignment. -/
 theorem capPin_right {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : ℕ} (hi : i < n) :
     capPin n D α ⟨i + 1, by omega⟩ = mpsRightIdx α ⟨i, hi⟩ := by
   simp only [capPin, mpsRightIdx]
-  rw [dif_neg (by omega : ¬(i + 1 = 0))]
+  rw [dite_eq_right (by omega : ¬(i + 1 = 0))]
   by_cases hn : i + 1 = n
-  · rw [dif_pos hn, dif_neg (by omega : ¬(i < n - 1))]
-  · rw [dif_neg hn, dif_pos (by omega : i < n - 1)]
+  · rw [dite_eq_left hn, dite_eq_right (by omega : ¬(i < n - 1))]
+  · rw [dite_eq_right hn, dite_eq_left (by omega : i < n - 1)]
     rfl
 
 /-- The sum over full bond assignments with both boundary indices constrained to zero equals the
@@ -986,14 +985,14 @@ theorem normalForm_eq_amplitude {n d D : ℕ} [NeZero D]
     intro β
     by_cases h0 : (β ⟨0, by omega⟩ : Fin D).val = 0
     · by_cases hn : (β ⟨(n : ℕ), by omega⟩ : Fin D).val = 0
-      · rw [if_pos h0, if_pos hn, if_pos ⟨h0, hn⟩, mul_one, mul_one]
-      · rw [if_pos h0, if_neg hn, mul_one, mul_zero,
-          if_neg (fun hc => hn hc.2)]
+      · rw [ite_eq_left h0, ite_eq_left hn, ite_eq_left ⟨h0, hn⟩, mul_one, mul_one]
+      · rw [ite_eq_left h0, ite_eq_right hn, mul_one, mul_zero,
+          ite_eq_right (fun hc => hn hc.2)]
     · by_cases hn : (β ⟨(n : ℕ), by omega⟩ : Fin D).val = 0
-      · rw [if_neg h0, if_pos hn, mul_zero, zero_mul,
-          if_neg (fun hc => h0 hc.1)]
-      · rw [if_neg h0, if_neg hn, mul_zero,
-          if_neg (fun hc => h0 hc.1)]
+      · rw [ite_eq_right h0, ite_eq_left hn, mul_zero, zero_mul,
+          ite_eq_right (fun hc => h0 hc.1)]
+      · rw [ite_eq_right h0, ite_eq_right hn, mul_zero,
+          ite_eq_right (fun hc => h0 hc.1)]
   rw [Finset.sum_congr rfl (fun β _ => hite β), ← Finset.sum_filter,
     ← capPin_image_eq, Finset.sum_image (fun α _ α' _ h => capPin_inj α α' h)]
   rw [mpsAmplitude]
@@ -1137,11 +1136,11 @@ theorem thresholdGoalBondEnc_dec (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (α : Fin
     thresholdGoalBondEnc c h1 hn (thresholdGoalBondDec c h1 hn α) = α := by
   funext j
   by_cases h : (j : ℕ) < c - 1
-  · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dif_pos h]
+  · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dite_eq_left h]
   · by_cases h2 : (j : ℕ) = c - 1
-    · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dif_neg h, dif_pos h2]
+    · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dite_eq_right h, dite_eq_left h2]
       exact congrArg α (Fin.ext h2.symm)
-    · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dif_neg h, dif_neg h2,
+    · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dite_eq_right h, dite_eq_right h2,
         thresholdGoalRB_val]
 
 /-- Decoding an encoded triple of bond data recovers the triple. -/
@@ -1153,7 +1152,7 @@ theorem thresholdGoalBondDec_enc (c : ℕ) (h1 : 1 ≤ c) (hn : c < n)
       by have hj := j.isLt; omega⟩) = σ := by
     funext j
     by_cases h : (j : ℕ) < c - 1
-    · simp only [thresholdGoalBondEnc, dif_pos h]
+    · simp only [thresholdGoalBondEnc, dite_eq_left h]
     · exact absurd j.isLt h
   have hβ : (thresholdGoalBondEnc c h1 hn (σ, β, τ)) ⟨c - 1, by omega⟩ = β := by
     simp [thresholdGoalBondEnc]
@@ -1162,7 +1161,7 @@ theorem thresholdGoalBondDec_enc (c : ℕ) (h1 : 1 ≤ c) (hn : c < n)
     funext j
     have h : ¬((j : ℕ) < c - 1) := by omega
     have h2 : ¬((j : ℕ) = c - 1) := by omega
-    simp only [thresholdGoalBondEnc, dif_neg h, dif_neg h2]
+    simp only [thresholdGoalBondEnc, dite_eq_right h, dite_eq_right h2]
     exact congrArg τ (Subtype.ext (Fin.ext rfl))
   simp only [thresholdGoalBondDec]
   exact Prod.ext hσ (Prod.ext hβ hτ)
@@ -1220,7 +1219,7 @@ theorem prod_split_fin (F : Fin n → ℂ) (c : ℕ) (hcn : c ≤ n) :
   have h1 : (∏ i : Fin n, F i) = ∏ k ∈ Finset.range n, g k := by
     rw [← Fin.prod_univ_eq_prod_range g]
     refine Finset.prod_congr rfl (fun i _ => ?_)
-    simp only [hg, dif_pos i.isLt]
+    simp only [hg, dite_eq_left i.isLt]
   have hsplit : (Finset.range n : Finset ℕ) =
       Finset.range c ∪ (Finset.range (n - c)).image (fun k => c + k) := by
     ext k
@@ -1251,29 +1250,27 @@ theorem prod_split_fin (F : Fin n → ℂ) (c : ℕ) (hcn : c ≤ n) :
     rw [← Fin.prod_univ_eq_prod_range g]
     refine Finset.prod_congr rfl (fun i _ => ?_)
     have hkn : (i : ℕ) < n := by have hi := i.isLt; omega
-    simp only [hg, dif_pos hkn]
+    simp only [hg, dite_eq_left hkn]
   have hB : ∏ k ∈ Finset.range (n - c), g (c + k) =
       ∏ j : Fin (n - c), F ⟨c + (j : ℕ), by have hj := j.isLt; omega⟩ := by
     rw [← Fin.prod_univ_eq_prod_range (fun k => g (c + k))]
     refine Finset.prod_congr rfl (fun j _ => ?_)
     have hkn : c + (j : ℕ) < n := by have hj := j.isLt; omega
-    simp only [hg, dif_pos hkn]
+    simp only [hg, dite_eq_left hkn]
   rw [hA, hB]
-
-set_option linter.unusedSimpArgs false
 
 /-- Reading a position before the cut from `splitJoin` recovers the corresponding left
 configuration entry. -/
 theorem splitJoin_left (c : ℕ) (_h1 : 1 ≤ c) (hn : c < n) (u : Fin c → Fin d) (w : Fin (n - c) → Fin d) (i : Fin c) :
     splitJoin n c d u w ⟨(i : ℕ), Nat.lt_trans i.isLt hn⟩ = u ⟨(i : ℕ), i.isLt⟩ := by
-  simp only [splitJoin, dif_pos i.isLt]
+  simp only [splitJoin, dite_eq_left i.isLt]
 
 /-- Reading a position after the cut from `splitJoin` recovers the corresponding right
 configuration entry. -/
 theorem splitJoin_right (c : ℕ) (_h1 : 1 ≤ c) (_hn : c < n) (u : Fin c → Fin d) (w : Fin (n - c) → Fin d) (j : Fin (n - c)) :
     splitJoin n c d u w ⟨c + (j : ℕ), by have hj := j.isLt; omega⟩ = w ⟨(j : ℕ), j.isLt⟩ := by
   have h : ¬(c + (j : ℕ) < c) := by omega
-  simp only [splitJoin, dif_neg h]
+  simp only [splitJoin, dite_eq_right h]
   exact congrArg w (Fin.ext (show (c : ℕ) + (j : ℕ) - c = (j : ℕ) from by omega))
 
 /-- On the left block, the encoded left bond index is zero at the boundary and otherwise comes
@@ -1298,11 +1295,11 @@ theorem mpsRightIdx_left [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (
       (if h1' : (i : ℕ) < c - 1 then p.1 ⟨(i : ℕ), h1'⟩ else p.2.1) := by
   simp only [mpsRightIdx, thresholdGoalBondEnc]
   have hi : (i : ℕ) < n - 1 := by have hk := i.isLt; omega
-  simp only [dif_pos hi]
+  simp only [dite_eq_left hi]
   by_cases h : (i : ℕ) < c - 1
   · simp [h]
   · have h2 : (i : ℕ) = c - 1 := by have hk := i.isLt; omega
-    simp [h, h2]
+    simp [h2]
 
 /-- On the right block, the encoded left bond index is the cut index at the first site and
 otherwise comes from the right assignment. -/
@@ -1316,14 +1313,14 @@ theorem mpsLeftIdx_right [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (
   have hi : (c : ℕ) + (j : ℕ) ≠ 0 := by omega
   have hi2 : (c : ℕ) + (j : ℕ) - 1 < n - 1 := by have hj := j.isLt; omega
   have hc0 : c ≠ 0 := by omega
-  simp only [dif_neg hi, dif_pos hi2]
+  simp only [dite_eq_left hi2]
   by_cases h : (j : ℕ) = 0
   · have h2 : (c : ℕ) + (j : ℕ) - 1 = c - 1 := by omega
     have h3 : ¬((c : ℕ) + (j : ℕ) - 1 < c - 1) := by omega
-    simp [hi, h2, h3, h, hc0]
+    simp [h, hc0]
   · have h2 : ¬((c : ℕ) + (j : ℕ) - 1 < c - 1) := by omega
     have h3 : ¬((c : ℕ) + (j : ℕ) - 1 = c - 1) := by omega
-    simp [hi, h2, h3, h, hc0]
+    simp [h2, h3, h, hc0]
 
 /-- On the right block, the encoded right bond index comes from the right assignment except at
 the outer boundary, where it is zero. -/
@@ -1454,11 +1451,11 @@ def perDim (n d D : ℕ) (j : ℕ) : ℕ := if j < 2 * n then D else d
 
 /-- A periodic bond half-edge has dimension `D`. -/
 theorem perDim_bond (n d D : ℕ) {j : ℕ} (h : j < 2 * n) : perDim n d D j = D := by
-  rw [perDim, if_pos h]
+  rw [perDim, ite_eq_left h]
 
 /-- A half-edge beyond the periodic bond range has dimension `d`. -/
 theorem perDim_phys (n d D : ℕ) {j : ℕ} (h : ¬(j < 2 * n)) : perDim n d D j = d := by
-  rw [perDim, if_neg h]
+  rw [perDim, ite_eq_right h]
 
 /-- Pairs consecutive bond half-edges in the periodic encoding and leaves physical legs
 unpaired. -/
@@ -1485,7 +1482,7 @@ theorem perPartner_even (n : ℕ) (j : Fin n) :
     perPartner n ⟨2 * (j : ℕ), by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩ := by
   have h : (2 * (j : ℕ) : ℕ) < 2 * n := by have := j.isLt; omega
-  simp only [perPartner, dif_pos h]
+  simp only [perPartner, dite_eq_left h]
   simp
 
 /-- In the periodic encoding, half-edge `2 * j + 1` is paired with half-edge `2 * j`. -/
@@ -1493,16 +1490,16 @@ theorem perPartner_odd (n : ℕ) (j : Fin n) :
     perPartner n ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ), by have := j.isLt; omega⟩ := by
   have h : (2 * (j : ℕ) + 1 : ℕ) < 2 * n := by have := j.isLt; omega
-  simp only [perPartner, dif_pos h]
+  simp only [perPartner, dite_eq_left h]
   simp
 
 /-- The even periodic bond half-edge `2 * i` belongs to site `i`. -/
 theorem perSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
     perSite n ⟨2 * i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [perSite]
-  rw [dif_pos (by omega : (2 * i : ℕ) < 2 * n)]
+  rw [dite_eq_left (by omega : (2 * i : ℕ) < 2 * n)]
   have h2 : (2 * i) % 2 = 0 := by omega
-  rw [if_pos h2]
+  rw [ite_eq_left h2]
   refine Fin.ext ?_
   show 2 * i / 2 = i
   omega
@@ -1514,9 +1511,9 @@ theorem perSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
       · subst hn0; exact absurd hi (by omega)
       · exact Nat.mod_lt _ (by omega)⟩ := by
   simp only [perSite]
-  rw [dif_pos (by omega : (2 * i + 1 : ℕ) < 2 * n)]
+  rw [dite_eq_left (by omega : (2 * i + 1 : ℕ) < 2 * n)]
   have h2 : (2 * i + 1) % 2 ≠ 0 := by omega
-  rw [if_neg h2]
+  rw [ite_eq_right h2]
   refine Fin.ext ?_
   show ((2 * i + 1) / 2 + n - 1) % n = (i + n - 1) % n
   have : (2 * i + 1) / 2 = i := by omega
@@ -1526,7 +1523,7 @@ theorem perSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
 theorem perSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
     perSite n ⟨2 * n + i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [perSite]
-  rw [dif_neg (by omega : ¬((2 * n + i : ℕ) < 2 * n))]
+  rw [dite_eq_right (by omega : ¬((2 * n + i : ℕ) < 2 * n))]
   refine Fin.ext ?_
   show 2 * n + i - 2 * n = i
   omega
@@ -1612,23 +1609,23 @@ theorem perPartner_involution_aux (n : ℕ) (j k : Fin (3 * n))
     (hj : perPartner n j = some k) : perPartner n k = some j := by
   simp only [perPartner] at hj
   by_cases h : (j : ℕ) < 2 * n
-  · rw [dif_pos h] at hj
+  · rw [dite_eq_left h] at hj
     have hkval : (k : ℕ) = if (j : ℕ) % 2 = 0 then (j : ℕ) + 1 else (j : ℕ) - 1 :=
       (congrArg Fin.val (Option.some.inj hj)).symm
     have hkbound : (k : ℕ) < 2 * n := by
       by_cases h2 : (j : ℕ) % 2 = 0
-      · rw [hkval, if_pos h2]; omega
-      · rw [hkval, if_neg h2]; omega
-    simp only [perPartner, dif_pos hkbound]
+      · rw [hkval, ite_eq_left h2]; omega
+      · rw [hkval, ite_eq_right h2]; omega
+    simp only [perPartner, dite_eq_left hkbound]
     by_cases h2 : (j : ℕ) % 2 = 0
-    · rw [if_pos h2] at hkval
+    · rw [ite_eq_left h2] at hkval
       have hkj : k = ⟨(j : ℕ) + 1, perJ_succ_bound n j h⟩ := by
         refine Fin.ext ?_
         rw [hkval]
       subst hkj
       have h3 : ((j : ℕ) + 1) % 2 ≠ 0 := by omega
       simp [h3]
-    · rw [if_neg h2] at hkval
+    · rw [ite_eq_right h2] at hkval
       have hkj : k = ⟨(j : ℕ) - 1, perJ_pred_bound n j h⟩ := by
         refine Fin.ext ?_
         rw [hkval]
@@ -1643,7 +1640,7 @@ theorem perPartner_involution_aux (n : ℕ) (j k : Fin (3 * n))
           exact absurd (by decide : (0 : ℕ) % 2 = 0) h2
         · exact hp
       omega
-  · rw [dif_neg h] at hj
+  · rw [dite_eq_right h] at hj
     exact absurd hj (by simp)
 
 /-- A paired periodic half-edge is distinct from its partner. -/
@@ -1653,13 +1650,13 @@ theorem perPartner_no_self (n : ℕ) (j k : Fin (3 * n))
   subst heq
   simp only [perPartner] at hj
   by_cases h : (j : ℕ) < 2 * n
-  · rw [dif_pos h] at hj
+  · rw [dite_eq_left h] at hj
     have hkval : (j : ℕ) = if (j : ℕ) % 2 = 0 then (j : ℕ) + 1 else (j : ℕ) - 1 :=
       (congrArg Fin.val (Option.some.inj hj)).symm
     by_cases h2 : (j : ℕ) % 2 = 0
-    · rw [if_pos h2] at hkval; omega
-    · rw [if_neg h2] at hkval; omega
-  · rw [dif_neg h] at hj
+    · rw [ite_eq_left h2] at hkval; omega
+    · rw [ite_eq_right h2] at hkval; omega
+  · rw [dite_eq_right h] at hj
     exact absurd hj (by simp)
 
 /-- Paired half-edges in the periodic encoding have equal dimensions. -/
@@ -1668,15 +1665,15 @@ theorem perPartner_dims (n d D : ℕ) (j k : Fin (3 * n))
     perDim n d D (j : ℕ) = perDim n d D (k : ℕ) := by
   simp only [perPartner] at hj
   by_cases h : (j : ℕ) < 2 * n
-  · rw [dif_pos h] at hj
+  · rw [dite_eq_left h] at hj
     have hkval : (k : ℕ) = if (j : ℕ) % 2 = 0 then (j : ℕ) + 1 else (j : ℕ) - 1 :=
       (congrArg Fin.val (Option.some.inj hj)).symm
     have hkbound : (k : ℕ) < 2 * n := by
       by_cases h2 : (j : ℕ) % 2 = 0
-      · rw [hkval, if_pos h2]; omega
-      · rw [hkval, if_neg h2]; omega
-    rw [perDim, perDim, if_pos h, if_pos hkbound]
-  · rw [dif_neg h] at hj
+      · rw [hkval, ite_eq_left h2]; omega
+      · rw [hkval, ite_eq_right h2]; omega
+    rw [perDim, perDim, ite_eq_left h, ite_eq_left hkbound]
+  · rw [dite_eq_right h] at hj
     exact absurd hj (by simp)
 
 /-- Encodes the tensor family `A` as a periodic tensor network with one physical leg and two
@@ -1705,14 +1702,14 @@ theorem perPartner_isSome (n : ℕ) {j k : Fin (3 * n)} (h : perPartner n j = so
   simp only [perPartner] at h
   by_cases h' : (j : ℕ) < 2 * n
   · exact h'
-  · rw [dif_neg h'] at h
+  · rw [dite_eq_right h'] at h
     exact absurd h (by simp)
 
 /-- An unpaired half-edge in the periodic encoding does not lie below `2 * n`. -/
 theorem perPartner_none_lt (n : ℕ) {j : Fin (3 * n)} (h : perPartner n j = none) :
     ¬((j : ℕ) < 2 * n) := by
   intro hj
-  simp only [perPartner, dif_pos hj] at h
+  simp only [perPartner, dite_eq_left hj] at h
   exact absurd h (by simp)
 
 /-- The internal edge at bond position `b` in the periodic network. -/
@@ -1744,15 +1741,15 @@ theorem perBondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin 
   obtain ⟨k, hk, hlt⟩ := i.property
   have hb : (i.val : ℕ) < 2 * n := perPartner_isSome n hk
   have hk' : perPartner n i.val = some k := hk
-  rw [perPartner, dif_pos hb] at hk'
+  rw [perPartner, dite_eq_left hb] at hk'
   have hvk : (if (i.val : ℕ) % 2 = 0 then (i.val : ℕ) + 1 else (i.val : ℕ) - 1) = (k : ℕ) :=
     congrArg Fin.val (Option.some.inj hk')
   by_cases h2 : ((i.val : ℕ)) % 2 = 0
-  · rw [if_pos h2] at hvk
+  · rw [ite_eq_left h2] at hvk
     refine Subtype.ext (Fin.ext ?_)
     show 2 * ((i.val.val) / 2) = (i.val : ℕ)
     omega
-  · rw [if_neg h2] at hvk
+  · rw [ite_eq_right h2] at hvk
     exact absurd hlt (by omega)
 
 /-- Encodes a physical configuration as an open-leg assignment of the periodic network. -/
@@ -1845,7 +1842,7 @@ theorem perPort_left [NeZero D]
     have hkk : k' = ⟨2 * (b : ℕ) + 1, perLeg2_bound1 n b⟩ :=
       Option.some.inj (hk'.symm.trans h1)
     subst k'
-    rw [dif_pos hjk]
+    rw [dite_eq_left hjk]
     rfl
 
 /-- The right port at a periodic site equals the index assigned to the cyclic successor bond,
@@ -1864,7 +1861,7 @@ theorem perPort_right [NeZero D]
   have h1 : perPartner n ⟨2 * (((b : ℕ) + 1) % n) + 1, perLeg_bound n b⟩
       = some ⟨2 * (((b : ℕ) + 1) % n), perM_bound n b⟩ := by
     have hb : (2 * (((b : ℕ) + 1) % n) + 1 : ℕ) < 2 * n := perLeg_bound2 n b
-    simp only [perPartner, dif_pos hb]
+    simp only [perPartner, dite_eq_left hb]
     simp
   have hkj : (2 * (((b : ℕ) + 1) % n) : ℕ) < 2 * (((b : ℕ) + 1) % n) + 1 := by omega
   unfold portValue
@@ -1877,7 +1874,7 @@ theorem perPort_right [NeZero D]
     have hnlt : ¬((⟨2 * (((b : ℕ) + 1) % n) + 1, perLeg_bound n b⟩ : Fin ((perNet n d D A).nh))
         < ⟨2 * (((b : ℕ) + 1) % n), perM_bound n b⟩) :=
       fun h => absurd (Fin.mk_lt_mk.mp h) (by omega)
-    rw [dif_neg hnlt]
+    rw [dite_eq_right hnlt]
     rfl
 
 /-- The physical port of the periodic network at site `v` equals `x v`, after transporting
@@ -1894,7 +1891,7 @@ theorem perPort_phys [NeZero D]
   simp only [Fin.val_cast]
   have h1 : perPartner n ⟨2 * n + (v : ℕ), by show 2 * n + (v : ℕ) < 3 * n; have := v.isLt; omega⟩ = none := by
     simp only [perPartner]
-    rw [dif_neg (by omega : ¬((2 * n + (v : ℕ) : ℕ) < 2 * n))]
+    rw [dite_eq_right (by omega : ¬((2 * n + (v : ℕ) : ℕ) < 2 * n))]
   unfold portValue
   split
   · next hnone =>
@@ -1981,8 +1978,8 @@ theorem clause1_clause4 :
         netBondDimension N ≤ D ∧ ∀ x : Fin n → Fin d,
           netContract N (enc x) = @periodicMpsAmplitude n d D hn hD A x := by
   intro n d D hn hD A
-  haveI := hn
-  haveI := hD
+  have := hn
+  have := hD
   exact ⟨perNet n d D A, perEnc n d D A,
     netBondDimension_perNet_le A, fun x => netContract_perNet_eq A x⟩
 
@@ -2014,11 +2011,11 @@ theorem isoEndMap_partner (iso : NetIso N₁ N₂) {h k : Fin N₁.nh}
     N₂.partner (isoEndMap iso h k).1 = some (isoEndMap iso h k).2 := by
   unfold isoEndMap
   by_cases hlt : iso.halfMap h < iso.halfMap k
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     show N₂.partner (iso.halfMap h) = some (iso.halfMap k)
     rw [iso.partner_map, hpk]
     rfl
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     show N₂.partner (iso.halfMap k) = some (iso.halfMap h)
     have hpk' : N₂.partner (iso.halfMap h) = some (iso.halfMap k) := by
       rw [iso.partner_map, hpk]
@@ -2031,9 +2028,9 @@ theorem isoEndMap_lt (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hne : h ≠ k
     (isoEndMap iso h k).1 < (isoEndMap iso h k).2 := by
   unfold isoEndMap
   by_cases hlt : iso.halfMap h < iso.halfMap k
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     exact hlt
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     show iso.halfMap k < iso.halfMap h
     have hne' : iso.halfMap h ≠ iso.halfMap k :=
       fun he => hne (iso.halfMap.injective he)
@@ -2062,10 +2059,10 @@ theorem isoEndMapInv_partner (iso : NetIso N₁ N₂) {h k : Fin N₂.nh}
     N₁.partner (isoEndMapInv iso h k).1 = some (isoEndMapInv iso h k).2 := by
   unfold isoEndMapInv
   by_cases hlt : iso.halfMap.symm h < iso.halfMap.symm k
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     show N₁.partner (iso.halfMap.symm h) = some (iso.halfMap.symm k)
     exact isoEndMapInv_partner_core iso hpk
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     show N₁.partner (iso.halfMap.symm k) = some (iso.halfMap.symm h)
     exact N₁.involution _ _ (isoEndMapInv_partner_core iso hpk)
 
@@ -2074,9 +2071,9 @@ theorem isoEndMapInv_lt (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hne : h �
     (isoEndMapInv iso h k).1 < (isoEndMapInv iso h k).2 := by
   unfold isoEndMapInv
   by_cases hlt : iso.halfMap.symm h < iso.halfMap.symm k
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     exact hlt
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     show iso.halfMap.symm k < iso.halfMap.symm h
     have hne' : iso.halfMap.symm h ≠ iso.halfMap.symm k :=
       fun he => hne (iso.halfMap.symm.injective he)
@@ -2087,17 +2084,17 @@ theorem isoEndMapInv_isoEndMap (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hlt
     isoEndMapInv iso (isoEndMap iso h k).1 (isoEndMap iso h k).2 = (h, k) := by
   unfold isoEndMap isoEndMapInv
   by_cases hlt' : iso.halfMap h < iso.halfMap k
-  · rw [if_pos hlt']
+  · rw [ite_eq_left hlt']
     have hs : iso.halfMap.symm (iso.halfMap h) < iso.halfMap.symm (iso.halfMap k) := by
       simp only [Equiv.symm_apply_apply]
       exact hlt
-    rw [if_pos hs]
+    rw [ite_eq_left hs]
     simp only [Equiv.symm_apply_apply]
-  · rw [if_neg hlt']
+  · rw [ite_eq_right hlt']
     have hs : ¬(iso.halfMap.symm (iso.halfMap k) < iso.halfMap.symm (iso.halfMap h)) := by
       simp only [Equiv.symm_apply_apply]
       exact fun hlt'' => absurd hlt'' (by omega)
-    rw [if_neg hs]
+    rw [ite_eq_right hs]
     simp only [Equiv.symm_apply_apply]
 
 /-- Mapping an increasing pair backward and then forward recovers the pair. -/
@@ -2105,17 +2102,17 @@ theorem isoEndMap_isoEndMapInv (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hlt
     isoEndMap iso (isoEndMapInv iso h k).1 (isoEndMapInv iso h k).2 = (h, k) := by
   unfold isoEndMap isoEndMapInv
   by_cases hlt' : iso.halfMap.symm h < iso.halfMap.symm k
-  · rw [if_pos hlt']
+  · rw [ite_eq_left hlt']
     have hs : iso.halfMap (iso.halfMap.symm h) < iso.halfMap (iso.halfMap.symm k) := by
       simp only [Equiv.apply_symm_apply]
       exact hlt
-    rw [if_pos hs]
+    rw [ite_eq_left hs]
     simp only [Equiv.apply_symm_apply]
-  · rw [if_neg hlt']
+  · rw [ite_eq_right hlt']
     have hs : ¬(iso.halfMap (iso.halfMap.symm k) < iso.halfMap (iso.halfMap.symm h)) := by
       simp only [Equiv.apply_symm_apply]
       exact fun hlt'' => absurd hlt'' (by omega)
-    rw [if_neg hs]
+    rw [ite_eq_right hs]
     simp only [Equiv.apply_symm_apply]
 
 /-- The internal edge induced by a network isomorphism, represented by its smaller image
@@ -2200,9 +2197,9 @@ theorem isoEdgeMap_dims (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
   rw [isoEdgeMap_val]
   unfold isoEndMap
   by_cases hlt : iso.halfMap i.val < iso.halfMap (Classical.choose i.property)
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     exact iso.dims_map i.val
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     have hpk : N₁.partner i.val = some (Classical.choose i.property) :=
       (Classical.choose_spec i.property).1
     rw [iso.dims_map]
@@ -2314,7 +2311,7 @@ theorem portValue_iso_val (iso : NetIso N₁ N₂)
           rw [isoEdgeMap_val_fst iso hpk hlth]
           show (isoEndMap iso h k).1 = iso.halfMap h
           unfold isoEndMap
-          rw [if_pos hlt']
+          rw [ite_eq_left hlt']
         have key : isoEdgeMap iso (⟨h, ⟨k, hpk, hlth⟩⟩ : InternalEdge N₁)
             = (⟨iso.halfMap h, ⟨iso.halfMap k, hp', hlt'⟩⟩ : InternalEdge N₂) :=
           Subtype.ext hval
@@ -2332,7 +2329,7 @@ theorem portValue_iso_val (iso : NetIso N₁ N₂)
           rw [isoEdgeMap_val_fst iso hpk hlth]
           show (isoEndMap iso h k).1 = iso.halfMap k
           unfold isoEndMap
-          rw [if_neg hlt']
+          rw [ite_eq_right hlt']
         have key : isoEdgeMap iso (⟨h, ⟨k, hpk, hlth⟩⟩ : InternalEdge N₁)
             = (⟨iso.halfMap k, ⟨iso.halfMap h, hinv', hlt₂⟩⟩ : InternalEdge N₂) :=
           Subtype.ext hval
@@ -2353,7 +2350,7 @@ theorem portValue_iso_val (iso : NetIso N₁ N₂)
           rw [isoEdgeMap_val_fst iso hinv hklt]
           show (isoEndMap iso k h).1 = iso.halfMap h
           unfold isoEndMap
-          rw [if_neg (lt_asymm hlt')]
+          rw [ite_eq_right (lt_asymm hlt')]
         have key : isoEdgeMap iso (⟨k, ⟨h, hinv, hklt⟩⟩ : InternalEdge N₁)
             = (⟨iso.halfMap h, ⟨iso.halfMap k, hp', hlt'⟩⟩ : InternalEdge N₂) :=
           Subtype.ext hval
@@ -2371,7 +2368,7 @@ theorem portValue_iso_val (iso : NetIso N₁ N₂)
           rw [isoEdgeMap_val_fst iso hinv hklt]
           show (isoEndMap iso k h).1 = iso.halfMap k
           unfold isoEndMap
-          rw [if_pos hlt₂]
+          rw [ite_eq_left hlt₂]
         have key : isoEdgeMap iso (⟨k, ⟨h, hinv, hklt⟩⟩ : InternalEdge N₁)
             = (⟨iso.halfMap k, ⟨iso.halfMap h, hinv', hlt₂⟩⟩ : InternalEdge N₂) :=
           Subtype.ext hval
@@ -2484,7 +2481,6 @@ theorem clause1_clause1 :
 end Clause1NetIso
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open scoped ComplexConjugate
 
@@ -2606,7 +2602,7 @@ lemma legK_rep {N : TensorNet}
     have hk' : k = edgeOther i := Option.some.inj (hk.symm.trans (partner_edgeOther i))
     subst hk'
     have hlt : i.val < edgeOther i := edgeOther_lt i
-    simp only [gaugeKernel, dif_pos hlt]
+    simp only [gaugeKernel, dite_eq_left hlt]
     rfl
 
 /-- On the other endpoint of an internal edge, `legK` is the conjugate gauge matrix entry after
@@ -2623,7 +2619,7 @@ lemma legK_other {N : TensorNet}
     have hk' : k = i.val := Option.some.inj (hk.symm.trans (partner_edgeOther_inv i))
     subst hk'
     have hnlt : ¬ (edgeOther i < i.val) := lt_asymm (edgeOther_lt i)
-    simp only [gaugeKernel, dif_neg hnlt]
+    simp only [gaugeKernel, dite_eq_right hnlt]
     rfl
 
 /-- Maps an open leg or one of the two endpoints of an internal edge to its half-edge index. -/
@@ -2808,8 +2804,8 @@ lemma prod_tensor_eq_netTheta {N : TensorNet}
 lemma if_eq_comm {α : Type} [DecidableEq α] (a b : α) :
     (if a = b then (1 : ℂ) else 0) = if b = a then (1 : ℂ) else 0 := by
   by_cases h : a = b
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun he => h he.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun he => h he.symm)]
 
 /-- Transporting a finite index along an equality of bounds and then back returns the index. -/
 lemma cast_cast_self {n m : ℕ} (h1 : n = m) (h2 : m = n) (x : Fin n) :
@@ -2845,17 +2841,17 @@ lemma unitary_edge_sum {N : TensorNet}
     _ = if (q.cast (dims_edgeOther' i)) = p then (1 : ℂ) else 0 := Matrix.one_apply
     _ = if p.val = q.val then (1 : ℂ) else 0 := by
         by_cases hq : (q.cast (dims_edgeOther' i)) = p
-        · rw [if_pos hq]
+        · rw [ite_eq_left hq]
           have hp : p.val = q.val := (congrArg Fin.val hq).symm.trans hval
-          rw [if_pos hp]
-        · rw [if_neg hq]
+          rw [ite_eq_left hp]
+        · rw [ite_eq_right hq]
           have hp : ¬ p.val = q.val := by
             intro he
             apply hq
             apply Fin.ext
             rw [hval]
             exact he.symm
-          rw [if_neg hp]
+          rw [ite_eq_right hp]
 
 /-- A half-edge assignment is consistent when it matches the external assignment on open legs
 and has equal natural values at paired endpoints. -/
@@ -2877,8 +2873,8 @@ lemma deltaFactor_of_consistent {N : TensorNet}
     (hc : GaugeConsistent ext σ) : deltaFactor ext σ = 1 := by
   obtain ⟨ho, hi⟩ := hc
   simp only [deltaFactor]
-  rw [Finset.prod_congr rfl (fun o _ => if_pos (ho o))]
-  rw [Finset.prod_congr rfl (fun i _ => if_pos (hi i))]
+  rw [Finset.prod_congr rfl (fun o _ => ite_eq_left (ho o))]
+  rw [Finset.prod_congr rfl (fun i _ => ite_eq_left (hi i))]
   simp
 
 /-- The delta factor of an inconsistent half-edge assignment is zero. -/
@@ -2893,13 +2889,13 @@ lemma deltaFactor_of_not_consistent {N : TensorNet}
     rw [Classical.not_forall] at ho
     obtain ⟨o, ho⟩ := ho
     simp only [deltaFactor]
-    rw [Finset.prod_eq_zero (Finset.mem_univ o) (if_neg ho)]
+    rw [Finset.prod_eq_zero (Finset.mem_univ o) (ite_eq_right ho)]
     simp
   | inr hi =>
     rw [Classical.not_forall] at hi
     obtain ⟨i, hi⟩ := hi
     simp only [deltaFactor]
-    rw [Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)]
+    rw [Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)]
     simp
 
 /-- For unitary edge gauges, summing the product of half-edge kernels over internal assignments
@@ -3021,9 +3017,9 @@ lemma sum_delta_collapse {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o
     apply Finset.sum_congr rfl
     intro σ _hσ
     by_cases hc : GaugeConsistent ext σ
-    · rw [if_pos hc, deltaFactor_of_consistent hc]
+    · rw [ite_eq_left hc, deltaFactor_of_consistent hc]
       simp
-    · rw [if_neg hc, deltaFactor_of_not_consistent hc]
+    · rw [ite_eq_right hc, deltaFactor_of_not_consistent hc]
       simp
   have hbij : (∑ e : ∀ i : InternalEdge N, Fin (N.dims i.val), Θ (portAssign ext e))
       = ∑ σ ∈ (Finset.univ : Finset (HalfAssign N)) with GaugeConsistent ext σ, Θ σ := by
@@ -3312,7 +3308,7 @@ theorem cutMatrix_zero_apply (x : Fin n → Fin d) :
   funext k
   unfold splitJoin
   have hk : ¬((k : ℕ) < 0) := Nat.not_lt_zero _
-  simp only [dif_neg hk]
+  simp only [dite_eq_right hk]
   simp
 
 /-- A state with a nonzero amplitude has cut rank one at cut zero. -/
@@ -3515,7 +3511,7 @@ theorem prod_embed_eq_zero_of_exists {n d D₀ D : ℕ} [NeZero D₀] [NeZero D]
     have hco : (j' : ℕ) < n - 1 := by
       rw [hj'def]
       exact hjlt
-    rw [dif_pos hco]
+    rw [dite_eq_left hco]
   have hfac : mpsEmbed h (A j' (x j')) (mpsLeftIdx α j') (mpsRightIdx α j') = 0 := by
     rw [hright]
     exact mpsEmbed_apply_eq_zero_of_le_right hj
@@ -3669,12 +3665,12 @@ theorem exists_isometry_extend {D r d : ℕ} (hr : r ≤ D) (hd : 0 < d)
   classical
   set v : Fin (D * d) → EuclideanSpace ℂ (Fin (D * d)) := (fun k =>
     if hk : (k : ℕ) < r then WithLp.toLp 2 (fun i => V₀ i ⟨k, hk⟩) else 0) with hvdef
-  have horth : Orthonormal ℂ (({k : Fin (D * d) | (k : ℕ) < r} : Set _).restrict v) := by
+  have horth : Orthonormal ℂ (({k : Fin (D * d) | (k : ℕ) < r} : Set _).domRestrict v) := by
     refine ⟨?_, ?_⟩
     · intro k
       have hk : ((k : Fin (D * d)) : ℕ) < r := k.2
       show ‖v (k : Fin (D * d))‖ = 1
-      simp only [hvdef, dif_pos hk]
+      simp only [hvdef, dite_eq_left hk]
       set w : EuclideanSpace ℂ (Fin (D * d)) := WithLp.toLp 2 (fun i => V₀ i ⟨k, hk⟩) with hw
       have hgram1 : (∑ i : Fin (D * d), star (V₀ i ⟨k, hk⟩) * V₀ i ⟨k, hk⟩) = (1 : ℂ) := by
         rw [gram_apply_of_eq_one hV₀ ⟨k, hk⟩ ⟨k, hk⟩]
@@ -3693,7 +3689,7 @@ theorem exists_isometry_extend {D r d : ℕ} (hr : r ≤ D) (hd : 0 < d)
       have hk₁ : ((k₁ : Fin (D * d)) : ℕ) < r := k₁.2
       have hk₂ : ((k₂ : Fin (D * d)) : ℕ) < r := k₂.2
       show inner ℂ (v (k₁ : Fin (D * d))) (v (k₂ : Fin (D * d))) = 0
-      simp only [hvdef, dif_pos hk₁, dif_pos hk₂]
+      simp only [hvdef, dite_eq_left hk₁, dite_eq_left hk₂]
       set w₁ : EuclideanSpace ℂ (Fin (D * d)) := WithLp.toLp 2 (fun i => V₀ i ⟨k₁, hk₁⟩) with hw₁
       set w₂ : EuclideanSpace ℂ (Fin (D * d)) := WithLp.toLp 2 (fun i => V₀ i ⟨k₂, hk₂⟩) with hw₂
       have hgram := gram_apply_of_eq_one hV₀ ⟨k₁, hk₁⟩ ⟨k₂, hk₂⟩
@@ -3705,7 +3701,7 @@ theorem exists_isometry_extend {D r d : ℕ} (hr : r ≤ D) (hd : 0 < d)
         apply Subtype.ext
         apply Fin.ext
         simpa using! hval
-      simp only [if_neg hne'] at hgram
+      simp only [ite_eq_right hne'] at hgram
       have hinner : inner ℂ w₁ w₂ = (∑ i : Fin (D * d), star (V₀ i ⟨k₁, hk₁⟩) * V₀ i ⟨k₂, hk₂⟩) := by
         rw [hw₁, hw₂, PiLp.inner_apply]
         refine Finset.sum_congr rfl (fun i _ => ?_)
@@ -3752,10 +3748,10 @@ theorem exists_isometry_extend {D r d : ℕ} (hr : r ≤ D) (hd : 0 < d)
       have hDm : r ≤ D * d := le_trans hr (Nat.le_mul_of_pos_right D hd)
       omega
     have hbeq : (b ⟨(j : ℕ), hjm⟩ : EuclideanSpace ℂ (Fin (D * d)))
-        = v ⟨(j : ℕ), hjm⟩ := hb ⟨(j : ℕ), hjm⟩ (by rw [Set.mem_setOf_eq]; exact hj)
+        = v ⟨(j : ℕ), hjm⟩ := hb ⟨(j : ℕ), hjm⟩ (by rw [Set.mem_ofPred_eq]; exact hj)
     have hvv : (v ⟨(j : ℕ), hjm⟩ : EuclideanSpace ℂ (Fin (D * d)))
         = WithLp.toLp 2 (fun i => V₀ i ⟨(j : ℕ), hj⟩) := by
-      simp only [hvdef, dif_pos hj]
+      simp only [hvdef, dite_eq_left hj]
     rw [hbeq, hvv, PiLp.toLp_apply]
 
 section Clause1Peps
@@ -3768,12 +3764,12 @@ def pepsNh (a b : ℕ) : ℕ := 5 * a * b + (if a = 0 ∨ b = 0 then 0 else 2 * 
 
 /-- The PEPS encoding has zero half-edges if either lattice dimension is zero. -/
 theorem pepsNh_of_zero (h : a = 0 ∨ b = 0) : pepsNh a b = 0 := by
-  rw [pepsNh, if_pos h, Nat.add_zero]
+  rw [pepsNh, ite_eq_left h, Nat.add_zero]
   rcases h with h | h <;> rw [h] <;> ring
 
 /-- For positive lattice dimensions, the PEPS encoding has `5 * a * b + 2 * (a + b)` half-edges. -/
 theorem pepsNh_of_pos (ha : 0 < a) (hb : 0 < b) : pepsNh a b = 5 * a * b + 2 * (a + b) := by
-  rw [pepsNh, if_neg (by omega : ¬(a = 0 ∨ b = 0))]
+  rw [pepsNh, ite_eq_right (by omega : ¬(a = 0 ∨ b = 0))]
 
 /-- The PEPS half-edge count is at least `5 * a * b`. -/
 theorem pepsNh_le (a b : ℕ) : 5 * a * b ≤ pepsNh a b := by
@@ -3783,7 +3779,7 @@ theorem pepsNh_le (a b : ℕ) : 5 * a * b ≤ pepsNh a b := by
 /-- An index in the additional PEPS half-edge range has offset below `2 * (a + b)`. -/
 theorem pepsNh_lt_add (a b : ℕ) (h : ¬(a = 0 ∨ b = 0)) (j : ℕ) (hj : 5 * a * b ≤ j)
     (hj2 : j < pepsNh a b) : j - 5 * a * b < 2 * (a + b) := by
-  rw [pepsNh, if_neg h] at hj2
+  rw [pepsNh, ite_eq_right h] at hj2
   omega
 
 /-- If neither lattice dimension is zero, both are positive. -/
@@ -3797,17 +3793,17 @@ def pepsDim (a b d D : ℕ) (j : ℕ) : ℕ := if j < 5 * a * b ∧ j % 5 = 0 th
 /-- A regular PEPS half-edge whose index is divisible by five has physical dimension `d`. -/
 theorem pepsDim_phys (a b d D : ℕ) {j : ℕ} (h : j < 5 * a * b) (h2 : j % 5 = 0) :
     pepsDim a b d D j = d := by
-  rw [pepsDim, if_pos ⟨h, h2⟩]
+  rw [pepsDim, ite_eq_left ⟨h, h2⟩]
 
 /-- A PEPS half-edge whose index is not divisible by five has bond dimension `D`. -/
 theorem pepsDim_reg (a b d D : ℕ) {j : ℕ} (h2 : j % 5 ≠ 0) :
     pepsDim a b d D j = D := by
-  rw [pepsDim, if_neg (fun ⟨_, hc⟩ => h2 hc)]
+  rw [pepsDim, ite_eq_right (fun ⟨_, hc⟩ => h2 hc)]
 
 /-- An additional half-edge beyond the five-per-site range has dimension `D`. -/
 theorem pepsDim_dummy (a b d D : ℕ) {j : ℕ} (h : 5 * a * b ≤ j) :
     pepsDim a b d D j = D := by
-  rw [pepsDim, if_neg (fun ⟨hj, _⟩ => absurd hj (by omega))]
+  rw [pepsDim, ite_eq_right (fun ⟨hj, _⟩ => absurd hj (by omega))]
 
 /-- For `r < 5`, the remainder of `5 * k + r` modulo five is `r`. -/
 theorem pepsLeg_mod (k r : ℕ) (hr : r < 5) : (5 * k + r) % 5 = r := by
@@ -4007,8 +4003,8 @@ theorem pepsPartner_phys (a b k : ℕ) (ha : 0 < a) (hb : 0 < b) (hk : k < a * b
   have hreg : (5 * k : ℕ) < 5 * a * b := pepsLeg_lt a b k 0 hk (by omega)
   have hmod : (5 * k : ℕ) % 5 = 0 := pepsLeg_mod k 0 (by omega)
   have hdiv : (5 * k : ℕ) / 5 = k := pepsLeg_div k 0 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_pos (by trivial : True)]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_left (by trivial : True)]
 
 /-- For `b ≤ k`, the left leg at site `k` is paired with the right leg at site `k - b`. -/
 theorem pepsPartner_left_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
@@ -4022,9 +4018,9 @@ theorem pepsPartner_left_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 1 : ℕ) < 5 * a * b := pepsLeg_lt a b k 1 hk (by omega)
   have hmod : (5 * k + 1 : ℕ) % 5 = 1 := pepsLeg_mod k 1 (by omega)
   have hdiv : (5 * k + 1 : ℕ) / 5 = k := pepsLeg_div k 1 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((1 : ℕ) = 0)), dif_pos (by trivial : True),
-    dif_neg (by omega : ¬(k < b))]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((1 : ℕ) = 0)), dite_eq_left (by trivial : True),
+    dite_eq_right (by omega : ¬(k < b))]
   apply congrArg some
   apply Fin.ext
   show (5 * k + 1 : ℕ) - 5 * b + 1 = 5 * (k - b) + 2
@@ -4038,9 +4034,9 @@ theorem pepsPartner_left_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 1 : ℕ) < 5 * a * b := pepsLeg_lt a b k 1 hk (by omega)
   have hmod : (5 * k + 1 : ℕ) % 5 = 1 := pepsLeg_mod k 1 (by omega)
   have hdiv : (5 * k + 1 : ℕ) / 5 = k := pepsLeg_div k 1 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((1 : ℕ) = 0)), dif_pos (by trivial : True),
-    dif_pos hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((1 : ℕ) = 0)), dite_eq_left (by trivial : True),
+    dite_eq_left hkb]
 
 /-- If `k + b < a * b`, the right leg at site `k` is paired with the left leg at site `k + b`. -/
 theorem pepsPartner_right_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
@@ -4054,9 +4050,9 @@ theorem pepsPartner_right_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 2 : ℕ) < 5 * a * b := pepsLeg_lt a b k 2 hk (by omega)
   have hmod : (5 * k + 2 : ℕ) % 5 = 2 := pepsLeg_mod k 2 (by omega)
   have hdiv : (5 * k + 2 : ℕ) / 5 = k := pepsLeg_div k 2 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((2 : ℕ) = 0)), dif_neg (by omega : ¬((2 : ℕ) = 1)),
-    dif_pos (by trivial : True), dif_pos (by omega : k + b < a * b)]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((2 : ℕ) = 0)), dite_eq_right (by omega : ¬((2 : ℕ) = 1)),
+    dite_eq_left (by trivial : True), dite_eq_left (by omega : k + b < a * b)]
   apply congrArg some
   apply Fin.ext
   show (5 * k + 2 : ℕ) + 5 * b - 1 = 5 * (k + b) + 1
@@ -4070,9 +4066,9 @@ theorem pepsPartner_right_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 2 : ℕ) < 5 * a * b := pepsLeg_lt a b k 2 hk (by omega)
   have hmod : (5 * k + 2 : ℕ) % 5 = 2 := pepsLeg_mod k 2 (by omega)
   have hdiv : (5 * k + 2 : ℕ) / 5 = k := pepsLeg_div k 2 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((2 : ℕ) = 0)), dif_neg (by omega : ¬((2 : ℕ) = 1)),
-    dif_pos (by trivial : True), dif_neg hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((2 : ℕ) = 0)), dite_eq_right (by omega : ¬((2 : ℕ) = 1)),
+    dite_eq_left (by trivial : True), dite_eq_right hkb]
 
 /-- If `k % b + 1 < b`, the down leg at site `k` is paired with the up leg at site `k + 1`. -/
 theorem pepsPartner_down_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
@@ -4086,10 +4082,10 @@ theorem pepsPartner_down_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 3 : ℕ) < 5 * a * b := pepsLeg_lt a b k 3 hk (by omega)
   have hmod : (5 * k + 3 : ℕ) % 5 = 3 := pepsLeg_mod k 3 (by omega)
   have hdiv : (5 * k + 3 : ℕ) / 5 = k := pepsLeg_div k 3 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((3 : ℕ) = 0)), dif_neg (by omega : ¬((3 : ℕ) = 1)),
-    dif_neg (by omega : ¬((3 : ℕ) = 2)), dif_pos (by trivial : True),
-    dif_pos hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((3 : ℕ) = 0)), dite_eq_right (by omega : ¬((3 : ℕ) = 1)),
+    dite_eq_right (by omega : ¬((3 : ℕ) = 2)), dite_eq_left (by trivial : True),
+    dite_eq_left hkb]
   apply congrArg some
   apply Fin.ext
   show (5 * k + 3 : ℕ) + 6 = 5 * (k + 1) + 4
@@ -4103,10 +4099,10 @@ theorem pepsPartner_down_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 3 : ℕ) < 5 * a * b := pepsLeg_lt a b k 3 hk (by omega)
   have hmod : (5 * k + 3 : ℕ) % 5 = 3 := pepsLeg_mod k 3 (by omega)
   have hdiv : (5 * k + 3 : ℕ) / 5 = k := pepsLeg_div k 3 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((3 : ℕ) = 0)), dif_neg (by omega : ¬((3 : ℕ) = 1)),
-    dif_neg (by omega : ¬((3 : ℕ) = 2)), dif_pos (by trivial : True),
-    dif_neg hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((3 : ℕ) = 0)), dite_eq_right (by omega : ¬((3 : ℕ) = 1)),
+    dite_eq_right (by omega : ¬((3 : ℕ) = 2)), dite_eq_left (by trivial : True),
+    dite_eq_right hkb]
 
 /-- If `k % b` is nonzero, the up leg at site `k` is paired with the down leg at site `k - 1`. -/
 theorem pepsPartner_up_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
@@ -4124,10 +4120,10 @@ theorem pepsPartner_up_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 4 : ℕ) < 5 * a * b := pepsLeg_lt a b k 4 hk (by omega)
   have hmod : (5 * k + 4 : ℕ) % 5 = 4 := pepsLeg_mod k 4 (by omega)
   have hdiv : (5 * k + 4 : ℕ) / 5 = k := pepsLeg_div k 4 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((4 : ℕ) = 0)), dif_neg (by omega : ¬((4 : ℕ) = 1)),
-    dif_neg (by omega : ¬((4 : ℕ) = 2)), dif_neg (by omega : ¬((4 : ℕ) = 3)),
-    dif_neg hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((4 : ℕ) = 0)), dite_eq_right (by omega : ¬((4 : ℕ) = 1)),
+    dite_eq_right (by omega : ¬((4 : ℕ) = 2)), dite_eq_right (by omega : ¬((4 : ℕ) = 3)),
+    dite_eq_right hkb]
   apply congrArg some
   apply Fin.ext
   have hk0 : 0 < k := by
@@ -4146,10 +4142,10 @@ theorem pepsPartner_up_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hreg : (5 * k + 4 : ℕ) < 5 * a * b := pepsLeg_lt a b k 4 hk (by omega)
   have hmod : (5 * k + 4 : ℕ) % 5 = 4 := pepsLeg_mod k 4 (by omega)
   have hdiv : (5 * k + 4 : ℕ) / 5 = k := pepsLeg_div k 4 (by omega)
-  simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
-    dif_neg (by omega : ¬((4 : ℕ) = 0)), dif_neg (by omega : ¬((4 : ℕ) = 1)),
-    dif_neg (by omega : ¬((4 : ℕ) = 2)), dif_neg (by omega : ¬((4 : ℕ) = 3)),
-    dif_pos hkb]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_left hreg, hmod, hdiv,
+    dite_eq_right (by omega : ¬((4 : ℕ) = 0)), dite_eq_right (by omega : ¬((4 : ℕ) = 1)),
+    dite_eq_right (by omega : ¬((4 : ℕ) = 2)), dite_eq_right (by omega : ¬((4 : ℕ) = 3)),
+    dite_eq_left hkb]
 
 /-- The additional half-edge at offset `2 * m` from `5 * a * b` is paired with the one at offset
 `2 * m + 1`. -/
@@ -4164,7 +4160,7 @@ theorem pepsPartner_dummy_even (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hz := peps_not_zero a b ha hb
   have hreg : ¬(5 * a * b + 2 * m < 5 * a * b) := by omega
   have hmod : ((5 * a * b + 2 * m) - 5 * a * b) % 2 = 0 := by omega
-  simp only [pepsPartner, dif_neg hz, dif_neg hreg, dif_pos hmod]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_right hreg, dite_eq_left hmod]
 
 /-- The additional half-edge at offset `2 * m + 1` from `5 * a * b` is paired with the one at
 offset `2 * m`. -/
@@ -4179,7 +4175,7 @@ theorem pepsPartner_dummy_odd (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hz := peps_not_zero a b ha hb
   have hreg : ¬(5 * a * b + 2 * m + 1 < 5 * a * b) := by omega
   have hmod : ¬(((5 * a * b + 2 * m + 1) - 5 * a * b) % 2 = 0) := by omega
-  simp only [pepsPartner, dif_neg hz, dif_neg hreg, dif_neg hmod]
+  simp only [pepsPartner, dite_eq_right hz, dite_eq_right hreg, dite_eq_right hmod]
   apply congrArg some
   apply Fin.ext
   show (5 * a * b + 2 * m + 1 : ℕ) - 1 = 5 * a * b + 2 * m
@@ -4199,50 +4195,50 @@ theorem pepsPartner_classify (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
   have h5ab : 5 * a * b = 5 * (a * b) := by ring
   simp only [pepsPartner] at hj
   by_cases hz : a = 0 ∨ b = 0
-  · rw [dif_pos hz] at hj
+  · rw [dite_eq_left hz] at hj
     exact absurd hj (by simp)
-  · rw [dif_neg hz] at hj
+  · rw [dite_eq_right hz] at hj
     by_cases hreg : (j : ℕ) < 5 * a * b
-    · rw [dif_pos hreg] at hj
+    · rw [dite_eq_left hreg] at hj
       by_cases h0 : (j : ℕ) % 5 = 0
-      · rw [dif_pos h0] at hj
+      · rw [dite_eq_left h0] at hj
         exact absurd hj (by simp)
-      · rw [dif_neg h0] at hj
+      · rw [dite_eq_right h0] at hj
         by_cases h1 : (j : ℕ) % 5 = 1
-        · rw [dif_pos h1] at hj
+        · rw [dite_eq_left h1] at hj
           by_cases hk1 : (j : ℕ) / 5 < b
-          · rw [dif_pos hk1] at hj
+          · rw [dite_eq_left hk1] at hj
             exact absurd hj (by simp)
-          · rw [dif_neg hk1] at hj
+          · rw [dite_eq_right hk1] at hj
             have hkval : ((j : ℕ) - 5 * b + 1) = (k : ℕ) :=
               congrArg Fin.val (Option.some.inj hj)
             exact Or.inl ⟨(j : ℕ) / 5, by omega, by omega, by omega, by omega⟩
-        · rw [dif_neg h1] at hj
+        · rw [dite_eq_right h1] at hj
           by_cases h2 : (j : ℕ) % 5 = 2
-          · rw [dif_pos h2] at hj
+          · rw [dite_eq_left h2] at hj
             by_cases hk2 : (j : ℕ) / 5 + b < a * b
-            · rw [dif_pos hk2] at hj
+            · rw [dite_eq_left hk2] at hj
               have hkval : ((j : ℕ) + 5 * b - 1) = (k : ℕ) :=
                 congrArg Fin.val (Option.some.inj hj)
               exact Or.inr (Or.inl ⟨(j : ℕ) / 5, by omega, by omega, by omega, by omega⟩)
-            · rw [dif_neg hk2] at hj
+            · rw [dite_eq_right hk2] at hj
               exact absurd hj (by simp)
-          · rw [dif_neg h2] at hj
+          · rw [dite_eq_right h2] at hj
             by_cases h3 : (j : ℕ) % 5 = 3
-            · rw [dif_pos h3] at hj
+            · rw [dite_eq_left h3] at hj
               by_cases hk3 : (j : ℕ) / 5 % b + 1 < b
-              · rw [dif_pos hk3] at hj
+              · rw [dite_eq_left hk3] at hj
                 have hkval : ((j : ℕ) + 6) = (k : ℕ) :=
                   congrArg Fin.val (Option.some.inj hj)
                 exact Or.inr (Or.inr (Or.inl
                   ⟨(j : ℕ) / 5, by omega, by omega, by omega, by omega⟩))
-              · rw [dif_neg hk3] at hj
+              · rw [dite_eq_right hk3] at hj
                 exact absurd hj (by simp)
-            · rw [dif_neg h3] at hj
+            · rw [dite_eq_right h3] at hj
               by_cases hk4 : (j : ℕ) / 5 % b = 0
-              · rw [dif_pos hk4] at hj
+              · rw [dite_eq_left hk4] at hj
                 exact absurd hj (by simp)
-              · rw [dif_neg hk4] at hj
+              · rw [dite_eq_right hk4] at hj
                 have hkval : ((j : ℕ) - 6) = (k : ℕ) :=
                   congrArg Fin.val (Option.some.inj hj)
                 have hk0 : 0 < (j : ℕ) / 5 := by
@@ -4252,15 +4248,15 @@ theorem pepsPartner_classify (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
                   simp at hk4
                 exact Or.inr (Or.inr (Or.inr (Or.inl
                   ⟨(j : ℕ) / 5, by omega, by omega, by omega, by omega⟩)))
-    · rw [dif_neg hreg] at hj
+    · rw [dite_eq_right hreg] at hj
       have hnh := pepsNh_of_pos ha hb
       by_cases hev : ((j : ℕ) - 5 * a * b) % 2 = 0
-      · rw [dif_pos hev] at hj
+      · rw [dite_eq_left hev] at hj
         have hkval : ((j : ℕ) + 1) = (k : ℕ) :=
           congrArg Fin.val (Option.some.inj hj)
         exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
           ⟨((j : ℕ) - 5 * a * b) / 2, by omega, by omega, by omega⟩))))
-      · rw [dif_neg hev] at hj
+      · rw [dite_eq_right hev] at hj
         have hkval : ((j : ℕ) - 1) = (k : ℕ) :=
           congrArg Fin.val (Option.some.inj hj)
         exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
@@ -4383,7 +4379,7 @@ theorem pepsPartner_dims (a b d D : ℕ) (ha : 0 < a) (hb : 0 < b)
 /-- Every half-edge that is not a physical PEPS leg has dimension `D`. -/
 theorem pepsDim_of_not_phys (a b d D : ℕ) {j : ℕ}
     (h : ¬(j < 5 * a * b ∧ j % 5 = 0)) : pepsDim a b d D j = D := by
-  rw [pepsDim, if_neg h]
+  rw [pepsDim, ite_eq_right h]
 
 /-- All five regular legs at a PEPS site are assigned to that site. -/
 theorem pepsSite_leg (a b : ℕ) (v : Fin (a * b)) (r : ℕ) (hr : r < 5) :
@@ -4391,7 +4387,7 @@ theorem pepsSite_leg (a b : ℕ) (v : Fin (a * b)) (r : ℕ) (hr : r < 5) :
   by_cases hz : a = 0 ∨ b = 0
   · rcases hz with h | h <;> rw [h] at v <;> exact absurd v.isLt (by omega)
   · have hreg : (5 * (v : ℕ) + r : ℕ) < 5 * a * b := pepsLeg_lt a b (v : ℕ) r v.isLt hr
-    simp only [pepsSite, dif_neg hz, dif_pos hreg]
+    simp only [pepsSite, dite_eq_right hz, dite_eq_left hreg]
     apply Fin.ext
     show (5 * (v : ℕ) + r) / 5 = (v : ℕ)
     exact pepsLeg_div (v : ℕ) r hr
@@ -4715,7 +4711,7 @@ theorem pepsEdgeR_val_bond (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : (p.1 : ℕ) + 1 < a) :
     ((pepsEdgeR a b d D T p).val : ℕ) = 5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 2 := by
-  simp only [pepsEdgeR, dif_pos h]
+  simp only [pepsEdgeR, dite_eq_left h]
 
 /-- At the right boundary, the representative half-edge of `pepsEdgeR` has dummy index `5 * a *
 b + 2 * p.2`. -/
@@ -4723,7 +4719,7 @@ theorem pepsEdgeR_val_dummy (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : ¬(p.1 : ℕ) + 1 < a) :
     ((pepsEdgeR a b d D T p).val : ℕ) = 5 * a * b + 2 * (p.2 : ℕ) := by
-  simp only [pepsEdgeR, dif_neg h]
+  simp only [pepsEdgeR, dite_eq_right h]
 
 /-- Away from the bottom boundary, the representative half-edge of `pepsEdgeD` has index `5 *
 (p.1 * b + p.2) + 3`. -/
@@ -4731,7 +4727,7 @@ theorem pepsEdgeD_val_bond (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : (p.2 : ℕ) + 1 < b) :
     ((pepsEdgeD a b d D T p).val : ℕ) = 5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 3 := by
-  simp only [pepsEdgeD, dif_pos h]
+  simp only [pepsEdgeD, dite_eq_left h]
 
 /-- At the bottom boundary, the representative half-edge of `pepsEdgeD` has dummy index `5 * a *
 b + 2 * (b + p.1)`. -/
@@ -4739,7 +4735,7 @@ theorem pepsEdgeD_val_dummy (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : ¬(p.2 : ℕ) + 1 < b) :
     ((pepsEdgeD a b d D T p).val : ℕ) = 5 * a * b + 2 * (b + (p.1 : ℕ)) := by
-  simp only [pepsEdgeD, dif_neg h]
+  simp only [pepsEdgeD, dite_eq_right h]
 
 /-- Decoding the right-going edge associated with `p` returns the site `p` and the direction
 flag `true`. -/
@@ -4759,7 +4755,7 @@ theorem pepsEdgeIdx_edgeR (a b d D : ℕ) [NeZero D]
       pepsLeg_div ((p.1 : ℕ) * b + (p.2 : ℕ)) 2 (by omega)
     have hmod : (5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 2) % 5 = 2 :=
       pepsLeg_mod ((p.1 : ℕ) * b + (p.2 : ℕ)) 2 (by omega)
-    simp only [pepsEdgeIdx, dif_pos hreg]
+    simp only [pepsEdgeIdx, dite_eq_left hreg]
     simp only [hval, hdiv, hmod, peps_ib_div (p.1 : ℕ) (p.2 : ℕ) b hpos.2 p.2.isLt,
       peps_ib_mod (p.1 : ℕ) (p.2 : ℕ) b hpos.2 p.2.isLt]
     rfl
@@ -4769,9 +4765,9 @@ theorem pepsEdgeIdx_edgeR (a b d D : ℕ) [NeZero D]
       omega
     have hm : (p.2 : ℕ) < b := p.2.isLt
     have heq : (5 * a * b + 2 * (p.2 : ℕ) - 5 * a * b) / 2 = (p.2 : ℕ) := by omega
-    simp only [pepsEdgeIdx, dif_neg hreg]
+    simp only [pepsEdgeIdx, dite_eq_right hreg]
     simp only [hval, heq]
-    rw [dif_pos hm]
+    rw [dite_eq_left hm]
     have h2 : a - 1 = (p.1 : ℕ) := by have := p.1.isLt; omega
     simp only [h2]
 
@@ -4793,7 +4789,7 @@ theorem pepsEdgeIdx_edgeD (a b d D : ℕ) [NeZero D]
       pepsLeg_div ((p.1 : ℕ) * b + (p.2 : ℕ)) 3 (by omega)
     have hmod : (5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 3) % 5 = 3 :=
       pepsLeg_mod ((p.1 : ℕ) * b + (p.2 : ℕ)) 3 (by omega)
-    simp only [pepsEdgeIdx, dif_pos hreg]
+    simp only [pepsEdgeIdx, dite_eq_left hreg]
     simp only [hval, hdiv, hmod, peps_ib_div (p.1 : ℕ) (p.2 : ℕ) b hpos.2 p.2.isLt,
       peps_ib_mod (p.1 : ℕ) (p.2 : ℕ) b hpos.2 p.2.isLt]
     rfl
@@ -4804,9 +4800,9 @@ theorem pepsEdgeIdx_edgeD (a b d D : ℕ) [NeZero D]
     have hm : ¬(b + (p.1 : ℕ) < b) := by have := p.1.isLt; omega
     have heq : (5 * a * b + 2 * (b + (p.1 : ℕ)) - 5 * a * b) / 2 = b + (p.1 : ℕ) := by omega
     have hbb : b + (p.1 : ℕ) - b = (p.1 : ℕ) := by omega
-    simp only [pepsEdgeIdx, dif_neg hreg]
+    simp only [pepsEdgeIdx, dite_eq_right hreg]
     simp only [hval, heq]
-    rw [dif_neg hm]
+    rw [dite_eq_right hm]
     simp only [hbb]
     have h2 : b - 1 = (p.2 : ℕ) := by have := p.2.isLt; omega
     simp only [h2]
@@ -4866,7 +4862,7 @@ theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
     have hmod : (5 * m + 2) % 5 = 2 := pepsLeg_mod m 2 (by omega)
     have hidx : pepsEdgeIdx a b d D T i
         = (⟨⟨m / b, peps_mb_div a b m hmlt⟩, ⟨m % b, Nat.mod_lt _ hpos.2⟩⟩, true) := by
-      simp only [pepsEdgeIdx, dif_pos hreg]
+      simp only [pepsEdgeIdx, dite_eq_left hreg]
       simp only [hjm, hdiv, hmod]
       rfl
     simp only [hidx]
@@ -4886,7 +4882,7 @@ theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
     have hmod : (5 * m + 3) % 5 = 3 := pepsLeg_mod m 3 (by omega)
     have hidx : pepsEdgeIdx a b d D T i
         = (⟨⟨m / b, peps_mb_div a b m hmlt⟩, ⟨m % b, Nat.mod_lt _ hpos.2⟩⟩, false) := by
-      simp only [pepsEdgeIdx, dif_pos hreg]
+      simp only [pepsEdgeIdx, dite_eq_left hreg]
       simp only [hjm, hdiv, hmod]
       rfl
     simp only [hidx]
@@ -4907,9 +4903,9 @@ theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
     by_cases hm : m < b
     · have hidx : pepsEdgeIdx a b d D T i
           = (⟨⟨a - 1, by omega⟩, ⟨m, hm⟩⟩, true) := by
-        simp only [pepsEdgeIdx, dif_neg hreg]
+        simp only [pepsEdgeIdx, dite_eq_right hreg]
         simp only [hjm, heq]
-        rw [dif_pos hm]
+        rw [dite_eq_left hm]
       simp only [hidx]
       have hp : ¬((a - 1 : ℕ) + 1 < a) := by omega
       have hval : ((pepsEdgeR a b d D T ⟨⟨a - 1, by omega⟩, ⟨m, hm⟩⟩).val : ℕ)
@@ -4921,9 +4917,9 @@ theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
       rw [hval, hjm]
     · have hidx : pepsEdgeIdx a b d D T i
           = (⟨⟨m - b, by omega⟩, ⟨b - 1, by omega⟩⟩, false) := by
-        simp only [pepsEdgeIdx, dif_neg hreg]
+        simp only [pepsEdgeIdx, dite_eq_right hreg]
         simp only [hjm, heq]
-        rw [dif_neg hm]
+        rw [dite_eq_right hm]
       simp only [hidx]
       have hp : ¬((b - 1 : ℕ) + 1 < b) := by have := hpos.2; omega
       have hval : ((pepsEdgeD a b d D T ⟨⟨m - b, by omega⟩, ⟨b - 1, by omega⟩⟩).val : ℕ)
@@ -4959,14 +4955,14 @@ noncomputable def pepsEdgeEquiv (a b d D : ℕ) [NeZero D]
     simp only []
     have hidx := pepsEdge_of_idx a b d D T i
     by_cases h : (pepsEdgeIdx a b d D T i).2 = true
-    · rw [dif_pos h]
+    · rw [dite_eq_left h]
       have h2 : pepsEdgeR a b d D T (pepsEdgeIdx a b d D T i).1 = i :=
-        (if_pos h).symm.trans hidx
+        (ite_eq_left h).symm.trans hidx
       rw [h2]
       exact Fin.ext (by rfl)
-    · rw [dif_neg h]
+    · rw [dite_eq_right h]
       have h2 : pepsEdgeD a b d D T (pepsEdgeIdx a b d D T i).1 = i :=
-        (if_neg h).symm.trans hidx
+        (ite_eq_right h).symm.trans hidx
       rw [h2]
       exact Fin.ext (by rfl)
   right_inv := by
@@ -4974,7 +4970,7 @@ noncomputable def pepsEdgeEquiv (a b d D : ℕ) [NeZero D]
     funext p
     simp only []
     rw [pepsEdgeIdx_edgeR a b d D T p, pepsEdgeIdx_edgeD a b d D T p]
-    simp only [dif_neg (by simp : ¬((false : Bool) = true))]
+    simp only [dite_eq_right (by simp : ¬((false : Bool) = true))]
     refine Prod.ext ?_ ?_
     · exact Fin.ext (by rfl)
     · exact Fin.ext (by rfl)
@@ -5107,7 +5103,7 @@ theorem pepsPort_phys (a b d D : ℕ) [NeZero D]
       = (x (pepsP a b v).1 (pepsP a b v).2).cast
           (pepsDim_phys a b d D (pepsLeg_lt a b (v : ℕ) 0 v.isLt (by omega))
             (pepsLeg_mod (v : ℕ) 0 (by omega))).symm := by
-    simp only [pepsEnc, dif_pos hcond]
+    simp only [pepsEnc, dite_eq_left hcond]
     show (x ((finProdFinEquiv (m := a) (n := b)).symm ⟨(5 * (v : ℕ)) / 5, _⟩).1
         ((finProdFinEquiv (m := a) (n := b)).symm ⟨(5 * (v : ℕ)) / 5, _⟩).2).cast _
       = (x (pepsP a b v).1 (pepsP a b v).2).cast _
@@ -5130,8 +5126,8 @@ theorem pepsPort_right (a b d D : ℕ) [NeZero D]
       = (if ((pepsP a b v).1 : ℕ) + 1 = a then 0
         else ((pepsEdgeEquiv a b d D T e) (pepsP a b v)).1) := by
   by_cases h : ((pepsP a b v).1 : ℕ) + 1 = a
-  · simp only [if_pos h]
-  · simp only [if_neg h]
+  · simp only [ite_eq_left h]
+  · simp only [ite_eq_right h]
     have ha : 0 < a := (peps_pos_of_v a b v).1
     have hb : 0 < b := (peps_pos_of_v a b v).2
     have hkb : (v : ℕ) + b < a * b := by
@@ -5195,8 +5191,8 @@ theorem pepsPort_left (a b d D : ℕ) [NeZero D]
           (⟨((pepsP a b v).1 : ℕ) - 1, by have := (pepsP a b v).1.isLt; omega⟩,
             (pepsP a b v).2)).1) := by
   by_cases h : ((pepsP a b v).1 : ℕ) = 0
-  · simp only [dif_pos h]
-  · simp only [dif_neg h]
+  · simp only [dite_eq_left h]
+  · simp only [dite_eq_right h]
     have ha : 0 < a := (peps_pos_of_v a b v).1
     have hb : 0 < b := (peps_pos_of_v a b v).2
     have hkb : b ≤ (v : ℕ) := by
@@ -5285,8 +5281,8 @@ theorem pepsPort_down (a b d D : ℕ) [NeZero D]
       = (if ((pepsP a b v).2 : ℕ) + 1 = b then 0
         else ((pepsEdgeEquiv a b d D T e) (pepsP a b v)).2) := by
   by_cases h : ((pepsP a b v).2 : ℕ) + 1 = b
-  · simp only [if_pos h]
-  · simp only [if_neg h]
+  · simp only [ite_eq_left h]
+  · simp only [ite_eq_right h]
     have ha : 0 < a := (peps_pos_of_v a b v).1
     have hb : 0 < b := (peps_pos_of_v a b v).2
     have hkb : (v : ℕ) % b + 1 < b := by
@@ -5355,8 +5351,8 @@ theorem pepsPort_up (a b d D : ℕ) [NeZero D]
         else ((pepsEdgeEquiv a b d D T e)
           ((pepsP a b v).1, ⟨((pepsP a b v).2 : ℕ) - 1, by have := (pepsP a b v).2.isLt; omega⟩)).2) := by
   by_cases h : ((pepsP a b v).2 : ℕ) = 0
-  · simp only [dif_pos h]
-  · simp only [dif_neg h]
+  · simp only [dite_eq_left h]
+  · simp only [dite_eq_right h]
     have ha : 0 < a := (peps_pos_of_v a b v).1
     have hb : 0 < b := (peps_pos_of_v a b v).2
     have hpartner : pepsPartner a b
@@ -5519,7 +5515,7 @@ theorem clause1_clause5 :
         netBondDimension N ≤ D ∧ ∀ x : Fin a → Fin b → Fin d,
           netContract N (enc x) = @pepsAmplitude a b d D hD T x := by
   intro a b d D hD T
-  haveI := hD
+  have := hD
   refine ⟨pepsNet a b d D T, pepsEnc a b d D T, ?_, ?_⟩
   · exact netBondDimension_pepsNet_le a b d D T
   · intro x
@@ -5999,7 +5995,7 @@ theorem g10g_snoc_init_last {c d : ℕ} (u : Fin (c + 1) → Fin d) :
       omega
     have hk2 : g10g_snoc (g10g_init u) (g10g_last u) k = g10g_last u := by
       unfold g10g_snoc
-      rw [dif_neg hk]
+      rw [dite_eq_right hk]
     rw [hk2]
     have heq : (⟨c, by omega⟩ : Fin (c + 1)) = k := by
       ext
@@ -6075,7 +6071,7 @@ theorem g10g_cons_head_tail {n c d : ℕ} (hc : c + 1 ≤ n) (v : Fin (n - c) �
     have hde : g10g_cons hc (g10g_head hc v) (g10g_tail hc v) k
         = g10g_tail hc v (⟨(k : ℕ) - 1, by have hk' := k.isLt; omega⟩ : Fin (n - (c + 1))) := by
       unfold g10g_cons
-      rw [dif_neg hk]
+      rw [dite_eq_right hk]
     rw [hde, g10g_tail]
     have heq : (⟨((k : ℕ) - 1) + 1, by have hk' := k.isLt; omega⟩ : Fin (n - c)) = k := by
       ext
@@ -6120,12 +6116,12 @@ theorem g10g_splitJoin_snoc_cons {n c d : ℕ} (hc : c + 1 ≤ n)
   · by_cases h2 : (k : ℕ) < c + 1
     · have hk : (k : ℕ) = c := by omega
       have hk2 : ¬((k : ℕ) < c) := h1
-      rw [splitJoin, splitJoin, dif_neg hk2, dif_pos h2]
+      rw [splitJoin, splitJoin, dite_eq_right hk2, dite_eq_left h2]
       simp [g10g_cons, hk, g10g_last]
     · have hk2 : ¬((k : ℕ) < c) := h1
-      rw [splitJoin, splitJoin, dif_neg hk2, dif_neg h2]
+      rw [splitJoin, splitJoin, dite_eq_right hk2, dite_eq_right h2]
       simp only [g10g_cons]
-      rw [dif_neg (by have hk' := k.isLt; omega : ¬((k : ℕ) - c = 0))]
+      rw [dite_eq_right (by have hk' := k.isLt; omega : ¬((k : ℕ) - c = 0))]
       congr 1
 
 end NestedRank
@@ -6164,7 +6160,7 @@ theorem g10g_leftFactor_eq_zero_of_ne {c d : ℕ} (y : Fin d) (i' : Fin (d ^ (c 
     (w : Fin (d ^ c)) (hw : w ≠ finPowEnc d c (g10g_init ((finPowEnc d (c + 1)).symm i'))) :
     g10g_leftFactor y i' w = 0 := by
   simp only [g10g_leftFactor, Matrix.of_apply]
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hcongr
   have key : w = finPowEnc d c (g10g_init ((finPowEnc d (c + 1)).symm i')) := by
     have := (g10g_snoc_eq_iff (u' := (finPowEnc d (c + 1)).symm i')).mp (hcongr.symm)
@@ -6187,7 +6183,7 @@ theorem g10g_rightFactor_eq_zero_of_ne {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin
     (hv : v ≠ finPowEnc d (n - c) (g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j'))) :
     g10g_rightFactor hc y v j' = 0 := by
   simp only [g10g_rightFactor, Matrix.of_apply]
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hcongr
   have key : v = finPowEnc d (n - c) (g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j')) := by
     rw [← hcongr]
@@ -6278,7 +6274,7 @@ theorem g10g_cutMatrix_succ_eq_sum_factor {n d : ℕ} (ψ : (Fin n → Fin d) �
       simp [cutMatrix, Equiv.symm_apply_apply]
     rw [hM]
   · intro b _ hne
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
   · intro hnot
     exact absurd (Finset.mem_univ _) hnot
 
@@ -6342,7 +6338,6 @@ end NestedRankBound
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 open Matrix Complex
 open scoped BigOperators Nat ComplexConjugate
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -6364,7 +6359,7 @@ def g10a_splitJoinEquiv (n c d : ℕ) (hc : c ≤ n) :
       show (splitJoin n c d u v)
           ⟨(k : ℕ), lt_of_lt_of_le k.isLt hc⟩ = _
       unfold splitJoin
-      simp only [Fin.is_lt, ↓reduceIte]
+      simp only [Fin.is_lt]
       exact congrArg u (Fin.ext rfl)
     · funext k
       show (splitJoin n c d u v) ⟨c + (k : ℕ), by have hk := k.isLt; omega⟩ = _
@@ -6378,7 +6373,7 @@ def g10a_splitJoinEquiv (n c d : ℕ) (hc : c ≤ n) :
     funext k
     unfold splitJoin
     by_cases hk : (k : ℕ) < c
-    · simp only [hk, ↓reduceIte]
+    · simp only [hk]
       exact congrArg x (Fin.ext rfl)
     · simp only [hk, ↓reduceDIte]
       exact congrArg x (Fin.ext (Nat.add_sub_of_le (le_of_not_gt hk)))
@@ -6731,7 +6726,7 @@ theorem clause14Aux_pepsFold_fst :
       (if h : (0:ℕ) < 1 then
         pepsColKernel (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7 ⟨0, h⟩ σ ρ χ else 0) = 1 := by
     intro σ ρ
-    rw [dif_pos (by decide)]
+    rw [dite_eq_left (by decide)]
     exact clause14Aux_peps_kernel σ ρ χ
   simp only [hk, mul_one]
   simp only [clause14Aux_sum_const2, smul_ite, nsmul_one, nsmul_zero]
@@ -6904,13 +6899,13 @@ theorem clause14Aux_obs_eq : obsTensors (n := 2) (d := 1) (D := 2) g14rA4 (0 : F
   funext i x
   by_cases h : i = (0 : Fin 2)
   · subst h
-    simp only [obsTensors, if_pos, Fin.sum_univ_one]
+    simp only [obsTensors, ite_eq_left, Fin.sum_univ_one]
     have h0 : g14rA4 (0 : Fin 2) (0 : Fin 1) = g14rE11 := g14rA4_at_zero _ (by decide) _
     have hx : g14rA4 (0 : Fin 2) x = g14rE11 := g14rA4_at_zero _ (by decide) _
     have hO : g14rO x 0 = 1 := by simp [g14rO, Matrix.of_apply]
     rw [hO, h0, hx]
     exact one_smul ℂ g14rE11
-  · simp only [obsTensors, if_neg h]
+  · simp only [obsTensors, ite_eq_right h]
 
 /-- The sum of squared amplitude magnitudes for `g14rA4` is zero. -/
 theorem clause14Aux_amp_pair_sum :
@@ -6961,8 +6956,6 @@ theorem clause3_clause5_counter : ¬ (
   rw [clause14Aux_obs_eq, clause14Aux_mpsInnerEval_eq, clause14Aux_obs_sum] at h
   exact absurd h (by norm_num)
 
-set_option linter.unusedSimpArgs false
-
 /-- The cumulative sum of the natural-number counts strictly before time `t`. -/
 def clause14Aux_cum (cnt : ℕ → ℕ) : ℕ → ℕ := fun t => (Finset.range t).sum cnt
 
@@ -6992,7 +6985,6 @@ theorem clause14Aux_cum_mono {cnt : ℕ → ℕ} {a b : ℕ} (h : a ≤ b) :
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 open Matrix Complex
 open scoped BigOperators Nat ComplexConjugate
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -7049,7 +7041,7 @@ theorem g10a_splitJoin_two (d : ℕ) (i j : Fin (d ^ 1)) :
   unfold splitJoin g10a_twoCfg
   by_cases hk : (k : ℕ) = 0
   · have hk1 : (k : ℕ) < 1 := by omega
-    simp [hk, hk1]
+    simp [hk]
   · have hk1 : ¬((k : ℕ) < 1) := by omega
     have hk2 : (k : ℕ) - 1 = 0 := by have := k.isLt; omega
     simp [hk, hk1, hk2]
@@ -7061,10 +7053,10 @@ theorem g10a_twoCfg_self (d : ℕ) (x : Fin 2 → Fin d) :
   funext k
   unfold g10a_twoCfg
   by_cases hk : (k : ℕ) = 0
-  · rw [if_pos hk, Equiv.symm_apply_apply]
+  · rw [ite_eq_left hk, Equiv.symm_apply_apply]
     exact congrArg x (Fin.ext hk).symm
   · have hk1 : k = 1 := Fin.ext (by have := k.isLt; omega)
-    rw [if_neg hk, Equiv.symm_apply_apply]
+    rw [ite_eq_right hk, Equiv.symm_apply_apply]
     rw [hk1]
 
 /-- At site zero, `g10a_twoCfg d i j` equals the unique entry decoded from `i`. -/
@@ -7236,7 +7228,7 @@ theorem g10a_twoTensor_zero {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
         else 0 := by
   unfold g10a_twoTensor
   simp only [Matrix.of_apply]
-  rw [if_pos (show ((0 : Fin 2) : ℕ) = 0 from rfl)]
+  rw [ite_eq_left (show ((0 : Fin 2) : ℕ) = 0 from rfl)]
 
 /-- The second tensor of `g10a_twoTensor` contains singular-value-weighted conjugate right
 singular-vector entries in column zero and vanishes in all other columns. -/
@@ -7250,7 +7242,7 @@ theorem g10a_twoTensor_one {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
         else 0 := by
   unfold g10a_twoTensor
   simp only [Matrix.of_apply]
-  rw [if_neg (show ¬((1 : Fin 2) : ℕ) = 0 from by decide)]
+  rw [ite_eq_right (show ¬((1 : Fin 2) : ℕ) = 0 from by decide)]
 
 /-- For positive bond dimension, the amplitude of `g10a_twoTensor` equals the corresponding
 entry of the truncated central cut matrix. -/
@@ -7269,7 +7261,7 @@ theorem g10a_twoTensor_amplitude {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) 
               star (rightSingularBasis (cutMatrix 2 d ψ 1)
                 ⟨(β : ℕ), lt_of_lt_of_le β.isLt hD⟩ (finPowEnc d 1 (fun _ => x 1)))) := by
     intro β
-    rw [g10a_twoTensor_zero, g10a_twoTensor_one, if_pos hz, if_pos hz]
+    rw [g10a_twoTensor_zero, g10a_twoTensor_one, ite_eq_left hz, ite_eq_left hz]
     ring
   rw [Finset.sum_congr rfl (fun β _ => hterm β)]
   exact (g10a_svdTrunc_two ψ D hD _ _).symm
@@ -7345,12 +7337,12 @@ theorem g10a_twoTensor_leftCanonical {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin
     have hz : (((0 : Fin D) : ℕ) = 0) := by simp
     rw [Finset.sum_eq_single (0 : Fin D)]
     · rw [Matrix.conjTranspose_apply, g10a_twoTensor_zero, g10a_twoTensor_zero,
-        if_pos hz, if_pos hz]
+        ite_eq_left hz, ite_eq_left hz]
     · intro a _ha hne
       rw [Matrix.conjTranspose_apply, g10a_twoTensor_zero, g10a_twoTensor_zero]
       by_cases ha : (a : ℕ) = 0
       · exact absurd (Fin.ext ha) hne
-      · simp only [if_neg ha]
+      · simp only [ite_eq_right ha]
         ring
     · intro h0
       exact absurd (Finset.mem_univ _) h0
@@ -7415,8 +7407,8 @@ theorem g10a_svdTrunc_self {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
             (star (rightSingularBasis (cutMatrix 2 d ψ 1) i)) := by
     intro i
     by_cases hi : (i : ℕ) < r
-    · rw [if_pos hi]
-    · rw [if_neg hi]
+    · rw [ite_eq_left hi]
+    · rw [ite_eq_right hi]
       have hσ : matrixSingularValues (cutMatrix 2 d ψ 1) i = 0 := by
         by_contra hne
         have hpos : 0 < matrixSingularValues (cutMatrix 2 d ψ 1) i :=
@@ -7440,7 +7432,7 @@ theorem g10a_two_exact_core {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
   have hcard : r ≤ Fintype.card (Fin (d ^ (2 - 1))) := by
     rw [hr, Fintype.card_fin]
     exact Matrix.rank_le_width (cutMatrix 2 d ψ 1)
-  haveI : NeZero r := ⟨by omega⟩
+  have : NeZero r := ⟨by omega⟩
   refine ⟨inferInstance, g10a_twoTensor d r ψ hcard, ?_, ?_⟩
   · intro x
     rw [g10a_twoTensor_amplitude ψ hcard x, g10a_svdTrunc_self ψ hr,
@@ -7680,11 +7672,11 @@ theorem clause3_clause6 : ∀ (n d D : ℕ) (hD : NeZero D)
   set N : ℕ := Fintype.card (Fin n → Fin d)
   have hNcard : Fintype.card (Fin n → Fin d) = N := rfl
   rcases Nat.eq_zero_or_pos N with hN0 | hNpos
-  · haveI : IsEmpty (Fin n → Fin d) := Fintype.card_eq_zero_iff.1 (by rw [hNcard]; exact hN0)
+  · have : IsEmpty (Fin n → Fin d) := Fintype.card_eq_zero_iff.1 (by rw [hNcard]; exact hN0)
     have h0 : (∑ x : Fin n → Fin d, Complex.normSq (mpsAmplitude A x)) = 0 := by simp
     rw [h0] at hnorm
     exact absurd hnorm (by norm_num)
-  haveI : NeZero N := ⟨hNpos.ne'⟩
+  have : NeZero N := ⟨hNpos.ne'⟩
   have hc_pos : 0 < Nat.ceil (1 / ε) := by
     rw [Nat.ceil_pos]
     exact div_pos one_pos hε
@@ -7892,10 +7884,10 @@ theorem clause3_clause6 : ∀ (n d D : ℕ) (hD : NeZero D)
     · subst h
       rw [cnt_zero]
       push_cast
-      simp only [if_true]
+      simp only [ite_true]
       ring
     · rw [cnt_succ j h]
-      simp only [if_neg h]
+      simp only [ite_eq_right h]
       ring
   have hsum : (∑ x : Fin n → Fin d,
       |uniformPushForward (fun t => e (blk (clause3Aux_bitsEnc k t))) x - mpsSampleLaw A x|)
@@ -8041,7 +8033,7 @@ entry at the encoded prefix. -/
 theorem g10gL_fin (c : ℕ) (k : Fin (Fintype.card (Fin (d ^ (n - c))))) (u : Fin c → Fin d) :
     g10gL ψ c k u = leftSingularVector (cutMatrix n d ψ c) k (finPowEnc d c u) := by
   unfold g10gL
-  rw [dif_pos k.isLt]
+  rw [dite_eq_left k.isLt]
 
 /-- For a singular index in the column range, `g10gS` is the singular value times the conjugate
 right singular-vector entry at the encoded suffix. -/
@@ -8050,7 +8042,7 @@ theorem g10gS_fin (c : ℕ) (k : Fin (Fintype.card (Fin (d ^ (n - c)))))
     g10gS ψ c k v = ((matrixSingularValues (cutMatrix n d ψ c) k : ℂ)) *
       star (rightSingularBasis (cutMatrix n d ψ c) k (finPowEnc d (n - c) v)) := by
   unfold g10gS
-  rw [dif_pos k.isLt]
+  rw [dite_eq_left k.isLt]
 
 /-- For valid adjacent cuts and singular indices, `g10gLink` equals its singular-value-scaled
 overlap formula without the range checks. -/
@@ -8066,7 +8058,7 @@ theorem g10gLink_fin (c : ℕ) (hc : c + 1 ≤ n)
                 (fun j' : Fin (d ^ (n - (c + 1))) =>
                   rightSingularBasis (cutMatrix n d ψ (c + 1)) k' j') q) := by
   unfold g10gLink
-  rw [dif_pos hc, dif_pos k'.isLt, dif_pos k.isLt]
+  rw [dite_eq_left hc, dite_eq_left k'.isLt, dite_eq_left k.isLt]
 
 /-- For a valid adjacent-cut pair, the link coefficient vanishes when its next-cut singular
 index is at least the next cut matrix's column dimension. -/
@@ -8074,7 +8066,7 @@ theorem g10gLink_eq_zero_of_k' (c : ℕ) (hc : c + 1 ≤ n) {k' : ℕ}
     (hk' : Fintype.card (Fin (d ^ (n - (c + 1)))) ≤ k') (k : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
   unfold g10gLink
-  rw [dif_pos hc, dif_neg (by omega)]
+  rw [dite_eq_left hc, dite_eq_right (by omega)]
 
 /-- For a valid adjacent-cut pair, the link coefficient vanishes when its current-cut singular
 index is at least the current cut matrix's column dimension. -/
@@ -8082,24 +8074,24 @@ theorem g10gLink_eq_zero_of_k (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) {k : ℕ}
     (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
   unfold g10gLink
-  rw [dif_pos hc]
+  rw [dite_eq_left hc]
   by_cases hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1))))
-  · rw [dif_pos hk', dif_neg (by omega)]
-  · rw [dif_neg hk']
+  · rw [dite_eq_left hk', dite_eq_right (by omega)]
+  · rw [dite_eq_right hk']
 
 /-- The extended left singular amplitude is zero at a singular index outside the cut matrix's
 column dimension. -/
 theorem g10gL_eq_zero_of_not_lt (c : ℕ) {k : ℕ} (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k)
     (u : Fin c → Fin d) : g10gL ψ c k u = 0 := by
   unfold g10gL
-  rw [dif_neg (by omega)]
+  rw [dite_eq_right (by omega)]
 
 /-- The extended weighted right singular amplitude is zero at a singular index outside the cut
 matrix's column dimension. -/
 theorem g10gS_eq_zero_of_not_lt (c : ℕ) {k : ℕ} (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k)
     (v : Fin (n - c) → Fin d) : g10gS ψ c k v = 0 := by
   unfold g10gS
-  rw [dif_neg (by omega)]
+  rw [dite_eq_right (by omega)]
 
 /-- An entry of a cut matrix is the state amplitude at the configuration obtained by decoding
 and joining its row and column indices. -/
@@ -8154,10 +8146,10 @@ theorem g10g_entry_transfer (c : ℕ) (hc : c + 1 ≤ n) (u : Fin c → Fin d) (
   rw [Finset.sum_eq_single y]
   · rw [g10g_factor_prod_apply hc ψ y (finPowEnc d (c + 1) (g10g_snoc u y)) j']
     simp only [hlast, hinit]
-    rw [if_true]
+    rw [ite_true]
   · intro y0 _ hy0
     rw [g10g_factor_prod_apply hc ψ y0 (finPowEnc d (c + 1) (g10g_snoc u y)) j']
-    simp only [hlast, hinit, if_neg hy0]
+    simp only [hlast, hinit, ite_eq_right hy0]
   · intro hy
     exact absurd (Finset.mem_univ _) hy
 
@@ -8195,7 +8187,7 @@ theorem g10gL_snoc_eq (c : ℕ) (_hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fi
                 rightSingularBasis (cutMatrix n d ψ (c + 1)) ⟨k', hk'⟩ j')
         else 0 := by
   by_cases hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1))))
-  · rw [g10gL_fin ψ (c + 1) ⟨k', hk'⟩, dif_pos hk']
+  · rw [g10gL_fin ψ (c + 1) ⟨k', hk'⟩, dite_eq_left hk']
     have hdef : leftSingularVector (cutMatrix n d ψ (c + 1)) ⟨k', hk'⟩
         = ((matrixSingularValues (cutMatrix n d ψ (c + 1)) k' : ℂ)⁻¹) •
           (cutMatrix n d ψ (c + 1)).toEuclideanLin
@@ -8218,7 +8210,7 @@ theorem g10gL_snoc_eq (c : ℕ) (_hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fi
             cutMatrix n d ψ (c + 1) (finPowEnc d (c + 1) (g10g_snoc u y)) j' *
               rightSingularBasis (cutMatrix n d ψ (c + 1)) ⟨k', hk'⟩ j' := rfl
     rw [hexp]
-  · rw [g10gL_eq_zero_of_not_lt ψ (c + 1) (by omega), dif_neg hk']
+  · rw [g10gL_eq_zero_of_not_lt ψ (c + 1) (by omega), dite_eq_right hk']
 
 /-- For adjacent valid cuts and an in-range next-cut singular index, the extended-prefix left
 singular amplitude is expressed using the previous cut matrix, suffix insertion, and the
@@ -8231,7 +8223,7 @@ theorem g10g_expand_common (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c �
           cutMatrix n d ψ c (finPowEnc d c u)
             (finPowEnc d (n - c) (g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j'))) *
             rightSingularBasis (cutMatrix n d ψ (c + 1)) ⟨k', hk'⟩ j') := by
-  rw [g10gL_snoc_eq ψ c hc k' u y, dif_pos hk']
+  rw [g10gL_snoc_eq ψ c hc k' u y, dite_eq_left hk']
   congr 1
   exact Finset.sum_congr rfl (fun j' _ => by rw [g10g_entry_transfer ψ c hc u y j'])
 
@@ -8301,7 +8293,7 @@ theorem g10g_filter_sum (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
             · simp [he]
           simp only [g10g_rightFactor_entry]
           rw [Finset.sum_congr rfl (fun q _ => hq q), Finset.sum_ite_eq']
-          simp only [Finset.mem_univ, if_true])
+          simp only [Finset.mem_univ, ite_true])
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
@@ -8397,7 +8389,7 @@ theorem g10g_expand_link (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → 
               congr 1
 )
     rw [hR]
-  · rw [g10gL_snoc_eq ψ c hc k' u y, dif_neg hk']
+  · rw [g10gL_snoc_eq ψ c hc k' u y, dite_eq_right hk']
     symm
     apply Finset.sum_eq_zero
     intro k _
@@ -8420,24 +8412,24 @@ theorem g10gL_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     (u : Fin c → Fin d) : g10gL ψ c k u = 0 := by
   unfold g10gL
   by_cases hlt : k < Fintype.card (Fin (d ^ (n - c)))
-  · rw [dif_pos hlt]
+  · rw [dite_eq_left hlt]
     have hz : leftSingularVector (cutMatrix n d ψ c) ⟨k, hlt⟩ = 0 :=
       leftSingularVector_eq_zero (cutMatrix n d ψ c) ⟨k, hlt⟩
         (show matrixSingularValues (cutMatrix n d ψ c) k = 0 from
           g10g_singular_eq_zero_of_cutRank_le ψ hk)
     rw [hz]
     simp
-  · rw [dif_neg hlt]
+  · rw [dite_eq_right hlt]
 
 /-- The weighted right singular amplitude vanishes at every index at least the cut rank. -/
 theorem g10gS_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     (v : Fin (n - c) → Fin d) : g10gS ψ c k v = 0 := by
   unfold g10gS
   by_cases hlt : k < Fintype.card (Fin (d ^ (n - c)))
-  · rw [dif_pos hlt]
+  · rw [dite_eq_left hlt]
     rw [g10g_singular_eq_zero_of_cutRank_le ψ hk]
     simp
-  · rw [dif_neg hlt]
+  · rw [dite_eq_right hlt]
 
 /-- For adjacent valid cuts, a link coefficient vanishes when its current-cut singular index is
 at least the current cut rank. -/
@@ -8445,15 +8437,15 @@ theorem g10gLink_eq_zero_of_cutRank_le_left {c k : ℕ} (hc : c + 1 ≤ n)
     (hk : cutRank n d ψ c ≤ k) (k' : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
   unfold g10gLink
-  rw [dif_pos hc]
+  rw [dite_eq_left hc]
   by_cases hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1))))
-  · rw [dif_pos hk']
+  · rw [dite_eq_left hk']
     by_cases hk2 : k < Fintype.card (Fin (d ^ (n - c)))
-    · rw [dif_pos hk2]
+    · rw [dite_eq_left hk2]
       rw [g10g_singular_eq_zero_of_cutRank_le ψ hk]
       simp
-    · rw [dif_neg hk2]
-  · rw [dif_neg hk']
+    · rw [dite_eq_right hk2]
+  · rw [dite_eq_right hk']
 
 /-- For adjacent valid cuts, a link coefficient vanishes when its next-cut singular index is at
 least the next cut rank. -/
@@ -8461,20 +8453,20 @@ theorem g10gLink_eq_zero_of_cutRank_le_right {c k' : ℕ} (hc : c + 1 ≤ n)
     (hk' : cutRank n d ψ (c + 1) ≤ k') (k : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
   unfold g10gLink
-  rw [dif_pos hc]
+  rw [dite_eq_left hc]
   by_cases hk'2 : k' < Fintype.card (Fin (d ^ (n - (c + 1))))
-  · rw [dif_pos hk'2]
+  · rw [dite_eq_left hk'2]
     have hσ : matrixSingularValues (cutMatrix n d ψ (c + 1)) k' = 0 :=
       g10g_singular_eq_zero_of_cutRank_le ψ hk'
     have hinv : ((matrixSingularValues (cutMatrix n d ψ (c + 1)) k' : ℂ))⁻¹ = 0 := by
       rw [hσ]
       simp
     by_cases hk2 : k < Fintype.card (Fin (d ^ (n - c)))
-    · rw [dif_pos hk2]
+    · rw [dite_eq_left hk2]
       rw [hinv]
       simp
-    · rw [dif_neg hk2]
-  · rw [dif_neg hk'2]
+    · rw [dite_eq_right hk2]
+  · rw [dite_eq_right hk'2]
 
 /-- Left singular amplitudes with indices below the cut rank are orthonormal under summation
 over prefix configurations. -/
@@ -8539,8 +8531,8 @@ theorem g10gL_gram (c : ℕ) (k j : Fin (Fintype.card (Fin (d ^ (n - c))))) :
     · rw [g10gL_inner_eq_ite ψ c k j hk hj]
       by_cases heq : k = j
       · subst heq
-        rw [if_pos rfl, if_pos ⟨rfl, hk⟩]
-      · rw [if_neg heq, if_neg (fun h => heq h.1)]
+        rw [ite_eq_left rfl, ite_eq_left ⟨rfl, hk⟩]
+      · rw [ite_eq_right heq, ite_eq_right (fun h => heq h.1)]
     · have hz : g10gL ψ c j = fun _ => 0 := by
         funext u
         exact g10gL_eq_zero_of_cutRank_le ψ (by omega) u
@@ -8558,8 +8550,8 @@ theorem g10gL_gram (c : ℕ) (k j : Fin (Fintype.card (Fin (d ^ (n - c))))) :
     rw [hsum0]
     by_cases heq : k = j
     · subst heq
-      rw [if_neg (fun h => hk h.2)]
-    · rw [if_neg (fun h => heq h.1)]
+      rw [ite_eq_right (fun h => hk h.2)]
+    · rw [ite_eq_right (fun h => heq h.1)]
 
 /-- For adjacent valid cuts, link coefficients for next-cut indices below the next cut rank are
 orthonormal after summing over the current singular index and physical value. -/
@@ -8662,19 +8654,19 @@ theorem g10g_link_gram (c : ℕ) (hc : c + 1 ≤ n)
         · have hUk : (∑ u : Fin c → Fin d, star (g10gL ψ c k u) * g10gL ψ c k u) = (1 : ℂ) := by
             rw [g10gL_gram]
             simp [hk]
-          rw [hUk, if_pos rfl, one_mul]
+          rw [hUk, ite_eq_left rfl, one_mul]
         · have hY : (∑ y : Fin d, star (g10gLink ψ c k' k y) * g10gLink ψ c k'' k y) = 0 := by
             apply Finset.sum_eq_zero
             intro y _hy
             rw [g10gLink_eq_zero_of_cutRank_le_left ψ hc (by omega : cutRank n d ψ c ≤ k) k' y]
             simp
-          rw [hY, mul_zero, if_pos rfl]
+          rw [hY, mul_zero, ite_eq_left rfl]
       · have hgram := g10gL_gram ψ c k j
         have hne : ¬(k = j ∧ (k : ℕ) < cutRank n d ψ c) := by
           intro h
           exact heq h.1
-        rw [if_neg hne] at hgram
-        rw [hgram, zero_mul, if_neg heq]
+        rw [ite_eq_right hne] at hgram
+        rw [hgram, zero_mul, ite_eq_right heq]
     rw [show (∑ k : Fin (Fintype.card (Fin (d ^ (n - c)))),
           ∑ j : Fin (Fintype.card (Fin (d ^ (n - c)))),
             (∑ u : Fin c → Fin d, star (g10gL ψ c k u) * g10gL ψ c j u)
@@ -8720,11 +8712,11 @@ theorem g10g_prod_fin_succ {m : ℕ} {α : Type} [CommMonoid α] (g : Fin (m + 1
   have hf1 : ∀ i : Fin (m + 1), f i = g i := by
     intro i
     show (if h : (i : ℕ) < m + 1 then g ⟨(i : ℕ), h⟩ else 1) = g i
-    rw [dif_pos i.isLt]
+    rw [dite_eq_left i.isLt]
   have hf2 : ∀ (k : ℕ) (hk : k < m), f k = g ⟨k, by omega⟩ := by
     intro k hk
     show (if h : k < m + 1 then g ⟨k, h⟩ else 1) = g ⟨k, by omega⟩
-    rw [dif_pos (by omega : k < m + 1)]
+    rw [dite_eq_left (by omega : k < m + 1)]
   have hL : (∏ i : Fin (m + 1), g i) = ∏ k ∈ Finset.range (m + 1), f k := by
     rw [← Fin.prod_univ_eq_prod_range f (m + 1)]
     exact Finset.prod_congr rfl (fun i _ => (hf1 i).symm)
@@ -8759,7 +8751,7 @@ theorem g10g_site0Block_gram {D : ℕ} (hr : cutRank n d ψ 1 ≤ D) :
   obtain rfl | hDpos : D = 0 ∨ 0 < D := Nat.eq_zero_or_pos D
   · have hle : cutRank n d ψ 1 = 0 := by omega
     exact (Fin.elim0 (hle ▸ j₁))
-  · haveI : NeZero D := ⟨by omega⟩
+  · have : NeZero D := ⟨by omega⟩
     have hsum : (∑ p : Fin (D * d), star (g10g_site0Block ψ D p j₁) * g10g_site0Block ψ D p j₂)
         = ∑ a : Fin D, ∑ y : Fin d,
             star (g10g_site0Block ψ D (finProdFinEquiv (m := D) (n := d) (a, y)) j₁)
@@ -8801,7 +8793,7 @@ theorem g10g_site0Block_gram {D : ℕ} (hr : cutRank n d ψ 1 ≤ D) :
       rw [Finset.sum_eq_single (0 : Fin D)]
       · simp
       · intro a _ha ha
-        exact Finset.sum_eq_zero (fun y _ => if_neg (by exact_mod_cast ha))
+        exact Finset.sum_eq_zero (fun y _ => ite_eq_right (by exact_mod_cast ha))
       · intro h
         exact absurd (Finset.mem_univ _) h
     rw [hsum0]
@@ -9031,7 +9023,7 @@ theorem g10g_chainA_zero {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     g10g_chainA ψ D h2 hd hle ⟨0, by omega⟩ y a b
       = g10g_site0Ext ψ (hle 1 (by omega)) hd (finProdFinEquiv (m := D) (n := d) (a, y)) b := by
   rw [g10g_chainA_apply]
-  exact dif_pos rfl
+  exact dite_eq_left rfl
 
 /-- At the final site, the constructed chain contains the weighted right singular amplitude in
 column zero and vanishes in the other columns. -/
@@ -9045,7 +9037,7 @@ theorem g10g_chainA_last {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     rw [hval]
     omega
   have hn1 : (((⟨n - 1, by omega⟩ : Fin n) : ℕ) = n - 1) := rfl
-  rw [dif_neg h0, dif_pos hn1]
+  rw [dite_eq_right h0, dite_eq_left hn1]
 
 /-- At a site strictly between the first and final sites, the constructed chain equals the
 packed intermediate isometric extension. -/
@@ -9056,7 +9048,7 @@ theorem g10g_chainA_mid {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
       = g10g_siteIExt ψ i (by omega) (hle i (by omega)) (hle (i + 1) (by omega)) hd
           (finProdFinEquiv (m := D) (n := d) (a, y)) b := by
   rw [g10g_chainA_apply]
-  rw [dif_neg (by omega : ¬(i : ℕ) = 0), dif_neg (by omega : ¬(i : ℕ) = n - 1)]
+  rw [dite_eq_right (by omega : ¬(i : ℕ) = 0), dite_eq_right (by omega : ¬(i : ℕ) = n - 1)]
 
 /-- At site zero and incoming boundary index zero, a column below the first cut rank equals the
 corresponding left singular amplitude. -/
@@ -9152,7 +9144,7 @@ theorem g10g_contr_succ {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (F
   show (if h : m < n then
       ∑ j : Fin D, g10g_contr A x m j * A ⟨m, h⟩ (x ⟨m, h⟩) j k else 0)
     = ∑ j : Fin D, g10g_contr A x m j * A ⟨m, hm⟩ (x ⟨m, hm⟩) j k
-  rw [dif_pos hm]
+  rw [dite_eq_left hm]
 
 /-- The explicit sum over all bond assignments of a length-`m` prefix, constrained to start at
 zero and end at `k`, equals its sequential contraction at `k`. -/
@@ -9193,9 +9185,9 @@ theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
       rw [hprod _, one_mul]
       rfl
     rw [hsum, Finset.sum_eq_single k]
-    · rw [if_pos rfl, mul_one, g10g_contr_zero]
+    · rw [ite_eq_left rfl, mul_one, g10g_contr_zero]
     · intro y _ hy
-      rw [if_neg hy, mul_zero]
+      rw [ite_eq_right hy, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   | succ m ih =>
@@ -9316,7 +9308,7 @@ theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
         have h2 := (hval rest k).2.1
         have h3 := (hval rest k).2.2.1
         have h4 := (hval rest k).2.2.2
-        rw [h1, h2, h3, if_pos rfl, mul_one]
+        rw [h1, h2, h3, ite_eq_left rfl, mul_one]
         have hp : (∏ i : Fin m, A ⟨(i : ℕ), by omega⟩ (x ⟨(i : ℕ), by omega⟩)
               ((g10g_snoc rest k) ⟨(i : ℕ), by omega⟩)
               ((g10g_snoc rest k) ⟨(i : ℕ) + 1, by omega⟩))
@@ -9329,7 +9321,7 @@ theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
         ring
       · intro last _ hne
         have h1 := (hval rest last).1
-        rw [h1, if_neg hne, mul_zero]
+        rw [h1, ite_eq_right hne, mul_zero]
       · intro h
         exact absurd (Finset.mem_univ _) h
     rw [hcore]
@@ -9357,9 +9349,9 @@ theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
               * A ⟨m, by omega⟩ (x ⟨m, by omega⟩) j k := by
         intro rest
         rw [Finset.sum_eq_single (rest ⟨m, by omega⟩)]
-        · rw [if_pos rfl, mul_one]
+        · rw [ite_eq_left rfl, mul_one]
         · intro j _ hne
-          rw [if_neg (Ne.symm hne), mul_zero, zero_mul]
+          rw [ite_eq_right (Ne.symm hne), mul_zero, zero_mul]
         · intro h
           exact absurd (Finset.mem_univ _) h
       rw [show (∑ rest : Fin (m + 1) → Fin D,
@@ -9413,9 +9405,9 @@ theorem g10g_splitJoin_prefix_last {n d : ℕ} (x : Fin n → Fin d) (hm : 2 ≤
         else (fun _ : Fin (n - (n - 1)) => x ⟨n - 1, by omega⟩)
           ⟨(k : ℕ) - (n - 1), by omega⟩) = x ⟨(k : ℕ), _⟩
   by_cases hk : (k : ℕ) < n - 1
-  · rw [dif_pos hk]
+  · rw [dite_eq_left hk]
     rfl
-  · rw [dif_neg hk]
+  · rw [dite_eq_right hk]
     have hke : (k : ℕ) = n - 1 := by have hk' := k.isLt; omega
     exact congrArg x (Fin.ext hke.symm)
 
@@ -9434,11 +9426,11 @@ theorem g10g_contr_eq_mpsAmplitude {n d D : ℕ} [NeZero D]
     · have hb2 : ((β ⟨(n : ℕ), by omega⟩ : Fin D).val) = 0 := by
         rw [hb]
         exact Fin.val_zero D
-      rw [if_pos hb, if_pos hb2]
+      rw [ite_eq_left hb, ite_eq_left hb2]
     · have hb2 : ¬((β ⟨(n : ℕ), by omega⟩ : Fin D).val = 0) := by
         intro h
         exact hb (Fin.eq_of_val_eq (h.trans (Fin.val_zero D).symm))
-      rw [if_neg hb, if_neg hb2]
+      rw [ite_eq_right hb, ite_eq_right hb2]
   rw [← hN, ← hF]
   refine Finset.sum_congr rfl (fun β _ => ?_)
   rw [hdelta β]
@@ -9469,12 +9461,12 @@ theorem g10g_contr_eq_g10gL {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
           = g10g_chainA ψ D h2 hd hle ⟨0, by omega⟩ (x ⟨0, by omega⟩)
               ⟨0, by omega⟩ k := by
         rw [Finset.sum_eq_single (⟨0, by omega⟩ : Fin D)]
-        · rw [g10g_contr_zero, if_pos rfl, one_mul]
+        · rw [g10g_contr_zero, ite_eq_left rfl, one_mul]
         · intro j _ hj
           have hjv : ¬((j : ℕ) = 0) := by
             intro h
             exact hj (Fin.eq_of_val_eq h)
-          rw [g10g_contr_zero, if_neg hjv, zero_mul]
+          rw [g10g_contr_zero, ite_eq_right hjv, zero_mul]
         · intro h
           exact absurd (Finset.mem_univ _) h
       rw [hs]
@@ -9543,7 +9535,7 @@ theorem g10g_chainA_amplitude {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (hD : NeZero D)
     (x : Fin n → Fin d) :
     @mpsAmplitude n d D hD (g10g_chainA ψ D h2 hd hle) x = ψ x := by
-  haveI : NeZero D := hD
+  have : NeZero D := hD
   have hcontr := @g10g_contr_eq_mpsAmplitude n d D hD (g10g_chainA ψ D h2 hd hle) x
   rw [← hcontr]
   have hnn : n - 1 + 1 = n := by omega
@@ -9659,7 +9651,7 @@ theorem g10g_chainA_zero_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
       = Matrix.of fun a b => g10g_site0Ext ψ (hle 1 (by omega)) hd
           (finProdFinEquiv (m := D) (n := d) (a, y)) b := by
   funext a b
-  rw [g10g_chainA_apply, dif_pos hi]
+  rw [g10g_chainA_apply, dite_eq_left hi]
   rfl
 
 /-- At a site strictly between the boundaries, the constructed tensor is the matrix obtained by
@@ -9672,8 +9664,8 @@ theorem g10g_chainA_mid_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
           (hle (i + 1) (by omega)) hd (finProdFinEquiv (m := D) (n := d) (a, y)) b := by
   funext a b
   rw [g10g_chainA_apply]
-  rw [dif_neg (by omega : ¬(i : ℕ) = 0)]
-  rw [dif_neg (by omega : ¬(i : ℕ) = n - 1)]
+  rw [dite_eq_right (by omega : ¬(i : ℕ) = 0)]
+  rw [dite_eq_right (by omega : ¬(i : ℕ) = n - 1)]
   rfl
 
 /-- The MPS chain assembled from the extended singular-vector blocks is left canonical. -/
@@ -9717,7 +9709,7 @@ theorem g10g_sum_empty_cfg {n d : ℕ} (hn : 1 ≤ n) (hd : d = 0) (F : (Fin n �
 makes every MPS amplitude zero. -/
 theorem g10g_mpsAmplitude_zero {n d D : ℕ} (hD : NeZero D) (hn : 1 ≤ n) (x : Fin n → Fin d) :
     @mpsAmplitude n d D hD (fun _ _ => 0) x = 0 := by
-  haveI : NeZero D := hD
+  have : NeZero D := hD
   unfold mpsAmplitude
   refine Finset.sum_eq_zero (fun α _ => ?_)
   refine Finset.prod_eq_zero (Finset.mem_univ (⟨0, by omega⟩ : Fin n)) ?_
@@ -9925,12 +9917,12 @@ theorem g10t_inner_leftSingular {O I : Type} [Fintype O] [Fintype I] [DecidableE
   by_cases hkj : k = j
   · subst hkj
     by_cases hσ : matrixSingularValues A k = 0
-    · rw [if_pos hσ, if_neg (by simp [hσ] : ¬(k = k ∧ matrixSingularValues A k ≠ 0)),
-        if_pos rfl]
-    · rw [if_neg hσ, if_pos (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0),
-        if_pos rfl]
-  · rw [if_neg hkj]
-    rw [if_neg (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
+    · rw [ite_eq_left hσ, ite_eq_right (by simp [hσ] : ¬(k = k ∧ matrixSingularValues A k ≠ 0)),
+        ite_eq_left rfl]
+    · rw [ite_eq_right hσ, ite_eq_left (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0),
+        ite_eq_left rfl]
+  · rw [ite_eq_right hkj]
+    rw [ite_eq_right (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
 
 /-- The outer product matrix associated with a left singular vector is equal to its conjugate
 transpose. -/
@@ -9952,8 +9944,8 @@ theorem g10t_rk_mul_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
         ext p q
         rw [g10t_rk_apply, leftSingularVector_eq_zero A k hσ]
         simp
-      rw [hz, mul_zero, if_pos rfl]
-    · rw [if_pos rfl]
+      rw [hz, mul_zero, ite_eq_left rfl]
+    · rw [ite_eq_left rfl]
       ext p q
       rw [Matrix.mul_apply]
       have hterm : ∀ r : O,
@@ -9971,9 +9963,9 @@ theorem g10t_rk_mul_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
       have hgram : (∑ r : O, star (leftSingularVector A k r) * leftSingularVector A k r)
           = (1 : ℂ) := by
         rw [g10t_inner_leftSingular k k,
-          if_pos (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0)]
+          ite_eq_left (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0)]
       rw [hgram, mul_one, g10t_rk_apply]
-  · rw [if_neg hkj]
+  · rw [ite_eq_right hkj]
     ext p q
     rw [Matrix.mul_apply, Matrix.zero_apply]
     have hterm : ∀ r : O,
@@ -9991,7 +9983,7 @@ theorem g10t_rk_mul_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     have hgram : (∑ r : O, star (leftSingularVector A k r) * leftSingularVector A j r)
         = (0 : ℂ) := by
       rw [g10t_inner_leftSingular k j,
-        if_neg (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
+        ite_eq_right (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
     rw [hgram, mul_zero]
 
 /-- The sum of the left singular-vector outer products of the cut matrix whose singular indices
@@ -10093,13 +10085,13 @@ theorem g10t_inner_row {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
   rw [Finset.sum_eq_single k]
   · rw [g10t_inner_leftSingular k k]
     by_cases hσ : matrixSingularValues A k = 0
-    · rw [if_neg (by simp [hσ] : ¬(k = k ∧ matrixSingularValues A k ≠ 0))]
+    · rw [ite_eq_right (by simp [hσ] : ¬(k = k ∧ matrixSingularValues A k ≠ 0))]
       rw [hσ]
       simp
-    · rw [if_pos (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0), mul_one]
+    · rw [ite_eq_left (⟨rfl, hσ⟩ : k = k ∧ matrixSingularValues A k ≠ 0), mul_one]
   · intro i _hi hik
     rw [g10t_inner_leftSingular k i]
-    rw [if_neg (fun h => hik h.1.symm : ¬(k = i ∧ matrixSingularValues A k ≠ 0))]
+    rw [ite_eq_right (fun h => hik h.1.symm : ¬(k = i ∧ matrixSingularValues A k ≠ 0))]
     ring
   · intro hk
     exact absurd (Finset.mem_univ k) hk
@@ -10152,9 +10144,9 @@ theorem g10t_projMat_mul_cutMatrix {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) 
   simp only [g10g_svdTrunc]
   refine Finset.sum_congr rfl (fun k _ => ?_)
   by_cases hk : (k : ℕ) < D
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     exact g10t_rk_mul_matrix (cutMatrix n d ψ c) k
-  · rw [if_neg hk, if_neg hk, Matrix.zero_mul _]
+  · rw [ite_eq_right hk, ite_eq_right hk, Matrix.zero_mul _]
 
 /-- The operator on amplitude functions that left-multiplies their cut matrices by the
 projection onto the reference state's first `D` left singular components and then
@@ -10417,9 +10409,9 @@ theorem g10t_projMat_rank_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D :
         ≤ (if (k : ℕ) < D then (1 : ℕ) else 0) := by
     intro k
     by_cases hk : (k : ℕ) < D
-    · rw [if_pos hk, if_pos hk]
+    · rw [ite_eq_left hk, ite_eq_left hk]
       exact g10t_rk_rank_le _ _
-    · rw [if_neg hk, if_neg hk, Matrix.rank_zero]
+    · rw [ite_eq_right hk, ite_eq_right hk, Matrix.rank_zero]
   have hcount : (∑ k : Fin (Fintype.card (Fin (d ^ (n - c)))),
       (if (k : ℕ) < D then (1 : ℕ) else 0)) ≤ D := by
     rw [Finset.sum_boole]
@@ -10674,9 +10666,9 @@ theorem g10t_leftKron_entry {d j c : ℕ} (hjc : j ≤ c)
           * (if g10t_tailEnc hjc i = g10t_tailEnc hjc i then (1 : ℂ) else 0))
         * F' (g10t_joinEnc hjc u₁ (g10t_tailEnc hjc i)) :=
     Finset.sum_eq_single (g10t_tailEnc hjc i)
-      (fun u₂ _ hne => by rw [if_neg (fun h => hne h.symm), mul_zero, zero_mul])
+      (fun u₂ _ hne => by rw [ite_eq_right (fun h => hne h.symm), mul_zero, zero_mul])
       (fun ha => absurd (Finset.mem_univ (g10t_tailEnc hjc i)) ha)
-  rw [hδ, if_pos rfl, mul_one]
+  rw [hδ, ite_eq_left rfl, mul_one]
 
 /-- For `j < c` and `c` at most `n`, evaluating the cut-`j` projection on a configuration joined
 at `c` is the corresponding entry of the projected cut-`j` matrix after regrouping its

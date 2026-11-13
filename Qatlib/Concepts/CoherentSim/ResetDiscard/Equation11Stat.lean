@@ -26,7 +26,6 @@ scaled preparation matrix. It isolates the projected identity used in Eq. (11) o
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding

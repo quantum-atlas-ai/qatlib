@@ -30,9 +30,7 @@ finite sample groups. See [AnChildsLin2026] for the paper context.
 * [An et al., 2026][AnChildsLin2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 

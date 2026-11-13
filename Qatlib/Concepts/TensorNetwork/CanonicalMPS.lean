@@ -30,7 +30,6 @@ whose squared amplitude error is bounded by twice the sum of the squared Schmidt
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

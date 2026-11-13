@@ -32,9 +32,7 @@ development follows [SeyfriedSenTomamichel2026].
 * [Seyfried et al., 2026][SeyfriedSenTomamichel2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Foundations.PureStateMath.BornBridge

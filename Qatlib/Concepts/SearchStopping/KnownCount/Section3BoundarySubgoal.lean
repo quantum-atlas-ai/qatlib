@@ -28,7 +28,6 @@ For the mathematical background, see [Grover1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.BornMetrics.EventProbability

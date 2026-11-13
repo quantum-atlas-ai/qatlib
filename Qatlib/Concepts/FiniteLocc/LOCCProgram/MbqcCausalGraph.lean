@@ -41,7 +41,6 @@ for gate counts, messages, and operations before the first measurement; see
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

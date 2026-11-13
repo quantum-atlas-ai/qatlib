@@ -26,7 +26,6 @@ protocol associated with [BennettEtAl1993Teleportation].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Papers.QTeleport93.MainResults
 

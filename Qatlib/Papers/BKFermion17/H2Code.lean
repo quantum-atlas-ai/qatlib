@@ -26,7 +26,6 @@ and Hermitian, and shows that the vertex and edge matrices preserve that subspac
 * [Setia and Whitfield, 2018][SetiaWhitfield2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.BKFermion17.H2Code

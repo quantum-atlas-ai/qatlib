@@ -29,7 +29,6 @@ states a finite-copy version of the spectral readout underlying [LloydMohseniReb
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

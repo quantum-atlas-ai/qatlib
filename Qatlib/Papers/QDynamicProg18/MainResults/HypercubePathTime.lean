@@ -48,21 +48,16 @@ the middle layer.  The exponential part obeys the recurrence of Eq. (1) (p. 7),
 which with `γ = 2^c` becomes the system of Eq. (2) (p. 7); solving it numerically
 for `k = 6` gives `γ ≈ 20.861483 ≈ 1.816905`, hence the `1.817` base.
 
-Lean gap: the shared library exposes a costed execution ledger
-(`QuantumAlgorithm.Foundations.ResourceBounds.AsymBounds`) but not a QRAM cost
-model for recursive dynamic-programming algorithms, so the algorithm of
-Algorithm 1 is not constructed here.  The theorem is stated with the
-`isQuantum` obligation of `BoundedErrorQuantumAlgorithm` carried as data, and
-the proof would need (i) a construction of the algorithm object with its
-runtime function given by the `Reachable` recurrence, and (ii) the numerical
-inequality `γ ≤ 1.817` from the `k = 6` solution of Eq. (2).  Candidate
-dependencies: `Real.binEntropy` and `entropy_approximation`
-(`QuantumAlgorithmDev.Papers.QDynamicProg18.MainResults.EntropyApproximation`)
-for Eq. (2), `Real.rpow_le_iff_le_log` for the numerical comparison, and the
-resource ledger of `QuantumAlgorithm.Foundations.ResourceBounds.AsymBounds`.
-Suggested tactics: build the runtime function by well-founded recursion on the
-level index, bound it by the `k = 6` closed form, then `norm_num`/`nlinarith`
-on the resulting real inequality. -/
+Scope note: the theorem gives a bounded-error specification with the
+`isQuantum` field of `BoundedErrorQuantumAlgorithm` carried as data.
+Constructing Algorithm 1 in a QRAM cost model, identifying its runtime with
+the `Reachable` recurrence, and proving `γ ≤ 1.817` from the `k = 6` solution
+of Eq. (2) are outside the scope of this file.  The recurrence is over the
+level index and its `k = 6` closed form supplies the numerical bound.
+Related mathematical tools are `Real.binEntropy` and `entropy_approximation`
+(`Qatlib.Papers.QDynamicProg18.MainResults.EntropyApproximation`) for Eq. (2),
+and `Real.rpow_le_iff_le_log` for the numerical comparison.  The library's
+resource accounting model is `Qatlib.Concepts.ResourceBounds.AsymBounds`. -/
 theorem theorem4_hypercubePath (n : ℕ) :
     SolvesDecisionInTime (hypercubePathProblem n) (1.817 : ℝ) := by
   unfold SolvesDecisionInTime

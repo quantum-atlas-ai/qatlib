@@ -37,7 +37,6 @@ open scoped BigOperators
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-set_option warningAsError false
 
 namespace Qatlib.Papers.DistTesting09.MainResults.Defs
 

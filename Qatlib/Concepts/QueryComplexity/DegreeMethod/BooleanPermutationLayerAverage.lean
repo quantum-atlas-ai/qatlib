@@ -33,7 +33,6 @@ The module also supplies standard Boolean points of prescribed weight and relate
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 set_option autoImplicit false

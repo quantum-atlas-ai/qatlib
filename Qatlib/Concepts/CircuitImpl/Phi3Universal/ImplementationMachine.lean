@@ -28,7 +28,6 @@ reversible computation fit the quantum-machine framework of [BernsteinVazirani19
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Foundations.StandardDefs.WindowSim

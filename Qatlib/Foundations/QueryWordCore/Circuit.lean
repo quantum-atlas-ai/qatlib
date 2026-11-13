@@ -33,9 +33,7 @@ namespace Qatlib.Foundations.QueryWordCore.Circuit
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
-variable {I : Type*} [Fintype I] [DecidableEq I]
+variable {I : Type*} [instFintypeI : Fintype I] [instDecidableEqI : DecidableEq I]
 
 /-- A circuit instruction consisting of either an explicit complex matrix gate or an oracle
 query. -/
@@ -43,6 +41,9 @@ inductive Step (I : Type*) where
   | gate : Matrix I I ℂ → Step I
   | query : Step I
 
+-- Preserve the public API name while checking its intentional namespace duplication.
+/-- The namespace `Circuit` is duplicated in the declaration `Qatlib.Foundations.QueryWordCore.Circuit.Circuit`. -/
+#guard_msgs (substring := true) in
 /-- A finite list of gate and query instructions in execution order. -/
 abbrev Circuit (I : Type*) := List (Step I)
 
@@ -124,46 +125,70 @@ theorem IsUnitaryCircuit.repeatCircuit {C : Circuit I} (hC : IsUnitaryCircuit C)
   | zero => exact isUnitaryCircuit_nil
   | succ k ih => exact (isUnitaryCircuit_append C (RepeatCircuit C k)).mpr ⟨hC, ih⟩
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The empty circuit makes zero oracle queries. -/
 @[simp] theorem queryCount_nil : QueryCount ([] : Circuit I) = 0 := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Prepending an oracle-query instruction increases the query count by one. -/
 @[simp] theorem queryCount_query (C : Circuit I) :
     QueryCount (Step.query :: C) = QueryCount C + 1 := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Prepending an explicit matrix gate leaves the query count unchanged. -/
 @[simp] theorem queryCount_gate (U : Matrix I I ℂ) (C : Circuit I) :
     QueryCount (Step.gate U :: C) = QueryCount C := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The empty circuit contains zero explicit gates. -/
 @[simp] theorem gateCount_nil : GateCount ([] : Circuit I) = 0 := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Prepending an explicit matrix gate increases the gate count by one. -/
 @[simp] theorem gateCount_gate (U : Matrix I I ℂ) (C : Circuit I) :
     GateCount (Step.gate U :: C) = GateCount C + 1 := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Prepending an oracle query leaves the explicit gate count unchanged. -/
 @[simp] theorem gateCount_query (C : Circuit I) :
     GateCount (Step.query :: C) = GateCount C := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The empty circuit has size zero. -/
 @[simp] theorem size_nil : Size ([] : Circuit I) = 0 := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Prepending any instruction increases circuit size by one. -/
 @[simp] theorem size_cons (s : Step I) (C : Circuit I) : Size (s :: C) = Size C + 1 := rfl
 
+omit [DecidableEq I] in
+
 /-- Executing the empty circuit returns the input state. -/
 @[simp] theorem run_nil (oracle : Matrix I I ℂ) (ψ : QState I) : Run oracle [] ψ = ψ := rfl
+
+omit [DecidableEq I] in
 
 /-- Executing a circuit beginning with an explicit gate applies that gate before executing the
 remaining instructions. -/
 @[simp] theorem run_gate (oracle U : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
     Run oracle (Step.gate U :: C) ψ = Run oracle C (ApplyGate U ψ) := rfl
 
+omit [DecidableEq I] in
+
 /-- Executing a circuit beginning with a query applies the oracle before executing the remaining
 instructions. -/
 @[simp] theorem run_query (oracle : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
     Run oracle (Step.query :: C) ψ = Run oracle C (ApplyGate oracle ψ) := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Query counts add under circuit concatenation. -/
 theorem queryCount_append (C D : Circuit I) :
@@ -172,12 +197,16 @@ theorem queryCount_append (C D : Circuit I) :
   | nil => simp
   | cons s C ih => cases s <;> simp [ih, Nat.add_right_comm]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Explicit gate counts add under circuit concatenation. -/
 theorem gateCount_append (C D : Circuit I) :
     GateCount (C ++ D) = GateCount C + GateCount D := by
   induction C with
   | nil => simp [GateCount]
   | cons s C ih => cases s <;> simp [GateCount, ih, Nat.add_right_comm]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Circuit sizes add under concatenation. -/
 theorem size_append (C D : Circuit I) : Size (C ++ D) = Size C + Size D :=
@@ -186,6 +215,8 @@ theorem size_append (C D : Circuit I) : Size (C ++ D) = Size C + Size D :=
 /-- Repeating a circuit `k` times multiplies its query count by `k`. -/
 theorem queryCount_repeatCircuit (C : Circuit I) (k : ℕ) :
     QueryCount (RepeatCircuit C k) = k * QueryCount C := by
+  let _ := instFintypeI
+  let _ := instDecidableEqI
   induction k with
   | zero => simp [RepeatCircuit]
   | succ k ih => simp [RepeatCircuit, queryCount_append, ih, Nat.succ_mul, Nat.add_comm]
@@ -193,6 +224,8 @@ theorem queryCount_repeatCircuit (C : Circuit I) (k : ℕ) :
 /-- Repeating a circuit `k` times multiplies its explicit gate count by `k`. -/
 theorem gateCount_repeatCircuit (C : Circuit I) (k : ℕ) :
     GateCount (RepeatCircuit C k) = k * GateCount C := by
+  let _ := instFintypeI
+  let _ := instDecidableEqI
   induction k with
   | zero => simp [RepeatCircuit]
   | succ k ih => simp [RepeatCircuit, gateCount_append, ih, Nat.succ_mul, Nat.add_comm]
@@ -200,9 +233,13 @@ theorem gateCount_repeatCircuit (C : Circuit I) (k : ℕ) :
 /-- Repeating a circuit `k` times multiplies its size by `k`. -/
 theorem size_repeatCircuit (C : Circuit I) (k : ℕ) :
     Size (RepeatCircuit C k) = k * Size C := by
+  let _ := instFintypeI
+  let _ := instDecidableEqI
   induction k with
   | zero => simp [RepeatCircuit, Size]
   | succ k ih => simp [RepeatCircuit, size_append, ih, Nat.succ_mul, Nat.add_comm]
+
+omit [DecidableEq I] in
 
 /-- Executing a concatenation runs its first circuit and then its second circuit. -/
 theorem run_append (oracle : Matrix I I ℂ) (C D : Circuit I) (ψ : QState I) :
@@ -210,6 +247,8 @@ theorem run_append (oracle : Matrix I I ℂ) (C D : Circuit I) (ψ : QState I) :
   induction C generalizing ψ with
   | nil => rfl
   | cons s C ih => cases s <;> simp only [List.cons_append, Run, ih]
+
+omit [DecidableEq I] in
 
 /-- Execution of a circuit with zero queries is independent of the chosen oracle matrix. -/
 theorem run_eq_of_queryCount_eq_zero (oracle oracle' : Matrix I I ℂ) :
@@ -264,13 +303,19 @@ noncomputable def LiftCircuit : Circuit I → Circuit (I × Bool)
   | Step.gate U :: C => Step.gate (LiftGate U) :: LiftCircuit C
   | Step.query :: C => Step.query :: LiftCircuit C
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting the empty circuit gives the empty circuit. -/
 @[simp] theorem liftCircuit_nil : LiftCircuit ([] : Circuit I) = [] := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a circuit beginning with `U` begins with `LiftGate U` and continues with the lifted
 remaining circuit. -/
 @[simp] theorem liftCircuit_gate (U : Matrix I I ℂ) (C : Circuit I) :
     LiftCircuit (Step.gate U :: C) = Step.gate (LiftGate U) :: LiftCircuit C := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a circuit beginning with a query retains that query and lifts the remaining circuit. -/
 @[simp] theorem liftCircuit_query (C : Circuit I) :
@@ -294,17 +339,23 @@ theorem IsUnitaryCircuit.lift {C : Circuit I} (hC : IsUnitaryCircuit C) :
       rw [liftCircuit_query, isUnitaryCircuit_query]
       exact ih ((isUnitaryCircuit_query C).mp h)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting a circuit preserves its query count. -/
 theorem queryCount_liftCircuit (C : Circuit I) : QueryCount (LiftCircuit C) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting a circuit preserves its explicit gate count. -/
 theorem gateCount_liftCircuit (C : Circuit I) : GateCount (LiftCircuit C) = GateCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a circuit preserves its total size. -/
 theorem size_liftCircuit (C : Circuit I) : Size (LiftCircuit C) = Size C := by
@@ -316,12 +367,9 @@ end Qatlib.Foundations.QueryWordCore.Circuit
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.QueryWordCore.Circuit
 open Matrix
-set_option linter.unusedSectionVars false
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- Select the forward gates, an identity at position `n`, and the conjugate-transposed gates in
@@ -332,10 +380,12 @@ noncomputable def cyclicFiberGate {n : ℕ} (gates : Fin n → Matrix I I ℂ)
   else if h2 : n < p.val then (gates ⟨2 * n - p.val, by have := p.isLt; omega⟩)ᴴ
   else 1
 
+omit [Fintype I] in
+
 /-- At any position strictly below `n`, `cyclicFiberGate` equals the corresponding forward gate. -/
 theorem cyclicFiberGate_of_lt {n : ℕ} (gates : Fin n → Matrix I I ℂ) (m : ℕ)
     (hm : m < n) (hmM : m < 2 * n + 1) :
     cyclicFiberGate gates (⟨m, hmM⟩ : Fin (2 * n + 1)) = gates ⟨m, hm⟩ := by
   unfold cyclicFiberGate
-  exact dif_pos hm
+  exact dite_eq_left hm
 end Qatlib.Foundations.QueryWordCore.Circuit

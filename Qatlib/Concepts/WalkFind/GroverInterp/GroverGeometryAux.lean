@@ -32,8 +32,6 @@ For background, see [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp

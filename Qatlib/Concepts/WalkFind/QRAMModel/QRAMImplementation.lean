@@ -28,7 +28,6 @@ The mathematical background is developed in [NielsenChuang2010].
 
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.RecordExtract
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

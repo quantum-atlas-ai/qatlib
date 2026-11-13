@@ -25,14 +25,12 @@ supporting four fixed corrections in the orthonormal pair form associated with E
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix

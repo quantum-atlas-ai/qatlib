@@ -43,7 +43,6 @@ register with an untouched workspace. For background, see [BealsEtAl2001].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

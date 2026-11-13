@@ -40,8 +40,6 @@ congruence for binomial coefficients modulo the prime input length plus one.
 * [Beals et al., 2001, Corollary 4.7][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery

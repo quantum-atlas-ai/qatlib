@@ -24,8 +24,6 @@ These estimates support the interaction-picture simulation analysis of [LowWiebe
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.OperatorErrors.OperatorError
 
 set_option autoImplicit false

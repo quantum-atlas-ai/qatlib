@@ -41,8 +41,6 @@ decomposition used by quadratic classical-shadow estimators [HuangKuengPreskill2
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 

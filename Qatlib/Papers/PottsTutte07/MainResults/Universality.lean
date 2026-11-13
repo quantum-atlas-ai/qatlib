@@ -30,8 +30,6 @@ parameter lists, rescaling factors, and length bounds [AharonovEtAl2007].
 * [Aharonov et al., 2007][AharonovEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -26,7 +26,6 @@ before the matrix instance, using only the scalar parameters of the static probl
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

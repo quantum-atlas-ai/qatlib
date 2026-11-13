@@ -30,7 +30,6 @@ and gate counts.
 * [Ambainis, 2002][Ambainis2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

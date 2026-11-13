@@ -32,9 +32,6 @@ and related constructions are discussed in [GilyenSuLowWiebe2019].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
-set_option linter.tacticAnalysis.introMerge false
 noncomputable section
 
 namespace Qatlib.Concepts.QsvtCore.ApproxToolkit
@@ -167,20 +164,20 @@ theorem dolphWindowPolynomial_eval (ε : ℝ) (n : ℕ) (x : ℝ) :
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_X]
 
 /-- For positive tolerance, the Dolph scale is at least one. -/
-theorem dolphWindowScale_ge_one (ε : ℝ) (n : ℕ) (hε : 0 < ε) :
+theorem dolphWindowScale_ge_one (ε : ℝ) (n : ℕ) (_hε : 0 < ε) :
     1 ≤ dolphWindowScale ε n := by
   unfold dolphWindowScale generalizedChebyshev
   exact Real.one_le_cosh _
 
 /-- For positive `n` and positive tolerance, the Dolph-window polynomial has natural degree
 exactly `n`. -/
-theorem dolphWindowPolynomial_natDegree (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) :
+theorem dolphWindowPolynomial_natDegree (ε : ℝ) (n : ℕ) (_hn : 0 < n) (hε : 0 < ε) :
     (dolphWindowPolynomial ε n).natDegree = n := by
   have hc : dolphWindowScale ε n ≠ 0 := by
     unfold dolphWindowScale generalizedChebyshev
     exact (Real.cosh_pos _).ne'
   have hdeg : (Polynomial.Chebyshev.T ℝ (n : ℤ)).natDegree = n := by
-    simpa using Polynomial.Chebyshev.natDegree_T (R := ℝ) (n : ℤ)
+    simp
   have hqdeg : (Polynomial.C (dolphWindowScale ε n) * Polynomial.X).natDegree = 1 := by
     rw [Polynomial.natDegree_C_mul hc]
     simp
@@ -259,7 +256,7 @@ theorem dolphWindowPolynomial_norm_le_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε
 
 /-- For positive `n`, 0 < ε ≤ 1, and positive `lam`, the Dolph polynomial is bounded by `ε` on
 |x| ≤ `lam` exactly when `lam` is at most the reciprocal Dolph scale. -/
-theorem dolphWindow_flatCenter_iff (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) (hε1 : ε ≤ 1)
+theorem dolphWindow_flatCenter_iff (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) (_hε1 : ε ≤ 1)
     (lam : ℝ) (hlam0 : 0 < lam) :
     DolphFlatCenter (dolphWindowPolynomial ε n) ε lam ↔
       lam ≤ (dolphWindowScale ε n)⁻¹ := by
@@ -297,8 +294,7 @@ theorem dolphWindow_flatCenter_iff (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < 
       have h := mul_lt_mul_of_pos_left hbig hε
       linarith
     linarith
-  · intro hlam
-    intro x hx
+  · intro hlam x hx
     have hcx : |dolphWindowScale ε n * x| ≤ 1 := by
       rw [abs_mul, abs_of_pos hcpos]
       have hinv : |x| ≤ (dolphWindowScale ε n)⁻¹ := by

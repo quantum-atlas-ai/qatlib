@@ -27,7 +27,6 @@ selection examples with repeated values, a large ordered list, and empty input. 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ShadowModels.ShadowVariance
 

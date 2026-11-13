@@ -26,8 +26,6 @@ information-theoretic background.
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.QuditTeleport.MessagingBounds

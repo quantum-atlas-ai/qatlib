@@ -70,7 +70,6 @@ open Qatlib.Concepts.RiskEstimation.CDFEstimation Qatlib.Concepts.RiskEstimation
 open Qatlib.Concepts.RiskEstimation.VaRQuantile
 open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
-set_option warningAsError false
 
 /-- The rational fraction of the sampled losses at most the threshold `t`. -/
 def empiricalCDF {n N : ℕ} (ω : Fin N→Option (Fin n)) (loss : Option (Fin n)→ℚ) (t : ℚ) : ℚ :=

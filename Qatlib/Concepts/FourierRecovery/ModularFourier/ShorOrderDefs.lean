@@ -31,7 +31,6 @@ conditional recovery statements proved in `ShorOrderRefined`.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -44,7 +43,6 @@ open Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder
 open Qatlib.Concepts.PeriodSampling.OrderRecovery
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -111,14 +109,14 @@ def shorSmallPrimePowers (m : ℕ) : ℕ := (smallPrimePowers m).card
 screen, screening and preprocessing cost bounds, preprocessing divisor soundness, and the
 prime direction property. -/
 def clause9_endpoint : Prop :=
-  (∀ (N : ℕ) [NeZero N] (hp : Nat.Prime N) (a : (ZMod N)ˣ),
+  (∀ (N : ℕ) [NeZero N] (_hp : Nat.Prime N) (a : (ZMod N)ˣ),
       shorFermatScreen N a = true)
   ∧ (shorFermatScreen 4 shorUnitThree = false)
   ∧ (∀ N : ℕ, shorFermatScreenBitCost N ≤ polyLogBound 1 6 N)
   ∧ (∀ N : ℕ, preprocessBitCost N ≤ polyLogBound 1 4 N)
   ∧ (∀ (N d : ℕ), evenDivisor N = some d → 1 < d ∧ d < N ∧ d ∣ N)
   ∧ (∀ (N d : ℕ), perfectPowerDivisor N = some d → 1 < d ∧ d < N ∧ d ∣ N)
-  ∧ (∀ (N : ℕ) [NeZero N] (hp : Nat.Prime N) (a : (ZMod N)ˣ), PrimeDirectionWitness N a)
+  ∧ (∀ (N : ℕ) [NeZero N] (_hp : Nat.Prime N) (a : (ZMod N)ˣ), PrimeDirectionWitness N a)
 
 /-- The conjunction of local QFT and modular order resource counts, order verification and
 Euclidean correctness, classical processing cost formulas and bounds, and domination of the
@@ -127,7 +125,7 @@ def thresholdGoal_endpoint : Prop :=
   (∀ n : ℕ, GateCount (localProgramCircuit (localQFT n)) = localQftGateCount n ∧
       QueryCount (localProgramCircuit (localQFT n)) = 0 ∧
       localQftSpaceCost n = n)
-  ∧ (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M),
+  ∧ (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (_hM : 0 < M),
       QueryCount (modularOrderCircuit N M a) = M * (M - 1) / 2 ∧
         GateCount (modularOrderCircuit N M a) = M * (M - 1) + 2)
   ∧ (∀ (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (q : ℕ),
@@ -154,7 +152,7 @@ def clause11_endpoint : Prop :=
           (shorSuccessReceipt ω j).attempts = j.val + 1 ∧
           1 < (shorSuccessReceipt ω j).factor ∧ (shorSuccessReceipt ω j).factor < N)
   ∧ (∀ (split : ∀ n, Option (ProperDivisor n)) (n : ℕ),
-      (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
+      (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
         (factorTreeOf split n).complete)
 
 /-- The conjunction of finite compact encoding existence, compiled measurement identities, orbit
@@ -176,8 +174,8 @@ conditional recovery law under the stated hypotheses, and divisibility and count
 properties of small prime powers. -/
 def clause13_endpoint : Prop :=
   (∀ N : ℕ, 1 < N → ∃ q, OriginalClockWindow N q)
-  ∧ (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (hN : 1 < N)
-      (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M),
+  ∧ (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (_hN : 1 < N)
+      (_hr : 1 < orderOf a) (_hsize : 2 * N ^ 2 < M),
       0 < orderGoodMass N M a hM)
   ∧ (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (hN : 1 < N)
       (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M) (y : Fin M),

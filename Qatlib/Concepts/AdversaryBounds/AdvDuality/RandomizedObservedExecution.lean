@@ -30,7 +30,6 @@ query-weighted sum is the corresponding mixture of expected query counts.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -99,7 +98,6 @@ theorem randomizedObservedLeaf_complete (d : FinDist J) (O : Operator D)
         rw [show (∑ j, d.prob j : ℝ) = 1 from d.sum_one]
         simp
 
-set_option linter.unusedVariables false in
 
 /-- The quantum instrument whose outcomes pair a selected circuit with one of its leaves and
 whose Kraus operators are `randomizedObservedLeaf`. -/
@@ -111,7 +109,6 @@ noncomputable def randomizedObservedInstrument {J : Type} [Fintype J] [Decidable
   Instrument.ofKraus (randomizedObservedLeaf d O P)
     (randomizedObservedLeaf_complete d O hO P hP)
 
-set_option linter.unusedVariables false in
 
 /-- Each randomized branch map equals its component branch map scaled by `d.prob j`, and its
 branch probability is scaled by the same real factor. -/
@@ -148,7 +145,6 @@ theorem randomized_observed_branch_law {J : Type} [Fintype J] [DecidableEq J] {D
     sub_zero]
   rfl
 
-set_option linter.unusedVariables false in
 
 /-- The query-weighted branch sum of the randomized instrument equals the `d`-weighted sum of
 the component mixed-state expected query counts. -/

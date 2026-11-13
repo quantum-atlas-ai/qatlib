@@ -34,10 +34,7 @@ gaps determine different functions of inverse temperature.
 * [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.TITCMTReport98.MainResults
@@ -54,6 +51,8 @@ def boltzmannPartition (E : ι → ℝ) (β : ℝ) : ℝ :=
 /-- The Boltzmann factor of level `i` divided by the partition function. -/
 def gibbsWeight (E : ι → ℝ) (β : ℝ) (i : ι) : ℝ :=
   Real.exp (-(β * E i)) / boltzmannPartition E β
+
+omit [DecidableEq ι] in
 
 /-- The Boltzmann partition function of a finite nonempty collection of real energies is
 strictly positive [KadowakiNishimori1998]. -/
@@ -80,6 +79,8 @@ theorem gibbsWeight_le_one (E : ι → ℝ) (β : ℝ) (i : ι) : gibbsWeight E 
     Finset.single_le_sum (fun j _ => (gibbsWeight_pos E β j).le) (Finset.mem_univ i)
   rw [hsum] at hle
   exact hle
+
+omit [Nonempty ι] in
 
 /-- Factors the Boltzmann partition function by the factor of a distinguished level `g`, leaving
 one plus the sum of relative Boltzmann factors over `i ≠ g` [KadowakiNishimori1998]. -/

@@ -31,7 +31,6 @@ usage verified for this word.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.QuditTeleport.TeleportCore
@@ -53,7 +52,6 @@ open Qatlib
 open scoped ComplexOrder
 open scoped Classical
 
-set_option linter.unusedSectionVars false
 set_option autoImplicit false
 
 /-- The two-qubit word consisting of unit-phase wire gates on wires 0 and 1, a CZ gate between

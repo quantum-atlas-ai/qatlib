@@ -29,8 +29,6 @@ including the working velocity `√2` at `-π / 4`.
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.WalkDefsCore
 
 open Complex

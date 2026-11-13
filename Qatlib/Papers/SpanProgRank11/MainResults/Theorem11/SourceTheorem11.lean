@@ -64,7 +64,7 @@ produces an actual span program of witness size `≤ L · wsize(𝒫)`.  Composi
 `C_T · wsizeLow ≤ C_T · wsize(𝒫) · L`, i.e. `O(wsize(𝒫) · L)`.
 
 The structural span-program-to-graph translation of Reichardt is the already
-available `QuantumAlgorithm.Concepts.QueryComplexity.Reflections.*` layer; this
+available `Qatlib.Concepts.QueryComplexity.Reflections` layer; this
 file records only the cost arithmetic. -/
 theorem source_theorem11 (C_T : ℝ) (hC_T : 0 < C_T) (P : LoadedSpanProgram) :
     ∃ C : ℝ, 0 < C ∧

@@ -30,7 +30,6 @@ supporting amplified transforms [Cornwell2014] and amplitude estimation [Brassar
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability

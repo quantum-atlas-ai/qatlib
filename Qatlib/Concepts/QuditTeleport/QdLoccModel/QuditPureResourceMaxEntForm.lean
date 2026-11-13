@@ -25,8 +25,6 @@ characterizations for teleportation [BennettEtAl1993Teleportation].
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 

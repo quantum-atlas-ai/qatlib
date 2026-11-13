@@ -29,7 +29,7 @@ search problems, one over the `n` possible `i` and one over the `m` possible
 of the two searches is trivial, a `r`-query search algorithm on the other
 subproblem; with dedicated budgets `r_n + r_m ≤ r` this gives the sum bound.
 
-* **quantum.** The frozen `fixed_query_quadratic_bound` (reused below through
+* **quantum.** The established `fixed_query_quadratic_bound` (reused below through
   `search_lowerBound_from_frozen`) gives, for any fixed-budget quantum search
   algorithm with average success at least `1/2`,
   `(1 − √2/2) N − √N ≤ 2 r²`, whence `r ≥ √N / 4` for `N ≥ 64`.
@@ -46,17 +46,17 @@ namespace Qatlib.Papers.SDPBrandao16.MainResults.SourceClaims
 open Qatlib.Concepts.SearchStopping.QueryLowerBound
 open scoped BigOperators
 
-/-! ## §1 Bridge to the frozen fixed-budget quantum search lower bound -/
+/-! ## §1 Bridge to the fixed-budget quantum search lower bound -/
 
-/-- **Reuse of the frozen fixed-budget quantum search lower bound.**
+/-- **Reuse of the fixed-budget quantum search lower bound.**
 
 A `r`-query quantum search algorithm on a uniformly random target `y` in a
 finite `Y` (with any finite ancillary `C`), agreeing with the real oracle on
 all `n < r` queries and succeeding with average Born probability at least
 `1/2`, satisfies `(1 − √2/2) |Y| − √|Y| ≤ 2 r²`.
 
-Reused frozen theorem (FQN):
-`QuantumAlgorithm.Concepts.SearchStopping.QueryLowerBound.fixed_query_quadratic_bound`. -/
+The theorem used here is:
+`Qatlib.Concepts.SearchStopping.QueryLowerBound.fixed_query_quadratic_bound`. -/
 theorem search_lowerBound_from_frozen {C Y : Type*}
     [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (U : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)
@@ -74,7 +74,7 @@ theorem search_lowerBound_from_frozen {C Y : Type*}
 
 /-- **Quantum search budget (`N ≥ 64`).**
 
-From the frozen quadratic bound `(1 − √2/2) N − √N ≤ 2 r²` with `N ≥ 64`, a
+From the quadratic bound `(1 − √2/2) N − √N ≤ 2 r²` with `N ≥ 64`, a
 fixed-budget search algorithm needs `r ≥ √N / 4`. -/
 theorem searchBudget_quarter (N r : ℕ) (hN : 64 ≤ N)
     (h : (1 - Real.sqrt 2 / 2) * (N : ℝ) - Real.sqrt (N : ℝ) ≤ 2 * (r : ℝ) ^ 2) :

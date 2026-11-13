@@ -34,7 +34,6 @@ control-dependent phase and the phase accompanying a one-qubit swap.
 * [Lloyd et al., 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

@@ -25,7 +25,6 @@ quantity inversely proportional to `(k+1)!`. See [BerryEtAl2017ODE] for the pape
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.BlockEncoding.Postselection

@@ -30,14 +30,10 @@ The mathematical background is described in [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
 namespace Qatlib.Concepts.BlockEncoding.LinearCombination
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 
@@ -52,6 +48,8 @@ theorem mulVec_ket_apply (A : Matrix J J ℂ) (j₀ j : J) : (A *ᵥ Ket j₀) j
     simp [hb]
   · intro hcon
     exact absurd (Finset.mem_univ j₀) hcon
+
+omit [DecidableEq J] [DecidableEq I] in
 
 /-- A tensor product gate acts on a tensor product state by applying each factor separately. -/
 theorem mulVec_tensorGate (A : Matrix J J ℂ) (B : Matrix I I ℂ) (φ : QState J)
@@ -90,7 +88,7 @@ theorem select_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matrix.un
       exact Finset.sum_congr rfl fun b _ => by
         rw [Matrix.conjTranspose_apply, RCLike.star_def]
     rw [Finset.sum_eq_single a]
-    · simp only [if_true]
+    · simp only [ite_true]
       rw [hent, ← Matrix.star_eq_conjTranspose (U a),
         (Matrix.mem_unitaryGroup_iff' (A := U a)).mp (hU a)]
       by_cases hii : i = i' <;> simp [Matrix.one_apply, hii]
@@ -98,7 +96,7 @@ theorem select_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matrix.un
       simp [hm]
     · intro hcon
       exact absurd (Finset.mem_univ a) hcon
-  · rw [if_neg (fun e => h (congrArg Prod.fst e))]
+  · rw [ite_eq_right (fun e => h (congrArg Prod.fst e))]
     exact Finset.sum_eq_zero fun m _ => by
       by_cases hma : m = a
       · simp [hma, h]
@@ -130,7 +128,7 @@ theorem lcu_corner_apply (U : J → Matrix I I ℂ) {w : J → ℝ} (hw : ∀ j,
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, Select, Matrix.of_apply,
       TensorState]
     rw [Finset.sum_eq_single p.1]
-    · simp only [if_true]
+    · simp only [ite_true]
       have hsum : (∑ j : I, (U p.1) p.2 j * (((Real.sqrt (w p.1) : ℂ)) * ψ j))
           = ((Real.sqrt (w p.1) : ℂ)) * ((U p.1 *ᵥ ψ) p.2) := by
         simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
@@ -140,7 +138,7 @@ theorem lcu_corner_apply (U : J → Matrix I I ℂ) {w : J → ℝ} (hw : ∀ j,
       have hne : ¬(p.1 = m) := fun e => hm e.symm
       rw [Finset.sum_eq_zero]
       intro j _
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
     · intro hcon
       exact absurd (Finset.mem_univ p.1) hcon
@@ -156,10 +154,10 @@ theorem lcu_corner_apply (U : J → Matrix I I ℂ) {w : J → ℝ} (hw : ∀ j,
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, hexp]
     refine Finset.sum_congr rfl fun m _ => ?_
     rw [Finset.sum_eq_single y]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       ring
     · intro k _ hk
-      rw [if_neg (show ¬(y = k) from fun e => hk e.symm)]
+      rw [ite_eq_right (show ¬(y = k) from fun e => hk e.symm)]
       ring
     · intro hcon
       exact absurd (Finset.mem_univ y) hcon
@@ -178,7 +176,7 @@ theorem lcu_corner_apply (U : J → Matrix I I ℂ) {w : J → ℝ} (hw : ∀ j,
       = fun i' => ∑ j : J, ((w j : ℂ)) * (U j *ᵥ ψ) i' := by
     funext i'
     simp only [Matrix.mulVec, dotProduct, Matrix.sum_apply, Finset.mul_sum,
-      Matrix.smul_apply, smul_eq_mul]
+      Matrix.smul_apply]
     rw [Finset.sum_comm]
     refine Finset.sum_congr rfl fun j _ => ?_
     rw [Finset.sum_mul]

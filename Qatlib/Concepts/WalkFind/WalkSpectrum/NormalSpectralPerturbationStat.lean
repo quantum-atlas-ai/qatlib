@@ -22,7 +22,6 @@ collect the finite-matrix perturbation estimates for Johnson-walk spectral analy
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

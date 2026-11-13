@@ -29,8 +29,6 @@ The mathematical background is described in [Kraus1971].
 * [Kraus, 1971][Kraus1971]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
 noncomputable section

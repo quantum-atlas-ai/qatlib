@@ -28,7 +28,6 @@ The contract packages the universality requirements of measurement-based quantum
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates Qatlib.Concepts.ClusterPatterns.PauliNetwork
 open Qatlib.Concepts.ClusterPatterns.Preentangled

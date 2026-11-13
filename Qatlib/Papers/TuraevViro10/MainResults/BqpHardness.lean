@@ -30,8 +30,6 @@ invariant promise, the acceptance and rejection guarantees transfer to the origi
 * [Alagic et al., 2010][AlagicEtAl2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

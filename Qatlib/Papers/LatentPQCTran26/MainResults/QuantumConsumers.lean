@@ -35,8 +35,6 @@ tanh-decoder gradient estimates, reference and routed coverage, and a warm-start
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 open MeasureTheory
 open scoped Matrix.Norms.L2Operator

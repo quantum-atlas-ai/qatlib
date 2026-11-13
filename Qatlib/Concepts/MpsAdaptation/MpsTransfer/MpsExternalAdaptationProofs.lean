@@ -30,8 +30,6 @@ product states described in [PerezGarciaEtAl2007].
 * [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer

@@ -25,7 +25,6 @@ mass and quantized total weight, in the randomized simulation framework of [Camp
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 

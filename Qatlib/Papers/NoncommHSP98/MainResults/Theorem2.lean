@@ -38,7 +38,6 @@ set_option maxHeartbeats 1000000
 noncomputable section
 
 open scoped BigOperators
-set_option warningAsError false
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 

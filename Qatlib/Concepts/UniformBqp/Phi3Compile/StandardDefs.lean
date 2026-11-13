@@ -34,7 +34,6 @@ For background, see [BernsteinVazirani1997].
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

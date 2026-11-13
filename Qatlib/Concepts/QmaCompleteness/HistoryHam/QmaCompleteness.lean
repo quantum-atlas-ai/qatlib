@@ -20,11 +20,9 @@ introducing additional declarations. Related mathematical background is given in
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 
@@ -33,11 +31,8 @@ namespace Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Matrix
 open scoped BigOperators
 
-set_option linter.unusedSimpArgs false
-
 set_option maxHeartbeats 800000
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 open scoped BigOperators Classical
 open Matrix
 

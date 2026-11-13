@@ -28,8 +28,6 @@ corresponds to replacing the oracle by its adjoint and preserves both instructio
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 namespace Qatlib.Concepts.CoherentSim.CoherentOAA

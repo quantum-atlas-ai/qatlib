@@ -36,7 +36,6 @@ These constructions belong to the formalization of [YoderLowChuang2014].
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

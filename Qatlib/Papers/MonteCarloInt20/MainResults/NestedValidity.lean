@@ -24,8 +24,6 @@ and expanded outer words used for the nested Monte Carlo scheme of [KanekoEtAl20
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option backward.isDefEq.respectTransparency false

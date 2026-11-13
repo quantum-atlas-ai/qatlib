@@ -31,7 +31,6 @@ algorithm [HarrowHassidimLloyd2009].
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing

@@ -40,7 +40,6 @@ law, with state-preparation gates included in the cost formulas.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw

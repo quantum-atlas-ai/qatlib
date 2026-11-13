@@ -27,7 +27,6 @@ trace-distance framework of [Watrous2018].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Foundations.PureStateMath.Reflection

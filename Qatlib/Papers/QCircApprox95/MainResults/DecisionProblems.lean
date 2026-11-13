@@ -22,7 +22,6 @@ used in decision and guessing problem counts. See [Knill1995].
 * [Knill, 1995][Knill1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

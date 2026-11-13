@@ -31,8 +31,6 @@ amplitude-amplification framework of [BrassardEtAl2002].
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.QsvtCore.QueryLowerBound
 open Qatlib.Concepts.QspSimulation.Achievability

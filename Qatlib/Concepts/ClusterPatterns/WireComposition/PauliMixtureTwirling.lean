@@ -31,9 +31,7 @@ instruments.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -385,7 +383,6 @@ theorem pauliTwirl_branch_run
       outerProduct ((pauliZChoice k * pauliXChoice j) *ᵥ ψ) = _
   rw [pauliFairBit_weight, run_pauliTwirlCircuit]
 
-set_option linter.unusedVariables false in
 
 /-- The fair-bit Pauli choices are unitary and their mixture sends every operator to its trace
 times half the identity. On pure-state outer products this mixture equals the average of the

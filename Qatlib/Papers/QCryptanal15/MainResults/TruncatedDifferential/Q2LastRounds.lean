@@ -28,8 +28,6 @@ final identity evaluates the filtering amplification budget. The mathematical co
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

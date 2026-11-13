@@ -26,7 +26,6 @@ turns the one-shot success bound into exponential decay in the repetition parame
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw

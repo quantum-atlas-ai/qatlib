@@ -28,10 +28,7 @@ which specializes to the gate coefficients in `lemma_3_4_or`.
 * [Reichardt, 2009][Reichardt2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix
@@ -114,7 +111,7 @@ theorem orComposedBlock_eq_mul {m α β : Type*} [Fintype α] [DecidableEq α]
     rw [Finset.sum_congr rfl (fun a' _ => hfun a'), Finset.sum_eq_single a]
     · simp
     · intro a' _ ha'
-      rw [if_neg ha']
+      rw [ite_eq_right ha']
     · intro hmem
       exact absurd (Finset.mem_univ a) hmem
   · simp only [orComposedBlock, Matrix.mul_apply, Fintype.sum_sum_type, orSourceBlock,
@@ -125,9 +122,9 @@ theorem orComposedBlock_eq_mul {m α β : Type*} [Fintype α] [DecidableEq α]
       intro b'
       by_cases h : b' = b <;> simp [h]
     rw [Finset.sum_congr rfl (fun b' _ => hfun b'), Finset.sum_eq_single b]
-    · rw [if_pos rfl, mul_comm]
+    · rw [ite_eq_left rfl, mul_comm]
     · intro b' _ hb'
-      rw [if_neg hb']
+      rw [ite_eq_right hb']
     · intro hmem
       exact absurd (Finset.mem_univ b) hmem
   · simp only [orComposedBlock, Matrix.mul_apply, Fintype.sum_sum_type, orSourceBlock,
@@ -138,9 +135,9 @@ theorem orComposedBlock_eq_mul {m α β : Type*} [Fintype α] [DecidableEq α]
       intro b'
       by_cases h : b' = b <;> simp [h]
     rw [Finset.sum_congr rfl (fun b' _ => hfun b'), Finset.sum_eq_single b]
-    · rw [if_pos rfl, mul_comm]
+    · rw [ite_eq_left rfl, mul_comm]
     · intro b' _ hb'
-      rw [if_neg hb']
+      rw [ite_eq_right hb']
     · intro hmem
       exact absurd (Finset.mem_univ b) hmem
 
@@ -217,7 +214,7 @@ theorem orScale_mul_conjTranspose {α β : Type*} [Fintype α] [DecidableEq α]
 /-- For nonnegative weights with squared sum at least one, the squared operator norm of
 `orScale` is at most `ε₁² + ε₂²`. -/
 theorem orScale_norm_sq_le {α β : Type*} [Fintype α] [DecidableEq α]
-    [Fintype β] [DecidableEq β] {ε₁ ε₂ : ℝ} (hε₁ : 0 ≤ ε₁) (hε₂ : 0 ≤ ε₂)
+    [Fintype β] [DecidableEq β] {ε₁ ε₂ : ℝ} (_hε₁ : 0 ≤ ε₁) (_hε₂ : 0 ≤ ε₂)
     (h : 1 ≤ ε₁ ^ 2 + ε₂ ^ 2) :
     ‖orScale (α := α) (β := β) ε₁ ε₂‖ ^ 2 ≤ ε₁ ^ 2 + ε₂ ^ 2 := by
   have hc0 : (0 : ℝ) ≤ ε₁ ^ 2 + ε₂ ^ 2 := le_trans zero_le_one h
@@ -280,7 +277,7 @@ source-block norm. See [Reichardt2009]. -/
 theorem lemma_3_4_or {m α β : Type*} [Fintype m] [DecidableEq m]
     [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) (s : Fin 2 → ℝ)
-    (hA : ∀ i j, 0 ≤ A i j) (hB : ∀ i j, 0 ≤ B i j)
+    (_hA : ∀ i j, 0 ≤ A i j) (_hB : ∀ i j, 0 ≤ B i j)
     (h0 : 0 < s 0) (h1 : 0 < s 1) :
     ‖orComposedBlock 1 (alpha s 0) (alpha s 1) A B‖ ^ 2 ≤
       (Real.sqrt (s 0) + Real.sqrt (s 1)) / Real.sqrt (s 0 + s 1) *

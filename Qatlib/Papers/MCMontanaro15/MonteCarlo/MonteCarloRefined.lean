@@ -18,7 +18,6 @@ positivity, logarithm-domain, or supplied-estimator hypotheses explicitly.
 The source framework is [Montanaro2015]. Exact constants and the bit, memory,
 and stopping ledgers refer to the local models.
 -/
-set_option warningAsError false
 open Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -35,13 +34,11 @@ variable {X : Type} [Fintype X] [DecidableEq X]
 variable (n₀ : ℕ)
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- Combines the partition-limit comparison, exponential tail and reflection-error identity with
 the explicit Theorem 11 walk, reflection, and copy cost expressions. -/
 theorem clause51_endpoint {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (l : WalkLedger)
-    (hR : 0 < l.reflections) (hg : 0 ≤ l.gamma) (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ) :
+    (hR : 0 < l.reflections) (hg : 0 ≤ l.gamma) (ε δ : ℝ) (_hε : 0 < ε) (_hδ : 0 < δ) :
     partitionFnLimit H ≤ partitionFn H l.gamma ∧
       (l.reflections : ℝ) * (l.gamma / l.reflections) + l.gamma = 2 * l.gamma ∧
       0 ≤ partitionFn H l.gamma - partitionFnLimit H ∧
@@ -72,9 +69,9 @@ theorem clause52_truncation_error {X : Type} [Fintype X] (p : FinDist X) (f : X 
   apply Finset.sum_congr rfl
   intro x _
   by_cases h : (2 : ℝ) ^ k ≤ f x
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     ring
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     ring
 
 /-- The truncation error equals the upper-tail contribution and satisfies its second-moment

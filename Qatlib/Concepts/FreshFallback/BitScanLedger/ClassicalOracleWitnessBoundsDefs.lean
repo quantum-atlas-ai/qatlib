@@ -31,8 +31,6 @@ tensor-product states, connecting classical histories to quantum sampling estima
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath

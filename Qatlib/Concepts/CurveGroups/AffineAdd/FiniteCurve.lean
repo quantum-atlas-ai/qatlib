@@ -26,7 +26,6 @@ offsets, as used in the setting of [RoettelerEtAl2017].
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

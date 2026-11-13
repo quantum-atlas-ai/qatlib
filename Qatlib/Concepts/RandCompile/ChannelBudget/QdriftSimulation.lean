@@ -29,7 +29,6 @@ a coherent-control obstruction.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.MatrixAccess.KnownFrameSynth

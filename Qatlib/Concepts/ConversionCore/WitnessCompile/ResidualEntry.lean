@@ -52,4 +52,3 @@ The imported interfaces connect filtered Gram certificates to query algorithms i
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false

@@ -11,8 +11,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Model for *Simulation of Adjoints and Petz Recovery Maps for Unknown Quantum Channels*
 
-Fixed source version: arXiv:2602.05828v1 (first submitted 2026-02-05),
-`prove/assets/2602.05828v1.pdf`.
+Fixed source version: arXiv:2602.05828v1 (first submitted 2026-02-05).
 
 This file fixes the finite-dimensional matrix model shared by the paper-layer
 statements of `Papers/PetzRecovery26/VirtualAdjoint`:

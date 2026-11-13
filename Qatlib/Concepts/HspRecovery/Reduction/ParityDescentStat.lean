@@ -23,8 +23,6 @@ recursive restriction step used in [Kuperberg2005].
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.RecordExtract
 
 set_option autoImplicit false

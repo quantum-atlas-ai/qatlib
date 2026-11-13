@@ -22,7 +22,6 @@ connects the reversible word to the elliptic curve arithmetic setting of [Roette
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

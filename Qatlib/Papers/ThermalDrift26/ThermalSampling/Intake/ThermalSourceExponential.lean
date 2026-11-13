@@ -33,11 +33,9 @@ then becomes a product of index weights times the trace of the unnormalized ther
   Learning Many-Body Systems*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 open Qatlib Matrix
 open scoped BigOperators Matrix.Norms.L2Operator

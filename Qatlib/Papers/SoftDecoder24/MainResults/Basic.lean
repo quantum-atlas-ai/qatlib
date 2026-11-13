@@ -24,7 +24,11 @@ claim modules in `QuantumAlgorithmDev.Papers.SoftDecoder24.MainResults.*` share:
 * convolution `(f ⋆ g)(x) = Σ_y f(y) g(x - y)` (Section 2.1, p.9),
 * codes, dual codes and cosets (Definitions 4–5, p.12), syndromes (Problem 3, p.6),
 * the restricted distribution `u_p^{H,s}` (Definition 1, p.6) and trace distance (p.9),
-* an abstract polynomial-time cost model used only to state the algorithmic claims.
+* legacy cost annotations and explicit contracts for externally supplied executions.
+
+The result modules prove character, selective Fourier-transform, and fourth-moment
+identities. They construct no decoder, preparation circuit, or sampler and prove no
+running-time transformation. The legacy records alone are not implementations.
 
 The paper works over the finite field `F_q`.  All identities used in the paper hold
 verbatim for the ring `ZMod q` (with `q ≠ 0`), so the model is stated there; where the
@@ -162,25 +166,24 @@ def Zv [NeZero q] {n : ℕ} (C : Submodule (ZMod q) (Fin n → ZMod q))
 
 /-! ## Algorithmic vocabulary
 
-The paper's algorithmic claims (Theorems 1–8, Corollaries 1–2, Propositions 11–12)
-assert the existence of quantum polynomial-time procedures with explicit error and cost
-bounds.  This development does not formalise quantum circuits; instead each claim is
-stated as the existence of an abstract solver together with the paper's stated cost and
-error guarantees, exactly as in the paper's own black-box formulation ("we have access to
-an algorithm that ...").  `PolyTime` is the cost bound used throughout. -/
+The records in this section preserve the paper's vocabulary. Their cost fields are
+independent annotations, not certified runtimes. No algorithmic existence theorem is
+proved here. `ExecutesDecoder`, `PreparesState`, and `SamplesCosets` below express
+additional input contracts against a supplied backend and a counted operation word.
+These contracts are assumptions to any future reduction, not constructed algorithms. -/
 
 /-- An abstract polynomial running-time bound in the field size `q`. -/
 def PolyTime (cost : ℕ → ℕ) : Prop :=
   ∃ c : ℕ, 0 < c ∧ ∀ q, cost q ≤ c * (q + 2) ^ c
 
-/-- A syndrome decoder for `SD(H, p)` (Problem 3, p.6): a deterministic recovery map on
-syndromes, together with its running time. -/
+/-- A recovery map with an unverified cost annotation (Problem 3, p.6).
+Use `ExecutesDecoder` to require a backend execution at that cost. -/
 structure SyndromeDecoder (q n m : ℕ) [NeZero q] where
   /-- The parity-check matrix. -/
   H : Fin m → Fin n → ZMod q
   /-- The recovery map on syndromes. -/
   dec : (Fin m → ZMod q) → (Fin n → ZMod q)
-  /-- Running time of the decoder. -/
+  /-- Unverified cost annotation. -/
   cost : ℕ
 
 /-- Success probability `P_dec = Σ_{e ∈ Good} p(e)` of a decoder, where `Good` is the set
@@ -194,18 +197,75 @@ def SyndromeDecoder.decodeSet {q n m : ℕ} [NeZero q] (A : SyndromeDecoder q n 
     Finset (Fin n → ZMod q) :=
   Finset.univ.filter (fun e => A.dec (syndrome A.H e) = e)
 
-/-- An abstract coherent state-preparation oracle for the amplitude vector `F`
-(Theorem 5, item 2, p.14), with running time `cost` (the paper's `T_F`). -/
+/-- Legacy cost annotation for preparing `F`; contains no preparation witness.
+Use `PreparesState` as an explicit backend contract. -/
 structure StatePrep (q n : ℕ) [NeZero q] (F : (Fin n → ZMod q) → ℂ) where
-  /-- Running time of the preparation. -/
+  /-- Unverified cost annotation. -/
   cost : ℕ
 
-/-- A coset sampler for `CS(H, p)` (Problem 4, p.6): a probability mass function on
-`(ZMod q)^n` for every syndrome, together with its running time. -/
+/-- Proposed output masses and an independent cost annotation (Problem 4, p.6).
+Normalization and a sampling execution require the additional `SamplesCosets` contract. -/
 structure CosetSampler (q k n : ℕ) [NeZero q] where
   /-- The output distribution for each syndrome. -/
   out : (Fin k → ZMod q) → (Fin n → ZMod q) → ℝ
-  /-- Running time of the sampler. -/
+  /-- Unverified cost annotation. -/
   cost : ℕ
+
+/-- An external execution model. Its primitive semantics and primitive costs must be
+justified by the caller. This declaration supplies no implementation of those primitives. -/
+structure ExecutionBackend (Input Output : Type) where
+  Op : Type
+  State : Type
+  initial : Input → State
+  step : Op → State → State
+  read : State → Output
+  charge : Op → ℕ
+
+/-- Interpret the complete operation word, in order. -/
+def ExecutionBackend.run {I O : Type} (B : ExecutionBackend I O)
+    (word : List B.Op) (input : I) : O :=
+  B.read (word.foldl (fun state op => B.step op state) (B.initial input))
+
+/-- Total cost derived from the actual word, relative to the backend's primitive charges. -/
+def ExecutionBackend.work {I O : Type} (B : ExecutionBackend I O)
+    (word : List B.Op) : ℕ :=
+  (word.map B.charge).sum
+
+/-- Composition adds the charges of the two executed operation words. -/
+theorem ExecutionBackend.work_append {I O : Type} (B : ExecutionBackend I O)
+    (first second : List B.Op) :
+    B.work (first ++ second) = B.work first + B.work second := by
+  simp [ExecutionBackend.work, List.sum_append]
+
+/-- Explicit decoder input contract: one word implements recovery on every syndrome,
+and the declared cost equals the sum of charges for that word. -/
+def ExecutesDecoder {q n m : ℕ} [NeZero q] (A : SyndromeDecoder q n m)
+    (B : ExecutionBackend (Fin m → ZMod q) (Fin n → ZMod q))
+    (word : List B.Op) : Prop :=
+  (∀ s, B.run word s = A.dec s) ∧ A.cost = B.work word
+
+/-- External coherent-preparation semantics, with charges for primitive operations.
+The caller must justify `prepares` using a quantum execution model. -/
+structure PreparationBackend (q n : ℕ) [NeZero q] where
+  Op : Type
+  prepares : List Op → ((Fin n → ZMod q) → ℂ) → Prop
+  charge : Op → ℕ
+
+/-- Explicit preparation input contract. Preparation is assumed for the very word
+whose primitive charges sum to the legacy cost; it is not inferred from that cost. -/
+def PreparesState {q n : ℕ} [NeZero q] {F : (Fin n → ZMod q) → ℂ}
+    (A : StatePrep q n F) (B : PreparationBackend q n) (word : List B.Op) : Prop :=
+  B.prepares word F ∧ A.cost = (word.map B.charge).sum
+
+/-- Sampling contract using a uniform finite seed. The output law is derived from
+execution on each seed, so it is normalized when `seeds > 0`. Random-seed generation
+must be included in the supplied backend's charged primitive model. -/
+def SamplesCosets {q k n : ℕ} [NeZero q] (A : CosetSampler q k n)
+    (seeds : ℕ)
+    (B : ExecutionBackend ((Fin k → ZMod q) × Fin seeds) (Fin n → ZMod q))
+    (word : List B.Op) : Prop :=
+  0 < seeds ∧ A.cost = B.work word ∧
+    ∀ s x, A.out s x =
+      (∑ seed : Fin seeds, if B.run word (s, seed) = x then (1 : ℝ) else 0) / seeds
 
 end Qatlib.Papers.SoftDecoder24.MainResults.Basic

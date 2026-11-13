@@ -36,7 +36,6 @@ confines Fourier support to any determining coordinate set.
   Juntas.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

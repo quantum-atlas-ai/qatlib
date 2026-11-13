@@ -29,9 +29,6 @@ background on quantum search and amplitude amplification, see [BrassardEtAl2002]
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
-
 
 open Qatlib.Concepts.WalkSearch.Primitives
 set_option autoImplicit false

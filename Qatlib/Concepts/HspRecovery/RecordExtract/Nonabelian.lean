@@ -36,8 +36,6 @@ quantified conjunction in `clause2_is_false`.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian.TopBitBundle
 
 open Qatlib.Foundations.QueryWordCore.Circuit

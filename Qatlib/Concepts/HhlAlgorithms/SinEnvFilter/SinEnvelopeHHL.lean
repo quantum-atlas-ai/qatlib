@@ -37,9 +37,7 @@ bound on the scaled second moment.
 * [Harrow et al., 2009, Appendix A][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

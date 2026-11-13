@@ -36,7 +36,6 @@ constructions. The quantum Metropolis setting is described in [TemmeEtAl2011].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -45,8 +44,6 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 namespace StageAQUANTUMGIBBS

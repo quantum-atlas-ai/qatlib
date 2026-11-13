@@ -20,6 +20,10 @@ The specialization `exists_bsearch_of_ordered` uses `Nat.clog 2 N` as a sufficie
 first `N` indices. The expression `orderedClawUpperCost` records `sqrt M * Nat.clog 2 N`, the
 search cost scale associated with the ordered claw setting of [BuhrmanEtAl2005].
 
+The theorems prove correctness of this classical recursive function when the
+target is present and compare logarithms. They do not implement a quantum query
+circuit or bound its query count by `orderedClawUpperCost`.
+
 ## Main statements
 
 * `bsearch_spec`: a target already present in a sufficiently short interval is found.
@@ -31,8 +35,6 @@ search cost scale associated with the ordered claw setting of [BuhrmanEtAl2005].
 * [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
   arXiv:quant-ph/0007016 (2000 preprint).
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

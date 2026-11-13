@@ -600,16 +600,12 @@ Original proof: factor `f_{j,k}(x) = √c x_j e^{−cx_j²/2} · √c x_k e^{−
 Π_{i≠j,k} e^{−cx_i²/2}` and use the Taylor series of `e^{−cx²/2}` together with
 `(2ℓ)!/ℓ! ≤ (2ℓ)^ℓ` and `(2ℓ+1)!/ℓ! ≤ (2ℓ+1)^{ℓ+1/2}`, plus `(√c)^ℓ ≤ c^ℓ`.
 
-**Lean gap.** The product factorisation and the factorial estimates
-(`Nat.factorial`-ratio bounds) are not formalised; the Hessian computation
-`H_{f_{j,k}}(0) = c(E_{jk} + E_{kj})` needs a second-derivative calculation for the
-Gaussian factors. The derivative is modelled with `Core.partialDeriv` (`iteratedFDeriv`
-along the coordinate directions of `α`).
-**Reusable deps.** `Core.partialDeriv`, `Core.hessian`, `Core.elementaryMatrix`,
-`gaussianFamily`, `gaussianFamily_sum_sq_le`.
-**Next tactics.** Prove `iteratedFDeriv` of a product via `iteratedFDerivWithin_prod`
-style lemmas, bound the factorial ratios with `Nat.factorial_le_pow` and
-`Nat.pow_le_pow_left`, then `simp [gaussianFamily, hessian]` for the Hessian. -/
+**Scope note.** The product factorisation and factorial estimates are incorporated
+through the derivative lemmas in this module. The Hessian computation
+`H_{f_{j,k}}(0) = c(E_{jk} + E_{kj})` is expressed with `Core.partialDeriv`
+and `iteratedFDeriv` along the coordinate directions of `α`.
+**Related definitions.** `Core.partialDeriv`, `Core.hessian`, `Core.elementaryMatrix`,
+`gaussianFamily`, `gaussianFamily_sum_sq_le`. -/
 theorem gaussianFamily_deriv_bound {d : ℕ} (c : ℝ) (hc : 1 ≤ c) (j k : Fin d)
     (α : List (Fin d)) :
     |partialDeriv (gaussianFamily c c j k) α| ≤

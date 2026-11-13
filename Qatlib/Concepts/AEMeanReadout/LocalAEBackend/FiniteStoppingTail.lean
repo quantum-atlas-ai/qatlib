@@ -31,7 +31,6 @@ randomized quantum search as studied in [BoyerEtAl1998].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
@@ -75,11 +74,11 @@ theorem event_ret (a : α) (Q : α × ℕ → Prop) :
 
 /-- An event containing the zero-cost output `(a, 0)` has probability one under `ret a`. -/
 theorem event_ret_one (a : α) {Q : α × ℕ → Prop} (h : Q (a, 0)) : event (ret a) Q = 1 := by
-  rw [event_ret, if_pos h]
+  rw [event_ret, ite_eq_left h]
 
 /-- An event excluding the zero-cost output `(a, 0)` has probability zero under `ret a`. -/
 theorem event_ret_zero (a : α) {Q : α × ℕ → Prop} (h : ¬Q (a, 0)) : event (ret a) Q = 0 := by
-  rw [event_ret, if_neg h]
+  rw [event_ret, ite_eq_right h]
 
 /-- The probability of an event after monadic binding equals the expectation of its conditional
 event probabilities. -/
@@ -118,7 +117,7 @@ theorem event_congr {p : PMF α} {E E' : α → Prop} (h : ∀ a, E a ↔ E' a) 
 
 /-- An event that holds for no outcome has probability zero. -/
 theorem event_zero (p : PMF α) (E : α → Prop) (h : ∀ a, ¬E a) : event p E = 0 := by
-  have h0 : ∀ a, p a * (if E a then 1 else 0) = 0 := fun a => by rw [if_neg (h a), mul_zero]
+  have h0 : ∀ a, p a * (if E a then 1 else 0) = 0 := fun a => by rw [ite_eq_right (h a), mul_zero]
   show ∑' a, p a * (if E a then 1 else 0) = 0
   rw [tsum_congr h0]
   exact tsum_zero

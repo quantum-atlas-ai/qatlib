@@ -30,8 +30,6 @@ with arbitrary correlations with the spectator coordinates.
 * [Boghosian and Taylor, 1998][BoghosianTaylor1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QMechSim97.MainResults.ActualCollision

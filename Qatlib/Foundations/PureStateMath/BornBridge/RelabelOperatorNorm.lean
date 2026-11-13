@@ -26,7 +26,6 @@ norm [Bhatia1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 
@@ -35,8 +34,6 @@ namespace Qatlib.Foundations.PureStateMath.BornBridge
 open Matrix
 
 open scoped Matrix.Norms.L2Operator
-
-set_option linter.unusedSectionVars false
 
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 

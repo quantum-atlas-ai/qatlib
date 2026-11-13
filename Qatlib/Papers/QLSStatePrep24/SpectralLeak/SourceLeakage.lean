@@ -22,9 +22,9 @@ success probabilities `p_succ`, `p_succ,d-inv,1`, `p_succ,d-inv`,
 `p_succ,d-inv,m`, `p_succ,d-inv,bm`; Proposition 26 (p.74) is the `9^l`
 threshold-sum stability with its `ε_bm` perturbation bound.
 
-They are bridged to the frozen contracts `Clause30WeightedSpectralLeakage`,
+They are bridged to the formal contracts `Clause30WeightedSpectralLeakage`,
 `Clause31FiveSuccessProbabilities` and `Clause32ThresholdSumStability`, all proved in
-Frozen v2.0.2.
+the existing formalisation.
 
 Boundary: the contracts take the band rows, the normalized coefficient rows and
 the approximated output vector as hypotheses; they do not construct the
@@ -45,7 +45,7 @@ namespace Qatlib.Papers.QLSStatePrep24.SpectralLeak
 /-- Fixed arXiv:2410.18178v2, Lemma 24 (p.72): under `bandRowsLegal`, the stop
 coefficient rows satisfy `Σ_j ‖ζ_{j+1} u‖² = 1` for every eigenvalue index,
 and the weighted leakage is bounded by `9 p₁ e²` (true flag) and
-`p₁ e²/9` (false flag), where `e = Σ_j δ_{j+1}`. Frozen
+`p₁ e²/9` (false flag), where `e = Σ_j δ_{j+1}`. The established formalisation
 `Clause30WeightedSpectralLeakage` proved by `Clause30WeightedSpectralLeakage_answer`. -/
 theorem lemma24_weighted_spectral_leakage : Clause30WeightedSpectralLeakage :=
   Clause30WeightedSpectralLeakage_answer
@@ -54,7 +54,7 @@ theorem lemma24_weighted_spectral_leakage : Clause30WeightedSpectralLeakage :=
 success probabilities satisfy
 `p₁/9 ≤ p ≤ p₁`, `p₁(1-e²)/9 ≤ p_n ≤ p₁`, `p_n ≤ p_f`,
 `p_f ≤ p_n (1 + 9³ e²/(1-e)²)` and `|p_f - p_bm| ≤ 4 ε_bm`.
-Frozen `Clause31FiveSuccessProbabilities` proved by
+`Clause31FiveSuccessProbabilities` proved by
 `Clause31FiveSuccessProbabilities_answer`. -/
 theorem prop25_five_success_probabilities : Clause31FiveSuccessProbabilities :=
   Clause31FiveSuccessProbabilities_answer
@@ -62,7 +62,7 @@ theorem prop25_five_success_probabilities : Clause31FiveSuccessProbabilities :=
 /-- Fixed arXiv:2410.18178v2, Proposition 26 (p.74): the threshold sum obeys
 `p 9^l ≤ thresholdSum m l γ ζ ≤ (5/4) p 9^l` for `0 < l ≤ m` (and vanishes at
 `l = 0`), while perturbing each of `l` vectors by `≤ 2 ε_bm` perturbs the
-`9^j`-weighted sum by at most `(9/8) · 4 ε_bm · 9^l`. Frozen
+`9^j`-weighted sum by at most `(9/8) · 4 ε_bm · 9^l`. The established formalisation
 `Clause32ThresholdSumStability` proved by `Clause32ThresholdSumStability_answer`. -/
 theorem prop26_threshold_sum_stability : Clause32ThresholdSumStability :=
   Clause32ThresholdSumStability_answer

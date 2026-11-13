@@ -22,14 +22,14 @@ Source statement: for Hermitian `H, H′`,
 `‖ e^H/tr(e^H) − e^{H′}/tr(e^{H′}) ‖₁ ≤ 2 (e^{‖H−H′‖} − 1)`  (Eq. (85)).
 
 The matrix `e^H / tr(e^H)` is rendered as `(tr e^H)⁻¹ • e^H` (scalar inverse
-times the matrix), which is the source expression.  The bound is the Frozen
-answer theorem
-`QuantumAlgorithm.Foundations.MatrixExpTrace.GibbsNorm.normalized_gibbs_branch_traceNorm_le`,
+times the matrix), which is the source expression.  The bound is the library
+theorem
+`Qatlib.Concepts.MatrixExpTrace.GibbsNorm.normalized_gibbs_branch_traceNorm_le`,
 which proves the same statement for arbitrary nonempty finite bases and arbitrary
 Hermitian `H, K` with **no commutativity assumption**; the normalised branch is
 unfolded here to the paper's inverse-partition form.
 
-The companion Frozen theorem `sdp_gibbs_perturbation_noncommuting` states the
+The companion theorem `sdp_gibbs_perturbation_noncommuting` states the
 bound directly on `Operator D`; it is restated below as the paper-layer
 `Operator`-form consumer.
 -/
@@ -61,7 +61,7 @@ theorem lemma16_gibbsTraceNorm {I : Type} [Fintype I] [DecidableEq I] [Nonempty 
     if_pos hHpos, if_pos hKpos] using h
 
 /-- Lemma 16 on the `Operator D` register used by the source algorithm (companion
-Frozen theorem `sdp_gibbs_perturbation_noncommuting`). -/
+theorem `sdp_gibbs_perturbation_noncommuting`). -/
 theorem lemma16_operatorForm (D : ℕ)
     (H K : Qatlib.Foundations.PureStateMath.Operator D)
     (hD : 0 < D) (hH : H.IsHermitian) (hK : K.IsHermitian) :

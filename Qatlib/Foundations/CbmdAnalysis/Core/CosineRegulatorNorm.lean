@@ -25,8 +25,6 @@ evaluates `cosineRegulator` at the target point one. The resulting estimate `exp
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false

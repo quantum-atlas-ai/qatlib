@@ -35,8 +35,6 @@ bounds the scalar success expression for 1000 repetitions.
 * [Høyer et al., 2003][HoyerMoscaDeWolf2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

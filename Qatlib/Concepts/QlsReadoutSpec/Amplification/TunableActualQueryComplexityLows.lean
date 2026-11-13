@@ -36,7 +36,6 @@ The estimates formalize cost accounting for variable-time amplitude amplificatio
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QlsReadoutSpec.ProgramModel

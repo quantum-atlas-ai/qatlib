@@ -35,7 +35,6 @@ adjoint hypotheses; Hamiltonian Hermiticity and resource identities are also pro
 * [Byrnes and Yamamoto, 2006][ByrnesYamamoto2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

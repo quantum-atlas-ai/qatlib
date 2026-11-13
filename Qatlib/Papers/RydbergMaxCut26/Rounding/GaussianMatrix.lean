@@ -26,8 +26,6 @@ rounded correlations. See [CrostaSaubanereHuber2026].
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open MeasureTheory ProbabilityTheory

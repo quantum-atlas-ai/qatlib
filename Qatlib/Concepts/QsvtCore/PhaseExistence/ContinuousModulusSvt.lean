@@ -61,7 +61,6 @@ open Qatlib.Concepts.SpectralSketch.SketchSpectral
 open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.ContinuousModulusSvt
 
 /-- Clamping to [-1, 1] commutes with negation. -/

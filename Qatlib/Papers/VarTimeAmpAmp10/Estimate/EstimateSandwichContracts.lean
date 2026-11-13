@@ -24,7 +24,6 @@ bound, exact zero estimates at zero mass, and a circuit realization with a query
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout

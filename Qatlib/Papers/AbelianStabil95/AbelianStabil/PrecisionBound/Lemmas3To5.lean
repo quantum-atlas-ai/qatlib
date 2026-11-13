@@ -28,7 +28,6 @@ records the corresponding total-variation triangle bound. The development follow
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

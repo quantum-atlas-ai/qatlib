@@ -27,7 +27,6 @@ overlapping shifted segments; see [HornJohnson2013] for the matrix and inner-pro
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

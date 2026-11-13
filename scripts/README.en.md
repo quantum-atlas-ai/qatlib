@@ -7,7 +7,7 @@ This directory contains the Lean maintenance and verification executables regist
 - **`get_cache.lean`** (`lake exe get_cache`):
   Fetches three-tier precompiled build caches for upstream `Mathlib`, `Physlib`, and `Qatlib` as configured in [`lake-cache.toml`](../lake-cache.toml).
 - **`lint.lean`** (`lake lint` or `lake exe lint`, configured as `lintDriver = "lint"`):
-  Fast, read-only static source, style, and import graph linter (~1 second across the library):
+  Read-only static source, style, import, fidelity, and bibliography linter:
   1. **Source & Style Check**: Verifies Apache-2.0 copyright headers, allowed top-level `Qatlib/` directories (`Foundations`, `Concepts`, `Papers`), strict `UpperCamelCase` directory and file names, zero case-insensitive path collisions (`ERR_CASE`), Unix `\n` line endings, no trailing whitespace, no space before semicolons, and no forbidden debug `set_option` commands.
   2. **Module Tree & Layer Check**: Verifies that `Qatlib.lean` imports all modules under `Qatlib/` in sorted order, no bare `import Mathlib` exists, every `import Qatlib.*` statement resolves to an existing source file, and dependencies strictly follow `Foundations ← Concepts ← Papers` (reverse imports report `ERR_LAY`).
 - **`test.lean`** (`lake test` or `lake exe test`, configured as `testDriver = "test"`):

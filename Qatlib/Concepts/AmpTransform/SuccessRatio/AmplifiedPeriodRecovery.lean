@@ -30,8 +30,6 @@ caps, and expected query bounds, including recovery over a finite list of possib
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 

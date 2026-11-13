@@ -31,7 +31,6 @@ exactly `Nat.clog 2 s` measurements. The constructions relate to finite Kraus im
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

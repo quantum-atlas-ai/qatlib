@@ -29,7 +29,6 @@ full flag workspace.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Qatlib.Concepts.QsvtCore.QsVtMain
 
@@ -51,8 +50,6 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open scoped Classical BigOperators
-set_option warningAsError false
-set_option linter.unusedSectionVars false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 

@@ -37,7 +37,6 @@ see [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.StoppingCore.InterruptBridge
@@ -53,7 +52,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 

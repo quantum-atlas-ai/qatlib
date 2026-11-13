@@ -28,7 +28,7 @@ PDF SHA-256 `397e011bc798dbb6aa2d4bf93f6d2e666a12f77fd0655e1168d03037d0af4da7`.
 
 Modeling: the paper's TPS has *open* auxiliary legs contracted with boundary
 vectors, so we use `tpsAmplitude` (boundary vectors `bu bd br bl`) rather than the
-frozen `pepsAmplitude` (whose boundary legs are hard-fixed at `0`).  This matters:
+library's `pepsAmplitude` (whose boundary legs are hard-fixed at `0`). This matters:
 with the boundary hard-fixed to the index `0`, a direct sum over `n` channels
 cannot be represented with bond `nD` on a lattice with `a,b ≥ 2`, because the
 channel label cannot cross the top/left boundary; the open-boundary convention is
@@ -129,7 +129,7 @@ theorem first_order_step_zero {a b d D m : ℕ} (zb : Fin D)
   ring
 
 /-
-## Open gap: the `nD` bond-dimension bound
+## Scope of the `nD` bond-dimension bound
 
 Fixed source: arXiv:cond-mat/0407066v1, p. 3 (right column below Eq. (6)),
 SHA-256 `397e011bc798dbb6aa2d4bf93f6d2e666a12f77fd0655e1168d03037d0af4da7`.
@@ -142,20 +142,19 @@ applying it to a bond-`D` TPS modifies the local tensors and keeps bond dimensio
 sum of `n` bond-`D` TPS amplitudes is a bond-`(n*D)` TPS by taking the direct sum
 of the channel labels on every virtual leg, contracting the boundary legs with the
 single boundary vector `Σ_k e_k ⊗ b_k`.
-Current Lean gap: step (i) needs the site-wise product factorization over all sites
-of `tpsAmplitude` including the `if`-guarded boundary weights; step (iii) needs the
-reindexing of a sum over `Fin (n*D) = Fin n × Fin D`-valued bond assignments and of
-the product over sites into the channel sum; neither is available in Frozen
-(`pepsAmplitude` fixes boundary legs at `0`, which cannot carry the channel label
-across the top/left boundary, so the frozen amplitude cannot state this claim).
-Only the `δt = 0` slice (`first_order_step_zero_representable` below) is proved.
-Candidate reusable dependencies: `Finset.prod_univ_sum`, `Finset.prod_erase_mul`,
-`Fintype.sum_equiv`, `Fintype.sum_prod_type`, `finProdFinEquiv`.
-Suggested follow-up tactic: construct `T'` with bond `Fin (m+1) × Fin D`, define
+Scope note: this file proves only the `δt = 0` slice
+(`first_order_step_zero_representable` below). The general bound requires the
+site-wise product factorization of `tpsAmplitude`, including its boundary
+weights, and the reindexing of bond assignments through
+`Fin (n*D) ≃ Fin n × Fin D` to separate the channel sum from the product over
+sites. These identities are outside the scope of this file. In contrast,
+`pepsAmplitude` fixes boundary legs at `0`, which cannot carry the channel label
+across the top/left boundary.
+
+In the direct-sum construction the bond type is `Fin (m+1) × Fin D`, with tensors
 `T' ((k,σ), legs) := (∏_{legs} if leg.channel = k then 1 else 0) * T_k σ (strip leg)`
-with boundary vectors `bu' (k,u) := bu_k u`, then `simp [tpsAmplitude, T', bu',
-Finset.prod_univ_sum, Fintype.sum_equiv]` and close the channel sum with
-`Finset.sum_sigma`/`Fintype.sum_prod_type`. -/
+and boundary vectors such as `bu' (k,u) := bu_k u`. The channel constraints reduce
+the contraction to the sum of the individual TPS amplitudes. -/
 /-- A TPS amplitude is representable at its own bond dimension: the tensor and the
 boundary vectors are themselves the witness, so `InTpsBond D` holds reflexively. -/
 theorem tps_self_representable {a b d D : ℕ} (zb : Fin D)

@@ -36,7 +36,6 @@ underlying stabilizer circuit manipulation, the setting of [AaronsonGottesman200
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 section
 

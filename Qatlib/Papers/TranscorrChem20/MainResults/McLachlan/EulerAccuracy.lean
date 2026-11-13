@@ -25,8 +25,6 @@ coefficients for which thresholding leaves a nonzero normal-equation residual. S
 * [McArdle and Tew, 2020][McArdleTew2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Set

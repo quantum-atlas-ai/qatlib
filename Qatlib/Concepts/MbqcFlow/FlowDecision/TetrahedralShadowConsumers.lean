@@ -25,7 +25,6 @@ fresh records, while `tetrahedral_zero_boundary` records the empty-sample conven
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
@@ -37,8 +36,6 @@ open Matrix
 open scoped ComplexOrder ComplexConjugate Kronecker
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The Pauli Y value of a tetrahedral snapshot is √3 times its Y sign. -/
 theorem trace_pauliY_tetraSnapshot (a : Fin 4) :

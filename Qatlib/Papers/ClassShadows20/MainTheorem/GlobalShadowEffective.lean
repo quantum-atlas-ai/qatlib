@@ -29,7 +29,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -39,7 +38,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.RiskEstimation.PopulationGap
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.ClassShadows20.MainTheorem
 

@@ -41,7 +41,6 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
-set_option warningAsError false
 
 /-- Given a monotone finite sequence, a valid bracketing interval, and enough bisection fuel,
 exact bisection returns an index in that interval whose value reaches `q` and whose

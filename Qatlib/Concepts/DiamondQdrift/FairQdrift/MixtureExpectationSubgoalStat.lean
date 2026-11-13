@@ -24,7 +24,6 @@ randomized simulation channel of [Campbell2019].
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds

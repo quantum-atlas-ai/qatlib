@@ -34,7 +34,6 @@ concrete implementation in this development.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Emitter

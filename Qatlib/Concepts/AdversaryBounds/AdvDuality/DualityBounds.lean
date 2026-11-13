@@ -40,7 +40,6 @@ circuit framework of [NielsenChuang2010].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.CoherentSim.CoherentOAA

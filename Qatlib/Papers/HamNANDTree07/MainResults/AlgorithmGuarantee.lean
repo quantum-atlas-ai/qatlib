@@ -29,7 +29,6 @@ arbitrarily small. See [FarhiGoldstoneGutmann2008] for the Hamiltonian NAND-tree
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.HamNANDTree07.MainResults.AlgorithmGuarantee
@@ -60,7 +59,7 @@ theorem runTime_nonneg (γ : ℝ) (N : ℕ) (hγ : 0 ≤ γ) : 0 ≤ runTime γ 
   positivity
 
 /-- For γ ≥ 0, the runtime is at most (γ / 2)√N. -/
-theorem runTime_le_scaled_sqrt (γ : ℝ) (N : ℕ) (hγ : 0 ≤ γ) :
+theorem runTime_le_scaled_sqrt (γ : ℝ) (N : ℕ) (_hγ : 0 ≤ γ) :
     runTime γ N ≤ (γ / 2) * Real.sqrt N := by
   rw [(runTime_eq γ N).2]
 
@@ -93,8 +92,8 @@ theorem exists_gamma_for_small_error (C ε : ℝ) (hC : 0 < C) (hε : 0 < ε) :
 a nonnegative runtime γ√N / 2 and errors at most C / √γ for both inputs. See
 [FarhiGoldstoneGutmann2008]. -/
 theorem hamiltonian_nand_tree_algorithm_guarantee
-    (N : ℕ) (hN : 1 ≤ N) (γ C η : ℝ) (hγ : 1 ≤ γ)
-    (hη : η ≤ C / Real.sqrt γ) (hC : 0 ≤ C)
+    (N : ℕ) (_hN : 1 ≤ N) (γ C η : ℝ) (hγ : 1 ≤ γ)
+    (hη : η ≤ C / Real.sqrt γ) (_hC : 0 ≤ C)
     (pZero pOne : ℝ) (hZero : pZero ≤ η) (hOne : 1 - pOne ≤ η) :
     ∃ tRun : ℝ,
       tRun = γ * Real.sqrt N / 2 ∧

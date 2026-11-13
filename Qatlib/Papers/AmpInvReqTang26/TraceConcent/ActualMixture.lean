@@ -35,7 +35,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.RootLaws
-set_option warningAsError false
 
 /-- The biased phase expectation is the convex combination of the uniform phase mean and the
 right-arc phase mean. -/

@@ -31,8 +31,6 @@ The mathematical setting is that of [Wiesner1996].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -40,6 +38,8 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 namespace Qatlib.Papers.ManyBodySim96.MainResults
 
 variable {X : Type} [Fintype X] [DecidableEq X]
+
+omit [DecidableEq X] in
 
 /-- The expectation of a function valued in `[0, 1]` also lies in `[0, 1]`. -/
 theorem expect_mem_unit (p : FinDist X) (f : X → ℝ)
@@ -118,6 +118,8 @@ theorem repeated_measurement_accuracy (p : FinDist X) (f : X → ℝ)
         (fun ω => δ < |FinDist.avg f ω - p.expect f|) ≤ η := by
   refine (avg_tail_quarter p f hf0 hf1 (sampleCount_pos δ η) δ hδ).trans
     (sampleCount_tail δ η hδ hη)
+
+omit [DecidableEq X] in
 
 /-- Pointwise implication between sample events gives the corresponding inequality between their
 probabilities. -/

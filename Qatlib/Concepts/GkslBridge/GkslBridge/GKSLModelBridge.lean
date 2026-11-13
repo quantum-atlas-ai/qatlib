@@ -24,7 +24,6 @@ The generator form comes from [Lindblad1976] and
 background is [BreuerPetruccione2007].
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 
 set_option autoImplicit false

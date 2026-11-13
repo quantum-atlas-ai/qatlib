@@ -25,7 +25,6 @@ and projection estimates used in the hitting-time comparisons of [MagniezEtAl200
 * [Magniez et al., 2008][MagniezEtAl2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

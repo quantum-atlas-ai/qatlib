@@ -24,7 +24,6 @@ normalized adaptive record laws whose good-event mass is at least `1 - n * (8 / 
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout

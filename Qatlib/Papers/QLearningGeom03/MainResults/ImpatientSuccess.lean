@@ -29,10 +29,7 @@ The identities give the matrix formulation of impatient learning success used in
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 

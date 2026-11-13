@@ -26,7 +26,6 @@ bound on the remaining probability mass. The trace norm framework is described i
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtureTraceError

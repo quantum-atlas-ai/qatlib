@@ -28,7 +28,6 @@ ratios. The module combines this identity with exponential coefficient bounds to
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 

@@ -45,7 +45,7 @@ decay in `t` is established separately in `MainResults.PhaseEstimationError`
 (claim c004); they are not part of this file's statements.
 
 Shared interface: expectation-value measurement of Hermitian observables on a quantum
-state is the province of `QuantumAlgorithm.MeasureStats.PauliShadows` (Frozen v2.0.2);
+state is provided by `Qatlib.Concepts.MeasureStats.PauliShadows`;
 this file contributes the algebraic readout identities that make that measurement
 applicable to the NESS state.
 -/

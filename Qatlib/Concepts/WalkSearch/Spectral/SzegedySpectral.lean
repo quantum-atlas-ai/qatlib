@@ -32,16 +32,12 @@ eigenvector. Its specialization `szegedy_spectral_map` transfers a discriminant 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 open Qatlib.Concepts.AmplitudeCore.InvFreePhase
 
 namespace Qatlib.Concepts.WalkSearch.Spectral
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 
@@ -56,6 +52,7 @@ theorem swapGate_mul_self :
     SwapGate * SwapGate = (1 : Matrix (I × I) (I × I) ℂ) :=
   permMatrix_mul_self Prod.swap_swap
 
+omit [Fintype I] in
 /-- The register swap matrix equals its adjoint. -/
 theorem swapGate_hermitian : (SwapGate : Matrix (I × I) (I × I) ℂ)ᴴ = SwapGate :=
   permMatrix_conjTranspose Prod.swap_swap
@@ -65,13 +62,15 @@ theorem swapGate_mul_apply (M : Matrix (I × I) I ℂ) (p : I × I) (y : I) :
     (SwapGate * M : Matrix (I × I) I ℂ) p y = M (Prod.swap p) y := by
   show (∑ r : I × I, (SwapGate : Matrix (I × I) (I × I) ℂ) p r * M r y) = _
   rw [Finset.sum_eq_single (Prod.swap p)]
-  · rw [SwapGate, permMatrix, Matrix.of_apply, if_pos (Prod.swap_swap p).symm, one_mul]
+  · rw [SwapGate, permMatrix, Matrix.of_apply, ite_eq_left (Prod.swap_swap p).symm, one_mul]
   · intro r _ hr
     rw [SwapGate, permMatrix, Matrix.of_apply,
-      if_neg (fun h => hr (((congrArg Prod.swap h).trans (Prod.swap_swap r)).symm)),
+      ite_eq_right (fun h => hr (((congrArg Prod.swap h).trans (Prod.swap_swap r)).symm)),
       zero_mul]
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
+
+omit [Fintype I] in
 
 /-- The Szegedy row frame has entry `sqrt (P x b)` when the first register equals its column
 index, and zero otherwise. -/
@@ -96,30 +95,32 @@ theorem szegedyIsometryB_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransit
   rw [Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Fintype.sum_prod_type]
+    rw [ite_eq_left rfl, Fintype.sum_prod_type]
     have hinner : ∀ a : I, (∑ b : I, (starRingEnd ℂ) (SzegedyIsometryB P (a, b) x)
         * SzegedyIsometryB P (a, b) x) = ((P x a : ℂ)) := by
       intro a
       rw [Finset.sum_eq_single x]
-      · rw [szegedyIsometryB_apply, if_pos rfl, starRingEnd_ofReal,
+      · rw [szegedyIsometryB_apply, ite_eq_left rfl, starRingEnd_ofReal,
           ← Complex.ofReal_mul, ← sq, Real.sq_sqrt (hP.1 x a)]
       · intro b _ hb
-        rw [szegedyIsometryB_apply, if_neg hb, map_zero, zero_mul]
+        rw [szegedyIsometryB_apply, ite_eq_right hb, map_zero, zero_mul]
       · intro hcon
         exact absurd (Finset.mem_univ x) hcon
     rw [Finset.sum_congr rfl fun a _ => hinner a, ← Complex.ofReal_sum, hP.2 x,
       Complex.ofReal_one]
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun p _ => ?_
     obtain ⟨a, b⟩ := p
     by_cases hbx : b = x
-    · rw [szegedyIsometryB_apply, szegedyIsometryB_apply, if_pos hbx,
-        starRingEnd_ofReal, if_neg (fun h => hxy (hbx.symm.trans h)), mul_zero]
-    · rw [szegedyIsometryB_apply, if_neg hbx, map_zero, zero_mul]
+    · rw [szegedyIsometryB_apply, szegedyIsometryB_apply, ite_eq_left hbx,
+        starRingEnd_ofReal, ite_eq_right (fun h => hxy (hbx.symm.trans h)), mul_zero]
+    · rw [szegedyIsometryB_apply, ite_eq_right hbx, map_zero, zero_mul]
 
 /-- The real discriminant matrix with entries `sqrt (P x y * P y x)`. -/
 noncomputable def SzegedyDiscriminant (P : I → I → ℝ) : Matrix I I ℝ :=
   Matrix.of fun x y => Real.sqrt (P x y * P y x)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Evaluate an entry of the Szegedy discriminant as the square root of the product of the two
 opposite transition probabilities. -/
@@ -139,15 +140,15 @@ theorem szegedy_gram_eq_discriminant (P : I → I → ℝ) (hP : IsTransitionMat
     szegedyDiscriminant_apply]
   rw [Finset.sum_eq_single x]
   · rw [Finset.sum_eq_single y]
-    · rw [if_pos rfl, if_pos rfl, starRingEnd_ofReal, ← Complex.ofReal_mul,
+    · rw [ite_eq_left rfl, ite_eq_left rfl, starRingEnd_ofReal, ← Complex.ofReal_mul,
         ← Real.sqrt_mul (hP.1 x y)]
     · intro b _ hb
-      rw [if_neg hb, mul_zero]
+      rw [ite_eq_right hb, mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ y) hcon
   · intro a _ ha
     refine Finset.sum_eq_zero fun b _ => ?_
-    rw [if_neg ha, map_zero, zero_mul]
+    rw [ite_eq_right ha, map_zero, zero_mul]
   · intro hcon
     exact absurd (Finset.mem_univ x) hcon
 
@@ -168,26 +169,26 @@ theorem swapGate_mul_mul_swapGate (X : Matrix (I × I) (I × I) ℂ) (p q : I ×
   show (∑ r : I × I, (SwapGate * X : Matrix (I × I) (I × I) ℂ) p r
       * (SwapGate : Matrix (I × I) (I × I) ℂ) r q) = _
   rw [Finset.sum_eq_single (Prod.swap q)]
-  · rw [SwapGate, permMatrix, Matrix.of_apply, if_pos rfl, mul_one]
+  · rw [SwapGate, permMatrix, Matrix.of_apply, ite_eq_left rfl, mul_one]
     show (∑ s : I × I, (SwapGate : Matrix (I × I) (I × I) ℂ) p s
         * X s (Prod.swap q)) = _
     rw [Finset.sum_eq_single (Prod.swap p)]
-    · rw [SwapGate, permMatrix, Matrix.of_apply, if_pos (Prod.swap_swap p).symm,
+    · rw [SwapGate, permMatrix, Matrix.of_apply, ite_eq_left (Prod.swap_swap p).symm,
         one_mul]
     · intro s _ hs
       rw [SwapGate, permMatrix, Matrix.of_apply,
-        if_neg (fun h => hs (((congrArg Prod.swap h).trans (Prod.swap_swap s)).symm)),
+        ite_eq_right (fun h => hs (((congrArg Prod.swap h).trans (Prod.swap_swap s)).symm)),
         zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ _) hcon
   · intro r _ hr
-    rw [SwapGate, permMatrix, Matrix.of_apply, if_neg (fun h => hr h), mul_zero]
+    rw [SwapGate, permMatrix, Matrix.of_apply, ite_eq_right (fun h => hr h), mul_zero]
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
 /-- The Szegedy walk is the product of reflections about the ranges of its swapped and original
 frames [Szegedy2004]. -/
-theorem szegedyWalk_eq_twoReflections (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
+theorem szegedyWalk_eq_twoReflections (P : I → I → ℝ) (_hP : IsTransitionMatrix P) :
     SzegedyWalk P = ReflectionAbout (SzegedyIsometryB P * (SzegedyIsometryB P)ᴴ) *
       ReflectionAbout (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) := by
   have hconj : SwapGate * (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) * SwapGate

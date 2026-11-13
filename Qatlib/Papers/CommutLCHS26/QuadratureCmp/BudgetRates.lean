@@ -34,7 +34,6 @@ open scoped Topology
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
-set_option warningAsError false
 
 /-- Under the stated smallness conditions, `log (1 + A / ε)` is at most `2 log (1 / ε)`. -/
 theorem log_one_add_div_le {A ε : ℝ} (hA : 0 ≤ A) (hε : 0 < ε)

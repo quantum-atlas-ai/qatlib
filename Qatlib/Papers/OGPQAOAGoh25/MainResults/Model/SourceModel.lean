@@ -38,7 +38,7 @@ This module fixes the semantic vocabulary shared by the paper-layer claims
   supported on instances whose graph has `m` edges resp. is `d`-regular.
 
 The probability layer is deliberately elementary (finite sums over `FinDist`,
-as in the reused `QuantumAlgorithm.Concepts.MonteCarloMean.FinDistBounds`
+as in the `Qatlib.Concepts.MonteCarloMean.FinDistBounds`
 API): it records the exact finite-probability statements that the paper's
 left-hand sides refer to, without importing a measure-theoretic model of the
 random hypergraph ensembles. The distributional laws of `G^q_ER(n,m)` and

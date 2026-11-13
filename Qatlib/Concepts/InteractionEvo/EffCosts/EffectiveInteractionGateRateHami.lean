@@ -29,7 +29,6 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.InteractionEvo.EffCosts
 open scoped BigOperators
-set_option warningAsError false
 
 /-- A dyadic interaction time is nonnegative when the rational base duration is nonnegative. -/
 private theorem dyadicTime_nonneg (tau : ℚ) (nd j : ℕ) (ht : 0 ≤ tau) :

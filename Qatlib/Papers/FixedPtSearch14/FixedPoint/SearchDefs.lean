@@ -41,7 +41,6 @@ table.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.StoppingCore.InterruptBridge

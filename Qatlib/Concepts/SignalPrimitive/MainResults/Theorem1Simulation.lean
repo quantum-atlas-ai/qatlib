@@ -34,9 +34,6 @@ fourfold scaled compressed responses approximate `exp (-i t H)`.
 - [Low and Chuang, 2019][LowChuang2019], Theorem 1.
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.SignalPrimitive.HermitianQSVT
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb

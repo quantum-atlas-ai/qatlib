@@ -30,7 +30,6 @@ This development supports the treatment in [FarhiGutmann1998a].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

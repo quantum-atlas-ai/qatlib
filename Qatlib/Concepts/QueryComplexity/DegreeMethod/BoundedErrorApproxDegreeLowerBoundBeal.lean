@@ -25,7 +25,6 @@ bounded-error query lower bound from the polynomial method [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod

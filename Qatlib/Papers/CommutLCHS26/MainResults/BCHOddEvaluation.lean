@@ -37,7 +37,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.BCHOddEvaluation
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHFormal BCHConvergence BCHControlled BCHHalfBudget
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

@@ -36,8 +36,6 @@ arbitrary complex target.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

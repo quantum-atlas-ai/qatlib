@@ -33,7 +33,6 @@ constant that work for every pair of input words. On `mulInput x y`, the machine
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 

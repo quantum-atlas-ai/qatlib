@@ -28,8 +28,6 @@ sine, giving the weight-enumerator identities underlying Lemma 4 of [ShepherdBre
 * [Shepherd and Bremner, 2009][ShepherdBremner2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

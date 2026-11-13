@@ -63,7 +63,6 @@ def nativeLayerOutput (k : ℕ) (ω : LayerRecord k) : ℚ :=
 
 noncomputable section
 open scoped Classical
-set_option warningAsError false
 
 /-- Coercing the rational merge-sort median to the reals gives the sorted real block median of
 the coerced inputs. -/

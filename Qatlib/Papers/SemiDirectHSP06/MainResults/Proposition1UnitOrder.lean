@@ -27,8 +27,6 @@ import Mathlib.Algebra.Group.Subgroup.Finite
 * [Chi et al., 2006][ChiKimLee2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

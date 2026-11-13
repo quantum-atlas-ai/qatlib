@@ -30,8 +30,6 @@ function.
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Theorem52
 
 open Classical

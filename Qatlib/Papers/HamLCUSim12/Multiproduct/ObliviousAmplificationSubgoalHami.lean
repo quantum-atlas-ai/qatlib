@@ -29,7 +29,6 @@ linear-combination simulation framework.
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 open Qatlib.Concepts.AmplitudeCore.InvFreePhase

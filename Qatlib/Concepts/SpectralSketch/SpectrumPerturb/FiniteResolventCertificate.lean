@@ -37,8 +37,6 @@ functions record the chosen arithmetic cost model.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

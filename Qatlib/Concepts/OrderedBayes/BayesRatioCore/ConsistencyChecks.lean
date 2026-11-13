@@ -35,8 +35,6 @@ expected cost is smaller than `printedBound` at the displayed parameters.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 

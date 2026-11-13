@@ -28,7 +28,6 @@ bounds belong to the matrix analysis setting of [Bhatia1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1800000

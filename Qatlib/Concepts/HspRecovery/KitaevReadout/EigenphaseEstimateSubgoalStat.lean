@@ -23,8 +23,6 @@ probability of phase error greater than `δ` modulo integers by `ε`.
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Matrix
 open scoped Classical
 

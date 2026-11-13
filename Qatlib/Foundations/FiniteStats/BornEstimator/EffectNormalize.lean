@@ -31,8 +31,6 @@ squared observable norms. Normalized-effect scores are used in the measurement c
 * [Xu et al., 2026][XuEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.FiniteStats.BornEstimator

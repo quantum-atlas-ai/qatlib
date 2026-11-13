@@ -32,7 +32,6 @@ see [Watrous2018] for SDP background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.DyadicFloor.FloorRounding
 open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
 

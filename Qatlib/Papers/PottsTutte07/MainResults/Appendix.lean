@@ -30,8 +30,6 @@ polar-type factorization and an existential error bound for perturbed commutator
 * [Aharonov et al., 2007][AharonovEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

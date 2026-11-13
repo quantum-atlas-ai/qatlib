@@ -28,7 +28,6 @@ mass of outcomes whose assigned values approximate the preparation amplitude. Se
 * [Tang and Wright, 2025][TangWright2025]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

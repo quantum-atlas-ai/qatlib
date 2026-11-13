@@ -30,7 +30,6 @@ zero-width task, and defines the uniform phase-gate cost `bIstar`.
 * [Knill, 1995][Knill1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

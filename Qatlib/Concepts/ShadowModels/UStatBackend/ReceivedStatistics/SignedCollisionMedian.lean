@@ -34,7 +34,6 @@ open Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics
 open Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionEstimator
 open Qatlib.Concepts.ShadowModels.UStatBackend.RationalPairMedian
 open scoped BigOperators Classical
-set_option warningAsError false
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 
 /-- The rational sign of a record bit, equal to negative one for true and positive one for

@@ -73,7 +73,6 @@ The remaining claims are recorded as abstract statements:
 - c030 (Theorem 10): the Regev-reduction application — PGM decoding
   of LWE-type coset states from `g^{⊗n}`-states.
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

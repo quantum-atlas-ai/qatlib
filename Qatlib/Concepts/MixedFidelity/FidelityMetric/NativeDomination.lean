@@ -26,8 +26,6 @@ matrix for `delta ≥ 0`. See [Watrous2018].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric.Domination

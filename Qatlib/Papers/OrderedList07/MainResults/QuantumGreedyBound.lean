@@ -25,8 +25,6 @@ is below `1 / 3`, and compares it with the printed decimal value 0.32.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -27,9 +27,6 @@ mathematical background is given in [LowSu2026].
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QueryComplexity.AdversarySearch
 
 open Qatlib.Foundations.PureStateMath

@@ -26,8 +26,6 @@ hypotheses but violates its proposed upper-tail conclusion.
 * [Ben-Or and Hassidim, Lemma 2.9][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan

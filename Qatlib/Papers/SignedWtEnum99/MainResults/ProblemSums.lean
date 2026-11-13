@@ -27,8 +27,6 @@ source development.
 * [Knill and Laflamme, 1999][KnillLaflamme1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

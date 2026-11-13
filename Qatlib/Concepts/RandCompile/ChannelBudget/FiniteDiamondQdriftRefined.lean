@@ -31,7 +31,6 @@ inequalities, and a conditional comparison of simulation and phase-estimation co
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefinedDefs
 

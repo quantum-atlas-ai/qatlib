@@ -31,8 +31,6 @@ in operator norm.
 - [Low and Chuang, 2019][LowChuang2019], Corollary 17.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SignalPrimitive.MainResults
 open Qatlib.Concepts.BlockEncoding.EncodingCore
 

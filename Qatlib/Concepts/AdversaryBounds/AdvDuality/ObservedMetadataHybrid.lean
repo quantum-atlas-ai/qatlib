@@ -32,8 +32,6 @@ final factor of four.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.AdaptiveQuery.RawProcess

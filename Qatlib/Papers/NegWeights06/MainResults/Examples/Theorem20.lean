@@ -19,7 +19,7 @@ Theorem 20, §7.1, printed page 24:
 `ADV±(f) ≥ 2.5135` for Ambainis' four-bit sorted function `f : {0,1}^4 → {0,1}`.
 
 The paper-layer theorem is a reference/bridge to the frozen explicit witness
-`QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.ambainis_four_bit_printed_bound`,
+`Qatlib.Concepts.AdversaryBounds.AdvDuality.ambainis_four_bit_printed_bound`,
 which constructs the printed rational negative-weight adversary matrix and
 proves `2.5135 = 25135/10000 ≤ advPmValue (fun w => w) ambainisSorted4`.
 The frozen witness has every filter norm at most one and row sum `2513526/1000005`,

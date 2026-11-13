@@ -32,8 +32,7 @@ the `e^d`-point classical algorithm is `e^{d-c-1} ≤ e^d = N`, i.e. polynomial
 (degree at most 1) in the number of grid points — the survey's "at best
 polynomial for fixed `d`".
 
-Reusable dependency (Dev bind `QlsReadoutSpec.PseudoInverse`):
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse` models the quantum
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse` models the quantum
 linear-system readout that underlies the `ε^{-1}` scaling; this module records
 the cost arithmetic only.
 -/

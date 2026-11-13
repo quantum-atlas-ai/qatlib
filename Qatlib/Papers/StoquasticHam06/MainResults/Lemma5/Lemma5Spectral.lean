@@ -28,8 +28,6 @@ logarithmic separation, `lemma5_power_method_error` bounds the error of `Expecte
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

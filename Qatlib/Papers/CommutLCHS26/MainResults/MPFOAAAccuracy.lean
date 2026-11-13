@@ -45,7 +45,6 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K]
 

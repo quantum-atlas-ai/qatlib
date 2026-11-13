@@ -40,7 +40,6 @@ open Qatlib.Concepts.SketchSpectral.MatrixFunctions.ConstructionStageB.StageBSQM
 open Qatlib.Concepts.SketchSpectral.MatrixFunctions.ConstructionStageB.StageBSQMATRIXFUNCTION.Lemma49Ledger
 
 set_option autoImplicit false
-set_option warningAsError false
 
 noncomputable section
 

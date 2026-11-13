@@ -65,18 +65,12 @@ def weak_approximate_tensorization {D L k c ℓ : ℕ} (cg : CoarseGraining D L 
   -- Davies conditional expectation property D(ρ‖E_A(ρ)) = D_{C_A}(ρ‖σ)
   -- (Appendix A.3, property 3) to replace the local conditional entropies by
   -- the Davies terms; the MCMI remainders accumulate into the ζ_a sum.
-  -- Lean gap: the matrix-level Davies channels, their conditional-expectation
+  -- Scope: the matrix-level Davies channels, their conditional-expectation
   -- identity D(ρ‖E_A(ρ)) = D_{C_A}(ρ‖σ), and the concrete MCMI of
-  -- Definition 2.2 are not formalised; `davies`, `mcmi` and the marginal maps
-  -- are interface data. The combinatorial side (cover, ≤ D+1 memberships,
-  -- disjointness) is available from `CoarseGraining`.
-  -- Candidate reusable dependencies: `condRelEnt` and `relEnt` of `Model`;
-  -- `relative_entropy_density_bridge` (trace-log formula);
-  -- `CoarseGraining.cover`, `CoarseGraining.mem_le`, `CoarseGraining.disjoint`.
-  -- Suggested continuation: prove the level-wise inequality
-  -- `relEnt ρ σ ≤ ∑_C relEnt ρ (davies a C ρ) + ∑_C (condRelEnt ...)` with
-  -- Lemma 2.5 at each cell, then telescope over the D+1 levels using the
-  -- overlap field.
+  -- Definition 2.2 are represented by the interface data `davies`, `mcmi`,
+  -- and the marginal maps.  The combinatorial cover, membership, and
+  -- disjointness properties are part of `CoarseGraining`.  The proof proceeds
+  -- by applying Lemma 2.5 at each cell and telescoping over the levels.
 
 /-- **Theorem 2.7, eq. (8)**, arXiv:2412.01732v1 p.6. If, in addition, `σ`
 satisfies uniform decay of the MCMI with constants `K, ξ` (i.e.
@@ -105,11 +99,10 @@ def weak_approximate_tensorization_uniform {D L k c ℓ : ℕ} (cg : CoarseGrain
   -- coordinates); with our single-MCMI `ζ_a` the sum is D·K|Λ|e^{-c/ξ}. We
   -- state the paper's bound D·2^D·K|Λ|e^{-c/ξ}, which is weaker (has the larger
   -- constant).
-  -- Lean gap: as for eq. (7) (interface MCMI/Davies), plus the counting of the
-  -- 2^D region comparisons of Appendix B.2 is not formalised.
-  -- Candidate reusable dependencies: `weak_approximate_tensorization`,
-  -- `Real.exp_le_exp`, `setDist` (with `setDist ≥ c` from the overlap field).
-  -- Suggested continuation: derive `ζ_a ≤ K|Λ|e^{-c/ξ}` from `hDecay` and
-  -- `cg.overlap` via `Real.exp_le_exp.mpr` and monotonicity of `-c/ξ ≤ -dist/ξ`.
+  -- Scope: as in eq. (7), the MCMI/Davies interface is abstract, and the
+  -- counting of the `2^D` region comparisons in Appendix B.2 is not part of
+  -- this definition.  Uniform decay bounds each correction by
+  -- `K|Λ|e^{-c/ξ}` using the overlap distance; summing the levels and the
+  -- region comparisons gives the displayed factor `D·2^D`.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.Entropy

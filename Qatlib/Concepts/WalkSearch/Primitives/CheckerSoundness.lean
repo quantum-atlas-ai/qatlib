@@ -25,7 +25,6 @@ adjacency conditions used by the graph-search checker; see [Ambainis2005] for se
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 set_option autoImplicit false

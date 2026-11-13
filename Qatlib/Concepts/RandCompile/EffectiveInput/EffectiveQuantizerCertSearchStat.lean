@@ -26,7 +26,6 @@ coefficient preprocessing in the qDRIFT setting of [Campbell2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 

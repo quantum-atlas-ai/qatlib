@@ -100,7 +100,6 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 
@@ -4550,9 +4549,7 @@ theorem irrational_coefficient_zero_budget :
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 
 set_option linter.unusedVariables true
-set_option warningAsError false
 set_option autoImplicit false
-set_option warningAsError false
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical
 
@@ -4617,7 +4614,6 @@ lemma compact_jacobi_radius (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
   linarith
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical BigOperators
@@ -4770,7 +4766,6 @@ lemma compact_jacobi_parity_tail (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
   nlinarith
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Qatlib
@@ -4844,7 +4839,6 @@ lemma besselHarmonic_odd (t θ : ℝ) (k : ℕ) :
   ring
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
@@ -4913,7 +4907,6 @@ lemma bessel_sin_series (t θ : ℝ) (ht : 0 ≤ t) :
   ring
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial
 open scoped Classical BigOperators
@@ -5028,7 +5021,6 @@ lemma compact_sin_degree_exact (t : ℝ) (R : ℕ) (hJ : besselInt (2*R+1) t ≠
         hd]
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
@@ -5136,7 +5128,6 @@ lemma compact_sin_hasSum (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     simpa only [compact_sin_term_neg, neg_neg, neg_mul, Real.sin_neg] using! hs
 end Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial

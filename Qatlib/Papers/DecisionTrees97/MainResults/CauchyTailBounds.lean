@@ -33,7 +33,6 @@ These constructions accompany the results of [FarhiGutmann1998].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

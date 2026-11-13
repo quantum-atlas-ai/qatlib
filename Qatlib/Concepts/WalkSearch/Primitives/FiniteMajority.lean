@@ -29,8 +29,6 @@ These finite concentration estimates support repetition and error reduction in s
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild

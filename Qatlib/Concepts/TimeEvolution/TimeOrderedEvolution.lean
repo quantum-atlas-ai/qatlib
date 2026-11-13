@@ -34,9 +34,6 @@ unitary evolution. For background, see [BerryEtAl2020Dyson].
 * [Berry et al., 2020][BerryEtAl2020Dyson]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate

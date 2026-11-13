@@ -42,7 +42,6 @@ set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 noncomputable section
 
-
 namespace Qatlib.Concepts.QsvtCore.ApproxToolkit
 
 open Polynomial
@@ -359,7 +358,6 @@ theorem sourceRectangle_nearOptimal_degree {C δ ε : ℝ} {S : Polynomial ℝ}
     _ ≤ C * (1 + (1 / δ) * Real.log (1 / ε)) := hS.2.2.2.2.2.2
 
 open Filter Real Set Topology
-set_option warningAsError false
 
 /-- The error function defined by the integral of exp(−t²) from zero to `x`, multiplied by 2/√π. -/
 def erf (x : ℝ) : ℝ :=

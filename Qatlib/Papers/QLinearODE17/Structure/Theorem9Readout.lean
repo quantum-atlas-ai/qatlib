@@ -30,7 +30,6 @@ normalized success mass, as needed for the ODE readout in [BerryEtAl2017ODE].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Qatlib.Concepts.BlockEncoding.Postselection
@@ -48,7 +47,6 @@ open Matrix Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Embedding a real scalar in the complex numbers before scaling a state agrees with real
 scalar multiplication of its state vector. -/

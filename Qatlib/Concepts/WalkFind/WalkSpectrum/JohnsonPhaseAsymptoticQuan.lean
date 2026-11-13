@@ -31,9 +31,7 @@ to zero, the phase divided by `2*sqrt (j/r)` tends to one.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 

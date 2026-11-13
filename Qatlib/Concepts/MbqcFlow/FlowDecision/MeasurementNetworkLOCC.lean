@@ -35,7 +35,6 @@ of prefix freeness.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
@@ -54,7 +53,6 @@ open scoped Classical BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- Every action in a party's local record is owned by that party. -/
 theorem clause6_party_locality :

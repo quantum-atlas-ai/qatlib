@@ -27,8 +27,6 @@ is [BrassardHoyerTapp1998Counting].
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QCounting98.MainResults.Boundary

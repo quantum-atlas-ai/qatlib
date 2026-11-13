@@ -25,14 +25,12 @@ quantum Monte Carlo context.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.ShadowModels.ShadowChannel
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.MixedInstrument.ClockBridge
 

@@ -30,7 +30,6 @@ and bounds expected classical sampling costs. See [TemmeEtAl2011] for background
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -41,7 +40,6 @@ namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Matrix
 open scoped Classical BigOperators ComplexOrder ENNReal
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- A rejection-sampler configuration, containing either an accepted label or pending costs,
 together with its execution cost. -/

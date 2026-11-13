@@ -28,8 +28,6 @@ algorithm marginal matrix, and predicates for the number and locations of databa
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

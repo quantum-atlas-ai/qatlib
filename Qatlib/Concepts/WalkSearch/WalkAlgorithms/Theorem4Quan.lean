@@ -35,7 +35,6 @@ refutes the original `theorem4` parameter window. The triangle-search setting fo
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.CollisionSearch
 
 set_option autoImplicit false

@@ -24,7 +24,6 @@ one and a transition matrix. See [TemmeEtAl2011] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 namespace Qatlib.Concepts.GibbsMetropolis.DetailedBalance

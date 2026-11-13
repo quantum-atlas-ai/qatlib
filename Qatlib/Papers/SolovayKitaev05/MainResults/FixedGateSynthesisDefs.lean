@@ -27,7 +27,6 @@ universal resource-ledger obligation; `middleWindow` specifies the intermediate 
 * [Dawson and Nielsen, 2006][DawsonNielsen2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatEmit
 open Qatlib.Concepts.NumericalWord.MixedWordError
@@ -56,7 +55,7 @@ structure SynthesisRequest (w : ℕ) where
 def requestBits {w : ℕ} (r : SynthesisRequest w) : ℕ :=
   Qatlib.Concepts.NumericalWord.MixedWordError.synthInputBits w r.gate r.precision
 
-/-- The proposition that every synthesis compiler satisfies `UniformSynthLedger`. -/
+/-- **Statement only — not proved in Qatlib.** The proposition that every synthesis compiler satisfies `UniformSynthLedger`. -/
 def uniformLedgerObligation : Prop :=
   ∀ c : SynthCompiler, UniformSynthLedger c
 

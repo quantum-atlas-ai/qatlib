@@ -40,7 +40,6 @@ open Qatlib.Concepts.MonteCarloMean.LayeredMean
 namespace Qatlib.Concepts.MonteCarloMean.PilotVariance
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option maxHeartbeats 2000000

@@ -24,7 +24,6 @@ for a singleton word, providing elementary word bookkeeping for the synthesis ar
 * [Jordan, 2008][Jordan2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

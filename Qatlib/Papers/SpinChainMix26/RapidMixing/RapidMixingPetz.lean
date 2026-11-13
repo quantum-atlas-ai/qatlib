@@ -35,7 +35,6 @@ reset-map calculation culminates in `resetOn_comp`.
 * [Kim, 2026][Kim2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.BornBridge

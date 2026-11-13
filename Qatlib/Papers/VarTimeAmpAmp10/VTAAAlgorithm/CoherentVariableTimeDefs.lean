@@ -51,8 +51,6 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -71,7 +69,6 @@ open Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 open Qatlib.Concepts.QlsReadoutSpec.ProgramModel
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators
-set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 

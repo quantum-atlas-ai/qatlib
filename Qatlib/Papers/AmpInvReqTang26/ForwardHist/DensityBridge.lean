@@ -42,7 +42,6 @@ open Qatlib.Papers.AmpInvReqTang26.RootLaws
 open Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 open Qatlib.Foundations.MatrixAlgebra.TorusMoments
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Domination
-set_option warningAsError false
 
 /-- The ensemble average of the outer products of the actual forward-query output states. -/
 def sourceDensity {d a : ℕ} {S : Type} [Fintype S] (p : FinDist (Fin d → S))

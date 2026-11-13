@@ -25,7 +25,6 @@ and recursive Suzuki words used in the error and exponential-count estimates.
 * [Berry et al., 2007][BerryEtAl2007Sparse]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

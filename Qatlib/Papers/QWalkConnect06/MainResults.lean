@@ -141,8 +141,6 @@ anticommutation relations and exact formulas near coin angle `π / 2`.
 * [Strauch, 2006][Strauch2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

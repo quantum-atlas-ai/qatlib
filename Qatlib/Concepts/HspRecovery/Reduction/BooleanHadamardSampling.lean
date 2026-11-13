@@ -29,8 +29,6 @@ single-register outcome law is uniform on `booleanOrthogonal H` and zero outside
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.WalkFind.UniformThree
 open Qatlib.Concepts.HspRecovery.Distinguisher

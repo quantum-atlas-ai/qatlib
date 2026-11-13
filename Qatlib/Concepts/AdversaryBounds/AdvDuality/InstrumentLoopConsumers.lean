@@ -38,7 +38,6 @@ mass.
 - [Nielsen and Chuang, 2010][NielsenChuang2010], *Quantum Computation and Quantum Information*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -56,10 +55,6 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open Matrix
 open scoped ComplexOrder ENNReal
-
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
-set_option linter.unnecessarySeqFocus false
 
 /-- The computational-basis projector onto the zero state of the flag qubit. -/
 noncomputable def fairFlagZero : Operator 2 := !![1, 0; 0, 0]

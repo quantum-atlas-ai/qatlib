@@ -32,9 +32,6 @@ oracle perturbation. This gives circuit-level semantics for abelian hidden subgr
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.WalkFind.UniformThree

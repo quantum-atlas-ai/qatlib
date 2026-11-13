@@ -38,7 +38,6 @@ and endpoint lemmas supplement these interfaces.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo

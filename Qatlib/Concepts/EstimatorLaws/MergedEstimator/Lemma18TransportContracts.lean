@@ -24,7 +24,6 @@ is the distributional input used to transport the restricted signed estimator in
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

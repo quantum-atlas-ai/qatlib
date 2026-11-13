@@ -22,9 +22,8 @@ set_option backward.isDefEq.respectTransparency false
 # QRegularLS22 — paper-level block-encoding interface
 
 Fixed paper version: arXiv:2206.13143v2 (accepted in Quantum 2023-04-19),
-"Quantum Regularized Least Squares".  The source was read from the pre-fetched
-PDF/text pair `assets/2206.13143.pdf` / `.txt`; page numbers below refer to the
-accepted-Quantum pagination printed in that text.
+"Quantum Regularized Least Squares". Page numbers below refer to the
+accepted-Quantum pagination.
 
 This module fixes the paper's notion of an **`(α, ε)`-approximate block encoding**
 (GSLW Definition 24 convention, as used throughout the paper):
@@ -36,11 +35,12 @@ This module fixes the paper's notion of an **`(α, ε)`-approximate block encodi
   `U`, and the approximation is measured in the spectral (`L2` operator) norm:
   `‖A - α • BlockCorner U k₀‖ ≤ ε`.
 
-This is exactly the frozen matrix form of GSLW's block encoding; for `ε = 0` it
-coincides with `QuantumAlgorithm.Papers.Qubitization19.LCUConsumers.IsBlockEncoding`
-(see `blockEncodes_iff_isBlockEncoding`).  Nothing here counts queries or asserts
-efficient synthesis; the paper's `O(·)` cost expressions are recorded in the
-docstrings of the individual results, not formalised as an algorithmic cost model.
+This is the library's matrix form of GSLW's block encoding; for `ε = 0` it
+coincides with `Qatlib.Concepts.BlockEncoding.StateBlockEncoding.IsBlockEncoding`
+(see `blockEncodes_iff_isBlockEncoding`). Scope note: this module formalizes the
+block-encoding interface; query counts and efficient synthesis are outside its
+scope. The paper's `O(·)` cost expressions are recorded in the docstrings of the
+individual results without an algorithmic cost model.
 -/
 
 set_option autoImplicit false
@@ -90,7 +90,7 @@ theorem blockCorner_smul {J I : Type*} [Fintype J] [Fintype I]
   ext a b
   simp [BlockCorner, Matrix.smul_apply]
 
-/-- An exact `(α, 0)` encoding is exactly the frozen `IsBlockEncoding`. -/
+/-- An exact `(α, 0)` encoding is exactly the library's `IsBlockEncoding`. -/
 theorem blockEncodes_iff_isBlockEncoding {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (U : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (A : Matrix I I ℂ) (α : ℝ) :
@@ -117,11 +117,11 @@ theorem BlockEncodes.mono {K I : Type*} [Fintype K] [DecidableEq K]
     (h : BlockEncodes U k₀ A α ε) (hεδ : ε ≤ δ) : BlockEncodes U k₀ A α δ :=
   ⟨h.1, h.2.1, h.2.2.1.trans hεδ, h.2.2.2.trans hεδ⟩
 
-/-! ## Bridge to the frozen rectangular `BlockEncoding`
+/-! ## Bridge to the rectangular `BlockEncoding`
 
-`BlockEncodes` is the coordinate-corner form of the frozen frame encoding of
-`QuantumAlgorithm.Papers.QSingValue19.BlockEncoding`.  The bridge is used
-throughout: paper statements are proved against the frozen postselection and
+`BlockEncodes` is the coordinate-corner form of the frame encoding
+`Qatlib.Concepts.BlockEncoding.BlockEncoding`. The bridge is used
+throughout: paper statements are proved against the library's postselection and
 robust-QSVT machinery, whose hypotheses are stated for
 `BlockEncoding A U L R α ε` with explicit frames `L`, `R`. -/
 
@@ -135,7 +135,7 @@ theorem real_smul_eq_complex_smul {m n : Type*} (a : ℝ) (X : Matrix m n ℂ) :
   ext i j
   simp [Complex.real_smul]
 
-/-- A corner `(α, ε)`-encoding is exactly a frozen frame encoding between the
+/-- A corner `(α, ε)`-encoding is exactly a frame encoding between the
 `k₀`-coordinate fibers, with the same scale and error. -/
 theorem blockEncodes_iff_blockEncoding {K I : Type*} [Fintype K] [DecidableEq K]
     [Fintype I] [DecidableEq I] (U : Matrix (K × I) (K × I) ℂ) (k₀ : K)
@@ -180,7 +180,7 @@ def IsEnc {I : Type*} [Fintype I] [DecidableEq I] {a : ℕ}
     (U : Matrix (Enc a I) (Enc a I) ℂ) (A : Matrix I I ℂ) (α ε : ℝ) : Prop :=
   BlockEncodes U (0 : Fin (2 ^ a)) A α ε
 
-/-- `IsEnc` is the frozen frame encoding of the zero fiber. -/
+/-- `IsEnc` is the frame encoding of the zero fiber. -/
 theorem isEnc_iff_blockEncoding {I : Type*} [Fintype I] [DecidableEq I] {a : ℕ}
     (U : Matrix (Enc a I) (Enc a I) ℂ) (A : Matrix I I ℂ) (α ε : ℝ) :
     IsEnc U A α ε ↔
@@ -218,7 +218,7 @@ All quantum outputs of the paper are states.  `StateClose ψ v δ` says that the
 prepared state `ψ` is normalized and `δ`-close, in the Euclidean (`ℓ²`) norm of
 `stateVector`, to the normalized target vector `v`.  `QState I = I → ℂ` carries
 the Pi (sup) norm, so every quantitative statement below is phrased through the
-Euclidean representative `stateVector`, exactly as in the frozen postselection
+Euclidean representative `stateVector`, exactly as in the library's postselection
 API.  The target vectors are the classical solutions of Eq. (31) and its
 weighted/generalized variants, with the transpose convention `Aᵀ A` of the
 paper (the source is real; `ℂ` is used for the state space only). -/

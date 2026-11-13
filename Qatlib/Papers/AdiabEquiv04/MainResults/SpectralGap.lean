@@ -26,7 +26,6 @@ for the compressed path.
 * [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -108,20 +107,20 @@ theorem S0Init_ground (L : ℕ) :
   rw [h0]
   exact S0Init_isPositive L φ
 
-/-- The statement that, for each `L ≥ 1`, the gap of `HS0 L s` is at least `c / (L + 1)²` on
+/-- **Statement only — not proved in Qatlib.** The statement that, for each `L ≥ 1`, the gap of `HS0 L s` is at least `c / (L + 1)²` on
 `[0, 1]` for some positive `c`. See [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_5_spectral_gap_S0Statement : Prop :=
   ∀ L : ℕ, 1 ≤ L → ∃ c : ℝ, 0 < c ∧ ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
     GapAtLeast (HS0 L s) (c / ((L : ℝ) + 1) ^ 2)
 
-/-- The statement that, for each circuit with `L ≥ 2`, the gap of `Hpath` is at least `c / (L +
+/-- **Statement only — not proved in Qatlib.** The statement that, for each circuit with `L ≥ 2`, the gap of `Hpath` is at least `c / (L +
 1)³` uniformly on `[0, 1]` for some positive `c`. See [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_11_spectral_gap_fullStatement : Prop :=
   ∀ (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n), ∃ c : ℝ, 0 < c ∧
     ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
       GapAtLeast (Hpath n L hL2 gates s) (c / ((L : ℝ) + 1) ^ 3)
 
-/-- The statement that the compressed path has the time-zero vector and history state as
+/-- **Statement only — not proved in Qatlib.** The statement that the compressed path has the time-zero vector and history state as
 endpoint ground vectors and a gap at least `c / (L + 1)³` on `[0, 1]` for some positive `c`.
 See [AharonovEtAl2007Adiabatic]. -/
 def lemma_3_12_compressed_gapStatement : Prop :=

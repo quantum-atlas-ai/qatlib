@@ -5,14 +5,15 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
 
 /-!
 # Finite-group generation and failure budgets
 
 Proper additive subgroups of finite groups have at most half the ambient cardinality, so their
 complements have at least half. Together with elementary failure-budget and closure facts, this
-module constructs an abstract `ClassGroupGeneratorAlgorithm` record with generating output, the
-stated success bound, and a polynomial cost bound.
+module proves finite-group cardinality and closure facts. It does not construct
+the paper's group generator algorithm.
 
 This development forms part of the formalization of [Kedlaya2006].
 
@@ -20,16 +21,12 @@ This development forms part of the formalization of [Kedlaya2006].
 
 * `proper_addSubgroup_card_le_half`: A proper additive subgroup of a finite group has
   cardinality at most half the group cardinality.
-* `lemma10_generating_algorithm`: Under the stated curve-size hypothesis, there exists an
-  abstract generator record whose output generates `G`, whose success value is at least `3 / 4`,
-  and whose cost has the stated polynomial bound.
+* `lemma10_generating_algorithm_statement`: **Statement only — not proved in Qatlib.**
 
 ## References
 
 * [Kedlaya, 2006][Kedlaya2006]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -133,20 +130,17 @@ theorem addSubgroup_closure_univ {G : Type*} [AddCommGroup G] [Fintype G] :
     AddSubgroup.closure ((Finset.univ : Finset G) : Set G) = ⊤ := by
   rw [Finset.coe_univ, AddSubgroup.closure_univ]
 
-/-- Under the stated curve-size hypothesis, there exists an abstract generator record whose
-output generates `G`, whose success value is at least `3 / 4`, and whose cost has the stated
-polynomial bound. See [Kedlaya2006]. -/
-theorem lemma10_generating_algorithm
-    (C : CurveData) (_hsmall : 16 * (C.g : ℝ) < halfPower C.q 1)
-    (G : Type) [AddCommGroup G] [Fintype G] :
-    ∃ A : ClassGroupGeneratorAlgorithm G,
-      AddSubgroup.closure (A.output : Set G) = ⊤ ∧
-      (3 / 4 : ℝ) ≤ A.successProb ∧
-      (∃ c k : ℕ, ∀ g lq : ℕ, A.cost g ≤ c * (g + lq + 1) ^ k) := by
-  classical
-  refine ⟨⟨Finset.univ, fun _ => 0, 1⟩, ?_, ?_, ?_⟩
-  · exact addSubgroup_closure_univ (G := G)
-  · norm_num
-  · exact ⟨0, 0, fun g lq => by simp⟩
+/-- **Statement only — not proved in Qatlib.** Generating-set sampling with a
+uniform step bound, relative to supplied primitive semantics and a family of
+finite groups. The relation of those groups to curve class groups is external.
+Initialization/decoding costs follow the supplied machine convention. -/
+def lemma10_generating_algorithm_statement
+    (G : CurveData → Type) [∀ C, AddCommGroup (G C)] [∀ C, Fintype (G C)]
+    (M : ∀ C, PrimitiveMachine Unit (Finset (G C))) (logq : CurveData → ℕ) : Prop :=
+  ∃ (program : ∀ C, List (M C).Step) (c k : ℕ), ∀ C,
+    16 * (C.g : ℝ) < halfPower C.q 1 →
+    ((M C).algorithm () (program C)).IsMC
+      (fun T => AddSubgroup.closure (T : Set (G C)) = ⊤) ∧
+    ((M C).algorithm () (program C)).cost ≤ c * (C.g + logq C + 1) ^ k
 
 end Qatlib.Papers.ZetaCurves04.MainResults.Lemma10

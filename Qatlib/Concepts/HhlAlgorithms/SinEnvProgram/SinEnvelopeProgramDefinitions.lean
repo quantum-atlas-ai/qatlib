@@ -35,9 +35,7 @@ its circuit clause.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -65,7 +63,6 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs.SinEnvelopeS
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeProgramDefinitions
 
@@ -188,28 +185,28 @@ noncomputable def sinEnvelopeFlagMass (d θ : ℝ) : ℝ :=
 
 /-- The spectrally weighted sum of the ideal combined flag mass, weighted by squared
 prepared-input coefficients. -/
-noncomputable def sinEnvelopeIdealMass {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeIdealMass {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) : ℝ :=
   ∑ i, ‖(Vᴴ *ᵥ (B *ᵥ Ket j)) i‖ ^ 2 * sinEnvelopeFlagMass d (eig i)
 
 /-- The sum weighted by spectral coefficients and phase-kernel masses of the combined flag mass
 at decoded labels. -/
-noncomputable def sinEnvelopeActualMass {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeActualMass {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) : ℝ :=
   ∑ i, ‖(Vᴴ *ᵥ (B *ᵥ Ket j)) i‖ ^ 2 *
     ∑ z, ‖sinEnvelopeKernel M (eig i) z‖ ^ 2 *
       sinEnvelopeFlagMass d (sinEnvelopeDecode M z)
 
 /-- The spectral kernel state with three-level flag one and no success-filter amplitude factor. -/
-noncomputable def sinEnvelopeActualWellState {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
-    (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
+noncomputable def sinEnvelopeActualWellState {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
+    (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (_d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • ∑ z, sinEnvelopeKernel M (eig i) z •
     TensorState (Ket z) (TensorState (Ket (1 : Fin 3)) (V *ᵥ Ket i))
 
 /-- The spectral kernel state with flag one, weighted by the success filter at each decoded
 phase label. -/
-noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • ∑ z, sinEnvelopeKernel M (eig i) z •
@@ -218,7 +215,7 @@ noncomputable def sinEnvelopeActualWellStateCorrected {D : ℕ} (M : ℕ) (hM : 
 
 /-- The spectral kernel state with flag one, weighted by the success filter at each exact
 eigenphase. -/
-noncomputable def sinEnvelopeIdealWellState {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
+noncomputable def sinEnvelopeIdealWellState {D : ℕ} (M : ℕ) (_hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ) :
     QState (Fin M × (Fin 3 × Fin D)) :=
   ∑ i, (Vᴴ *ᵥ (B *ᵥ Ket j)) i • (sinEnvelopeFilterF d (eig i) : ℂ) •

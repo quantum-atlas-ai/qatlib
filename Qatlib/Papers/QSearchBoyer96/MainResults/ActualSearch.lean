@@ -33,8 +33,6 @@ The source paper is [BoyerEtAl1998].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.QueryWordCore.Circuit

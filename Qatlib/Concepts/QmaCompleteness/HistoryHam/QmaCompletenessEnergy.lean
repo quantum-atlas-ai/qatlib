@@ -35,11 +35,9 @@ method of [KempeKitaevRegev2006].
 * [Kempe, Kitaev and Regev, 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Matrix
 open scoped BigOperators
@@ -302,7 +300,6 @@ theorem clause2_counter : ¬
           ≤ C.gates.length + C.qubits + 1) := by
   intro h
   exact clause2_counter_clause5 (fun C => (((h C).2).2).2.2.1)
-set_option linter.unusedSimpArgs false
 
 /-- Entrywise complex rounding sends zero to zero at every precision. -/
 theorem qmaRoundC_zero (b : ℕ) : qmaRoundC b 0 = 0 := by
@@ -1571,8 +1568,6 @@ theorem star_smul_self (r : ℝ) (ψ : ℂ) :
   ring
 
 set_option autoImplicit false
-set_option warningAsError false
-set_option linter.unusedSimpArgs false
 
 /-- The history circuit's acceptance weight is the sum of final-state Born weights over true
 output bits. -/
@@ -1704,7 +1699,6 @@ theorem qmaEnergy_outTerm (C : QmaHistoryCircuit)
 open Matrix
 open scoped BigOperators
 
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 /-- The sum of the squared norms of the coordinates of a finite complex vector. -/
@@ -2924,9 +2918,7 @@ theorem g13n2_prop_lower_C (C : QmaHistoryCircuit) (η : QState (Fin (C.gates.le
     simpa [qmaRoundedGates] using! h
   exact g13n2_prop_lower C.qubits C.gates.length (qmaRoundedGates C b) η hη
     (g13n2_kappa C.qubits b) hκ hU
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000
@@ -3137,9 +3129,7 @@ theorem g2c2_scale_core (ν ρ u d β s κ : ℝ)
       exact (le_div_iff₀ (by norm_num : (0:ℝ) < 384)).mpr h3a
     exact le_trans (le_trans h2 h3) h1
   exact (div_le_iff₀ hden6).mpr hfinal
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000
@@ -4225,9 +4215,7 @@ theorem g2c2_accept_mass (C : QmaHistoryCircuit) (ε : ℝ) (hε : 0 ≤ ε)
     exact pow_le_pow_left₀ (nm_nonneg _) hψmnm 2
   rw [hAm]
   exact hsq
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
-set_option warningAsError false
 open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000

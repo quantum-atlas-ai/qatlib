@@ -23,8 +23,6 @@ operator error at most `(2 * d + 1) * δ`, and each matrix entry is bounded by t
 * [Alexis et al., 2026][AlexisEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.InfiniteQSP26.MainResults
 open Polynomial Matrix

@@ -35,7 +35,6 @@ data-register size.
 -/
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -46,8 +45,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 
@@ -251,9 +248,9 @@ theorem scoped_bit_oracle_actual_toggle_unitary :
   · rw [hpt]
     simp only [BitOracleOn, permMatrix, Matrix.of_apply, BitFlip]
     by_cases h : (x, a) = (y, b ^^ f y)
-    · rw [if_pos h, if_pos]
+    · rw [ite_eq_left h, ite_eq_left]
       exact Prod.mk.inj h
-    · rw [if_neg h, if_neg]
+    · rw [ite_eq_right h, ite_eq_right]
       intro h'
       exact h (Prod.ext h'.1 h'.2)
   · exact (relabelGate_mem_unitaryGroup (Equiv.prodComm (Reg n) Bool) (BitOracleOn f)).2
@@ -312,14 +309,14 @@ theorem scoped_phaseGate_neg_eq_preparedMark {n : ℕ} (f : Reg n → Bool) :
     by_cases hf : f i = true
     · have hiS : i ∈ Finset.univ.filter (fun y => f y = true) := (hmem i).2 hf
       simp only [scopedPhaseGate, Matrix.diagonal_apply, preparedMark, Matrix.sub_apply,
-        Matrix.smul_apply, Matrix.one_apply, Projector, Matrix.diagonal_apply, if_pos hf,
-        if_pos hiS]
+        Matrix.smul_apply, Matrix.one_apply, Projector, Matrix.diagonal_apply, ite_eq_left hf,
+        ite_eq_left hiS]
       norm_num
     · have hiS : ¬ (i ∈ Finset.univ.filter (fun y => f y = true)) :=
         fun h => hf ((hmem i).mp h)
       simp only [scopedPhaseGate, Matrix.diagonal_apply, preparedMark, Matrix.sub_apply,
-        Matrix.smul_apply, Matrix.one_apply, Projector, Matrix.diagonal_apply, if_neg hf,
-        if_neg hiS]
+        Matrix.smul_apply, Matrix.one_apply, Projector, Matrix.diagonal_apply, ite_eq_right hf,
+        ite_eq_right hiS]
       norm_num
   · simp [hij, scopedPhaseGate, preparedMark, Projector]
 
@@ -491,7 +488,7 @@ theorem scoped_allocation_release_and_peak_trace :
   have hone : List.foldl max 0 [n] = n := by simp [List.foldl]
   have hmid : (List.replicate ((scopedCompile w).length+1) (n+1)).foldl max n = n+1 := by
     have h := hrep ((scopedCompile w).length+1) n (n+1) (Nat.le_succ n)
-    rw [if_neg (by omega : ¬((scopedCompile w).length+1 = 0))] at h
+    rw [ite_eq_right (by omega : ¬((scopedCompile w).length+1 = 0))] at h
     exact h
   refine ⟨scoped_allocationFrame_conjTranspose_mul, scoped_allocationFrame_mulVec,
     hshape, ?_⟩

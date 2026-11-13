@@ -86,28 +86,24 @@ variables with `0 < η < 1` and `0 < δ < 1`,
 Source: Cross--Smith--Smolin, *Quantum learning robust to noise*,
 arXiv:1407.5088v1, Sec. IV C, Eq. (11), p. 4.
 
-**Status.**  The statement is registered as a `Prop`-valued definition; the proof is
-not formalised, and the uniform-cube model above does not establish the
-Bernoulli(`η`) bound for `η ≠ 1/2`.
-- Key proof steps in the paper: write `X = Σ_{i<k} X_i` with `X_i` i.i.d.
-  Bernoulli(`η`); apply the multiplicative Chernoff/mgf bound
-  `Pr[|X-ηk| ≥ δηk] ≤ 2 e^{-δ²ηk/3}` by optimising `t ↦ e^{-tδηk} (1-η+ηe^{t})^{k}`
-  at `t = log(1+δ) > 0` and estimating `log(1+δ) ≥ δ - δ²/2 ≥ δ/2` style bounds.
-- Current Lean gap: Mathlib has the generic Chernoff inequality
-  `ProbabilityTheory.measure_ge_le_exp_mul_mgf` / `measure_le_le_exp_mul_mgf`
-  (`Mathlib.Probability.Moments.Basic`), but there is no bundled Bernoulli-sum
-  mgf computation or independence lemma for the product measure on `Fin k → Bool`,
-  so the concrete `2^k`-cube estimate is not yet derivable without a local
-  development of product measures and `mgf` of Bernoulli variables.
-- Candidate reusable dependencies: `ProbabilityTheory.measure_ge_le_exp_mul_mgf`,
-  `ProbabilityTheory.measure_le_le_exp_mul_mgf`, `ProbabilityTheory.mgf`,
-  `Finset.sum_prod_piFinset`, `Real.add_one_le_exp`, `Real.log_le_sub_one_of_pos`.
-- Suggested follow-up tactic: build the product probability measure on
-  `Fin k → Bool` via `MeasureTheory.Measure.pi`, prove
-  `mgf (fun s => Σ i, (s i : ℝ)) μ t = (1 - η + η * exp t) ^ k` by
-  `Finset.prod` induction, then `measure_ge_le_exp_mul_mgf`/`measure_le_le_exp_mul_mgf`
-  with `t = Real.log (1 + δ)` and `nlinarith`/`positivity` for the final
-  exponential estimate. -/
+Scope note: `majority_chernoff` is a `Prop`-valued definition whose proof is
+outside the scope of this file. The uniform-cube model above does not establish
+the Bernoulli(`η`) bound for `η ≠ 1/2`.
+
+The paper writes `X = Σ_{i<k} X_i` with `X_i` i.i.d. Bernoulli(`η`) and applies
+the multiplicative Chernoff/mgf bound
+`Pr[|X-ηk| ≥ δηk] ≤ 2 e^{-δ²ηk/3}`, using the exponential expression
+`t ↦ e^{-tδηk} (1-η+ηe^{t})^{k}`, the choice `t = log(1+δ) > 0`, and
+bounds of the form `log(1+δ) ≥ δ - δ²/2 ≥ δ/2`.
+
+The corresponding probability model is the Bernoulli product measure on
+`Fin k → Bool`, expressible with `MeasureTheory.Measure.pi`; independence gives
+`mgf X μ t = (1 - η + η * exp t) ^ k`. Mathlib's generic Chernoff inequalities
+`ProbabilityTheory.measure_ge_le_exp_mul_mgf` and
+`ProbabilityTheory.measure_le_le_exp_mul_mgf`
+(`Mathlib.Probability.Moments.Basic`) provide the exponential tail bounds.
+The product-measure construction, independence argument and Bernoulli-sum mgf
+computation are outside the scope of this file. -/
 def majority_chernoff (k : ℕ) (η δ : ℝ) (hη : 0 < η) (hη1 : η < 1)
     (hδ : 0 < δ) (hδ1 : δ < 1) : Prop :=
   1 - majorityChernoffBound k η δ < majoritySuccessProb k η δ

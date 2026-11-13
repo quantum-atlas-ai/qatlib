@@ -19,6 +19,11 @@ exact and bounded error success conditions, and uniform constant factor query bo
 Evaluation query algorithms and the parity collision, no collision, and no range relations
 supply the remaining problem interfaces.
 
+This file defines specifications only. In particular, the upper- and lower-bound
+predicates express propositions about query counts; defining them does not prove
+them for any cost function. Bounded-error search predicates require success only
+on inputs with a witness; exact predicates also require `none` on negative inputs.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -498,7 +503,8 @@ pairs. -/
 def ParityCollisionProblem {N : ℕ} (f : Fin N → Fin N) (a : Fin 2) : Prop :=
   (a : ℕ) = collisionCount f % 2
 
-/-- The relation requiring `x` to be the unique input having value `f x`. -/
+/-- The relation requiring the fibre of `f x` to consist only of `x`;
+other values may also have singleton fibres. -/
 def NoCollisionProblem {N : ℕ} (f : Fin N → Fin N) (x : Fin N) : Prop :=
   ∀ y : Fin N, f y = f x → y = x
 

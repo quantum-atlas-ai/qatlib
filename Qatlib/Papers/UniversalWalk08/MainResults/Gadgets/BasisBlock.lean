@@ -23,8 +23,6 @@ block, as required by the gate construction in [Childs2009].
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Gates
 
 open Matrix

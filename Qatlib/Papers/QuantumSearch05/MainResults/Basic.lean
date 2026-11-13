@@ -24,8 +24,6 @@ probability, yielding explicit success formulas after any number of iterations. 
 * [Grover, 2005][Grover2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

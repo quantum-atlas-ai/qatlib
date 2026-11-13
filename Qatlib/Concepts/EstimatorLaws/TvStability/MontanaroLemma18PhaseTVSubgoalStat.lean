@@ -23,7 +23,6 @@ Packages a bound on total variation between two phase-kernel label laws with pha
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout

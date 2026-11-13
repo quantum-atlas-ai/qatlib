@@ -87,7 +87,6 @@ on its orthogonal complement. For background on search via quantum walks, see
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.FactOne
 
@@ -98,7 +97,7 @@ variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W]
 endomorphism of the ambient space. -/
 noncomputable def lineProj (u : W) : W →L[ℂ] W :=
   (Submodule.subtypeL (Submodule.span ℂ {u})).comp
-    (Submodule.orthogonalProjection (Submodule.span ℂ {u}))
+    (Submodule.orthogonalProjectionOnto (Submodule.span ℂ {u}))
 
 /-- The continuous linear map `2 • lineProj u - id` reflecting about the span of `u`. -/
 noncomputable def lineRefl (u : W) : W →L[ℂ] W :=
@@ -109,10 +108,14 @@ noncomputable def lineRefl (u : W) : W →L[ℂ] W :=
 noncomputable def reflError (R : W ≃ₗᵢ[ℂ] W) (u : W) : W → W :=
   fun ψ => R ψ - ((2 : ℂ) • lineProj u ψ - ψ)
 
+omit [FiniteDimensional ℂ W] in
+
 /-- Projection onto the span of `u` fixes `u`. -/
 theorem lineProj_apply_self (u : W) : lineProj u u = u := by
   have h : lineProj u u = (Submodule.span ℂ ({u} : Set W)).starProjection u := rfl
   rw [h, Submodule.starProjection_eq_self_iff.mpr (Submodule.mem_span_singleton_self u)]
+
+omit [FiniteDimensional ℂ W] in
 
 /-- Projection onto the span of `u` vanishes on its orthogonal complement. -/
 theorem lineProj_apply_eq_zero_of_mem_orthogonal {u ψ : W}

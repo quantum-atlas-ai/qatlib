@@ -30,8 +30,6 @@ nonzero modulus under its stated interface.
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

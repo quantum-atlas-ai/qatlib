@@ -29,7 +29,6 @@ specify desired identities and bounds for these definitions.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 

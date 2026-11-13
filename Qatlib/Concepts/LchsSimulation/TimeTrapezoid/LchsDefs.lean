@@ -34,7 +34,6 @@ The mathematical background is described in [AnLiuLin2023].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError

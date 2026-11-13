@@ -23,8 +23,6 @@ log₂(n)/`queryInfo p` + 2/(3 `queryInfo p`).
 * [Ben-Or and Hassidim, Lemma 2.4][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
 /-- The proposition bounding the uniform-prior learner's expected stage count by

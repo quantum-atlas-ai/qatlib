@@ -34,7 +34,6 @@ the first projector. This is the two projector framework used in amplification
 * [Nagaj, Wocjan, and Zhang, 2009][NagajWocjanZhang2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding

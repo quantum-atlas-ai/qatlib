@@ -38,15 +38,10 @@ results in `g4`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unreachableTactic false
-set_option linter.unusedTactic false
 
 open Turing
 
@@ -95,8 +90,8 @@ theorem orRun_run (input : List (Tracks 2)) (c0 c1 : Bool) :
 /-- Given a stored bit `v` and enough remaining coins, the repeated-read phase returns `v` after
 completing the remaining iterations. -/
 theorem naive_fake_fst (r : ℕ) (v : Bool) :
-    ∀ (m j : ℕ) (hm : 1 ≤ m) (hj : j + m = 2 * r)
-      (t : Turing.Tape (Tracks 2)) (ht : t.head 1 = some v)
+    ∀ (m j : ℕ) (_hm : 1 ≤ m) (_hj : j + m = 2 * r)
+      (t : Turing.Tape (Tracks 2)) (_ht : t.head 1 = some v)
       (cs : List Bool), 2 * m ≤ cs.length →
       (coinTapeRunAux (naiveMajorityTable r) (naiveMajorityAccept r) cs
         (⟨.fake j v false, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r))).1 = some v := by
@@ -148,7 +143,7 @@ theorem naive_fake_fst (r : ℕ) (v : Bool) :
     · have hstT : Turing.TM0.step (naiveMajorityTable r true)
           (⟨.fake j v true, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r))
           = some (⟨.fake (j + 1) v false, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r)) := by
-        rw [TM0_step_apply, htabT, if_pos hj2]
+        rw [TM0_step_apply, htabT, ite_eq_left hj2]
         rfl
       rw [coinTapeRunAux_cons_of_step_some (naiveMajorityTable r) (naiveMajorityAccept r) c' cs2
         (⟨.fake j v true, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r))
@@ -160,7 +155,7 @@ theorem naive_fake_fst (r : ℕ) (v : Bool) :
     · have hstT : Turing.TM0.step (naiveMajorityTable r true)
           (⟨.fake j v true, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r))
           = some (⟨.outC v, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r)) := by
-        rw [TM0_step_apply, htabT, if_neg hj2]
+        rw [TM0_step_apply, htabT, ite_eq_right hj2]
         rfl
       rw [coinTapeRunAux_cons_of_step_some (naiveMajorityTable r) (naiveMajorityAccept r) c' cs2
         (⟨.fake j v true, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r))
@@ -294,7 +289,7 @@ theorem sum_or_snoc (m : ℕ) :
         (Fin.snoc u b)) = ∑ _b : Bool, if (u 0 || u 1) = false then (1 : ℝ) else 0 :=
       Finset.sum_congr rfl (fun b _ => key b)
     rw [h2']
-    simp [Finset.sum_const, Fintype.card_bool]
+    simp [Finset.sum_const]
   rw [Finset.sum_congr rfl (fun u _ => h2 u)]
   rw [← Finset.mul_sum]
 
@@ -339,7 +334,7 @@ theorem naive_ofFn12 (input : List (Tracks 2)) (ω : Fin 51 → Bool) :
     simp [List.ofFn_succ]
   rw [h]
   have hlen : 4 * 12 ≤ ((List.ofFn ω).drop 3).length := by
-    simp [List.length_ofFn]
+    simp []
   exact naive_run 12 (by norm_num) input (ω 0) (ω 1) (ω 2) ((List.ofFn ω).drop 3) hlen
 
 /-- The repeated-read machine with parameter 12 returns a decision on every 51-coin path. -/

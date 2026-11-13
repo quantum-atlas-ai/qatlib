@@ -29,12 +29,8 @@ surrounding analysis.
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -49,6 +45,8 @@ center, and all other entries zero. -/
 def starMatrix (c : ι) (w : ι → ℂ) : Matrix ι ι ℂ :=
   fun i j => if j = c then w i else if i = c then star (w j) else 0
 
+omit [Fintype ι] [Nonempty ι] in
+
 /-- If the center weight is zero, the weighted star matrix is Hermitian [ChildsKothari2010]. -/
 lemma starMatrix_isHermitian {c : ι} {w : ι → ℂ} (hc : w c = 0) :
     (starMatrix c w).IsHermitian := by
@@ -61,6 +59,8 @@ lemma starMatrix_isHermitian {c : ι} {w : ι → ℂ} (hc : w c = 0) :
     · simp [starMatrix, hjc, hic]
     · simp [starMatrix, hjc, hic]
 
+omit [Nonempty ι] in
+
 /-- With zero center weight, multiplication by the star matrix gives the conjugate-weighted sum
 at the center and `w i * v c` at every other vertex [ChildsKothari2010]. -/
 lemma starMatrix_mulVec {c : ι} {w : ι → ℂ} (hc : w c = 0) (v : ι → ℂ) :
@@ -69,18 +69,20 @@ lemma starMatrix_mulVec {c : ι} {w : ι → ℂ} (hc : w c = 0) (v : ι → ℂ
   funext i
   rw [Matrix.mulVec, dotProduct]
   by_cases hi : i = c
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     refine Finset.sum_congr rfl fun j _ => ?_
     by_cases hj : j = c
     · simp [starMatrix, hj, hi, hc]
     · simp [starMatrix, hj, hi]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     rw [Finset.sum_eq_single c]
-    · simp [starMatrix, hi]
+    · simp [starMatrix]
     · intro b _ hb
       simp [starMatrix, hi, hb]
     · intro hc'
       exact absurd (Finset.mem_univ c) hc'
+
+omit [Nonempty ι] in
 
 /-- The squared Euclidean norm of the center column of a star matrix is `∑ i, ‖w i‖²`
 [ChildsKothari2010]. -/
@@ -88,6 +90,8 @@ lemma starMatrix_col_center {c : ι} (w : ι → ℂ) :
     (∑ i, ‖starMatrix c w i c‖ ^ 2) = ∑ i, ‖w i‖ ^ 2 := by
   refine Finset.sum_congr rfl fun i _ => ?_
   simp [starMatrix]
+
+omit [Nonempty ι] in
 
 /-- For `j ≠ c`, the squared Euclidean norm of column `j` of the star matrix is `‖w j‖²`
 [ChildsKothari2010]. -/
@@ -102,7 +106,7 @@ lemma starMatrix_col_other {c : ι} (w : ι → ℂ) {j : ι} (hj : j ≠ c) :
 
 /-- With zero center weight, the maximum Euclidean column norm of the star matrix is `√(∑ i, ‖w
 i‖²)` [ChildsKothari2010]. -/
-theorem mcnNorm_starMatrix {c : ι} {w : ι → ℂ} (hc : w c = 0) :
+theorem mcnNorm_starMatrix {c : ι} {w : ι → ℂ} (_hc : w c = 0) :
     mcnNorm (starMatrix c w) = Real.sqrt (∑ i, ‖w i‖ ^ 2) := by
   unfold mcnNorm
   refine le_antisymm ?_ ?_
@@ -119,6 +123,8 @@ theorem mcnNorm_starMatrix {c : ι} {w : ι → ℂ} (hc : w c = 0) :
       (Finset.mem_univ c)
     rw [starMatrix_col_center] at h
     exact h
+
+omit [Nonempty ι] in
 
 /-- With zero center weight, the squared norm of the conjugate-weighted center sum is bounded by
 the product of the weight and vector squared norms away from the center [ChildsKothari2010]. -/
@@ -216,15 +222,17 @@ theorem specNorm_starMatrix {c : ι} {w : ι → ℂ} (hc : w c = 0) :
       rw [starMatrix_mulVec hc]
       funext i
       by_cases hi : i = c
-      · rw [if_pos hi, hi]
+      · rw [ite_eq_left hi, hi]
         simp [hc, Pi.single_apply]
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         simp
     rw [WithLp.ofLp_toLp, hmv] at hmem
     have hnorm : ‖(EuclideanSpace.equiv ι ℂ).symm w‖ = W := by
       rw [EuclideanSpace.norm_eq, hW]
       rfl
     rwa [hnorm] at hmem
+
+omit [Fintype ι] [Nonempty ι] in
 
 /-- The entrywise absolute-value matrix of a star matrix has center column `‖w i‖`, center-row
 entries `‖w j‖` away from the center, and zeros elsewhere [ChildsKothari2010]. -/
@@ -234,11 +242,11 @@ lemma absMatrix_starMatrix {c : ι} (w : ι → ℂ) :
   funext i j
   simp only [absMatrix, starMatrix]
   by_cases hj : j = c
-  · rw [if_pos hj, if_pos hj]
+  · rw [ite_eq_left hj, ite_eq_left hj]
   · by_cases hi : i = c
-    · rw [if_neg hj, if_pos hi, if_neg hj, if_pos hi]
+    · rw [ite_eq_right hj, ite_eq_left hi, ite_eq_right hj, ite_eq_left hi]
       exact norm_star (w j)
-    · rw [if_neg hj, if_neg hi, if_neg hj, if_neg hi]
+    · rw [ite_eq_right hj, ite_eq_right hi, ite_eq_right hj, ite_eq_right hi]
       simp
 
 /-- With zero center weight, the spectral norm of the complex entrywise absolute-value star
@@ -253,11 +261,11 @@ theorem star_abs_specNorm_eq_mcn {c : ι} {w : ι → ℂ} (hc : w c = 0) :
     rw [Matrix.map_apply, absMatrix_starMatrix]
     simp only [starMatrix]
     by_cases hj : j = c
-    · rw [if_pos hj, if_pos hj]
+    · rw [ite_eq_left hj, ite_eq_left hj]
     · by_cases hi : i = c
-      · rw [if_neg hj, if_pos hi, if_neg hj, if_pos hi]
+      · rw [ite_eq_right hj, ite_eq_left hi, ite_eq_right hj, ite_eq_left hi]
         simp
-      · rw [if_neg hj, if_neg hi, if_neg hj, if_neg hi]
+      · rw [ite_eq_right hj, ite_eq_right hi, ite_eq_right hj, ite_eq_right hi]
         simp
   rw [habs,
     specNorm_starMatrix (c := c) (w := fun i => ((‖w i‖ : ℝ) : ℂ)) hwRc,

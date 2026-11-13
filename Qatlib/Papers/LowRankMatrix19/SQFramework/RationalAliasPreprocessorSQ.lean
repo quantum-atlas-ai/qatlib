@@ -27,7 +27,6 @@ draws, and the RAM implementation into `AliasFrontier` for the sample/query sett
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.SqEstimation.AliasPreprocess
 
 set_option autoImplicit false

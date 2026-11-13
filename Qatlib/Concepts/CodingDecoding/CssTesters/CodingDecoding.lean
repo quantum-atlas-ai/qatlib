@@ -42,7 +42,6 @@ realization of the gadget and noise conditions using trivial data.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
 open Qatlib.Concepts.CodingDecoding.CssTesters.LogicalNonscalarRestriction
@@ -50,7 +49,6 @@ open Qatlib.Concepts.CodingDecoding.CssTesters.LogicalNonscalarRestriction
 set_option autoImplicit false
 
 open Qatlib.Concepts.CodingDecoding.CssTesters
-
 
 namespace Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 

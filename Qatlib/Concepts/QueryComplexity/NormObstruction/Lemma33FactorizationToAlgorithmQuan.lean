@@ -32,8 +32,6 @@ unitary dilation is also used in [AradLandau2010].
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
@@ -44,8 +42,6 @@ open Qatlib.Concepts.QueryComplexity.CbDegreeBridge
 namespace Qatlib.Concepts.QueryComplexity.NormObstruction
 
 open Matrix
-
-set_option linter.unusedSectionVars false
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
@@ -280,6 +276,8 @@ private noncomputable def embInlLM : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanS
     funext i
     cases i <;> simp
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- Evaluates the linear embedding as the original vector followed by a zero component. -/
 @[simp] theorem embInlLM_apply (x : EuclideanSpace ℂ R) :
     embInlLM x = WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0) := rfl
@@ -442,7 +440,7 @@ private theorem dilUnitaryMat_action (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (
       · simp [Qatlib.Foundations.PureStateMath.Ket]
       · intro j _ hj
         simp only [Pi.smul_apply, Qatlib.Foundations.PureStateMath.Ket, smul_eq_mul]
-        rw [if_neg (Ne.symm hj), mul_zero]
+        rw [ite_eq_right (Ne.symm hj), mul_zero]
       · intro hmem
         exact absurd (Finset.mem_univ k) hmem
     have htoLp : WithLp.toLp 2 (∑ j, y j • Qatlib.Foundations.PureStateMath.Ket j)
@@ -511,6 +509,8 @@ private abbrev RegB (t : ℕ) (R : Type) := Bool × Pos t R
 private def embSlot (i : Fin (2 * t + 2)) (φ : QState R) : QState (Pos t R) :=
   fun p => if p.1 = i then φ p.2 else 0
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- The embedded state equals the original state in the selected slot and vanishes elsewhere. -/
 private theorem embSlot_apply (i : Fin (2 * t + 2)) (φ : QState R) (p : Pos t R) :
     embSlot i φ p = if p.1 = i then φ p.2 else 0 := rfl
@@ -527,6 +527,8 @@ private def brT (X : QState (Pos t R)) : QState (RegB t R) :=
 private noncomputable def branchMatrix (Af At : Matrix (Pos t R) (Pos t R) ℂ) :
     Matrix (RegB t R) (RegB t R) ℂ :=
   fun x y => if x.1 = y.1 then (if x.1 then At x.2 y.2 else Af x.2 y.2) else 0
+
+omit [Fintype R] [DecidableEq R] in
 
 /-- A branch-matrix entry vanishes between different branches and otherwise selects the matrix
 for that branch. -/
@@ -580,19 +582,27 @@ private def slotEquiv (k : Fin (2 * t + 2)) (hk : k ≠ 0) : Pos t R ≃ (R ⊕ 
     · show slotFwd k (i, r) = Sum.inr ⟨⟨i, r⟩, h1, h2⟩
       simp [slotFwd, h1, h2]
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- The forward slot equivalence is given by `slotFwd`. -/
 private theorem slotEquiv_apply (k : Fin (2 * t + 2)) (hk : k ≠ 0) (p : Pos t R) :
     slotEquiv k hk p = slotFwd k p := rfl
+
+omit [Fintype R] [DecidableEq R] in
 
 /-- The inverse slot equivalence is given by `slotBwd`. -/
 private theorem slotEquiv_symm_apply (k : Fin (2 * t + 2)) (hk : k ≠ 0)
     (s : (R ⊕ R) ⊕ RestPos t R k) :
     (slotEquiv k hk).symm s = slotBwd k s := rfl
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- The forward slot map sends slot zero into the first distinguished copy of `R`. -/
 @[simp] theorem slotFwd_zero (k : Fin (2 * t + 2)) (r : R) :
     slotFwd k (0, r) = Sum.inl (Sum.inl r) := by
   simp [slotFwd]
+
+omit [Fintype R] [DecidableEq R] in
 
 /-- For nonzero `k`, the forward slot map sends slot `k` into the second distinguished copy of
 `R`. -/
@@ -600,19 +610,27 @@ private theorem slotEquiv_symm_apply (k : Fin (2 * t + 2)) (hk : k ≠ 0)
     slotFwd k (k, r) = Sum.inl (Sum.inr r) := by
   simp [slotFwd, hk]
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- A position outside slots zero and `k` maps into the remaining-position summand. -/
 @[simp] theorem slotFwd_other (k : Fin (2 * t + 2)) (i : Fin (2 * t + 2))
     (h1 : i ≠ 0) (h2 : i ≠ k) (r : R) :
     slotFwd k (i, r) = Sum.inr ⟨(i, r), h1, h2⟩ := by
   simp [slotFwd, h1, h2]
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- The backward slot map sends the first distinguished copy of `R` to slot zero. -/
 @[simp] theorem slotBwd_inl_inl (k : Fin (2 * t + 2)) (r : R) :
     slotBwd k (Sum.inl (Sum.inl r)) = (0, r) := rfl
 
+omit [Fintype R] [DecidableEq R] in
+
 /-- The backward slot map sends the second distinguished copy of `R` to slot `k`. -/
 @[simp] theorem slotBwd_inl_inr (k : Fin (2 * t + 2)) (r : R) :
     slotBwd k (Sum.inl (Sum.inr r)) = (k, r) := rfl
+
+omit [Fintype R] [DecidableEq R] in
 
 /-- The backward slot map preserves a remaining-position index. -/
 @[simp] theorem slotBwd_inr (k : Fin (2 * t + 2)) (p : RestPos t R k) :
@@ -630,19 +648,27 @@ private noncomputable def blockU (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R 
       | Sum.inl _ => 0
       | Sum.inr d => if c = d then 1 else 0
 
+omit [Fintype R] in
+
 /-- The distinguished block of `blockU k U` equals `U`. -/
 @[simp] theorem blockU_inl_inl (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (a b : R ⊕ R) :
     blockU k U (Sum.inl a) (Sum.inl b) = U a b := rfl
+
+omit [Fintype R] in
 
 /-- The block from remaining positions into distinguished positions is zero. -/
 @[simp] theorem blockU_inl_inr (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (a : R ⊕ R) (c : RestPos t R k) :
     blockU k U (Sum.inl a) (Sum.inr c) = 0 := rfl
 
+omit [Fintype R] in
+
 /-- The block from distinguished positions into remaining positions is zero. -/
 @[simp] theorem blockU_inr_inl (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (c : RestPos t R k) (b : R ⊕ R) :
     blockU k U (Sum.inr c) (Sum.inl b) = 0 := rfl
+
+omit [Fintype R] in
 
 /-- The remaining-position block of `blockU k U` is the identity matrix. -/
 @[simp] theorem blockU_inr_inr (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
@@ -670,15 +696,15 @@ private theorem blockU_unitary (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R �
       blockU_inr_inl, star_zero, zero_mul, Finset.sum_const_zero, add_zero]
     rw [hU']
     by_cases hab : a = b
-    · rw [if_pos hab, if_pos (by rw [hab])]
-    · rw [if_neg hab, if_neg (fun h => hab (Sum.inl.inj h))]
+    · rw [ite_eq_left hab, ite_eq_left (by rw [hab])]
+    · rw [ite_eq_right hab, ite_eq_right (fun h => hab (Sum.inl.inj h))]
   · simp only [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_apply, blockU_inl_inr,
       blockU_inr_inl, star_zero, zero_mul, mul_zero, Finset.sum_const_zero, add_zero]
-    rw [if_neg (fun h => by simp at h)]
+    rw [ite_eq_right (fun h => by simp at h)]
   · simp only [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_apply, blockU_inr_inl,
       blockU_inr_inr, blockU_inl_inr, star_zero, zero_mul, mul_zero, Finset.sum_const_zero,
       zero_add]
-    rw [if_neg (fun h => by simp at h)]
+    rw [ite_eq_right (fun h => by simp at h)]
   · simp only [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_apply,
       blockU_inl_inr, star_zero, zero_mul, Finset.sum_const_zero, zero_add, blockU_inr_inr]
     by_cases hcd : c = d
@@ -690,7 +716,7 @@ private theorem blockU_unitary (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R �
       · intro hmem
         exact absurd (Finset.mem_univ c) hmem
     · rw [Finset.sum_eq_zero]
-      · rw [if_neg (fun h => hcd (Sum.inr.inj h))]
+      · rw [ite_eq_right (fun h => hcd (Sum.inr.inj h))]
       · intro e _
         by_cases hec : e = c
         · subst hec
@@ -740,7 +766,7 @@ private theorem liftP_act0 (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R �
       rw [slotEquiv_symm_apply, slotBwd_inl_inr, embSlot_apply]
       simp [hk]
     · show embSlot 0 φ ((slotEquiv k hk).symm (Sum.inr ⟨⟨i', r'⟩, h1, h2⟩)) = _
-      rw [slotEquiv_symm_apply, slotBwd_inr, embSlot_apply, if_neg h1, Sum.elim_inr, Pi.zero_apply]
+      rw [slotEquiv_symm_apply, slotBwd_inr, embSlot_apply, ite_eq_right h1, Sum.elim_inr, Pi.zero_apply]
   have hb : blockU (t := t) (R := R) k U *ᵥ Sum.elim (Sum.elim φ 0) (0 : QState (RestPos t R k))
       = Sum.elim (U *ᵥ Sum.elim φ 0) (0 : QState (RestPos t R k)) := by
     funext s
@@ -777,7 +803,7 @@ private theorem liftP_act0 (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R �
       rw [Finset.sum_eq_single ⟨⟨i', r'⟩, h1, h2⟩]
       · simp
       · intro e _ he
-        rw [blockU_inr_inr, if_neg (Ne.symm he)]
+        rw [blockU_inr_inr, ite_eq_right (Ne.symm he)]
         simp
       · intro hmem
         exact absurd (Finset.mem_univ _) hmem
@@ -788,19 +814,19 @@ private theorem liftP_act0 (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R �
   · subst h0
     rw [slotEquiv_apply, slotFwd_zero]
     show (U *ᵥ Sum.elim φ 0) (Sum.inl r) = _
-    rw [Pi.add_apply, embSlot_apply, embSlot_apply, if_pos rfl,
-      if_neg (by exact fun h => hk h.symm)]
+    rw [Pi.add_apply, embSlot_apply, embSlot_apply, ite_eq_left rfl,
+      ite_eq_right (by exact fun h => hk h.symm)]
     rw [add_zero]
   · by_cases hkk : i = k
     · subst i
       rw [slotEquiv_apply, slotFwd_k k hk]
       show (U *ᵥ Sum.elim φ 0) (Sum.inr r) = _
       rw [Pi.add_apply, embSlot_apply, embSlot_apply,
-        if_neg (by exact fun h => hk h), if_pos rfl]
+        ite_eq_right (by exact fun h => hk h), ite_eq_left rfl]
       rw [zero_add]
     · rw [slotEquiv_apply, slotFwd_other k i h0 hkk]
       show (0 : QState (RestPos t R k)) ⟨⟨i, r⟩, h0, hkk⟩ = _
-      rw [Pi.zero_apply, Pi.add_apply, embSlot_apply, embSlot_apply, if_neg h0, if_neg hkk,
+      rw [Pi.zero_apply, Pi.add_apply, embSlot_apply, embSlot_apply, ite_eq_right h0, ite_eq_right hkk,
         add_zero]
 
 /-- The Boolean phase-oracle entry equals the corresponding signed-variable diagonal entry. -/
@@ -852,11 +878,11 @@ private theorem figOracleP_mulVec_main (δ : R → Option (Fin n ⊕ Fin n)) (x 
   rw [diagonal_mulVec_apply, embSlot_apply, embSlot_apply]
   by_cases h0 : i = 0
   · subst h0
-    rw [if_pos rfl, if_pos rfl]
+    rw [ite_eq_left rfl, ite_eq_left rfl]
     show dzval δ (signVecC x) r * φ r = (cbDelta δ (signVecC x) *ᵥ φ) r
     rw [cbDelta, diagonal_mulVec_apply]
     rfl
-  · rw [if_neg h0, if_neg h0, if_neg h0, mul_zero]
+  · rw [ite_eq_right h0, ite_eq_right h0, ite_eq_right h0, mul_zero]
 
 /-- The position oracle fixes every state embedded in a nonzero slot. -/
 private theorem figOracleP_mulVec_junk (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool)
@@ -869,8 +895,8 @@ private theorem figOracleP_mulVec_junk (δ : R → Option (Fin n ⊕ Fin n)) (x 
   rw [diagonal_mulVec_apply, embSlot_apply]
   by_cases hj : j = 0
   · subst hj
-    rw [if_pos rfl, if_neg (fun h => h0 h.symm), mul_zero]
-  · rw [if_neg hj, one_mul]
+    rw [ite_eq_left rfl, ite_eq_right (fun h => h0 h.symm), mul_zero]
+  · rw [ite_eq_right hj, one_mul]
 
 /-- The position oracle fixes every state supported outside slot zero. -/
 private theorem figOracleP_mulVec_of_support (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool)
@@ -883,8 +909,8 @@ private theorem figOracleP_mulVec_of_support (δ : R → Option (Fin n ⊕ Fin n
   · have hz0 : z p = 0 := by
       by_contra hne
       exact hz p hne h0
-    rw [if_pos h0, hz0, mul_zero]
-  · rw [if_neg h0, one_mul]
+    rw [ite_eq_left h0, hz0, mul_zero]
+  · rw [ite_eq_right h0, one_mul]
 
 /-- Labels the main slot by `δ` and all other slots by the inactive oracle label. -/
 private def figLabel (δ : R → Option (Fin n ⊕ Fin n)) : RegB t R → Option (Fin n ⊕ Fin n) :=
@@ -910,18 +936,18 @@ private theorem figOracle_eq (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n �
       = if i = 0 then dzval δ (signVecC x) r else 1
     by_cases h0 : i = 0
     · subst h0
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       exact cbPhaseEntry_eq_dzO x (δ r)
-    · rw [if_neg h0, if_neg h0]
+    · rw [ite_eq_right h0, ite_eq_right h0]
       rfl
   · rw [Matrix.diagonal_apply_ne _ hab, branchMatrix_apply]
     by_cases h1 : a.1 = b.1
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       have h2 : a.2 ≠ b.2 := fun h => hab (Prod.ext h1 h)
       split
       · exact (Matrix.diagonal_apply_ne _ h2).symm
       · exact (Matrix.diagonal_apply_ne _ h2).symm
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
 
 /-- Embedding two states in the same slot preserves their inner product. -/
 private theorem inner_embSlot (i : Fin (2 * t + 2)) (φ ψ : QState R) :
@@ -943,10 +969,10 @@ private theorem inner_embSlot_disjoint {i i' : Fin (2 * t + 2)} (h : i ≠ i') (
     by_cases hp1 : p.1 = i'
     · have hpi : p.1 = i := by
         by_contra hne
-        rw [embSlot_apply, if_neg hne] at hp
+        rw [embSlot_apply, ite_eq_right hne] at hp
         exact hp rfl
       exact absurd (hpi ▸ hp1) h
-    · rw [embSlot_apply, if_neg hp1]
+    · rw [embSlot_apply, ite_eq_right hp1]
 
 /-- A lifted two-slot matrix fixes every state in a slot outside its two active positions. -/
 private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
@@ -957,9 +983,9 @@ private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix 
     funext s
     rcases s with (⟨r'⟩ | ⟨r'⟩) | ⟨⟨i', r'⟩, h1, h2⟩
     · rw [Function.comp_apply, slotEquiv_symm_apply, slotBwd_inl_inl, embSlot_apply,
-        if_neg (fun h => h0 h.symm), Sum.elim_inl, Pi.zero_apply]
+        ite_eq_right (fun h => h0 h.symm), Sum.elim_inl, Pi.zero_apply]
     · rw [Function.comp_apply, slotEquiv_symm_apply, slotBwd_inl_inr, embSlot_apply,
-        if_neg (fun h => hik h.symm), Sum.elim_inl, Pi.zero_apply]
+        ite_eq_right (fun h => hik h.symm), Sum.elim_inl, Pi.zero_apply]
     · rw [Function.comp_apply, slotEquiv_symm_apply, slotBwd_inr, Sum.elim_inr]
   have hb : blockU (t := t) (R := R) k U *ᵥ
         Sum.elim (0 : QState (R ⊕ R)) (fun c => embSlot i φ (c : RestPos t R k))
@@ -1001,9 +1027,9 @@ private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix 
           Sum.elim (0 : QState (R ⊕ R)) (fun c => embSlot i φ (c : RestPos t R k)) (Sum.inr e))
           = embSlot i φ (i', r') from by
         rw [Finset.sum_eq_single ⟨⟨i', r'⟩, h1, h2⟩]
-        · rw [blockU_inr_inr, if_pos rfl, one_mul, Sum.elim_inr]
+        · rw [blockU_inr_inr, ite_eq_left rfl, one_mul, Sum.elim_inr]
         · intro e _ he
-          rw [blockU_inr_inr, if_neg (Ne.symm he), zero_mul]
+          rw [blockU_inr_inr, ite_eq_right (Ne.symm he), zero_mul]
         · intro hmem
           exact absurd (Finset.mem_univ _) hmem]
       rw [Sum.elim_inr]
@@ -1013,11 +1039,11 @@ private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix 
   by_cases h0' : i' = 0
   · subst i'
     rw [slotEquiv_apply, slotFwd_zero, Sum.elim_inl, Pi.zero_apply, embSlot_apply,
-      if_neg (fun h => h0 h.symm)]
+      ite_eq_right (fun h => h0 h.symm)]
   · by_cases hik' : i' = k
     · subst i'
       rw [slotEquiv_apply, slotFwd_k k hk, Sum.elim_inl, Pi.zero_apply, embSlot_apply,
-        if_neg (fun h => hik h.symm)]
+        ite_eq_right (fun h => hik h.symm)]
     · rw [slotEquiv_apply, slotFwd_other k i' h0' hik', Sum.elim_inr]
 
 /-- Every position-register state is the sum of its individual slot embeddings. -/
@@ -1027,9 +1053,9 @@ private theorem pos_decomp (z : QState (Pos t R)) :
   obtain ⟨i, r⟩ := p
   rw [Finset.sum_apply]
   rw [Finset.sum_eq_single i]
-  · rw [embSlot_apply, if_pos rfl]
+  · rw [embSlot_apply, ite_eq_left rfl]
   · intro j _ hj
-    rw [embSlot_apply, if_neg (fun h => hj h.symm)]
+    rw [embSlot_apply, ite_eq_right (fun h => hj h.symm)]
   · intro hmem
     exact absurd (Finset.mem_univ i) hmem
 
@@ -1064,6 +1090,8 @@ private theorem liftP_mulVec_of_support (k : Fin (2 * t + 2)) (hk : k ≠ 0)
       rw [hzk, embSlot_zero, Matrix.mulVec_zero]
     · exact liftP_actOther k hk U i h0 hik _
 
+omit [DecidableEq R] in
+
 /-- The branch matrix applies `Af` to a state in the false branch. -/
 private theorem branchMatrix_mulVec_brF (Af At : Matrix (Pos t R) (Pos t R) ℂ) (X : QState (Pos t R)) :
     branchMatrix Af At *ᵥ brF X = brF (Af *ᵥ X) := by
@@ -1085,6 +1113,8 @@ private theorem branchMatrix_mulVec_brF (Af At : Matrix (Pos t R) (Pos t R) ℂ)
       Finset.sum_eq_zero fun q _ => by simp [branchMatrix_apply, brF]
     rw [h1]
     rfl
+
+omit [DecidableEq R] in
 
 /-- The branch matrix applies `At` to a state in the true branch. -/
 private theorem branchMatrix_mulVec_brT (Af At : Matrix (Pos t R) (Pos t R) ℂ) (X : QState (Pos t R)) :
@@ -1146,9 +1176,9 @@ private theorem branchMatrix_unitary (Af At : Matrix (Pos t R) (Pos t R) ℂ)
         Finset.sum_congr rfl fun q _ => by simp [branchMatrix_apply]
       rw [h1, hAf']
       by_cases hpp : px = py
-      · rw [if_pos hpp]
+      · rw [ite_eq_left hpp]
         simp [hpp]
-      · rw [if_neg hpp]
+      · rw [ite_eq_right hpp]
         simp [hpp]
     · rw [show (∑ q : Pos t R, star (branchMatrix Af At (false, q) (true, px)) *
           branchMatrix Af At (false, q) (true, py)) = 0 from
@@ -1159,9 +1189,9 @@ private theorem branchMatrix_unitary (Af At : Matrix (Pos t R) (Pos t R) ℂ)
         Finset.sum_congr rfl fun q _ => by simp [branchMatrix_apply]
       rw [h1, hAt']
       by_cases hpp : px = py
-      · rw [if_pos hpp]
+      · rw [ite_eq_left hpp]
         simp [hpp]
-      · rw [if_neg hpp]
+      · rw [ite_eq_right hpp]
         simp [hpp]
   · have hz : ∀ c : Bool, (∑ q : Pos t R, star (branchMatrix Af At (c, q) (bx, px)) *
         branchMatrix Af At (c, q) (by', py)) = 0 := by
@@ -1169,16 +1199,18 @@ private theorem branchMatrix_unitary (Af At : Matrix (Pos t R) (Pos t R) ℂ)
       refine Finset.sum_eq_zero fun q _ => ?_
       by_cases hq : c = bx
       · rw [show branchMatrix Af At (c, q) (by', py) = 0 from by
-          rw [branchMatrix_apply, if_neg (fun h => hb (hq ▸ h))]]
+          rw [branchMatrix_apply, ite_eq_right (fun h => hb (hq ▸ h))]]
         simp
       · rw [show branchMatrix Af At (c, q) (bx, px) = 0 from by
-          rw [branchMatrix_apply, if_neg hq]]
+          rw [branchMatrix_apply, ite_eq_right hq]]
         simp
-    rw [hz true, hz false, add_zero, if_neg (fun h => hb (congrArg Prod.fst h))]
+    rw [hz true, hz false, add_zero, ite_eq_right (fun h => hb (congrArg Prod.fst h))]
 
 /-- The Hadamard matrix on the Boolean branch register, tensored with the identity on positions. -/
 private noncomputable def hadGate : Matrix (RegB t R) (RegB t R) ℂ :=
   fun x y => if x.2 = y.2 then Qatlib.Foundations.PureStateMath.Hadamard x.1 y.1 else 0
+
+omit [Fintype R] in
 
 /-- The branch Hadamard matrix has the usual Hadamard entries when positions agree and zero
 entries otherwise. -/
@@ -1216,7 +1248,7 @@ private theorem hadGate_unitary : hadGate (t := t) (R := R) ∈ Matrix.unitaryGr
       rw [Finset.sum_eq_single px]
       · simp
       · intro q _ hq
-        rw [if_neg hq]
+        rw [ite_eq_right hq]
         simp
       · intro hmem
         exact absurd (Finset.mem_univ px) hmem
@@ -1227,9 +1259,9 @@ private theorem hadGate_unitary : hadGate (t := t) (R := R) ∈ Matrix.unitaryGr
       Finset.sum_congr rfl fun c _ => h1 c
     rw [h2, hH']
     by_cases hbb : bx = by'
-    · rw [if_pos hbb]
+    · rw [ite_eq_left hbb]
       simp [hbb]
-    · rw [if_neg hbb]
+    · rw [ite_eq_right hbb]
       simp [hbb]
   · have h0 : ∀ c : Bool, (∑ q : Pos t R,
         star (if q = px then Qatlib.Foundations.PureStateMath.Hadamard c bx else 0) *
@@ -1238,13 +1270,13 @@ private theorem hadGate_unitary : hadGate (t := t) (R := R) ∈ Matrix.unitaryGr
       refine Finset.sum_eq_zero fun q _ => ?_
       by_cases hq : q = px
       · subst hq
-        rw [if_pos rfl, if_neg hp, mul_zero]
-      · rw [if_neg hq, star_zero, zero_mul]
+        rw [ite_eq_left rfl, ite_eq_right hp, mul_zero]
+      · rw [ite_eq_right hq, star_zero, zero_mul]
     have h0' : (∑ c : Bool, ∑ q : Pos t R,
         star (if q = px then Qatlib.Foundations.PureStateMath.Hadamard c bx else 0) *
           (if q = py then Qatlib.Foundations.PureStateMath.Hadamard c by' else 0)) = 0 :=
       Finset.sum_eq_zero fun c _ => h0 c
-    rw [h0', if_neg (fun h => hp (Prod.ext_iff.mp h).2)]
+    rw [h0', ite_eq_right (fun h => hp (Prod.ext_iff.mp h).2)]
 
 /-- Expands the branch Hadamard action on the sum of false-branch and true-branch states. -/
 private theorem hadGate_mulVec (X Y : QState (Pos t R)) :
@@ -1258,20 +1290,20 @@ private theorem hadGate_mulVec (X Y : QState (Pos t R)) :
   have hfalse : (∑ q : Pos t R, hadGate (b, p) (false, q) * (brF X + brT Y) (false, q))
       = Qatlib.Foundations.PureStateMath.Hadamard b false * X p := by
     rw [Finset.sum_eq_single p]
-    · rw [hadGate_apply, if_pos rfl]
+    · rw [hadGate_apply, ite_eq_left rfl]
       simp [brF, brT]
     · intro q' _ hq
-      rw [hadGate_apply, if_neg (fun h => hq h.symm)]
+      rw [hadGate_apply, ite_eq_right (fun h => hq h.symm)]
       simp
     · intro hmem
       exact absurd (Finset.mem_univ p) hmem
   have htrue : (∑ q : Pos t R, hadGate (b, p) (true, q) * (brF X + brT Y) (true, q))
       = Qatlib.Foundations.PureStateMath.Hadamard b true * Y p := by
     rw [Finset.sum_eq_single p]
-    · rw [hadGate_apply, if_pos rfl]
+    · rw [hadGate_apply, ite_eq_left rfl]
       simp [brF, brT]
     · intro q' _ hq
-      rw [hadGate_apply, if_neg (fun h => hq h.symm)]
+      rw [hadGate_apply, ite_eq_right (fun h => hq h.symm)]
       simp
     · intro hmem
       exact absurd (Finset.mem_univ p) hmem
@@ -1416,12 +1448,12 @@ private theorem slotM_ne_zero (t : ℕ) : slotM t ≠ 0 := by
 /-- For `j ≤ t`, the false-branch auxiliary slot has index `2 * j + 1`. -/
 private theorem slotF_val {t j : ℕ} (hj : j ≤ t) : (slotF t j).val = 2 * j + 1 := by
   show (if 2 * j + 1 < 2 * t + 2 then 2 * j + 1 else 1) = 2 * j + 1
-  rw [if_pos (by omega)]
+  rw [ite_eq_left (by omega)]
 
 /-- For `j < t`, the true-branch auxiliary slot has index `2 * j + 2`. -/
 private theorem slotT_val {t j : ℕ} (hj : j < t) : (slotT t j).val = 2 * j + 2 := by
   show (if 2 * j + 2 < 2 * t + 2 then 2 * j + 2 else 1) = 2 * j + 2
-  rw [if_pos (by omega)]
+  rw [ite_eq_left (by omega)]
 
 /-- The middle-gate auxiliary slot has index `2 * t + 1`. -/
 private theorem slotM_val (t : ℕ) : (slotM t).val = 2 * t + 1 := rfl
@@ -1593,7 +1625,7 @@ private theorem cbSlot_const_lt {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R �
     cbSlot W' δ (fun _ => signVecC z) i = W' i * figOR δ z := by
   show (if h' : i.val < 2 * k then W' ⟨i.val, by omega⟩ * cbDelta δ (signVecC z)
     else W' ⟨i.val, by omega⟩) = _
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   show W' ⟨i.val, by omega⟩ * cbDelta δ (signVecC z) = W' i * figOR δ z
   exact congrArg₂ (· * ·) (congrArg W' (Fin.ext rfl)) rfl
 
@@ -1603,7 +1635,7 @@ private theorem cbSlot_const_ge {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R �
     cbSlot W' δ (fun _ => signVecC z) i = W' i := by
   show (if h' : i.val < 2 * k then W' ⟨i.val, by omega⟩ * cbDelta δ (signVecC z)
     else W' ⟨i.val, by omega⟩) = W' i
-  rw [dif_neg h]
+  rw [dite_eq_right h]
 
 set_option maxHeartbeats 1000000 in
 
@@ -1767,14 +1799,14 @@ private theorem figAstate_supp (x : Fin n → Bool)
     constructor
     · intro r
       show embSlot 0 u (0, r) = u r
-      rw [embSlot_apply, if_pos rfl]
+      rw [embSlot_apply, ite_eq_left rfl]
     · intro i r hne
       left
       have hi : i = 0 := by
         by_contra h0
         exact hne (by
           show embSlot 0 u (i, r) = 0
-          rw [embSlot_apply, if_neg h0])
+          rw [embSlot_apply, ite_eq_right h0])
       exact congrArg Fin.val hi
   | succ j ih =>
     intro hj
@@ -1782,7 +1814,7 @@ private theorem figAstate_supp (x : Fin n → Bool)
     set Ra : QState (Pos t R) := figAstate δ u dU x j - embSlot 0 (figAchain δ W u x j) with hRa
     have hRa0 : ∀ r, Ra (0, r) = 0 := by
       intro r
-      rw [hRa, Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
+      rw [hRa, Pi.sub_apply, hmain r, embSlot_apply, ite_eq_left rfl, sub_self]
     have hRa_supp : ∀ p, Ra p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ slotF t j := by
       intro p hp
       have hpA : figAstate δ u dU x j p ≠ 0 := by
@@ -1791,11 +1823,11 @@ private theorem figAstate_supp (x : Fin n → Bool)
         rw [hRa, Pi.sub_apply, hz]
         by_cases h0 : p.1 = 0
         · have hp0 : p = (0, p.2) := Prod.ext h0 rfl
-          rw [hp0, embSlot_apply, if_pos rfl]
+          rw [hp0, embSlot_apply, ite_eq_left rfl]
           rw [hp0] at hz
           rw [hmain p.2] at hz
           rw [hz, sub_self]
-        · rw [embSlot_apply, if_neg h0, sub_zero]
+        · rw [embSlot_apply, ite_eq_right h0, sub_zero]
       obtain (h0 | ⟨j', hj1, hj2⟩) := hsupp p.1 p.2 hpA
       · exfalso
         have hp0 : p = (0, p.2) := Prod.ext (Fin.ext h0) rfl
@@ -1834,8 +1866,8 @@ private theorem figAstate_supp (x : Fin n → Bool)
     · intro r
       rw [hA, hora, hC]
       rw [Pi.add_apply, Pi.add_apply, embSlot_apply, embSlot_apply, hRa0]
-      rw [if_pos rfl,
-          if_neg (show ((0, r) : Pos t R).1 ≠ slotF t j from fun h => slotF_ne_zero t j h.symm)]
+      rw [ite_eq_left rfl,
+          ite_eq_right (show ((0, r) : Pos t R).1 ≠ slotF t j from fun h => slotF_ne_zero t j h.symm)]
       simp
     · intro i r hne
       rw [hA, hora] at hne
@@ -1850,13 +1882,13 @@ private theorem figAstate_supp (x : Fin n → Bool)
             intro hz
             apply hne
             rw [hz]
-            rw [embSlot_apply, embSlot_apply, if_neg h0, if_neg hk]
+            rw [embSlot_apply, embSlot_apply, ite_eq_right h0, ite_eq_right hk]
             simp
           have hpA : figAstate δ u dU x j (i, r) ≠ 0 := by
             intro hz
             apply hne3
             rw [hRa, Pi.sub_apply, hz]
-            rw [embSlot_apply, if_neg h0, sub_zero]
+            rw [embSlot_apply, ite_eq_right h0, sub_zero]
           obtain (h0' | ⟨j', hj1, hj2⟩) := hsupp i r hpA
           · exact absurd (Fin.ext h0') h0
           · exact ⟨j', by omega, hj2⟩
@@ -1878,14 +1910,14 @@ private theorem figBstate_supp (x : Fin n → Bool)
     constructor
     · intro r
       show embSlot 0 v (0, r) = v r
-      rw [embSlot_apply, if_pos rfl]
+      rw [embSlot_apply, ite_eq_left rfl]
     · intro i r hne
       left
       have hi : i = 0 := by
         by_contra h0
         exact hne (by
           show embSlot 0 v (i, r) = 0
-          rw [embSlot_apply, if_neg h0])
+          rw [embSlot_apply, ite_eq_right h0])
       exact congrArg Fin.val hi
   | succ j ih =>
     intro hj
@@ -1893,7 +1925,7 @@ private theorem figBstate_supp (x : Fin n → Bool)
     set Rb : QState (Pos t R) := figBstate δ v dU x j - embSlot 0 (figBchain δ W v x j) with hRb
     have hRb0 : ∀ r, Rb (0, r) = 0 := by
       intro r
-      rw [hRb, Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
+      rw [hRb, Pi.sub_apply, hmain r, embSlot_apply, ite_eq_left rfl, sub_self]
     have hRb_supp : ∀ p, Rb p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ slotT t j := by
       intro p hp
       have hpA : figBstate δ v dU x j p ≠ 0 := by
@@ -1902,11 +1934,11 @@ private theorem figBstate_supp (x : Fin n → Bool)
         rw [hRb, Pi.sub_apply, hz]
         by_cases h0 : p.1 = 0
         · have hp0 : p = (0, p.2) := Prod.ext h0 rfl
-          rw [hp0, embSlot_apply, if_pos rfl]
+          rw [hp0, embSlot_apply, ite_eq_left rfl]
           rw [hp0] at hz
           rw [hmain p.2] at hz
           rw [hz, sub_self]
-        · rw [embSlot_apply, if_neg h0, sub_zero]
+        · rw [embSlot_apply, ite_eq_right h0, sub_zero]
       obtain (h0 | ⟨j', hj1, hj2⟩) := hsupp p.1 p.2 hpA
       · exfalso
         have hp0 : p = (0, p.2) := Prod.ext (Fin.ext h0) rfl
@@ -1945,8 +1977,8 @@ private theorem figBstate_supp (x : Fin n → Bool)
     · intro r
       rw [hB, hora, hC]
       rw [Pi.add_apply, Pi.add_apply, embSlot_apply, embSlot_apply, hRb0]
-      rw [if_pos rfl,
-          if_neg (show ((0, r) : Pos t R).1 ≠ slotT t j from fun h => slotT_ne_zero t j h.symm)]
+      rw [ite_eq_left rfl,
+          ite_eq_right (show ((0, r) : Pos t R).1 ≠ slotT t j from fun h => slotT_ne_zero t j h.symm)]
       simp
     · intro i r hne
       rw [hB, hora] at hne
@@ -1961,13 +1993,13 @@ private theorem figBstate_supp (x : Fin n → Bool)
             intro hz
             apply hne
             rw [hz]
-            rw [embSlot_apply, embSlot_apply, if_neg h0, if_neg hk]
+            rw [embSlot_apply, embSlot_apply, ite_eq_right h0, ite_eq_right hk]
             simp
           have hpA : figBstate δ v dU x j (i, r) ≠ 0 := by
             intro hz
             apply hne3
             rw [hRb, Pi.sub_apply, hz]
-            rw [embSlot_apply, if_neg h0, sub_zero]
+            rw [embSlot_apply, ite_eq_right h0, sub_zero]
           obtain (h0' | ⟨j', hj1, hj2⟩) := hsupp i r hpA
           · exact absurd (Fin.ext h0') h0
           · exact ⟨j', by omega, hj2⟩
@@ -1979,7 +2011,7 @@ private theorem figAstate_sub_main (x : Fin n → Bool)
     ∀ r, (figAstate δ u dU x t - embSlot 0 (figAchain δ W u x t) : QState (Pos t R)) (0, r) = 0 := by
   intro r
   obtain ⟨hmain, _⟩ := figAstate_supp δ W u dU dS x hact t (le_refl t)
-  rw [Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
+  rw [Pi.sub_apply, hmain r, embSlot_apply, ite_eq_left rfl, sub_self]
 
 /-- Every nonzero coordinate remaining after subtracting the false-branch main chain lies in an
 odd auxiliary slot used before round `t`. -/
@@ -1996,11 +2028,11 @@ private theorem figAstate_sub_supp (x : Fin n → Bool)
     rw [Pi.sub_apply, hz]
     by_cases h0 : p.1 = 0
     · have hp0 : p = (0, p.2) := Prod.ext h0 rfl
-      rw [hp0, embSlot_apply, if_pos rfl]
+      rw [hp0, embSlot_apply, ite_eq_left rfl]
       rw [hp0] at hz
       rw [hmain p.2] at hz
       rw [hz, sub_self]
-    · rw [embSlot_apply, if_neg h0, sub_zero]
+    · rw [embSlot_apply, ite_eq_right h0, sub_zero]
   obtain (h0 | ⟨j', hj1, hj2⟩) := hsupp p.1 p.2 hpA
   · exfalso
     have hp0 : p = (0, p.2) := Prod.ext (Fin.ext h0) rfl
@@ -2015,7 +2047,7 @@ private theorem figBstate_sub_main (x : Fin n → Bool)
     ∀ r, (figBstate δ v dU x t - embSlot 0 (figBchain δ W v x t) : QState (Pos t R)) (0, r) = 0 := by
   intro r
   obtain ⟨hmain, _⟩ := figBstate_supp δ W v dU dS x hact t (le_refl t)
-  rw [Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
+  rw [Pi.sub_apply, hmain r, embSlot_apply, ite_eq_left rfl, sub_self]
 
 /-- Every nonzero coordinate remaining after subtracting the true-branch main chain lies in an
 even auxiliary slot used before round `t`. -/
@@ -2032,11 +2064,11 @@ private theorem figBstate_sub_supp (x : Fin n → Bool)
     rw [Pi.sub_apply, hz]
     by_cases h0 : p.1 = 0
     · have hp0 : p = (0, p.2) := Prod.ext h0 rfl
-      rw [hp0, embSlot_apply, if_pos rfl]
+      rw [hp0, embSlot_apply, ite_eq_left rfl]
       rw [hp0] at hz
       rw [hmain p.2] at hz
       rw [hz, sub_self]
-    · rw [embSlot_apply, if_neg h0, sub_zero]
+    · rw [embSlot_apply, ite_eq_right h0, sub_zero]
   obtain (h0 | ⟨j', hj1, hj2⟩) := hsupp p.1 p.2 hpA
   · exfalso
     have hp0 : p = (0, p.2) := Prod.ext (Fin.ext h0) rfl
@@ -2110,14 +2142,14 @@ private theorem fig_pairing (x : Fin n → Bool)
       · have hp0 : p = (0, p.2) := Prod.ext h0 rfl
         rw [hp0]
         exact hRb0 p.2
-      · rw [if_neg h0] at hp
+      · rw [ite_eq_right h0] at hp
         exact absurd rfl hp
   have e4 : Qatlib.Foundations.PureStateMath.Inner Ra (embSlot 0 (W ⟨t % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ *ᵥ figBchain δ W v x t))
       = 0 :=
     inner_eq_zero_of_support_disjoint _ _ fun p hp => by
       obtain ⟨j', hj1, hj2⟩ := hRa_supp p hp
       rw [embSlot_apply]
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro h0
         rw [h0] at hj2
         simp at hj2)]
@@ -2126,7 +2158,7 @@ private theorem fig_pairing (x : Fin n → Bool)
     inner_eq_zero_of_support_disjoint _ _ fun p hp => by
       obtain ⟨j', hj1, hj2⟩ := hRa_supp p hp
       rw [embSlot_apply]
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro hk
         have hv : p.1.val = (slotM t).val := congrArg Fin.val hk
         rw [slotM_val] at hv
@@ -2155,6 +2187,8 @@ private noncomputable def figInit : QState (RegB t R) :=
 gate. -/
 private noncomputable def figCircuit : Circuit (RegB t R) :=
   figRounds dU t ++ [Step.gate (branchMatrix 1 (figGateM dU)), Step.gate hadGate]
+
+omit [Fintype R] in
 
 /-- One additional round appends its branch gate and a single oracle query. -/
 private theorem figRounds_succ (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) (j : ℕ) :
@@ -2243,11 +2277,11 @@ private theorem figInit_normalized (hu : Normalized u) (hv : Normalized v) :
     have h3 : (∑ p : Pos t R, ‖embSlot 0 w p‖ ^ 2) = ∑ r : R, ‖w r‖ ^ 2 := by
       rw [Fintype.sum_prod_type]
       rw [Finset.sum_eq_single 0]
-      · exact Finset.sum_congr rfl fun r _ => by rw [embSlot_apply, if_pos rfl]
+      · exact Finset.sum_congr rfl fun r _ => by rw [embSlot_apply, ite_eq_left rfl]
       · intro i _ hi
         rw [Finset.sum_eq_zero]
         intro r _
-        rw [embSlot_apply, if_neg hi]
+        rw [embSlot_apply, ite_eq_right hi]
         simp
       · intro hmem
         exact absurd (Finset.mem_univ 0) hmem
@@ -2296,7 +2330,7 @@ private theorem fig_signBias_form (A B : QState (Pos t R)) :
     rw [Finset.sum_congr rfl (fun p _ => by
       show ‖((2 : ℂ))⁻¹ * (A p + (if (false, p).1 then -1 else 1) * B p)‖ ^ 2
           = (4 : ℝ)⁻¹ * ‖A p + B p‖ ^ 2
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       rw [one_mul, norm_mul, mul_pow]
       congr 1
       rw [norm_inv]
@@ -2315,7 +2349,7 @@ private theorem fig_signBias_form (A B : QState (Pos t R)) :
     rw [Finset.sum_congr rfl (fun p _ => by
       show ‖((2 : ℂ))⁻¹ * (A p + (if (true, p).1 then -1 else 1) * B p)‖ ^ 2
           = (4 : ℝ)⁻¹ * ‖A p - B p‖ ^ 2
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       rw [show A p + -1 * B p = A p - B p from by ring]
       rw [norm_mul, mul_pow]
       congr 1
@@ -2417,8 +2451,8 @@ theorem lemma3_3FactorizationToAlgorithm : Lemma3_3FactorizationToAlgorithm := b
   intro n t T hfac
   obtain ⟨R, hRfin, hRdec, δ, u, v, W, hu, hv, hW, hcert⟩ := hfac
   classical
-  letI := hRfin
-  letI := hRdec
+  let := hRfin
+  let := hRdec
   have hdil : ∀ m : Fin (2 * t + 1), ∀ b : Bool,
       ∃ (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (S : Matrix R R ℂ),
         U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ ∧

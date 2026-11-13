@@ -26,7 +26,6 @@ divisibility-counting ingredient of the discrete-logarithm recovery analysis in 
 * [Shor, 1997, Section 6][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PeriodSampling.DlogSamplingLaw

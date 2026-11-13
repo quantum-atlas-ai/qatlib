@@ -54,8 +54,10 @@ import Mathlib.Tactic.Ring.Common
 /-!
 # Hidden subgroup interfaces and semidirect product identities
 
-This module defines `HidesSubgroup`, `HspProcedure`, and a query bound for promised hidden
-subgroup problems. It proves algebraic ingredients associated with Lemma 1 and Theorem 4 of
+This module defines `HidesSubgroup`, legacy output specifications, and an unproved
+query-bound statement requiring an adaptive query-tree implementation. This deterministic
+query model does not construct the paper's quantum algorithm or bound classical runtime.
+The proved results are algebraic ingredients associated with Lemma 1 and Theorem 4 of
 [BaconChildsVanDam2005]: the prime-order quotient dichotomy, containment in the abelian factor,
 and finite geometric sum identities.
 
@@ -82,8 +84,8 @@ the same left coset of that subgroup. -/
 def HidesSubgroup {G : Type*} [Group G] (f : G → ℕ) (H : Subgroup G) : Prop :=
   ∀ x y : G, f x = f y ↔ x⁻¹ * y ∈ H
 
-/-- A hidden subgroup procedure consists of a natural-number query count and a function
-returning a finite set of candidate generators for each oracle. -/
+/-- Legacy output specification with a query label. Alone it has no oracle-access
+semantics; `HspProcedure.Implemented` supplies those semantics. -/
 structure HspProcedure (G : Type*) [Group G] where
 
   queries : ℕ
@@ -94,19 +96,43 @@ namespace HspProcedure
 
 variable {G : Type*} [Group G]
 
-/-- A procedure solves a subgroup promise when its output generates each promised subgroup
-hidden by the input oracle. -/
+/-- Output correctness only: no query bound or implementation is certified. -/
 def Solves (P : Subgroup G → Prop) (proc : HspProcedure G) : Prop :=
   ∀ (f : G → ℕ) (H : Subgroup G), P H → HidesSubgroup f H →
     Subgroup.closure (proc.solve f : Set G) = H
 
+/-- A depth-indexed deterministic adaptive oracle tree. Each `query` node makes
+one call at its fixed group element and branches only on the returned value.
+The leaf output cannot inspect the oracle. -/
+inductive QueryTree (G : Type*) : ℕ → Type _ where
+  | result (output : Finset G) : QueryTree G 0
+  | query {k : ℕ} (input : G) (next : ℕ → QueryTree G k) : QueryTree G (k + 1)
+
+/-- Execute the query tree, with exactly its indexed number of oracle calls. -/
+def QueryTree.run {k : ℕ} : QueryTree G k → (G → ℕ) → Finset G
+  | .result output, _ => output
+  | .query input next, f => (next (f input)).run f
+
+/-- The stored query count is the depth of a tree computing the stored output.
+This models deterministic queries with unrestricted classical postprocessing. -/
+def Implemented (proc : HspProcedure G) : Prop :=
+  ∃ tree : QueryTree G proc.queries, ∀ f, proc.solve f = tree.run f
+
 end HspProcedure
 
-/-- There exists a procedure solving the subgroup promise whose query count is at most `c *
-(Nat.log2 size + 1) ^ c` for some natural number `c`. -/
-def EfficientPromisedHsp (G : Type*) [Group G] (P : Subgroup G → Prop) (size : ℕ) : Prop :=
+/-- **Statement only — not proved in Qatlib.** Existence of a deterministic
+query-tree implementation solving the promise with the displayed query bound.
+This is not a formalization of quantum query access or of efficient classical computation.
+The bound is for the supplied `size`, with no uniformity assertion across sizes. -/
+def efficientPromisedHsp_statement (G : Type*) [Group G]
+    (P : Subgroup G → Prop) (size : ℕ) : Prop :=
   ∃ c : ℕ, ∃ proc : HspProcedure G,
-    proc.Solves P ∧ proc.queries ≤ c * (Nat.log2 size + 1) ^ c
+    proc.Implemented ∧ proc.Solves P ∧ proc.queries ≤ c * (Nat.log2 size + 1) ^ c
+
+/-- **Statement only — not proved in Qatlib.** Compatibility name for
+`efficientPromisedHsp_statement`; now requires an actual query-tree implementation. -/
+def EfficientPromisedHsp (G : Type*) [Group G] (P : Subgroup G → Prop) (size : ℕ) : Prop :=
+  efficientPromisedHsp_statement G P size
 
 section Lemma1
 

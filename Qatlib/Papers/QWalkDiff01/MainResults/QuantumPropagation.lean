@@ -23,8 +23,6 @@ column-space quantum evolution. The mathematical setting is described in
 * [Childs et al., 2002][ChildsFarhiGutmann2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

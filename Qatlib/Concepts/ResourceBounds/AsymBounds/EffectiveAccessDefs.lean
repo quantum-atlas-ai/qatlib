@@ -36,7 +36,6 @@ polynomial step bound.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.QueryWordCore.Circuit

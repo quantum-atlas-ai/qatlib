@@ -46,10 +46,8 @@ The module also defines controlled modular multiplication schedules and words, w
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery

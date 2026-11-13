@@ -33,10 +33,7 @@ These identities support the battleship spectral analysis in [HunzikerEtAl2003].
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 

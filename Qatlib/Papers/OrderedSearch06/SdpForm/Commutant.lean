@@ -30,11 +30,9 @@ dimensions.
 * [Childs et al., 2007][ChildsLandahlParrilo2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 noncomputable section
 
 namespace Qatlib.Papers.OrderedSearch06.SdpForm
@@ -232,8 +230,7 @@ theorem paperU_mul_conjTranspose (m : ℕ) :
   rw [paperU_conjTranspose, paperU, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_smul,
     fromBlocks_inj]
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-    simp only [Matrix.mul_one, Matrix.one_mul, zero_mul, mul_zero,
-      add_zero, zero_add, neg_mul, mul_neg, sub_self, add_neg_cancel, neg_neg,
+    simp only [Matrix.mul_one, Matrix.one_mul, add_zero, neg_mul, mul_neg, add_neg_cancel, neg_neg,
       counteridentity_mul_self, two_smul]
 
 /-- The product of the conjugate transpose of `paperU` with `paperU` is twice the identity. -/
@@ -242,8 +239,7 @@ theorem paperU_conjTranspose_mul (m : ℕ) :
   rw [paperU_conjTranspose, paperU, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_smul,
     fromBlocks_inj]
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-    simp only [Matrix.mul_one, Matrix.one_mul, zero_mul, mul_zero,
-      add_zero, zero_add, neg_mul, mul_neg, sub_self, add_neg_cancel, neg_neg,
+    simp only [Matrix.mul_one, add_zero, neg_mul, mul_neg, add_neg_cancel, neg_neg,
       counteridentity_mul_self, two_smul]
 
 /-- The block matrix `paperJ` squares to the identity. -/
@@ -251,8 +247,7 @@ theorem paperJ_mul_self (m : ℕ) :
     paperJ m * paperJ m = (1 : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ) := by
   rw [paperJ, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_inj]
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-    simp only [zero_mul, mul_zero, add_zero, zero_add, counteridentity_mul_self,
-      mul_one, one_mul, two_smul]
+    simp only [zero_mul, mul_zero, add_zero, zero_add, counteridentity_mul_self]
 
 /-- Conjugating `paperJ` by `paperU` gives twice the block diagonal matrix with blocks 1 and −1
 [ChildsLandahlParrilo2007]. -/
@@ -262,9 +257,9 @@ theorem paperU_conj_paperJ (m : ℕ) :
   rw [paperU_conjTranspose, paperJ, paperU, fromBlocks_multiply, fromBlocks_multiply,
     fromBlocks_smul, fromBlocks_inj]
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-    simp only [Matrix.mul_one, Matrix.one_mul, zero_mul, mul_zero,
+    simp only [Matrix.mul_one, Matrix.one_mul, mul_zero,
       add_zero, zero_add, neg_mul, mul_neg, counteridentity_mul_self,
-      neg_neg, sub_self, neg_zero, two_smul, add_neg_cancel, neg_add_cancel]
+      two_smul, add_neg_cancel, neg_add_cancel]
 
 /-- The matrix `paperBlockQ m A B` is invariant under conjugation by `paperJ m`
 [ChildsLandahlParrilo2007]. -/
@@ -273,7 +268,7 @@ theorem paperBlockQ_commutes (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
   rw [paperJ, paperBlockQ, fromBlocks_multiply, fromBlocks_multiply, fromBlocks_inj]
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
     simp only [zero_mul, mul_zero, add_zero, zero_add,
-      Matrix.mul_one, Matrix.one_mul, counteridentity_mul_conj_mul,
+      counteridentity_mul_conj_mul,
       counteridentity_mul_mul_assoc_apply_right]
 
 /-- Conjugating `paperBlockQ` by `paperU` gives twice the block diagonal matrix with blocks `A +
@@ -288,9 +283,7 @@ theorem paperU_conj_blockQ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
         (A - B * counteridentity m) (B - A * counteridentity m) := by
     rw [paperU_conjTranspose, paperBlockQ, fromBlocks_multiply, fromBlocks_inj]
     refine ⟨?_, ?_, ?_, ?_⟩ <;>
-      simp only [Matrix.mul_one, Matrix.one_mul, zero_mul, mul_zero,
-        add_zero, zero_add, neg_mul, mul_neg,
-        counteridentity_mul_conj_mul, sub_eq_add_neg]
+      simp only [Matrix.one_mul, neg_mul, counteridentity_mul_conj_mul, sub_eq_add_neg]
   rw [hfirst, paperU, fromBlocks_multiply, fromBlocks_smul, fromBlocks_inj]
   have hBA : (B + A * counteridentity m) * counteridentity m = B * counteridentity m + A := by
     rw [add_mul, Matrix.mul_assoc, counteridentity_mul_self m, Matrix.mul_one]
@@ -305,16 +298,16 @@ theorem paperU_conj_blockQ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     rw [mul_neg, hsub]
     abel
   refine ⟨?_, ?_, ?_, ?_⟩
-  · simp only [Matrix.mul_one, zero_mul, mul_zero, add_zero, zero_add]
+  · simp only [Matrix.mul_one]
     rw [hBA, two_smul]
     abel
-  · simp only [Matrix.mul_one, zero_mul, mul_zero, add_zero, zero_add]
+  · simp only [Matrix.mul_one]
     rw [hBAneg, smul_zero]
     abel
-  · simp only [Matrix.mul_one, zero_mul, mul_zero, add_zero, zero_add]
+  · simp only [Matrix.mul_one]
     rw [hsub, smul_zero]
     abel
-  · simp only [Matrix.mul_one, zero_mul, mul_zero, add_zero, zero_add]
+  · simp only [Matrix.mul_one]
     rw [hsubneg, two_smul]
     abel
 

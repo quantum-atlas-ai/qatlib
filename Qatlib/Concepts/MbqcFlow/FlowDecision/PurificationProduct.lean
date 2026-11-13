@@ -30,7 +30,6 @@ component reduced matrices. The tensor-product and purification setting is descr
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 set_option autoImplicit false
 

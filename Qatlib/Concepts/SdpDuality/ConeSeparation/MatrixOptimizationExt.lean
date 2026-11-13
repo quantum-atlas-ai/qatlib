@@ -51,7 +51,6 @@ namespace Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSeparation
 
 open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSeparation
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 /-- The two scalar identity constraint matrices used to witness failure under the wider width

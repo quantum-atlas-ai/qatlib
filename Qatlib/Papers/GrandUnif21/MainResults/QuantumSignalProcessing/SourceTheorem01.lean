@@ -11,8 +11,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # GrandUnif21 Theorem 1 — Quantum Signal Processing
 
-Source: arXiv:2105.02859v3, Sec. II A, Theorem 1 and Eq. (4) (lines 93--107 of the
-metadata extraction).  The QSP word
+Source: arXiv:2105.02859v3, Sec. II A, Theorem 1 and Eq. (4).  The QSP word
 `e^{i φ₀ Z} ∏_{k=1}^{d} W(a) e^{i φ_k Z}` acts on the single signal qubit as the
 matrix `!![P(a), i Q(a) √(1-a²); i Q*(a) √(1-a²), P*(a)]`, and a legal phase
 table of length `d` exists for exactly the polynomial pairs satisfying the
@@ -23,9 +22,9 @@ The paper-layer statement below is the forward implication used by every later
 theorem of the paper.  It is proved by transporting the concrete `Fin 2` signal
 word through the Gilyén--Su--Low--Wiebe Eq. (3) shape identity, reusing
 
-* `QuantumAlgorithm.Papers.QSingValue19.PhaseExistence.PhaseSynthesis.CompletedPair`
+* `Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.CompletedPair`
   (`completedPair_iff_eq3`) for the printed conditions (i)--(iii), and
-* `QuantumAlgorithm.Papers.QSingValue19.PhaseExistence.SignalWordTransport`
+* `Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportStat`
   for the four-corner display of Eq. (4).
 
 Boundary: matrix-level identity at real signal values `a ∈ [-1,1]`; no gate
@@ -44,8 +43,8 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 
 namespace Qatlib.Papers.GrandUnif21.MainResults.QuantumSignalProcessing
 
-/-- GrandUnif21 Theorem 1, Eq. (4), arXiv:2105.02859v3 p. 5 (metadata lines
-93--107): for every completed polynomial pair of degree `d` (conditions
+/-- GrandUnif21 Theorem 1, Eq. (4), arXiv:2105.02859v3 p. 5:
+for every completed polynomial pair of degree `d` (conditions
 (i)--(iii) of the printed theorem) there is a legal phase table of length `d`
 whose QSP word is the printed response matrix at every `a ∈ [-1,1]`.
 

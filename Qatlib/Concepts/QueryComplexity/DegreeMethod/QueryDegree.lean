@@ -25,8 +25,6 @@ method of [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open scoped Classical

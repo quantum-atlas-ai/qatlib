@@ -30,8 +30,6 @@ diagonal coefficients.
 * [Sasaki et al., 2001][SasakiCarliniJozsa2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TemplMatch01.MainResults.BinaryOptimal
 
 open Qatlib.Foundations.PureStateMath

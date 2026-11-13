@@ -33,9 +33,7 @@ arbitrary reference extensions agree with unitary conjugation, as in [Raussendor
 * [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
@@ -54,8 +52,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Summing the same scalar multiple over both Boolean values multiplies its scalar by two. -/
 theorem sum_univ_bool_smul {M : Type*} [AddCommMonoid M] [Module ℂ M] (c : ℂ) (x : M) :
@@ -574,7 +570,6 @@ theorem cluster_wire_instrument_probability :
       Finset.sum_congr rfl fun b' _ => clusterWireInstrument_branch_apply ζ hζ ρ b',
       sum_univ_bool_smul, show ((2 : ℂ) * (1 / 2 : ℂ)) = 1 from by norm_num, one_smul]
 
-set_option linter.unusedVariables false in
 
 /-- For a density input, both wire outcomes have probability one half and their conditional
 output is conjugation by `clusterJ ζ`. -/

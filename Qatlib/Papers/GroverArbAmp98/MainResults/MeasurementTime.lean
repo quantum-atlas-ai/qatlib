@@ -86,8 +86,6 @@ phase.
 * [Biham et al., 1999][BihamEtAl1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 
