@@ -40,9 +40,7 @@ data structures, recursive Algorithm 3 trees, and analytic contracts. The declar
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription

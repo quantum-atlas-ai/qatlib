@@ -33,10 +33,8 @@ statements formalize Proposition 3.1 and Corollary 3.2 of [HunzikerEtAl2003].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 

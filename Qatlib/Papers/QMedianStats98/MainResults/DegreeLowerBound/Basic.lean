@@ -25,8 +25,6 @@ strictly below two, forces a degree of at least `sqrt(n / (12 * Δ))`.
 [Nayak and Wu, 1998][NayakWu1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound
 open Qatlib.Papers.QMedianStats98.MainResults.Model

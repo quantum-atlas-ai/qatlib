@@ -39,7 +39,6 @@ framework of [BrandaoSvore2017].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Concepts.ProbabilityCore.Concentration

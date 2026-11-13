@@ -24,8 +24,6 @@ trigonometric normalization integral used with the formulas in [NayakVishwanath2
 * [Nayak and Vishwanath, 2000][NayakVishwanath2000]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkLine00.MainResults
 
 set_option autoImplicit false

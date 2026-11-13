@@ -28,8 +28,6 @@ basis vectors. This is a finite dimensional positive map argument in the setting
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -42,7 +40,6 @@ open Qatlib.Concepts.BlockEncoding.LinearCombination
 namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators ComplexOrder
-set_option linter.unusedSimpArgs false
 
 /-- If a Hermitian matrix annihilates `Ket i + t • Ket j` for real `t` with `t² = 1`, its `i`
 and `j` diagonal entries agree. -/
@@ -79,7 +76,7 @@ theorem qudit_positive_family_scalar_one (m n : ℕ) [NeZero n]
     rw [hsum, hv, dotProduct_zero]
   have hcol (s : Fin m) (k j i : Fin n) (hj : j ≠ k) : F s (E k) i j = 0 := by
     have h := hzero (E k) (outerProduct_posSemidef _) (Qatlib.Foundations.PureStateMath.Ket j) (by
-      rw [outerProduct_mulVec, inner_ket_ket, if_neg (Ne.symm hj), zero_smul]) s
+      rw [outerProduct_mulVec, inner_ket_ket, ite_eq_right (Ne.symm hj), zero_smul]) s
     simpa only [mulVec_ket_apply, Pi.zero_apply] using congrFun h i
   have hentry (s : Fin m) (k i j : Fin n) :
       F s (E k) i j = if i = k ∧ j = k then F s (E k) k k else 0 := by
@@ -122,9 +119,9 @@ theorem qudit_positive_family_scalar_one (m n : ℕ) [NeZero n]
         1 - t * (if i = j then 1 else 0) + star t * (if j = i then 1 else 0) - star t * t := by
     simp only [inner_apply, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul,
       map_add, map_mul, mul_sub, add_mul, Finset.sum_add_distrib, Finset.sum_sub_distrib]
-    simp only [Qatlib.Foundations.PureStateMath.Ket, apply_ite, map_one, map_zero, mul_ite, ite_mul, mul_one, one_mul,
-      mul_zero, zero_mul, Finset.sum_ite_eq', Finset.sum_ite_eq, Finset.mem_univ, if_true]
-    by_cases hij : i = j <;> simp only [hij, eq_comm, if_true, if_false, Complex.star_def] <;> ring
+    simp only [Qatlib.Foundations.PureStateMath.Ket, apply_ite, map_one, map_zero, ite_mul, mul_one, one_mul,
+      mul_zero, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+    by_cases hij : i = j <;> simp only [hij, eq_comm, ite_true, ite_false, Complex.star_def] <;> ring
   have hdiag (s : Fin m) (i j : Fin n) : F s 1 i i = F s 1 j j := by
     by_cases hij : i = j
     · subst j; rfl
@@ -138,7 +135,7 @@ theorem qudit_positive_family_scalar_one (m n : ℕ) [NeZero n]
       apply hzero P (outerProduct_posSemidef _)
       rw [outerProduct_mulVec]
       have h := hpq i j 1
-      simp [hij, Ne.symm hij, ← sub_eq_add_neg] at h
+      simp [hij, Ne.symm hij] at h
       rw [h, zero_smul]
     have hkQ : F s Q *ᵥ (Qatlib.Foundations.PureStateMath.Ket i + Qatlib.Foundations.PureStateMath.Ket j) = 0 := by
       apply hzero Q (outerProduct_posSemidef _)
@@ -163,7 +160,7 @@ theorem qudit_positive_family_scalar_one (m n : ℕ) [NeZero n]
     have hij' : F s (E i) j j = 0 := hcol s i j j (Ne.symm hij)
     rw [hji, add_zero] at hi
     rw [hij', zero_add] at hj
-    rw [hId s i i, hId s j j, if_pos rfl, if_pos rfl]
+    rw [hId s i i, hId s j j, ite_eq_left rfl, ite_eq_left rfl]
     linear_combination (hj - hi + hP + hQ) / 2
   intro s
   refine ⟨F s 1 0 0, ?_⟩

@@ -31,8 +31,6 @@ ingredients in the setting of [DenneyMooreRussell2008].
 * [Denney et al., 2008][DenneyMooreRussell2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -34,14 +34,11 @@ blank.
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 
 noncomputable section
-
-
 
 namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Qatlib.Foundations.StandardDefs.WindowSim

@@ -29,7 +29,6 @@ These are finite spectral calculus identities in the setting of [Bhatia1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

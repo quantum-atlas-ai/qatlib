@@ -18,8 +18,6 @@ parameter for the quantum-walk detection framework of [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.WalkSearch.ProjectorCS

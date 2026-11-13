@@ -23,8 +23,6 @@ and to lie on the primitive root grid indexed by `Fin (Fintype.card E)`. [Kitaev
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open scoped Classical
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

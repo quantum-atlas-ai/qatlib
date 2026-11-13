@@ -43,7 +43,6 @@ conditions, and finite-circuit resource data.
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -70,7 +69,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

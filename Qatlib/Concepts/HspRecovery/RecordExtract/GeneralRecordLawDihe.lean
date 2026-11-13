@@ -30,8 +30,6 @@ amplitude with squared norm sum `1 / N`, supplying the record-generation step us
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 

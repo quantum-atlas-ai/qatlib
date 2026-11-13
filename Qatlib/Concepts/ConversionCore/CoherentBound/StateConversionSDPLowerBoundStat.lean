@@ -29,7 +29,6 @@ The mathematical context is discussed in [LeeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open scoped ComplexOrder MatrixOrder ENNReal
 

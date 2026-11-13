@@ -25,7 +25,6 @@ increments, and normalized target overlap in the water-fill optimization setting
 * [Ozols et al., 2013][OzolsRoettelerRoland2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

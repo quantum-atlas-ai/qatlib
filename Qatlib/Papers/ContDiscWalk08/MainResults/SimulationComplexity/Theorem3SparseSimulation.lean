@@ -24,8 +24,6 @@ supports and the recorded bounds.
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

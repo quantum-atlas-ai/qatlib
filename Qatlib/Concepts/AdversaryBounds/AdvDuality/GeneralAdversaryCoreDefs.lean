@@ -37,7 +37,6 @@ filtered Gram distance for coherent state conversion. The measurement convention
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

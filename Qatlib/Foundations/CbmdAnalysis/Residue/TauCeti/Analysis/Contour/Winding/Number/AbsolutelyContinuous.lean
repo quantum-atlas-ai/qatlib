@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -31,8 +33,6 @@ associated with [WangEtAl2026].
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
 section
@@ -43,7 +43,7 @@ namespace TauCeti.Contour
 
 /-- The logarithmic derivative of an absolutely continuous curve about a point outside its image
 is interval integrable. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.intervalIntegrable_inv_sub_mul_deriv
+theorem _root_.AbsolutelyContinuousOnInterval.intervalIntegrable_inv_sub_mul_deriv
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hz : z ∉ γ '' uIcc a b) :
     IntervalIntegrable (fun t ↦ (γ t - z)⁻¹ * deriv γ t) volume a b := by
@@ -52,7 +52,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInt
 
 /-- For an absolutely continuous curve avoiding `z`, the winding number is its logarithmic
 derivative integral divided by `2πi`. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.windingNumber_eq_integral
+theorem _root_.AbsolutelyContinuousOnInterval.windingNumber_eq_integral
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hz : z ∉ γ '' uIcc a b) :
     windingNumber γ a b z = (2 * (Real.pi : ℂ) * Complex.I)⁻¹ *

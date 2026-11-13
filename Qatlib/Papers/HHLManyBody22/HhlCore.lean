@@ -34,7 +34,6 @@ summing to one for the corresponding normalized circuit inputs. See [BaskaranEtA
 * [Baskaran et al., 2023][BaskaranEtAl2023]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

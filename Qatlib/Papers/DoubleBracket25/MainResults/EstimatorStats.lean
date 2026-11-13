@@ -971,7 +971,7 @@ theorem SourceLemmaF7
   -- and replace `⟨Pᵢⱼ⟩`, `⟨Pᵢ⟩⟨Pⱼ⟩` by their unbiased sample means
   -- (Eq. (325)-(326)).
   --
-  -- Lean gap: linearity bookkeeping and the diagonal split of `(Σ wᵢpᵢ)²`,
+  -- Linearity bookkeeping and the diagonal split of `(Σ wᵢpᵢ)²`,
   -- identical to Prop. F.2.
   have hc : finExpect μ (fun _ => ∑ i, (w i) ^ 2) = (∑ i, (w i) ^ 2) * 1 := by
     rw [finExpect_const, hμ]

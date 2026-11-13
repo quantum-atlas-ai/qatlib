@@ -24,7 +24,6 @@ least `1 / 4` and an explicit cost bound, in the setting of [HarrowHassidimLloyd
 * [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

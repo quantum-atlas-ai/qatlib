@@ -48,7 +48,6 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
 /-- The sum of order-`p` ordered adjoint budgets for each generator against its preceding

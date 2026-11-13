@@ -30,8 +30,6 @@ logarithmic threshold gap supplies a power comparison. See [BravyiEtAl2008Stoqua
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

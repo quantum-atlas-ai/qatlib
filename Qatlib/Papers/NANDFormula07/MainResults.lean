@@ -121,8 +121,6 @@ explicitly.
 * [Childs et al., 2007][ChildsEtAl2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.NANDFormula07.MainResults
 
 open scoped BigOperators

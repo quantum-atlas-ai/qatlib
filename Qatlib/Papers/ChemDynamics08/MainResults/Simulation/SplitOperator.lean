@@ -26,7 +26,6 @@ These constructions support the treatment in [KassalEtAl2008].
 * [Kassal et al., 2008][KassalEtAl2008]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

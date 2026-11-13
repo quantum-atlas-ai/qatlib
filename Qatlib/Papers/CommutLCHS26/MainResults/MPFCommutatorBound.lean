@@ -36,7 +36,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.MPFCommutatorBound
 open Matrix
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled BCHCommMass BCHMassProducts BCHPerturbation DysonExpansion MPFMomentSeries
-set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K]
 

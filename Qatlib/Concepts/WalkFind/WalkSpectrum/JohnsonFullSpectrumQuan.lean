@@ -41,7 +41,6 @@ bounds and ordering, and assembles a unitary eigenbasis. The theorem
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

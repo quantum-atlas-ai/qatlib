@@ -29,7 +29,6 @@ operators. The background is described in [KitaevShenVyalyi2002].
 
 open Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.UniformBqp.FiniteGateWord

@@ -34,7 +34,6 @@ in Hamiltonian-simulation error analysis [Campbell2019].
 -/
 
 open Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -44,7 +43,6 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.CopyEvolution.Discriminate
 
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 open Matrix Set
@@ -57,13 +55,13 @@ private theorem hamiltonian_line_exp (D : ℕ) (H : Operator D) (τ u : ℝ) :
       HamiltonianEvolution H (u * τ) := by
   congr 1
   ext i j
-  simp [HamiltonianEvolution, Matrix.smul_apply, Complex.real_smul]
+  simp [Matrix.smul_apply, Complex.real_smul]
   ring
 
 /-- The operator norm of `(-iτ) • H` is `|τ| * ‖H‖`. -/
 private theorem hamiltonian_generator_norm (D : ℕ) (H : Operator D) (τ : ℝ) :
     ‖(-Complex.I * (τ : ℂ)) • H‖ = |τ| * ‖H‖ := by
-  simp [norm_smul, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+  simp [norm_smul, Complex.norm_real, Real.norm_eq_abs]
 
 /-- For Hermitian `H`, evolution differs from the identity by at most `|τ| * ‖H‖`, and its
 first-order exponential remainder has norm at most `τ ^ 2 * ‖H‖ ^ 2 / 2`. -/
@@ -193,7 +191,7 @@ theorem hamiltonian_reference_first_order_remainder
     have hm : (Complex.I * (τ : ℂ)) •
         (TensorGate H (1 : Operator r) * ρ - ρ * TensorGate H (1 : Operator r)) =
         -(A * ρ) + ρ * A := by
-      simp [A, neg_mul, neg_smul, smul_sub, Matrix.smul_mul, Matrix.mul_smul, sub_eq_add_neg]
+      simp [A, neg_mul, neg_smul, sub_eq_add_neg]
     rw [hm, Matrix.conjTranspose_sub, Matrix.conjTranspose_sub,
       Matrix.conjTranspose_one, hAH]
     noncomm_ring

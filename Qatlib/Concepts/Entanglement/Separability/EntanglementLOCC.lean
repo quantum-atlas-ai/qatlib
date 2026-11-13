@@ -37,7 +37,6 @@ spectra, and verifies `TTransformCriterion` under explicit positivity and filter
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
@@ -48,7 +47,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -372,7 +370,7 @@ inductive DiagonalLoccTree (D : ℕ) : Type
 its branch mass. -/
 noncomputable def treeAverageEntropy : DiagonalLoccTree D → (Fin D → ℝ) → ℝ
   | .halt, spec => ∑ j, Real.negMulLog (spec j)
-  | .node n I next, spec =>
+  | .node _n I next, spec =>
       ∑ i, branchMass I spec i * treeAverageEntropy (next i) (branchSpectrum I spec i)
 
 /-- A finite diagonal measurement tree has average terminal entropy at most the entropy of its
@@ -502,7 +500,7 @@ theorem loccBits_stepA (D E : ℕ) (n : ℕ) (ks : Fin n → Operator D)
 entropy, and round ledger. -/
 noncomputable def branchExecution (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n)
-    (hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) : LoccExecution D E n where
+    (_hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) : LoccExecution D E n where
   outcome := i
   mass := branchMass I (schmidtSpectrum ψ hψ) i
   entropy := ∑ j, Real.negMulLog (branchSpectrum I (schmidtSpectrum ψ hψ) i j)
@@ -918,7 +916,7 @@ theorem tTransform_branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Nor
     (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j)
-    (hpos : ∀ j, 0 < spec j) (hsum : (∑ j, spec j) = 1)
+    (hpos : ∀ j, 0 < spec j) (_hsum : (∑ j, spec j) = 1)
     (hspec : schmidtSpectrum ψ hψ = spec) :
     PartialTrace (outerProduct
         (schmidtBranch ψ hψ (tTransformInstrument D spec p θ k l hfilter hfilter0) 0))
@@ -934,7 +932,7 @@ theorem tTransform_branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Nor
     simp only [tTransformFilter]
     have ha : spec a ≠ 0 := ne_of_gt (hpos a)
     field_simp
-  · simp only [Matrix.diagonal_apply, h, if_false]
+  · simp only [Matrix.diagonal_apply, h, ite_false]
 
 /-- Under the stated positivity and filter bounds, the entropy of outcome zero's normalized
 diagonal density operator equals the entropy expression of the transformed Schmidt spectrum. -/
@@ -986,7 +984,7 @@ theorem tTransformSpectrum_entropy_ge (spec : Fin D → ℝ) (θ : ℝ) (k l : F
           intro h
           exact hj (hkl.symm ▸ h)
         simp only [tTransformSpectrum]
-        rw [if_neg hj, if_neg hjl]
+        rw [ite_eq_right hj, ite_eq_right hjl]
         ring
     have hpoint : ∀ j, Real.negMulLog (tTransformSpectrum spec θ k l j)
         = Real.negMulLog (spec j) := by

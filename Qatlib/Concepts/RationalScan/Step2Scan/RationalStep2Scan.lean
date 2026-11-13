@@ -39,7 +39,6 @@ namespace Qatlib.Concepts.RationalScan.Step2Scan
 set_option autoImplicit false
 open Matrix Qatlib.Concepts.RationalScan.Step2Scan
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Scanning a duplicate-free candidate list visits at most its length and returns no choice
 exactly when every test fails. A returned candidate is the first accepted entry, with

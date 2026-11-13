@@ -31,7 +31,6 @@ actual search counters and their relation to the separately defined inversion-co
 * [Gilyen et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -53,7 +52,6 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 open Qatlib.Concepts.QspSimulation.Achievability
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 set_option maxRecDepth 4096
 

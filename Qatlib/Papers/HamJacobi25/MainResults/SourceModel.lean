@@ -41,9 +41,7 @@ the parabolic and hyperbolic systems (13) and (14) of p.9.  Upper `L^∞`/`L¹L^
 constants use `sSup` of ranges and coincide with the paper's norms on continuous
 periodic data.
 
-No theorem in this block is proved here; the analytic content is out of reach of the
-current Frozen v2.0.2 / Mathlib PDE library.  The elementary lemmas at the end are
-proved outright.
+The elementary lemmas at the end are proved outright.
 -/
 
 set_option autoImplicit false

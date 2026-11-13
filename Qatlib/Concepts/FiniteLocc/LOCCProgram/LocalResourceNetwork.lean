@@ -30,7 +30,6 @@ identities for repeated encodings.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -47,7 +46,6 @@ open scoped Classical BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The EPR factor is positive semidefinite, has trace one, and equals one half of the projector
 formed from its unnormalized equal-bit vector. -/

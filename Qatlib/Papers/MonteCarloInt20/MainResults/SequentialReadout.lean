@@ -29,8 +29,6 @@ implementation and the nested construction associated with [KanekoEtAl2020].
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 100000
 set_option backward.isDefEq.respectTransparency false

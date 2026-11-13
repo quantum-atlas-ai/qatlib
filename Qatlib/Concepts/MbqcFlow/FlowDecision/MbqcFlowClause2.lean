@@ -31,7 +31,6 @@ conjugation by a local Pauli byproduct followed by CNOT.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib
@@ -39,7 +38,6 @@ open Matrix
 open scoped Classical ComplexOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.InstrumentCore.Measurement
@@ -50,7 +48,6 @@ open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
-  set_option linter.unusedSimpArgs false in
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 

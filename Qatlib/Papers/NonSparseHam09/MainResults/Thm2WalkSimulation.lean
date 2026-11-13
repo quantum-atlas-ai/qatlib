@@ -27,11 +27,7 @@ constructs the zero-time case of `WalkSimulates`. This development accompanies
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -49,6 +45,8 @@ lemma timeEvo_scalar_add (t s : ℝ) :
   push_cast
   ring
 
+omit [Nonempty ι] in
+
 /-- Matrix time evolution satisfies `timeEvolution H t * timeEvolution H s = timeEvolution H (t
 + s)`. This identity supports the simulation framework of [ChildsKothari2010]. -/
 theorem timeEvolution_add (H : Matrix ι ι ℂ) (t s : ℝ) :
@@ -63,10 +61,14 @@ theorem timeEvolution_add (H : Matrix ι ι ℂ) (t s : ℝ) :
         congr 1
         rw [← add_smul, timeEvo_scalar_add]
 
+omit [Nonempty ι] in
+
 /-- Time evolution at time zero is the identity matrix. -/
 theorem timeEvolution_zero (H : Matrix ι ι ℂ) : timeEvolution H 0 = 1 := by
   unfold timeEvolution
   simp
+
+omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
 /-- For Hermitian `H`, the conjugate transpose of the generator obtained by scaling `H` by −i t
 is its negative. -/
@@ -74,6 +76,8 @@ lemma timeEvo_gen_conjTranspose (H : Matrix ι ι ℂ) (hH : H.IsHermitian) (t :
     ((-(Complex.I * (t : ℂ))) • H)ᴴ = - ((-(Complex.I * (t : ℂ))) • H) := by
   rw [Matrix.conjTranspose_smul, hH]
   simp [Complex.conj_ofReal]
+
+omit [Nonempty ι] in
 
 /-- For Hermitian `H`, time evolution multiplied by its conjugate transpose is the identity. See
 [ChildsKothari2010]. -/

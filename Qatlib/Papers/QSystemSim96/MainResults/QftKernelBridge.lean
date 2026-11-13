@@ -34,8 +34,6 @@ sandwich when the lattice coefficient is `2 * Real.pi / N`.
 * [Zalka, 1998][Zalka1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

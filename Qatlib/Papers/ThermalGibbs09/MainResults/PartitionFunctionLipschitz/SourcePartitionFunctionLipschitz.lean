@@ -21,8 +21,8 @@ inverse temperature `β` satisfy
 The proof follows the paper: Weyl's eigenvalue perturbation bound gives
 `e^{-‖A-B‖} Tr e^A ≤ Tr e^B ≤ e^{‖A-B‖} Tr e^A` (eq. (B3)); applying it to
 `A = -βH`, `B = -βH̃` and `‖-βH + βH̃‖ = β‖H - H̃‖ = β‖E‖ ≤ βε/t` yields the
-two-sided bound. In Lean the same content is the frozen theorem
-`QuantumAlgorithm.Foundations.MatrixExpTrace.ExpPerturbation.exp_trace_le`.
+two-sided bound. In Lean the same content is the theorem
+`Qatlib.Concepts.MatrixExpTrace.ExpPerturbation.exp_trace_le`.
 -/
 
 set_option autoImplicit false

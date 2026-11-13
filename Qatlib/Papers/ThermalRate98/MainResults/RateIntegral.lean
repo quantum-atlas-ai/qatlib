@@ -30,11 +30,9 @@ factor `Qr`. Its spectral formula uses the explicit integrated phase factor.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.ThermalRate98.MainResults
@@ -143,6 +141,8 @@ theorem thermalRateWindow_eq_spectral (Qr : ℂ) (β ħ T : ℝ) (E : I → ℝ)
             (Complex.I * (((E m - E n) / ħ : ℝ) : ℂ)))) := by
   unfold thermalRateWindow
   rw [intervalIntegral_eq16Correlation β ħ T E S hω hħ]
+
+omit [DecidableEq I] in
 
 /-- The normalized spectral integral over a zero time window is zero. -/
 theorem thermalRateWindow_zero (Qr : ℂ) (β ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) :

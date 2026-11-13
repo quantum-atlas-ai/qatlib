@@ -79,7 +79,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib
 open Qatlib
 open Qatlib
-set_option warningAsError false
 noncomputable section
 
 /-- The finite Fourier cosine sum is invariant under adding `2 * π` to its angle. -/

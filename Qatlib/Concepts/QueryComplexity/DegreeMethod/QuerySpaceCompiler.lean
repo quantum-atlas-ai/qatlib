@@ -27,7 +27,6 @@ unitarity and query count, and adds five gates per oracle query.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -37,7 +36,6 @@ open Qatlib.Concepts.CompressedQuery.CompressOracle
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib Matrix
 open scoped Classical BigOperators
-set_option linter.unusedSectionVars false
 noncomputable section
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 

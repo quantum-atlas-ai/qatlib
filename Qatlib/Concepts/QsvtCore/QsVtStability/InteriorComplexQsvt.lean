@@ -35,7 +35,6 @@ identifies actual odd-word corners and their query counts.
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.Spectral
 

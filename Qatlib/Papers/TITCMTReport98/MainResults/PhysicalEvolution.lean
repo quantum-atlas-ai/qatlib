@@ -30,7 +30,6 @@ Schrödinger derivatives for the corresponding schedules at positive time.
 * [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

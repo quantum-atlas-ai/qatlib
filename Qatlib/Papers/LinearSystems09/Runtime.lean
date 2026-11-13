@@ -26,7 +26,6 @@ The source analysis is [HarrowHassidimLloyd2009], specifically
 [Harrow, Hassidim & Lloyd, Section II][HarrowHassidimLloyd2009]. The corrected
 filter and explicit numerical constants are those of this development.
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

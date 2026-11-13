@@ -31,8 +31,6 @@ of queries needed to reach any fixed positive success probability.
 * [Farhi et al., 1999][FarhiEtAl1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

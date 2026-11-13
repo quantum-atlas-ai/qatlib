@@ -26,7 +26,6 @@ polynomial constructions with the quantum signal processing framework [LowChuang
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false

@@ -35,7 +35,6 @@ additional expected step cost. The broader computation framework is described in
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.FairFeedback
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridCounts

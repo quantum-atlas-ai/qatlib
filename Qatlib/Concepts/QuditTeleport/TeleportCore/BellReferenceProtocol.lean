@@ -31,7 +31,6 @@ half the identity. This realizes the qubit protocol of [BennettEtAl1993Teleporta
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -45,7 +44,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open Qatlib
-set_option linter.unusedSectionVars false
 
 /-- Flattens the three Boolean teleportation registers into `Fin 8`, with the input register as
 the most significant bit. -/
@@ -84,8 +82,8 @@ theorem teleportRelabelGate_one {I J : Type*} [Fintype I] [DecidableEq I] [Finty
   ext x y
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.one_apply]
   by_cases h : e.symm x = e.symm y
-  · rw [if_pos h, if_pos (e.symm.injective h)]
-  · rw [if_neg h, if_neg (fun hxy => h (by rw [hxy]))]
+  · rw [ite_eq_left h, ite_eq_left (e.symm.injective h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hxy => h (by rw [hxy]))]
 
 /-- Relabeling a matrix commutes with taking its conjugate transpose. -/
 theorem teleportRelabelGate_conjTranspose {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
@@ -231,7 +229,7 @@ theorem applyGate_firstFactor {I J : Type*} [Fintype I] [DecidableEq I] [Fintype
       = U i0 k * ((if j0 = l then (1 : ℂ) else 0) * ψ (k, l)) := fun l => mul_assoc _ _ _
   rw [Finset.sum_congr rfl (fun l _ => h1 l), ← Finset.mul_sum]
   simp only [ite_mul, zero_mul, one_mul]
-  rw [Finset.sum_ite_eq Finset.univ j0 (fun l => ψ (k, l)), if_pos (Finset.mem_univ j0)]
+  rw [Finset.sum_ite_eq Finset.univ j0 (fun l => ψ (k, l)), ite_eq_left (Finset.mem_univ j0)]
 
 /-- Applying `V` on the second tensor factor acts on each slice with the first coordinate fixed. -/
 theorem applyGate_secondFactor {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
@@ -248,7 +246,7 @@ theorem applyGate_secondFactor {I J : Type*} [Fintype I] [DecidableEq I] [Fintyp
       = V j0 l * ((if i0 = k then (1 : ℂ) else 0) * ψ (k, l)) := fun k => by ring
   rw [Finset.sum_congr rfl (fun k _ => h1 k), ← Finset.mul_sum]
   simp only [ite_mul, zero_mul, one_mul]
-  rw [Finset.sum_ite_eq Finset.univ i0 (fun k => ψ (k, l)), if_pos (Finset.mem_univ i0)]
+  rw [Finset.sum_ite_eq Finset.univ i0 (fun k => ψ (k, l)), ite_eq_left (Finset.mem_univ i0)]
 
 /-- Computes the action of the Hadamard gate on register `b` as the signed sum of its two input
 amplitudes divided by `√2`. -/
@@ -296,7 +294,7 @@ theorem teleportXcB_apply (β : Bool) (ψ : QState ((Bool × Bool) × Bool)) :
     applyGate_secondFactor]
   funext p
   cases β
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     exact congrFun (applyGate_one _) p.2
   · exact applyGate_permMatrix Bool.not_not (fun j => ψ (p.1, j)) p.2
 
@@ -310,9 +308,9 @@ theorem teleportZcB_apply (α : Bool) (ψ : QState ((Bool × Bool) × Bool)) :
     applyGate_secondFactor]
   funext p
   cases α
-  · simp only [Bool.false_and, if_neg (by decide : ¬(false = true))]
+  · simp only [Bool.false_and, ite_eq_right (by decide : ¬(false = true))]
     rw [congrFun (applyGate_one _) p.2, one_mul]
-  · simp only [Bool.true_and, if_true]
+  · simp only [Bool.true_and, ite_true]
     have hz : ApplyGate PauliZ (fun j => ψ ((p.1.1, p.1.2), j)) p.2
         = (if p.2 then (-1 : ℂ) else 1) * ψ ((p.1.1, p.1.2), p.2) := by
       simp only [ApplyGate, Matrix.mulVec, dotProduct, PauliZ, Matrix.diagonal_apply]
@@ -431,14 +429,14 @@ theorem teleportInitialFrame_isometry : IsIsometry teleportInitialFrame := by
         unfold teleportInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = teleportRegisterEquiv ((boolEquivFin2.symm i, false), false)
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply,
         Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ
           (teleportRegisterEquiv ((boolEquivFin2.symm i, false), false))
           (fun _ => (1 : ℂ)),
-        if_pos (Finset.mem_univ _)]
+        ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Fin 8, teleportInitialFrameᴴ i r * teleportInitialFrame r j = 0 := by
         intro r
@@ -446,8 +444,8 @@ theorem teleportInitialFrame_isometry : IsIsometry teleportInitialFrame := by
         unfold teleportInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = teleportRegisterEquiv ((boolEquivFin2.symm i, false), false)
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr, star_zero, zero_mul]
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr, star_zero, zero_mul]
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r),
         Finset.sum_const_zero]
       simp [hij]
@@ -500,8 +498,8 @@ theorem teleportPreparedFrame_eq_mul :
           (teleportRegisterEquiv.symm r).2)
   rw [ket_apply]
   by_cases h : (teleportRegisterEquiv.symm r).1.1 = boolEquivFin2.symm i
-  · rw [if_pos h, if_pos h, one_mul]
-  · rw [if_neg h, if_neg h, zero_mul]
+  · rw [ite_eq_left h, ite_eq_left h, one_mul]
+  · rw [ite_eq_right h, ite_eq_right h, zero_mul]
 
 /-- The embedding of an input alongside the Bell resource is an isometry. -/
 theorem teleportPreparedFrame_isometry : IsIsometry teleportPreparedFrame := by
@@ -591,22 +589,22 @@ theorem bell_pauli_corrections :
   have hZX : (if a then PauliZ else 1) * (if b then PauliX else 1)
       ∈ Matrix.unitaryGroup Bool ℂ := by
     cases a <;> cases b
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
       exact Submonoid.one_mem _
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
       exact pauliX_unitary
-    · simp only [if_neg (by decide : ¬(false = true)), mul_one]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), mul_one]
       exact pauliZ_unitary
     · exact Submonoid.mul_mem _ pauliZ_unitary pauliX_unitary
   refine ⟨teleportRelabelGate_mem_unitaryGroup hZX boolEquivFin2, ?_⟩
   rw [hK, teleportCorrection, mul_smul_comm, ← teleportRelabelGate_mul]
   have hXX : (if b then PauliX else 1) * (if b then PauliX else 1) = 1 := by
     cases b
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
     · exact permMatrix_mul_self Bool.not_not
   have hZZ : (if a then PauliZ else 1) * (if a then PauliZ else 1) = 1 := by
     cases a
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
     · exact pauliZ_mul_self
   have hprod : (if a then PauliZ else 1) * (if b then PauliX else 1)
         * ((if b then PauliX else 1) * (if a then PauliZ else 1)) = 1 := by

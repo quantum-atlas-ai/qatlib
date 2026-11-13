@@ -39,7 +39,6 @@ resource comparisons, and a stack-based local allocation model with peak-space t
 * [Cleve et al., 2009][CleveEtAl2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend

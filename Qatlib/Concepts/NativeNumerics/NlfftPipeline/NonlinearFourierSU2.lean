@@ -14,10 +14,10 @@ import Mathlib.Algebra.Polynomial.Degree.Lemmas
 import Mathlib.Algebra.Polynomial.Eval.Defs
 import Mathlib.Algebra.Polynomial.Inductions
 import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Complex.Basic
+import Mathlib.Basic.Complex.Basic
 import Mathlib.Data.Finset.Range
 import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Real.Sqrt
+import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Order.Basic
 import Mathlib.Tactic.ByCases
 import Mathlib.Tactic.ByContra
@@ -56,7 +56,6 @@ normalization.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.NativeNumerics.NlfftPipeline
 
@@ -164,7 +163,7 @@ theorem conjRevN_mul (d e : ℕ) (p q : Polynomial ℂ) (hp : p.natDegree ≤ d)
   rw [reflect_mul _ _ (natDegree_map_le.trans hp) (natDegree_map_le.trans hq)]
 
 /-- Conjugate reflection about `d` is involutive on polynomials with natural degree at most `d`. -/
-theorem conjRevN_conjRevN (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ d) :
+theorem conjRevN_conjRevN (d : ℕ) (p : Polynomial ℂ) (_hp : p.natDegree ≤ d) :
     conjRevN d (conjRevN d p) = p := by
   ext i
   rw [conjRevN_coeff_revAt, conjRevN_coeff_revAt, revAt_invol, starRingEnd_apply,
@@ -187,7 +186,7 @@ private theorem eval_reflect' (q : Polynomial ℂ) (d : ℕ) (hq : q.natDegree �
     refine Finset.sum_congr rfl fun i hi => ?_
     have hi' : i ≤ d := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
     rw [coeff_reflect, revAt_le hi']
-    congr 1 <;> congr 1 <;> omega
+    congr 1; congr 1; omega
   rw [h₁, Finset.mul_sum]
   refine Finset.sum_congr rfl fun j hj => ?_
   have hjd : j ≤ d := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
@@ -436,7 +435,7 @@ theorem nlftSU2_identity (γ : List ℂ) :
   | nil =>
     show ((1 : Polynomial ℂ) * conjRevN ([].length - 1) (1 : Polynomial ℂ)
         + (0 : Polynomial ℂ) * conjRevN ([].length - 1) (0 : Polynomial ℂ)) = X ^ ([].length - 1)
-    simp [conjRevN, reflect_C]
+    simp [conjRevN]
   | cons γ rest ih =>
     cases rest with
     | nil =>
@@ -760,7 +759,7 @@ theorem layerStripSU2_operations (A B : Polynomial ℂ) (n : ℕ) :
 
 /-- When `A.coeff 0` is nonzero, the updated first polynomial has the stated normalized constant
 coefficient after one stripping step. -/
-private theorem layerStripStepSU2_fst_coeff (A B : Polynomial ℂ) (hA0 : A.coeff 0 ≠ 0) :
+private theorem layerStripStepSU2_fst_coeff (A B : Polynomial ℂ) (_hA0 : A.coeff 0 ≠ 0) :
     (layerStripStepSU2 A B).2.1.coeff 0
       = (((Real.sqrt (1 + Complex.normSq (B.coeff 0 / A.coeff 0)))⁻¹ : ℝ) : ℂ)
         * (A.coeff 0 + (starRingEnd ℂ) (B.coeff 0 / A.coeff 0) * B.coeff 0) := by
@@ -799,14 +798,14 @@ private theorem layerStripStepSU2_fst_coeff_invariant (A B : Polynomial ℂ)
       mul_zero, add_zero]
   have hd_re : 0 < (c * (1 + ((Complex.normSq γ : ℝ) : ℂ))).re := by
     rw [Complex.mul_re, hc_im]
-    simp only [Complex.add_re, Complex.one_re, Complex.ofReal_im, zero_mul, sub_zero,
+    simp only [Complex.add_re, Complex.one_re, zero_mul, sub_zero,
         Complex.ofReal_re]
     exact mul_pos hc_re h1pos
   have hcA0 : (c * A.coeff 0).im = 0 := by
     simp only [Complex.mul_im, hc_im, h0im, zero_mul, mul_zero, add_zero]
   have hcA0re : 0 < (c * A.coeff 0).re := by
     rw [Complex.mul_re, hc_im]
-    simp only [Complex.ofReal_im, zero_mul, sub_zero]
+    simp only [zero_mul, sub_zero]
     exact mul_pos hc_re h0re
   have hd1re : 0 < (1 + ((Complex.normSq γ : ℝ) : ℂ)).re := by
     simp only [Complex.add_re, Complex.one_re, Complex.ofReal_re]
@@ -947,7 +946,7 @@ theorem layerStripSU2_transfer (m : ℕ) (A B : Polynomial ℂ) (hm : 1 ≤ m)
         rw [hs1, hs2, conjRevN_one_C, conjRevN_one_C, h2f, hγf, starRingEnd_ofReal,
           map_mul (starRingEnd ℂ), starRingEnd_ofReal]
         rw [smul_eq_C_mul, smul_eq_C_mul]
-        simp only [smul_eq_C_mul, C_mul]
+        simp only [C_mul]
         ring
       · show X * (layerStripStepSU2 A B).2.2
           = (nlftSU2 ((layerStripStepSU2 A B).1 :: [])).1 * B
@@ -1034,7 +1033,7 @@ theorem layerStripSU2_transfer (m : ℕ) (A B : Polynomial ℂ) (hm : 1 ≤ m)
             = conjRevN (m + 1) (nlftSU2 (layerStripSU2 (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 (m + 1)).gammas).1 * (X * (layerStripStepSU2 A B).2.1)
               + conjRevN (m + 1) (nlftSU2 (layerStripSU2 (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 (m + 1)).gammas).2 * (X * (layerStripStepSU2 A B).2.2) from by ring]
         rw [hXA1, hXB1, hcr1, hcr2]
-        simp only [smul_eq_C_mul, C_mul]
+        simp only [smul_eq_C_mul]
         ring
       · rw [hfB, show X ^ (m + 2) * (layerStripSU2 (layerStripStepSU2 A B).2.1
                 (layerStripStepSU2 A B).2.2 (m + 1)).finalB
@@ -1049,7 +1048,7 @@ theorem layerStripSU2_transfer (m : ℕ) (A B : Polynomial ℂ) (hm : 1 ≤ m)
             = (nlftSU2 (layerStripSU2 (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 (m + 1)).gammas).1 * (X * (layerStripStepSU2 A B).2.2) - (nlftSU2 (layerStripSU2 (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 (m + 1)).gammas).2 * (X * (layerStripStepSU2 A B).2.1) from by
           ring]
         rw [hXA1, hXB1]
-        simp only [smul_eq_C_mul, C_mul]
+        simp only [smul_eq_C_mul]
         ring
 
 /-- For `A.natDegree ≤ d`, the coefficient at `2*d` of `A * conjRevN d A` is `A.coeff d` times
@@ -1102,7 +1101,6 @@ theorem layerStripSU2_correct (d : ℕ) (A B : Polynomial ℂ) (hA : A.natDegree
       constructor <;> simp [h0im]
     have hhid0 : ((A.coeff 0).re ^ 2 + Complex.normSq (B.coeff 0) : ℝ) = 1 := by
       have e := congrArg (fun p : Polynomial ℂ => p.eval 0) hid
-      try dsimp only [] at e
       rw [hA, hB, conjRevN_zero_C, conjRevN_zero_C, eval_add, eval_mul, eval_mul, eval_C, eval_C,
         eval_C, eval_C, hsA, starRingEnd_apply, Complex.star_def, Complex.mul_conj,
         hA0re, ← Complex.ofReal_mul, ← Complex.ofReal_add, pow_zero, eval_one,
@@ -1184,7 +1182,6 @@ theorem layerStripSU2_correct (d : ℕ) (A B : Polynomial ℂ) (hA : A.natDegree
     obtain ⟨hA₁0, _⟩ := hex1
 
     have htop := congrArg (fun p : Polynomial ℂ => p.coeff (2 * (d + 1))) hid
-    try dsimp only [] at htop
     rw [coeff_add, coeff_mul_conjRevN_top A (d + 1) hA,
       coeff_mul_conjRevN_top B (d + 1) hB] at htop
     rw [show (X ^ (d + 1) : Polynomial ℂ).coeff (2 * (d + 1)) = 0 from by

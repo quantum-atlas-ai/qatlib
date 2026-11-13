@@ -55,7 +55,6 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- For Hermitian terms and a positive segment count, the finite Strang word is unitary, has the
 stated length, label counts, and tariff, and satisfies the cubic-time error bound

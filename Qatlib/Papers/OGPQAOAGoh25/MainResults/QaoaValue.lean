@@ -26,10 +26,10 @@ remainder `r` with an explicit bound `c/√D`.
   `D → ∞`, the degree-robustness step behind "for every ε > 0 there is
   `d₀` with value `< ηOGP + ε`" in Theorem 4.2.
 
-The derivation of the formula itself (QAOA moment recursion, Gaussian
-moments, Guerra-type inputs) is not formalized; see the PR work log.
-
-No axiom, no `admit`, no `native_decide`. -/
+Scope note: this module formalizes the degree bound and convergence for the
+abstract coefficient and remainder. The derivation of the formula itself
+(QAOA moment recursion, Gaussian moments, Guerra-type inputs) is outside the
+scope of this file. -/
 set_option autoImplicit false
 
 open Filter Topology

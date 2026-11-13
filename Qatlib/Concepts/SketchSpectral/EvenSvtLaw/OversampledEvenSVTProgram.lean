@@ -30,8 +30,6 @@ domination with factor `φ`, supporting the oversampled SVT analysis of [ChiaEtA
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds

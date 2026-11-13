@@ -28,8 +28,6 @@ squared signal by the noise power times `4N p²/a²`, and proportional gain atta
 * [Delaubert et al., 2008][DelaubertEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

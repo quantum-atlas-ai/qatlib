@@ -26,7 +26,6 @@ under the Gaussian terminal law. The mathematical context is [RebentrostGuptBrom
 * [Rebentrost et al., 2018][RebentrostGuptBromley2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.QFinanceMC18.CallMoments

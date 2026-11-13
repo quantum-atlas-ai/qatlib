@@ -24,9 +24,7 @@ estimates support the interaction-picture simulation analysis of [LowWiebe2018].
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 

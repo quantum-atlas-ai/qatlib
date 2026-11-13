@@ -13,8 +13,8 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # GrandUnif21 Theorem 4 — Singular value transformation
 
-Source: arXiv:2105.02859v3, Sec. IV D, Theorem 4, Eqs. (43)--(47) (metadata
-lines 441--481).  For a rectangular block encoding `A = Π̃ U Π` with left and
+Source: arXiv:2105.02859v3, Sec. IV D, Theorem 4, Eqs. (43)--(47).
+For a rectangular block encoding `A = Π̃ U Π` with left and
 right singular frames `Π̃ = Σ_k |w_k⟩⟨w_k|` and `Π = Σ_k |v_k⟩⟨v_k|`, and a
 completed QSP response polynomial `P` of degree `d`:
 
@@ -29,10 +29,10 @@ alternating phase products `phasedAlternating` and identify the compressed
 operators with `oddSingularTransform` and `rightSingularTransform`, which are
 exactly the two spectral sums of Eqs. (45) and (47), reusing
 
-* `QuantumAlgorithm.Concepts.CoherentSim.CoherentOAA.qsvt_odd_eq_oddSingularTransform`,
-* `QuantumAlgorithm.Papers.QWalkSpectra04.Spectral.qsvt_even_right_eq_rightSingularTransform`,
+* `Qatlib.Concepts.CoherentSim.CoherentOAA.qsvt_odd_eq_oddSingularTransform`,
+* `Qatlib.Concepts.WalkSearch.Spectral.qsvt_even_right_eq_rightSingularTransform`,
   and the response-polynomial interface
-  `QuantumAlgorithm.Papers.QSingValue19.PhaseExistence.PhaseSynthesis.completedPair_iff_response`.
+  `Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.completedPair_iff_response`.
 
 Boundary: matrix-level compressed identities; no gate compilation, no
 singular-vector preparation and no numerical stability claim.  The paper's

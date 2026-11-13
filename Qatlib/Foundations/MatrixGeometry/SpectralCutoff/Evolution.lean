@@ -26,8 +26,6 @@ operator norm under left multiplication, and has no leakage across ordered cutof
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 noncomputable section

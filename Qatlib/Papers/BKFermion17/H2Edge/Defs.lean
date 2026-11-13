@@ -24,7 +24,6 @@ the chosen ascending orientations of the four graph edges. See [SetiaWhitfield20
 * [Setia and Whitfield, 2018][SetiaWhitfield2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

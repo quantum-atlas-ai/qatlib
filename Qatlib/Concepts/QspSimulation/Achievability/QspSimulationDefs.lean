@@ -34,7 +34,6 @@ corresponding quantization error budgets.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -47,7 +46,6 @@ open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 set_option maxRecDepth 4096
 

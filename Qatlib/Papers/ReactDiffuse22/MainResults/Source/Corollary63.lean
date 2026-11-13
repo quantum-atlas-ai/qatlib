@@ -88,15 +88,11 @@ state.  The errors compose (`ε/4Q` in the preparation, `ε` in the estimation)
 and the costs multiply, giving `Q log²(1/δ)/ε` (see
 `corollary63_query_composition`).
 
-**Current Lean gap.**  As for Theorem 6.1 and 6.2, the algorithm is represented
-by its output carrier (`KineticRatioEstimator`); the quantitative guarantees of
-the statement are recorded faithfully.  The *arithmetic* content of the
-composition is proved separately above.
-**Candidate reuse:** `KineticRatioEstimator`, `QueryLedger.total`,
-`source_theorem61`, `source_theorem62`, `corollary63_query_composition`.
-**Suggested tactics:** compose the two carriers, bound the composed ledger with
-`corollary63_query_composition`, and discharge the existence goal with
-`refine ⟨_, _, ...⟩`. -/
+Scope note: as in Theorems 6.1 and 6.2, the algorithm is represented by its
+output carrier (`KineticRatioEstimator`), with a query ledger, an output and a
+success probability. The arithmetic content of the composition is proved
+separately by `corollary63_query_composition`. Constructing the gradient-state
+preparation and amplitude-estimation circuits is outside the scope of this file. -/
 theorem source_corollary63
     {ι : Type} [Fintype ι]
     (Dset : Set ι) (v : ι → ℝ) (Q eps delta : ℝ)

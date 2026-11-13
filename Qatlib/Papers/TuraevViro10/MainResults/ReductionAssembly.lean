@@ -19,7 +19,6 @@ their resulting size bound.
 The reduction setting is [AlagicEtAl2010]. These are combinatorial resource
 identities for the supplied word data.
 -/
-set_option warningAsError false
 
 set_option autoImplicit false
 

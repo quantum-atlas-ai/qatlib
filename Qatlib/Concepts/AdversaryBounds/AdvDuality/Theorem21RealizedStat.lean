@@ -25,7 +25,6 @@ with Theorem 21 of [HoyerLeeSpalek2007].
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

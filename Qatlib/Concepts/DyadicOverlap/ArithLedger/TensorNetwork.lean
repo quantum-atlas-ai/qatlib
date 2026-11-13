@@ -36,7 +36,6 @@ configurations.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 

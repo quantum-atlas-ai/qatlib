@@ -32,7 +32,6 @@ For background on classical computation and resource bounds, see [KitaevShenVyal
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.RedundantRational

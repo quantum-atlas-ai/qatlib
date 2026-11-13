@@ -38,7 +38,6 @@ entries; see [NielsenChuang2010] for the circuit and measurement background.
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

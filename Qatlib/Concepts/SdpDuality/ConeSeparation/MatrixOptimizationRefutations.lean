@@ -35,7 +35,6 @@ error `17 / 96`, exceeding `sparsifyDeviation 2`.
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixWeights.WeightsCore
 open Qatlib.Foundations.PureStateMath

@@ -29,10 +29,7 @@ algorithm of [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -161,7 +158,7 @@ private theorem stdAddChar_val {p : ℕ} [NeZero p] (j : ZMod p) :
 /-- The standard additive character of `ZMod p` equals one exactly at zero. -/
 private theorem stdAddChar_eq_one_iff {p : ℕ} [Fact p.Prime] (j : ZMod p) :
     ZMod.stdAddChar (N := p) j = 1 ↔ j = 0 := by
-  haveI : NeZero p := ⟨prime_ne_zero⟩
+  have : NeZero p := ⟨prime_ne_zero⟩
   rw [stdAddChar_val]
   constructor
   · intro h
@@ -247,7 +244,7 @@ noncomputable def primeDlogHidden (p : ℕ) [Fact p.Prime] (d : ZMod p) :
     AddSubgroup (ZMod p × ZMod p) where
   carrier := {x | x.1 + d * x.2 = 0}
   zero_mem' := by
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     change (0 : ZMod p) + d * 0 = 0
     ring
   add_mem' := by

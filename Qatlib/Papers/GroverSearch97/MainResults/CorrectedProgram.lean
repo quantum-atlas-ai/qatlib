@@ -29,7 +29,6 @@ The same iteration count satisfies both the strict square root bound and the `(Ï
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

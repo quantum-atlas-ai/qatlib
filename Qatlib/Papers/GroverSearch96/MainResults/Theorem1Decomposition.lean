@@ -30,7 +30,6 @@ uses `j` oracle queries and `3*j` counted gates. See [Grover1996].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

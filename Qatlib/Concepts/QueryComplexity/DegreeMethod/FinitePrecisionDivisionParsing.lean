@@ -26,8 +26,6 @@ parser forms part of a finite computation in the setting of [KitaevShenVyalyi200
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryCompare

@@ -31,7 +31,6 @@ The norm estimates use singular values, rank-one operators, and orthogonal proje
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

@@ -35,7 +35,6 @@ number of queries.
 * [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

@@ -31,8 +31,6 @@ The finite subset sampling is relevant to subset-finding algorithms [ChildsEisen
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

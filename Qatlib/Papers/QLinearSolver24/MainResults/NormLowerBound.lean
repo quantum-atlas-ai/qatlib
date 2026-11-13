@@ -19,10 +19,10 @@ relative accuracy `ε` (success probability `Q/B`) using a
 state-preparation unitary for `b` must make at least `Ω(min(κ ε⁻¹, N))`
 queries to `U_A` and `U_b`.
 
-Reusable dependency (declared in the claim's `binds`): the frozen scalar
+Reusable dependency (declared in the claim's `binds`): the scalar
 signal query lower bound
 
-`QuantumAlgorithm.Concepts.QsvtCore.QueryLowerBound.scalar_signal_actual_response_query_lower_bound`
+`Qatlib.Concepts.QsvtCore.QueryLowerBound.scalar_signal_actual_response_query_lower_bound`
 
 which is the quantitative engine of the paper's Appendix on hardness of
 norm estimation (it lower-bounds the number of queries of any QSP word that
@@ -63,9 +63,9 @@ theorem theorem5_query_lower_bound (κ ε N : ℝ) (hκ : 3 ≤ κ) (hε0 : 0 < 
 
 /-- **Theorem 5, Eq. (178)**, monotone form (p. 38): `min(κ/ε, N)` is
 antitone in `ε` and monotone in `κ` on the two respective branches, which is
-what turns the frozen scalar-signal lower bound into the paper's
-`Ω(min(κ ε⁻¹, N))`.  (Reuse target: the frozen lemma
-`QuantumAlgorithm.Concepts.QsvtCore.QueryLowerBound.scalar_signal_actual_response_query_lower_bound`.) -/
+what turns the scalar-signal lower bound into the paper's
+`Ω(min(κ ε⁻¹, N))`.  (Reuse target: the lemma
+`Qatlib.Concepts.QsvtCore.QueryLowerBound.scalar_signal_actual_response_query_lower_bound`.) -/
 theorem theorem5_lower_bound_antitone_eps (κ N ε₁ ε₂ : ℝ) (hκ : 0 ≤ κ)
     (hε₁ : 0 < ε₁) (hε : ε₁ ≤ ε₂) :
     theorem5LowerBound κ ε₂ N ≤ theorem5LowerBound κ ε₁ N := by

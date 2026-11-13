@@ -25,8 +25,6 @@ dimension raised to `svpExponent f`. See [Regev2004] for the paper context.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QLattice03.MainResults

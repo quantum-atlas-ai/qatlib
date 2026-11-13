@@ -33,7 +33,6 @@ loading query and one erasure query, while the stored phase flip uses none. The 
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability

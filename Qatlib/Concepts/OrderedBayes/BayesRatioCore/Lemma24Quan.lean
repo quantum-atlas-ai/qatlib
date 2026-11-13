@@ -31,8 +31,6 @@ resulting stage count includes the transition that detects termination.
 * [Ben-Or and Hassidim, Lemma 2.4][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline

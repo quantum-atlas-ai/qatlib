@@ -24,8 +24,6 @@ connectivity context is described in [Watrous1998].
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

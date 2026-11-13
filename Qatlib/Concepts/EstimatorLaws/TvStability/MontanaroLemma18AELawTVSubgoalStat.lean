@@ -23,7 +23,6 @@ is the law-level ingredient for Lemma 18 of [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

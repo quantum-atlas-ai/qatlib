@@ -29,8 +29,6 @@ Nonnegativity and monotonicity lemmas support the composition of the inner and o
 * [Jeffery et al., 2013][JefferyKothariMagniez2013]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -40,7 +40,6 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
-set_option warningAsError false
 
 /-- The uniform distribution on the nonempty finite set `S`, with zero mass outside `S`. -/
 def uniformOn {α : Type*} [Fintype α] [DecidableEq α] (S : Finset α)

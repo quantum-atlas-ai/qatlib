@@ -24,7 +24,6 @@ parameter assumptions, providing the explicit Fourier solution used for [JinLiu2
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

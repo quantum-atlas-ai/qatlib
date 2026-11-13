@@ -25,7 +25,6 @@ in the comparison studied in [Jordan2005Gradient].
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

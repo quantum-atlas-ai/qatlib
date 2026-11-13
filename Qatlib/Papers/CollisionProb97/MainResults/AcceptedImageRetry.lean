@@ -27,7 +27,6 @@ analysis supplies a sampling step for the collision and claw constructions assoc
 * [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators ENNReal Classical

@@ -25,7 +25,6 @@ mathematical background is developed in [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -52,7 +51,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The two by two real rotation matrix with diagonal `κ⁻¹` and off diagonal magnitude `√(1 - (κ
 * κ)⁻¹)`. -/

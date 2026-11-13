@@ -29,9 +29,6 @@ identities, parity arithmetic, and resource formulas. See [GilyenSuLowWiebe2019]
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.QsVtMain
 
 set_option autoImplicit false

@@ -38,8 +38,6 @@ counts accompany the wire propagation described in [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -60,8 +58,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Conjugating a matrix unit by `M` gives the outer product of the corresponding columns of
 `M`. -/

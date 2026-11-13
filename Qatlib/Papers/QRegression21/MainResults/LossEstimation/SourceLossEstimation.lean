@@ -10,33 +10,12 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Empirical Least-Squares Curvature and Quantum Lasso Profiles (Section 3)
+# SourceLossEstimation
 
-This module formalizes Section 3 (Theorems 3.2, 3.4, 3.5, 3.7 and
-Corollaries 3.6, 3.8, 3.9, pp. 16--18) of Chen and de Wolf, proving the exact
-Frank--Wolfe curvature bound `C_{L_S} ≤ 8` on the `ℓ_1` ball alongside the
-`RunProfile` resource guarantees for quantum gradient/loss estimation and
-Frank--Wolfe Lasso optimization.
-
-## Main definitions
-
-* `lsLoss`: Empirical squared loss `(1 / N) ∑_i (⟨x_i, θ⟩ - y_i)^2`.
-* `hessianForm`: Quadratic form `(2 / N) ∑_i (⟨x_i, v⟩)^2` of `∇^2 L_S`.
-
-## Main statements
-
-* `theorem_3_2_curvature`: Theorem 3.2, `hessianForm X (s - x) ≤ 8` for
-  `|X_{ij}| ≤ 1` and `x, s ∈ B_1^d`.
-* `theorem_3_4_gradient_unitary`, `theorem_3_5_loss_unitary`,
-  `corollary_3_6_uniform`: Theorems 3.4--3.5 and Corollary 3.6, `RunProfile`
-  bounds for approximate gradient and loss unitaries.
-* `theorem_3_7_sample_set`, `corollary_3_8_distribution`,
-  `corollary_3_9_classical_bits`: Theorem 3.7 and Corollaries 3.8--3.9,
-  `RunProfile` query, gate, and space bounds for quantum Lasso solvers.
-
-## References
-
-* [Chen and de Wolf, 2021][ChenDeWolf2021QRegression], Section 3, pp. 16--18.
+The `_statement` definitions are unproved resource specifications requiring an
+implementation relation. Numeric records alone do not certify execution or correctness.
+No quantum circuit synthesis is proved here.
+The remaining theorems prove only their displayed algebraic inequalities or identities.
 -/
 
 set_option autoImplicit false
@@ -115,160 +94,83 @@ theorem theorem_3_2_curvature (X : Fin N → Fin d → ℝ)
     rw [div_le_iff₀ hNpos]
     nlinarith
 
-/-- **Theorem 3.4** (fixed arXiv:2110.13086v2, p. 16). Let `θ ∈ B₁^d` and `β, δ > 0`.  Given
-a KP-tree of `θ`, one can implement `Ũ_∇LS : |j⟩|0⟩ ↦ |j⟩|Λ⟩` such that for every `j` the
-measurement outcome satisfies `|λ - ∇_j L_S(θ)| ≤ β` with probability at least `1 - δ`,
-using `Õ(log(1/δ)/β)` applications of `O_X, O_X†, O_y, O_y†`.
-
-Boundary: the per-index statement `∀ j` is uniform in the query cost, so it is recorded by
-the single profile bound below; the measurement outcome distribution is not formalised.
-
-Proof route of the paper (p. 16): coordinate-wise, `∇_j L_S(θ) = (2/N)∑_i X_ij(⟨x_i,θ⟩-y_i)`;
-estimate this mean by quantum Monte-Carlo mean estimation (`Theorem 2.7`), which costs
-`O(log(1/δ)/β)` queries for additive error `β` with failure probability `δ`; the KP-tree
-supplies `θ_j` coherently. -/
-theorem theorem_3_4_gradient_unitary (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
-    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `theorem_3_4_gradient_unitary`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def theorem_3_4_gradient_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
+    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
-      alg.successProb ≥ 1 - δ := by
-  classical
-  by_cases _htriv : X = X ∧ y = y ∧ θ = θ ∧ l1Ball θ ∧ 0 < β ∧ 0 < δ
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, rfl, hθ, hβ, hδ⟩)
-  refine ⟨⟨64 * Real.log (1 / δ) / β, 0, 0, 1⟩, le_rfl, ?_⟩
-  change 1 ≥ 1 - δ
-  linarith
+      alg.successProb ≥ 1 - δ
 
-/-- **Theorem 3.5** (fixed arXiv:2110.13086v2, p. 16). Let `θ ∈ B₁^d` and `β, δ > 0`.  Given
-a KP-tree of `θ`, one can implement `Ũ_LS : |0⟩ ↦ |Λ⟩` such that after measurement the first
-register satisfies `|λ - L_S(θ)| ≤ β` with probability at least `1 - δ`, using
-`Õ(log(1/δ)/β)` applications of `O_X, O_X†, O_y, O_y†, O^KP_θ, O^KP_θ†`.
 
-Proof route (p. 17): combine the gradient unitary of Theorem 3.4 with the identity
-`L_S(θ) = ∑_j θ_j ∇_j L_S(θ)/2` (Euler's identity for the quadratic `L_S`) and coherent
-addition; the accumulated error is `O(β)`. -/
-theorem theorem_3_5_loss_unitary (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
-    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `theorem_3_5_loss_unitary`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def theorem_3_5_loss_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
+    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
-      alg.successProb ≥ 1 - δ := by
-  classical
-  by_cases _htriv : X = X ∧ y = y ∧ θ = θ ∧ l1Ball θ ∧ 0 < β ∧ 0 < δ
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, rfl, hθ, hβ, hδ⟩)
-  refine ⟨⟨64 * Real.log (1 / δ) / β, 0, 0, 1⟩, le_rfl, ?_⟩
-  change 1 ≥ 1 - δ
-  linarith
+      alg.successProb ≥ 1 - δ
 
-/-- **Corollary 3.6** (fixed arXiv:2110.13086v2, p. 17). Uniform version of Theorem 3.5 for a
-family `θ_h`, `h ∈ Fin m`, with all `θ_h ∈ B₁^d`: one can implement
-`Ũ_LS : |h⟩|0⟩ ↦ |h⟩|Λ⟩` such that for every `h` the outcome satisfies
-`|λ - L_S(θ_h)| ≤ β` with probability at least `1 - δ`, at cost `Õ(log(1/δ)/β)` oracle calls. -/
-theorem corollary_3_6_uniform (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) {m : ℕ}
+
+/-- **Statement only — not proved in Qatlib.** Resource specification for `corollary_3_6_uniform`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def corollary_3_6_uniform_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) {m : ℕ}
     (θs : Fin m → Fin d → ℝ) (hθ : ∀ h, l1Ball (θs h)) (β δ : ℝ)
-    (hβ : 0 < β) (hδ : 0 < δ) :
-    ∃ alg : RunProfile,
+    (hβ : 0 < β) (hδ : 0 < δ)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
-      alg.successProb ≥ 1 - δ := by
-  classical
-  by_cases _htriv : X = X ∧ y = y ∧ θs = θs ∧ (∀ h, l1Ball (θs h)) ∧
-      0 < β ∧ 0 < δ
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, rfl, hθ, hβ, hδ⟩)
-  refine ⟨⟨64 * Real.log (1 / δ) / β, 0, 0, 1⟩, le_rfl, ?_⟩
-  change 1 ≥ 1 - δ
-  linarith
+      alg.successProb ≥ 1 - δ
 
-/-- **Theorem 3.7** (fixed arXiv:2110.13086v2, p. 17). For `ε ∈ (0,0.5)`, there is a
-bounded-error quantum algorithm finding an `ε`-minimizer for Lasso with respect to a sample
-set `S` stored in QROM using `Õ(√d/ε²)` time and `Õ(1/ε)` QRAM and classical space.
 
-Boundary: "time" is recorded by `queryCost`/`gateCost` and "space" by `spaceCost`; the
-Frank-Wolfe iteration count and the linear-subproblem solver are not formalised.
-
-Proof route (pp. 17-18): run Frank-Wolfe (Algorithm 2) with curvature `C_LS ≤ 8`
-(Theorem 3.2) for `O(1/ε)` iterations; each iteration uses the approximate loss/gradient
-unitaries (Theorems 3.4/3.5) at precision `ε` with failure `ε²/(d log²(1/ε))`, and the
-KP-tree state preparation (Theorem 2.12); `O(√d/ε²)` queries and `Õ(1/ε)` space follow. -/
-theorem theorem_3_7_sample_set (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) (ε : ℝ)
-    (hε0 : 0 < ε) (hε1 : ε < 1 / 2) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `theorem_3_7_sample_set`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def theorem_3_7_sample_set_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) (ε : ℝ)
+    (hε0 : 0 < ε) (hε1 : ε < 1 / 2)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
       alg.gateCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
       alg.spaceCost ≤ 64 / ε ∧
-      alg.successProb ≥ 2 / 3 := by
-  classical
-  by_cases _htriv : X = X ∧ y = y ∧ 0 < ε ∧ ε < 1 / 2
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, hε0, hε1⟩)
-  refine ⟨⟨0, 0, 0, 1⟩, ?_, ?_, ?_, ?_⟩
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2
-    positivity
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2
-    positivity
-  · change 0 ≤ 64 / ε
-    positivity
-  · norm_num
+      alg.successProb ≥ 2 / 3
 
-/-- **Corollary 3.8** (fixed arXiv:2110.13086v2, p. 18). Let `S` be sampled i.i.d. from `D`.
-For arbitrary `ε > 0`, if `N = Õ(log d/ε²)`, there is a bounded-error quantum algorithm
-finding an `ε`-minimizer for Lasso with respect to `D` using `Õ(√d/ε²)` queries to
-`O_X, O_y` and elementary gates, and `Õ(1/ε)` space.
 
-Boundary: the sample-complexity hypothesis `N = Õ(log d/ε²)` is recorded as the explicit
-inequality below; the generalisation bound ("Theorem 2.7") is not re-derived.
-
-Proof route (p. 18): draw `N` samples and run Theorem 3.7 on the sample set; Theorem 2.7
-turns an `ε/2`-minimizer for the empirical loss into an `ε`-minimizer for `L_D` when
-`N = O(log(d)/ε²)`. -/
-theorem corollary_3_8_distribution (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `corollary_3_8_distribution`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def corollary_3_8_distribution_statement (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
+    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
       alg.gateCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
       alg.spaceCost ≤ 64 / ε ∧
-      alg.successProb ≥ 2 / 3 := by
-  classical
-  by_cases _htriv : N = N ∧ d = d ∧ 0 < ε ∧
-      (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, hε, hN⟩)
-  refine ⟨⟨0, 0, 0, 1⟩, ?_, ?_, ?_, ?_⟩
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2
-    positivity
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2
-    positivity
-  · change 0 ≤ 64 / ε
-    positivity
-  · norm_num
+      alg.successProb ≥ 2 / 3
 
-/-- **Corollary 3.9** (fixed arXiv:2110.13086v2, p. 18). With the same hypotheses as
-Corollary 3.8, there is a bounded-error quantum algorithm using `Õ(√d/ε³)` queries to
-`O_X, O_y` and elementary gates, and `Õ(1/ε)` classical bits (no QRAM).
 
-Proof route (p. 18): replace the QRAM-resident sample set by on-the-fly sampling, which
-costs an extra `1/ε` factor in queries; the Frank-Wolfe iteration uses the loss estimator of
-Theorem 3.5 directly on `D`. -/
-theorem corollary_3_9_classical_bits (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2) :
-    ∃ alg : RunProfile,
+/-- **Statement only — not proved in Qatlib.** Resource specification for `corollary_3_9_classical_bits`.
+`Realizes` must certify the intended output, error or success event and an
+implementation whose counted operations equal the recorded resources. No such
+implementation is constructed here. The explicit numeric bounds are specifications. -/
+def corollary_3_9_classical_bits_statement (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
+    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
+    (Realizes : RunProfile → Prop) : Prop :=
+    ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 3 ∧
       alg.gateCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 3 ∧
       alg.spaceCost ≤ 64 / ε ∧
-      alg.successProb ≥ 2 / 3 := by
-  classical
-  by_cases _htriv : N = N ∧ d = d ∧ 0 < ε ∧
-      (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2
-  swap
-  · exact False.elim (_htriv ⟨rfl, rfl, hε, hN⟩)
-  refine ⟨⟨0, 0, 0, 1⟩, ?_, ?_, ?_, ?_⟩
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 3
-    positivity
-  · change 0 ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 3
-    positivity
-  · change 0 ≤ 64 / ε
-    positivity
-  · norm_num
+      alg.successProb ≥ 2 / 3
+
 
 end Qatlib.Papers.QRegression21.MainResults.LossEstimation

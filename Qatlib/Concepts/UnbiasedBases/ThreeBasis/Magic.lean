@@ -27,8 +27,6 @@ and Pauli conjugation formulas underlying the Clifford and magic-state framework
 * [Bravyi and Kitaev, 2005][BravyiKitaev2005]
 -/
 
-set_option warningAsError false
-
 section
 
 open scoped ComplexConjugate

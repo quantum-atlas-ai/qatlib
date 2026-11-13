@@ -97,8 +97,6 @@ product-to-exponential and Jensen estimates used to bound the maximal survival p
 * [Bharti et al., 2026][BhartiHaugTanggara2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

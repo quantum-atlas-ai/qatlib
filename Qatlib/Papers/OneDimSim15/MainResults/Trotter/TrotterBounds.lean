@@ -115,23 +115,23 @@ def discWordTrunc : (p : ℕ) → (N : ℕ) → (l : ℕ) → ℝ → Matrix (Fi
 
 /-! ## The claims -/
 
-/-- Fixed arXiv:1503.06319v2, Lemma 5 (p. 19, Eq. (B5)), transcribed with the
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 5 (p. 19, Eq. (B5)), transcribed with the
 paper's discrete replacement `x-hat -> x^d`, `p-hat -> p^d`: there are
 constants `d >= 1` and `C > 0` such that for `|s| < 1/d` and `p >= 1`,
 `||epsilon_p(s) |psi_n^d>|| <= C (n+2) |s|^{2p+1}` for every `n`.  (The
 original continuous-variable statement is Eq. (B5).) -/
-def lemma5_trotter_error_state : Prop :=
+def lemma5_trotter_error_state_statement : Prop :=
     ∃ d C : ℝ, 1 ≤ d ∧ 0 < C ∧
       ∀ (N p : ℕ) (s : ℝ), |s| < 1 / d → 1 ≤ p → ∀ n : ℕ,
         vNorm ((trotterEps N p s).mulVec (psiVec N n)) ≤
           C * ((n : ℝ) + 2) * |s| ^ (2 * p + 1)
 
-/-- Fixed arXiv:1503.06319v2, Lemma 6 (p. 19, Eq. (B15)): for any target
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 6 (p. 19, Eq. (B15)): for any target
 error `eps` there are `N, p, k, s` with `k s = t`, `p = Theta(sqrt(log(w/eps)))`,
 and the total exponential count `3 * 5^{p-1} k` is
 `Theta(|t| exp(gamma sqrt(log((n+2)|t|/eps))))`, while the `k`-th power of the
 word approximates `U^d(t) |psi_n^d>` to `eps`. -/
-def lemma6_exponential_count : Prop :=
+def lemma6_exponential_count_statement : Prop :=
     ∃ γ c₁ c₂ : ℝ, 0 < γ ∧ 0 < c₁ ∧ 0 < c₂ ∧
       ∀ (n : ℕ) (t ε : ℝ), 1 ≤ |t| → 0 < ε → ε ≤ 1 / 2 →
         ∃ (N p k : ℕ) (s : ℝ), 1 ≤ p ∧ 1 ≤ k ∧ (k : ℝ) * s = t ∧
@@ -142,10 +142,10 @@ def lemma6_exponential_count : Prop :=
           vNorm (((trotterWord p N s) ^ k).mulVec (psiVec N n) -
             (evolveOp N t).mulVec (psiVec N n)) ≤ ε
 
-/-- Fixed arXiv:1503.06319v2, Lemma 7 (p. 21, Eqs. (B22), (B31), (B32)):
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 7 (p. 21, Eqs. (B22), (B31), (B32)):
 the truncated discrete word diagonal and the truncated continuous-variable
 word diagonal differ by `O(5^p nu_1(N)^{|s|})` for low-energy `n <= c N`. -/
-def lemma7_discrete_vs_cv_word_diagonal : Prop :=
+def lemma7_discrete_vs_cv_word_diagonal_statement : Prop :=
     ∃ c β C : ℝ, 0 < c ∧ 0 < β ∧ 0 < C ∧
       ∀ (N n p : ℕ) (s : ℝ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) → 1 ≤ p → |s| ≤ C →
         ∃ l : ℕ,
@@ -153,11 +153,11 @@ def lemma7_discrete_vs_cv_word_diagonal : Prop :=
               cvWordDiag l p s n‖ ≤
             (5 : ℝ) ^ p * Real.exp (-β * (N : ℝ) * |s|)
 
-/-- Fixed arXiv:1503.06319v2, Corollary 3 (p. 21, Eq. (B34)): with
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Corollary 3 (p. 21, Eq. (B34)): with
 `N = Theta(exp(delta sqrt(log(N' |t| / eps))) + N'/c)` and
 `p = Theta(sqrt(log(N' |t| / eps)))`, the truncated word diagonal is within
 `O(eps |s/t|)` of the continuous-variable word diagonal. -/
-def corollary3_jc_trotter_diagonal_error : Prop :=
+def corollary3_jc_trotter_diagonal_error_statement : Prop :=
     ∃ c δ C : ℝ, 0 < c ∧ 0 < δ ∧ 0 < C ∧
       ∀ (N' n p : ℕ) (t ε : ℝ), 1 ≤ N' → 0 < ε → ε ≤ 1 / 2 → 1 ≤ |t| → 1 ≤ p →
         (n : ℝ) ≤ c * (N' : ℝ) →
@@ -168,12 +168,12 @@ def corollary3_jc_trotter_diagonal_error : Prop :=
           ‖vInner (psiVec N n) ((discWordTrunc p N l s).mulVec (psiVec N n)) -
               cvWordDiag l p s n‖ ≤ C * ε * |s / t|
 
-/-- Fixed arXiv:1503.06319v2, Lemma 8 (p. 22, Eq. (B37)): for every `N'`,
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Lemma 8 (p. 22, Eq. (B37)): for every `N'`,
 `t`, `eps` there are `N, p, k, s` with `ks = t`, `N = O(exp(delta
 sqrt(log(N'|t|/eps))) + N'/c')`, `p = Theta(sqrt(log(N'|t|/eps)))` such that
 the `k`-th power of `U_p^d(s)` approximates `U^d(t)` on every low-energy
 `|psi_n^d>`, `n <= N'`, to `eps`, using `O(|t| 5^{2p})` exponentials. -/
-def lemma8_trotter_state_error : Prop :=
+def lemma8_trotter_state_error_statement : Prop :=
     ∃ c' δ C : ℝ, 0 < c' ∧ 0 < δ ∧ 0 < C ∧
       ∀ (N' : ℕ) (t ε : ℝ), 1 ≤ N' → 1 ≤ |t| → 0 < ε → ε ≤ 1 / 2 →
         ∃ (N p k : ℕ) (s : ℝ), 2 ≤ N ∧ 1 ≤ p ∧ 1 ≤ k ∧ (k : ℝ) * s = t ∧

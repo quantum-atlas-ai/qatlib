@@ -24,7 +24,6 @@ unitary up to a unit-modulus scalar, as in the measurement-based construction of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.InstrumentCore.PatternCompile
 open Qatlib.Concepts.ClusterPatterns.AdaptiveEuler

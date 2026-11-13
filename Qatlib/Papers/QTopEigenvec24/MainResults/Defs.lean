@@ -33,8 +33,10 @@ This module collects the small amount of paper-local vocabulary shared by the
   by Theorem 2.29 / Corollary 2.28;
 * `IsEigenpair`, `IsUnitVector` and `normedOverlap` — spectral notation.
 
-Everything here is definitional; the individual claims live in the section
-files and state their analytic content directly.
+Everything here is definitional. This paper directory contains no proved main
+upper or lower bound. The legacy algorithm records have unrestricted full-input
+output maps and independent resource annotations. They do not enforce entry-query
+access or certify circuit length, execution time, or query complexity.
 -/
 
 set_option autoImplicit false
@@ -66,8 +68,9 @@ def BlockEncoding {d a : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
 
 /-! ## Cost ledgers and soft-`O` -/
 
-/-- A paper-level resource ledger.  `time` is total time and `queries` is the
-number of oracle calls; both are real-valued accounting counters. -/
+/-- Independent real-valued annotations named `time` and `queries`.
+No nonnegativity or execution invariant is imposed; this record alone cannot
+certify time or oracle-call counts. -/
 structure Cost where
   time : ℝ
   queries : ℝ
@@ -301,32 +304,35 @@ def hammingDist {d : ℕ} (u w : Fin d → Bool) : ℕ :=
 
 /-! ## Entry-query algorithms (§4–5)
 
-An algorithm is modelled by its (worst-case) query count together with its
-output map; for quantum algorithms the output is a finite law on answers.
-This abstracts away the circuit description, which is not part of the
-library's interfaces, while keeping the query ledger on which the paper's
-upper and lower bounds are stated.
+The following legacy records pair unrestricted full-matrix output maps with
+independent annotations. For the quantum-labelled records, the output is a finite
+law on answers. There is no oracle program, circuit, or invariant tying outputs to
+queries: changing an annotation leaves every output law unchanged. These records
+are vocabulary for specifications, not certified query algorithms. Any complexity
+claim needs a separate implementation model and a proof relating its calls to the
+annotation. No such claim is proved in this directory.
 -/
 
-/-- A classical algorithm with entry-query access to real `d × d` matrices. -/
+/-- Legacy full-matrix output specification, without an entry-query restriction. -/
 structure RealClassicalAlgorithm (d : ℕ) (Out : Type*) where
-  /-- Worst-case number of entry queries. -/
+  /-- Independent query annotation; no execution count is certified. -/
   queries : ℝ
   /-- The algorithm's output on a matrix. -/
   output : Matrix (Fin d) (Fin d) ℝ → Out
 
-/-- A quantum algorithm with entry-query access to real `d × d` matrices,
-whose (randomised) output is a finite law. -/
+/-- Legacy finite output-law specification on real matrices.
+No quantum implementation or entry-query restriction is supplied. -/
 structure RealQuantumAlgorithm (d : ℕ) (Out : Type*) [Fintype Out] where
-  /-- Worst-case number of entry queries. -/
+  /-- Independent query annotation; no execution count is certified. -/
   queries : ℝ
   /-- The output law on a matrix. -/
   output : Matrix (Fin d) (Fin d) ℝ →
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist Out
 
-/-- A quantum algorithm with entry-query access to complex `d × d` matrices. -/
+/-- Legacy finite output-law specification on complex matrices.
+No quantum implementation or entry-query restriction is supplied. -/
 structure ComplexQuantumAlgorithm (d : ℕ) (Out : Type*) [Fintype Out] where
-  /-- Worst-case number of entry queries. -/
+  /-- Independent query annotation; no execution count is certified. -/
   queries : ℝ
   /-- The output law on a matrix. -/
   output : Matrix (Fin d) (Fin d) ℂ →
@@ -335,16 +341,15 @@ structure ComplexQuantumAlgorithm (d : ℕ) (Out : Type*) [Fintype Out] where
 
 /-! ## Randomised algorithms and total-variation closeness
 
-The paper's upper-bound claims assert the existence of an algorithm whose output
-is a random variable.  `EstimatorAlgorithm` bundles the algorithm's finite
-randomness (`Ω`, `law`), its cost ledger and its output random variable; the
-input type is the object the algorithm is given (a matrix, a unitary, ...).
+`EstimatorAlgorithm` bundles finite randomness (`Ω`, `law`), an independent
+cost annotation and an unrestricted output random variable receiving the full
+input (a matrix, a unitary, ...). It does not establish an algorithmic upper bound.
 `realTV` is the paper's total variation distance between the laws of two real
 random variables (page 8), computed over the union of their finite supports.
 -/
 
-/-- A randomised algorithm: finite randomness, a cost ledger, and an output
-random variable depending on the algorithm's input. -/
+/-- Legacy randomized output specification with an independent cost annotation.
+There is no execution semantics relating `output` to `cost`. -/
 structure EstimatorAlgorithm (In : Type) (Out : Type) where
   /-- The finite sample space of the algorithm's internal randomness. -/
   Ω : Type
@@ -354,7 +359,7 @@ structure EstimatorAlgorithm (In : Type) (Out : Type) where
   [instDecidableEq : DecidableEq Ω]
   /-- The law of the algorithm's internal randomness. -/
   law : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist Ω
-  /-- Resource ledger of the algorithm. -/
+  /-- Independent resource annotation; not a certified execution cost. -/
   cost : Cost
   /-- The algorithm's output random variable on input `A`. -/
   output : In → Ω → Out

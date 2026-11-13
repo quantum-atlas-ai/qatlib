@@ -26,7 +26,6 @@ the associated analysis tests this formulation against the segmented Taylor meth
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

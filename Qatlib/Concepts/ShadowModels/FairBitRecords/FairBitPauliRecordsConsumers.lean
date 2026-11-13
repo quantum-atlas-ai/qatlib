@@ -53,7 +53,6 @@ noncomputable section
 namespace Qatlib.Concepts.ShadowModels.FairBitRecords
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- For finite probability distributions, the absolute difference of the probabilities of any
 event is at most half their total absolute probability difference. -/

@@ -30,7 +30,6 @@ spectrum of a T-transform instrument under the stated filter and branch-mass hyp
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

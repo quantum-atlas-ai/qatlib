@@ -24,8 +24,6 @@ of [HarrowHassidimLloyd2009].
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Concepts.HhlAlgorithms.GridExactHHL.LinearSystemProblem
 

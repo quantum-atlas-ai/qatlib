@@ -14,11 +14,10 @@ import Mathlib.Tactic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# QTrainLiu24.MainResults.GenerationModel — source layer
+# QTrainLiu24.MainResults.GenerationModel
 
 Paper: Chen-Yu Liu et al., *Quantum-Train: Rethinking Hybrid Quantum-Classical
 Machine Learning in the Model Compression Perspective*, fixed arXiv:2405.11304v2.
-PDF `prove/assets/2405.11304v2.pdf`.
 
 Claim c001: the QT generation model of Eq. (3) (p.2). The classical network has
 `M` parameters `θ⃗ = (θ₁,…,θ_M)` (Eq. (1)); a quantum state on
@@ -43,7 +42,6 @@ This module formalises:
 The *size* of the mapping network is accounted for separately in the
 `ParameterCompression` module; this module does not derive any effective
 description or trainability guarantee from the qubit count alone.
-No `sorry`, no extra axiom, no `unsafe`.
 -/
 
 set_option autoImplicit false

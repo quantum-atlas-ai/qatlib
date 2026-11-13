@@ -24,8 +24,6 @@ quantum-walk search [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 
 set_option autoImplicit false

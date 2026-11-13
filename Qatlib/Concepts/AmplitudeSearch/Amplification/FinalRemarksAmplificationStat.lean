@@ -25,7 +25,6 @@ The predicate records the two amplification bounds motivated by the final remark
 * [Durr and Hoyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

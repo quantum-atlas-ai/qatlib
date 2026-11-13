@@ -32,8 +32,6 @@ connected-word count with the seed-group size to obtain an explicit factorial ma
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

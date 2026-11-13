@@ -24,7 +24,6 @@ after the first order terms cancel, in the qDRIFT analysis setting of [Campbell2
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.ReferenceError.RefTraceError
 
 namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint

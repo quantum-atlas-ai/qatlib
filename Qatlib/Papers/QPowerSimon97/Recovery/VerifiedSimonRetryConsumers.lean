@@ -25,8 +25,6 @@ retry bound, and a concrete four-step pending-mass estimate.
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AbelianDecoders.SimonDecoding
 open Qatlib.Concepts.AbelianDecoders.SimonDecoding
 open Qatlib.Concepts.PauliClifford.ExactRank

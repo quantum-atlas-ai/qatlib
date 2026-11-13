@@ -28,7 +28,6 @@ Applying the formula to Grover measurement probabilities establishes
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false

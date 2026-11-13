@@ -28,8 +28,6 @@ a and probability at least 1 - β of being at least b satisfies an upper-tail bo
 * [Ben-Or and Hassidim, Lemma 2.8][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib

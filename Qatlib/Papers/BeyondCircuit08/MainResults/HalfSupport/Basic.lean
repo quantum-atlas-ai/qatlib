@@ -42,7 +42,7 @@ def FixesComplement {m : ℕ} (S : Finset (Fin m))
   W ∈ Matrix.unitaryGroup (Fin m) ℂ ∧
     ∀ i j : Fin m, (i ∉ S ∨ j ∉ S) → W i j = if i = j then 1 else 0
 
-/-- The proposition that, in every dimension divisible by four, each unitary is a product of
+/-- **Statement only — not proved in Qatlib.** The proposition that, in every dimension divisible by four, each unitary is a product of
 seven unitaries, each fixing the complement of a set of size `m / 2` [Jordan2008, Lemma
 4][Jordan2008]. -/
 def lemma4_half_support_decomposition_statement : Prop :=

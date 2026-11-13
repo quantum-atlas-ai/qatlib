@@ -33,7 +33,6 @@ open Qatlib.Concepts.RiskEstimation.PopulationGap
 set_option autoImplicit false
 namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
-set_option warningAsError false
 
 /-- The expanded angle word satisfies the stated polynomial length bound, and `2 * r + 1`
 amplitude-estimation repetitions have the displayed exact forward, backward, query, and gate

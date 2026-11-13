@@ -28,8 +28,6 @@ simultaneous correctness and accessibility with high probability in the construc
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

@@ -38,7 +38,6 @@ probability and normalized-output bounds. The word uses `d` adjoint queries and 
   beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding

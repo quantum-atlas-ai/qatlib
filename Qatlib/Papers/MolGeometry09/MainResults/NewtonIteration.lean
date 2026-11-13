@@ -31,11 +31,9 @@ count, and arithmetic comparisons with the Hessian index-set size.
 * [Kassal and Aspuru-Guzik, 2009][KassalAspuruGuzik2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.MolGeometry09.MainResults.NewtonIteration

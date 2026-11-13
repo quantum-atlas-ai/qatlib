@@ -19,8 +19,8 @@ Lemma 50, printed p. 55 (Appendix A), attributed to Chakraborty--Gilyén--Jeffer
 `c033` Lemma 50: for Hermitian `H, H'` and any real `t`,
 `‖e^{itH} - e^{itH'}‖ ≤ |t| · ‖H - H'‖` in the L2 operator norm.
 
-The frozen library proves exactly this as
-`QuantumAlgorithm.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`
+The library proves exactly this as
+`Qatlib.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`
 (full proof by the Duhamel integral) in the convention
 `HamiltonianEvolution H t = e^{-iHt}`; the printed `e^{itH}` is obtained with
 `t ↦ -t`.  The bridge below only fixes the sign convention.
@@ -36,7 +36,7 @@ open scoped Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.BlockEncMatPw18.MainResults.Evolution
 
-/-- The paper's forward-time evolution `e^{itH}`, in the frozen convention
+/-- The paper's forward-time evolution `e^{itH}`, in the library convention
 `HamiltonianEvolution H t = e^{-iHt}`: `paperEvo H t = HamiltonianEvolution H (-t)`. -/
 def paperEvo {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
@@ -45,9 +45,9 @@ def paperEvo {I : Type} [Fintype I] [DecidableEq I]
 /-- **Lemma 50.** arXiv:1804.01973v2, p. 55.  For Hermitian `H, H'` and real `t`,
 `‖e^{itH} - e^{itH'}‖ ≤ |t| · ‖H - H'‖`.
 
-Reuse (FQN):
-`QuantumAlgorithm.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`,
-which proves the frozen contract `HermitianEvolutionLipschitz` by the Duhamel
+The corresponding library theorem is
+`Qatlib.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`,
+which proves the library contract `HermitianEvolutionLipschitz` by the Duhamel
 integral (both evolution factors unitary, C*-identity, integrate `[0, t]`). -/
 theorem lemma50_evolution_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     (H H' : Matrix I I ℂ) (hH : H.IsHermitian) (hH' : H'.IsHermitian) (t : ℝ) :

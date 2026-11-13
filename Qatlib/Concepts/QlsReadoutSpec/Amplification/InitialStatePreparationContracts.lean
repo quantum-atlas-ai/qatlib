@@ -25,8 +25,6 @@ squared query count. Initial-state preparation query complexity is studied in [L
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.AdversarySearch
 open Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 open Qatlib.Concepts.BlockEncoding.Postselection

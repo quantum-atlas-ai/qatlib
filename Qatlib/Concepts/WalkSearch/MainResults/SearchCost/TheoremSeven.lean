@@ -29,8 +29,6 @@ on search via quantum walks, see [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 

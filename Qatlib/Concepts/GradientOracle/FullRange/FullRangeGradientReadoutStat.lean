@@ -24,7 +24,6 @@ and a cosine-squared success bound for an exact affine phase, as motivated by
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient

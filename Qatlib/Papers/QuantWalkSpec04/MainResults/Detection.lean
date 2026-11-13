@@ -31,7 +31,6 @@ times at which this squared norm is at most three. See [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

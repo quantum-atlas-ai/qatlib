@@ -24,7 +24,7 @@ The remaining claims are recorded as abstract statements:
 - c001/c007 (Theorem 1, DQI for HOPI): the paper states the result
   without proof, reducing it to the semicircle law of the DQI reference
   (Jordan et al.); no DQI solver, decoder, or HOPI instance model exists
-  in Mathlib or in this repository (the frozen `DqiOptimization` blocks
+  in Mathlib or in this repository (the shared `DqiOptimization` blocks
   only provide decoder-capacity counting prerequisites).
 - c002 (Theorem 2, degree of a principal divisor): needs the product
   formula for function fields of curves; Mathlib has no divisor theory
@@ -35,7 +35,6 @@ The remaining claims are recorded as abstract statements:
   duality): need algebraic-geometric codes `C_L(X, P, G)`, differentials
   and residue pairings, none of which exist in Mathlib.
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

@@ -29,7 +29,6 @@ uniform constant 32 for operators supported on at most five qubits. For backgrou
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open Qatlib.Foundations.PureStateMath

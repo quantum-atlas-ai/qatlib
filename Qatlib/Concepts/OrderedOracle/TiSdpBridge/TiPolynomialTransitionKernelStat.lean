@@ -31,7 +31,6 @@ desired oracle-followed-by-transition state identity.
   ordered-search feasibility.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -29,8 +29,6 @@ lower bound by a positive multiple of `1 - n * ε`.
 * [Roetteler, 2009][Roetteler2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

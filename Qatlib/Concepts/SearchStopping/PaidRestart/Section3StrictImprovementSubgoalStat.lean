@@ -27,7 +27,6 @@ quantum-search analysis, see [BoyerEtAl1998].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.SearchStopping.PaidRestart

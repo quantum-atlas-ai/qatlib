@@ -28,7 +28,6 @@ error transport, and implementation guarantees. These combine the finite-grid ap
 * [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree

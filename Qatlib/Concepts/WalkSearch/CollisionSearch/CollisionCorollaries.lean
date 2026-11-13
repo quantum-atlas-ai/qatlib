@@ -35,8 +35,6 @@ mathematical background.
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

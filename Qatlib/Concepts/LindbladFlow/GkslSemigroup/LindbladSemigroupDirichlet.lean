@@ -47,7 +47,6 @@ when the reference is positive semidefinite, in the generator framework of [Lind
 * [Lindblad, 1976][Lindblad1976]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 

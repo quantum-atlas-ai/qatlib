@@ -41,13 +41,11 @@ open Qatlib.Concepts.CopyEvolution.SelfTomography
 open Qatlib.Concepts.CopyEvolution.SelfTomography
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
 
 open Matrix Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- At a valid target position, indexed loading equals the loaded-table bit at the extracted
 load address. -/

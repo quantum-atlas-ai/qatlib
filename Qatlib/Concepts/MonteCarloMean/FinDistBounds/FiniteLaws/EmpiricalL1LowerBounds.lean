@@ -30,8 +30,6 @@ necessary sample size. These finite sampling bounds complement Monte Carlo accur
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.EmpiricalL1LowerBounds
 open scoped BigOperators Classical

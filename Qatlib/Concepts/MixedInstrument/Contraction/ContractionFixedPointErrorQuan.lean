@@ -30,8 +30,6 @@ all operators when a density fixed point exists.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 

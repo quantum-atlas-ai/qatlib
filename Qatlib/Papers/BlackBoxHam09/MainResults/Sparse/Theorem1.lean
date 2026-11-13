@@ -26,7 +26,6 @@ These estimates accompany the sparse simulation bound of Theorem 1 in [BerryChil
 * [Berry and Childs, 2012][BerryChilds2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -33,8 +33,6 @@ precision.
 * [Kitaev et al., 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline

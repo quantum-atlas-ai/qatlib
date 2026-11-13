@@ -32,9 +32,7 @@ conditioning outcomes yields the expected logical action, in the measurement-bas
 * [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuditTeleport.TeleportCore
@@ -53,8 +51,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The equivalence encoding two pairs of Boolean qubits as a sixteen-dimensional computational
 basis. -/

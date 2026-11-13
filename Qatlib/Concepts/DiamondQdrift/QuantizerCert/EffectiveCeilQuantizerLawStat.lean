@@ -25,7 +25,6 @@ qDRIFT setting of [Campbell2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
 

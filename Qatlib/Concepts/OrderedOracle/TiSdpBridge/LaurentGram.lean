@@ -42,7 +42,6 @@ compute outer Gram evaluations. This supplies matrix tools for the ordered searc
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

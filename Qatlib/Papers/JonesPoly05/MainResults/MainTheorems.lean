@@ -30,8 +30,6 @@ stated approximation guarantee. See [AharonovJonesLandau2009].
 * [Aharonov et al., 2009][AharonovJonesLandau2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

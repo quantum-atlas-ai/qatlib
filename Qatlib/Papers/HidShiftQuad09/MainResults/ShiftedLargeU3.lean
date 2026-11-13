@@ -29,8 +29,6 @@ perturbation estimate under the supplied vector-overlap assumptions.
 * [Roetteler, 2009][Roetteler2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

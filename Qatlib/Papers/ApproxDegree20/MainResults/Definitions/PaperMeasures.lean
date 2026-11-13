@@ -23,10 +23,10 @@ set_option backward.isDefEq.respectTransparency false
 Source: arXiv:2010.12629v1, *Degree vs. Approximate Degree and Quantum
 Implications of Huang's Sensitivity Theorem* (Aaronson, Ben-David, Kothari,
 Rao, Tal).  This module fixes every measure that the paper's statements
-mention but that the frozen library does not already provide.
+mention but that the shared library does not already provide.
 
-Reuse from the frozen library:
-* `QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.exactDegree`
+The shared library provides:
+* `Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree`
   (`deg`, Beals et al. 2001 §3.1) and `approxDegree` (`deg~`, the `1/3`
   version);
 * `TriangleQuery.DegreeBounds.spectralSensitivity`
@@ -38,7 +38,7 @@ New here:
   Section 4 (pages 8–9);
 * `fourierCoeff` — `ĝ` of Lemma 12 (page 9);
 * `approxDegreeAt` — the paper's own `ε`-approximate degree convention
-  `[1−2ε,1] / [−1,−1+2ε]` (Section 4.3, page 13), while the frozen
+  `[1−2ε,1] / [−1,−1+2ε]` (Section 4.3, page 13), while the shared
   `approxDegree` is the `1/3` version used in the introduction;
 * `sensitivityAt`, `sensitivity`, `s0`, `s1`, `avgSensitivity` — paper §2.2 and
   Appendix A.3/A.4;
@@ -131,7 +131,7 @@ def linftyOpNorm {α β : Type} [Fintype α] [Fintype β] (A : Matrix α β ℝ)
 
 `deg~_ε(f)` is the least total degree of `q` with
 `f(x)=1 ⇒ q(x) ∈ [1−2ε, 1]` and `f(x)=0 ⇒ q(x) ∈ [−1, −1+2ε]`.
-Compare the frozen `approxDegree`, which is the `ε = 1/3` acceptance version. -/
+Compare the shared `approxDegree`, which is the `ε = 1/3` acceptance version. -/
 
 /-- Paper's `ε`-approximate degree (page 13, §4.3). -/
 noncomputable def approxDegreeAt (ε : ℝ) (f : (I → Bool) → Bool) : ℕ :=

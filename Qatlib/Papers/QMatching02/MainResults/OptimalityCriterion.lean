@@ -6,7 +6,7 @@ Authors: Qatlib Contributors
 
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Complex.BigOperators
+import Mathlib.Basic.Complex.BigOperators
 import Mathlib.Analysis.InnerProductSpace.Positive
 
 /-!
@@ -32,7 +32,6 @@ given family when its associated matrix `Γ` dominates every score matrix.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix
@@ -41,6 +40,8 @@ open scoped BigOperators ComplexOrder
 namespace Qatlib.Papers.QMatching02.MainResults.OptimalityCriterion
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
+
+omit [DecidableEq n] in
 
 /-- The trace of the product of two conjugate outer products is the product of their two
 conjugated overlaps. -/
@@ -55,6 +56,8 @@ theorem trace_vecMulVec_mul_vecMulVec (a b : n → ℂ) :
   apply Finset.sum_congr rfl; intro j _
   ring
 
+omit [DecidableEq n] in
+
 /-- The conjugated dot product of `x` with `y` is the complex conjugate of the conjugated dot
 product of `y` with `x`. -/
 theorem dotProduct_star_comm (x y : n → ℂ) :
@@ -67,6 +70,7 @@ theorem dotProduct_star_comm (x y : n → ℂ) :
 nonnegative. -/
 theorem trace_mul_nonneg {A B : Matrix n n ℂ} (hA : A.PosSemidef) (hB : B.PosSemidef) :
     0 ≤ Complex.re ((A * B).trace) := by
+  let _ := (inferInstance : DecidableEq n)
   obtain ⟨m, v, rfl⟩ := Matrix.posSemidef_iff_eq_sum_vecMulVec.mp hA
   obtain ⟨p, w, rfl⟩ := Matrix.posSemidef_iff_eq_sum_vecMulVec.mp hB
   rw [Finset.sum_mul_sum]
@@ -86,7 +90,7 @@ family `ν`. -/
 theorem helstromYuen_optimality
     {ι : Type*} [Fintype ι]
     (G μ : ι → Matrix n n ℂ) (Γ : Matrix n n ℂ)
-    (hμ : ∀ i, (μ i).PosSemidef) (hμsum : (∑ i, μ i) = 1)
+    (_hμ : ∀ i, (μ i).PosSemidef) (_hμsum : (∑ i, μ i) = 1)
     (hΓ : Γ = ∑ i, μ i * G i)
     (hDom : ∀ i, (Γ - G i).PosSemidef) :
     ∀ ν : ι → Matrix n n ℂ, (∀ i, (ν i).PosSemidef) → (∑ i, ν i) = 1 →

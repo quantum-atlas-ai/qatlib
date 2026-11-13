@@ -30,7 +30,6 @@ and instrument semantics follow the quantum-computation setting of [NielsenChuan
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Foundations.PureStateMath.Reflection

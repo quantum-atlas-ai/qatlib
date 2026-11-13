@@ -27,7 +27,6 @@ vector, and relates these expressions to isometric restrictions.
 * [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -31,11 +31,9 @@ Row identities for the initial, history, jump, and padding regions combine in
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
-set_option warningAsError false
 
 /-- The translated Taylor polynomial `∑ j ∈ Icc b k, b! * z^(j-b) / j!`. -/
 noncomputable def taylorTransPoly (k b : ℕ) (z : ℂ) : ℂ :=

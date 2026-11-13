@@ -26,7 +26,6 @@ This supplies the polynomial component of the pseudoinverse construction associa
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

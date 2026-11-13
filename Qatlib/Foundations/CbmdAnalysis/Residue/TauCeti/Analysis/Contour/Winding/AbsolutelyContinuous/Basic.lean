@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -36,8 +38,6 @@ These results support the contour-integration framework associated with [WangEtA
 
 * [Wang et al., 2026][WangEtAl2026]
 -/
-
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
@@ -77,7 +77,7 @@ namespace TauCeti.Contour
 
 /-- For an absolutely continuous curve avoiding `z`, exponentiating `2πi` times its winding
 number gives the ratio of its endpoint displacements from `z`. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.exp_two_pi_I_mul_windingNumber
+theorem _root_.AbsolutelyContinuousOnInterval.exp_two_pi_I_mul_windingNumber
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hz : z ∉ γ '' uIcc a b) :
     Complex.exp (2 * (Real.pi : ℂ) * Complex.I * windingNumber γ a b z) =
@@ -123,7 +123,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInt
 
 /-- The winding number of a closed absolutely continuous curve about a point outside its image
 is an integer. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.exists_int_windingNumber
+theorem _root_.AbsolutelyContinuousOnInterval.exists_int_windingNumber
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hclosed : γ a = γ b) (hz : z ∉ γ '' uIcc a b) :
     ∃ n : ℤ, windingNumber γ a b z = n := by

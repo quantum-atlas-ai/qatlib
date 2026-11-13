@@ -31,7 +31,6 @@ such as the Monte Carlo algorithms in [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -39,9 +38,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 
@@ -60,6 +56,8 @@ all times. -/
 noncomputable def weightedExpectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : ℝ≥0∞ := ∑' n, weightedOccupation next c cfg n
 
+omit [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- The expected weighted cost from an already halted output is zero. -/
 @[simp] theorem weightedExpectedCost_halted (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (o : O) : weightedExpectedCost next c (.inl o) = 0 := by
@@ -72,10 +70,12 @@ noncomputable def weightedBudgetRun (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (budget : ℕ) (cfg : O ⊕ S) : CostedLaw (O ⊕ S) :=
   match cfg with
   | .inl o => CostedLaw.ret (.inl o)
-  | .inr s => if h : 0 < c s ∧ c s ≤ budget then
+  | .inr s => if _h : 0 < c s ∧ c s ≤ budget then
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedBudgetRun next c (budget-c s) d))
     else CostedLaw.ret (.inr s)
 termination_by budget
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- Budgeted execution preserves an already halted output with zero additional cost. -/
 @[simp] theorem weightedBudgetRun_halted (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -89,14 +89,18 @@ termination_by budget
   | inl o => simp
   | inr s =>
     rw [weightedBudgetRun]
-    exact dif_neg (by omega)
+    exact dite_eq_right (by omega)
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- Budgeted execution stays at the current running state when its cost is zero or exceeds the
 remaining budget. -/
 theorem weightedBudgetRun_pending (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (s : S) (h : ¬ (0 < c s ∧ c s ≤ B)) :
     weightedBudgetRun next c B (.inr s) = CostedLaw.ret (.inr s) := by
-  rw [weightedBudgetRun, dif_neg h]
+  rw [weightedBudgetRun, dite_eq_right h]
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- When the positive state cost fits the budget, execution samples the next configuration and
 recurses on the reduced budget while charging that cost. -/
@@ -104,7 +108,7 @@ theorem weightedBudgetRun_paid (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (s : S) (h : 0 < c s ∧ c s ≤ B) :
     weightedBudgetRun next c B (.inr s) =
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedBudgetRun next c (B-c s) d)) := by
-  rw [weightedBudgetRun, dif_pos h]
+  rw [weightedBudgetRun, dite_eq_left h]
 
 /-- Every supported accumulated cost of budgeted execution is at most its initial budget. -/
 theorem weightedBudgetRun_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -129,12 +133,16 @@ noncomputable def weightedStateCharge (c : S → ℕ) : O ⊕ S → ℝ≥0∞
   | .inl _ => 0
   | .inr s => c s
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- The expected cost of a weighted tick equals the charge of its starting configuration. -/
 theorem weightedTick_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : CostedLaw.expectedCost (weightedTick next c cfg) = weightedStateCharge c cfg := by
   cases cfg with
   | inl o => exact CostedLaw.expectedCost_ret _
   | inr s => simp [weightedTick, weightedStateCharge, CostedLaw.expectedCost]
+
+omit [DecidableEq S] [DecidableEq O] in
 
 /-- Weighted occupation is the expectation of `weightedStateCharge` under the finite-run
 configuration marginal. -/
@@ -278,29 +286,29 @@ theorem weightedBudgetRun_halt_point (next : S → PMF (O ⊕ S)) (c : S → ℕ
       · rw [weightedBudgetRun_paid next c B s hb, PMF.bind_apply]
         simp only [charge_point_mass]
         by_cases hcs : c s ≤ k
-        · simp only [if_pos hcs]
+        · simp only [ite_eq_left hcs]
           have hsmall : k-c s < k := by have := hc s; omega
           have hB : k-c s ≤ B-c s := by omega
           simp_rw [ih (k-c s) hsmall _ _ hB]
           obtain ⟨n, rfl⟩ : ∃ n, k = n+1 := ⟨k-1, by have := hc s; omega⟩
           unfold weightedHaltJoint
-          rw [weightedRunFor_succ_running_point, if_pos hcs]
+          rw [weightedRunFor_succ_running_point, ite_eq_left hcs]
           apply tsum_congr
           intro d
           rw [weightedRunFor_halt_stable next c hc d o _ n (by have := hc s; omega)]
           rfl
-        · simp only [if_neg hcs, mul_zero, tsum_zero]
+        · simp only [ite_eq_right hcs, mul_zero, tsum_zero]
           unfold weightedHaltJoint
           cases k with
           | zero => simp [CostedLaw.ret, PMF.pure_apply]
-          | succ n => rw [weightedRunFor_succ_running_point, if_neg hcs]
+          | succ n => rw [weightedRunFor_succ_running_point, ite_eq_right hcs]
       · rw [weightedBudgetRun_pending next c B s hb]
         have hcs : ¬ c s ≤ k := by have := hc s; omega
         unfold weightedHaltJoint
         cases k with
         | zero => rfl
         | succ n =>
-          rw [weightedRunFor_succ_running_point, if_neg hcs]
+          rw [weightedRunFor_succ_running_point, ite_eq_right hcs]
           simp [CostedLaw.ret, PMF.pure_apply]
 
 /-- The accumulated cost on halted outcomes, extended by zero on running outcomes. -/
@@ -313,6 +321,8 @@ noncomputable def weightedPendingIndicator : (O ⊕ S) × ℕ → ℝ≥0∞
   | (.inl _, _) => 0
   | (.inr _, _) => 1
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- The expectation of the pending indicator equals the running-event probability. -/
 theorem weightedPendingIndicator_expectation (p : CostedLaw (O ⊕ S)) :
     CostedLaw.expectation p weightedPendingIndicator =
@@ -321,6 +331,8 @@ theorem weightedPendingIndicator_expectation (p : CostedLaw (O ⊕ S)) :
   intro z
   rcases z with ⟨d,k⟩
   cases d <;> simp [weightedPendingIndicator]
+
+omit [DecidableEq S] [DecidableEq O] in
 
 /-- The expected halted charge is the sum of halted point masses weighted by their cost
 coordinates. -/
@@ -364,6 +376,8 @@ theorem weighted_prefix_expense_le (p : CostedLaw (O ⊕ S)) (f : O ⊕ S → Co
     | inl o => simp [weightedHaltedCharge, weightedPendingIndicator, Nat.cast_add]
     | inr s => simpa [weightedHaltedCharge, weightedPendingIndicator] using
         (show (x.2 : ℝ≥0∞) ≤ (D : ℝ≥0∞) by exact_mod_cast hd)
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- If every state cost is at most `C`, an `n`-step weighted run has accumulated cost at most `n
 * C`. -/
@@ -468,6 +482,8 @@ theorem weighted_expected_cost_occupation_and_halt :
       exact hz (weightedExpectedCost_finite_nontermination next c cfg hc (lt_top_iff_ne_top.mpr h))
     simp [ht, ENNReal.top_mul hz]
 
+omit [DecidableEq S] [DecidableEq O] in
+
 /-- For any costed law, total halted mass plus running-event probability equals one. -/
 theorem weighted_law_halt_pending_partition (p : CostedLaw (O ⊕ S)) :
     (∑' o, ∑' k : ℕ, p (.inl o,k)) +
@@ -501,6 +517,8 @@ theorem weightedBudgetRun_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   simp_rw [hh, tsum_fintype] at hp
   exact hp
 
+omit [Fintype S] [DecidableEq S] [DecidableEq O] in
+
 /-- Total weighted halting mass splits into cost coordinates at most `B` and those greater than
 `B`. -/
 theorem weightedHaltJoint_tsum_split (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -517,10 +535,10 @@ theorem weightedHaltJoint_tsum_split (next : S → PMF (O ⊕ S)) (c : S → ℕ
       by_cases h : B < k <;> simp [h, show (k < B+1) ↔ ¬ B < k by omega]
     rw [tsum_congr hpoint, ENNReal.tsum_add]
     congr 1
-    rw [tsum_eq_sum (s := Finset.range (B+1)) (fun k hk => if_neg (Finset.mem_range.not.mp hk))]
+    rw [tsum_eq_sum (s := Finset.range (B+1)) (fun k hk => ite_eq_right (Finset.mem_range.not.mp hk))]
     apply Finset.sum_congr rfl
     intro k hk
-    exact if_pos (Finset.mem_range.mp hk)
+    exact ite_eq_left (Finset.mem_range.mp hk)
   simp_rw [hk]
   rw [ENNReal.tsum_add, tsum_fintype]
 
@@ -559,7 +577,7 @@ theorem weightedBudgetRun_cutoff (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       apply ENNReal.tsum_le_tsum
       intro k
       by_cases hk : B < k
-      · simp only [if_pos hk, mul_one]
+      · simp only [ite_eq_left hk, mul_one]
         exact mul_le_mul_left (by exact_mod_cast Nat.succ_le_of_lt hk) _
       · simp [hk]
     · exact mul_le_mul_left le_top _

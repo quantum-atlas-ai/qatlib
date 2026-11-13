@@ -36,7 +36,6 @@ Range projections and generalized inverses belong to the matrix-analysis backgro
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

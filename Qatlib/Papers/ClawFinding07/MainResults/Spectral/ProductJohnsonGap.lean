@@ -25,8 +25,6 @@ corresponding domain sizes, it obtains the reciprocal-size gap bound for the pro
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

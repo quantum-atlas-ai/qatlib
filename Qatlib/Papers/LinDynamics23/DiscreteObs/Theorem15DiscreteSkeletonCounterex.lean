@@ -29,7 +29,6 @@ at every iteration and refuting that contract in `theorem15DiscreteSkeleton_coun
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -47,7 +46,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The earlier discrete skeleton proposition specifying output error, compilation counts, and a
 randomized amplification success bound without a reconstruction-closeness hypothesis. -/

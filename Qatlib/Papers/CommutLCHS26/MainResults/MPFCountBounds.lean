@@ -33,7 +33,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.MPFCountBounds
 
 open scoped BigOperators Classical Matrix.Norms.L2Operator
 open MPFSegments MPFRootProfile MPFLongTime
-set_option warningAsError false
 
 /-- For positive m, the m-th harmonic number is at most m. -/
 theorem harmonic_le_order (m : ℕ) (hm : 0 < m) : (harmonic m : ℝ) ≤ (m : ℝ) := by

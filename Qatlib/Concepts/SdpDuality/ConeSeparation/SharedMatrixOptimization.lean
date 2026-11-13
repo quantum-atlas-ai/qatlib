@@ -1328,7 +1328,6 @@ end Qatlib.Concepts.SdpDuality.ConeSeparation
 namespace Qatlib.Concepts.SdpDuality.ConeSeparation.SdpDuality
 open Matrix Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace ComplexOrder BigOperators
-set_option warningAsError false
 noncomputable section
 
 /-- States that for every positive tolerance there is a positive semidefinite matrix whose

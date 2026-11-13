@@ -25,8 +25,6 @@ circuit.
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 300000
 set_option backward.isDefEq.respectTransparency false

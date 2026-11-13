@@ -31,8 +31,6 @@ boundary-corrected even amplitude has the expected zero-angle value. See [Meyer1
 * [Meyer, 1996][Meyer1996a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

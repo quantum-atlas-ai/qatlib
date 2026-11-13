@@ -33,7 +33,6 @@ the precise input-dependent sign of the relative-phase Toffoli construction.
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

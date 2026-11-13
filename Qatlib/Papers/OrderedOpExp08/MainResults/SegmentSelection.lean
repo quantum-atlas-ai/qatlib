@@ -23,8 +23,6 @@ Suzuki words in the framework of [WiebeEtAl2010].
 * [Wiebe et al., 2010][WiebeEtAl2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 800000

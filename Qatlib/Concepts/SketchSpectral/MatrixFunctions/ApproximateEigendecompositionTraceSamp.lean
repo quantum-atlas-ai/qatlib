@@ -28,8 +28,6 @@ from an approximate eigendecomposition, as in [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralSketch.NearIsometry
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding

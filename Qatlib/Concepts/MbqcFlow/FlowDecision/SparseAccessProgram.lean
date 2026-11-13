@@ -29,7 +29,6 @@ embedded input space. The reversible-circuit background is described in [Nielsen
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

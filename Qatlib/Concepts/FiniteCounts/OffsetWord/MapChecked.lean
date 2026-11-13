@@ -28,8 +28,6 @@ arithmetic setting.
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FiniteCounts.OffsetWord

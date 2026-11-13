@@ -25,8 +25,6 @@ transformations are developed in [Gilyen et al., 2019][GilyenSuLowWiebe2019].
 - [Horn and Johnson, 2013][HornJohnson2013].
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 

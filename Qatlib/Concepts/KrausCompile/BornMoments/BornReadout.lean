@@ -28,7 +28,6 @@ constructions relate to finite Kraus implementations in [CaiEtAl2026].
 * [Kraus, 1983][Kraus1983]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

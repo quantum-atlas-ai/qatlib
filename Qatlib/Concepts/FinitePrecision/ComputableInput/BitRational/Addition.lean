@@ -30,8 +30,6 @@ height bit size at most `H` and cost bounded by `binomialRatAddGateCap H`.
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational

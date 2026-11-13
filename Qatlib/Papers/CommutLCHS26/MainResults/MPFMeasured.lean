@@ -42,7 +42,6 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.P
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K]
 

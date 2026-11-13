@@ -32,8 +32,6 @@ Finite probability laws and randomized computation provide the background
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped BigOperators ENNReal

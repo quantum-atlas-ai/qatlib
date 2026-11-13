@@ -35,7 +35,6 @@ set_option autoImplicit false
 noncomputable section
 open Matrix Filter
 open scoped BigOperators ComplexOrder Topology Matrix Matrix.Norms.L2Operator
-set_option warningAsError false
 namespace Qatlib.Papers.QBoltzmann16.MainResults
 
 /-- For a Hermitian input Hamiltonian in positive dimension and an isometric embedding, the

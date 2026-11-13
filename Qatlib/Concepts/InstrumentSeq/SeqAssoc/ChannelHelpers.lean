@@ -29,7 +29,6 @@ channel and instrument formalism of [Wilde2017].
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

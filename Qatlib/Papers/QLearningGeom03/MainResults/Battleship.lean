@@ -30,10 +30,7 @@ series, following the battleship examples in [HunzikerEtAl2003].
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -45,6 +42,8 @@ variable {N : ℕ} [NeZero N]
 /-- The cyclic window consisting of the residues of the integers from -r through r. -/
 def shipWindow (r : ℕ) : Finset (ZMod N) :=
   (Finset.range (2 * r + 1)).image (fun t => ((t : ℕ) : ZMod N) - ((r : ℕ) : ZMod N))
+
+omit [NeZero N] in
 
 /-- If 2r + 1 ≤ N, the map t ↦ t - r into `ZMod N` is injective on the range from 0 through 2r. -/
 lemma shipWindow_injOn {r : ℕ} (h : 2 * r + 1 ≤ N) :
@@ -66,6 +65,8 @@ lemma shipWindow_card {r : ℕ} (h : 2 * r + 1 ≤ N) : (shipWindow (N := N) r).
   · exact Finset.card_range _
   · intro t ht t' ht'
     exact shipWindow_injOn h t (by simpa using ht) t' (by simpa using ht')
+
+omit [NeZero N] in
 
 /-- Membership in the cyclic ship window is invariant under negation. -/
 lemma shipWindow_neg (r : ℕ) (k : ZMod N) :
@@ -99,8 +100,8 @@ noncomputable def epsBS (r : ℕ) (k : ZMod N) : ℂ := if k ∈ shipWindow (N :
 lemma epsBS_neg (r : ℕ) (k : ZMod N) : epsBS (N := N) r (-k) = epsBS (N := N) r k := by
   unfold epsBS
   by_cases h : k ∈ shipWindow (N := N) r
-  · rw [if_pos ((shipWindow_neg r k).mpr h), if_pos h]
-  · rw [if_neg (fun hc => h ((shipWindow_neg r k).mp hc)), if_neg h]
+  · rw [ite_eq_left ((shipWindow_neg r k).mpr h), ite_eq_left h]
+  · rw [ite_eq_right (fun hc => h ((shipWindow_neg r k).mp hc)), ite_eq_right h]
 
 /-- The battleship matrix with entry `epsBS r (a - x)` divided by √N. -/
 noncomputable def bsMatrix (r : ℕ) : Matrix (ZMod N) (ZMod N) ℂ :=
@@ -132,17 +133,19 @@ lemma chiN_sum_left (j : ZMod N) :
     (∑ x : ZMod N, chiN j x) = if j = 0 then ((N : ℕ) : ℂ) else 0 := by
   rw [Finset.sum_congr rfl (fun x _ => chiN_comm j x), chiN_sum]
   by_cases h : j = 0
-  · rw [if_pos h, if_pos h, ZMod.card]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h, ZMod.card]
+  · rw [ite_eq_right h, ite_eq_right h]
     simp
+
+omit [NeZero N] in
 
 /-- The battleship phase function equals one minus twice the indicator of the ship window. -/
 lemma epsBS_eq_indicator (r : ℕ) (k : ZMod N) :
     epsBS (N := N) r k = 1 - 2 * (if k ∈ shipWindow (N := N) r then (1 : ℂ) else 0) := by
   unfold epsBS
   by_cases h : k ∈ shipWindow (N := N) r
-  · rw [if_pos h, if_pos h]; norm_num
-  · rw [if_neg h, if_neg h]; norm_num
+  · rw [ite_eq_left h, ite_eq_left h]; norm_num
+  · rw [ite_eq_right h, ite_eq_right h]; norm_num
 
 /-- The Fourier coefficient of `epsBS r` is the zero-frequency contribution minus twice the
 character sum over the ship window. This computes the phase eigenvalues used in
@@ -175,7 +178,7 @@ theorem bs_lambda_zero {r : ℕ} (h : 2 * r + 1 ≤ N) :
     (∑ x : ZMod N, epsBS (N := N) r x * chiN 0 x)
       = ((N : ℕ) : ℂ) - 2 * (((2 * r + 1 : ℕ)) : ℂ) := by
   rw [bs_eigenvalue]
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
   have hsum : (∑ k ∈ shipWindow (N := N) r, chiN 0 k)
       = (((2 * r + 1 : ℕ)) : ℂ) := by
     rw [Finset.sum_congr rfl (fun k _ => by rw [chiN_comm 0 k, chiN_zero_left]), Finset.sum_const,

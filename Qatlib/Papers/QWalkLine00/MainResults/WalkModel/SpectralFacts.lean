@@ -28,8 +28,6 @@ derivative expression, providing analytic identities for the stationary-phase ca
 * [Nayak and Vishwanath, 2000][NayakVishwanath2000]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkLine00.MainResults
 
 set_option autoImplicit false

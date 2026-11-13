@@ -19,7 +19,7 @@ Fixed paper version: arXiv:2509.09033v1 ("Generative quantum advantage for class
 and quantum problems").
 
 This file sets up the paper's probabilistic objects on top of the frozen finite
-distribution API `QuantumAlgorithm.Concepts.MonteCarloMean.FinDistBounds.FinDist`:
+distribution API `Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist`:
 
 * `Bit n` — the `n`-bit classical register `Fin n → Bool`;
 * `CondLaw n m` — the paper's conditional distributions `p(y|x)` (Definitions 13–14,
@@ -96,7 +96,7 @@ def uniformPushLaw {m r : ℕ} (f : Bit r → Bit m) : FinDist (Bit m) :=
   pushForward (uniformDist (Bit r)) f
 
 /-- Total variation of a law with itself vanishes.  `tvDist` itself is the frozen
-`QuantumAlgorithm.Concepts.MonteCarloMean.FinDistBounds.tvDist`. -/
+`Qatlib.Concepts.MonteCarloMean.FinDistBounds.tvDist`. -/
 theorem tvDist_self {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) :
     tvDist p p = 0 := by
   unfold tvDist

@@ -50,7 +50,6 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The rational arithmetic mean of the request payoff values, using rational division also when
 the basis size is zero. -/

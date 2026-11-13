@@ -25,8 +25,6 @@ whose entries sum to zero.
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

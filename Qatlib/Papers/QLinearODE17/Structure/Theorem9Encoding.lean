@@ -42,7 +42,6 @@ set_option autoImplicit false
 namespace Qatlib.Papers.QLinearODE17.StructureCore
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 

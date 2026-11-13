@@ -28,8 +28,6 @@ workspace, while recording exact sequence costs and basis membership. The develo
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel

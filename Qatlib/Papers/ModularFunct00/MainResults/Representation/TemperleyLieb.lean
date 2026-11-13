@@ -30,8 +30,6 @@ to the identity in either order, giving the algebraic unitarity calculation used
 * [Freedman et al., 2000][FreedmanLarsenWang2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

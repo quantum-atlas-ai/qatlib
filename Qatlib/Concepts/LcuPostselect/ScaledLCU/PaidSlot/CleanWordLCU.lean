@@ -26,8 +26,6 @@ query count, the three additional fixed gates, and preservation of circuit well-
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.LcuPostselect.ScaledLCU.PaidWeightedLCUSlot

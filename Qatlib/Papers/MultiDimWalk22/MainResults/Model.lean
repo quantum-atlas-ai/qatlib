@@ -33,11 +33,13 @@ We model
 * the initial state `|ψ₀⟩` and the witness vectors as elements of `E`;
 * quantum subroutines (Definition 2.5) as finite sequences of unitary linear
   isometric equivalences on `EuclideanSpace ℂ Z` with basis kets `|z⟩`;
-* the paper's `polylog`/`Õ` cost convention as the predicate `SoftO`.
+* a scalar resource comparison `SoftO`, without constants uniform over input sizes.
 
-Gate-level synthesis is *not* rebuilt here: cost statements are recorded as
-existence of the paper's subroutine objects together with the paper's stated
-cost bounds.  Every such statement is flagged in its docstring.
+The proved results are an analytic bound under `EffectiveGapModel` hypotheses
+and the Section 2 arithmetic, abstract unitary-step construction, and conditional
+tail estimate. Elementary-gate synthesis is not constructed. Decision existence
+is an unproved statement requiring an explicit oracle-word implementation;
+the legacy `DecisionAlgorithm` record alone supplies no resource semantics.
 -/
 
 set_option backward.isDefEq.respectTransparency false
@@ -51,16 +53,16 @@ namespace Qatlib.Papers.MultiDimWalk22.MainResults
 
 /-! ## Asymptotic cost notation (paper §3, `polylog` and `Õ`) -/
 
-/-- `SoftO cost bound size` is the paper's `Õ` notation: `cost` is at most
-`bound` times a polylogarithmic factor in `size`.  The paper uses this for all
-complexity claims, e.g. `Õ(1)`, `Õ(n^{5/7})`, `Õ(√(n/m₂))`. -/
+/-- Scalar resource comparison inspired by `Õ`: constants are existentially
+chosen for these particular arguments. This is not an asymptotic bound uniform
+over an input-size family. -/
 def SoftO (cost bound size : ℝ) : Prop :=
   ∃ C c : ℝ, 0 < C ∧ 0 ≤ c ∧ cost ≤ C * bound * (max 1 (Real.log size)) ^ c
 
-/-- A cost is `polylog`-bounded in `size` when it is `Õ(1)`. -/
+/-- Scalar `SoftO cost 1 size` comparison; no uniformity across sizes is asserted. -/
 def PolylogCost (cost size : ℝ) : Prop := SoftO cost 1 size
 
-/-- The paper's `O` notation (without suppressing polylogarithms). -/
+/-- Scalar constant-factor comparison, without uniform asymptotic quantification. -/
 def BigO (cost bound : ℝ) : Prop :=
   ∃ C : ℝ, 0 < C ∧ cost ≤ C * bound
 
@@ -112,12 +114,15 @@ def ComputesOn (S : Subroutine Z) (X : Set Z) (f : Z → Z) (T : Z → ℕ) (ε 
 
 end Subroutine
 
-/-! ## Decision algorithms -/
+/-! ## Decision specifications and oracle-word implementations
 
-/-- A decision algorithm for a family of inputs: its (query or total) cost,
-its time complexity, and the probability with which it accepts each input.
-Algorithmic existence claims of the paper are stated as existence of an
-element of this structure together with the paper's cost bounds. -/
+The legacy decision record alone has no execution semantics. Resource claims require
+`DecisionImplementation`; no bounded-error decision algorithm is constructed here.
+-/
+
+/-- Legacy decision specification with independent resource labels and acceptance values.
+This record alone does not certify computation or complexity. Use
+`DecisionImplementation` to connect it to an oracle word. -/
 structure DecisionAlgorithm (Input : Type*) where
   /-- The query (or total) complexity advertised by the paper. -/
   cost : ℝ
@@ -128,12 +133,45 @@ structure DecisionAlgorithm (Input : Type*) where
 
 namespace DecisionAlgorithm
 
-/-- Bounded-error decidability of a promise problem `p`: accept with
-probability at least `2/3` when `p` holds and at most `1/3` otherwise. -/
+/-- Acceptance inequalities only; this predicate does not certify an implementation
+or even that the supplied acceptance values are probabilities. -/
 def BoundedError {Input : Type*} (p : Input → Prop) (A : DecisionAlgorithm Input) : Prop :=
   ∀ x, (p x → 2 / 3 ≤ A.acceptProb x) ∧ (¬ p x → A.acceptProb x ≤ 1 / 3)
 
 end DecisionAlgorithm
+
+/-- A finite oracle word: `none` invokes the input oracle; `some U` applies
+an input-independent unitary. Counts are in this abstract unitary-step model. -/
+abbrev DecisionWord (Z : Type*) [Fintype Z] :=
+  List (Option (QState Z ≃ₗᵢ[ℂ] QState Z))
+
+/-- Execute every instruction, giving the word access to the input only through `oracle`. -/
+def DecisionWord.run {Z : Type*} [Fintype Z] (word : DecisionWord Z)
+    (oracle : QState Z ≃ₗᵢ[ℂ] QState Z) (initial : QState Z) : QState Z :=
+  word.foldl (fun state instruction => (instruction.getD oracle) state) initial
+
+/-- Implementation contract for a legacy decision specification. Initial state,
+word and projective measurement are input independent. Cost counts oracle calls;
+time counts all word instructions, without claiming elementary-gate complexity. -/
+structure DecisionImplementation {Input Z : Type*} [Fintype Z]
+    (A : DecisionAlgorithm Input)
+    (oracle : Input → QState Z ≃ₗᵢ[ℂ] QState Z) where
+  word : DecisionWord Z
+  initial : QState Z
+  initial_normalized : ‖initial‖ = 1
+  accepting : Submodule ℂ (QState Z)
+  cost_eq : A.cost = (word.countP Option.isNone : ℝ)
+  time_eq : A.time = (word.length : ℝ)
+  accept_eq : ∀ x, A.acceptProb x =
+    ‖accepting.starProjection (word.run (oracle x) initial)‖ ^ 2
+
+/-- **Statement only — not proved in Qatlib.** Bounded-error oracle-word decision
+with specified query and abstract step bounds. The implementation is part of the claim. -/
+def decisionAlgorithm_statement {Input Z : Type*} [Fintype Z]
+    (p : Input → Prop) (oracle : Input → QState Z ≃ₗᵢ[ℂ] QState Z)
+    (queries steps : ℝ) : Prop :=
+  ∃ A : DecisionAlgorithm Input, Nonempty (DecisionImplementation A oracle) ∧
+    A.BoundedError p ∧ A.cost ≤ queries ∧ A.time ≤ steps
 
 /-! ## Phase-estimation parameters and witnesses (Definitions 3.1, 3.2, 3.5) -/
 

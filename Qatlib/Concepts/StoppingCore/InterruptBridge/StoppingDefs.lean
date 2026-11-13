@@ -38,7 +38,6 @@ residuals. Their quantum circuit and measurement setting is described in [Nielse
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -54,7 +53,6 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 

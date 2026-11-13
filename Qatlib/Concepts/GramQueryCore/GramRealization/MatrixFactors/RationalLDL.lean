@@ -39,7 +39,6 @@ resulting Boolean positivity test. Matrix positivity background is provided by [
 * [Bhatia, 2007][Bhatia2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.GramQueryCore.GramRealization.RationalLDL

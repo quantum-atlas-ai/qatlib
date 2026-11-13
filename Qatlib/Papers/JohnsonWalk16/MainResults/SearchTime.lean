@@ -132,8 +132,6 @@ ratio to π√N/2, and independently evaluates the closed-form evolution `idealT
 * [Wong, 2016][Wong2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

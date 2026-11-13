@@ -18,14 +18,12 @@ set_option backward.isDefEq.respectTransparency false
 
 **Fixed paper version.** arXiv:1906.07115 (Haah, Hastings, Kothari, Low, *Quantum
 algorithm for simulating real time evolution of lattice Hamiltonians*).  All theorem and
-equation numbers below refer to the `1906.07115.txt` text in the qatlas asset store (the
-qatlas asset markdown/status service is currently returning 503, see issue #4; the fixed
-PDF/text pair was used instead).
+equation numbers below refer to this paper version.
 
 This module fixes the notation shared by every claim file under
-`QuantumAlgorithmDev.Papers.TimeDepHamSim19.MainResults`.  Nothing here is specific to one
+`Qatlib.Papers.TimeDepHamSim19.MainResults`.  Nothing here is specific to one
 claim; it is the paper's ``mathematical setting'' (Sections 2–3), expressed with the
-Frozen time-ordered exponential `orderedEvolution`.
+shared time-ordered exponential `orderedEvolution`.
 
 ## Main definitions
 
@@ -66,8 +64,8 @@ open scoped Matrix.Norms.L2Operator BigOperators ENNReal
 namespace Qatlib.Papers.TimeDepHamSim19.MainResults
 
 /-- Complex `D × D` matrices: the paper's operator space on a `D`-dimensional Hilbert
-space (`D = 2 ^ n` for `n` qubits).  This is definitionally the Frozen `Operator D`
-(`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision.Operator`). -/
+space (`D = 2 ^ n` for `n` qubits).  This is definitionally `Operator D`
+from `Qatlib.Foundations.PureStateMath`. -/
 abbrev Op (D : ℕ) : Type := Matrix (Fin D) (Fin D) ℂ
 
 /-- A time-dependent Hamiltonian on a `D`-dimensional space: a matrix-valued function of
@@ -145,8 +143,8 @@ theorem strict {tdiv : ℕ → ℝ} {r : ℕ} {t : ℝ} (h : IsDivision tdiv r t
 
 end IsDivision
 
-/-- The time-ordered exponential `E(t,s) = exp_T(-i ∫_s^t H)`, defined as the Frozen
-`orderedEvolution` for the generator `-iH`.  Because the Frozen generator convention is
+/-- The time-ordered exponential `E(t,s) = exp_T(-i ∫_s^t H)`, defined as
+`orderedEvolution` for the generator `-iH`.  Because the shared generator convention is
 `A = -iH` (the propagator solves `d/dt U = -A(t) U`), we pass `fun τ => I • H τ`. -/
 def evo {D : ℕ} (H : Ham D) (s t : ℝ) : Op D :=
   Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution
@@ -245,7 +243,7 @@ theorem four_mul_sq_div_le {s ε r : ℝ} (hr : 0 < r) (hε : 0 < ε)
 /-! ## Continuous qDRIFT (Section 3) -/
 
 /-- The exponential `e^{-i H(τ) / w}` appearing in the qDRIFT mixture, written through the
-frozen `HamiltonianEvolution` at time `w⁻¹`. -/
+shared `HamiltonianEvolution` at time `w⁻¹`. -/
 def expmGen {D : ℕ} (H : Ham D) (τ w : ℝ) : Op D :=
   Qatlib.Foundations.PureStateMath.HamiltonianEvolution (H τ) w⁻¹
 

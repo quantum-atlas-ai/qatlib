@@ -25,7 +25,6 @@ bit representation for integer presentation data in finite Abelian group computa
 * [Cheung and Mosca, 2001][CheungMosca2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

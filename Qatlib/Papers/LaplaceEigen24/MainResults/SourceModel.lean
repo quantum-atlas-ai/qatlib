@@ -21,7 +21,7 @@ set_option backward.isDefEq.respectTransparency false
 An, Childs, Lin, Ying, *Laplace transform based quantum eigenvalue transformation
 via linear combination of Hamiltonian simulation*, fixed arXiv:2411.04010.
 PDF and text were read from the prefetched assets
-`prove/assets/2411.04010.{pdf,txt}`.
+`2411.04010.{pdf,txt}`.
 
 This module fixes the objects used by every paper-layer statement so that the
 claim modules speak about the same matrix-exponential, Laplace-transform and

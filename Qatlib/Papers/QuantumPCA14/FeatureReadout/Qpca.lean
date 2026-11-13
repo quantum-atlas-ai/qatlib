@@ -43,13 +43,11 @@ open Qatlib.Concepts.CopyEvolution.SelfTomography
 open Qatlib.Concepts.CopyEvolution.SelfTomography
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.QuantumPCA14.FeatureReadout
 
 open Matrix Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The score of the selected cluster equals the maximal observable score. -/
 theorem clusterAssignment_maximizes {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]

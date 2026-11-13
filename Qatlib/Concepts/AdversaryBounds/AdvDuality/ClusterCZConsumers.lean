@@ -32,7 +32,6 @@ These examples connect the branch maps to the controlled-Z and entanglement form
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -52,8 +51,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The uniform two-qubit input state obtained by relabeling the tensor product of two plus
 states. -/

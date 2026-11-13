@@ -30,7 +30,6 @@ The inverse-measurement construction is related to classical shadow estimation a
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -49,8 +48,6 @@ open scoped Classical BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] {D : ℕ}
 

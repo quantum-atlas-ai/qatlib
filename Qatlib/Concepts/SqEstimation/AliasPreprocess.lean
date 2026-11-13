@@ -30,7 +30,6 @@ and explicit instruction and workspace bounds for preprocessing followed by repe
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 

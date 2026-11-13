@@ -24,8 +24,6 @@ character distribution `fourierBornDist`. A finite abelian group of size at most
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open scoped Classical
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling

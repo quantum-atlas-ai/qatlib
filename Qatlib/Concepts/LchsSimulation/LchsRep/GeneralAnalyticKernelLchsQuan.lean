@@ -29,7 +29,6 @@ kernel with positive-order power decay. The specialization
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.LchsSimulation.Kernel
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
@@ -44,7 +43,6 @@ namespace Qatlib.Concepts.LchsSimulation.LchsRep
 
 open MeasureTheory
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- A normalized Cauchy-weighted analytic kernel with the stated positive-order decay reproduces
 the forward dissipative ordered evolution for continuous positive semidefinite `L` and

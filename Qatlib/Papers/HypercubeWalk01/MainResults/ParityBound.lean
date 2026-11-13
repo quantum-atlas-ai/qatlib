@@ -32,8 +32,6 @@ identities yield the parity version of the Fourier total variation bound used in
 * [Moore and Russell, 2001][MooreRussell2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

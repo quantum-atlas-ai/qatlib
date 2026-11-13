@@ -25,11 +25,7 @@ construction discussed in [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -51,6 +47,8 @@ theorem sum_mul_sum {m : ℕ} (E : Fin m → Matrix J J ℂ)
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [sum_mul_orthogonal E hIdem hOrth i (fun j => b j * a i), mul_comm (b i) (a i)]
 
+omit [Fintype J] [DecidableEq J] in
+
 /-- The conjugate transpose of a linear combination of Hermitian matrices conjugates its
 coefficients. -/
 theorem conjTranspose_sum_smul {m : ℕ} (E : Fin m → Matrix J J ℂ)
@@ -71,6 +69,8 @@ theorem conjTranspose_mul_self_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
       = ∑ i, ((starRingEnd ℂ) (c i) * c i) • E i := by
   rw [conjTranspose_sum_smul E hHerm]
   exact sum_mul_sum E hIdem hOrth _ _
+
+omit [DecidableEq J] in
 
 /-- A zero linear combination of nonzero mutually orthogonal idempotents has every coefficient
 equal to zero. -/

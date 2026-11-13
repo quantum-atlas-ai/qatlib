@@ -14,17 +14,16 @@ set_option backward.isDefEq.respectTransparency false
 # SourceModel — shared vocabulary for `SlowMixing24`
 
 Gamarnik--Kiani--Zlokapa, *Slow Mixing of Quantum Gibbs Samplers*,
-arXiv:2411.04300v2 (fixed version; PDF SHA-256 checked against the asset
-`2411.04300v2.pdf` in the paper workflow).
+arXiv:2411.04300v2.
 
 This file only fixes the notation shared by all claims of the paper block:
 
 * `Op n` — operators on the `n`-qubit Hilbert space `(ℂ²)^{⊗n}`, encoded as
   `2^n`-dimensional matrices (the library convention `Operator (2^n)`);
-* the frozen GKSL generator `GKSL (2^n)`, the semigroup `lindbladSemigroup`,
+* the library's GKSL generator `GKSL (2^n)`, the semigroup `lindbladSemigroup`,
   the Gibbs density `gibbsDensity`, the trace distance `traceDistance` and
   the mixing time `mixingTime` are **reused** from
-  `QuantumAlgorithm.Concepts.LindbladFlow.GkslSemigroup`
+  `Qatlib.Concepts.LindbladFlow.GkslSemigroup`
   (`LindbladSemigroupModel` and `LindbladSemigroupCore`);
 * projectors, their Gibbs weights `Tr[Πρ]`, the initial state `σ₀` of
   Equations (42)/(47), the Hamming distances of Definitions 3.5 and the
@@ -211,14 +210,13 @@ def SetDistAtLeast {n : ℕ} (A C : Finset (St n)) (k : ℕ) : Prop :=
 
 /-- Discrete mixing time (Definition 2.1): the smallest `k` such that every
 density operator is within trace distance `ε` of `ρ` after `k` applications
-of `T`. The continuous counterpart is the frozen
-`QuantumAlgorithm.Concepts.LindbladFlow.GkslSemigroup.mixingTime`. -/
+of `T`. The continuous counterpart is the library's
+`Qatlib.Concepts.LindbladFlow.GkslSemigroup.mixingTime`. -/
 noncomputable def TmixD {n : ℕ} (T : Chan n) (ρ : Op n) (ε : ℝ) : ℕ :=
   sInf {k : ℕ | ∀ σ : Op n, IsDensityOperator σ →
     traceDistance (((T : Op n → Op n))^[k] σ) ρ ≤ ε}
 
-/-- The continuous mixing time of Definition 2.2, reusing the frozen
-`mixingTime`. -/
+/-- The continuous mixing time of Definition 2.2, reusing the library's `mixingTime`. -/
 noncomputable def TmixC {n : ℕ} (G : Gksl n) (ρ : Op n) (ε : ℝ) : ℝ≥0∞ :=
   mixingTime G ρ ε
 
@@ -226,7 +224,7 @@ noncomputable def TmixC {n : ℕ} (G : Gksl n) (ρ : Op n) (ε : ℝ) : ℝ≥0�
 noncomputable def TmixDreal {n : ℕ} (T : Chan n) (ρ : Op n) (ε : ℝ) : ℝ :=
   (TmixD T ρ ε : ℝ)
 
-/-- The frozen mixing time as a real number (with the `⊤` convention). -/
+/-- The library's mixing time as a real number (with the `⊤` convention). -/
 noncomputable def TmixCreal {n : ℕ} (G : Gksl n) (ρ : Op n) (ε : ℝ) : ℝ :=
   (TmixC G ρ ε).toReal
 

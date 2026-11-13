@@ -31,8 +31,6 @@ results support the contour-based algorithms of [WangEtAl2026].
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.Measurement

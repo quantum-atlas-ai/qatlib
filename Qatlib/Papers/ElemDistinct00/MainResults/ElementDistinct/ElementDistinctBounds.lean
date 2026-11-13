@@ -15,6 +15,9 @@ Element distinctness means that no two different inputs have the same image. The
 `elementDistinct_iff_not_hasCollision` exposes this definition, and `not_hasCollision_fin_one`
 records the singleton case.
 
+Despite the file name, these are a definitional equivalence and a singleton
+collision fact; no element-distinctness query bound is proved in this module.
+
 These basic collision facts support the element distinctness framework of [BuhrmanEtAl2005].
 
 ## Main statements
@@ -30,7 +33,6 @@ These basic collision facts support the element distinctness framework of [Buhrm
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

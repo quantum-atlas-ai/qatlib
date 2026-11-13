@@ -38,7 +38,6 @@ noncomputable section
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The history response to a unit time-label source is its boundary response multiplied by `z^j
 / j!`. -/

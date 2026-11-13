@@ -27,8 +27,6 @@ and the odd-angle grid. The phase-estimation setting is described in [VanDamEtAl
 * [van Dam et al., 2007][VanDamEtAl2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 set_option autoImplicit false

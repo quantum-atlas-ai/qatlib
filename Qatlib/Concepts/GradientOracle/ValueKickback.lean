@@ -31,8 +31,6 @@ stability under phase approximation for the finite-grid gradient construction of
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QspSimulation.Achievability
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

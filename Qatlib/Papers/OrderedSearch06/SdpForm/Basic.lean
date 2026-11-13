@@ -36,7 +36,6 @@ uses the bridge predicate `tiSDPFeasible N k 0`.
 * [Childs et al., 2007][ChildsLandahlParrilo2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

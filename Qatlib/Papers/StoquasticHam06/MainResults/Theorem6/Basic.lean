@@ -26,8 +26,6 @@ factor. See [BravyiEtAl2008Stoquastic].
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

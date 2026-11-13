@@ -21,7 +21,6 @@ for a finite transition matrix in the quantum-walk framework of [Szegedy2004].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 

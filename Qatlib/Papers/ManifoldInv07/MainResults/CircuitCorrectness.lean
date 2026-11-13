@@ -25,8 +25,6 @@ weight state, and the prescribed matrix-element identities for the controlled bl
 * [Garnerone et al., 2007][GarneroneMarzuoliRasetti2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

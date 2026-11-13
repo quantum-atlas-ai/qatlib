@@ -26,30 +26,28 @@ The `Ω̃` hides a polynomial factor in `N`; the statement therefore asserts the
 existence of a positive constant and a polynomial loss `(N+1)^j`, valid for all
 sufficiently large `N` and all `ε > 0`.
 
-## Proof status (scaffolds removed; statements in branch history c93d182c6)
+## Mathematical background and scope
 
 * Fixed source: arXiv:2608.18839v3, Theorem 1.2, §5 (proof of the lower bound),
   using [LiuAcharya2024a] and the measurement information channel.
-* Key proof route: (i) build the hard-instance ensemble of Definition 5.2 with
+* Proof outline: (i) use the hard-instance ensemble of Definition 5.2 with
   `ℓ = Θ(N)`-bit perturbations along single-qubit Pauli directions; (ii) the MIC
   of product single-qubit measurements has
   `‖L_M‖_op ‖L_M‖_1 = Θ(10^N·poly(N))`; (iii) Theorem 1.3 then gives
   `n = Ω(4^N/(ε²√(‖L‖_op‖L‖_1))) = Ω̃(√(10^N)/ε²)`, using
   `4^N/√(10^N·poly) = √(10^N)/poly` up to `poly(N)` factors.
-* Lean gap: the two-way relation between the MIC spectral norms of product
-  single-qubit measurements and `√(10^N)` (Theorem 5.7 / §5.2) is not
-  formalized, nor is the reduction from Theorem 1.3 to this statement.  The
-  present declaration records the faithful lower-bound shape for the
-  paper-local protocol model.
-* Reusable dependencies: `SourceModel.singleQubitAcceptProb`,
+* Scope note: this module imports the paper-local protocol model and describes
+  the lower bound. The two-way relation between the MIC spectral norms of
+  product single-qubit measurements and `√(10^N)` (Theorem 5.7 / §5.2), and
+  the reduction from Theorem 1.3, are outside the scope of this file.
+* Related definitions: `SourceModel.singleQubitAcceptProb`,
   `IsSingleQubitMixednessTester`, `MeasurementModel.micLop/micL1/micScale`,
-  `hardInstanceDelta`, `hardInstanceState`, and the (removed scaffold)
-  `LowerBound/Framework.lean` Theorem 1.3 statement.
-* Suggested tactics: instantiate Theorem 1.3 with the family of product
-  single-qubit measurements, then bound `micScale` via the eigenvalue
-  computation of Theorem 5.7 (`Matrix.PosSemidef` spectral calculus,
-  `Finset.sum` over Pauli strings), and finish with `Nat.cast`/`nlinarith`
-  asymptotics.
+  `hardInstanceDelta`, and `hardInstanceState`. Theorem 1.3 is described in
+  `LowerBound/Framework.lean`.
+* The specialization of Theorem 1.3 to product single-qubit measurements uses
+  the eigenvalue computation of Theorem 5.7 to bound `micScale`, with
+  positive-semidefinite spectral calculus and sums over Pauli strings, followed
+  by the asymptotic comparison above.
 -/
 
 set_option autoImplicit false

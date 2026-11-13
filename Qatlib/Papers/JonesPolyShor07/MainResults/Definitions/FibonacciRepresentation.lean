@@ -45,8 +45,6 @@ matrices and their inverses. See [ShorJordan2008].
 * [Shor and Jordan, 2008][ShorJordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

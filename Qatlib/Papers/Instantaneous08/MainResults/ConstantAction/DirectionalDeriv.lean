@@ -24,8 +24,6 @@ directional-difference formulation of Lemma 5 in [ShepherdBremner2009].
 * [Shepherd and Bremner, 2009][ShepherdBremner2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -24,7 +24,6 @@ background, see [ReedSimon1980I].
 * [Reed and Simon, 1980][ReedSimon1980I]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

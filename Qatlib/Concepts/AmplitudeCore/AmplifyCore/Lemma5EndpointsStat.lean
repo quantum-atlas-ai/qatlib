@@ -30,7 +30,6 @@ where one of the two components vanishes. See [BrassardEtAl2002] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore

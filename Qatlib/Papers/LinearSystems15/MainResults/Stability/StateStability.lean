@@ -21,11 +21,11 @@ Paper-layer statements for Childs–Kothari–Somma (arXiv:1511.02306), §2.2.
   Hermitian `C` with `‖C⁻¹‖ ≤ 1` and an approximation `D` with
   `‖C - D‖ ≤ ε < 1/2` give normalized states within `4ε`.  Proved here in the
   generality of real normed spaces; Hermiticity is not needed (the constant
-  `2ε` of the frozen `normalize_error_of_gap` is even better than `4ε`).
+  `2ε` of `normalize_error_of_gap` is sharper than `4ε`).
 * `corollary10_state_accuracy` — source **Corollary 10** (p. 9): the analytic
   accuracy core of the LCU state-preparation corollary.  The algorithm/cost
   layer (expected `O(α/‖f(A)b‖)` uses of `P_B, U, V`, constant success
-  probability) is documented but not formalised (no cost model in the repo).
+  probability) is outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -47,9 +47,9 @@ Then for any unit `ψ`, the normalized states `Dψ/‖Dψ‖` and `Cψ/‖Cψ‖
 distance at most `4ε`.
 
 The source additionally assumes `C` Hermitian; the argument only uses the
-inverse bound, so this statement is strictly more general.  Reuses the frozen
+inverse bound, so this statement is strictly more general.  Uses
 `normalize_error_of_gap` (full FQN
-`QuantumAlgorithm.Papers.QSingValue19.QsVtStability.normalize_error_of_gap`),
+`Qatlib.Papers.QSingValue19.QsVtStability.normalize_error_of_gap`),
 which yields the sharper `2ε/‖Cψ‖ ≤ 2ε`. -/
 theorem proposition9_state_perturbation
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
@@ -95,9 +95,9 @@ is `4ε`-close to `f(A)|b>/‖f(A)|b‖`.
 This is the accuracy half of Corollary 10, obtained from Proposition 9 with
 `C = f(A)`, `D = M` (or directly from `normalize_error_of_gap`).  The
 algorithmic half — constant success probability, `O(α/‖f(A)b‖)` expected and
-`O(α)` worst-case uses of `P_B, U, V` — is not modelled here; it is the LCU
-plus amplitude-amplification cost layer described in the docstrings of
-`lemma7_nonunitary_lcu_corner` and is left for a cost-model follow-up. -/
+`O(α)` worst-case uses of `P_B, U, V` — is outside the scope of this file. It
+is the LCU plus amplitude-amplification cost layer described in the docstrings
+of `lemma7_nonunitary_lcu_corner`. -/
 theorem corollary10_state_accuracy
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (M fA : E →L[ℝ] E) (ε : ℝ) (b : E) (_ : ‖b‖ = 1)

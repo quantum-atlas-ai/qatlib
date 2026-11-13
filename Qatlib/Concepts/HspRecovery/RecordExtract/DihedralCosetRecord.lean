@@ -30,9 +30,6 @@ uniform label-bit marginal.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -44,7 +41,6 @@ open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 
@@ -116,6 +112,8 @@ noncomputable def dihedralQubitPhase (s k : ZMod N) : ℂ :=
 sqrt 2`. -/
 noncomputable def dihedralQubitState (s k : ZMod N) : QState Bool :=
   fun t => (1 : ℂ) / Real.sqrt 2 * cond t (dihedralQubitPhase N s k) 1
+
+omit [NeZero N] in
 
 /-- The dihedral qubit phase has complex norm one. -/
 theorem norm_dihedralQubitPhase (s k : ZMod N) : ‖dihedralQubitPhase N s k‖ = 1 := by
@@ -254,7 +252,7 @@ private theorem dihedral_record_factor (N : ℕ) [NeZero N] {S : Type*} [Fintype
         rw [← ha]
         exact hinj.eq_iff
       dsimp [P]
-      simp only [he,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+      simp only [he,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
       rw [show ‖χ a‖=1 from ZMod.stdAddChar.norm_apply (k*a)]
       norm_num
     · have hn : ∀ a : ZMod N, f (a,false) ≠ z := by simpa only [not_exists] using hz

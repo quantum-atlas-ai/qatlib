@@ -38,12 +38,12 @@ weights `w(A) = ∑_ℓ |a_ℓ|`, `w(P) = ∑_m |β_m|`.  This file formalises:
   `(w(P)w(A)/(1-η))²`.
 
 The Pauli algebra (words, phases, `op`, multiplicativity and Hermiticity) is
-reused from the frozen module
-`QuantumAlgorithm.Foundations.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs`.
-The asymptotic `Õ` depth expression (23) and the state-preparation and
-sampling-cost clauses of Theorem 13 are interface-level algorithmic claims;
-they are recorded in `QuantumAlgorithmDev.Papers.PauliPrecond26.DirectEncoding`
-and in the PR status table, not re-derived here.
+reused from
+`Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs`.
+Scope note: this file proves the algebraic and structural bounds above.  The
+asymptotic `Õ` depth expression (23) and the state-preparation and sampling-cost
+clauses of Theorem 13 are algorithmic claims outside the scope of this file;
+the depth estimate below takes the solver's complexity bound as a hypothesis.
 -/
 
 set_option autoImplicit false

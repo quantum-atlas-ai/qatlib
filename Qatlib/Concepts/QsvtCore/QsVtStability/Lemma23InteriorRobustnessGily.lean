@@ -23,7 +23,6 @@ and handles the remaining midpoint boundary case by equality of the input matric
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 

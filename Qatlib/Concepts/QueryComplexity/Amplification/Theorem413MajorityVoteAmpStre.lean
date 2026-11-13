@@ -26,7 +26,6 @@ statement associated with Theorem 4.13 of [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 

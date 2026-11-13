@@ -55,12 +55,9 @@ theorem lemma10_error_le_eps (ε1 δ e yNorm uNorm : ℝ) (hε1 : 0 ≤ ε1)
 /-- **Lemma 10, headline (5.22)–(5.24).**  Relative error `ε₁` in `x` gives
 `‖y − ŷ‖ ≤ ε` with the componentwise bound (5.24).
 
-Lean gap: the source works with the vectors `x = (u,v)`, `w`, the projections `P`, and
-the matrix relation `y = u v⁻¹`; this requires the concrete block-vector model plus the
-normalised-state stability estimate (5.30)–(5.34).  Candidate reuse: the generic
-normalised-vector bound `‖a/‖a‖ − b/‖b‖‖ ≤ 2‖a−b‖/‖a‖` (not in Mathlib; prove by hand
-from the reverse triangle inequality).  Handoff: instantiate `lemma10_error_le_eps` with
-`δ = ε₁(1+1/‖y‖+1/‖u‖)‖u‖/‖u‖` after proving (5.29) from `u = y v`, `v = y⁻¹u`. -/
+Scope note: the vector, projection, matrix-inverse, and normalised-state stability
+estimates in (5.25)–(5.34) require a concrete block-vector model; this theorem
+records the resulting scalar implication once those estimates are available. -/
 theorem lemma10_relative_error (ε1 xNorm xhatNorm yErr yNorm uNorm : ℝ)
     (hε1 : 0 ≤ ε1) (hy : 0 < yNorm) (hu : 0 < uNorm)
     (hx : |xNorm - xhatNorm| ≤ ε1 * xNorm)

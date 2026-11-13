@@ -25,11 +25,7 @@ norm, supporting the star analysis of [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -53,7 +49,7 @@ def starMatrix (k : ℕ) (w : Fin k → ℂ) : Matrix (Option (Fin k)) (Option (
     | none, none => 0
     | none, some i => (starRingEnd ℂ) (w i)
     | some i, none => w i
-    | some i, some j => 0
+    | some _i, some _j => 0
 
 /-- The weighted star matrix is Hermitian. -/
 theorem starMatrix_isHermitian (k : ℕ) (w : Fin k → ℂ) :
@@ -129,7 +125,7 @@ def starWeight (k : ℕ) (w : Fin k → ℂ) : ℝ :=
 /-- The square of the star weight equals the sum of squared edge-weight norms. -/
 theorem starWeight_sq (k : ℕ) (w : Fin k → ℂ) :
     starWeight k w ^ 2 = ∑ i : Fin k, ‖w i‖ ^ 2 :=
-  Real.sq_sqrt (Finset.sum_nonneg (fun i _ => sq_nonneg _))
+  Real.sq_sqrt (Finset.sum_nonneg (fun _i _ => sq_nonneg _))
 
 /-- Over the complex numbers, the star weight multiplied by itself equals the coercion of the
 sum of squared edge-weight norms. -/

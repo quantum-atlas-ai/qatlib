@@ -27,7 +27,6 @@ and trace-norm techniques as in [Bhatia1997].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -38,7 +37,6 @@ open Qatlib.Concepts.ReferenceError.RefTraceError
 namespace Qatlib.Concepts.TrotterFormula.LieStrang
 open Matrix Set
 open scoped Classical Matrix.Norms.L2Operator ComplexOrder
-set_option linter.unusedSimpArgs false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
@@ -62,14 +60,13 @@ theorem hermitian_evolution_noncommuting_stability_fintype
 
   have hf (s : ℝ) : HasDerivAt f (U s * (A-B) * V s) s := by
     convert! (hU s).mul (hV s) using 1
-    (try dsimp [f])
     noncomm_ring
   have he (K : Matrix I I ℂ) (s : ℝ) :
       NormedSpace.exp (s • ((-Complex.I * (t : ℂ)) • K)) =
         HamiltonianEvolution K (s*t) := by
     congr 1
     ext i j
-    simp [HamiltonianEvolution, Matrix.smul_apply, Complex.real_smul]
+    simp [Matrix.smul_apply, Complex.real_smul]
     ring
   have hnU (s : ℝ) : ‖U s‖ ≤ 1 := by
     rw [show U s = HamiltonianEvolution H (s*t) from he H s]
@@ -88,7 +85,7 @@ theorem hermitian_evolution_noncommuting_stability_fintype
     (fun s (_ : s ∈ Ico (0 : ℝ) 1) => hd s) 1 ⟨zero_le_one, le_rfl⟩
   have hn : ‖A-B‖ = |t| * ‖H-G‖ := by
     rw [show A-B = (-Complex.I * (t : ℂ)) • (H-G) from (smul_sub _ _ _).symm]
-    simp [norm_smul, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+    simp [norm_smul, Complex.norm_real, Real.norm_eq_abs]
   rw [hn] at hb
   simpa [f, U, V, A, B, HamiltonianEvolution] using! hb
 

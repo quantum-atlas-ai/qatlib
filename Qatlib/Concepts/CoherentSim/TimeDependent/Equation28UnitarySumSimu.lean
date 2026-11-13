@@ -28,12 +28,10 @@ The mathematical context is discussed in [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-
 set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.CoherentSim.TimeDependent
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The matrix `A` is a finite sum of unitary matrices with nonnegative real coefficients whose
 sum is `w`. -/

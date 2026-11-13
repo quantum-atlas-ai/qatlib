@@ -45,7 +45,6 @@ namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 /-- Evaluates a linear functional on `sdpDualCertificate` as the distinguished-coordinate
 correction plus the time average of the response functionals. -/

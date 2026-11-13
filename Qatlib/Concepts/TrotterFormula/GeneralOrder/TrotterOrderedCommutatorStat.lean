@@ -23,9 +23,7 @@ the general-matrix case includes exponential norm inflation, in the setting of T
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

@@ -23,8 +23,6 @@ an empty marked set. It combines these with absorbing-mass decay to establish
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.ProjectorCS
 namespace Qatlib.Concepts.WalkSearch.ClassicalStop
 

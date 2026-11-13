@@ -25,8 +25,6 @@ energy expectation, giving the normalized equation for a possibly non-Hermitian 
 * [McArdle and Tew, 2020][McArdleTew2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.ImaginaryFlow.Normalize

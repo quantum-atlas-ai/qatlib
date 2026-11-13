@@ -30,7 +30,6 @@ the repeated program's success probability after preprocessing.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -44,8 +43,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unnecessarySeqFocus false
 
 noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
@@ -156,7 +153,11 @@ noncomputable def residueAttemptLaw (N M k : ℕ) [NeZero N] (hM : 0 < M)
     · by_cases hb : decodeResidue N k b = none
       · simp [hb]
       · simp [hb]
-    · by_cases hc : Nat.Coprime y.val N <;> simp [hc] <;> positivity
+    · by_cases hc : Nat.Coprime y.val N
+      · simp
+        positivity
+      · simp only [hc, ↓reduceIte]
+        positivity
     · exact mul_nonneg (by positivity)
         (mul_nonneg ((modularOrderLaw N M a hM).nonneg y)
           ((modularOrderLaw N M a hM).nonneg z))
@@ -174,8 +175,8 @@ noncomputable def residueAttemptLaw (N M k : ℕ) [NeZero N] (hM : 0 < M)
         (fun b _ => by
           unfold decodeResidue
           cases h : decodeBoundedBits k N b with
-          | none => simp [h]
-          | some i => simp [h])]
+          | none => simp []
+          | some i => simp [])]
     have hleft : ∑ b : Reg k, residueAttemptMass N M k hM (Sum.inl b)
         = ((2 ^ k - N : ℕ) : ℝ) / 2 ^ k := by
       unfold residueAttemptMass

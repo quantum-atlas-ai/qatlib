@@ -72,8 +72,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -93,7 +91,6 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Filter
 open scoped Topology
-set_option warningAsError false
 
 /-- The law of `N` independent pilot samples from the prepared signed-mean source. -/
 noncomputable def unknownSigmaPilotLaw

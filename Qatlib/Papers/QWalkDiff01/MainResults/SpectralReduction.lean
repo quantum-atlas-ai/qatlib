@@ -32,7 +32,6 @@ root-to-root limiting distribution in [ChildsFarhiGutmann2002].
 * [Childs et al., 2002][ChildsFarhiGutmann2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

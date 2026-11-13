@@ -30,7 +30,6 @@ The mathematical setting is that of [BuhrmanSpalek2006].
 * [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

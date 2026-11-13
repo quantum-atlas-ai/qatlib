@@ -29,7 +29,6 @@ Hamiltonian encoding. The predicates `SignedCap` and the bounds on `outputTerms`
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Concepts.GateVocabulary.FiniteGateDescription

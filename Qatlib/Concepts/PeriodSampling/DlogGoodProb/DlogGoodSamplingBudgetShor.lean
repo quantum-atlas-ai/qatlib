@@ -27,7 +27,6 @@ probability of at least `1 / 480` and a one-half chance of collecting `t` good o
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline

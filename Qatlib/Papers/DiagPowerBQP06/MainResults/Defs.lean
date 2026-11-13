@@ -87,14 +87,14 @@ def PolynomialGrowth (f : ℕ → ℕ) : Prop :=
 /-- The sum of the matrix dimension and the power exponent of the instance. -/
 def InstanceSize (I : DiagEntryInstance) : ℕ := I.N + I.m
 
-/-- The existence of a Boolean decision map and a cost function bounded polynomially in
+/-- **Statement only — not proved in Qatlib.** The existence of a Boolean decision map and a cost function bounded polynomially in
 `InstanceSize`, with the map true exactly on yes instances satisfying the promise. -/
 def DiagonalEntryEstimationInBQP : Prop :=
   ∃ (decide : DiagEntryInstance → Bool) (cost : DiagEntryInstance → ℕ),
     (∃ c : ℕ, ∀ I, cost I ≤ (InstanceSize I + 1) ^ c + c) ∧
       ∀ I, DiagEntryPromise I → (decide I = true ↔ DiagEntryYes I)
 
-/-- The condition that every language with the displayed acceptance gap has an encoding with
+/-- **Statement only — not proved in Qatlib.** The condition that every language with the displayed acceptance gap has an encoding with
 polynomially bounded dimension and exponent, mapping members to no instances and nonmembers
 to yes instances. -/
 def DiagonalEntryEstimationBQPHard : Prop :=
@@ -107,7 +107,7 @@ def DiagonalEntryEstimationBQPHard : Prop :=
             (∀ x, L x → DiagEntryNo (enc x)) ∧
               (∀ x, ¬ L x → DiagEntryYes (enc x))
 
-/-- The analogous encoding condition with matrix entries restricted to minus one, zero, and one,
+/-- **Statement only — not proved in Qatlib.** The analogous encoding condition with matrix entries restricted to minus one, zero, and one,
 and with language members mapped to no instances and nonmembers to yes instances. -/
 def DiagonalEntryEstimationBQPHardZeroOne : Prop :=
   ∀ (L : List Bool → Prop) (accept : List Bool → ℝ),

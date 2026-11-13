@@ -40,8 +40,6 @@ open Qatlib.Papers.VarTimeAmpAmp10.Estimate
 open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1600000
 
 noncomputable section
@@ -59,7 +57,6 @@ open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVtFrame
 open scoped Classical BigOperators
-set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 

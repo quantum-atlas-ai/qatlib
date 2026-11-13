@@ -28,7 +28,6 @@ These are finite-dimensional purification and partial trace identities in the fr
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -41,7 +40,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Concepts.ShadowModels.ShadowChannel
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 

@@ -27,8 +27,6 @@ The integral lemma computes the uniform average of each guess fidelity. The theo
 * [Sasaki et al., 2001][SasakiCarliniJozsa2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TemplMatch01.MainResults.Semiclassical
 
 open Qatlib.Foundations.PureStateMath

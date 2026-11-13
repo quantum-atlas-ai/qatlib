@@ -29,7 +29,6 @@ column indices, as in [HunzikerEtAl2003].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -92,13 +91,13 @@ theorem commute_iff_eq_groupAlgebraElem (A : Matrix G G ℂ) :
       rw [Finset.sum_eq_single (y - z)]
       · have hz : shift z y (y - z) = 1 := by
           unfold shift
-          rw [if_pos (show y = (y - z) + z by abel)]
+          rw [ite_eq_left (show y = (y - z) + z by abel)]
         rw [hz, one_mul]
       · intro w _ hw
         have hne : y ≠ w + z := fun hcon => hw (by rw [hcon]; abel)
         have hz : shift z y w = 0 := by
           unfold shift
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
         rw [hz, zero_mul]
       · intro hmem
         exact absurd (Finset.mem_univ _) hmem
@@ -132,7 +131,7 @@ theorem commute_iff_translation_invariant (A : Matrix G G ℂ) :
         have hne : x + g ≠ w + g := fun hcon => hw (by rw [hcon]; abel)
         have hz : shift g (x + g) w = 0 := by
           unfold shift
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
         rw [hz, zero_mul]
       · intro hmem
         exact absurd (Finset.mem_univ _) hmem
@@ -146,7 +145,7 @@ theorem commute_iff_translation_invariant (A : Matrix G G ℂ) :
       · have hc : shift g (c + g) c = 1 := by simp [shift]
         have hy : shift g y (y - g) = 1 := by
           unfold shift
-          rw [if_pos (show y = (y - g) + g by abel)]
+          rw [ite_eq_left (show y = (y - g) + g by abel)]
         rw [hc, hy, mul_one, one_mul]
         rw [← h g (y - g) c, show (y - g) + g = y by abel]
       · intro w _ hw

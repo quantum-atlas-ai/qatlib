@@ -36,8 +36,6 @@ the module also proves invariance under invertible relabeling of function values
 * [Childs et al., 2007][ChildsSchulmanVazirani2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.HiddenNonlin07.MainResults.LevelSetFidelity
 
 open Matrix

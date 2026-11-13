@@ -34,11 +34,9 @@ expansion hypothesis `EvenChebExpansionBound`. See [GilyenSuLowWiebe2019].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open scoped BigOperators
 
@@ -844,7 +842,6 @@ set_option autoImplicit false
 open Polynomial Real
 open scoped BigOperators
 open Qatlib
-set_option warningAsError false
 noncomputable section
 
 /-- The assertion that every even polynomial bounded by one on `[-1, 1]` has an even Chebyshev

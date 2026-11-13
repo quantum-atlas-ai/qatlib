@@ -42,7 +42,6 @@ provide the derivative-zero arguments needed for Gauss-Legendre remainder estima
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -347,7 +346,7 @@ theorem iterate_derivative_eq_C {n : ℕ} {p : Polynomial ℝ} (hp : p ≠ 0)
   | succ n ih =>
       have hpos : 0 < p.natDegree := by omega
       have hp' : p.derivative ≠ 0 := fun h0 =>
-        hpos.ne' (Polynomial.natDegree_eq_zero_of_derivative_eq_zero h0)
+        hpos.ne' (Polynomial.derivative_eq_zero.mp h0)
       have hd' : p.derivative.natDegree = n := by
         have h := (natDegree_derivative_eq hp hpos).1
         omega
@@ -418,14 +417,14 @@ theorem lagrange_interpolation {Q : ℕ} (node : Fin Q → ℝ) (hinj : Function
     intro i j
     by_cases hj : j = i
     · subst hj
-      rw [lagrangeBasis_eval_self node hinj j, if_pos rfl]
-    · rw [lagrangeBasis_eval_of_ne node (Ne.symm hj), if_neg hj]
+      rw [lagrangeBasis_eval_self node hinj j, ite_eq_left rfl]
+    · rw [lagrangeBasis_eval_of_ne node (Ne.symm hj), ite_eq_right hj]
   have hzero := Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero
     (r - ∑ i, Polynomial.C (r.eval (node i)) * lagrangeBasis node i) hinj
     (fun i => by
       rw [Polynomial.eval_sub, Polynomial.eval_finsetSum]
       simp only [Polynomial.eval_mul, Polynomial.eval_C, key i,
-        mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true, sub_self])
+        mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true, sub_self])
     (by simpa using hsub)
   rw [sub_eq_zero] at hzero
   exact hzero

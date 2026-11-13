@@ -26,7 +26,6 @@ required counting bounds, within the graph-search setting surveyed in [Ambainis2
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.WalkSearch.Primitives
 

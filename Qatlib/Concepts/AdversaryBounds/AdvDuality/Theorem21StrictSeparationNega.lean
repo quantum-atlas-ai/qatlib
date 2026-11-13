@@ -29,7 +29,6 @@ strict comparison associated with Theorem 21 of [HoyerLeeSpalek2007].
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option backward.isDefEq.respectTransparency false

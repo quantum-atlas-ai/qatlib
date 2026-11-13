@@ -33,7 +33,6 @@ See [Montanaro2015] for background.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -49,8 +48,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -110,10 +107,9 @@ theorem payoffRotation_mem_unitaryGroup {I : Type} [Fintype I] [DecidableEq I] (
     rw [Finset.sum_eq_single i]
     · cases b <;> cases b' <;>
         simp only [Complex.star_def, Complex.conj_ofReal, map_neg,
-          Fintype.sum_bool, Bool.false_eq_true, if_true, if_false,
+          Fintype.sum_bool, Bool.false_eq_true, ite_true, ite_false,
           Prod.mk.injEq, and_false, reduceCtorEq] <;>
         first
-        | exact hdiag (1 - f i) (f i) hu hv (by ring)
         | exact hdiag (f i) (1 - f i) hv hu (by ring)
         | (rw [neg_mul_neg]; exact hdiag (1 - f i) (f i) hu hv (by ring))
         | ring
@@ -123,7 +119,7 @@ theorem payoffRotation_mem_unitaryGroup {I : Type} [Fintype I] [DecidableEq I] (
       exact absurd (Finset.mem_univ i) hcon
   · rw [Finset.sum_eq_single i]
     · have hne : ¬((i, b) = (i', b')) := fun h => hii (congrArg Prod.fst h)
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       simp [hii]
     · intro k _ hki
       simp [hki]
@@ -166,9 +162,9 @@ theorem payoffPreparation_mulVec_ket (A : Matrix I I ℂ) (f : I → ℝ) (j : I
   obtain ⟨i, b⟩ := p
   simp only [Matrix.mulVec, dotProduct, Ket]
   rw [Finset.sum_eq_single (j, false)]
-  · rw [if_pos rfl, payoffPreparation_entry, mul_one]
+  · rw [ite_eq_left rfl, payoffPreparation_entry, mul_one]
   · intro q _ hq
-    rw [if_neg hq, mul_zero]
+    rw [ite_eq_right hq, mul_zero]
   · intro hcon
     exact absurd (Finset.mem_univ (j, false)) hcon
 
@@ -191,7 +187,7 @@ theorem payoff_actual_rotation_and_mean (A : Matrix I I ℂ) (j : I) (f : I → 
     rw [Finset.sum_eq_single j]
     · simp
     · intro k _ hk
-      rw [if_neg hk, mul_zero]
+      rw [ite_eq_right hk, mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ j) hcon
   have hterm : ∀ i : I, ‖A i j * payoffRotation f (i, true) (i, false)‖ ^ 2
@@ -205,7 +201,7 @@ theorem payoff_actual_rotation_and_mean (A : Matrix I I ℂ) (j : I) (f : I → 
     simp only [ApplyGate, hstate, MeasureProb, BornProb]
     rw [Finset.sum_filter, Fintype.sum_prod_type]
     refine Finset.sum_congr rfl fun i _ => ?_
-    simp only [Fintype.sum_bool, Bool.false_eq_true, if_false, if_true, add_zero]
+    simp only [Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true, add_zero]
     exact hterm i
   exact ⟨payoffPreparation_mem_unitaryGroup A f hA hf, hmain⟩
 

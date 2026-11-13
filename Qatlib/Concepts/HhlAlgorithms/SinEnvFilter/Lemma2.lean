@@ -25,7 +25,6 @@ difference, giving the filter estimate associated with Lemma 2 of [HarrowHassidi
 * [Harrow et al., 2009, Lemma 2][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

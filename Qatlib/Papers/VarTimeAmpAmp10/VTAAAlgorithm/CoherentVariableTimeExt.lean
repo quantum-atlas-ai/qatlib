@@ -25,11 +25,9 @@ representation.
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
-
 
 open Qatlib.Foundations.PureStateMath
 
@@ -44,7 +42,6 @@ open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVtFrame
 open scoped Classical BigOperators
 noncomputable section
-set_option linter.unusedSectionVars false
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
 /-- The payload state obtained by restricting a two-label workspace state to flag label zero. -/

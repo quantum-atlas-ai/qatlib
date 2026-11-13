@@ -23,8 +23,6 @@ and a quantitative bound on `2^k` in terms of gap and error. See [GilyenSuLowWie
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QspSimulation.Achievability
 
 namespace Qatlib.Concepts.QsvtCore.PolyApprox

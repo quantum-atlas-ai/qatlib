@@ -38,7 +38,6 @@ These properties accompany the two Fuchs–van de Graaf inequalities collected i
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

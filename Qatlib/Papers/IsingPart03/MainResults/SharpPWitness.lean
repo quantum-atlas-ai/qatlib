@@ -25,8 +25,6 @@ finite counting identity for Corollary 1 of [Lidar2004].
 * [Lidar, 2004][Lidar2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

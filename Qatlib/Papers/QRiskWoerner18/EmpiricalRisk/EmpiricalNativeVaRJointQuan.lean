@@ -47,7 +47,6 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- Establishes `EmpiricalNativeVaRJoint`, bounding the probability of an invalid returned index
 or violated population CDF quantile brackets under the stated sampling and precision

@@ -30,7 +30,6 @@ This formalizes universality in the measurement-based setting of [RaussendorfBri
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CircuitImpl.MultiControl
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.ClusterPatterns.ClusterCompile

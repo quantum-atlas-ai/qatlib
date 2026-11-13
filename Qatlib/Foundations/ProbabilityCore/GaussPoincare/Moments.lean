@@ -28,7 +28,6 @@ Gaussian-based approximation settings [TranEtAl2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

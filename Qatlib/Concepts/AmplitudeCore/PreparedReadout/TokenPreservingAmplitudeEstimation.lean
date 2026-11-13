@@ -37,7 +37,6 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingAmplitude
 
 open Matrix
 open scoped Classical BigOperators Kronecker
-set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 

@@ -42,7 +42,6 @@ namespace Qatlib.Concepts.HspRecovery.JointDlog
 open Qatlib.Concepts.HspRecovery.BackendAudit Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
 open scoped Classical
-set_option warningAsError false
 
 /-- For the generator one and logarithm two in `ZMod 6`, two fresh records give verified
 recovery probability `5 / 9`. The records `[(2, 4), (5, 4)]` return two with two record

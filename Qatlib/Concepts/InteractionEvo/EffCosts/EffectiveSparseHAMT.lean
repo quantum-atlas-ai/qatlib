@@ -33,7 +33,6 @@ open Qatlib.Concepts.HspRecovery.RecordExtract
 
 namespace Qatlib.Concepts.InteractionEvo.EffCosts
 open Matrix
-set_option warningAsError false
 
 /-- The sparse value oracle is unitary for every supplied value table. This verifies one oracle
 interface used in the setting of [Low and Wiebe, Lemma 8][LowWiebe2018]. -/

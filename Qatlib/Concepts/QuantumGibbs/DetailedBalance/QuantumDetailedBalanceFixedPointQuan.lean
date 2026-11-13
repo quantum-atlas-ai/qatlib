@@ -26,7 +26,6 @@ not require invertibility, matching the stationarity implication in [TemmeEtAl20
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QuantumGibbs.DetailedBalance

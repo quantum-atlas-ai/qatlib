@@ -27,7 +27,6 @@ This development accompanies the study of QAOA sampling and postselection in [Fa
 * [Farhi and Harrow, 2016][FarhiHarrow2016]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QAOASupremacy16.Counting

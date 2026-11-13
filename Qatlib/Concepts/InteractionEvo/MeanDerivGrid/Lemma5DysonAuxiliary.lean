@@ -24,12 +24,10 @@ These definitions supply concrete objects for the Dyson grid setting of [LowWieb
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
-
 
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 

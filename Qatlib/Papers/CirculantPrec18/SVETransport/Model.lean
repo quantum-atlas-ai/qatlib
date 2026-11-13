@@ -11,25 +11,16 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# CirculantPrec18.MainResults — cost model and shared definitions
+# CirculantPrec18 — mathematical outputs and legacy cost labels
 
-Shao--Xiang, *Quantum Circulant Preconditioner for Linear System of Equations*,
-fixed arXiv:1807.04563v1 (12 Jul 2018).
+The records below describe singular-value estimates and solution vectors.
+Their real-valued cost fields are independent metadata: no execution semantics
+relates a cost to a returned vector or coefficient map. Correctness predicates
+are solely mathematical accuracy specifications.
 
-This file only fixes the vocabulary used by the five source claim files in this
-block.  The paper's results are asymptotic complexity statements for quantum
-procedures; a full circuit-level formalisation of the SVE / HHL primitives is
-not available in the library, so the procedures are represented by their
-input/output behaviour together with a real-valued cost and the paper's own
-quantitative guarantee.  Every claim theorem then states exactly the bound
-printed in the source over these objects.
-
-Definitions:
-
-* `frobeniusNorm` — `‖A‖_F = sqrt (Σ_{i,j} Aᵢⱼ²)` over `ℝ` (paper §3.1).
-* `conditionNumber` — `κ(A) = ‖A‖ · ‖A⁻¹‖` with the ℓ² operator norm.
-* `vecNorm` — ℓ² norm of a real vector, used for state-distance statements.
-* `ModifiedSVE`, `LinearSolver`, `PreconditionedSolver` — procedure models.
+The source algorithm headlines in sibling modules are unproved proposition
+definitions with names ending in `_statement`. The error propagation results
+are proved separately; no SVE or HHL circuit is constructed.
 -/
 
 set_option autoImplicit false
@@ -65,9 +56,9 @@ left-singular basis `{uᵢ}` and (ii) singular-value estimates `sigmaHat`.
 The source's map `Σ αᵢ|vᵢ⟩|0⟩ ↦ Σ αᵢ|uᵢ⟩|σ̃ᵢ⟩` preserves coefficients, which is
 the `outputCoeff α = α` clause of `RealizesModifiedSVE`. -/
 
-/-- A model of one run of the modified singular value estimation. -/
+/-- Mathematical output metadata for the modified singular value estimation. -/
 structure ModifiedSVE (n : ℕ) where
-  /-- Cost of the run in oracle/elementary operations. -/
+  /-- Unconstrained cost label, not a certified operation count. -/
   cost : ℝ
   /-- Estimated singular values written to the output register. -/
   sigmaHat : Fin n → ℝ
@@ -92,9 +83,9 @@ def normalizedSolution (n : ℕ) (A : Matrix (Fin n) (Fin n) ℝ) (b : Fin n →
     Fin n → ℝ :=
   (1 / vecNorm (A⁻¹ *ᵥ b)) • (A⁻¹ *ᵥ b)
 
-/-- A model of one run of the quantum linear solver. -/
+/-- Mathematical output metadata for the quantum linear solver. -/
 structure LinearSolver (n : ℕ) where
-  /-- Cost of the run. -/
+  /-- Unconstrained cost label, not a certified operation count. -/
   cost : ℝ
   /-- Output state as a function of the right-hand side. -/
   output : (Fin n → ℝ) → Fin n → ℝ
@@ -113,9 +104,9 @@ def normalizedPreconditionedSolution (n : ℕ) (A C : Matrix (Fin n) (Fin n) ℝ
     (b : Fin n → ℝ) : Fin n → ℝ :=
   (1 / vecNorm ((C⁻¹ * A)⁻¹ *ᵥ (C⁻¹ *ᵥ b))) • ((C⁻¹ * A)⁻¹ *ᵥ (C⁻¹ *ᵥ b))
 
-/-- A model of one run of the preconditioned linear solver. -/
+/-- Mathematical output metadata for the preconditioned linear solver. -/
 structure PreconditionedSolver (n : ℕ) where
-  /-- Cost of the run. -/
+  /-- Unconstrained cost label, not a certified operation count. -/
   cost : ℝ
   /-- Output state as a function of the right-hand side. -/
   output : (Fin n → ℝ) → Fin n → ℝ

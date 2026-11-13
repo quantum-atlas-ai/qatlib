@@ -29,8 +29,6 @@ subgroup recover that subgroup. This is the linear-algebraic recovery step in Si
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.PauliClifford.ExactRank

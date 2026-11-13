@@ -25,8 +25,6 @@ evaluates the coefficients and angles at the rational parameters `4 / 3` and `3 
 * [Geraci, 2008][Geraci2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

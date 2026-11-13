@@ -40,7 +40,6 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- Establishes `EmpiricalNativeCVaRTargetError`: under its quantile separation, approximation,
 and denominator hypotheses, the probability of a wrong target index or excessive error from

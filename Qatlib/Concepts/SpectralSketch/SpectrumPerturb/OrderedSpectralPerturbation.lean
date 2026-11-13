@@ -30,7 +30,6 @@ and rectangular singular value Weyl and Mirsky bounds, as studied in [Bhatia1997
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 

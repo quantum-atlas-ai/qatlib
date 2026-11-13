@@ -31,12 +31,10 @@ half-plane. See [AnChildsLin2026] for the mathematical setting.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 namespace Qatlib.Concepts.LchsSimulation.Kernel
 
 open Filter Set Asymptotics Complex Bornology
 open scoped Topology
-set_option warningAsError false
 
 /-- For `ρ < 1` and positive `ε`, the bound `B * x^ρ ≤ ε * x / 2` holds for all sufficiently
 large real `x`. -/

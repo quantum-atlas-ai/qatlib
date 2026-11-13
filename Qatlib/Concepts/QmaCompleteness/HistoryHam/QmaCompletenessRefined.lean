@@ -39,7 +39,6 @@ gate-count bound.
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
 open Qatlib.Foundations.PureStateMath
@@ -49,7 +48,6 @@ open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Foundations.QueryWordCore.Circuit
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.QmaCompleteness.HistoryHam
 

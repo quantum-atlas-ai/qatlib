@@ -51,9 +51,7 @@ of size at most `log 2`.
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -83,7 +81,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The type of words in `J` of length at most `K`, together with two Boolean padding labels. -/
 abbrev TaylorWordLabel (J : Type) (K : ℕ) := (Σ l : Fin (K + 1), Fin l.val → J) ⊕ Bool
@@ -137,6 +134,8 @@ theorem taylor_sum_prod_abs (h : J → ℝ) (l : ℕ) :
   rw [← Fintype.piFinset_univ, ← Finset.prod_univ_sum
     (fun _ : Fin l => (Finset.univ : Finset J)) (fun (_ : Fin l) (j : J) => |h j|),
     Finset.prod_const, Finset.card_univ, Fintype.card_fin, taylorLambda]
+
+omit [Fintype J] in
 
 /-- The norm of a Taylor-word coefficient is `|τ|^l / l!` times the product of the absolute
 coefficients of its letters. -/
@@ -254,6 +253,8 @@ address `j0`. -/
 private def taylorFrameMap (j0 : J) {K : ℕ} : I → TaylorWordLabel J K × (Bool × (J × I)) :=
   fun i => (taylorEmptyLabel J K, (false, (j0, i)))
 
+omit [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I] in
+
 /-- The Taylor-frame index map is injective. -/
 private theorem taylorFrameMap_injective (j0 : J) {K : ℕ} :
     Function.Injective (taylorFrameMap (I := I) (K := K) j0) := by
@@ -338,6 +339,8 @@ def taylorRouteSwap (j0 : J) {K : ℕ} (j : Fin K) :
           (if taylorActive w j then taylorSwapAddr j0 (taylorWordAt j0 w j) x.2.2.1
             else x.2.2.1, x.2.2.2)))
     | Sum.inr _ => x
+
+omit [Fintype J] [Fintype I] [DecidableEq I] in
 
 /-- The routing map for each Taylor-word position is an involution. -/
 theorem taylorRouteSwap_involutive (j0 : J) {K : ℕ} (j : Fin K) :
@@ -473,6 +476,8 @@ noncomputable def taylorLCUUnitary (h : J → ℝ) (U : J → Matrix I I ℂ) (j
     taylorSelectProductAux U j0 K K le_rfl *
     TensorGate (taylorPrepare h τ K) (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ)
 
+omit [Fintype J] [Fintype I] in
+
 /-- The first `n` Taylor query blocks use `n` queries and `2 * n` gates. -/
 private theorem counts_taylorBlockList (j0 : J) (K : ℕ) : ∀ (n : ℕ) (hn : n ≤ K),
     adjointQueryCount (taylorBlockList (I := I) j0 K n hn) = n ∧
@@ -572,6 +577,8 @@ noncomputable def taylorBranchWord (U : J → Matrix I I ℂ) (K : ℕ) :
       taylorBranchStep U ⟨n, Nat.lt_of_succ_le hn⟩ wl *
         taylorBranchWord U K n (Nat.le_of_succ_le hn) wl
 
+omit [Fintype J] in
+
 /-- The branch frame inserts a data vector into its designated word, false-control, and address
 sector and is zero elsewhere. -/
 private theorem taylorBranchFrame_mulVec (j0 : J) (K : ℕ) (wl : TaylorWordLabel J K)
@@ -607,6 +614,8 @@ private theorem mul_taylorSectorFrame {K : ℕ} (A : Matrix
     (wl : TaylorWordLabel J K) (b : Bool) (a : J) (x : TaylorWordLabel J K × (Bool × (J × I))) (i : I) :
     (A * taylorSectorFrame (I := I) K wl b a) x i = A x (wl, (b, (a, i))) := by
   simp [Matrix.mul_apply, taylorSectorFrame, mul_ite]
+
+omit [Fintype J] in
 
 /-- Multiplying a sector frame by a data matrix embeds that matrix in the designated sector and
 is zero elsewhere. -/
@@ -884,6 +893,8 @@ private noncomputable def taylorMatrixWord (U : J → Matrix I I ℂ) :
   | 0, _ => 1
   | l + 1, w => U (w (Fin.last l)) * taylorMatrixWord U l (fun i => w i.castSucc)
 
+omit [Fintype J] [DecidableEq J] in
+
 /-- Before the word length is reached, the recursive branch word equals the matrix word for its
 first `n` letters. -/
 private theorem taylorBranchWord_prefix (U : J → Matrix I I ℂ) (K : ℕ) :
@@ -896,7 +907,7 @@ private theorem taylorBranchWord_prefix (U : J → Matrix I I ℂ) (K : ℕ) :
   | succ n ih =>
       intro hn l w hl
       have hj : n < l.val := Nat.lt_of_succ_le hl
-      simp only [taylorBranchWord, taylorBranchStep, dif_pos hj, taylorMatrixWord]
+      simp only [taylorBranchWord, taylorBranchStep, dite_eq_left hj, taylorMatrixWord]
       rw [ih (Nat.le_of_succ_le hn) l w (Nat.le_of_succ_le hl)]
       rfl
 
@@ -922,8 +933,10 @@ private theorem taylorBranchWord_saturated (U : J → Matrix I I ℂ) (K : ℕ) 
         exact taylorBranchWord_prefix U K (n + 1) hn ⟨n + 1, hlK⟩ w le_rfl
       · have hln : l ≤ n := by omega
         have hj : ¬ n < l := by omega
-        simp only [taylorBranchWord, taylorBranchStep, dif_neg hj, Matrix.one_mul]
+        simp only [taylorBranchWord, taylorBranchStep, dite_eq_right hj, Matrix.one_mul]
         exact ih (Nat.le_of_succ_le hn) ⟨l, hlK⟩ w hln
+
+omit [Fintype J] [DecidableEq J] in
 
 /-- Every partial branch word for a padding label is the identity. -/
 private theorem taylorBranchWord_padding (U : J → Matrix I I ℂ) (K : ℕ) :
@@ -932,6 +945,8 @@ private theorem taylorBranchWord_padding (U : J → Matrix I I ℂ) (K : ℕ) :
   induction n with
   | zero => intro hn b; rfl
   | succ n ih => intro hn b; simp [taylorBranchWord, taylorBranchStep, ih]
+
+omit [DecidableEq J] in
 
 /-- Summing length-`l` matrix words with their coefficient products gives the `l`th power of the
 weighted summand matrix. -/
@@ -998,6 +1013,8 @@ theorem taylor_actual_lcu_corner_polynomial (h : J → ℝ) (U : J → Matrix I 
   ring
 
 set_option maxHeartbeats 800000 in
+
+omit [DecidableEq J] in
 
 /-- For Hermitian unitary summands with coefficient mass times absolute duration at most `1 /
 2`, the order-`K` Taylor approximation to Hamiltonian evolution has norm error at most

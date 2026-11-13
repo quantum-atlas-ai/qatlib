@@ -48,13 +48,11 @@ equations, differentiation under the trace, integration by parts for operator-va
 functions, and the splitting of the commutator into `W^(⁻⁺)`, `W^(⁺⁻)` blocks
 (Eq. (B5)--(B27)); the source's additional simplification `⟨ψ_j|W|ψ_j⟩ = 0` (Eq. (B14)) also
 lives there. Only its conclusion is consumed below, so no part of Eq. (28) is assumed beyond
-that displayed estimate. The frozen QAtlas release already supplies the reusable pieces of
-that layer: `QuantumAlgorithm.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution` and
-`...ordered_matrix_ode_unique` give existence, uniqueness and the ODE for a time-ordered
-propagator, while this repository's
-`QuantumAlgorithmDev.Foundations.TimeEvolution.DysonPropagator.ContractiveDuhamel` gives the
-constant-generator case; what is still missing is the trace differentiation and the
-operator-valued integration by parts of Eq. (B15)--(B16).
+that displayed estimate. The shared library provides the reusable pieces of that layer: its ordered
+evolution and ordered matrix-ODE uniqueness results give existence, uniqueness and
+the ODE for a time-ordered propagator, while its contractive Duhamel result gives
+the constant-generator case. Trace differentiation and operator-valued
+integration by parts for Eqs. (B15)--(B16) are outside the scope of this module.
 -/
 
 set_option autoImplicit false

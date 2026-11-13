@@ -48,7 +48,6 @@ and reflection algorithms of [Reichardt2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.GramQueryCore.FilteredNorm

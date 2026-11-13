@@ -27,7 +27,6 @@ the hiding promise. These constructions support the results of [BrassardHoyer199
 * [Brassard and Hoyer, 1997][BrassardHoyer1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

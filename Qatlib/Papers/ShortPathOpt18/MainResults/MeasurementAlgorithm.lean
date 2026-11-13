@@ -46,12 +46,10 @@ Source proof (p. 7): the adiabatic theorem gives that evolving `ψ_{0,1}` for
 polynomial time produces a state of squared overlap `1 − P_diab` with `ψ_{0,0}`;
 phase estimation of `H_1` postselects the ground state, and a successful run ends
 with a computational-basis measurement collapsing onto a ground state of `H_Z`.
-Lean gap: adiabatic evolution and phase estimation are not formalised; only the
-end-to-end guarantee is stated.
-Candidate dependencies: `overlap`, `Qatlib.Papers.ShortPathOpt18.MainResults.IsUnit`, `SourceModel.plusOverlap`.
-Suggested handoff: model Algorithm 1 as a probabilistic program with an explicit
-success event, prove `Pr[success] = |⟨ψ_{0,1}|ψ⟩|²(1 − P_diab) − O(ε)` by
-unitary evolution + projective measurement, and bound the expected runtime. -/
+Scope note: this theorem states the end-to-end guarantee. Adiabatic evolution,
+phase-estimation circuits, and a probabilistic execution model for Algorithm 1
+are outside the scope of this file. The paper relates the success event to
+unitary evolution followed by projective measurement and bounds the runtime. -/
 theorem source_lemma1 {N : ℕ} (ψ ψ01 ψ00 : Config N → ℝ) (Pdiab eps : ℝ)
     (hP : 0 < Pdiab) (heps : 0 < eps) :
     ∃ (succ time : ℝ) (k : ℕ) (c : ℝ),

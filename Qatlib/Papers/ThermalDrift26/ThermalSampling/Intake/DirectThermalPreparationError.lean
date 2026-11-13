@@ -40,11 +40,9 @@ reference register, and `rotation_work_discard_error` controls discarding prepar
   2026.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix

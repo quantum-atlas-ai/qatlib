@@ -25,9 +25,7 @@ the factorial condition on the Taylor degree. See [BerryEtAl2017ODE] for the pap
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 

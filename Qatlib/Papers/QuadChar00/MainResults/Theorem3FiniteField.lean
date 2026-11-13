@@ -30,8 +30,6 @@ function. See [VanDamHallgren2000].
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

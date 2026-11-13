@@ -28,7 +28,6 @@ stated dimension bound. This records the finite factorization formulation used f
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath

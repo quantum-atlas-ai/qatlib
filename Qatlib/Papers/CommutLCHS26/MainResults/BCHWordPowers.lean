@@ -31,7 +31,6 @@ identity for permutation sums supports the multidegree bookkeeping in the BCH de
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

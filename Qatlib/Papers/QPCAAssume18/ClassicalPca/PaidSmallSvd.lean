@@ -25,8 +25,6 @@ bound. The resulting `pcaPaidOutput` agrees with the canonical lifted output, wh
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Classical BigOperators

@@ -34,7 +34,6 @@ functions and the formal query models defined here. See [Jordan2005Gradient] for
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -29,7 +29,6 @@ enumeration with a subexponential factor.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

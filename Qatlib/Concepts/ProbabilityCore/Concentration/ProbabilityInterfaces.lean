@@ -996,7 +996,6 @@ theorem tree_law_relabel {n : ℕ} (e : Equiv.Perm (Fin n)) (t : FiniteDecisionT
 
 open ProbabilityTheory
 open scoped NNReal ENNReal
-set_option warningAsError false
 
 /-- Collect decision tree execution and polynomial guarantees, cube laws and influence bounds,
 circuit acceptance polynomial statements from the setting of [BealsEtAl2001], and Gaussian

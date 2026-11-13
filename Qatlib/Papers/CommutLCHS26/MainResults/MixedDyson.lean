@@ -39,7 +39,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

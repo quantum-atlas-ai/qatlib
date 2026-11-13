@@ -38,8 +38,6 @@ parameters.
 * [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section

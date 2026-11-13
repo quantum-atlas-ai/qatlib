@@ -279,7 +279,7 @@ def purityLowerBound (n M : ℕ) (pσ : ℝ)
 whenever the intersection count and the disagreement count are nonnegative integers the bracket
 `(1/5)^{9|sup∩sup|}(1/3)^{n(·)} − 1` never exceeds zero.  This matters because it shows that the
 printed final `≥ 0` in Eq. (300) cannot follow from the printed expression when the `D̃_c` weights
-are nonnegative; see `suppProp3_gap`. -/
+are nonnegative; see the scope note below. -/
 theorem purityBracket_nonpos (c k : ℕ) :
     (1 / 5 : ℝ) ^ (9 * c) * (1 / 3 : ℝ) ^ k - 1 ≤ 0 := by
   have h1 : (1 / 5 : ℝ) ^ (9 * c) ≤ 1 := by
@@ -372,7 +372,7 @@ theorem theorem3_pauli_rotation_trainability (var z2 : ℕ → ℝ) (Δ : ℕ �
   linarith
 
 /-
-## `suppProp3_gap` — proof route and current library gap
+## Derivation and scope of the Pauli-rotation variance formulas
 
 Fixed paper version: arXiv:2305.02881v2 (npj QI 2024, DOI 10.1038/s41534-024-00902-0),
 Supplemental Proposition 3, Eqs. (297)–(300), p.~53 (proof pp.~55–61); Theorem 3,
@@ -389,10 +389,10 @@ the explicit `D̃_c(σ)` average of Eq. (300); (v) for Theorem 3, the `O(log n)`
 `(1/3)^{Δ}` polynomially large, and `z_A² ∈ Ω(1/poly(n))` multiplies in (Eqs. 301–303 — proved
 here given the Eq. 298 lower bound).
 
-Current Lean gap: the Clifford twirl (Eqs. (312)–(314), `HaarAverages/Twirling`), the vectorised
+Scope note: the Clifford twirl (Eqs. (312)–(314), `HaarAverages/Twirling`), the vectorised
 Pauli-rotation two-copy algebra producing `overlapVariance` from the circuit model, and the
-model-side inequality `Var_θ[M(ρθ,ρθ)] ≥ purityLowerBound` are not formalised.  Eq. (298) is
-therefore recorded as the formula `overlapVariance` plus the proved Clifford-average rearrangement,
+model-side inequality `Var_θ[M(ρθ,ρθ)] ≥ purityLowerBound` are outside the scope of this file.
+Eq. (298) is recorded as the formula `overlapVariance` plus the proved Clifford-average rearrangement,
 and Eq. (300) as the formula `purityLowerBound` plus the sign analysis `purityBracket_nonpos`.
 `poly_cone_of_logBounded` is proved using `exp`/`log` conversion and an integer rounding.
 
@@ -400,17 +400,16 @@ and Eq. (300) as the formula `purityLowerBound` plus the sign analysis `purityBr
 `(1/5)^{9|sup(ZA,αc)∩sup(ZA′,α′c)|}(1/3)^{n(ZA,αc,ZA′,α′c)} − 1`, is `≤ 0` whenever the counts are
 nonnegative (`purityBracket_nonpos`), so with nonnegative `D̃_c` weights the displayed chain
 `Var ≥ E[·] ≥ 0` cannot have both inequalities strict; the consistent reading is
-`Var_θ[M(ρθ,ρθ)] ≥ E[·]` with the final `≥ 0` relying on the variance's own nonnegativity.  This is
-recorded for the reviewer rather than silently formalised.
+`Var_θ[M(ρθ,ρθ)] ≥ E[·]` with the final `≥ 0` relying on the variance's own nonnegativity.
 
-Candidate reusable dependencies: `suppProp3_variance_decomposition`,
+Related identities and bounds: `suppProp3_variance_decomposition`,
 `covariance_independent_vanishes`, `suppProp3_overlap_variance_eq`, `IsPolyOmega.mul`,
 `haarKroneckerAverage_eq_one_plus_swap`, `Real.exp_log`, `Real.rpow_def_of_pos`, `Real.log_pow`,
 `Real.log_inv`.
 
-Suggested takeover tactics: (1) formalise the two-copy Clifford average of Eq. (313) in the
-`Twirling` block; (2) instantiate `overlapVariance` with the
-model's `Δ` and connect it to `theorem3_pauli_rotation_trainability`.
+Connecting the circuit model to `theorem3_pauli_rotation_trainability` requires the
+two-copy Clifford average of Eq. (313) and an identification of `overlapVariance` with
+the model's light-cone function `Δ`.
 -/
 
 end

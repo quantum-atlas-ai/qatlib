@@ -27,7 +27,6 @@ to this implementation of the construction in [TerhalSmolin1998].
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

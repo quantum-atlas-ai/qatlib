@@ -50,7 +50,6 @@ open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.QsvtCore.QueryLowerBound
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 variable {I H : Type} [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H]
 

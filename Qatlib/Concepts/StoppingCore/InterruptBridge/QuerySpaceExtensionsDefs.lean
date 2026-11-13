@@ -43,7 +43,6 @@ results can state their precise assumptions.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.StoppingCore.BranchCostCore
@@ -66,7 +65,6 @@ namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Matrix
 

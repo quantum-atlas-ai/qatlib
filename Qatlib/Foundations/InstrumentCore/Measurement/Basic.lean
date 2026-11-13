@@ -35,8 +35,6 @@ namespace Qatlib.Foundations.InstrumentCore.Measurement
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- The diagonal projection retaining precisely the basis coordinates in `S`. -/
@@ -50,6 +48,8 @@ theorem projector_mul_self (S : Finset I) : Projector S * Projector S = Projecto
   congr 1
   funext i
   split_ifs <;> simp
+
+omit [Fintype I] in
 
 /-- The coordinate projector onto `S` is self-adjoint. -/
 theorem projector_conjTranspose (S : Finset I) : (Projector S)ᴴ = Projector S := by
@@ -115,7 +115,7 @@ theorem normalized_postMeasure {ψ : QState I} {S : Finset I} (h : 0 < MeasurePr
 theorem postMeasure_apply_of_not_mem (ψ : QState I) (S : Finset I) {i : I} (hi : i ∉ S) :
     PostMeasure ψ S i = 0 := by
   unfold PostMeasure
-  rw [collapse_apply, if_neg hi, mul_zero]
+  rw [collapse_apply, ite_eq_right hi, mul_zero]
 
 variable {J : Type*} [Fintype J] [DecidableEq J]
 

@@ -30,7 +30,6 @@ must have squared error at most `ε ^ 2` from the target phase evolution and out
 - [Low and Chuang, 2017][LowChuang2017], Theorem 3.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

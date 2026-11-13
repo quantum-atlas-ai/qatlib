@@ -25,8 +25,6 @@ the two state descriptions used in the query analysis of [MagniezZur2026].
 * [Magniez and Zur, 2026][MagniezZur2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 noncomputable section

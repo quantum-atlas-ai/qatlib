@@ -27,8 +27,6 @@ lower bound by data and an explicit amplification-budget identity. The mathemati
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

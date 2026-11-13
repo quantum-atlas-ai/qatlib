@@ -33,7 +33,6 @@ results for `certifiedCutCost` and `effectiveCertifiedValue`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -487,7 +486,6 @@ theorem gen_witness_le_filteredGamma2 {X E : Type} [Fintype X] [DecidableEq X]
   rw [hzero] at h
   exact h
 
-set_option linter.unusedVariables false in
 
 /-- If the maximum adversary filter norm is zero, every adversary filter matrix is zero. -/
 theorem gen_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X]

@@ -53,7 +53,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open Matrix Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
@@ -651,7 +650,6 @@ open Qatlib.Concepts.SpectralSketch.SketchSpectral
 open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator Classical BigOperators
-set_option warningAsError false
 
 /-- For a Hermitian matrix M, eigenvector columns W satisfying `W * Wᴴ = 1` compute its
 functional calculus as `W * diagonal (fun j => f (lam j)) * Wᴴ`. -/

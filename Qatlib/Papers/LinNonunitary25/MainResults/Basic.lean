@@ -34,8 +34,11 @@ with the paper's notation:
 * `alphaR`, `alphaInfty`, `alphaRh` are the block-encoding normalization factors
   `α_{f̂,R}`, `α_{f̂}` and `α_{f̂,R,h}` of Eq. (10)--(12).
 
-The `QuantumAlgorithm` import provides the shared `orderedEvolution` and its
-entirety/stability lemmas; no proof is imported at this layer.
+The imported shared library supplies `orderedEvolution`. This module defines
+analytic targets, not the paper's quantum algorithms or their complexity bounds.
+`CostedCircuit` retains legacy resource labels; `CircuitRealization` ties them
+to an abstract word of oracle and two-qubit subroutine calls. The semantics of
+those subroutines must be supplied; no physical gate synthesis is proved here.
 -/
 
 set_option autoImplicit false
@@ -157,10 +160,41 @@ def BlockEncodes {A B : Type} [Fintype A] [DecidableEq A] [Fintype B] [Decidable
     (U : Matrix (A ⊕ B) (A ⊕ B) ℂ) (M : Matrix A A ℂ) (α : ℝ) : Prop :=
   (Matrix.of (fun i j : A => U (Sum.inl i) (Sum.inl j))) = ((α⁻¹ : ℝ) : ℂ) • M
 
-/-- Abstract query/gate cost ledger for the circuit lemmas of Section 5. -/
+/-- Legacy resource labels, with no execution guarantee on their own. -/
 structure CostedCircuit where
   queries : ℕ
   twoQubitGates : ℕ
+
+/-- Abstract call alphabet; implementations of these operations are external hypotheses. -/
+inductive CircuitCall where
+  | oracle
+  | twoQubit
+  deriving DecidableEq
+
+/-- A word executes supplied subroutines and counts their occurrences. This contract
+does not assert that a supplied subroutine realizes a particular block encoding. -/
+structure CircuitRealization (C : CostedCircuit) (State : Type) where
+  word : List CircuitCall
+  oracleStep : State → State
+  twoQubitStep : State → State
+  queries_eq : C.queries = word.count CircuitCall.oracle
+  gates_eq : C.twoQubitGates = word.count CircuitCall.twoQubit
+
+/-- Semantics of the abstract call word, conditional on the two supplied operations. -/
+def CircuitRealization.run {C : CostedCircuit} {State : Type}
+    (R : CircuitRealization C State) (s : State) : State :=
+  R.word.foldl (fun x call => match call with
+    | .oracle => R.oracleStep x
+    | .twoQubit => R.twoQubitStep x) s
+
+/-- Every symbol in the realized word is charged to exactly one resource counter. -/
+theorem CircuitRealization.total_calls {C : CostedCircuit} {State : Type}
+    (R : CircuitRealization C State) :
+    C.queries + C.twoQubitGates = R.word.length := by
+  rw [R.queries_eq, R.gates_eq]
+  induction R.word with
+  | nil => simp
+  | cons call rest ih => cases call <;> simp_all <;> omega
 
 /-- The kernel superposition `|ψ_{R,h,γ}⟩` of Lemma 19, Eq. (132). -/
 noncomputable def kernelState (γ c h : ℝ) (J : ℕ) : EuclideanSpace ℂ (Fin (2 * J + 1)) :=

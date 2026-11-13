@@ -26,8 +26,6 @@ nonnegative weighted averages. See [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric
 open scoped BigOperators ComplexOrder

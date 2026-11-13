@@ -38,7 +38,6 @@ namespace Qatlib.Foundations.CircuitReversal.ReversalAlgebra
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
@@ -52,8 +51,12 @@ noncomputable def reverseStep : Step I → Step I
 noncomputable def ReverseCircuit (C : Circuit I) : Circuit I :=
   C.reverse.map reverseStep
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The reverse of the empty circuit is empty. -/
 @[simp] theorem reverseCircuit_nil : ReverseCircuit ([] : Circuit I) = [] := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Reversing a circuit with an initial step appends the reversed step to the reversed tail. -/
 theorem reverseCircuit_cons (s : Step I) (C : Circuit I) :

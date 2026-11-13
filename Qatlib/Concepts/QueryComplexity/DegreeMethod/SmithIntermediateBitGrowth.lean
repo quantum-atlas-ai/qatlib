@@ -34,9 +34,6 @@ quantum algorithms; [Shor1997] provides the order-finding setting motivating suc
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-
 
 open Qatlib.Concepts.HspRecovery.CfOrder
 
@@ -53,7 +50,6 @@ open Qatlib
 open Qatlib.Concepts.HspRecovery.Distinguisher
 open Qatlib
 open Qatlib
-set_option warningAsError false
 
 /-- For nonnegative `q` and integers of opposite weak signs, the absolute value of `s' - q * s`
 is the sum of their corresponding absolute values. -/
@@ -265,24 +261,24 @@ theorem smithEuclidPairCounted_entry_abs (a b : ℤ) :
       · exact h
     intro i j
     simp only [smithEuclidPairCounted]
-    rw [hbez.1, if_neg (by omega)]
+    rw [hbez.1, ite_eq_right (by omega)]
     have hS : ((if a < 0 then
           -(cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.1
           else (cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.1) : ℤ).natAbs
           ≤ max a.natAbs b.natAbs + 1 := by
       by_cases h : a < 0
-      · rw [if_pos h, Int.natAbs_neg]
+      · rw [ite_eq_left h, Int.natAbs_neg]
         omega
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         omega
     have hT : ((if b < 0 then
           -(cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.2
           else (cyclicDlogEuclid a.natAbs 1 0 b.natAbs 0 1).1.2.2) : ℤ).natAbs
           ≤ max a.natAbs b.natAbs + 1 := by
       by_cases h : b < 0
-      · rw [if_pos h, Int.natAbs_neg]
+      · rw [ite_eq_left h, Int.natAbs_neg]
         omega
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         omega
     have hQA : (a / ((Nat.gcd a.natAbs b.natAbs : ℕ) : ℤ)).natAbs
         ≤ max a.natAbs b.natAbs + 1 := by
@@ -446,15 +442,15 @@ theorem smithColumnStepCounted_elimSup {m n : ℕ} (p : Fin n)
       · rcases eq_or_ne j k.succ with rfl | hjk
         · simp [rowMix, h0s]
           exact hD01
-        · simp [rowMix, h0s, Ne.symm hj0, Ne.symm hjk, Nat.zero_le]
+        · simp [rowMix, Ne.symm hj0, Ne.symm hjk]
     · rcases eq_or_ne r k.succ with rfl | hrk
       · rcases eq_or_ne j 0 with rfl | hj0
-        · simp [rowMix, Matrix.one_apply, hsucc0]
+        · simp [rowMix, hsucc0]
           exact hD10
         · rcases eq_or_ne j k.succ with rfl | hjk
           · simp [rowMix, h0s]
             exact hD11
-          · simp [rowMix, h0s, Ne.symm hj0, Ne.symm hjk, Nat.zero_le]
+          · simp [rowMix, Ne.symm hj0, Ne.symm hjk]
       · simp [rowMix, hr0, hrk, Matrix.one_apply]
         split_ifs <;> simp
   constructor

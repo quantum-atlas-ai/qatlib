@@ -13,10 +13,9 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # `Cohomology` — the low-degree group-cohomology model of Zatloukal, arXiv:1305.1327
 
-Fixed source version: arXiv:1305.1327v1 (6 May 2013).  Text used:
-`prove/assets/1305.1327.txt`, PDF
-`.../assets/1305.1327.pdf` (Section 2.3 "Low Degree Group Cohomology",
-Figure 1; Section 3.4 for the factorised functions `F(G,·)`).
+Fixed source version: arXiv:1305.1327v1 (6 May 2013), Section 2.3
+"Low Degree Group Cohomology" (Figure 1) and Section 3.4 for the factorised
+functions `F(G,·)`).
 
 This file fixes a concrete, faithful model of the objects used throughout
 Section 3 of the paper:

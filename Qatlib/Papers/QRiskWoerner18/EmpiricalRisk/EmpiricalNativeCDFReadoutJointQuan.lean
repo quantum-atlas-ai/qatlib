@@ -49,7 +49,6 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- Establishes the joint sampling and native CDF readout bound
 `EmpiricalNativeCDFReadoutJoint`, with failure probability at most 1/(4Nν²) + (8/9)^r under

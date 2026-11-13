@@ -36,8 +36,6 @@ through the empty-set infimum convention.
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.PauliClifford.ExactRank

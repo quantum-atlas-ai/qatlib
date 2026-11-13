@@ -26,7 +26,6 @@ This development concerns variable-time amplitude amplification in [Ambainis2012
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -44,7 +43,7 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 
 end Program
 
-/-- The proposition that runs satisfying the stage, termination, and success-floor assumptions
+/-- **Statement only — not proved in Qatlib.** The proposition that runs satisfying the stage, termination, and success-floor assumptions
 possess a finite distribution of legal programs with the specified per-record time bound and
 high-weight output guarantees. -/
 def coherentVariableTimeAmplification : Prop :=

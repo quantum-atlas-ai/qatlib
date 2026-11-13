@@ -26,7 +26,6 @@ The final formulations replace explicit pole gaps with a half-width below `analy
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

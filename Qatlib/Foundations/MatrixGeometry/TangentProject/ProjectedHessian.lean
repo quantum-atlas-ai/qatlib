@@ -28,8 +28,6 @@ skew-Hermitian `Ω`. See [LaiEtAl2026] for related background.
 * [Lai et al., 2026][LaiEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 set_option backward.isDefEq.respectTransparency false

@@ -29,7 +29,6 @@ yields operator-norm bounds for each ladder operator and every finite ordered pr
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

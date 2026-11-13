@@ -40,7 +40,6 @@ the approximation, legality, and budget conditions separately from the underlyin
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
 open Qatlib.Concepts.HhlErrorBridge.FilterStability
@@ -66,7 +65,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvFilter
 

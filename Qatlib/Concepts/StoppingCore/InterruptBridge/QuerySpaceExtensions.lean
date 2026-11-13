@@ -34,7 +34,6 @@ follows [NielsenChuang2010]; the finite-query polynomial viewpoint is developed 
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -59,7 +58,6 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Matrix
 
@@ -188,12 +186,12 @@ lemma zmod2_one_ne_zero : (1 : ZMod 2) ≠ 0 := by norm_num
 lemma boolToZMod_xor {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) (x : I) (b : Bool) :
     boolToZMod (b ^^ f x) =
       boolToZMod b + (if f x then (1 : ZMod 2) else 0) := by
-  cases hf : f x <;> cases hb : b <;> simp [boolToZMod, hf, hb, Bool.xor, zmod2_one_add_one]
+  cases hf : f x <;> cases hb : b <;> simp [boolToZMod, Bool.xor, zmod2_one_add_one]
 
 /-- The zero-one encoding of `f x` equals `boolToZMod b` exactly when `f x = b`. -/
 lemma value_action_eq_iff {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) (x : I) (b : Bool) :
     (if f x then (1 : ZMod 2) else 0) = boolToZMod b ↔ f x = b := by
-  cases hf : f x <;> cases hb : b <;> simp [boolToZMod, hf, hb, zmod2_one_ne_zero]
+  cases hf : f x <;> cases hb : b <;> simp [boolToZMod]
 
 /-- Bit-oracle actions and additive `ZMod 2` oracle actions agree under the Boolean encoding. -/
 lemma bitAction_unify {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) :
@@ -218,11 +216,11 @@ lemma spanPlus_normSq {I : Type} [Fintype I] [DecidableEq I] (x y : I) (z : I) :
       else if z = y then 1 / 2 else 0 := by
   unfold spanPlus
   by_cases hzx : z = x
-  · by_cases hxy : x = y <;> simp [hzx, hxy, norm_one_div_sqrt_two]
+  · by_cases hxy : x = y <;> simp [hzx, hxy]
   · by_cases hzy : z = y
     · subst z
-      simp [hzx, norm_one_div_sqrt_two]
-    · simp [hzx, hzy, norm_one_div_sqrt_two]
+      simp [hzx]
+    · simp [hzx, hzy]
 
 /-- The state `spanPlus x y` is normalized, including when its two indices coincide. -/
 lemma spanPlus_normalized {I : Type} [Fintype I] [DecidableEq I] (x y : I) :
@@ -247,7 +245,7 @@ lemma spanPlus_normalized {I : Type} [Fintype I] [DecidableEq I] (x y : I) :
             simp [hzx]
           · simp [hzx, hzy]]
     rw [Finset.sum_add_distrib]
-    simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     norm_num
 
 /-- Measuring `spanPlus x y` over the full basis has total probability one. -/
@@ -259,8 +257,7 @@ lemma spanPlus_measureProb_univ {I : Type} [Fintype I] [DecidableEq I] (x y : I)
 most one phase query. -/
 lemma baselineExtractsBit_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (f : I → Bool) (x xstar : I), baselineExtractsBit f x xstar := by
-  intro f x xstar
-  intro hstar
+  intro f x xstar hstar
   by_cases hx : f x = false
   · refine ⟨[], Finset.univ, ?_, isUnitaryCircuit_nil, ?_, ?_⟩
     · simp [QueryCount]
@@ -278,7 +275,7 @@ lemma baselineExtractsBit_fixed {I : Type} [Fintype I] [DecidableEq I] :
 /-- For error below one half, a fixed circuit cannot distinguish the two constant phase oracles
 using the specified event thresholds. -/
 lemma noBaselinePhaseToBit_fixed {I : Type} [Fintype I] [DecidableEq I] (ε : ℝ)
-    (hε0 : 0 ≤ ε) (hε : ε < 1 / 2) : noBaselinePhaseToBit (I := I) ε := by
+    (_hε0 : 0 ≤ ε) (hε : ε < 1 / 2) : noBaselinePhaseToBit (I := I) ε := by
   intro C ψ S _
   rintro ⟨hlo, hhi⟩
   have heq := phaseConstantUnidentifiable_fixed (I := I) C ψ S
@@ -293,8 +290,7 @@ lemma accessCharge_eq (L : AccessLedger) :
 /-- Every oracle and ledger satisfy the charged capability law under the honesty condition. -/
 lemma chargedCapabilityLaw_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (U : Matrix I I ℂ) (L : AccessLedger), chargedCapabilityLaw U L := by
-  intro U L
-  intro h
+  intro U L h
   refine ⟨accessCharge_eq L, ?_, ?_⟩
   · rcases h.1 with h1 | h1
     · exact Or.inl h1
@@ -378,9 +374,9 @@ lemma marginal_right_bitOracleOn_query {I : Type} [Fintype I] [DecidableEq I]
     rw [applyGate_bitOracleOn]
     simp only [TensorState, BitFlip, Qatlib.Foundations.PureStateMath.Ket]
     by_cases h : (b ^^ f x) = false
-    · rw [if_pos h, mul_one, if_pos (xor_false_iff.mp h)]
+    · rw [ite_eq_left h, mul_one, ite_eq_left (xor_false_iff.mp h)]
     · have hn : ¬ (f x = b) := fun he => h (xor_false_iff.mpr he)
-      rw [if_neg h, mul_zero, norm_zero, if_neg hn]
+      rw [ite_eq_right h, mul_zero, norm_zero, ite_eq_right hn]
       simp
   conv_lhs => simp only [hamp]
   show (∑ x ∈ Finset.univ, if f x = b then BornProb ψ x else 0) = _
@@ -736,13 +732,12 @@ lemma cleanAncillaLowerTransport_fixed {J : Type} [Fintype J] [DecidableEq J]
     {X : Type} [Fintype X] [DecidableEq X] [Nonempty X] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ) :
     cleanAncillaLowerTransport J input f Γ ε := by
-  intro hG hε0 hε1
-  intro C' ψ' _j₀ E₀ hC' hψ' _ hsuccess
+  intro hG hε0 hε1 C' ψ' _j₀ E₀ hC' hψ' _ hsuccess
   refine (negative_adversary_actual_bounded_error_circuit_lower_bound
     X J n input Γ f C' ψ' (ancillaReadout (J := J) E₀) ε hG.1 hG.2 hC' hψ' hε0 hε1 ?_).trans ?_
   · intro x
     exact hsuccess x
-  · simp [advWeightNorm]
+  · simp []
 
 /-- A well-formed observed circuit on a positive number of input bits possesses a unitary
 adaptive purification bridge with the specified resource bounds. -/
@@ -1048,7 +1043,7 @@ lemma acc_geΨ (x : Fin 6) :
   have hbranch : ProjectiveBranch geAcc true
         (ApplyGate (workspaceBitOracle (W := PUnit) (geInput x)) geΨ)
       = fun p => if p.1.2 = true ∧ geInput x p.1.1 = true then (1 : ℂ) else 0 := by
-    rw [ProjectiveBranch, if_pos rfl, applyGate_geAcc]
+    rw [ProjectiveBranch, ite_eq_left rfl, applyGate_geAcc]
     funext p
     by_cases hp : p.1.2 = true
     · have hamp : ApplyGate (workspaceBitOracle (W := PUnit) (geInput x)) geΨ p
@@ -1105,11 +1100,11 @@ lemma sum_geInput (x : Fin 6) :
       intro i
       have hne : (0 : Fin 6) ≠ geB i := (geB_ne_zero i).symm
       simp [geInput, hne]
-    simp only [if_pos rfl]
+    simp only []
     apply Finset.sum_eq_zero
     intro i _
     simp [h i]
-  · rw [if_neg hx]
+  · rw [ite_eq_right hx]
     obtain ⟨i, hi⟩ := geB_surjective_of_ne_zero hx
     rw [Finset.sum_eq_single i]
     · simp [geInput, hi]
@@ -1202,22 +1197,22 @@ lemma advFilter_geΓ (i : Fin 5) (x y : Fin 6) :
   have hΓeq : geΓ x y = if (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0) then (1 : ℂ) else 0 := rfl
   rw [hΓeq]
   by_cases hd : geInput x i ≠ geInput y i
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     by_cases hΓ : (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0)
-    · rw [if_pos hΓ, if_pos (advFilter_support i x y hd hΓ)]
+    · rw [ite_eq_left hΓ, ite_eq_left (advFilter_support i x y hd hΓ)]
     · have hD : ¬((x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0)) := by
         rintro (⟨hx, hy⟩ | ⟨hx, hy⟩)
         · exact hΓ (Or.inl ⟨hx, by simp [hy, geB_ne_zero i]⟩)
         · exact hΓ (Or.inr ⟨hy, by simp [hx, geB_ne_zero i]⟩)
-      rw [if_neg hΓ, if_neg hD]
-  · rw [if_neg hd]
+      rw [ite_eq_right hΓ, ite_eq_right hD]
+  · rw [ite_eq_right hd]
     have hD : ¬((x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0)) := by
       rintro (⟨hx, hy⟩ | ⟨hx, hy⟩)
       · subst x; subst y
         exact hd (by simp [geInput, (geB_ne_zero i).symm])
       · subst x; subst y
         exact hd (by simp [geInput, (geB_ne_zero i).symm])
-    rw [if_neg hD]
+    rw [ite_eq_right hD]
 
 /-- A left fold of `max` stays below `m` when its initial value and every list entry are bounded
 by `m`. -/
@@ -1265,10 +1260,10 @@ lemma advFilter_mulVec_apply (i : Fin 5) (v : QState (Fin 6)) (x : Fin 6) :
             = ∑ y : Fin 6, if y = geB i then v y else 0 from
             Finset.sum_congr rfl (fun y _ => by
               by_cases hy' : (x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0)
-              · rw [if_pos hy', if_pos ((hD y).mp hy')]
-              · rw [if_neg hy', if_neg fun hh => hy' ((hD y).mpr hh)])]
+              · rw [ite_eq_left hy', ite_eq_left ((hD y).mp hy')]
+              · rw [ite_eq_right hy', ite_eq_right fun hh => hy' ((hD y).mpr hh)])]
         exact sum_ite_eq_self _ _
-      rw [if_pos hx0]
+      rw [ite_eq_left hx0]
       exact hsum
   · by_cases hxi : x = geB i
     · have hD : ∀ y : Fin 6,
@@ -1286,10 +1281,10 @@ lemma advFilter_mulVec_apply (i : Fin 5) (v : QState (Fin 6)) (x : Fin 6) :
             = ∑ y : Fin 6, if y = 0 then v y else 0 from
             Finset.sum_congr rfl (fun y _ => by
               by_cases hy' : (x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0)
-              · rw [if_pos hy', if_pos ((hD y).mp hy')]
-              · rw [if_neg hy', if_neg fun hh => hy' ((hD y).mpr hh)])]
+              · rw [ite_eq_left hy', ite_eq_left ((hD y).mp hy')]
+              · rw [ite_eq_right hy', ite_eq_right fun hh => hy' ((hD y).mpr hh)])]
         exact sum_ite_eq_self _ _
-      rw [if_neg hx0, if_pos hxi]
+      rw [ite_eq_right hx0, ite_eq_left hxi]
       exact hsum
     · have hD : ∀ y : Fin 6, ¬((x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0)) := by
         intro y hy
@@ -1299,7 +1294,7 @@ lemma advFilter_mulVec_apply (i : Fin 5) (v : QState (Fin 6)) (x : Fin 6) :
         apply Finset.sum_eq_zero
         intro y _
         simp [hD y]
-      rw [hsum0, if_neg hx0, if_neg hxi]
+      rw [hsum0, ite_eq_right hx0, ite_eq_right hxi]
 
 /-- Each coordinate-filtered star matrix has operator norm at most one. -/
 lemma advFilter_norm_le (i : Fin 5) : ‖advFilter geInput geΓ i‖ ≤ 1 := by

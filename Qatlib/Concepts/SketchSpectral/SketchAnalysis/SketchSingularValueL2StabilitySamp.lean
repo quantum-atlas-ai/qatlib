@@ -31,8 +31,6 @@ concentration events.
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 open Qatlib.Concepts.SketchSpectral.SketchPerturb

@@ -34,7 +34,6 @@ correction theorem establishes Pauli membership and causality.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib
@@ -42,7 +41,6 @@ open Matrix
 open scoped Classical ComplexOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 
@@ -295,7 +293,6 @@ set_option maxHeartbeats 800000
 open Qatlib
 open scoped Classical
 set_option maxHeartbeats 400000
-set_option linter.unusedSimpArgs false
 
 /-- For an irreflexive relation on `Fin n`, the predecessor set of any vertex has cardinality
 less than `n`. -/

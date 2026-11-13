@@ -28,7 +28,6 @@ condition, and accuracy dependence used by subsequent inequalities. The mathemat
 * [Wiebe et al., 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualParameterRestrictedStat.QuantumDataFitting2012
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedStat.QuantumDataFitting2012

@@ -27,8 +27,6 @@ precision, in the setting of [JinLiu2024].
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

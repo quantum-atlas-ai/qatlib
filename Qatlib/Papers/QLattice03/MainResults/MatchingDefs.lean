@@ -27,8 +27,6 @@ paper context.
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped Classical BigOperators

@@ -32,7 +32,6 @@ infrastructure for moving entangling gates before measurements in the resource c
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 

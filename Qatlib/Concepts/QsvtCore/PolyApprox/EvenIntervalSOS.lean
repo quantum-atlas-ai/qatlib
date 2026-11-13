@@ -26,8 +26,6 @@ for signal-processing completion. See [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.PhaseGeometry.Phase
 

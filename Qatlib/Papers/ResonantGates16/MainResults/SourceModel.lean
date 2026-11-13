@@ -19,7 +19,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Paper: Guang Hao Low, Theodore J. Yoder, Isaac L. Chuang,
 *The methodology of resonant equiangular composite quantum gates*,
-arXiv:1603.03996 (fixed version: prefetched PDF, pages 2–6).
+arXiv:1603.03996, pages 2–6.
 
 This module fixes the *object layer* of the paper so that Theorems 1–3 and
 Lemmas 1–3 can be stated faithfully in the paper layer.

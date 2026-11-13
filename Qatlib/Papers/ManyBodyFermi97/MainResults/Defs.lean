@@ -35,7 +35,6 @@ Hubbard-specific first-quantized steps. The matrices `chainHopping`, `evenBlocks
 * [Abrams and Lloyd, 1997][AbramsLloyd1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

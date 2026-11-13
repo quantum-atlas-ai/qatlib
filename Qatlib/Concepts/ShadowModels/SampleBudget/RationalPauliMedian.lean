@@ -31,9 +31,6 @@ median failure bound. See [HuangKuengPreskill2020] for background.
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.ShadowModels.ShadowChannel

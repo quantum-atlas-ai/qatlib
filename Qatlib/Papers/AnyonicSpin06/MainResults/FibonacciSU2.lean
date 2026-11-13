@@ -178,7 +178,7 @@ def generatedDense (A B : Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
   ∀ U ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ, ∀ ε : ℝ, 0 < ε →
     ∃ w : List Bool, ∀ i j, ‖wordProductGen A B w i j - U i j‖ < ε
 
-/-- The assertion that words in `Gfib` and `Hfib` are dense in the special unitary group in the
+/-- **Statement only — not proved in Qatlib.** The assertion that words in `Gfib` and `Hfib` are dense in the special unitary group in the
 entrywise approximation sense. -/
 def FibDense : Prop := generatedDense Gfib Hfib
 
@@ -189,7 +189,7 @@ def BraidPairSU2 : Set (Matrix (Fin 2) (Fin 2) ℂ × Matrix (Fin 2) (Fin 2) ℂ
        p.2 ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ ∧
        p.1 * p.2 * p.1 = p.2 * p.1 * p.2}
 
-/-- The assertion that braid pairs generating dense words form a dense subset of `BraidPairSU2`. -/
+/-- **Statement only — not proved in Qatlib.** The assertion that braid pairs generating dense words form a dense subset of `BraidPairSU2`. -/
 def GenericB3Dense : Prop :=
   Dense {p : BraidPairSU2 | generatedDense p.val.1 p.val.2}
 

@@ -33,8 +33,6 @@ expressions, and the records `QsvtCostLedger` and `QsvtProgram` used to state re
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding
 

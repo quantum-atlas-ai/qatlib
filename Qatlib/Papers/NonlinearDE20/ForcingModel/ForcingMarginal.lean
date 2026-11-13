@@ -30,8 +30,6 @@ trace-norm discrepancy independent of the positive number of tail copies.
 * [Lloyd et al., 2020][LloydEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 800000

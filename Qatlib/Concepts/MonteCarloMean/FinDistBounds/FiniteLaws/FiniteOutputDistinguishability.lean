@@ -25,8 +25,6 @@ distinguishability, see [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteOutputDistinguishability
 open scoped BigOperators Classical

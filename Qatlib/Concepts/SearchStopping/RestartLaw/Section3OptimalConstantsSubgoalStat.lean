@@ -27,7 +27,6 @@ expected-cost coefficient with the benchmark `Real.pi / 4`. For the quantum-sear
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.SearchStopping.RestartLaw
 

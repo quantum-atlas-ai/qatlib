@@ -28,8 +28,6 @@ quantum-walk search development [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkSearch.QuantumAccess

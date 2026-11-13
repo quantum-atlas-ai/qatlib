@@ -31,7 +31,6 @@ and expected query counts are obtained by summing mixed-state branch masses.
 * [Kraus, 1971][Kraus1971]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

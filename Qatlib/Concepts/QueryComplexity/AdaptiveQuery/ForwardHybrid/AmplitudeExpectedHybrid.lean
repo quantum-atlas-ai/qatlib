@@ -31,7 +31,6 @@ hybrid comparison underlying [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

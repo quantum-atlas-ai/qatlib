@@ -42,7 +42,6 @@ records the absence of native instructions on a zero-width register.
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.BlockEncoding.EncodingCore
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

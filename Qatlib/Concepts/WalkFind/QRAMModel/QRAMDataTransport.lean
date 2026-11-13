@@ -32,9 +32,7 @@ The mathematical background is developed in [Ambainis2007ElementDistinctness].
 -/
 
 open Qatlib.Concepts.BlockEncoding.LinearCombination
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates

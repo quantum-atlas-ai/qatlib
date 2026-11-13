@@ -30,8 +30,6 @@ explicit boundary for interpreting the probability-based comparison metrics in [
 - [Zhang et al., 2026][ZhangEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

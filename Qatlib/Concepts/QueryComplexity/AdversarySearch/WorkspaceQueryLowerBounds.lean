@@ -25,10 +25,7 @@ distinguishing the null oracle from every singleton with the stated probability 
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -183,7 +180,7 @@ theorem workspace_search_query_lower_bound (C : Circuit ((I × Bool) × W))
           have hz : (∑ x : I, if (none : Option I) = some x
               then BornProb (Run (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) C ψ) p
               else 0) = 0 :=
-            Finset.sum_eq_zero fun x _ => if_neg fun hs => (Option.some_ne_none x) hs.symm
+            Finset.sum_eq_zero fun x _ => ite_eq_right fun hs => (Option.some_ne_none x) hs.symm
           rw [hz]
           exact bornProb_nonneg _ _
       | some a =>
@@ -192,8 +189,8 @@ theorem workspace_search_query_lower_bound (C : Circuit ((I × Bool) × W))
               else 0)
               = BornProb (Run (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) C ψ) p := by
             rw [Finset.sum_eq_single a
-              (fun x _ hxa => if_neg fun hs => hxa (Option.some.inj hs).symm)
-              (fun hna => absurd (Finset.mem_univ a) hna), if_pos rfl]
+              (fun x _ hxa => ite_eq_right fun hs => hxa (Option.some.inj hs).symm)
+              (fun hna => absurd (Finset.mem_univ a) hna), ite_eq_left rfl]
           exact hsum.le
     calc ∑ p : (I × Bool) × W, (∑ x : I, if decode p = some x
             then BornProb (Run (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) C ψ) p

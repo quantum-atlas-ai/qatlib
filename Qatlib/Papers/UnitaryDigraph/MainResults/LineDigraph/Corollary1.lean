@@ -25,10 +25,7 @@ and outgoing strong quadrangularity together with nonempty neighborhoods.
 * [Severini, 2003][Severini2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph

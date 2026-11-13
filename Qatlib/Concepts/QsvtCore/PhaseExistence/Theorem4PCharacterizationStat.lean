@@ -23,8 +23,6 @@ inside and outside the real unit interval and, for even length, on the imaginary
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

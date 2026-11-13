@@ -24,7 +24,6 @@ of `pauliOrbitPOVM` with the state's `quadraticScore`. See [XuEtAl2026] for back
 * [Xu et al., 2026][XuEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

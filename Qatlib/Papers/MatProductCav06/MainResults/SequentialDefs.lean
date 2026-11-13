@@ -29,7 +29,6 @@ Computational basis states provide explicit examples with bond dimension one thr
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

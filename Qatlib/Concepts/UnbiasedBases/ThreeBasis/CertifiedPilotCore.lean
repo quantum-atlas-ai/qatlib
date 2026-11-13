@@ -52,13 +52,11 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.PilotVariance
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 noncomputable section
 namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces MeasureTheory
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

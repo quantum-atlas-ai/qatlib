@@ -25,8 +25,6 @@ evaluates both amplification budgets. The mathematical context is [KaplanEtAl201
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

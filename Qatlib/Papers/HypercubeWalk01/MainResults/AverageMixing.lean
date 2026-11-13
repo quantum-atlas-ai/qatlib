@@ -28,8 +28,6 @@ obstruction to average mixing described in Section 4 of [MooreRussell2001].
 * [Moore and Russell, 2001][MooreRussell2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

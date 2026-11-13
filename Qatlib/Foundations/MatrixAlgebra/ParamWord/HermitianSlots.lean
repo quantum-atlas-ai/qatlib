@@ -31,7 +31,6 @@ bounds. These slot estimates support the circuit analysis of [TranEtAl2026].
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
 set_option synthInstance.maxHeartbeats 200000

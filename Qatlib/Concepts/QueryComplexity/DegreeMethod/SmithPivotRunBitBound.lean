@@ -32,9 +32,6 @@ for this integer postprocessing is exemplified by [Shor1997].
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-
 
 open Qatlib.Concepts.HspRecovery.ReductionCore
 
@@ -42,7 +39,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.SmithPivotRunBitBound
 
 open Matrix
 open Qatlib.Concepts.IntWordFraming.WordFraming
-set_option warningAsError false
 
 /-- Decoding a Boolean list as a natural number yields a value strictly below two to the list
 length. -/

@@ -33,7 +33,6 @@ the empty-marked-set branch for the search step in [WiebeKapoorSvore2016].
 * [Wiebe et al., 2016][WiebeKapoorSvore2016]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

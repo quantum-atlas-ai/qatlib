@@ -32,7 +32,6 @@ coefficients, and a positive family size.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
 

@@ -16,7 +16,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed source: arXiv:1012.3174v3. This module packages the paper's quantum
 property-testing model (p. 3) on top of the library's fixed-space counted-query
-circuit model (`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.Complexity`):
+circuit model (`Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity`):
 a `QuantumTester` holds a unitary oracle family for the graph, one unitary
 fixed-gate circuit, one normalized start state, an instance-dependent accepting
 set of basis states, and the accounted time. `acceptProb` is the acceptance

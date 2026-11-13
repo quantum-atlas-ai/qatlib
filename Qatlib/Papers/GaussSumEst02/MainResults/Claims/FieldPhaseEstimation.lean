@@ -28,8 +28,6 @@ Fourier-character phase-change identity. Its estimation guarantee is conditional
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

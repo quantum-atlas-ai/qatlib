@@ -36,8 +36,6 @@ estimates; entropy conventions follow [Wilde2017].
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

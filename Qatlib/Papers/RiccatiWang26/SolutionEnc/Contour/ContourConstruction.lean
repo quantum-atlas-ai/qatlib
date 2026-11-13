@@ -182,11 +182,10 @@ theorem proposition_A_5_ordinary_input_error
 
 /-! ## Proposition D.4: paired-rectangle Gauss–Legendre rule -/
 
-/-- RiccatiWang26, Proposition D.4 (p. 76), Eqs. (D.10)–(D.14).  On the paired rectangles (D.8)
-with strip width `δ = Δax/αH`, the `p`-point Gauss–Legendre rule on each panel has quadrature
-error `‖Sσ,g,R - Tσ,g,R‖ ≤ 8 ℓ(Γσ) αR 4^{-p}/(πδ)`; the panel count obeys
-`Npan ≤ 4 ℓ(Γσ)/δ + 4`, and the generalized singularity factor satisfies
-`R_DRE ≤ 2(1 + 2√2)/δ` with block normalizations `O(R_DRE)`. -/
+/-- Conditional arithmetic associated with Proposition D.4. Returns the assumed
+quadrature error and node-count identity, weakens two assumed normalization
+identities to inequalities, and propagates the assumed error to a supplied
+tolerance. No quadrature construction or query implementation is proved. -/
 theorem proposition_D_4_paired_rectangle_quadrature
     (δ αR ℓΓ εT RDRE αgR : ℝ) (S Tg : Sq n) (p Npan mT : ℕ)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hαR : 0 ≤ αR) (hℓ : 0 ≤ ℓΓ)
@@ -205,10 +204,10 @@ theorem proposition_D_4_paired_rectangle_quadrature
   -- target weighted Riesz integral; (D.10) is the standard geometric-decay estimate for
   -- `p`-point Gauss–Legendre on an analytic integrand.  The statement records (D.10)–(D.14)
   -- in the paper's quantities; the analytic decay estimate itself is the hypothesis `herror`.
-  -- Lean gap: Gauss–Legendre error theory (`4^{-p}` rate) and the rectangle geometry.
-  -- Candidate dependencies: Mathlib quadrature (`GaussLegendre` not present), `Real.sqrt`.
-  -- Suggested follow-up: prove the one-panel Legendre error bound by the `(2p)`-th derivative
-  -- estimate, then multiply by the panel count.
+  -- Scope note: the analytic Gauss–Legendre error estimate with rate `4^{-p}` and
+  -- the rectangle geometry are supplied as hypotheses. Deriving the one-panel
+  -- estimate from a `(2p)`-th derivative bound and summing over panels are outside
+  -- the scope of this file.
   exact ⟨herror, hmT, le_of_eq hRDRE, le_of_eq hαgR, fun h => herror.trans h⟩
 
 /-! ## Proposition E.4: power-weighted circular rule -/

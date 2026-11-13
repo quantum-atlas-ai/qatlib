@@ -30,7 +30,6 @@ for the counted circuit resources and evolution times. See [GaoEtAl2021] for the
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

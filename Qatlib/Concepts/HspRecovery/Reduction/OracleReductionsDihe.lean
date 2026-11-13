@@ -28,8 +28,6 @@ shift and hidden reflection problems.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore

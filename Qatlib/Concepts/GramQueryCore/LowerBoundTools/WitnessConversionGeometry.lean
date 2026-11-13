@@ -32,7 +32,6 @@ quantitative witness distance and size bounds for the nonzero construction.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

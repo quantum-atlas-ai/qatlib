@@ -27,7 +27,6 @@ The quantum risk-analysis setting is described in [WoernerEgger2019].
 * [Woerner and Egger, 2019][WoernerEgger2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
@@ -41,7 +40,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
-set_option linter.unusedSimpArgs false
 namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix Polynomial
 open scoped Classical BigOperators

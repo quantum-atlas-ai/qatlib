@@ -37,7 +37,6 @@ delta / 4` when the channel difference has diamond norm at most `delta`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
@@ -52,9 +51,6 @@ open Matrix Qatlib
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 /-- The equal-prior binary success functional, defined as half the sum of the real traces of `M

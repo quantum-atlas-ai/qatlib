@@ -33,7 +33,6 @@ commutator factors for zero-diagonal matrices and proves
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Papers.SolovayKitaev05.MainResults.HermitianDecomposition
 

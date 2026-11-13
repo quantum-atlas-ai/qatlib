@@ -31,7 +31,6 @@ sums. It proves the off-center decay and near-center lower bounds used in Append
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

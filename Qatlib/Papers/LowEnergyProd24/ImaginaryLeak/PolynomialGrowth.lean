@@ -28,7 +28,6 @@ used to control weighted evolution in the low-energy product-formula analysis. S
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 900000

@@ -59,7 +59,7 @@ def pureDistance {I : Type} [Fintype I] [DecidableEq I] (u v : QState I) : ℝ :
 
 /-- Trace distance `D(ρ,σ) = ‖ρ - σ‖₁ / 2` (Eq. (22), p. 10) for operators on an arbitrary
 finite index set.  For `I = Fin n` this is definitionally the frozen
-`QuantumAlgorithm.Foundations.MixedFidelity.FidelityMetric.traceDistance`, but it is also
+`Qatlib.Foundations.MixedFidelity.FidelityMetric.traceDistance`, but it is also
 needed for the tensor-power register `Fin k → Fin n` of Lemma 4, Eq. (24), p. 10. -/
 def traceDistanceG {I : Type} [Fintype I] [DecidableEq I]
     (ρ σ : Matrix I I ℂ) : ℝ :=

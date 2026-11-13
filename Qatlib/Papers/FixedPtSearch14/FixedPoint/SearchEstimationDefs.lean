@@ -30,7 +30,6 @@ minimum grid sizes for exact counting.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
@@ -51,8 +50,6 @@ open BHMTTh17
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 namespace SearchEstimationCore

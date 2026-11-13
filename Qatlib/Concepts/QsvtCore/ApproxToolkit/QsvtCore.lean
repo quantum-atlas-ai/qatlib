@@ -37,7 +37,6 @@ namespace Qatlib.Concepts.QsvtCore.ApproxToolkit
 open Polynomial
 open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
-set_option warningAsError false
 
 /-- The odd truncated-series polynomial (X/2) times the sum of `cReal i` (1 − X²/4)ⁱ for i from
 zero through `K`. -/

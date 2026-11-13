@@ -27,8 +27,6 @@ in [GilyenSuLowWiebe2019].
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
-
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

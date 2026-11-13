@@ -31,7 +31,6 @@ Hamiltonian energies under the hypotheses of `padded_actual_clause2_contract`. S
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

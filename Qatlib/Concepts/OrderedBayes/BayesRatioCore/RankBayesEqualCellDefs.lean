@@ -32,8 +32,6 @@ representation of the joint law by sampling a prior rank followed by its answer.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch

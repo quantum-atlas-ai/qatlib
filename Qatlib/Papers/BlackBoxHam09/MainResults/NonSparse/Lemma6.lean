@@ -27,7 +27,6 @@ The rotation and parameter estimates support the amplitude amplification analysi
 * [Berry and Childs, 2012][BerryChilds2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -24,8 +24,6 @@ section energy of the other summand.
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 
 open scoped ComplexOrder

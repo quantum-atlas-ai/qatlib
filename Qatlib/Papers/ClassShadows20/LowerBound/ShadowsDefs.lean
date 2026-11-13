@@ -33,7 +33,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -54,7 +53,6 @@ open Qatlib.Concepts.CopyEvolution.Discriminate
 open Qatlib.Concepts.AmplitudeSearch.Amplification
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.ClassShadows20.LowerBound
 

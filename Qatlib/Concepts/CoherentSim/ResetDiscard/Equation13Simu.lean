@@ -22,8 +22,6 @@ vectors fixed by the projection. This algebraic identity underlies the robustnes
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 
 open Matrix

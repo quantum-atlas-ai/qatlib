@@ -42,8 +42,6 @@ by this endomorphism. See [BaconChildsVanDam2005] for the mathematical setting.
 * [Bacon et al., 2005][BaconChildsVanDam2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

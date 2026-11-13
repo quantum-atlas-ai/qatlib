@@ -12,12 +12,13 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Two-Party Sequential Measurement Bound for De-Merlinization (Corollary 13)
 
-This module formalizes Corollary 13 (Section 4, pp. 14--15) of Harrow, Lin, and
+This module proves scalar inequalities inspired by Corollary 13 (Section 4, pp. 14--15) of Harrow, Lin, and
 Montanaro on distinguishing high bipartite witness acceptance from uniformly low
 witness acceptance on `ℂ^D ⊗ ℂ^d` using only `(Γ, ψ, η)`: if some normalized
 witness `σ` achieves `jointAccept Γ ψ σ ≥ η`, the acceptance value is at least
 `η^2 / 7`, while if every normalized `σ` satisfies `jointAccept Γ ψ σ ≤ ζ`, it
-is at most `2 ζ ⌈d / η⌉`.
+is at most `2 ζ ⌈d / η⌉`. The witness uses classical case analysis over all
+normalized witnesses; no one-copy measurement or query implementation is proved.
 
 ## Main definitions
 
@@ -26,7 +27,7 @@ is at most `2 ζ ⌈d / η⌉`.
 
 ## Main statements
 
-* `source_corollary13`: Corollary 13, two-party acceptance separation between
+* `source_corollary13`: Scalar acceptance separation patterned on Corollary 13, between
   `η^2 / 7` and `2 ζ ⌈d / η⌉` for `d ≥ 1`.
 
 ## References
@@ -62,8 +63,8 @@ noncomputable def jointAccept {A B : Type*} [Fintype A] [Fintype B]
     (Γ : Matrix (A × B) (A × B) ℂ) (ψ : QState A) (σ : QState B) : ℝ :=
   (star (jointVec ψ σ) ⬝ᵥ (Γ *ᵥ jointVec ψ σ)).re
 
-/-- **Corollary 13** (arXiv:1607.03236v3, page 15).  There is a test, using
-one copy of `|ψ⟩`, which for every two-outcome measurement element `Γ` on
+/-- Scalar analogue of Corollary 13 (arXiv:1607.03236v3, page 15).
+There is a real-valued function which for every two-outcome measurement element `Γ` on
 `H_A ⊗ H_B = ℂ^D ⊗ ℂ^d`, every normalized `ψ`, and every `η > 0`, `ζ ≥ 0`,
 satisfies:
 
@@ -72,7 +73,8 @@ satisfies:
 * if every normalized `σ` gives `⟨ψ⊗σ|Γ|ψ⊗σ⟩ ≤ ζ`, the test accepts `ψ` with
   probability at most `2ζ⌈d/η⌉`.
 
-The witness is a classical threshold test.  Its upper bound uses normalization of
+The witness is a classical threshold function, with no physical realization or
+copy bound. Its upper bound uses normalization of
 the product vector, positivity of `1 - Γ`, and the ceiling bound for `d / η`. -/
 theorem source_corollary13 (D d : ℕ) (hd : 0 < d) :
     ∃ test : Matrix (Fin D × Fin d) (Fin D × Fin d) ℂ → QState (Fin D) → ℝ → ℝ,

@@ -26,8 +26,6 @@ convention on the tail vector, and verifies normalization and the conditioned ou
 * [Paparo et al., 2014][PaparoEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QActiveLearn14.NativeReflect

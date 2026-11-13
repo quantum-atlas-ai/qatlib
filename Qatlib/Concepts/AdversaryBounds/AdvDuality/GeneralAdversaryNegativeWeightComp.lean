@@ -50,7 +50,6 @@ constant blocks.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -59,14 +58,11 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal 
 open Qatlib
 open Qatlib
 
-
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
 open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

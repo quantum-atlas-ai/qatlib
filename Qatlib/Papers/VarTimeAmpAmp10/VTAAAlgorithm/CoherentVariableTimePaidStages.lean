@@ -54,8 +54,6 @@ open Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 open Qatlib.Concepts.QlsReadoutSpec.ProgramModel
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators
-set_option warningAsError false
-set_option linter.unusedSectionVars false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 

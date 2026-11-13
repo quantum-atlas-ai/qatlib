@@ -29,8 +29,6 @@ cost expression under positivity hypotheses. See [MagniezNayak2005].
 * [Magniez and Nayak, 2005][MagniezNayak2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.GrpCommTest05.MainResults

@@ -55,7 +55,6 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Concepts.SpectralFilter.PhaseReadout.ArithState
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.WalkFind.UniformThree
 
@@ -63,7 +62,6 @@ open Qatlib
 open Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- Arithmetic states are equal when their data, addend, carry, and control components are
 equal. -/

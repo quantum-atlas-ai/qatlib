@@ -23,8 +23,6 @@ described in [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 

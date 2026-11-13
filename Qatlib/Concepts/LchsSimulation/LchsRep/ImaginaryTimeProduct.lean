@@ -29,7 +29,6 @@ vector. See [ChildsEtAl2021Trotter] for the mathematical setting.
 * [Childs et al., 2021][ChildsEtAl2021Trotter]
 -/
 
-
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Concepts.BlockEncoding.Postselection
 
@@ -46,7 +45,6 @@ namespace Qatlib.Concepts.LchsSimulation.LchsRep
 
 open Matrix Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The list of `r` repeated pairs of exponentials of `-(t / r) • A` and `-(t / r) • B`. -/
 noncomputable def imaginaryWord {I : Type} [Fintype I] [DecidableEq I]

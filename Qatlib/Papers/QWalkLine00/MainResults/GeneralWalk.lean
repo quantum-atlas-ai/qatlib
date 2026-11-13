@@ -26,8 +26,6 @@ mass and cardinality hypotheses, in the setting of [NayakVishwanath2000].
 * [Nayak and Vishwanath, 2000][NayakVishwanath2000]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkLine00.MainResults
 
 set_option autoImplicit false

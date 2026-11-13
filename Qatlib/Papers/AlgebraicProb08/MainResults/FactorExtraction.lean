@@ -26,7 +26,6 @@ probability under a uniform unit is at least one half. See [ChildsVanDam2010].
 * [Childs and van Dam, 2010][ChildsVanDam2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

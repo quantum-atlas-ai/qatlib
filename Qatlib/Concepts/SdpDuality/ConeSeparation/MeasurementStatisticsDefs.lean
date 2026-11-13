@@ -36,7 +36,6 @@ with explicit resource ledgers, including the quadratic shadow statistics associ
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

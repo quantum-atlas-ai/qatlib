@@ -66,7 +66,6 @@ source-round ledgers record the relation between source depths and controlled-ma
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -78,8 +77,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

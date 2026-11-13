@@ -25,9 +25,9 @@ This module fixes the objects that all claims of the paper are stated about:
   of §2 (Appendix A, Eq. (15)),
 * the indefinite Hermitian construction of §7 on the `4N`-dimensional space,
 * the schedules of Eq. (5)/(6) (AQC(p)) and Eq. (8) (AQC(exp)),
-* the Schrödinger evolution Eq. (2) as the Frozen Dyson propagator `orderedEvolution`
-  (`QuantumAlgorithm.Papers.QLinearODE17.TaylorAnalysis`,
-  Frozen FQN `QuantumAlgorithm.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`),
+* the Schrödinger evolution Eq. (2) as the Dyson propagator `orderedEvolution`
+  (`Qatlib.Papers.QLinearODE17.TaylorAnalysis`,
+  Reusable FQN `Qatlib.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`),
 * the density-matrix error `‖|ψ_T(s)⟩⟨ψ_T(s)| - |x̃⟩⟨x̃|‖₂` of §2.
 
 The paper is normalized as `‖A‖₂ = 1` and `N = 2ⁿ`; here `N : ℕ` is arbitrary and
@@ -168,7 +168,7 @@ noncomputable def aqcGenerator {ι : Type} (H : ℝ → Matrix ι ι ℂ) (T : �
     ℝ → Matrix ι ι ℂ :=
   fun s => (Complex.I * (T : ℂ)) • H s
 
-/-- The time-ordered propagator of Eq. (2), built from the Frozen Dyson series. -/
+/-- The time-ordered propagator of Eq. (2), built from the established Dyson series. -/
 noncomputable def aqcPropagator {ι : Type} [Fintype ι] [DecidableEq ι]
     (H : ℝ → Matrix ι ι ℂ) (T s : ℝ) : Matrix ι ι ℂ :=
   orderedEvolution (aqcGenerator H T) 0 s

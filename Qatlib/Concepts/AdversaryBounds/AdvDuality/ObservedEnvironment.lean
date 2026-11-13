@@ -35,7 +35,6 @@ without changing the recorded branch metadata.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -44,7 +43,6 @@ universe u v
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.Measurement
-
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 

@@ -28,7 +28,6 @@ verify this construction. The circuit background is described in [KitaevShenVyal
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

@@ -31,7 +31,6 @@ background.
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -53,9 +52,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedVariables false
 
 open scoped Classical BigOperators
 open scoped Matrix.Norms.L2Operator
@@ -92,6 +88,8 @@ theorem conjTranspose_mulVec_ket_apply {H K : Type*} [Fintype H] [DecidableEq H]
 noncomputable def szegedyFrame (j : I) : Matrix (I × I) I ℂ :=
   Matrix.of fun p i => if p = (i, j) then 1 else 0
 
+omit [Fintype I] in
+
 /-- The frame entry is 1 exactly when the pair index is `(i, j)`, and is zero otherwise. -/
 theorem szegedyFrame_apply (j : I) (p : I × I) (i : I) :
     szegedyFrame j p i = if p = (i, j) then (1 : ℂ) else 0 := rfl
@@ -110,8 +108,7 @@ theorem szegedyZeroReflection_eq (j : I) :
   obtain ⟨c, d⟩ := q
   simp only [szegedyZeroReflection, tensorGate_apply, ReflectionAbout,
     Matrix.smul_apply, smul_eq_mul, Matrix.sub_apply, Matrix.one_apply,
-    outerProduct_apply, Ket, RCLike.star_def, star_one, mul_one, mul_zero,
-    Matrix.mul_apply, Matrix.conjTranspose_apply, szegedyFrame_apply]
+    outerProduct_apply, Ket, RCLike.star_def, Matrix.mul_apply, Matrix.conjTranspose_apply, szegedyFrame_apply]
   have hstar : (starRingEnd ℂ) (if d = j then (1 : ℂ) else 0)
       = if d = j then (1 : ℂ) else 0 := by
     by_cases hdj : d = j <;> simp [hdj]
@@ -123,14 +120,14 @@ theorem szegedyZeroReflection_eq (j : I) :
       · intro i _ hi
         have hne : ¬((a, b) = (i, j)) := by
           rw [Prod.mk.injEq]; exact fun e => hi e.1.symm
-        rw [if_neg hne, zero_mul]
+        rw [ite_eq_right hne, zero_mul]
       · intro hcon; exact absurd (Finset.mem_univ _) hcon
     · rw [Finset.sum_eq_zero]
       · simp [hbj, hac, Prod.mk.injEq]
       · intro i _
         have hne : ¬((a, b) = (i, j)) := by
           rw [Prod.mk.injEq]; exact fun e => hbj e.2
-        rw [if_neg hne, zero_mul]
+        rw [ite_eq_right hne, zero_mul]
   · rw [Finset.sum_eq_zero]
     · simp [hac, Prod.mk.injEq]
     · intro i _
@@ -138,8 +135,8 @@ theorem szegedyZeroReflection_eq (j : I) :
       · have h2 : ¬((c, d) = (i, j)) := by
           rw [Prod.mk.injEq] at h1 ⊢
           exact fun e => hac (h1.1.trans e.1.symm)
-        rw [if_pos h1, if_neg h2, map_zero, mul_zero]
-      · rw [if_neg h1, zero_mul]
+        rw [ite_eq_left h1, ite_eq_right h2, map_zero, mul_zero]
+      · rw [ite_eq_right h1, zero_mul]
 
 /-- The anchor reflection fixes a pair basis ket when its second coordinate is `j` and negates
 it otherwise. -/
@@ -156,23 +153,23 @@ theorem szegedyZeroReflection_mulVec_ket (j a b : I) :
     · rw [hb, applyGate_reflectionAbout_of_fixed
         (show ApplyGate (outerProduct (Ket j)) (Ket j) = Ket j from by
           show outerProduct (Ket j) *ᵥ Ket j = Ket j
-          rw [outerProduct_mulVec, inner_ket_ket, if_pos rfl, one_smul])]
-      rw [if_pos rfl]
+          rw [outerProduct_mulVec, inner_ket_ket, ite_eq_left rfl, one_smul])]
+      rw [ite_eq_left rfl]
     · rw [applyGate_reflectionAbout_of_zero
         (show ApplyGate (outerProduct (Ket j)) (Ket b) = 0 from by
           show outerProduct (Ket j) *ᵥ Ket b = 0
-          rw [outerProduct_mulVec, inner_ket_ket, if_neg (fun e : j = b => hb e.symm),
+          rw [outerProduct_mulVec, inner_ket_ket, ite_eq_right (fun e : j = b => hb e.symm),
             zero_smul])]
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
   show TensorState (Ket a) (ApplyGate (ReflectionAbout (outerProduct (Ket j))) (Ket b))
       = _
   rw [hsecond]
   by_cases hb : b = j
-  · rw [if_pos hb, tensorState_ket_ket, if_pos hb]
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb, tensorState_ket_ket, ite_eq_left hb]
+  · rw [ite_eq_right hb]
     have hneg : TensorState (Ket a) (-(Ket b)) = -(TensorState (Ket a) (Ket b)) := by
       funext x; simp [TensorState]
-    rw [hneg, tensorState_ket_ket, if_neg hb]
+    rw [hneg, tensorState_ket_ket, ite_eq_right hb]
 
 /-- For every anchor, `szegedyZeroReflection` is the stated tensor-product reflection and is
 unitary. -/
@@ -195,9 +192,9 @@ theorem szegedyPreparation_mul_frame {P : I → I → ℝ} {j : I}
     rw [mulVec_ket_column]
     show (∑ r : I × I, U p r * szegedyFrame j r i) = _
     rw [Finset.sum_eq_single (i, j)]
-    · rw [szegedyFrame_apply, if_pos rfl, mul_one]
+    · rw [szegedyFrame_apply, ite_eq_left rfl, mul_one]
     · intro r _ hr
-      rw [szegedyFrame_apply, if_neg hr, mul_zero]
+      rw [szegedyFrame_apply, ite_eq_right hr, mul_zero]
     · intro hcon; exact absurd (Finset.mem_univ _) hcon
   rw [h1, ← tensorState_ket_ket i j, h i, mulVec_ket_column]
 
@@ -225,6 +222,8 @@ forward queries, and two adjoint queries. -/
 noncomputable def countedSzegedyWord (j : I) : List (AdjointStep (I × I)) :=
   [.gate SwapGate, .forward, .gate (szegedyZeroReflection j), .backward,
    .gate SwapGate, .forward, .gate (szegedyZeroReflection j), .backward]
+
+omit [Fintype I] in
 
 /-- Expands the Szegedy update word and verifies that it contains four queries and four gates. -/
 theorem counted_szegedy_actual_word_and_counts : ∀ (j : I),

@@ -13,32 +13,14 @@ import Qatlib.Papers.NonAbelianHSP01.MainResults.AbelianHSP
 import Mathlib.Tactic
 
 /-!
-# Algebraic hidden-subgroup reductions and cost ledgers
+# Algebraic hidden-subgroup reconstruction
 
-Supplies oracle records and finite generating sets, and proves closure properties of the ledger
-bound `PolyBoundedIn`. The main reductions reconstruct a hidden subgroup from supplied
-commutator data or from join and intersection information with a normal subgroup. See
-[IvanyosMagniezSantha2003] for the surrounding analysis.
-
-## Main statements
-
-* `theorem_eleven_reduction`: Given generators for the join and intersection of `I.H` with the
-  commutator subgroup, compatible lifts into `I.H`, and a bounded ledger, there exists a
-  hidden-subgroup solution with the stated `PolyBoundedIn` bound.
-* `rightCoset_inter_eq_image`: For normal `N` and `u ∈ leftCoset z H ∩ N`, the intersection `(z
-  * N) ∩ H` is the translate of `H ⊓ N` by `u⁻¹ * z`.
-* `theorem_thirteen_reduction`: If `H₁ ≤ H` contains `H ⊓ N` and has the same join with normal
-  `N` as `H`, then `H₁ = H`.
-
-## References
-
-* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+Proves subgroup reconstruction from supplied generators and compatible lifts,
+and a coset identity. The separate ledger arithmetic lemma is purely numerical;
+it does not attach costs to the reconstruction or establish an oracle algorithm.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
@@ -60,14 +42,8 @@ theorem polyBoundedIn_const_mul {G : Type*} [Group G] (B : BlackBoxGroupData G)
       Nat.mul_le_mul_right _ hC
     _ = (C * (c + 1)) * (B.inputSize + p + 1) ^ k := by ring
 
-/-- The zero ledger satisfies `PolyBoundedIn B p`. -/
-theorem polyBoundedIn_zero {G : Type*} [Group G] (B : BlackBoxGroupData G) (p : ℕ) :
-    PolyBoundedIn B p (CostLedger.zero) := by
-  refine ⟨1, 0, ?_⟩
-  simp
-
-/-- For any black-box group data, a record satisfying the `Oracles` specifications exists
-[IvanyosMagniezSantha2003]. -/
+/-- Noncomputable existence of mathematical functions satisfying the oracle
+specifications. This does not implement these oracles or bound their costs. -/
 theorem oracles_nonempty {G : Type*} [Group G] (B : BlackBoxGroupData G) :
     Nonempty (Oracles B) := by
   classical
@@ -89,21 +65,17 @@ theorem exists_finset_closure_eq {G : Type*} [Group G] (N : Subgroup G)
   · intro x hx
     exact Subgroup.subset_closure (by simp [hx])
 
-/-- Given generators for the join and intersection of `I.H` with the commutator subgroup,
-compatible lifts into `I.H`, and a bounded ledger, there exists a hidden-subgroup solution
-with the stated `PolyBoundedIn` bound. -/
-theorem theorem_eleven_reduction {G : Type*} [Group G] (B : BlackBoxGroupData G)
+/-- Algebraic reconstruction from supplied join/intersection generators and lifts.
+The returned finite set generates the hidden subgroup. No cost is assigned. -/
+theorem theorem_eleven_reduction_generators {G : Type*} [Group G]
     {X : Type*} (I : HiddenSubgroupInstance G X)
     (S : Finset G) (hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)
     (T : Finset G) (hT : Subgroup.closure (T : Set G) = I.H ⊓ commutator G)
     (u : G → G) (hu_mem : ∀ x ∈ (S : Set G), u x ∈ I.H)
-    (hu_eq : ∀ x ∈ (S : Set G), ∃ n ∈ commutator G, u x * n = x)
-    (costS : CostLedger)
-    (hcostS : PolyBoundedIn B (Nat.card (commutator G)) costS) :
-    ∃ s : HiddenSubgroupSolution B I,
-      PolyBoundedIn B (Nat.card (commutator G)) s.cost := by
+    (hu_eq : ∀ x ∈ (S : Set G), ∃ n ∈ commutator G, u x * n = x) :
+    ∃ R : Finset G, Subgroup.closure (R : Set G) = I.H := by
   classical
-  haveI : (commutator G).Normal := inferInstance
+  have : (commutator G).Normal := inferInstance
   set Gens : Finset G := S.image u ∪ T with hGens
   set H₁ : Subgroup G := Subgroup.closure (Gens : Set G) with hH₁def
   have hH₁le : H₁ ≤ I.H := by
@@ -143,10 +115,9 @@ theorem theorem_eleven_reduction {G : Type*} [Group G] (B : BlackBoxGroupData G)
   have hH₁ : H₁ = I.H :=
     subgroup_eq_of_inf_eq_and_sup_eq (H₁ := H₁) (H := I.H) (N := commutator G)
       hH₁le hinf hsup
-  refine ⟨⟨Gens, ?_, ⟨costS.total * (costS.total + 1), 0, 0⟩⟩, ?_⟩
-  · rw [hH₁def] at hH₁
-    exact hH₁
-  · exact polyBoundedIn_const_mul (G := G) B (Nat.card (commutator G)) costS.total costS hcostS
+  refine ⟨Gens, ?_⟩
+  rw [hH₁def] at hH₁
+  exact hH₁
 
 section TheoremThirteen
 

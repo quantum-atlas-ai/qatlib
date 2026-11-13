@@ -27,8 +27,6 @@ overlap estimate to conditional height and mass hypotheses for the Hadamard walk
 * [Nayak and Vishwanath, 2000][NayakVishwanath2000]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkLine00.MainResults
 
 set_option autoImplicit false

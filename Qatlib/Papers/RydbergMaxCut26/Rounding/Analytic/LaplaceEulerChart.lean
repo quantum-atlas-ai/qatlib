@@ -24,8 +24,6 @@ half-line into an Euler integral on the unit interval. See [CrostaSaubanereHuber
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

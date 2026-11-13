@@ -30,10 +30,7 @@ describes a hidden subgroup as the identity fiber of its hiding function. See
 * [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 

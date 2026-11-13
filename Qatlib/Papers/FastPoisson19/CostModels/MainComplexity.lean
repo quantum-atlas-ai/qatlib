@@ -24,8 +24,6 @@ in [WangEtAl2020].
 * [Wang et al., 2020][WangEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

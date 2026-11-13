@@ -38,7 +38,6 @@ on the source successful window and containment of the good window when `P^2 ≤
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -48,7 +47,6 @@ open Qatlib.Concepts.AmpTransform.FullLayerCF
 open Qatlib.Concepts.AmpTransform.LegendreWindow
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
@@ -85,12 +83,12 @@ def stageAAmplifiedFourierNoiseClause25Spec : Prop :=
   (¬ Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryOriginal) ∧
   (¬ ∀ (ξ : ℝ) (q : ℚ), |ξ - q| ≤ 1 / (2 * (q.den : ℝ) ^ 2) →
       ∃ n : ℕ, q = ξ.convergent n) ∧
-  (∀ (N P : ℕ) (hP : 2 ≤ P) (y : Fin N) (hy : y ∈
+  (∀ (N P : ℕ) (_hP : 2 ≤ P) (y : Fin N) (_hy : y ∈
       Qatlib.Concepts.AmpTransform.FullLayerCF.aqSourceSuccessfulWindow N P),
     ∃ a n : ℕ, a < P ∧ Nat.Coprime a P ∧
       (a : ℚ) / P = ((y.val : ℝ) / N).convergent n ∧
       (((y.val : ℝ) / N).convergent n).den = P) ∧
-  (∀ (N P : ℕ) (hN : 0 < N) (hP : 0 < P) (hsize : P ^ 2 ≤ N),
+  (∀ (N P : ℕ) (_hN : 0 < N) (_hP : 0 < P) (_hsize : P ^ 2 ≤ N),
     Qatlib.Concepts.AmpTransform.ErrorStream.aqGoodWindow N P ⊆
       Qatlib.Concepts.AmpTransform.FullLayerCF.aqSourceSuccessfulWindow N P)
 

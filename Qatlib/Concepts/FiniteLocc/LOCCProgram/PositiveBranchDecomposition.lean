@@ -33,8 +33,6 @@ give a partial-trace identity for conjugation on a discarded tensor factor.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
 open Qatlib.Foundations.PureStateMath.Reflection

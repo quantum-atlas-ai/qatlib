@@ -25,7 +25,6 @@ formulation records the source convention used in the QSP construction of [LowCh
   Processing*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs

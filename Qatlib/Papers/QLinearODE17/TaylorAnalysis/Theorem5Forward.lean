@@ -40,7 +40,6 @@ noncomputable section
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator Kronecker
-set_option warningAsError false
 
 /-- The square of a weighted finite sum is bounded by the total nonnegative weight times the
 weighted sum of squares. -/

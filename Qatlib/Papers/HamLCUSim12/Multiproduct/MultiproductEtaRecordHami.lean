@@ -28,7 +28,6 @@ linear-combination simulation framework.
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
 noncomputable section

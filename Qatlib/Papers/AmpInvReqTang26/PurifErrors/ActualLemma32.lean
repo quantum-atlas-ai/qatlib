@@ -23,8 +23,6 @@ development supports the treatment in [TangWright2025].
 * [Tang and Wright, 2025][TangWright2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

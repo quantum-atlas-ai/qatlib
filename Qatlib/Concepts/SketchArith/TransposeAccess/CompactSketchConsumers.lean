@@ -31,8 +31,6 @@ sketches in [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 

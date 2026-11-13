@@ -37,9 +37,6 @@ real part of the scalar response to singular values, following the QSVT framewor
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.WalkSearch.Spectral
 
 open Qatlib.Concepts.Execution.WorkspaceCP

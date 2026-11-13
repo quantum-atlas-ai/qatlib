@@ -37,11 +37,9 @@ The mathematical background is described in [KitaevShenVyalyi2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BosonFock.BosonOperators
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.CountingClasses.ClassTransport
 
@@ -2482,7 +2480,6 @@ theorem clause3_clause3_counter :
   exact clause19Aux_hashWitnessSet_notInNP hNP
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 open scoped Classical
@@ -2690,7 +2687,6 @@ theorem clause1Aux_alt_zero_forall {plen : ℕ} {D : List Bool → Prop}
     exact ih ((z ++ List.ofFn w) ++ List.ofFn w') (hw w')
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 open scoped Classical

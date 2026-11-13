@@ -33,7 +33,6 @@ and its X stabilizer. These are standard circuit and stabilizer constructions de
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
 open Qatlib.Foundations.PureStateMath

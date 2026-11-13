@@ -30,7 +30,6 @@ described in [KitaevShenVyalyi2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

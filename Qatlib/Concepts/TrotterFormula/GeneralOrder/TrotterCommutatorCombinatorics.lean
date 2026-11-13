@@ -272,7 +272,6 @@ theorem finiteRangeLedger_witness {S : Type} [Fintype S] {m : ℕ}
       packing_card_bound supp τ hτ hne, rfl, le_rfl⟩
 open scoped ComplexOrder
 open Set
-set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 variable {S ι : Type} [Fintype S] [Fintype ι]

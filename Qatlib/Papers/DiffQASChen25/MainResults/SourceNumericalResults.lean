@@ -13,9 +13,7 @@ import Mathlib.Tactic
 
 Chen, Liu, Chen, Huang, Chang and Huang, *Differentiable Quantum Architecture
 Search in Quantum-Enhanced Neural Network Parameter Generation*, fixed
-arXiv:2505.09653v1 (PDF SHA-256
-`f4c2826106aa16ea779151a598c5a2357c823e9e162f1138b937c121234b54c6`),
-§VI p.4–9.
+arXiv:2505.09653v1, §VI p.4–9.
 
 The active claim `c002` is the paper's §VI comparison against twelve
 hand-designed QNN baselines.  Its mathematical content is the *structural and
@@ -41,9 +39,9 @@ and consumed as an explicit hypothesis by `source_numerical_results`: given the
 authors' measurement table and its comparison outcome, the §VI claim follows
 unconditionally from the structural and arithmetic facts proved below.
 
-Boundary: nothing here is a worst-case accuracy guarantee or a classical
-complexity lower bound; the claim itself says so.  No `axiom`, no `admit`, no
-`unsafe`, no `native_decide`.
+Scope note: this module formalizes the structural and arithmetic content of the
+empirical comparison claim; worst-case accuracy guarantees and classical
+complexity lower bounds are outside its scope.
 -/
 
 set_option autoImplicit false
@@ -228,17 +226,14 @@ the published text and Lean has no model of the training dynamics.  This is the
 exact logical content of the empirical claim: once a measurement table and its
 comparison outcome are given, the claim holds.
 
-* Fixed source: arXiv:2505.09653v1, PDF SHA-256
-  `f4c2826106aa16ea779151a598c5a2357c823e9e162f1138b937c121234b54c6`.
+* Fixed source: arXiv:2505.09653v1.
 * Source location: §VI p.5–8 (classification Table I and §VI.A p.5,
   time-series §VI.B p.5–8, reinforcement learning §VI.C p.8–9).
 * Source argument: the authors train DiffQAS-QT and each of the twelve
   hand-designed QNN baselines on every task family and compare the curves of
   Figures 5–14; the parameter counts are read from §VI.A/B/C.
-* Lean gap: the raw measurement tables are absent from the text, so `record`
-  cannot be constructed inside Lean.
-* Suggested continuation: transcribe the authors' tables, then apply this
-  theorem to the transcribed `record`, `ε` and comparison proof. -/
+* The raw measurement tables are absent from the source text, so `record` is
+  treated as an input to this structural comparison theorem. -/
 theorem source_numerical_results
     (record : TaskFamily → TaskOutcome) (ε : ℝ) (hε : 0 ≤ ε)
     (hrecord : ∀ t, (record t).matchedOrBetter ε) :

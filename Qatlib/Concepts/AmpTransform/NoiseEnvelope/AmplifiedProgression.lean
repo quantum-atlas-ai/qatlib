@@ -30,8 +30,6 @@ amplitude, and gain bounds for the progression-sampling analysis of [Cornwell201
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Qatlib.Concepts.HspRecovery.CyclicRecovery

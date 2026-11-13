@@ -27,8 +27,6 @@ An approximation to `Δ * p0` with error strictly below `Δ / 6` separates the p
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Cor41

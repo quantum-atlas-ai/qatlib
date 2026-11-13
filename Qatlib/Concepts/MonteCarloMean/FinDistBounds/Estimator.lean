@@ -49,7 +49,6 @@ probability tools support the Monte Carlo estimation setting of [Montanaro2015].
 
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 
 /-- A probability distribution on a finite type, represented by nonnegative real masses summing
@@ -78,6 +77,8 @@ summing their product probabilities. -/
 def probEvent {L : ℕ} (p : FinDist X) (E : (Fin L → X) → Prop) [DecidablePred E] : ℝ :=
   ∑ ω ∈ Finset.univ.filter E, p.probOf ω
 
+omit [DecidableEq X] in
+
 /-- The probability weighted sum of a function centered at its expectation is zero. -/
 theorem sum_sub_mean (p : FinDist X) (f : X → ℝ) :
     ∑ x, p.prob x * (f x - expect p f) = 0 := by
@@ -91,6 +92,8 @@ theorem sum_sub_mean (p : FinDist X) (f : X → ℝ) :
   rw [h2, h3, p.sum_one, mul_one]
   exact sub_self (∑ x, p.prob x * f x)
 
+omit [DecidableEq X] in
+
 /-- The product probabilities of all length `L` records sum to one. -/
 theorem sum_probOf (p : FinDist X) (L : ℕ) : ∑ ω : Fin L → X, p.probOf ω = 1 := by
   have hswap : ∑ ω : Fin L → X, ∏ i, p.prob (ω i)
@@ -100,6 +103,8 @@ theorem sum_probOf (p : FinDist X) (L : ℕ) : ∑ ω : Fin L → X, p.probOf ω
   unfold probOf
   rw [hswap, ← Finset.prod_univ_sum, Finset.prod_congr rfl (fun i _ => p.sum_one)]
   simp
+
+omit [DecidableEq X] in
 
 /-- The expectation of a product of separate coordinate functions factors into the product of
 their expectations under independent sampling. -/
@@ -126,11 +131,12 @@ theorem expect_prod {L : ℕ} (p : FinDist X) (g : Fin L → X → ℝ) :
 original distribution. -/
 theorem expect_coord {L : ℕ} (p : FinDist X) (k : Fin L) (h : X → ℝ) :
     ∑ ω : Fin L → X, p.probOf ω * h (ω k) = ∑ x, p.prob x * h x := by
+  let _ := ‹DecidableEq X›
   have hsplit : ∀ ω : Fin L → X,
       h (ω k) = ∏ j, (if j = k then h (ω j) else 1) := by
     intro ω
     rw [Finset.prod_eq_single k]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro j _ hjk
       simp [hjk]
     · intro hcon
@@ -144,7 +150,7 @@ theorem expect_coord {L : ℕ} (p : FinDist X) (k : Fin L) (h : X → ℝ) :
         rw [Finset.prod_eq_single k]
         · simp
         · intro j _ hjk
-          simp only [hjk, if_false, mul_one]
+          simp only [hjk, ite_false, mul_one]
           exact p.sum_one
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
@@ -183,6 +189,7 @@ population variance divided by `L`. -/
 theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) :
     ∑ ω : Fin L → X, p.probOf ω * (avg f ω - expect p f) ^ 2
       = variance p f / L := by
+  let _ := ‹DecidableEq X›
   set μ := expect p f with hμ
   have hcenter : ∀ ω : Fin L → X,
       avg f ω - μ = (∑ k : Fin L, (f (ω k) - μ)) / L := by
@@ -213,15 +220,15 @@ theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L)
             = (f (ω k) - μ) * (f (ω k) - μ) := by
         intro ω
         rw [Finset.prod_eq_single k]
-        · simp only [eq_self, if_true]
+        · simp only [eq_self, ite_true]
         · intro m _ hmk
-          simp only [hmk, if_false]
+          simp only [hmk, ite_false]
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
       have hrhs : ∏ m, (∑ x, p.prob x * (if m = k then (f x - μ) * (f x - μ) else 1))
           = variance p f := by
         rw [Finset.prod_eq_single k]
-        · simp only [eq_self, if_true]
+        · simp only [eq_self, ite_true]
           exact Finset.sum_congr rfl fun x _ => by
             show p.prob x * ((f x - μ) * (f x - μ))
               = p.prob x * ((f x - expect p f) ^ 2)
@@ -230,11 +237,11 @@ theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L)
         · intro m _ hmk
           rw [show (∑ x, p.prob x * (if m = k then (f x - μ) * (f x - μ) else 1))
               = ∑ x, p.prob x from
-            Finset.sum_congr rfl (fun x _ => by simp only [hmk, if_false, mul_one])]
+            Finset.sum_congr rfl (fun x _ => by simp only [hmk, ite_false, mul_one])]
           exact p.sum_one
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       calc ∑ ω : Fin L → X, p.probOf ω * ((f (ω k) - μ) * (f (ω k) - μ))
           = ∑ ω : Fin L → X, p.probOf ω
               * ∏ m, (if m = k then (f (ω m) - μ) * (f (ω m) - μ) else 1) :=
@@ -249,16 +256,16 @@ theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L)
         rw [← Finset.prod_subset (Finset.subset_univ (insert k {j}))
           (fun m _ hm => by
             simp only [Finset.mem_insert, Finset.mem_singleton] at hm
-            rw [if_neg (fun hor => by tauto)]),
+            rw [ite_eq_right (fun hor => by tauto)]),
           Finset.prod_insert (Finset.notMem_singleton.mpr hkj), Finset.prod_singleton]
-        simp only [true_or, or_true, if_true]
+        simp only [true_or, or_true, ite_true]
       have hrhs : ∏ m, (∑ x, p.prob x * (if m = k ∨ m = j then f x - μ else 1))
           = 0 := by
         have hz : (∑ x, p.prob x * (if k = k ∨ k = j then f x - μ else 1)) = 0 := by
-          simp only [eq_self, true_or, if_true]
+          simp only [eq_self, true_or, ite_true]
           exact hmean
         exact Finset.prod_eq_zero (Finset.mem_univ k) hz
-      rw [if_neg hkj]
+      rw [ite_eq_right hkj]
       calc ∑ ω : Fin L → X, p.probOf ω * ((f (ω k) - μ) * (f (ω j) - μ))
           = ∑ ω : Fin L → X, p.probOf ω * ∏ m, (if m = k ∨ m = j then f (ω m) - μ else 1) :=
             Finset.sum_congr rfl fun ω _ => by rw [hprod ω]
@@ -271,7 +278,7 @@ theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L)
     have hinner : ∀ k : Fin L,
         (∑ j : Fin L, (if k = j then variance p f else 0)) = variance p f := by
       intro k
-      rw [Finset.sum_ite_eq, if_pos (Finset.mem_univ k)]
+      rw [Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ k)]
     rw [Finset.sum_congr rfl (fun k _ => hinner k), Finset.sum_const, nsmul_eq_mul,
       Finset.card_univ, Fintype.card_fin]
   calc ∑ ω : Fin L → X, p.probOf ω * (avg f ω - μ) ^ 2
@@ -388,6 +395,8 @@ theorem chebyshev_avg {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) (ε
         rw [show (variance p f / L / ε ^ 2) = variance p f / (L * ε ^ 2) from by
           field_simp]
 
+omit [DecidableEq X] in
+
 /-- The probability of the union of a finite indexed family of sample events is at most the sum
 of their probabilities. -/
 theorem union_bound {L : ℕ} (p : FinDist X) {M : ℕ} (E : Fin M → (Fin L → X) → Prop)
@@ -410,7 +419,7 @@ theorem union_bound {L : ℕ} (p : FinDist X) {M : ℕ} (E : Fin M → (Fin L �
         obtain ⟨m₀, hm₀⟩ := (Finset.mem_filter.mp hω).2
         have h1 : (1 : ℝ) ≤ ∑ m : Fin M, if E m ω then (1 : ℝ) else 0 := by
           have hm₀' : (1 : ℝ) ≤ (if E m₀ ω then (1 : ℝ) else 0) := by
-            rw [if_pos hm₀]
+            rw [ite_eq_left hm₀]
           exact hm₀'.trans (Finset.single_le_sum
             (f := fun m => if E m ω then (1 : ℝ) else 0)
             (fun m _ => by positivity) (Finset.mem_univ m₀))
@@ -432,11 +441,10 @@ theorem union_bound {L : ℕ} (p : FinDist X) {M : ℕ} (E : Fin M → (Fin L �
           exact Finset.sum_congr rfl fun ω _ => by
             rw [mul_ite, mul_one, mul_zero]]
 
-set_option linter.unusedVariables false in
 
 /-- The sample block averages sorted in ascending order, evaluated at index `M / 2` with default
 value zero. -/
-noncomputable def medianOfMeans {L M : ℕ} (p : FinDist X) (f : X → ℝ)
+noncomputable def medianOfMeans {L M : ℕ} (_p : FinDist X) (f : X → ℝ)
     (ω : Fin M → Fin L → X) : ℝ :=
   ((List.ofFn fun m => avg f (ω m)).mergeSort (· ≤ ·)).getD (M / 2) 0
 
@@ -514,6 +522,8 @@ theorem sorted_countP_ge_of_median_dev {M : ℕ} {s : List ℝ} (hs : s.SortedLE
               (fun x hx => decide_eq_true_eq.mpr (htake x hx))).symm
         _ ≤ s.countP _ := List.Sublist.countP_le (List.take_sublist _ s)
 
+omit [DecidableEq X] in
+
 /-- A deviation of the median of block means forces at least `M - M / 2` block averages to have
 the same deviation threshold when `M > 0`. -/
 theorem medianOfMeans_bad_imp_many_bad {L M : ℕ} (p : FinDist X) (f : X → ℝ)
@@ -571,9 +581,9 @@ theorem median_of_means_concentration {L M : ℕ} (p : FinDist X) (f : X → ℝ
           / 3 ^ (M - M / 2) := by
     intro ω
     by_cases h : M - M / 2 ≤ (Finset.univ.filter fun m => ε < |avg f (ω m) - μ|).card
-    · rw [if_pos h, le_div_iff₀ (pow_pos (by norm_num : (0 : ℝ) < 3) _), one_mul]
+    · rw [ite_eq_left h, le_div_iff₀ (pow_pos (by norm_num : (0 : ℝ) < 3) _), one_mul]
       exact pow_le_pow_right₀ (by norm_num) h
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       positivity
 
   have hpow : ∀ ω : Fin M → Fin L → X,
@@ -590,7 +600,7 @@ theorem median_of_means_concentration {L M : ℕ} (p : FinDist X) (f : X → ℝ
         p.probOf ω₀ * (if ε < |avg f ω₀ - μ| then (3 : ℝ) else 1)
           = (if ε < |avg f ω₀ - μ| then 3 * p.probOf ω₀ else p.probOf ω₀) := by
       intro ω₀
-      by_cases h : ε < |avg f ω₀ - μ| <;> simp only [h, if_true, if_false] <;> ring
+      by_cases h : ε < |avg f ω₀ - μ| <;> simp only [h, ite_true, ite_false] <;> ring
     have htot : (∑ ω₀ ∈ Finset.univ.filter
           (fun ω₀ : Fin L → X => ε < |avg f ω₀ - μ|), p.probOf ω₀)
         + (∑ ω₀ ∈ Finset.univ.filter
@@ -750,7 +760,6 @@ open Matrix
 open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 /-- Variance equals the expectation of the square minus the square of the expectation. -/
@@ -772,8 +781,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -783,7 +790,7 @@ the product of its one sample probabilities. -/
 theorem FinDist.probOf_subset_product {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (B : X → Prop) [DecidablePred B] (J : Finset (Fin L)) :
     ∑ ω ∈ Finset.univ.filter (fun ω => ∀ n ∈ J, B (ω n)), p.probOf ω
-      = ∏ n ∈ J, (∑ x ∈ Finset.univ.filter B, p.prob x) := by
+      = ∏ _n ∈ J, (∑ x ∈ Finset.univ.filter B, p.prob x) := by
   classical
   have hstep1 : (∑ ω ∈ Finset.univ.filter (fun ω => ∀ n ∈ J, B (ω n)), p.probOf ω)
       = ∑ ω : Fin L → X, p.probOf ω *
@@ -791,35 +798,35 @@ theorem FinDist.probOf_subset_product {X : Type} [Fintype X] [DecidableEq X] {L 
     rw [Finset.sum_filter]
     refine Finset.sum_congr rfl fun ω _ => ?_
     by_cases hall : ∀ n ∈ J, B (ω n)
-    · rw [if_pos hall]
+    · rw [ite_eq_left hall]
       have hprod : ∏ n : Fin L, (if n ∈ J then (if B (ω n) then (1:ℝ) else 0) else 1) = 1 := by
         refine Finset.prod_eq_one fun n _ => ?_
         by_cases hn : n ∈ J
-        · rw [if_pos hn, if_pos (hall n hn)]
-        · rw [if_neg hn]
+        · rw [ite_eq_left hn, ite_eq_left (hall n hn)]
+        · rw [ite_eq_right hn]
       rw [hprod, mul_one]
     · have hnall : ¬ ∀ n ∈ J, B (ω n) := hall
       push Not at hnall
       obtain ⟨n, hnJ, hnB⟩ := hnall
-      rw [if_neg hall, Finset.prod_eq_zero (Finset.mem_univ n) (by
-        rw [if_pos hnJ, if_neg hnB]), mul_zero]
+      rw [ite_eq_right hall, Finset.prod_eq_zero (Finset.mem_univ n) (by
+        rw [ite_eq_left hnJ, ite_eq_right hnB]), mul_zero]
   rw [hstep1, FinDist.expect_prod p
     (fun n x => if n ∈ J then (if B x then (1:ℝ) else 0) else 1)]
   have hoffJ : ∀ n : Fin L, n ∉ J →
       (∑ x ∈ Finset.univ, p.prob x * (if n ∈ J then (if B x then (1:ℝ) else 0) else 1)) = 1 := by
     intro n hn
-    simp only [if_neg hn, mul_one]
+    simp only [ite_eq_right hn, mul_one]
     exact p.sum_one
   exact (Finset.prod_subset (Finset.subset_univ J)
     (fun n _ hn => hoffJ n hn)).symm.trans
       (Finset.prod_congr rfl fun n hn => by
-        simp only [if_pos hn]
+        simp only [ite_eq_left hn]
         have hite : ∀ x : X, p.prob x * (if B x then (1:ℝ) else 0)
             = if B x then p.prob x else 0 := by
           intro x
           by_cases hB : B x
-          · rw [if_pos hB, if_pos hB, mul_one]
-          · rw [if_neg hB, if_neg hB, mul_zero]
+          · rw [ite_eq_left hB, ite_eq_left hB, mul_one]
+          · rw [ite_eq_right hB, ite_eq_right hB, mul_zero]
         calc (∑ x ∈ Finset.univ, p.prob x * (if B x then (1:ℝ) else 0))
             = ∑ x ∈ Finset.univ, (if B x then p.prob x else 0) :=
               Finset.sum_congr rfl fun x _ => hite x

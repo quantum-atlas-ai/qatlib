@@ -31,7 +31,6 @@ explicitly through basis-coordinate updates.
 * [Bravyi and Kitaev, 2002][BravyiKitaev2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

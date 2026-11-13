@@ -28,10 +28,7 @@ logarithm. For background on search via quantum walks, see [MagniezNayakRolandSa
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.SearchLedger
 

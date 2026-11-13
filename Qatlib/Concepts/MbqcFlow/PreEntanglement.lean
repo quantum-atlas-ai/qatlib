@@ -49,7 +49,6 @@ open Qatlib  Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Matrix
 open scoped Classical ComplexOrder
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -1296,7 +1295,6 @@ theorem teleWire_kraus_phase (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
     intro y
     linear_combination -(Complex.cos_sq_add_sin_sq (y : ℂ))
       * ((Real.sqrt 2 : ℂ)⁻¹ * (2 : ℂ)⁻¹)
-  set_option linter.unusedSimpArgs false in
   cases z 0 <;> cases s 0 <;> fin_cases j' <;> fin_cases j <;>
     simp [boolEquivFin2, bitPhase, exp_ofReal_I, exp_neg_ofReal_I] <;>
     try ring

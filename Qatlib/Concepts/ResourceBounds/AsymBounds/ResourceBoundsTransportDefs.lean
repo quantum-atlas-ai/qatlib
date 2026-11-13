@@ -38,7 +38,6 @@ live-wire and workspace trails, an LCU counting word, and the search-space cost 
 * [Roetteler et al., 2017][RoettelerEtAl2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers

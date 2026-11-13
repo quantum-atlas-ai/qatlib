@@ -34,12 +34,10 @@ finite counting ratios over legal restrictions consistent with a transcript.
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 

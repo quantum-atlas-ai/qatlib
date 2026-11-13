@@ -26,8 +26,6 @@ These constructions accompany the results of [Liu2009].
 * [Liu, 2009][Liu2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

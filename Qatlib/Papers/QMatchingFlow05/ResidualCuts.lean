@@ -27,8 +27,6 @@ and edge bounds and their minimum.
 * [Ambainis and Špalek, 2006][AmbainisSpalek2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

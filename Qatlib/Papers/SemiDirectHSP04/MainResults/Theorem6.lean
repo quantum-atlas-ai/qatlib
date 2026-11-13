@@ -27,8 +27,6 @@ prime, `r ≥ 1`, and `u ^ q = 1`. See [InuiLeGall2007] for the mathematical set
 * [Inui and Le Gall, 2007][InuiLeGall2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

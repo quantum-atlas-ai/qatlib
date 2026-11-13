@@ -52,7 +52,6 @@ namespace Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Concepts.TensorRegisters.RegisterModel Matrix
 open scoped BigOperators ComplexOrder
-set_option warningAsError false
 
 /-- The finite outcome distribution obtained by applying the POVM `Λ` to the density operator
 `ρ`. -/

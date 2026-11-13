@@ -24,9 +24,7 @@ squared modulus bounds, in the setting of [LowChuang2017].
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.QsvtCore.PhaseExistence
 

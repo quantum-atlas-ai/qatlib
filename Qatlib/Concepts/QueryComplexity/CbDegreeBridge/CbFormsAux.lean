@@ -27,8 +27,6 @@ norm background is described in [Paulsen2002].
 * [Paulsen, 2002][Paulsen2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
 
@@ -38,8 +36,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 namespace Qatlib.Concepts.QueryComplexity.CbDegreeBridge
 
 open Matrix
-
-set_option linter.unusedSectionVars false
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
@@ -106,7 +102,7 @@ theorem inner_mulVec_matProdFin {k : ℕ} (M : Fin k → Matrix R R ℂ) (u v : 
       intro i'
       rw [inner_apply, Finset.sum_eq_single i']
       · rw [ket_self, map_one, one_mul]
-      · intro b _ hb; rw [Ket, if_neg hb, map_zero, zero_mul]
+      · intro b _ hb; rw [Ket, ite_eq_right hb, map_zero, zero_mul]
       · simp
     have step1 : ∀ w : QState R, Inner u (M 0 *ᵥ w)
         = ∑ i : R, ∑ i' : R, (starRingEnd ℂ) (u i) * M 0 i i' * w i' := by
@@ -136,9 +132,9 @@ theorem inner_mulVec_matProdFin {k : ℕ} (M : Fin k → Matrix R R ℂ) (u v : 
       rw [Finset.sum_congr rfl (fun i' _ => h1 i'), ← Finset.mul_sum]
       have h2 : ∑ i' : R, M 0 i i' * (starRingEnd ℂ) (Ket i' (r 0)) = M 0 i (r 0) := by
         rw [Finset.sum_eq_single (r 0)]
-        · rw [ket_apply, if_pos rfl, map_one, mul_one]
+        · rw [ket_apply, ite_eq_left rfl, map_one, mul_one]
         · intro b _ hb
-          rw [ket_apply, if_neg (Ne.symm hb), map_zero, mul_zero]
+          rw [ket_apply, ite_eq_right (Ne.symm hb), map_zero, mul_zero]
         · intro h; exact absurd (Finset.mem_univ (r 0)) h
       rw [h2]; ring
     rw [Finset.sum_congr rfl (fun i _ => Finset.sum_congr rfl (fun i' _ => by rw [Finset.mul_sum]))]
@@ -224,13 +220,19 @@ def dzval (δ : R → Option κ) (w : κ → ℂ) (r : R) : ℂ :=
 def dzO (w : κ → ℂ) : Option κ → ℂ :=
   fun o => match o with | none => 1 | some k => w k
 
+omit [Fintype κ] [Fintype R] [DecidableEq R] in
+
 /-- The diagonal substitution value is the optional coordinate evaluation at the label `δ r`. -/
 theorem dzval_eq_dzO (δ : R → Option κ) (w : κ → ℂ) (r : R) : dzval δ w r = dzO w (δ r) := rfl
+
+omit [Fintype κ] [Fintype R] in
 
 /-- The entries of `cbDelta` are its substitution values on the diagonal and zero elsewhere. -/
 theorem cbDelta_apply (δ : R → Option κ) (w : κ → ℂ) (r r' : R) :
     cbDelta δ w r r' = if r = r' then dzval δ w r else 0 := by
   rw [cbDelta, Matrix.diagonal_apply]; rfl
+
+omit [Fintype κ] in
 
 /-- Right multiplication by `cbDelta` multiplies each column by its diagonal substitution value. -/
 theorem mul_cbDelta_apply (M : Matrix R R ℂ) (δ : R → Option κ) (w : κ → ℂ) (i j : R) :
@@ -244,18 +246,22 @@ noncomputable def cbSlot (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option
     (j : Fin (s + 1)) : Matrix R R ℂ :=
   if h : (j : ℕ) < s then W ⟨j, by omega⟩ * cbDelta δ (z ⟨j, h⟩) else W ⟨j, by omega⟩
 
+omit [Fintype κ] in
+
 /-- An initial slot of the sandwich product is the corresponding matrix times its coordinate
 diagonal. -/
 theorem cbSlot_castSucc (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (z : Fin s → κ → ℂ)
     (j : Fin s) : cbSlot W δ z j.castSucc = W j.castSucc * cbDelta δ (z j) := by
-  rw [cbSlot, dif_pos (show ((j.castSucc : Fin (s + 1)) : ℕ) < s by
+  rw [cbSlot, dite_eq_left (show ((j.castSucc : Fin (s + 1)) : ℕ) < s by
     rw [Fin.val_castSucc]; exact j.isLt)]
   rfl
+
+omit [Fintype κ] in
 
 /-- The last slot of the sandwich product is the final matrix `W`. -/
 theorem cbSlot_last (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (z : Fin s → κ → ℂ) :
     cbSlot W δ z (Fin.last s) = W (Fin.last s) := by
-  rw [cbSlot, dif_neg (by simp)]
+  rw [cbSlot, dite_eq_right (by simp)]
 
 /-- The matrix sandwich equals the ordered product of all its slots. -/
 theorem cbSandwichMatrix_eq (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
@@ -315,12 +321,12 @@ theorem sum_pattern_distrib {X P : Type} [Fintype X] [Fintype P] [DecidableEq P]
       _ = ∑ x : X, (if pat x = p then c x else 0) * g p :=
           Finset.sum_congr rfl (fun x _ => by
             by_cases hx : pat x = p
-            · rw [if_pos hx, if_pos hx, one_mul]
-            · rw [if_neg hx, if_neg hx, zero_mul])
+            · rw [ite_eq_left hx, ite_eq_left hx, one_mul]
+            · rw [ite_eq_right hx, ite_eq_right hx, zero_mul])
   rw [Finset.sum_congr rfl (fun p _ => step1 p), Finset.sum_comm]
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [Finset.sum_congr rfl (fun p _ => by rw [ite_mul, zero_mul]), Finset.sum_ite_eq,
-    if_pos (Finset.mem_univ _)]
+    ite_eq_left (Finset.mem_univ _)]
 
 /-- The sum of matrix path coefficients whose optional label pattern equals `p`. -/
 noncomputable def cbFiberSum (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (u v : QState R)
@@ -422,7 +428,7 @@ theorem mono_indep {s : ℕ} (g : (Fin s → Option κ) → ℂ)
         exact h1
       · intro b _ hb
         simp only [dzO]
-        rw [if_neg hb, mul_zero]
+        rw [ite_eq_right hb, mul_zero]
       · intro hmem
         exact absurd (Finset.mem_univ k) hmem
 
@@ -465,10 +471,10 @@ theorem cbFiberSum_full {T : RealTensor κ s} {W : Fin (s + 1) → Matrix R R �
         (if (fun j => some (i' j)) = (fun j => some (i j)) then (1 : ℂ) else 0) *
         (T i' : ℂ) = 0 := hall (fun j => some (i j))
   rw [Finset.sum_eq_single i] at h
-  · rw [if_pos rfl, one_mul] at h
+  · rw [ite_eq_left rfl, one_mul] at h
     exact sub_eq_zero.mp h
   · intro b _ hb
-    rw [if_neg (fun hbe => hb (by
+    rw [ite_eq_right (fun hbe => hb (by
           funext j
           exact Option.some.inj (congrFun hbe j))), zero_mul]
   · intro hmem; exact absurd (Finset.mem_univ i) hmem
@@ -518,7 +524,7 @@ theorem cbFiberSum_partial {T : RealTensor κ s} {W : Fin (s + 1) → Matrix R R
       rw [hj] at hcc
       exact absurd hcc (by simp)
     refine Finset.sum_eq_zero fun i _ => ?_
-    rw [if_neg (hfalse i), zero_mul]
+    rw [ite_eq_right (hfalse i), zero_mul]
   rw [hzero, sub_zero] at h
   exact h
 
@@ -566,6 +572,8 @@ theorem inner_sum_right {ι : Type} [Fintype ι] (ξ : QState m) (w : ι → QSt
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun i _ => (inner_apply ξ (w i)).symm
 
+omit [DecidableEq m] in
+
 /-- Matrix application distributes over a finite sum of matrices. -/
 theorem mulVec_sum_left {ι : Type} [Fintype ι] (M : ι → Matrix m m ℂ) (η : QState m) :
     (∑ i, M i) *ᵥ η = ∑ i, (M i *ᵥ η) :=
@@ -581,6 +589,8 @@ variable {κ : Type} [Fintype κ] {R : Type} [Fintype R] [DecidableEq R] {s : �
 amplification coordinate. -/
 def cbBigW {d : ℕ} (M : Matrix R R ℂ) : Matrix (R × Fin d) (R × Fin d) ℂ :=
   Matrix.kroneckerMap (· * ·) M (1 : Matrix (Fin d) (Fin d) ℂ)
+
+omit [Fintype R] [DecidableEq R] in
 
 /-- The entry of `cbBigW M` is the corresponding entry of `M` when amplification coordinates
 agree, and zero otherwise. -/
@@ -607,6 +617,8 @@ def cbBigD {d : ℕ} (δ : R → Option κ) (B : Fin s → κ → Matrix (Fin d)
     Matrix (R × Fin d) (R × Fin d) ℂ :=
   Matrix.of fun x y => if x.1 = y.1 then cbBlock δ (B j) x.1 x.2 y.2 else 0
 
+omit [Fintype κ] in
+
 /-- Applying `cbBigD` to a vector acts independently on each `R` slice by the selected block. -/
 theorem cbBigD_mulVec_apply {d : ℕ} (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s)
@@ -619,10 +631,10 @@ theorem cbBigD_mulVec_apply {d : ℕ} (δ : R → Option κ)
       = (if x.1 = q then ∑ b : Fin d, cbBlock δ (B j) x.1 x.2 b * z (q, b) else 0) := by
     intro q
     by_cases hq : x.1 = q
-    · rw [if_pos hq]
-      exact Finset.sum_congr rfl (fun b _ => by rw [if_pos hq])
+    · rw [ite_eq_left hq]
+      exact Finset.sum_congr rfl (fun b _ => by rw [ite_eq_left hq])
     · simp [hq]
-  rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq, if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ _)]
 
 /-- If all coordinate matrices in a slot are contractions, the corresponding block diagonal
 matrix has operator norm at most one. -/
@@ -669,6 +681,8 @@ theorem cbBigD_norm_le {d : ℕ} (δ : R → Option κ)
     _ ≤ Real.sqrt ((1 * ‖toEuclidean_fromVec z‖) ^ 2) := Real.sqrt_le_sqrt hsq
     _ = 1 * ‖toEuclidean_fromVec z‖ := by rw [Real.sqrt_sq (mul_nonneg zero_le_one (norm_nonneg _))]
 
+omit [Fintype κ] in
+
 /-- The entries of an amplified matrix followed by a block diagonal substitution factor as the
 original matrix entry times the selected block entry. -/
 theorem cbBigW_mul_cbBigD_apply {d : ℕ} (M : Matrix R R ℂ) (δ : R → Option κ)
@@ -682,16 +696,20 @@ theorem cbBigW_mul_cbBigD_apply {d : ℕ} (M : Matrix R R ℂ) (δ : R → Optio
       = (if q = y.1 then M x.1 q * cbBlock δ (B j) q x.2 y.2 else 0) := by
     intro q
     rw [Finset.sum_congr rfl (fun b _ => by rw [ite_mul, zero_mul]), Finset.sum_ite_eq,
-      if_pos (Finset.mem_univ x.2)]
+      ite_eq_left (Finset.mem_univ x.2)]
     by_cases hq : q = y.1
-    · rw [if_pos hq, if_pos hq]
+    · rw [ite_eq_left hq, ite_eq_left hq]
     · simp [hq]
-  rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
+
+omit [Fintype κ] [Fintype R] [DecidableEq R] in
 
 /-- The block selected by an unlabelled index is zero. -/
 theorem cbBlock_none {d : ℕ} (δ : R → Option κ) (Bj : κ → Matrix (Fin d) (Fin d) ℂ)
     {r : R} (h : δ r = none) : cbBlock δ Bj r = 0 := by
   rw [cbBlock, h]
+
+omit [Fintype κ] [Fintype R] [DecidableEq R] in
 
 /-- The block at an index labelled by `some k` is the coordinate matrix `Bj k`. -/
 theorem cbBlock_some {d : ℕ} (δ : R → Option κ) (Bj : κ → Matrix (Fin d) (Fin d) ℂ)
@@ -711,16 +729,18 @@ appropriate coordinate block entry. -/
 theorem cbNbig_castSucc {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s) (x y : R × Fin d) :
     cbNbig W δ B j.castSucc x y = W j.castSucc x.1 y.1 * cbBlock δ (B j) y.1 x.2 y.2 := by
-  rw [cbNbig, dif_pos (show ((j.castSucc : Fin (s + 1)) : ℕ) < s by
+  rw [cbNbig, dite_eq_left (show ((j.castSucc : Fin (s + 1)) : ℕ) < s by
     rw [Fin.val_castSucc]; exact j.isLt)]
   exact cbBigW_mul_cbBigD_apply (W j.castSucc) δ B j x y
+
+omit [Fintype κ] in
 
 /-- The final amplified sandwich factor has entries of the last matrix when amplification
 coordinates agree and zero otherwise. -/
 theorem cbNbig_last {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (x y : R × Fin d) :
     cbNbig W δ B (Fin.last s) x y = if x.2 = y.2 then W (Fin.last s) x.1 y.1 else 0 := by
-  rw [cbNbig, dif_neg (by simp), cbBigW_apply]
+  rw [cbNbig, dite_eq_right (by simp), cbBigW_apply]
 
 /-- If every matrix and coordinate substitution is a contraction, each amplified sandwich factor
 has operator norm at most one. -/
@@ -729,7 +749,7 @@ theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R �
     (hW : ∀ j, ‖W j‖ ≤ 1) (hB : ∀ j k, ‖B j k‖ ≤ 1) (j : Fin (s + 1)) :
     ‖cbNbig W δ B j‖ ≤ 1 := by
   by_cases hj : (j : ℕ) < s
-  · rw [cbNbig, dif_pos hj]
+  · rw [cbNbig, dite_eq_left hj]
     calc ‖cbBigW (W ⟨j, by omega⟩) * cbBigD δ B ⟨j, hj⟩‖
         ≤ ‖cbBigW (W ⟨j, by omega⟩)‖ * ‖cbBigD δ B ⟨j, hj⟩‖ := l2_opNorm_mul _ _
       _ ≤ ‖W ⟨j, by omega⟩‖ * 1 := by
@@ -737,7 +757,7 @@ theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R �
             (norm_nonneg _) (norm_nonneg _)
       _ = ‖W ⟨j, by omega⟩‖ := mul_one _
       _ ≤ 1 := hW _
-  · rw [cbNbig, dif_neg hj]
+  · rw [cbNbig, dite_eq_right hj]
     calc ‖cbBigW (W ⟨j, by omega⟩)‖ ≤ ‖W ⟨j, by omega⟩‖ := cbBigW_norm_le
       _ ≤ 1 := hW _
 
@@ -804,9 +824,9 @@ theorem sum_snoc_collapse {k d : ℕ} (F : (Fin (k + 2) → Fin d) → ℂ) :
       F (Fin.snoc (α := fun _ => Fin d) a' y)
       = F (Fin.snoc (α := fun _ => Fin d) a' (a' (Fin.last k)))
   rw [Finset.sum_eq_single (a' (Fin.last k))]
-  · rw [if_pos rfl, one_mul]
+  · rw [ite_eq_left rfl, one_mul]
   · intro b _ hb
-    rw [if_neg (Ne.symm hb), zero_mul]
+    rw [ite_eq_right (Ne.symm hb), zero_mul]
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
@@ -913,8 +933,8 @@ theorem cbAmplified {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → O
     intro r a
     rw [map_mul, hProd r a]
     by_cases hc : a (Fin.last s).castSucc = a (Fin.last (s + 1))
-    · rw [if_pos hc, if_pos hc]; ring
-    · rw [if_neg hc, if_neg hc]; ring
+    · rw [ite_eq_left hc, ite_eq_left hc]; ring
+    · rw [ite_eq_right hc, ite_eq_right hc]; ring
 
   have hSnoc : ∀ (r : Fin (s + 2) → R),
       (∑ a : Fin (s + 2) → Fin d,
@@ -998,10 +1018,10 @@ theorem cbAmplified {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → O
         rw [Finset.sum_eq_single (fun j => (δ (r j.castSucc.succ)).get (hget j))]
         · show (if cbPattern δ r = (fun j => some ((δ (r j.castSucc.succ)).get (hget j)))
               then (1 : ℂ) else 0) = 1
-          rw [if_pos hpat]
+          rw [ite_eq_left hpat]
         · intro b _ hne
           show (if cbPattern δ r = (fun j => some (b j)) then (1 : ℂ) else 0) = 0
-          refine if_neg (fun hbe => hne ?_)
+          refine ite_eq_right (fun hbe => hne ?_)
           funext j
           have h1 : δ (r j.castSucc.succ) = some (b j) := congrFun hbe j
           rw [← Option.some_get (hget j)] at h1
@@ -1029,13 +1049,13 @@ theorem cbAmplified {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → O
               (∏ j : Fin s, B j (i j) (a' j.castSucc) (a' j.succ)) * η (a' (Fin.last s)))) := by
     intro i a' r
     by_cases hc : cbPattern δ r = (fun j => some (i j))
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       have hdelta : ∀ j : Fin s, δ (r j.castSucc.succ) = some (i j) := fun j => congrFun hc j
       have hpeq : (∏ j : Fin s, cbBlock δ (B j) (r j.castSucc.succ) (a' j.castSucc) (a' j.succ))
           = (∏ j : Fin s, B j (i j) (a' j.castSucc) (a' j.succ)) :=
         Finset.prod_congr rfl fun j _ => by rw [cbBlock_some δ (B j) (hdelta j)]
       rw [hpeq]
-    · rw [if_neg hc, zero_mul, zero_mul]
+    · rw [ite_eq_right hc, zero_mul, zero_mul]
 
   have hFac : ∀ (i : Fin s → κ) (a' : Fin (s + 1) → Fin d),
       (∑ r : Fin (s + 2) → R,

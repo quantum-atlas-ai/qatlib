@@ -25,8 +25,6 @@ construction of [DawsonNielsen2006].
 * [Dawson and Nielsen, 2006][DawsonNielsen2006]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SolovayKitaev05.MainResults.BalancedCommutator
 
 open Matrix

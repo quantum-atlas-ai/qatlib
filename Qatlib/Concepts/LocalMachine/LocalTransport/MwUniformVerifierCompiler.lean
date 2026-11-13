@@ -49,7 +49,6 @@ open Matrix Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexity
 open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
 open Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

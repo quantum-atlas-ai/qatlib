@@ -26,7 +26,6 @@ lower bound on the corrected query budget. Background and related constructions 
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability

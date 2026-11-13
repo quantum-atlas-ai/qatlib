@@ -23,7 +23,6 @@ compressed-square identity. Related mathematical background is given in [LowSu20
 * [Low and Su, 2026, Proposition 18 and Corollary 19][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP

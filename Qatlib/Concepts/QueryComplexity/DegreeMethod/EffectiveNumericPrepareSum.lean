@@ -29,7 +29,6 @@ lengths. For background on the classical computational setting, see [KitaevShenV
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec

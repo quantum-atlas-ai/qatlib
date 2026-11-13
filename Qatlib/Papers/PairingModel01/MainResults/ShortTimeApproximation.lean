@@ -24,7 +24,6 @@ the short-time formula in Equation 2 of [WuByrdLidar2002].
 * [Wu et al., 2002][WuByrdLidar2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -26,8 +26,6 @@ phase-precision penalty. See [Jordan2005Gradient] for background.
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 open Qatlib.Concepts.GradientOracle.ValueKickback
 

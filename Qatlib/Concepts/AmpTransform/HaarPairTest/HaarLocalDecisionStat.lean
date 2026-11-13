@@ -24,8 +24,6 @@ marked pairs have the same parity, in the setting of [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 
 open Qatlib.Foundations.PureStateMath

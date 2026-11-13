@@ -34,7 +34,6 @@ eigenvector's target phase with squared error at most `ε ^ 2` and output mass a
 - [Low and Chuang, 2017][LowChuang2017], Theorem 3.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -51,7 +50,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.SignalPrimitive.SparseSim
 

@@ -30,7 +30,6 @@ means. Singleton sign groups have unit norm, supplying the case of two total ter
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.Postselection

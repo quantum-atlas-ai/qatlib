@@ -52,7 +52,6 @@ noncomputable section
 namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open Qatlib
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- A source escape token with no successful output has a strictly positive iteration count. -/
 theorem token_none_pos (N : ℕ) (hN : 1 < N) (stage : ℕ) (x : SourceToken N hN stage)

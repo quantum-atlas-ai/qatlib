@@ -25,8 +25,6 @@ accumulation estimate used in quantum circuit analysis [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 

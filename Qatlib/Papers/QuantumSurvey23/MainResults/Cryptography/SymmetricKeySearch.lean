@@ -23,10 +23,11 @@ Grover's optimality-shaped bounds (`N < (√N+1)^2` and `√N ≤ N`), and
 `searchSpace_from_keylength` records `N ≤ 2^(n+1)` for a key of `n` bits, i.e.
 the search space is at most exponential in the key length.
 
-Reusable dependency (Dev, paper `MCMontanaro15` / `AmplitudeCore`:
-`QuantumAlgorithm.Concepts.AmplitudeCore.AmplifyCore`): the amplification
-backend `theorem2QuadraticSpeedup` is the circuit-level source of the `√N`
-count; this module records only the arithmetic ceiling.
+The amplification backend
+`Qatlib.Concepts.AmplitudeCore.AmplifyCore` (paper `MCMontanaro15`)
+is the source of the
+`theorem2QuadraticSpeedup` circuit-level `√N` count; this module records only
+the arithmetic ceiling.
 -/
 
 set_option autoImplicit false

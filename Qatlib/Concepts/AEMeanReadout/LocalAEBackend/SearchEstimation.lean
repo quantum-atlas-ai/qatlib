@@ -41,7 +41,6 @@ confidence and access bounds for mean estimation with an unknown variance, in th
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -73,8 +72,6 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 open Qatlib
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

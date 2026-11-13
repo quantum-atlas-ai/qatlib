@@ -88,12 +88,9 @@ theorem lemma_B_3_initial_column_geometry
   -- principal angles of the graph subspaces; the distance formula (B.6) uses the explicit
   -- orthogonal projection onto `ran[I;X]`, `[I;X](I+X²)⁻¹[I,X]`, available since `X` is
   -- Hermitian.
-  -- Lean gap: principal angles between subspaces and the matrix square root `(I+X²)^{-1/2}`
-  -- are not formalized; the displayed Lean statement keeps the full-column-rank
-  -- characterization and an elementary remainder of the distance identity.
-  -- Candidate dependencies: `graph`, `FullColumnRank`, `IsHermitian` (PaperModel).
-  -- Suggested follow-up: define `sin θmin` via `sInf` of the angle function, prove
-  -- `σmin(ΠR(R*R)^{-1/2}) = sin θmin` for idempotent `PiProj`, then expand `‖(I+X²)^{-1/2}‖`.
+  -- Scope note: this theorem formalizes the full-column-rank characterization and an
+  -- elementary remainder of the distance identity. Principal angles between subspaces
+  -- and the matrix square root `(I+X²)^{-1/2}` are outside the scope of this file.
   refine ⟨?_, by positivity⟩
   constructor
   · intro hinj v hv

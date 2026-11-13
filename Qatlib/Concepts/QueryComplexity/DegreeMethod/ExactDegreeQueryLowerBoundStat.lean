@@ -29,7 +29,6 @@ acceptance-polynomial proof.
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 open Qatlib.Foundations.QueryWordCore.Circuit

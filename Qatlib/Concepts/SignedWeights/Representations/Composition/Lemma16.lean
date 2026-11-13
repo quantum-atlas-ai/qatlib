@@ -33,7 +33,6 @@ nonzero-vector and positive-inner-norm hypotheses.
   stronger, Lemma 16.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

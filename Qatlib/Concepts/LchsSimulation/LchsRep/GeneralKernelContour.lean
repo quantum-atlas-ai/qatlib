@@ -30,7 +30,6 @@ Cauchy-weighted boundary kernel. See [AnChildsLin2026] for the mathematical sett
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-
 open Qatlib.Concepts.LchsSimulation.Kernel
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -39,7 +38,6 @@ noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.LchsRep
 open MeasureTheory Set Filter
 open scoped Classical BigOperators Topology
-set_option warningAsError false
 /-- The regularized Cauchy expression formed from the divided slope of `H` at `-Complex.I` and
 its explicit pole-value correction. -/
 private noncomputable def powerCauchyRegular (H : ℂ → ℂ) (z : ℂ) : ℂ :=

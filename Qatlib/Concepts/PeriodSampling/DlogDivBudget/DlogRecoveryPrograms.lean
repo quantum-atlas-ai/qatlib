@@ -30,7 +30,6 @@ distribution `dlogBornLaw` associated with a normalized two-dimensional sampling
 * [Shor, 1997, Section 6][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PeriodSampling.DlogSamplingLaw
@@ -39,7 +38,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
@@ -52,7 +50,7 @@ def dlogIsPrimePower (w : ℕ) : Prop := ∃ ℓ e, Nat.Prime ℓ ∧ 1 ≤ e �
 
 instance instDecidableDlogIsPrimePowerAnd : DecidablePred
     (fun w : ℕ => dlogIsPrimePower w ∧ 18 < w) :=
-  fun w => Classical.propDecidable _
+  fun _w => Classical.propDecidable _
 
 /-- The subtype of Fourier-sampling first coordinates satisfying `dlogSmallResidue p q`. -/
 def dlogGoodCType (p q : ℕ) : Type := {c : Fin q // dlogSmallResidue p q c}
@@ -99,14 +97,14 @@ def dlogCommonPpDivides (p q : ℕ) {t : ℕ}
 
 instance dlogCommonPpDividesDecidable (p q : ℕ) {t : ℕ} :
     DecidablePred (dlogCommonPpDivides (p := p) (q := q) (t := t)) :=
-  fun ω => Classical.propDecidable _
+  fun _ω => Classical.propDecidable _
 
 /-- The first two coordinates of a sampling outcome form a good discrete-logarithm pair. -/
 def dlogGoodOutcome (p q r : ℕ) (o : Fin q × Fin q × ZMod p) : Prop :=
   dlogGoodPair p q r o.1 o.2.1
 
 instance instDecidableDlogGoodOutcome (p q r : ℕ) :
-    DecidablePred (dlogGoodOutcome p q r) := fun o => Classical.propDecidable _
+    DecidablePred (dlogGoodOutcome p q r) := fun _o => Classical.propDecidable _
 
 /-- At least `t` of the `L` sampled outcomes satisfy `dlogGoodOutcome`. -/
 def dlogGoodCountGE (p q r t L : ℕ)
@@ -115,7 +113,7 @@ def dlogGoodCountGE (p q r t L : ℕ)
 
 instance instDecidableDlogGoodCountGE (p q r t L : ℕ) :
     DecidablePred (dlogGoodCountGE p q r t L) :=
-  fun ω => Classical.propDecidable _
+  fun _ω => Classical.propDecidable _
 
 /-- The finite Born-probability distribution of a normalized two-dimensional discrete-logarithm
 sampling state. -/

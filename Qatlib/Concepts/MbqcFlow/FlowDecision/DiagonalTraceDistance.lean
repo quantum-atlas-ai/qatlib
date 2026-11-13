@@ -24,8 +24,6 @@ probabilities by trace distance, as in the distinguishability framework of [Watr
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision

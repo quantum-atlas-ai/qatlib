@@ -30,7 +30,6 @@ framework of [DawsonNielsen2006].
 * [Dawson and Nielsen, 2006][DawsonNielsen2006]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.CSD.SolovayKitaev
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo

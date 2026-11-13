@@ -24,8 +24,6 @@ exact amplification response used for the multi-product encodings associated wit
 * [Aftab et al., 2026][AftabAnTrivisa2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

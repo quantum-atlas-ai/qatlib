@@ -42,10 +42,8 @@ definitions.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib
-
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 

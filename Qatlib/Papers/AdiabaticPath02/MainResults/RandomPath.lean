@@ -29,7 +29,6 @@ energy minima, polynomial schedule existence, and unitarity of the scheduled evo
 * [Farhi et al., 2002][FarhiGoldstoneGutmann2002a]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

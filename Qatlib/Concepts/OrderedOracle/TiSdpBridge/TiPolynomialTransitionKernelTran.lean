@@ -33,7 +33,6 @@ phase identity then prove `ti_transition_run` under the rootwise equality-of-nor
   ordered search.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

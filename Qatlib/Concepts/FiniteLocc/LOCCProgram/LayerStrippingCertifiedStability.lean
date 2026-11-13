@@ -34,7 +34,6 @@ Fourier transform.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.NativeNumerics.NlfftPipeline
 
 set_option autoImplicit false

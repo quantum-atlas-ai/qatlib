@@ -30,7 +30,6 @@ of unrestricted adversary transport, and combine truncation and stopping-time la
 * [Ambainis, 2002][Ambainis2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -51,8 +50,6 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Concepts.StoppingCore.InterruptBridge
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 4000000
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -89,7 +86,7 @@ private theorem applyGate_smul_matrix {I : Type} [Fintype I] [DecidableEq I]
     ApplyGate (c • M) ψ = c • ApplyGate M ψ := by
   funext i
   show ∑ j, (c • M) i j * ψ j = c * (∑ j, M i j * ψ j)
-  simp only [Matrix.smul_apply, Pi.smul_apply, smul_eq_mul]
+  simp only [Matrix.smul_apply, smul_eq_mul]
   rw [Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro j _
@@ -194,12 +191,12 @@ theorem correctedBridgeAdversaryTransport_fixed {X : Type} [Fintype X] [Decidabl
     have htr := htransport (input x) ψ
     have htree' := htree x
     by_cases hfx : f x
-    · simp only [treeBoundedError, if_pos hfx] at htree'
-      simp only [if_pos hfx]
+    · simp only [ite_eq_left hfx] at htree'
+      simp only [ite_eq_left hfx]
       rw [htr]
       exact htree'
-    · simp only [treeBoundedError, if_neg hfx] at htree'
-      simp only [if_neg hfx]
+    · simp only [ite_eq_right hfx] at htree'
+      simp only [ite_eq_right hfx]
       have hrunnorm : Normalized
             (Run (workspaceBitOracle (W := W × Fin (R + 1) × Bool) (input x)) C
               (deferredObservedInput (R := R) ψ)) :=

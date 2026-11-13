@@ -28,7 +28,6 @@ The theorem `pretty_good_frame_support_contract` packages the Hermitian projecti
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 

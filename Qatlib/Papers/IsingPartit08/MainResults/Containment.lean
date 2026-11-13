@@ -25,8 +25,6 @@ Theorem 1 of [Geraci2008].
 * [Geraci, 2008][Geraci2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

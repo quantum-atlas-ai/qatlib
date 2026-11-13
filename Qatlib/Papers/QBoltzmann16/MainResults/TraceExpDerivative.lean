@@ -34,7 +34,6 @@ namespace Qatlib.Papers.QBoltzmann16.MainResults
 
 open Matrix Filter
 open scoped BigOperators ComplexOrder Matrix.Norms.L2Operator Topology
-set_option warningAsError false
 
 /-- The matrix trace regarded as a continuous real-linear map from finite complex operators to
 the complex numbers. -/

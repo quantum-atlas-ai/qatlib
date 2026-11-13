@@ -28,8 +28,6 @@ angle multiples along that axis, supporting the gate approximation framework of
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 section
 
 open Matrix

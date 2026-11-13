@@ -26,7 +26,6 @@ QSVT robustness analysis in [GilyenSuLowWiebe2019].
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

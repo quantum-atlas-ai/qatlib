@@ -29,7 +29,6 @@ nonnegativity of `minGap`. The mathematical context is [FarhiEtAl2000].
 * [Farhi et al., 2000][FarhiEtAl2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

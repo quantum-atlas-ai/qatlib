@@ -26,8 +26,6 @@ genus at least one. See [AlagicEtAl2010].
 * [Alagic et al., 2010][AlagicEtAl2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

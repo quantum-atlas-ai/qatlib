@@ -33,7 +33,6 @@ These approximation bounds supply polynomial inputs for the CBMD algorithms asso
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.Cbmd26.Algorithms

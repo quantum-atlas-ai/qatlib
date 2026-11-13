@@ -15,11 +15,10 @@ set_option backward.isDefEq.respectTransparency false
 # AdaptiveTest26 — paper-layer vocabulary
 
 Fixed source: arXiv:2609.08733v1 (*On the Power of Adaptivity in Testing Quantum States in
-Fidelity*, Seyfried--Sen--Tomamichel, 2026-09-08), PDF
-`prove/assets/2609.08733v1.pdf`.
+Fidelity*, Seyfried--Sen--Tomamichel, 2026-09-08).
 
-This file extends the Frozen v2.0.2 vocabulary
-`QuantumAlgorithm.Papers.AdaptiveTest26.MainResults` (single-copy global POVMs, non-adaptive and
+This file extends the shared vocabulary
+`Qatlib.Papers.AdaptiveTest26.MainResults` (single-copy global POVMs, non-adaptive and
 adaptive strategies, copy ledgers, root fidelity `F(ρ,σ)=‖√ρ√σ‖₁`, `IsH1`, `SuccessFloor`,
 `IsTildeOBound`, `IsTildeOmegaLowerBound`, `adaptiveEquivalenceBudget`) with the paper-layer
 objects needed by the individual Claim statements:
@@ -34,7 +33,7 @@ objects needed by the individual Claim statements:
 * the qubit non-adaptive lower-bound schedule vocabulary of Section 7.
 
 Bipartite and tripartite systems are indexed on `Fin A × Fin C` and `Fin A × Fin B × Fin C`
-(as matrices), while Frozen strategies live on `Operator D = Matrix (Fin D) (Fin D) ℂ`; the
+(as matrices), while shared-library strategies live on `Operator D = Matrix (Fin D) (Fin D) ℂ`; the
 canonical identification `finProdFinEquiv : Fin A × Fin C ≃ Fin (A * C)` converts between the two.
 
 All definitions are mathematical (no placeholder `True`); statements that need distributional

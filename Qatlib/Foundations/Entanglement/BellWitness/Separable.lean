@@ -31,8 +31,6 @@ least one from the Bell projector. For separable states and entanglement witness
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators
 namespace Qatlib.Foundations.Entanglement.BellWitness

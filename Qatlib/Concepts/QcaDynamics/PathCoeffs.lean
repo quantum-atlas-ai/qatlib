@@ -29,7 +29,6 @@ associated with [Meyer1996a].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Complex

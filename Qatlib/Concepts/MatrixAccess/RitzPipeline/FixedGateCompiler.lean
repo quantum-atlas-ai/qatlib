@@ -26,13 +26,10 @@ is described in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
 
 noncomputable section
 
@@ -146,26 +143,26 @@ theorem nextSegment_cp_lt4 {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
 theorem nextSegment_width {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w) (k : ℕ) :
     ∃ a : ℕ, (nextSegment S w g k).width = w + a := by
   cases g with
-  | h a => exact ⟨0, by simp [nextSegment, effectiveAnc]⟩
-  | swap a c => exact ⟨0, by simp [nextSegment, effectiveAnc]⟩
+  | h a => exact ⟨0, by simp [nextSegment]⟩
+  | swap a c => exact ⟨0, by simp [nextSegment]⟩
   | cp a c e neg =>
       by_cases h4 : 4 ≤ e
       · refine ⟨1, ?_⟩
         rw [nextSegment_cp_ge4 S a c e neg k h4]
       · refine ⟨0, ?_⟩
         rw [nextSegment_cp_lt4 S a c e neg k h4]
-        simp [effectiveAnc]
+        simp []
 
 /-- Every segment produced by `nextSegment` has zero oracle calls. -/
 theorem nextSegment_zero_oracle {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w)
     (k : ℕ) : answerOracleCalls (nextSegment S w g k) = 0 := by
   cases g with
-  | h a => simp [nextSegment, answerOracleCalls]
-  | swap a c => simp [nextSegment, answerOracleCalls]
+  | h a => simp [answerOracleCalls]
+  | swap a c => simp [answerOracleCalls]
   | cp a c e neg =>
       by_cases h4 : 4 ≤ e
-      · simp [nextSegment, h4, answerOracleCalls]
-      · simp [nextSegment, h4, answerOracleCalls]
+      · simp [answerOracleCalls]
+      · simp [answerOracleCalls]
 
 /-- Every gate emitted by `nextSegment` is a fixed primitive. -/
 theorem nextSegment_legal {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w) (k : ℕ) :
@@ -248,7 +245,7 @@ theorem nextSegment_accepts_middleWindow {w : ℕ} (S : MiddleWindowSynthesizer)
 /-- At positive precision `k`, `nextSegment` satisfies `Accepts` for controlled phases with
 exponent at least `k + 2`. -/
 theorem nextSegment_accepts_smallAngle {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
-    (e : ℕ) (neg : Bool) (k : ℕ) (hk : 1 ≤ k) (he : k + 2 ≤ e) :
+    (e : ℕ) (neg : Bool) (k : ℕ) (hk : 1 ≤ k) (_he : k + 2 ≤ e) :
     Accepts w (.cp a c e neg) k (nextSegment S w (.cp a c e neg) k) := by
   by_cases h4 : 4 ≤ e
   · exact nextSegment_accepts_middleWindow S a c e neg k hk h4

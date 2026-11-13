@@ -28,7 +28,6 @@ quantum singular value transformation [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 
 namespace Qatlib.Concepts.Execution.WorkspaceCP

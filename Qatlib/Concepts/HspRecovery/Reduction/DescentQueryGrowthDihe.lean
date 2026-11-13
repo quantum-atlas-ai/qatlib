@@ -26,7 +26,6 @@ of a square root. The resulting `sourceDescentQueryGrowth` establishes a bound o
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

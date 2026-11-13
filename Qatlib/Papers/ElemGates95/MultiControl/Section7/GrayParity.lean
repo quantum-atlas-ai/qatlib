@@ -30,7 +30,6 @@ and existence results form ingredients of the multi-control synthesis argument.
 * [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.1.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

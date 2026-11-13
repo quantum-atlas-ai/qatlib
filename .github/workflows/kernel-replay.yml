@@ -1,0 +1,66 @@
+name: Kernel Replay
+
+on:
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: Fresh build and kernel replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      LAKE_ARTIFACT_CACHE: "false"
+      LEAN_ABORT_ON_PANIC: "1"
+      MATHLIB_NO_CACHE_ON_UPDATE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.GH_CHECKOUT_DEPLOY_KEY }}
+
+      - name: Install elan
+        run: |
+          set -o pipefail
+          ELAN_VERSION="v4.1.2"
+          ELAN_SHA256="4bacca9502cb89736fe63d2685abc2947cfbf34dc87673504f1bb4c43eda9264"
+          ELAN_SCRIPT="$RUNNER_TEMP/elan-init.sh"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/leanprover/elan/$ELAN_VERSION/elan-init.sh" \
+            --output "$ELAN_SCRIPT"
+          printf '%s  %s\n' "$ELAN_SHA256" "$ELAN_SCRIPT" | sha256sum --check --strict
+          sh "$ELAN_SCRIPT" --default-toolchain none -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch upstream caches only
+        run: lake exe get_cache --no-qatlib
+
+      - name: Build Qatlib from source with warnings as errors
+        run: lake build --wfail Qatlib
+
+      - name: Run kernel soundness and transitive axiom audit
+        run: lake exe test
+
+      - name: Replay Qatlib in a fresh kernel environment
+        run: |
+          set -euo pipefail
+          TC_TAG="$(sed 's/.*://' lean-toolchain | tr -d '[:space:]')"
+          CHECKER_DIR="$RUNNER_TEMP/lean4checker"
+          CHECKER_BIN=""
+          if env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY git ls-remote --exit-code \
+              https://github.com/leanprover/lean4checker.git "refs/heads/$TC_TAG" "refs/tags/$TC_TAG" \
+              >/dev/null 2>&1; then
+            env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY git clone --depth 1 --branch "$TC_TAG" \
+              https://github.com/leanprover/lean4checker.git "$CHECKER_DIR"
+            (cd "$CHECKER_DIR" && lake build)
+            CHECKER_BIN="$CHECKER_DIR/.lake/build/bin/lean4checker"
+          fi
+          if [ -n "$CHECKER_BIN" ] && [ -x "$CHECKER_BIN" ]; then
+            lake env "$CHECKER_BIN" --fresh Qatlib
+          else
+            lake env leanchecker --fresh Qatlib
+          fi

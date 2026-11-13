@@ -86,7 +86,6 @@ open scoped BigOperators
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
-set_option linter.unusedVariables false
 
 noncomputable section
 

@@ -49,7 +49,6 @@ optimizers, formalizing the weighted adversary duality of [HoyerLeeSpalek2007].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option synthInstance.maxHeartbeats 400000
@@ -60,12 +59,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal 
 open Qatlib
 open Qatlib
 
-
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -219,8 +215,6 @@ theorem minimaxGram_feasible_iff_probability (input : X → K → Bool) (f : X �
   · rintro ⟨p,hp,hpair⟩
     exact ⟨minimaxRankOne alpha p t,minimaxRankOne_feasible input f alpha ha p hp t ht hpair⟩
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -974,8 +968,6 @@ theorem minimaxSdp_values_weak_duality (input : X → K → Bool) (f : X → Boo
   exact ENNReal.ofReal_le_ofReal
     (minimaxSdp_weak_duality input f alpha wa.val.1 wa.val.2 wa.property zt.val.1 zt.val.2 zt.property.2)
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

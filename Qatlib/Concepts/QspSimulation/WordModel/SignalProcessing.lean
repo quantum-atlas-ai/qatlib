@@ -83,7 +83,6 @@ and convention-bridge results. Background and related constructions are discusse
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.QspSimulation.WordModel

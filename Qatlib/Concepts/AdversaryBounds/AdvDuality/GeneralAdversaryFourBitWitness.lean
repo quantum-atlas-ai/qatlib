@@ -41,7 +41,6 @@ with the four-bit example in [HoyerLeeSpalek2007].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -54,10 +53,7 @@ open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
-
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -365,7 +361,6 @@ theorem fourBitGamma_filter_le (i : Fin 4) :
     (Matrix.ext (four_filter_certificate i))
   have he : 1 - (genAdvFilter (fun w : FourBitWord => w) fourBitGamma i)ᴴ *
         genAdvFilter (fun w : FourBitWord => w) fourBitGamma i = L * Matrix.diagonal D * Lᴴ := by
-    (try dsimp only at hc)
     rw [Matrix.map_sub f (map_sub f), Matrix.map_one f (map_zero f) (map_one f)] at hc
     simpa only [Matrix.map_mul, hT, hF, hdiag] using! hc
   apply norm_le_one_of_residual_psd

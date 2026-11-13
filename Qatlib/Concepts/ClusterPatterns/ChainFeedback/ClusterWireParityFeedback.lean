@@ -38,7 +38,6 @@ individual corrected branches retain their uniform weights.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -52,7 +51,6 @@ namespace Qatlib.Concepts.ClusterPatterns.ChainFeedback
 
 open Matrix
 open scoped Classical
-set_option linter.unusedSectionVars false
 
 /-- The length-`L` graph word applying the phase-one wire gate repeatedly to the sole logical
 wire. -/

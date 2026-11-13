@@ -29,8 +29,6 @@ without normalization hypotheses. See [BaskaranEtAl2023].
 * [Baskaran et al., 2023][BaskaranEtAl2023]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

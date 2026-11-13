@@ -31,7 +31,6 @@ inverse evolution present in `capPrintedThreeFactor`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

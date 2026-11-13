@@ -27,8 +27,6 @@ data kernel and proves a quartic bias bound for the trace readout. See
 * [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 set_option backward.isDefEq.respectTransparency false

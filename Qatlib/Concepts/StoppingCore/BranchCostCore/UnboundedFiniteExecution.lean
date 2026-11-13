@@ -30,13 +30,10 @@ Carlo applications motivating the cost model; see [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
-
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.StoppingCore.BranchCostCore
 
@@ -76,17 +73,19 @@ theorem charge_point_mass (q : CostedLaw α) (n : ℕ) (a : α) (j : ℕ) :
       · intro hw
         subst hw
         exact congrArg (Prod.mk a) (by omega)
-    rw [CostedLaw.event_congr hcongr, event_point_mass, if_pos hn]
+    rw [CostedLaw.event_congr hcongr, event_point_mass, ite_eq_left hn]
   · have hnone : ∀ w : α × ℕ, ¬((w.1, n + w.2) = (a, j)) := by
       intro w hw
       simp only [Prod.mk.injEq] at hw
       obtain ⟨_, h2⟩ := hw
       omega
-    rw [CostedLaw.event_zero _ _ hnone, if_neg hn]
+    rw [CostedLaw.event_zero _ _ hnone, ite_eq_right hn]
 
 end PointMass
 
 section RunForPoints
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- A tick from a running state has cost exactly one and configuration distribution `next s`. -/
 theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
@@ -105,12 +104,12 @@ theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
     have hc1 : ∀ d : Configuration S O, ((d, 1) = (c, 1)) ↔ (d = c) := by
       intro d
       simp only [Prod.mk.injEq, and_true]
-    rw [if_pos rfl, CostedLaw.event_congr hc1, event_point_mass]
+    rw [ite_eq_left rfl, CostedLaw.event_congr hc1, event_point_mass]
   · have hc0 : ∀ d : Configuration S O, ¬((d, 1) = (c, j)) := by
       intro d hd
       simp only [Prod.mk.injEq] at hd
       omega
-    rw [if_neg hj, CostedLaw.event_zero _ _ hc0]
+    rw [ite_eq_right hj, CostedLaw.event_zero _ _ hc0]
 
 /-- Execution from a running state cannot halt at accumulated cost zero. -/
 theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
@@ -139,9 +138,9 @@ theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
           ((Sum.inl o : Configuration S O), (0 : ℕ)) = 0
       by_cases hj : j = 1
       · subst hj
-        rw [tick_point_running, if_pos rfl, charge_point_mass]
+        rw [tick_point_running, ite_eq_left rfl, charge_point_mass]
         simp
-      · rw [tick_point_running, if_neg hj, zero_mul]
+      · rw [tick_point_running, ite_eq_right hj, zero_mul]
 
 /-- After `fuel` steps from a running state, a running configuration has zero mass at any cost
 different from `fuel`. -/
@@ -158,8 +157,8 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
       by_cases hs : s = s'
       · subst hs
         simp only [Prod.mk.injEq, true_and]
-        exact if_neg hj
-      · refine if_neg (fun hcon => hs ?_)
+        exact ite_eq_right hj
+      · refine ite_eq_right (fun hcon => hs ?_)
         simp only [Prod.mk.injEq, Sum.inr.injEq] at hcon
         exact hcon.1.symm
   | succ fuel ih =>
@@ -177,19 +176,19 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
           ((Sum.inr s' : Configuration S O), (j : ℕ)) = 0
       by_cases hi1 : i = 1
       · subst hi1
-        rw [tick_point_running, if_pos rfl, charge_point_mass]
+        rw [tick_point_running, ite_eq_left rfl, charge_point_mass]
         rcases Nat.eq_zero_or_pos j with hj0 | hj0
         · subst hj0
           simp
         · have h1j : (1 : ℕ) ≤ j := hj0
-          rw [if_pos h1j]
+          rw [ite_eq_left h1j]
           cases c with
           | inl a =>
               rw [runFor_halted]
               simp [CostedLaw.ret, PMF.pure_apply]
           | inr t =>
               rw [ih t s' (j - 1) (fun h => hj (by omega)), mul_zero]
-      · rw [tick_point_running, if_neg hi1, zero_mul]
+      · rw [tick_point_running, ite_eq_right hi1, zero_mul]
 
 /-- After `fuel` steps, a running configuration has zero mass at costs smaller than `fuel`. -/
 theorem runFor_point_running_lt_fuel (next : S → PMF (Configuration S O)) :
@@ -203,6 +202,8 @@ theorem runFor_point_running_lt_fuel (next : S → PMF (Configuration S O)) :
   | inr s0 =>
       intro s i hi
       exact runFor_point_running_off_fuel next fuel s0 s i (Nat.ne_of_lt hi)
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- A finite execution assigns zero mass to accumulated costs exceeding its fuel. -/
 theorem runFor_point_cost_gt_fuel (next : S → PMF (Configuration S O)) (fuel : ℕ)
@@ -241,14 +242,14 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     · have hsup : j ≤ k :=
         runFor_bounded next k cfg (c, j) ((PMF.mem_support_iff _ _).mp hp)
       by_cases he : (c, j) = ((Sum.inl o : Configuration S O), (k : ℕ))
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         simp only [Prod.mk.injEq] at he
         obtain ⟨hc, hjk⟩ := he
         subst hc
         subst hjk
-        rw [if_pos (Nat.le_refl j), runFor_halted]
+        rw [ite_eq_left (Nat.le_refl j), runFor_halted]
         simp [CostedLaw.ret, PMF.pure_apply]
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         have hzero : runFor next m c ((Sum.inl o : Configuration S O), (k - j : ℕ)) = 0 := by
           cases c with
           | inl a =>
@@ -260,7 +261,7 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
                 refine he ?_
                 rw [Prod.mk.injEq]
                 exact ⟨congrArg Sum.inl hcon.1.symm, by omega⟩
-              rw [if_neg hne]
+              rw [ite_eq_right hne]
           | inr t =>
               have hjk : j = k := by
                 rcases Nat.lt_trichotomy j k with hlt | heq | hgt
@@ -273,8 +274,8 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
               rw [Nat.sub_self]
               exact runFor_point_halt_zero next m t o
         by_cases hjk : j ≤ k
-        · rw [if_pos hjk, hzero]
-        · rw [if_neg hjk]
+        · rw [ite_eq_left hjk, hzero]
+        · rw [ite_eq_right hjk]
   have hmass : ∑' x : Configuration S O × ℕ,
       runFor next k cfg x
           * (if x = ((Sum.inl o : Configuration S O), (k : ℕ)) then (1 : ℝ≥0∞) else 0)
@@ -287,8 +288,8 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     rw [← hbind]
     exact tsum_congr fun x => by
       by_cases hxy : x = ((Sum.inl o : Configuration S O), (k : ℕ))
-      · rw [if_pos hxy, hxy, PMF.pure_apply_self]
-      · rw [if_neg hxy, PMF.pure_apply, if_neg (Ne.symm hxy)]
+      · rw [ite_eq_left hxy, hxy, PMF.pure_apply_self]
+      · rw [ite_eq_right hxy, PMF.pure_apply, ite_eq_right (Ne.symm hxy)]
   exact (tsum_congr hpoint).trans hmass
 
 end RunForPoints
@@ -336,13 +337,13 @@ theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
             (fun x => if (∃ s, x.1 = Sum.inr s) then (1 : ℝ≥0∞) else 0) from rfl]
     refine CostedLaw.expectation_congr fun x => ?_
     by_cases h : (∃ s, x.1 = Sum.inr s)
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, ite_eq_right h]
   have hzero : ∀ a : O, (∑' j : ℕ, runFor next fuel cfg ((Sum.inl a : O ⊕ S), (j : ℕ))
         * (if (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) then (1 : ℝ≥0∞) else 0)) = 0 := by
     intro a
     refine ENNReal.tsum_eq_zero.mpr fun j => ?_
-    rw [if_neg (fun h : (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) => Sum.inl_ne_inr h.choose_spec),
+    rw [ite_eq_right (fun h : (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) => Sum.inl_ne_inr h.choose_spec),
       mul_zero]
   have hone : ∀ b : S, (∑' j : ℕ, runFor next fuel cfg ((Sum.inr b : O ⊕ S), (j : ℕ))
         * (if (∃ s : S, (Sum.inr b : O ⊕ S) = Sum.inr s) then (1 : ℝ≥0∞) else 0))
@@ -350,7 +351,7 @@ theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
     intro b
     refine tsum_congr fun j => ?_
     have hc : (∃ s : S, (Sum.inr b : O ⊕ S) = Sum.inr s) := Exists.intro b rfl
-    rw [if_pos hc, mul_one]
+    rw [ite_eq_left hc, mul_one]
   have hsplit : finiteSurvival next fuel cfg
       = ∑' s : S, ∑' j : ℕ,
         runFor next fuel cfg ((Sum.inr s : Configuration S O), (j : ℕ)) := by
@@ -460,6 +461,8 @@ private theorem tendsto_finset_sum_ennreal {ι : Type} (s : Finset ι)
       exact Filter.Tendsto.add (h i (Finset.mem_insert_self i s))
         (ih fun j hj => h j (Finset.mem_insert_of_mem hj))
 
+omit [Fintype S] [DecidableEq S] [DecidableEq O] in
+
 /-- The total halting mass through finite fuel converges to the sum of all halting joint masses. -/
 theorem haltJoint_partial_sum_tendsto (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
@@ -520,9 +523,13 @@ noncomputable def unboundedMass (next : S → PMF (Configuration S O))
   | none => nonterminationMass next cfg
   | some p => haltJoint next cfg p.1 p.2
 
+omit [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- The `none` mass of the unbounded execution is its nontermination mass. -/
 theorem unboundedMass_none (next : S → PMF (Configuration S O)) (cfg : Configuration S O) :
     unboundedMass next cfg none = nonterminationMass next cfg := rfl
+
+omit [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- The mass at `some (o, k)` is the joint mass of halting with output `o` and cost `k`. -/
 theorem unboundedMass_some (next : S → PMF (Configuration S O)) (cfg : Configuration S O)

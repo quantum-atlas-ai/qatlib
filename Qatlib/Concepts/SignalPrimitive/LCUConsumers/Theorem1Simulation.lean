@@ -31,8 +31,6 @@ to achieve operator-norm error at most `ε`.
 - [Low and Chuang, 2019][LowChuang2019], Theorem 1.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Concepts.CopyEvolution.Discriminate

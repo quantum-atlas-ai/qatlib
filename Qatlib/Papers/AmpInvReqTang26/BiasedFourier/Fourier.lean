@@ -42,7 +42,6 @@ namespace Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The condition that the root index lies between zero and `q / 4`, or between `q - q / 4` and
 `q - 1`. -/

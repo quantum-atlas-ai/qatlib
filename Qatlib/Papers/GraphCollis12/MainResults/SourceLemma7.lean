@@ -30,8 +30,8 @@ where `|s_jᵇ⟩ = Σ_{z : z_j = b} |z⟩`.  Witnesses:
 
 This file fixes the vector space, the span program, the witness predicates and the
 witness-size statement.  The witness-size core `lemma7_witness_size` is registered
-as a `Prop`-valued definition; mechanising the two computations above is a
-substantive gap.  The query-complexity step (ii) is reduced to Reichardt's
+as a `Prop`-valued definition; the two witness computations above are outside
+the scope of the formal proofs.  The query-complexity step (ii) is reduced to Reichardt's
 Theorem 4 (paper Theorem 4) through the fully proved arithmetic lemma
 `lemma7_query_from_witness`.
 -/
@@ -196,16 +196,15 @@ Reconstruction of the paper's proof (p.5):
   `V_j^{x_j}` and has cost `(n - |S| + deg(S))/γ² ≤ (n+k)/γ² = √(2(n+k))`
   (`div_gcGamma_sq`), using `deg(S) ≤ k` and `|S| ≥ 0`.
 
-**Status: statement registered as a `Prop`-valued definition; the proof is a
-substantive gap.**  The two sum decompositions over the function space
+Scope note: this is a `Prop`-valued definition; the witness-size proof is outside
+the scope of this file.  The two sum decompositions over the function space
 `(Fin n → Bool) → ℂ` (the evaluation of `Σ_z sVec _ _ z`) and the double-counting
 identity `Σ_j Σ_{i ∈ N(j)} [x i = 1] = Σ_{i ∈ S} deg(i) = degSum G S` are not yet
 mechanised; the combinatorial/numeric parts are `two_mul_gcGamma_sq` and
-`div_gcGamma_sq`.  Candidate reuse: `Fintype.sum_eq_single`, `Finset.sum_comm`,
-`SimpleGraph.sum_degrees_eq_twice_card_edges`.  Suggested next tactics: build the
-`γ`-coefficient family, then `Finset.sum_eq_single` twice for the positive case;
-for the negative case `Finset.sum_comm` after rewriting `inner (sVec i true) w`,
-then `Finset.sum_congr` over `markedSet`. -/
+`div_gcGamma_sq`.  The positive case uses the `γ`-coefficient family and two
+single-term sum evaluations.  The negative case expands `inner (sVec i true) w`
+and interchanges the sums over neighbours and `markedSet`; the degree identity
+is the corresponding double-counting step. -/
 def lemma7_witness_size {n : ℕ} (G : SimpleGraph (Fin n)) (k : ℕ) : Prop :=
   WitnessSizeAtMost G (gcProgram G k) (Real.sqrt (2 * ((n + k : ℕ) : ℝ)))
 

@@ -32,8 +32,6 @@ classical randomized computation framework in [KitaevShenVyalyi2002].
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.FairRandomBits.RationalReject
 
 open scoped ENNReal Classical

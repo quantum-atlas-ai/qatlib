@@ -26,7 +26,6 @@ and truncated loss numerator used in [WoernerEgger2019].
 * [Woerner and Egger, 2019][WoernerEgger2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean

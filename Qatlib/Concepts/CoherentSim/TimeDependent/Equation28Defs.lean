@@ -24,9 +24,7 @@ finite ordered expansion used to analyze the time-dependent Taylor extension
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Matrix
 open scoped Matrix.Norms.L2Operator

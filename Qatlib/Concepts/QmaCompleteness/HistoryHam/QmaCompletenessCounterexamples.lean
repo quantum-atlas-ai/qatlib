@@ -28,11 +28,9 @@ background is given in [KempeKitaevRegev2006].
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Matrix
 open scoped BigOperators

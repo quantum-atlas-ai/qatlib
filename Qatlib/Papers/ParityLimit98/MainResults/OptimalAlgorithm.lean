@@ -29,7 +29,6 @@ analysis of [FarhiEtAl1998].
 * [Farhi et al., 1998][FarhiEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.ParityLimit98.MainResults.OptimalAlgorithm

@@ -29,8 +29,6 @@ disjointness, coverage, and the tree-edge cardinality condition, the tree-based 
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Cor510

@@ -27,7 +27,6 @@ combinations, and disjoint merging. It packages closure properties of the filter
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.GramQueryCore.LowerBoundTools

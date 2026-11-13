@@ -32,7 +32,6 @@ length.
 - [Low and Chuang, 2017][LowChuang2017].
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -46,7 +45,6 @@ open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.SignalPrimitive.SparseSim
 

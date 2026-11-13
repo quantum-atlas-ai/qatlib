@@ -32,7 +32,6 @@ noncomputable section
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- For the stable diagonalizable matrices and parameter bounds in `Theorem5V2`, the V2
 Taylor-system condition number is at most `6 * (‖V‖ * ‖V⁻¹‖) * k * (m+p)`. See

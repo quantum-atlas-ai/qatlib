@@ -32,7 +32,6 @@ measuring a Hermitian generator itself is deterministic.
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.TensorRegisters.RegisterModel

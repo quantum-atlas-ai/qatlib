@@ -20,7 +20,6 @@ These estimates follow the analysis of [BrassardEtAl2002], especially
 [Brassard et al., Theorem 11][BrassardEtAl2002].
 -/
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

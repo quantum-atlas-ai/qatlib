@@ -28,14 +28,13 @@ stopped part of the state must stay stopped.  Concretely the source requires:
    nonnegative per-stage stopping increments;
 3. every prefix of the stage sequence is unitary.
 
-The frozen library proves exactly this as
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.StopModel.variableTimeModelWellFormed_answer`
+The library proves these properties as
+`Qatlib.Papers.VarTimeAmpAmp10.StopModel.variableTimeModelWellFormed_answer`
 (the `VariableTimeModelWellFormed` Prop) for an arbitrary legal stage list with
 an arbitrary legal history of reached stopping coordinates.  The paper-layer
 theorem below states the three clauses in source form (invariance, monotone
 mass with nonnegative increment, prefix unitarity) for explicit stages and
-history and derives them from that frozen result.  Reused FQN:
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.StopModel.variableTimeModelWellFormed_answer`.
+history and derives them from that result.
 -/
 
 open Qatlib.Foundations.InstrumentCore.Measurement

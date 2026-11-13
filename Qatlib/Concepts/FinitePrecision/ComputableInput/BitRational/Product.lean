@@ -26,8 +26,6 @@ For background on classical computation and its resource models, see [KitaevShen
 * [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational

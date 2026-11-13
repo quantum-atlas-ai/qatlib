@@ -50,7 +50,6 @@ length, output length, and semantic work.
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib

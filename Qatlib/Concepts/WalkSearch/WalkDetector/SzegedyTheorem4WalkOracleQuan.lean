@@ -22,7 +22,6 @@ supplying the walk-oracle construction used in [Szegedy2004].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 

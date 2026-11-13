@@ -32,7 +32,6 @@ realized inner bounds, nonnegative costs, and positive block lengths.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal

@@ -42,7 +42,6 @@ branches and participation of every measured vertex in the dependency graph.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -55,7 +54,6 @@ open Complex
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- The two-component measurement vector with amplitudes `1 / sqrt 2` and `(-1)^o * exp(alpha) /
 sqrt 2`. The exponential has real argument, so the vector need not have unit norm. -/

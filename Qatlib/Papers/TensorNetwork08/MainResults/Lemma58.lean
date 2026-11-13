@@ -27,8 +27,6 @@ solves for the network value when that cardinality is nonzero as a complex numbe
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma58
 
 open Classical

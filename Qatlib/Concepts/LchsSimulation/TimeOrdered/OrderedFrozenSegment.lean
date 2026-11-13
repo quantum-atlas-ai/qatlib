@@ -41,7 +41,6 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

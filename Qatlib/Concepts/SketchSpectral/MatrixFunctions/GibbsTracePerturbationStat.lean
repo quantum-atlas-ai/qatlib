@@ -25,8 +25,6 @@ operator-norm perturbations. It bounds the absolute change by the original trace
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SketchSpectral.MatrixFunctions
 
 open Matrix NormedSpace

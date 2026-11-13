@@ -28,7 +28,6 @@ channel interpretation follows the quantum information framework of [Wilde2017].
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath

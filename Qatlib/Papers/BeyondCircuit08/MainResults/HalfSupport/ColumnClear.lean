@@ -28,8 +28,6 @@ supplies column elimination for the half-support development of [Jordan2008].
 * [Jordan, 2008][Jordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -35,7 +35,6 @@ satisfying `sin θ^2 = a`. See [BrassardEtAl2002] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 

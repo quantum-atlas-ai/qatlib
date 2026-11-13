@@ -29,7 +29,6 @@ the controlled-gate synthesis framework of [BarencoEtAl1995].
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

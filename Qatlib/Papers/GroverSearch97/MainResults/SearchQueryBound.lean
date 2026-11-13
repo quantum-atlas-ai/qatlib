@@ -24,8 +24,6 @@ at least one half and is bounded by `(π/4) * sqrt (Fintype.card I)`. See [Grove
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

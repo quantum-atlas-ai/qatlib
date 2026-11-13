@@ -25,8 +25,6 @@ coherent initial weights, query recurrence, mass bounds, and final-state factori
 * [Ambainis, 2002][Ambainis2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

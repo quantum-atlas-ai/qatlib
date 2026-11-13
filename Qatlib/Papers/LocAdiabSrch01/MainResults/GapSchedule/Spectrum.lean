@@ -26,8 +26,6 @@ characteristic equations, ordering, range on the interpolation interval, and gap
 * [Roland and Cerf, 2002][RolandCerf2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

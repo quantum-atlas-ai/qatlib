@@ -50,7 +50,6 @@ at most `k` coordinates for a function far from all `k`-juntas.
   Juntas, Theorem III.3.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

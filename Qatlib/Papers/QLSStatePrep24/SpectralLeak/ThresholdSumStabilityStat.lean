@@ -24,7 +24,6 @@ geometric sums of squared norms of nearby vectors. See [LowSu2026] for the paper
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

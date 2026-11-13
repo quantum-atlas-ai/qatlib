@@ -597,7 +597,6 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
-set_option warningAsError false
 
 /-- A source rectangle built from a sign approximation with constant 12000 and error ε/2 has
 degree at most 36000(1 + δ⁻¹ log(ε⁻¹)). -/

@@ -26,7 +26,6 @@ feature register of the Gram state produces this density operator. See
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000

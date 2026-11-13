@@ -33,8 +33,6 @@ noncomputable section
 open Matrix
 open Qatlib.Foundations.PureStateMath
 
-set_option linter.unusedSectionVars false
-
 namespace Qatlib.Concepts.StabilizerAlg.NearUniformGen.MeasurementOperator
 
 variable {A D Ω Y : Type*} [Fintype A] [DecidableEq A] [Fintype D] [DecidableEq D]
@@ -78,6 +76,8 @@ theorem applyGate_ket_apply (U : Matrix D D ℂ) (d0 d : D) :
   · intro d' _ hd'; simp [Ket, hd']
   · intro h; exact absurd (Finset.mem_univ d0) h
 
+omit [Fintype A] [Fintype D] [DecidableEq D] in
+
 /-- The composite measurement operator is the sum of its branch-restricted blocks. -/
 theorem measOp_eq_sum_block (branch : A → Ω) (U : Ω → Matrix D D ℂ) :
     measOp branch U = ∑ V, blockOp branch V (U V) := by
@@ -90,6 +90,8 @@ theorem measOp_eq_sum_block (branch : A → Ω) (U : Ω → Matrix D D ℂ) :
     · intro V _ hV; simp [Ne.symm hV]
     · intro h; exact absurd (Finset.mem_univ (branch a)) h
   · simp [ha]
+
+omit [Fintype Ω] [DecidableEq Ω] in
 
 /-- The composite operator sends the initialized amplitude at `(a, d)` to `ψ a * U (branch a) d
 d0`. -/
@@ -114,6 +116,8 @@ theorem bornProb_measOp (branch : A → Ω) (U : Ω → Matrix D D ℂ) (ψ : QS
       = BornProb ψ a * BornProb (ApplyGate (U (branch a)) (Ket d0)) d := by
   simp only [BornProb]
   rw [measOp_apply, applyGate_ket_apply, norm_mul, mul_pow]
+
+omit [Fintype Y] in
 
 /-- The coarse-grained Born weight of the composite operator is the sum of the branch weights
 times their conditional output weights, giving the mixture identity of [Kitaev, Lemma
@@ -144,6 +148,8 @@ theorem composite_probability (branch : A → Ω) (U : Ω → Matrix D D ℂ)
     · intro h; exact absurd (Finset.mem_univ (branch a)) h
   rw [key]
 
+omit [DecidableEq D] [Fintype Ω] [DecidableEq Ω] in
+
 /-- Multiplying composite measurement operators multiplies their data matrices branchwise, as
 used in [Kitaev, Lemma 8][Kitaev1995]. -/
 theorem measOp_mul (branch : A → Ω) (U U' : Ω → Matrix D D ℂ) :
@@ -152,7 +158,7 @@ theorem measOp_mul (branch : A → Ω) (U U' : Ω → Matrix D D ℂ) :
   simp only [measOp, Matrix.mul_apply, Matrix.of_apply, Fintype.sum_prod_type]
   by_cases ha : a = a'
   · subst ha
-    simp only [if_true]
+    simp only [ite_true]
     rw [Finset.sum_eq_single a]
     · simp
     · intro a'' _ ha''

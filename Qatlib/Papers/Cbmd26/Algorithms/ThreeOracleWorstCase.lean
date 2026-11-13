@@ -23,8 +23,6 @@ pathwise bounds for the three-oracle framework of [WangEtAl2026].
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

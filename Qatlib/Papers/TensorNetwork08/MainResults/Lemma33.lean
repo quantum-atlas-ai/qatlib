@@ -26,8 +26,6 @@ summand and supplies a matrix for the remaining output block.
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma33
 
 open Matrix

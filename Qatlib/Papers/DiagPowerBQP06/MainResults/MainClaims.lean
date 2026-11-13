@@ -35,7 +35,6 @@ These constructions accompany the results of [JanzingWocjan2006a].
 * [Janzing and Wocjan, 2006][JanzingWocjan2006a]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

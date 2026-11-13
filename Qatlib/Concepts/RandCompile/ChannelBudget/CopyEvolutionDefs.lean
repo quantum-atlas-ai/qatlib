@@ -26,7 +26,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 
 namespace Qatlib.Concepts.RandCompile.ChannelBudget
@@ -37,7 +36,6 @@ open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The phase-estimation workspace basis size `M * 2 * D`. -/
 def qpePeakSpace (D M : ℕ) : ℕ := M * 2 * D

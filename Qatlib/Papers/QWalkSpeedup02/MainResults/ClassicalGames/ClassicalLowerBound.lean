@@ -27,8 +27,6 @@ success bound used in Theorem 9 of [ChildsEtAl2003]. For `n ≥ 3` and `t ≤ 2^
 * [Childs et al., 2003][ChildsEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

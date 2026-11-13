@@ -26,8 +26,6 @@ vanishing of the complex sign-character sum. This development accompanies [Roett
 * [Roetteler and Beth, 1998][RoettelerBeth1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting

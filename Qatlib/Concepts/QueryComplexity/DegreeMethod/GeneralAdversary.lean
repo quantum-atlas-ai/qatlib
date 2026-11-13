@@ -50,7 +50,6 @@ adaptive countdowns, and native scanning machines. `clause16_endpoint`, `clause1
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.Execution.CircuitCompile
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -181,7 +180,6 @@ theorem composition_upper_bound_on_source_scope {k : ℕ} {Y : Fin k → Type} {
 theorem real_zero_reciprocal_is_top : (ENNReal.ofReal (0 : ℝ))⁻¹ = ⊤ := by
   rw [ENNReal.ofReal_zero, ENNReal.inv_zero]
 
-set_option linter.unusedVariables false in
 
 /-- The real-matrix weighted adversary value is monotone under a pointwise increase of
 nonnegative coordinate costs. -/

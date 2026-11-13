@@ -27,8 +27,6 @@ The quantity `repeatFailure r` is `3 ^ (-r)` expressed as `(1 / 3) ^ r`. A suppl
 * [Ambainis and Špalek, 2006][AmbainisSpalek2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

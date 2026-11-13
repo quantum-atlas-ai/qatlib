@@ -26,8 +26,6 @@ spectral estimates used in the PCA construction of [Tang2021].
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Classical BigOperators Matrix.Norms.L2Operator

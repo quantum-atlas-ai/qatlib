@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -31,7 +33,6 @@ These boundary estimates support the topological contour arguments associated wi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
@@ -46,7 +47,7 @@ section Straddle
 variable {X : Type*} [TopologicalSpace X] {S V : Set X}
 
 /-- A preconnected set meeting both a set and its complement also meets its frontier. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.inter_frontier_nonempty (hS : IsPreconnected S)
+theorem _root_.IsPreconnected.inter_frontier_nonempty (hS : IsPreconnected S)
     (h₁ : (S ∩ V).Nonempty) (h₂ : (S \ V).Nonempty) : (S ∩ frontier V).Nonempty := by
   by_contra hcon
   have hsub : S ⊆ interior V ∪ interior Vᶜ := by

@@ -31,7 +31,6 @@ query count, bounded by two while at most half the image has been collected.
 * [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators ENNReal Classical

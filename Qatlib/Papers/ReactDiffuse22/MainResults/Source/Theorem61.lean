@@ -50,18 +50,12 @@ yields an `ε`-estimate with `O((1/ε) log(1/δ))` rounds, each using `A(ε/4)`
 (the factor `4` absorbs the state-preparation error) and one application of
 `I − 2P`.
 
-**Current Lean gap.**  The block models the algorithm by its output carrier
-(`RatioEstimator`: ledger, output, success probability) rather than by a
-circuit; a proof of the statement as written would require the amplitude
-estimation theorem, which the library does not formalize.  The statement keeps
-the paper's quantitative guarantees `|output − ratio| ≤ ε`,
-`successProb ≥ 1 − δ` and the ledger bound, so that any future amplitude
-estimation formalization can discharge it without restatement.
-**Candidate reuse:** `RatioEstimator`, `QueryLedger.total`,
-`meanSquareRatio` from `SourceModel`.
-**Suggested tactics:** construct the estimator from an amplitude-estimation
-`AmplitudeEstimation` module if it is added, then discharge the ledger bound
-`O((1/ε)log(1/δ))` by `nlinarith` on the explicit constant. -/
+Scope note: this theorem represents the algorithm by `RatioEstimator`, which
+records a query ledger, an output and a success probability. It formalizes the
+quantitative guarantees `|output − ratio| ≤ ε`, `successProb ≥ 1 − δ` and the
+`O((1/ε) log(1/δ))` query bound using `QueryLedger.total` and `meanSquareRatio`
+from `SourceModel`. A circuit construction and its amplitude-estimation
+correctness proof are outside the scope of this file. -/
 theorem source_theorem61
     {ι : Type} [Fintype ι]
     (Dset : Set ι) (v : ι → ℝ) (eps delta : ℝ)

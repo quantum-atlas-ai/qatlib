@@ -42,7 +42,6 @@ query budget; `neverEvent` means that the truncated trace is unaccepted.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.Execution.CircuitCompile
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.GramQueryCore.FilteredCert

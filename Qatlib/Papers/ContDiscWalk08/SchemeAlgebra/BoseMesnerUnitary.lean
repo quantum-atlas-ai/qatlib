@@ -23,11 +23,7 @@ the association-scheme construction of [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -54,6 +50,8 @@ theorem phase_unit (φ : ℝ) : (starRingEnd ℂ) (phase φ) * phase φ = 1 := b
 def schemeUnitary {m : ℕ} (E : Fin m → Matrix J J ℂ) (φ : Fin m → ℝ) : Matrix J J ℂ :=
   ∑ i, phase (φ i) • E i
 
+omit [Fintype J] [DecidableEq J] in
+
 /-- For Hermitian `E i`, the conjugate transpose of `schemeUnitary E φ` is the sum with
 conjugated phase coefficients. -/
 theorem conjTranspose_schemeUnitary {m : ℕ} (E : Fin m → Matrix J J ℂ)
@@ -64,6 +62,8 @@ theorem conjTranspose_schemeUnitary {m : ℕ} (E : Fin m → Matrix J J ℂ)
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [Matrix.conjTranspose_smul, (hHerm i).eq]
   rfl
+
+omit [DecidableEq J] in
 
 /-- Multiplying a fixed idempotent by a weighted sum of mutually orthogonal idempotents retains
 only its own weighted term. -/
@@ -137,6 +137,8 @@ theorem schemeUnitary_mem_unitaryGroup {m : ℕ} (E : Fin m → Matrix J J ℂ)
     schemeUnitary E φ ∈ Matrix.unitaryGroup J ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   exact schemeUnitary_conjTranspose_mul E hHerm hIdem hOrth hComplete φ
+
+omit [Fintype J] in
 
 /-- Restates the supplied completeness identity that the idempotents sum to the identity. -/
 theorem complete_resolution {m : ℕ} (E : Fin m → Matrix J J ℂ)

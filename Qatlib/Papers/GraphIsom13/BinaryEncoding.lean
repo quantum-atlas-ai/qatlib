@@ -24,8 +24,6 @@ integer-string entry. The equivalence `parseEquiv` transports the graph-isomorph
 * [Gaitan and Clark, 2014][GaitanClark2014]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.GraphIsom13.BinaryEncoding
 set_option autoImplicit false
 noncomputable section

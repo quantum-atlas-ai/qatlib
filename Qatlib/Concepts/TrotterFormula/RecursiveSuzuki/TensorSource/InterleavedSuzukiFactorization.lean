@@ -32,8 +32,6 @@ and the ideal exponential factor into identical local factors. The uncompressed 
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxRecDepth 32768
 set_option maxHeartbeats 4000000

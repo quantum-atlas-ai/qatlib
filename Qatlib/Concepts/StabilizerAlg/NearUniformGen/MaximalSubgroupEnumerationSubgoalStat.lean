@@ -24,8 +24,6 @@ ingredient used in the near-uniform generation failure estimate. For background,
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 

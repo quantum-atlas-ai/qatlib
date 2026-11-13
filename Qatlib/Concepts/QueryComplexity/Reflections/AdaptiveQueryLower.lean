@@ -30,7 +30,6 @@ The result supplies an adaptive circuit interface to the adversary viewpoint on 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

@@ -84,6 +84,7 @@ lake test
    在 VS Code 中安装官方 [Lean 4 扩展](https://marketplace.visualstudio.com/items?itemName=leanprover.lean4) 后，请务必通过 **File → Open Folder** 打开 `qatlib` **根目录**（不要单独打开 `Qatlib/Papers` 等子目录，否则 Lake 无法读取根目录的 `lakefile.toml` 与 `lean-toolchain`）。
 2. **编辑器内符号跳转与悬停提示**：
    运行 `lake exe get_cache` 将预编译构件拉入本地 Lake 缓存后，VS Code 的 `lean --server` 可直接复用预编译的 `.olean` 与 `.ilean` 索引，无需等待漫长的后台重编即可获得完整的类型提示与跳转支持。
-3. **常见缓存问题排查**：
+3. **常见缓存问题排查与缓存未命中说明**：
+   - **缓存未命中时会发生什么**：若你在本地修改了上游源码、锁定了尚无预编译构件的自定义分支，或 `Physlib` / `Qatlib` 远端缓存暂未覆盖某个历史提交，Lake 会自动退回到本地从源码编译缺失的模块（首次无缓存编译 `Physlib` + `Qatlib` 视 CPU 核数可能需要数十分钟至数小时，建议确保 **16 GB+** 可用内存）。
    - 若切换分支或更新依赖后出现 `.olean` 版本不匹配报错，可先执行 `lake exe get_cache` 重新同步；
    - 若本地构建目录状态异常，可执行 `lake clean` 清理本地构建产物后再运行 `lake exe get_cache && lake build`。

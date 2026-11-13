@@ -33,7 +33,6 @@ probability bound. These constructions fit the finite abelian group methods disc
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.HspRecovery.ReductionCore.Guarded
@@ -49,7 +48,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Foundations.QueryWordCore.Circuit
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 

@@ -22,7 +22,6 @@ bounds used for the variable-time construction of [Ambainis2012].
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.VarTimeAmpAmp10.CoherentAA

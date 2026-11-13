@@ -34,7 +34,6 @@ distinguishes the complete congruence from the update that replaces only the loc
 * [Bravyi, 2005][Bravyi2005Fermionic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -30,8 +30,6 @@ mean yields an exact error propagation formula wherever the sine response is non
 * [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -34,7 +34,6 @@ mathematical setting.
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
@@ -48,7 +47,6 @@ noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open Matrix Set MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 /-- The continuous complex-linear map sending a matrix to its action on `v`, expressed in
 Euclidean coordinates. -/
 private noncomputable def quadratureActionCLM {I : Type} [Fintype I] [DecidableEq I]

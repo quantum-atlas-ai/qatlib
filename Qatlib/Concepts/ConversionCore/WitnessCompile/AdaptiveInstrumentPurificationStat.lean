@@ -28,7 +28,6 @@ The statement uses finite-dimensional instrument purification as developed in [W
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath

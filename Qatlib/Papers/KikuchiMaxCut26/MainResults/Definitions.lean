@@ -28,7 +28,7 @@ The ordered eigenvalues of a Hermitian matrix are taken from Mathlib's
 `Matrix.IsHermitian.eigenvalues₀ : Fin (Fintype.card ι) → ℝ`, which is antitone
 (`Matrix.IsHermitian.eigenvalues₀_antitone`), so index `0` is the largest eigenvalue
 and the last index is the smallest.  This is the same convention used elsewhere in the
-library (`QuantumAlgorithm.Concepts.SpectralSketch.SpectrumPerturb`).
+library (`Qatlib.Concepts.SpectralSketch.SpectrumPerturb`).
 
 Boundary: this is the paper-layer model of the source objects; it does not restate any
 shared `Foundations`/`Concepts` result and does not introduce axioms.

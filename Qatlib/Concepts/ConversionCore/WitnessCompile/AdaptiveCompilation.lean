@@ -37,7 +37,6 @@ distinguishes a successful branch record from a fixed zero record.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.ConversionCore.WitnessCompile Matrix

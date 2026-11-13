@@ -74,8 +74,6 @@ lower-bound statements. See [ChildsKothari2010] for the surrounding analysis.
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

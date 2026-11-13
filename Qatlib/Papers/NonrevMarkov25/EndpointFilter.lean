@@ -25,8 +25,6 @@ as formalized for the filter setting of [ClaudonPiquemalMonmarche2025].
 * [Claudon et al., 2025][ClaudonPiquemalMonmarche2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.NonrevMarkov25.EndpointFilter
 

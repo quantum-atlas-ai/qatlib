@@ -50,7 +50,6 @@ Lindblad generators.
 * [Breuer and Petruccione, 2007][BreuerPetruccione2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 
@@ -62,7 +61,6 @@ open scoped MatrixOrder Matrix.Norms.L2Operator ComplexOrder ENNReal
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 open Qatlib.Foundations.DirichletForm.KmsDirichlet
-
 
 namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 open Filter

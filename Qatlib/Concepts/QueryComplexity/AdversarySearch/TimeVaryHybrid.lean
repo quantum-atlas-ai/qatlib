@@ -27,8 +27,6 @@ circuit versions of the hybrid argument in [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch

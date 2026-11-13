@@ -26,8 +26,6 @@ These constructions belong to the formalization of [BravyiKitaev2002].
 * [Bravyi and Kitaev, 2002][BravyiKitaev2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

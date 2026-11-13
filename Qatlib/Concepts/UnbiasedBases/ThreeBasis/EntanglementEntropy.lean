@@ -36,7 +36,6 @@ have entropy log 2.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection

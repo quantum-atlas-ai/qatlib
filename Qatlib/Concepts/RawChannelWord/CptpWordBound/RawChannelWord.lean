@@ -31,7 +31,6 @@ budgets. This composition estimate supplies the general channel bound used in ra
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.ReferenceError.DensityToRaw

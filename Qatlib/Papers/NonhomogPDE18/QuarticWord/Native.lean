@@ -25,7 +25,6 @@ native word implements the quartic exponent 6t x_j^2 x_k x_l and preserves norma
 * [Arrazola et al., 2019][ArrazolaEtAl2019]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

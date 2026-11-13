@@ -13,8 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Paper-layer algorithmic models for Theorems 1--4
 
-Fixed paper version: arXiv:2312.08867v3 (Quantum **8**, 1409 (2024)), original text
-`prove/assets/2312.08867.pdf`.
+Fixed paper version: arXiv:2312.08867v3 (Quantum **8**, 1409 (2024)).
 
 The paper's Theorems 1--4 give explicit Trotter-number upper bounds (Eqs. (1), (2),
 (4), (5), (6), (8), (9)) for randomly compiled product formulas in the low-energy

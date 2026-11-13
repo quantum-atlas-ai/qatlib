@@ -31,8 +31,6 @@ subproblem bounds into a single multiple of `basicCost`.
 * [Chau and Lo, 1995][ChauLo1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

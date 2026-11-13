@@ -31,7 +31,6 @@ an explicit positive lower bound on each corresponding finite-budget probability
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

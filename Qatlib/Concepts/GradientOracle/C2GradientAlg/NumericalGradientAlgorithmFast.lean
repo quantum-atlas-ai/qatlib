@@ -25,7 +25,6 @@ Taylor, and value-rounding errors. See [Jordan2005Gradient] for background.
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient

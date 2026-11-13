@@ -28,7 +28,6 @@ This development accompanies the study of QAOA-assisted minimum finding in [Shay
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

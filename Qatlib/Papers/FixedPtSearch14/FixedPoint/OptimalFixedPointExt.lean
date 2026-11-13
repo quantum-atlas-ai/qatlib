@@ -30,7 +30,6 @@ the success probability and target direction of the lifted LCU consumer.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 

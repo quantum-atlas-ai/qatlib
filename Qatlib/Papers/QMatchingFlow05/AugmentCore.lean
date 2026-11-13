@@ -27,8 +27,6 @@ threshold to a bound on the total iteration count.
 * [Ambainis and Špalek, 2006][AmbainisSpalek2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

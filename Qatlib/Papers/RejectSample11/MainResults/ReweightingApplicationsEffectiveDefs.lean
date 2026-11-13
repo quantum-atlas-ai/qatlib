@@ -29,7 +29,6 @@ half it agrees with `bhspEps`. See [OzolsRoettelerRoland2013].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WaterLevel.WaterPrecision
 open Qatlib.Concepts.Waterfill.ExactResampling
 open Qatlib.Concepts.Waterfill.LevelFidelity

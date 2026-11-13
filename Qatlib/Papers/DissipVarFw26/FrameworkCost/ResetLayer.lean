@@ -29,7 +29,6 @@ This development follows [YaoEtAl2026].
 * [Yao et al., 2026][YaoEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -37,7 +37,6 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhError
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid (cutoff)
-set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm

@@ -16,7 +16,7 @@ Arunachalam, Dutt, Gheorghiu, de Oliveira,
 *Learning depth-3 circuits via quantum agnostic boosting*,
 fixed arXiv:2509.14461v3 (2026-02-17).
 
-This module fixes the vocabulary used by the paper-layer claim theorems:
+This module fixes state and specification vocabulary; it proves no learning algorithm:
 
 * `Cube n = Fin n → Bool` is the Boolean cube and `BoolFun n` a Boolean function on it.
 * `QVec n` is an (unnormalised) `n`-qubit pure state in the computational basis.
@@ -27,11 +27,13 @@ This module fixes the vocabulary used by the paper-layer claim theorems:
 * `Randomized α` models a randomised algorithm output distribution; `successMass` is the
   probability mass of a successful set of outputs, so that "with probability ≥ 1 - δ" is an
   honest probability statement rather than a bare existential.
-* `WeakAgnosticLearner` packages Definition 3.1 (p.17) together with its sample/time budget.
+* `WeakAgnosticLearner` records an output-existence promise and unverified resource labels.
 
 Boundary: the model treats an `n`-qubit state as a finite vector of complex amplitudes and
-complexity statements as real-valued budget functions; it does not build a circuit/gate
-semantics for the learning algorithms themselves (those are hypotheses of the claim theorems).
+resource labels as real numbers. `AlgorithmExecution` adds a conditional interpretation in
+a supplied primitive step model. Its bounds count steps and sample charges of the same
+word that produces the output. No implementation of the paper's learner, or main learning
+or complexity theorem, is present. `weakAgnosticLearner_statement` is a specification only.
 -/
 
 set_option autoImplicit false
@@ -122,15 +124,17 @@ noncomputable def successMass {α : Type} [Fintype α] (r : Randomized α)
   classical
   exact ∑ a, if P a then r.prob a else 0
 
-/-- Definition 3.1 (p.17): a weak agnostic learner for a concept class `C` with promise
-`η(·)`, including its sample and time budget.  The `guarantee` field is the probabilistic
+/-- Output-existence specification inspired by Definition 3.1 (p.17).
+`samples` and `time` are unverified labels, independent of `guarantee`.
+Use `weakAgnosticLearner_statement` to request an implementation contract.
+The `guarantee` field is the probabilistic
 promise: for every state with class fidelity at least `τ`, some output distribution over
 parity indices puts mass at least `1 - δ` on indices whose parity state has fidelity at
 least `η τ` with the input. -/
 structure WeakAgnosticLearner (n : ℕ) (C : Set (BoolFun n)) (η : ℝ → ℝ) where
-  /-- Sample complexity of the weak learner. -/
+  /-- Unverified sample label. -/
   samples : ℝ
-  /-- Time complexity of the weak learner. -/
+  /-- Unverified time label. -/
   time : ℝ
   /-- The agnostic promise of Definition 3.1. -/
   guarantee : ∀ (τ δ : ℝ), 0 < τ → τ ≤ 1 → 0 < δ → δ < 1 → ∀ ψ : QVec n,
@@ -141,8 +145,8 @@ structure WeakAgnosticLearner (n : ℕ) (C : Set (BoolFun n)) (η : ℝ → ℝ)
 /-- Squared Euclidean norm of a coefficient vector, `‖β‖₂²`. -/
 def coeffNormSq {k : ℕ} (β : Fin k → ℂ) : ℝ := ∑ i, Complex.normSq (β i)
 
-/-- A randomised algorithm with a finite random seed: `run ω` is the output on seed `ω`,
-and `samples`/`time` are its resource budgets. -/
+/-- A finite-seed output function with unverified resource labels.
+`run` alone supplies no execution or runtime semantics; see `AlgorithmExecution`. -/
 structure RandomizedAlgorithm (α : Type) where
   /-- The finite random seed type. -/
   seeds : Type
@@ -150,9 +154,9 @@ structure RandomizedAlgorithm (α : Type) where
   fintypeSeeds : Fintype seeds
   /-- Nonemptiness of the seed type. -/
   nonemptySeeds : Nonempty seeds
-  /-- Sample budget. -/
+  /-- Unverified sample label. -/
   samples : ℝ
-  /-- Time budget. -/
+  /-- Unverified time label. -/
   time : ℝ
   /-- The output on a given seed. -/
   run : seeds → α
@@ -166,6 +170,46 @@ def successProb {Ω α : Type} [Fintype Ω] (run : Ω → α) (P : α → Prop) 
 /-- Success probability of a `RandomizedAlgorithm`. -/
 def algSuccess {α : Type} (A : RandomizedAlgorithm α) (P : α → Prop) : ℝ :=
   @successProb A.seeds α A.fintypeSeeds A.run P
+
+/-- Conditional execution contract in a supplied primitive model. Initialization,
+readout and each primitive's semantics and sample charge are assumptions of that
+model, not a gate synthesis result. Every executed instruction costs one time unit.
+Initialization, readout and word generation are excluded; total runtime claims
+would also require their costs to be represented in the primitive model.
+The same instruction word determines both the output and the resource bounds. -/
+structure AlgorithmExecution {α : Type} (A : RandomizedAlgorithm α)
+    (State Instruction : Type) (initial : A.seeds → State)
+    (step : State → Instruction → State) (readout : State → α)
+    (sampleCharge : Instruction → ℕ) where
+  word : A.seeds → List Instruction
+  output_eq : ∀ ω, A.run ω = readout ((word ω).foldl step (initial ω))
+  time_bound : ∀ ω, ((word ω).length : ℝ) ≤ A.time
+  samples_bound : ∀ ω, (((word ω).map sampleCharge).sum : ℝ) ≤ A.samples
+
+/-- A nonempty executed word rules out a zero time label, conditional on the
+primitive execution contract. -/
+theorem AlgorithmExecution.time_pos {α : Type} {A : RandomizedAlgorithm α}
+    {State Instruction : Type} {initial : A.seeds → State}
+    {step : State → Instruction → State} {readout : State → α}
+    {sampleCharge : Instruction → ℕ}
+    (h : AlgorithmExecution A State Instruction initial step readout sampleCharge)
+    (ω : A.seeds) (hne : h.word ω ≠ []) : 0 < A.time :=
+  lt_of_lt_of_le (Nat.cast_pos.mpr (List.length_pos_iff.mpr hne)) (h.time_bound ω)
+
+/-- **Statement only — not proved in Qatlib.**
+A resource-supported version of the weak promise, relative to supplied primitive
+semantics. For each admissible input it requests a finite-seed execution with
+the stated success probability and budgets. No such execution is constructed here. -/
+def weakAgnosticLearner_statement {n : ℕ} {C : Set (BoolFun n)} {η : ℝ → ℝ}
+    (L : WeakAgnosticLearner n C η) (State Instruction : Type)
+    (initial : QVec n → ℕ → State) (step : State → Instruction → State)
+    (readout : State → Cube n) (sampleCharge : Instruction → ℕ) : Prop :=
+  ∀ (τ δ : ℝ), 0 < τ → τ ≤ 1 → 0 < δ → δ < 1 → ∀ ψ : QVec n,
+    Normalized ψ → τ ≤ classFidelity C ψ →
+    ∃ (A : RandomizedAlgorithm (Cube n)) (seed : A.seeds → ℕ),
+      Nonempty (AlgorithmExecution A State Instruction (fun ω => initial ψ (seed ω))
+        step readout sampleCharge) ∧ A.time ≤ L.time ∧ A.samples ≤ L.samples ∧
+      1 - δ ≤ algSuccess A (fun s => η τ ≤ fidelity ψ (parityState s))
 
 /-- The paper's universal constant `C = (2/3)^{1/η₂ + 1}` from Theorem 3.2, p.17. -/
 def boostingConstant (η2 : ℝ) : ℝ := Real.rpow (2 / 3) (1 / η2 + 1)

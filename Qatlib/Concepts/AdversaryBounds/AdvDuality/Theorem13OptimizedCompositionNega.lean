@@ -28,7 +28,6 @@ formal composition statement associated with Theorem 13 of [HoyerLeeSpalek2007].
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv

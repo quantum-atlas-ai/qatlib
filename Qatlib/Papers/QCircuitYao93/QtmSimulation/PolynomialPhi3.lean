@@ -25,7 +25,6 @@ normalization and basis probabilities. See [Yao1993].
 * [Yao, 1993][Yao1993]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

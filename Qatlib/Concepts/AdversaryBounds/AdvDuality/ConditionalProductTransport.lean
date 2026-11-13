@@ -40,7 +40,6 @@ open Qatlib.Concepts.NativeNumerics.LayeredMean
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open scoped BigOperators
-set_option warningAsError false
 
 /-- Finite hash averaging preserves pointwise inequalities between real-valued functions. -/
 private theorem conditional_average_mono

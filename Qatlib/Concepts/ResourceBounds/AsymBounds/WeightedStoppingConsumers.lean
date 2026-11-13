@@ -31,7 +31,6 @@ quantum Monte Carlo methods [Montanaro2015].
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution

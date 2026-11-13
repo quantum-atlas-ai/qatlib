@@ -33,13 +33,13 @@ namespace Qatlib.Foundations.PureStateMath.Reflection
 
 open Matrix
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- The constant matrix with every entry equal to the reciprocal of the basis cardinality. -/
 noncomputable def AverageProjection (I : Type*) [Fintype I] : Matrix I I ℂ :=
   Matrix.of fun _ _ => (Fintype.card I : ℂ)⁻¹
+
+omit [DecidableEq I] in
 
 /-- For a basis of positive cardinality, the averaging matrix is idempotent. -/
 theorem averageProjection_mul_self (hN : 0 < Fintype.card I) :
@@ -49,6 +49,8 @@ theorem averageProjection_mul_self (hN : 0 < Fintype.card I) :
   simp only [AverageProjection, Matrix.mul_apply, Matrix.of_apply, Finset.sum_const,
     Finset.card_univ, nsmul_eq_mul]
   field_simp
+
+omit [DecidableEq I] in
 
 /-- Applying the averaging matrix replaces every amplitude by the arithmetic mean of all
 amplitudes. -/
@@ -122,7 +124,7 @@ theorem diffusion_eq_hadamardN_zeroPhaseReflection (n : ℕ) :
     rw [Matrix.mul_apply]
     simp only [Matrix.mul_diagonal]
     rw [Finset.sum_eq_single (ZeroStr n)]
-    · simp only [if_true, mul_one]
+    · simp only [ite_true, mul_one]
       rw [hadamardN_apply_zero_right, hadamardN_apply_zero_left, ← mul_pow,
         inv_sqrt2_mul_self]
       simp [AverageProjection]
@@ -135,6 +137,8 @@ theorem diffusion_eq_hadamardN_zeroPhaseReflection (n : ℕ) :
 /-- The amplitude vector taking value `a` on the marked set `A` and value `b` elsewhere. -/
 noncomputable def MarkedVector (A : Finset I) (a b : ℂ) : QState I :=
   fun i => if i ∈ A then a else b
+
+omit [Fintype I] in
 
 /-- Evaluate a two-amplitude marked vector by membership in the marked set. -/
 theorem markedVector_apply (A : Finset I) (a b : ℂ) (i : I) :
@@ -177,6 +181,8 @@ theorem normalized_markedVector_iff (A : Finset I) (a b : ℂ) :
   unfold Normalized
   simp_rw [← Complex.normSq_eq_norm_sq]
   rw [sum_normSq_markedVector]
+
+omit [Fintype I] in
 
 /-- The Born weight on the marked set is its cardinality times the squared norm of the marked
 amplitude. -/

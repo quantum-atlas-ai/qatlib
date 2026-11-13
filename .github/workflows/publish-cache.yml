@@ -85,7 +85,14 @@ jobs:
             lake --version
             exit 0
           fi
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          ELAN_VERSION="v4.1.2"
+          ELAN_SHA256="4bacca9502cb89736fe63d2685abc2947cfbf34dc87673504f1bb4c43eda9264"
+          ELAN_SCRIPT="$RUNNER_TEMP/elan-init.sh"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/leanprover/elan/$ELAN_VERSION/elan-init.sh" \
+            --output "$ELAN_SCRIPT"
+          printf '%s  %s\n' "$ELAN_SHA256" "$ELAN_SCRIPT" | sha256sum --check --strict
+          sh "$ELAN_SCRIPT" --default-toolchain none -y
           ~/.elan/bin/lake --version
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 

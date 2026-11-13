@@ -31,7 +31,6 @@ on classical and quantum computation, see [KitaevShenVyalyi2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 

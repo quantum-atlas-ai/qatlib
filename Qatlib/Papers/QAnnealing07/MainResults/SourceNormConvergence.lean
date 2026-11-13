@@ -13,8 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 # Convergence of classical simulated annealing: the norm bound
 
 Source: R. D. Somma, S. Boixo, H. Barnum, *Quantum Simulated Annealing*,
-fixed arXiv:0712.1008v1 (6 Dec 2007). Local PDF `local archive
-tmp/prove/assets/0712.1008.pdf`, text twin `0712.1008.txt`.
+fixed arXiv:0712.1008v1 (6 Dec 2007).
 
 This file covers Appendix A, Eqs. (A7) and (A16)–(A18), pp.5–6.
 
@@ -27,10 +26,9 @@ obtain the one-step inequality (A16),
 Iterating (A16) from `‖h(0)‖₂ = 1` gives Eq. (A18),
 `‖h(βk)‖₂² ≤ 2 − (1−δ)^k ≤ 2`, hence `‖h(βf)‖₂ ≤ √2`.
 
-Boundary of the formalization: the `O(δ²)` bookkeeping of (A10)–(A15) is not
-reconstructed (it needs the explicit eigenvectors of `H(βk)`); its displayed
-output is Eq. (A16), taken as the one-step hypothesis.  Everything from (A16)
-to `‖h‖₂ ≤ √2` is proved.
+Scope note: Eq. (A16) is taken as the one-step hypothesis, and the implications
+from (A16) to `‖h‖₂ ≤ √2` are proved.  The `O(δ²)` estimates of (A10)–(A15),
+which use the explicit eigenvectors of `H(βk)`, are outside the scope of this file.
 -/
 
 set_option autoImplicit false

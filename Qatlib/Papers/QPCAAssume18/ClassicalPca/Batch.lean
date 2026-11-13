@@ -27,8 +27,6 @@ failures, yielding simultaneous accuracy and access guarantees for the PCA algor
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section
@@ -191,7 +189,8 @@ theorem source_classical_pca_batch {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   intro record hgood
   have hg := not_or.mp hgood
   refine ⟨pca_actual_record_accuracy A hA hd k hk hkn hkd sigma eta s v (delta/3)
-      hsigma heta hs hv hv1 hcut hgap record.1 hg.1,
+      hsigma heta hs hv hv1 hcut hgap
+      record.1 hg.1,
     pca_actual_record_access A hA hd k hk hkn hkd sigma _ (delta/3) hsigma
       (source_theorem9_eps_le_inv_sqrt_branch s v eta _) hcut record.1 hg.1,?_⟩
   intro j hj

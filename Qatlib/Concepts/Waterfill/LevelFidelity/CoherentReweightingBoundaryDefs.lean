@@ -33,7 +33,6 @@ rejection-sampling setting of [OzolsRoettelerRoland2013].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.Waterfill.LevelSearch

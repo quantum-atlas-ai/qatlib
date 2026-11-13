@@ -28,7 +28,6 @@ These resource bounds use the quantum query model described in [NielsenChuang201
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveQuery.RawProcess
 open Qatlib.Foundations.PureStateMath

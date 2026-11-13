@@ -40,7 +40,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveMeanDerivativeGridErrorHami
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- For a nonnegative step `h` and norm bound `Λ`, the Euler factor differs from constant
 Hamiltonian evolution by at most `exp(Λ h) (Λ h)² / 2`. -/

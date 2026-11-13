@@ -26,7 +26,6 @@ surrounding search setting.
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
 noncomputable section

@@ -17,6 +17,10 @@ cost recurrence with square root ratios. It bounds the cost by the base cost tim
 an exponential in the stopping depth. A supplied comparison of that depth with `logStar` gives
 the bound `logStarBound`.
 
+The size map and real-valued cost are arbitrary parameters. The recurrence,
+base bound, and comparison with `logStar` are hypotheses, not properties proved
+for a claw-finding algorithm. No circuit or query upper bound is constructed.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -29,8 +33,6 @@ The mathematical setting follows [BuhrmanEtAl2005].
 
 * [Buhrman et al., 2005][BuhrmanEtAl2005]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

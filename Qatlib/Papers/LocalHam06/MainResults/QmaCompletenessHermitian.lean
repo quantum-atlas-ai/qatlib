@@ -34,7 +34,6 @@ Hamiltonian encodings. It proves that every term in `outputTerms` is Hermitian a
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability

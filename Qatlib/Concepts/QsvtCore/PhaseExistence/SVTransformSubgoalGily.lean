@@ -23,7 +23,6 @@ polynomial on normalized left and right singular vectors. See [GilyenSuLowWiebe2
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding Qatlib.Concepts.SignalPrimitive.LCUConsumers
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence

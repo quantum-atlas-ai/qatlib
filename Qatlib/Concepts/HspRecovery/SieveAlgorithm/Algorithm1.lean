@@ -29,7 +29,6 @@ record process without asserting additional asymptotic bounds.
 * [Kuperberg, Algorithm 1][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -31,8 +31,6 @@ frequencies, scaling at all frequencies, and the algebraic phase-change identity
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

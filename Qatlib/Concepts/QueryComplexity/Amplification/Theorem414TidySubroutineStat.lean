@@ -28,7 +28,6 @@ with probability at least 1 − ε, using at most twice the repeated gate count 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 

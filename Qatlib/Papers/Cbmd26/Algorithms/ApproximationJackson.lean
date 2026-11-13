@@ -29,8 +29,6 @@ This bounded approximation is used in the CBMD polynomial constructions associat
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.Cbmd26.Algorithms
 
 set_option autoImplicit false

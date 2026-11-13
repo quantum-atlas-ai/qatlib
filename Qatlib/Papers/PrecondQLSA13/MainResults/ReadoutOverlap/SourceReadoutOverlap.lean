@@ -33,14 +33,14 @@ with `P_1110`/`P_1111` the probabilities of reading `1` in the first three
 ancillas and `0`/`1` in the fourth.
 
 This module records:
-* `overlap`, the paper's `⟨R|x⟩`, identified with the frozen complex inner
-  product `QuantumAlgorithm.Concepts.SqEstimation.InnerProduct.sqInnerTarget`;
+* `overlap`, the paper's `⟨R|x⟩`, identified with the shared complex inner
+  product `Qatlib.Concepts.SqEstimation.InnerProduct.sqInnerTarget`;
 * the swap-test law `P_0 = (1 + |⟨R|x⟩|^2)/2`, `P_1 = (1 - |⟨R|x⟩|^2)/2`,
   proved for real amplitudes by explicit finite-sum expansion of the
   H·CSWAP·H circuit (the complex case is the same computation with `|c|^2`);
 * the Eq. (9) extraction identity for the four-ancilla probabilities.
 
-Boundary: the three success ancillas contribute the common factor
+Scope note: the three success ancillas contribute the common factor
 `sin^2 φ_b sin^2 φ_x sin^2 φ_r`, treated as a parameter `s`; the paper's claim is
 the conditional readout formula, which is exactly what is proved.
 -/
@@ -52,13 +52,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.PrecondQLSA13.MainResults.ReadoutOverlap
 
-/-- The paper's overlap `⟨R|x⟩ = Σ_j conj(R_j) x_j`, bridged to the frozen
+/-- The paper's overlap `⟨R|x⟩ = Σ_j conj(R_j) x_j`, bridged to the shared
 same-record inner-product target `sqInnerTarget` (arXiv:1301.2340v4, Eq. (9),
 p. 2). -/
 def overlap {N : ℕ} (R x : Fin N → ℂ) : ℂ :=
   Qatlib.Concepts.SqEstimation.InnerProduct.sqInnerTarget R x
 
-/-- Eq. (9): the squared modulus of the overlap is the frozen inner-product
+/-- Eq. (9): the squared modulus of the overlap is the shared inner-product
 target's squared modulus. -/
 theorem overlap_normSq {N : ℕ} (R x : Fin N → ℂ) :
     Complex.normSq (overlap R x)

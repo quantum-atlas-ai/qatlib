@@ -39,8 +39,6 @@ Record-block formulas express partial traces as sums of conjugations.
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath

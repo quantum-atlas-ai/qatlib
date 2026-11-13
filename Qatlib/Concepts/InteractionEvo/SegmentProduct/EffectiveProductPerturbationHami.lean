@@ -31,7 +31,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 
 namespace Qatlib.Concepts.InteractionEvo.SegmentProduct
 open scoped BigOperators
-set_option warningAsError false
 
 /-- Bounds the norm of a reversed list product by the product of the factor norms, assuming the
 identity has norm at most one. -/

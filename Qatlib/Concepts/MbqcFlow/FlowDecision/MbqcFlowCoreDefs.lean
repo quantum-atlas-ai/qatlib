@@ -48,7 +48,6 @@ from the cluster-state setting [RaussendorfBriegel2001].
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.InstrumentCore.Measurement

@@ -28,7 +28,6 @@ no-signalling communication argument for teleportation [BennettEtAl1993Teleporta
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

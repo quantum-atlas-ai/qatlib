@@ -30,10 +30,7 @@ register size.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.ThermalRate98.MainResults
@@ -112,9 +109,9 @@ theorem fourier_conj_diag_eq_shift {M : ℕ} (hM : 0 < M) (k : ℤ) :
     exact hterm y
   · rw [← Finset.mul_sum]
     by_cases h : ((M : ℤ) ∣ ((x.val : ℤ) - k - (z.val : ℤ)))
-    · rw [sum_primRoot_zpow_of_dvd hM h, if_pos h]
+    · rw [sum_primRoot_zpow_of_dvd hM h, ite_eq_left h]
       exact inv_mul_cancel₀ (by exact_mod_cast hM.ne' : (M : ℂ) ≠ 0)
-    · rw [sum_primRoot_zpow hM h, if_neg h, mul_zero]
+    · rw [sum_primRoot_zpow hM h, ite_eq_right h, mul_zero]
 
 /-- The cyclic translation matrix is unitary when `M > 0`. -/
 theorem cyclicShift_unitary {M : ℕ} (hM : 0 < M) (k : ℤ) :

@@ -30,7 +30,6 @@ snapshot `tetraSnapshot`. See [HuangKuengPreskill2020].
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -45,7 +44,6 @@ open Matrix
 open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
 
 /-- The three signs specifying each of four tetrahedral Bloch directions. -/
 def tetraSigns (a : Fin 4) (j : Fin 3) : ℝ :=

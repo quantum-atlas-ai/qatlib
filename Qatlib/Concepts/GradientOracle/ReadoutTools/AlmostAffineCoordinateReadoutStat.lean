@@ -23,9 +23,7 @@ the robust gradient readout associated with [GilyenArunachalamWiebe2019].
 * [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 

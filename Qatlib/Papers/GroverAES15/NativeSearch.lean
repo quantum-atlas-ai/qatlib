@@ -31,8 +31,6 @@ one half, with stronger bounds in the sparse and unique-key cases.
 * [Grassl et al., 2015][GrasslEtAl2015]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.GroverAES15.NativeSearch
 set_option autoImplicit false
 noncomputable section

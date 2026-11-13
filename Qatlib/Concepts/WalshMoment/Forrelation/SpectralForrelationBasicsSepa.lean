@@ -31,8 +31,6 @@ The operator-norm interpretation of quantum states and transformations is standa
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

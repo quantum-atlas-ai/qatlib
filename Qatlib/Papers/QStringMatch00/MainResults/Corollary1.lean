@@ -30,7 +30,6 @@ failure and logarithmic cost bounds.
 * [Ramesh and Vinay, 2000][RameshVinay2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

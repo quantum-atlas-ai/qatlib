@@ -28,11 +28,10 @@ all bags have `t+1` vertices and adjacent bags intersect in exactly `t` vertices
 The paper's proof traverses the decomposition tree like a maze (each tree edge
 twice), slices the resulting vertex sequence of length `2n−2t−1` into blocks of
 length `t`, and sets `W_i` to the union of the bags in block `i`.  The two local
-cardinality facts of that construction are proved below; the existence of the
-maze traversal together with the standard fact `|I| = |V| − t` for a smooth
-decomposition (Bodlaender [4]) is the remaining formal gap recorded at the main
-theorem.  The final statement is recorded as a `Prop`-valued definition; its
-proof is not formalised.
+cardinality facts of that construction are proved below.  Scope note: the maze
+traversal and the standard fact `|I| = |V| − t` for a smooth decomposition
+(Bodlaender [4]) are outside the scope of this file.  The final statement is a
+`Prop`-valued definition whose proof is not formalised.
 -/
 
 set_option autoImplicit false
@@ -144,13 +143,12 @@ Proof route (paper): take a smooth tree decomposition with `n − t` nodes, trav
 its tree like a maze (every edge twice) to obtain a node sequence of length
 `2n − 2t − 1`, slice the sequence into `t`-blocks and merge the bags of each block.
 
-Formal gap: the existence of the maze traversal (an Euler tour of the tree with the
-length `2|E_T| + 1`) together with the standard smooth-decomposition count
-`|I| = |V| − t` is not yet available in this repository; Mathlib has `IsTree` but no
-Euler-tour construction for `SimpleGraph`.  The two local cardinality steps are
-proved above (`union_consecutive_bags_card_le`, `edge_mem_union_of_visit`).
-Candidate follow-up: build the tour by depth-first search on `SimpleGraph` and
-prove `m = Fintype.card V - t` by the standard incidence count
+Scope note: this file proves the two local cardinality steps
+(`union_consecutive_bags_card_le`, `edge_mem_union_of_visit`).  The existence of
+the maze traversal (an Euler tour of length `2|E_T| + 1`) and the
+smooth-decomposition count `|I| = |V| − t` are outside its scope.
+The traversal can be obtained by depth-first search on the tree, and the count
+`m = Fintype.card V - t` follows from the standard incidence identity
 `Σ_i |X_i| − Σ_{edges of T} |X_i ∩ X_j| = |V|`. -/
 def lemma1_treewidth_decomposition (G : SimpleGraph V) (t : ℕ) (ht : 0 < t)
     (h : HasTreewidthAtMost G t) : Prop :=

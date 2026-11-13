@@ -41,7 +41,6 @@ surface for the QSP framework of [LowChuang2017] and the polynomial transformati
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
@@ -58,7 +57,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.QspSimulation.Achievability

@@ -26,8 +26,6 @@ finite algorithms [AticiServedio2007].
 * [Atici and Servedio, 2007][AticiServedio2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode

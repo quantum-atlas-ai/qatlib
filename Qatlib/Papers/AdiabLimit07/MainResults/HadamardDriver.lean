@@ -29,11 +29,8 @@ final Hadamard-transformed amplitude and on the required runtime. See [IoannouMo
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.AdiabLimit07.MainResults
@@ -98,7 +95,7 @@ theorem hadBasisAction_zeroStr (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : �
   · rw [Finset.sum_eq_single (ZeroStr n)]
     · simp
     · intro y _ hy
-      rw [if_neg (Ne.symm hy)]
+      rw [ite_eq_right (Ne.symm hy)]
       simp
     · intro h
       exact absurd (Finset.mem_univ (ZeroStr n)) h
@@ -271,11 +268,15 @@ abbrev QInner (ψ φ : QState I) : ℂ :=
 /-- The sum of squared complex norms of the coordinates of a state. -/
 def nrmSq (ψ : QState I) : ℝ := ∑ i, ‖ψ i‖ ^ 2
 
+omit [DecidableEq I] in
+
 /-- The coordinate inner product is additive in its second argument. -/
 theorem inner_add_right (ψ φ χ : QState I) :
     QInner ψ (φ + χ) = QInner ψ φ + QInner ψ χ := by
   simp only [QInner, Qatlib.Foundations.PureStateMath.Inner,
     Pi.add_apply, mul_add, Finset.sum_add_distrib, dotProduct]
+
+omit [DecidableEq I] in
 
 /-- The coordinate inner product is complex linear in its second argument. -/
 theorem inner_smul_right (ψ φ : QState I) (a : ℂ) :
@@ -285,6 +286,8 @@ theorem inner_smul_right (ψ φ : QState I) (a : ℂ) :
   apply Finset.sum_congr rfl
   intro i _
   ring
+
+omit [DecidableEq I] in
 
 /-- The coordinate inner product is conjugate symmetric. -/
 theorem inner_conj_symm (ψ φ : QState I) : QInner ψ φ = star (QInner φ ψ) := by
@@ -308,6 +311,8 @@ theorem inner_smul_left (ψ φ : QState I) (a : ℂ) :
 theorem inner_self_nrmSq (ψ : QState I) : QInner ψ ψ = (nrmSq ψ : ℂ) := by
   rw [QInner, Qatlib.Foundations.PureStateMath.inner_self,
     nrmSq, Complex.ofReal_sum]
+
+omit [DecidableEq I] in
 
 /-- The norm of the inner product is at most the product of the square roots of the two squared
 norms. -/
@@ -377,9 +382,13 @@ theorem bessel2 (e f z : QState I)
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
+
 /-- The squared coordinate norm is nonnegative. -/
 theorem nrmSq_nonneg (ψ : QState I) : 0 ≤ nrmSq ψ := by
   unfold nrmSq; positivity
+
+omit [DecidableEq I] in
 
 /-- Scaling a state by a real number multiplies its squared norm by the square of that number. -/
 theorem nrmSq_real_smul (c : ℝ) (ψ : QState I) :

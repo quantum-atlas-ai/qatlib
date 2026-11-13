@@ -42,10 +42,8 @@ pair; `hamiltonian_parity_lower_bound_of_norm_sep` gives T ≥ Kδ²/4 from norm
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open scoped BigOperators Classical
@@ -100,8 +98,8 @@ lemma adjacent_toggle {K : ℕ} (j : Fin K) (S : ParityInstance K) :
 /-- If two descriptions of the same adjacent input pair specify differing positions i and j,
 then i = j. -/
 lemma adjacent_unique {K : ℕ} {S S' : ParityInstance K} {i j : Fin K}
-    (hi : ∀ k : Fin K, k ≠ i → (k ∈ S ↔ k ∈ S')) (hii : i ∈ S ↔ i ∉ S')
-    (hj : ∀ k : Fin K, k ≠ j → (k ∈ S ↔ k ∈ S')) (hjj : j ∈ S ↔ j ∉ S') :
+    (hi : ∀ k : Fin K, k ≠ i → (k ∈ S ↔ k ∈ S')) (_hii : i ∈ S ↔ i ∉ S')
+    (_hj : ∀ k : Fin K, k ≠ j → (k ∈ S ↔ k ∈ S')) (hjj : j ∈ S ↔ j ∉ S') :
     i = j := by
   by_contra hne
   have hiff : j ∈ S' ↔ j ∉ S' := ((hi j (Ne.symm hne)).symm).trans hjj
@@ -149,10 +147,10 @@ def adjacentEquiv (K : ℕ) :
       rw [mem_toggle]
       by_cases hij : i = j
       · subst hij
-        simp only [if_true]
+        simp only [ite_true]
         have hsnd' : i ∈ S ↔ i ∉ S' := hsnd
         simp [hsnd']
-      · simp only [if_false, hij]
+      · simp only [ite_false, hij]
         exact hfst i hij
 
 instance pairIndexFintype (K : ℕ) : Fintype (pairIndex K) :=
@@ -226,8 +224,8 @@ theorem le_mul_of_hasDerivAt_le {F g : ℝ → ℝ} {C T : ℝ} (hT : 0 ≤ T)
 
 /-- For K > 0 and δ > 0, a continuous distance aggregate starting at zero, with derivative at
 most 4 · 2^K and final value at least 2^K Kδ, requires T ≥ Kδ / 4. -/
-theorem parity_lower_bound_core (K : ℕ) (hK : 0 < K) (δ T : ℝ)
-    (hδ : 0 < δ) (hT : 0 ≤ T) (F g : ℝ → ℝ)
+theorem parity_lower_bound_core (K : ℕ) (_hK : 0 < K) (δ T : ℝ)
+    (_hδ : 0 < δ) (hT : 0 ≤ T) (F g : ℝ → ℝ)
     (hF0 : F 0 = 0) (hcont : ContinuousOn F (Icc 0 T))
     (hderiv : ∀ t ∈ Ioo 0 T, HasDerivAt F (g t) t)
     (hbound : ∀ t ∈ Ioo 0 T, g t ≤ 4 * (2 : ℝ) ^ K)
@@ -285,8 +283,6 @@ structure ParitySetup (K : ℕ) (V : Type*) [NormedAddCommGroup V]
 
   P_sum_le : ∀ x : V, ∑ j : Fin K, ‖P j x‖ ^ 2 ≤ ‖x‖ ^ 2
 
-set_option linter.unusedSimpArgs false
-
 open scoped RealInnerProductSpace
 
 section DerivBound
@@ -334,7 +330,7 @@ lemma hasDerivAt_pair {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K →
       HasDerivAt (ψ S) ((-Complex.I) • M.H S t (ψ S t)) t)
     (S S' : ParityInstance K) (t : ℝ) :
     HasDerivAt (fun s => ‖ψ S s - ψ S' s‖ ^ 2) (pairDeriv M ψ S S' t) t := by
-  letI : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
   have h1 : HasDerivAt (fun s => ψ S s - ψ S' s)
       ((-Complex.I) • M.H S t (ψ S t) - (-Complex.I) • M.H S' t (ψ S' t)) t :=
     (hschr S t).sub (hschr S' t)
@@ -397,7 +393,7 @@ lemma pair_deriv_bound {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K �
       = 2 * (inner ℂ (v - w) (M.H S t v - M.H S' t w)).im := by
     rw [inner_smul_right]
     congr 1
-    simp [Complex.mul_re, Complex.mul_im, Complex.neg_re, Complex.neg_im]
+    simp [Complex.mul_re, Complex.neg_re]
   have hB : (inner ℂ (v - w) (M.H S t v - M.H S' t w)).im
       = (inner ℂ v (M.H S t w - M.H S' t w)).im :=
     im_inner_sub_herm hHS hHS' v w

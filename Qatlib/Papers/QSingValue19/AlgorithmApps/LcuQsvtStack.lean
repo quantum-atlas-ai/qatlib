@@ -52,7 +52,6 @@ namespace Qatlib.Papers.QSingValue19.AlgorithmApps
 open Matrix Polynomial
 open Qatlib SignalProcessing Encoding
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- Splits a weighted binomial sum of order n + 1 into two order n sums by Pascal's identity. -/
 private theorem lcu_pascal (w : ℝ → ℝ) (u v : ℝ) (n : ℕ) :

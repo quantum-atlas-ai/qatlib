@@ -26,7 +26,6 @@ give the lower bound `-32 * mass ψ`, a finite-dimensional estimate used for the
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 

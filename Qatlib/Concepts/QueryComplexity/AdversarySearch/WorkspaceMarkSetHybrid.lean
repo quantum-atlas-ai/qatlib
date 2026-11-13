@@ -27,8 +27,6 @@ both the final Euclidean deviation and its square, following the hybrid method o
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 600000
 noncomputable section

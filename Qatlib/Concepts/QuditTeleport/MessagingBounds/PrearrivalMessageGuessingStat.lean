@@ -26,8 +26,6 @@ message before observing it. The communication setting is teleportation
 * [Wilde, 2017][Wilde2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QuditTeleport.MessagingBounds

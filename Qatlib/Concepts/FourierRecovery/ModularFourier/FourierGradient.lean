@@ -56,7 +56,6 @@ set_option autoImplicit false
 open Qatlib
 open scoped ComplexOrder ENNReal
 open Classical BigOperators
-set_option warningAsError false
 
 /-- Replacing phase values by their precision `k` records changes each stationary phase residual
 by at most `2^(-(k + 1))`. -/
@@ -74,7 +73,6 @@ theorem record_stationary_phase_residual_error :
   rw [hres]
   exact h
 
-set_option linter.unusedVariables false in
 
 /-- A stationary phase residual bound `B` gives a recorded readout window probability at least
 `1 - 16 * d / (M * w) - 4 * π * B - 4 * π / 2^(k + 1)` under the stated positivity
@@ -112,7 +110,6 @@ theorem stationary_phase_window_transport_of_record :
   rw [hmain'] at hmain
   exact hmain
 
-set_option linter.unusedVariables false in
 
 /-- If every phase is already an exact precision `k` record, the window probability bound has no
 additional recording loss. -/
@@ -174,7 +171,6 @@ theorem gradientAssemblyM_pos (d : ℕ) (ε : ℝ) : 0 < gradientAssemblyM d ε 
   show 0 < Nat.ceil (128 * (d : ℝ) / (ε * ε)) + 2
   omega
 
-set_option linter.unusedVariables false in
 
 /-- For positive `ε`, the assembled width, grid size, and record precision satisfy the stated
 window and recording error budgets. -/
@@ -225,7 +221,6 @@ theorem gradient_parameter_assembly :
     nlinarith
   exact ⟨hWpos, hWle, hM2, hwindow, henc⟩
 
-set_option linter.unusedVariables false in
 
 /-- The assembled parameters give window probability at least `1 - ε` when the stationary phase
 residual contributes at most `ε / 4` to the loss. -/
@@ -248,7 +243,6 @@ theorem gradient_assembled_window_probability :
     hWpos hB herror
   linarith [hmain, hwindow, henc, hB4]
 
-set_option linter.unusedVariables false in
 
 /-- For `ε ≤ 1 / 2` and gradients bounded by `1 / 4`, a sample in the assembled window gives
 coordinate errors at most `ε / 4`. -/
@@ -268,7 +262,6 @@ theorem gradient_assembled_estimate_error :
     (gradientAssemblyM_pos d ε) g (gradientAssemblyW ε) hg hw z hgood j
   rwa [hW] at h
 
-set_option linter.unusedVariables false in
 
 /-- The combined value kickback and gradient words have total query count three and total gate
 count `2 * d + 1` in their respective ledgers. -/
@@ -375,7 +368,6 @@ theorem gradientAssemblyM_minimal_at_least_two (d : ℕ) (ε : ℝ) :
   show 2 ≤ max 2 (Nat.ceil (128 * (d : ℝ) / (ε * ε)))
   exact le_max_left _ _
 
-set_option linter.unusedVariables false in
 
 /-- For positive `ε`, the minimal assembled grid size meets the window loss budget `ε / 2`. -/
 theorem gradientAssemblyM_minimal_meets_window :
@@ -409,7 +401,6 @@ theorem gradientAssemblyM_minimal_meets_window :
       div_le_div_of_nonneg_right hkey (by norm_num)
     _ = (ε / 2) * ((gradientAssemblyM_minimal d ε : ℝ) * (ε / 4)) := by ring
 
-set_option linter.unusedVariables false in
 
 /-- The minimal assembled grid size is no larger than any grid of size at least two satisfying
 the window loss budget. -/

@@ -30,8 +30,6 @@ and counts the binary quadratic-pair and linear coefficient arrays. The theorem
 * [Roetteler, 2009][Roetteler2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

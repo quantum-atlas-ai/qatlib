@@ -34,11 +34,9 @@ amplitudes. The subsequent results turn coordinate under-approximation bounds in
   Learning Many-Body Systems*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 noncomputable section
 namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix

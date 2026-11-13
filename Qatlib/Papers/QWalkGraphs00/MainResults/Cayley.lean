@@ -29,8 +29,6 @@ eigenvalues, coefficients, and vertex weights.
 * [Aharonov et al., 2001][AharonovEtAl2001Walks]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

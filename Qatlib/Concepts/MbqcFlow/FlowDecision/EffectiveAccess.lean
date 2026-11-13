@@ -31,12 +31,10 @@ queries. Together these constructions establish the stated `HasEffectiveAccess` 
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -146,12 +144,14 @@ private theorem householderCompletion_eq_smul (i₀ : I) (v : QState I) :
   ext i j
   rw [householderCompletion_entry, Matrix.smul_apply, smul_eq_mul, hhReflect_entry]
   by_cases hn : hhNrm i₀ v = 0
-  · rw [if_pos hn, mul_sub]
+  · rw [ite_eq_left hn, mul_sub]
     have ht : ((2 : ℂ) / ((hhNrm i₀ v : ℝ) : ℂ)) = 0 := by
       rw [hn, Complex.ofReal_zero, div_zero]
     rw [ht, zero_mul, mul_zero, sub_zero]
-  · rw [if_neg hn]
+  · rw [ite_eq_right hn]
     ring
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The phase used in the Householder construction has norm one. -/
 private theorem hhPhase_norm_one (i₀ : I) (v : QState I) : ‖hhPhase i₀ v‖ = 1 :=
@@ -175,12 +175,16 @@ private theorem hhPhase_inv_mul_norm (i₀ : I) (v : QState I) (z : ℂ) :
     ‖((hhPhase i₀ v)⁻¹ * z)‖ = ‖z‖ := by
   rw [norm_mul, norm_inv, hhPhase_norm_one, inv_one, one_mul]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The outer product `hhOuter w` is equal to its conjugate transpose. -/
 private theorem hhOuter_star (w : QState I) : (hhOuter w)ᴴ = hhOuter w := by
   ext i j
   simp only [Matrix.conjTranspose_apply, hhOuter, Matrix.of_apply, RCLike.star_def,
     map_mul, Complex.conj_conj]
   ring
+
+omit [DecidableEq I] in
 
 /-- The sum of the conjugate-self products of vector components equals the complex cast of the
 sum of their squared norms. -/
@@ -215,18 +219,18 @@ selected index. -/
 private theorem sum_ite_mul_left (i : I) (f : I → ℂ) :
     ∑ k, (if i = k then (1 : ℂ) else 0) * f k = f i := by
   rw [Finset.sum_eq_single i
-    (fun k (_ : k ∈ Finset.univ) (hk : k ≠ i) => by rw [if_neg (Ne.symm hk), zero_mul])
+    (fun k (_ : k ∈ Finset.univ) (hk : k ≠ i) => by rw [ite_eq_right (Ne.symm hk), zero_mul])
     (by simp)]
-  rw [if_pos rfl, one_mul]
+  rw [ite_eq_left rfl, one_mul]
 
 /-- Summing a complex function against a right identity-entry selector returns its value at the
 selected index. -/
 private theorem sum_ite_mul_right (j : I) (f : I → ℂ) :
     ∑ k, f k * (if k = j then (1 : ℂ) else 0) = f j := by
   rw [Finset.sum_eq_single j
-    (fun k (_ : k ∈ Finset.univ) (hk : k ≠ j) => by rw [if_neg hk, mul_zero])
+    (fun k (_ : k ∈ Finset.univ) (hk : k ≠ j) => by rw [ite_eq_right hk, mul_zero])
     (by simp)]
-  rw [if_pos rfl, mul_one]
+  rw [ite_eq_left rfl, mul_one]
 
 /-- The square of the Householder matrix is the identity, including when its defining difference
 vector has zero norm. -/
@@ -308,8 +312,8 @@ column. -/
 private theorem mulVec_ket_apply (M : Matrix I I ℂ) (i₀ : I) (j : I) :
     (M *ᵥ Ket i₀) j = M j i₀ := by
   simp only [Matrix.mulVec, dotProduct, ket_apply]
-  rw [Finset.sum_eq_single i₀ (fun i _ hi => by rw [if_neg hi, mul_zero]) (by simp)]
-  rw [if_pos rfl, mul_one]
+  rw [Finset.sum_eq_single i₀ (fun i _ hi => by rw [ite_eq_right hi, mul_zero]) (by simp)]
+  rw [ite_eq_left rfl, mul_one]
 
 /-- Under the reciprocal and difference identities, the diagonal Householder column expression
 simplifies to `c * ((a - 1) + 1)`. -/
@@ -394,11 +398,11 @@ private theorem householderCompletion_mulVec_ket (i₀ : I) {v : QState I}
       intro i
       have h2 := (pow_eq_zero_iff (two_ne_zero)).mp (h i (Finset.mem_univ i))
       exact norm_eq_zero.mp h2
-    rw [if_pos hn]
+    rw [ite_eq_left hn]
     rcases eq_or_ne j i₀ with hj | hj
-    · rw [hj, if_pos rfl, hvW i₀, hWall i₀, ket_self, zero_add]
-    · rw [if_neg hj, hvW j, hWall j, ket_ne hj, add_zero]
-  · rw [if_neg hn]
+    · rw [hj, ite_eq_left rfl, hvW i₀, hWall i₀, ket_self, zero_add]
+    · rw [ite_eq_right hj, hvW j, hWall j, ket_ne hj, add_zero]
+  · rw [ite_eq_right hn]
 
     have h1a : (1 : ℝ) - ‖v i₀‖ ≠ 0 := by
       intro h0
@@ -423,11 +427,11 @@ private theorem householderCompletion_mulVec_ket (i₀ : I) {v : QState I}
       rw [hWself, map_sub, Complex.conj_ofReal, map_one]
     rw [hnrm]
     rcases eq_or_ne j i₀ with hj | hj
-    · rw [hj, if_pos rfl, hstarW]
+    · rw [hj, ite_eq_left rfl, hstarW]
       conv_rhs => rw [hvW i₀]
       rw [hWself, ket_self]
       exact hh_col_diag hkey hxneg
-    · rw [if_neg hj, hstarW, hWself, hvW j, hWother j hj, ket_ne hj]
+    · rw [ite_eq_right hj, hstarW, hWself, hvW j, hWother j hj, ket_ne hj]
       exact hh_col_offdiag hkey hxneg
 
 /-- The rescaled sparse target is normalized when its total squared amplitude norm is positive. -/
@@ -515,17 +519,17 @@ private theorem sparseValueOracle_eq_permMatrix {N b : ℕ} (d : SparseAccessDat
   ext x y
   simp only [sparseValueOracle, Matrix.of_apply, permMatrix, oracleFlip]
   by_cases hxy : x.1 = y.1 ∧ y.2 = Bool.xor x.2 (sparseValue d x.1 ≠ 0)
-  · rw [if_pos hxy]
+  · rw [ite_eq_left hxy]
     obtain ⟨h1, h2⟩ := hxy
     rw [h1] at h2
     have hx2 : x.2 = (y.2 ^^ decide (sparseValue d y.1 ≠ 0)) := by
       rw [h2, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
-    refine Eq.symm (if_pos ?_)
+    refine Eq.symm (ite_eq_left ?_)
     have hxe : x = (y.1, y.2 ^^ decide (sparseValue d y.1 ≠ 0)) := by
       rw [Prod.ext_iff]
       exact ⟨h1, hx2⟩
     rw [hxe]
-  · rw [if_neg hxy, if_neg]
+  · rw [ite_eq_right hxy, ite_eq_right]
     intro heq
     obtain ⟨h1, h2⟩ := Prod.ext_iff.mp heq
     refine hxy ⟨h1, ?_⟩

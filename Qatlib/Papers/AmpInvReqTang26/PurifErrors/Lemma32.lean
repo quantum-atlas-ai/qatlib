@@ -39,7 +39,6 @@ namespace Qatlib.Papers.AmpInvReqTang26.PurifErrors
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The bipartite vector whose coordinate `(i, p)` is the output coefficient `o i` times the
 purification coefficient `φ i p`. -/

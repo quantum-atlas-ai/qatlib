@@ -28,8 +28,6 @@ Fourier coefficients and groups subset sums by cardinality.
 * [Moore and Russell, 2001][MooreRussell2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

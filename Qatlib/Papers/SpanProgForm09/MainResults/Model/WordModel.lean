@@ -16,7 +16,7 @@ set_option backward.isDefEq.respectTransparency false
 Both main theorems of arXiv:0907.1622v1 state the running time of an algorithm that has
 unit-cost coherent access to a preprocessed input string (the paper's "preprocessing"
 model, Section 1 and Section 4). The library's `SourceWord`/`sourceFunctionQ` model of
-`QuantumAlgorithm.Concepts.GramQueryCore.LowerBoundTools.SourceResidualModels` is exactly
+`Qatlib.Concepts.GramQueryCore.LowerBoundTools.SourceResidualModels` is exactly
 this model: a word is a list of input-independent unitaries (`Sum.inl U`) interleaved with
 forward or inverse queries to the alphabet oracle (`Sum.inr b`), and success is measured
 on the clean start state with the tag register holding the answer.

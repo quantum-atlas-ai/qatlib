@@ -51,8 +51,8 @@ This file formalises:
   (`suppProp4_third_moment_zero`).
 
 The model-level derivations (the operator algebra behind Eqs. 306–308, the two-copy tensor
-algebra of Eq. 312 and the vectorised Dirac/Pauli contractions of Eqs. 313–314) are recorded in
-the module comment `twirling_gap`.
+algebra of Eq. 312 and the vectorised Dirac/Pauli contractions of Eqs. 313–314) are discussed
+in the scope note below.
 -/
 
 open scoped BigOperators
@@ -205,8 +205,8 @@ theorem coefficient_normalisation (α : ℝ) :
 /-- **Eq. (310), first branch, `α = 0`.**  At the Clifford angle `α = 0` the sandwich expansion
 `cos²(α/2)·e₀ + sin²(α/2)·e₁ + sin(α)·e₂` of Eqs. (306)–(308) collapses onto the first branch
 `e₀ = V†BV`.  Here `e₀, e₁, e₂` are the three operator terms `V†BV`, `V†GBGV`, `V†(i/2[G,B])V`,
-represented as the standard basis vectors of `Fin 3 → ℝ` (the operator algebra itself is the
-model-layer gap documented in `twirling_gap`). -/
+represented as the standard basis vectors of `Fin 3 → ℝ`. The operator algebra itself is
+outside the scope of this file; see the scope note below. -/
 theorem lemma3_branch_zero :
     (Real.cos (0 / 2)) ^ 2 • (Pi.single 0 (1 : ℝ) : Fin 3 → ℝ)
         + (Real.sin (0 / 2)) ^ 2 • (Pi.single 1 (1 : ℝ) : Fin 3 → ℝ)
@@ -277,7 +277,7 @@ theorem cliffordAvg_nonneg {M : ℕ} {f : (Fin M → Bool) → ℝ} (h : ∀ αc
 two-copy matrix element `(U†(αc))^{⊗2} B^{⊗2} (U(αc))^{⊗2}` evaluates to the operator `B_{αc}`
 (Eq. 304), then the average over all angles equals the Clifford average of the operators
 `B_{αc}`.  This is the residue form of Eq. (312): the paper's work is the per-setting
-evaluation, which is the model-layer gap recorded in `twirling_gap`. -/
+evaluation, which is taken as a hypothesis here; see the scope note below. -/
 theorem suppProp4_second_moment {M : ℕ} (Mobs : (Fin M → ℝ) → ℝ)
     (Beff : (Fin M → Bool) → ℝ) (hres : ∀ αc, Mobs (cliffordAngle αc) = Beff αc) :
     cliffordAvg (fun αc => Mobs (cliffordAngle αc)) = cliffordAvg Beff :=
@@ -320,7 +320,7 @@ theorem cliffordAngle_cases {M : ℕ} (αc : Fin M → Bool) (k : Fin M) :
   · exact Or.inl (if_neg h)
 
 /-!
-## `twirling_gap` — proof route and current library gap
+## Derivation and scope of the twirling identities
 
 Fixed paper version: arXiv:2305.02881v2 (npj QI 2024, DOI 10.1038/s41534-024-00902-0), Lemma 3
 (pp.~54–55) and Supplemental Proposition 4 (p.~55).
@@ -338,24 +338,24 @@ and over the full continuous range; (ii) two-copy Pauli contractions are orthogo
 Pauli strings agree, giving `δ_{B,B'}` with survivor weight `(1/3)^{Δ_B(αc)}` (Eq. 313);
 (iii) three-copy contractions vanish because copies are traced out in pairs (Eq. 314).
 
-Current Lean gap: this file formalises the layer structure (`IsCliffordGate`, `conjBy`,
+Scope note: this file formalises the layer structure (`IsCliffordGate`, `conjBy`,
 `lemma3_layered`), the exact trigonometric collapse at the Clifford angles
 (`lemma3_branch_zero`, `lemma3_branch_half`), and the averaged form of Eqs. (312)–(314).  Two
-model-layer pieces are not developed and are the reason the last three theorems take the
+operator calculations are outside its scope, so the last three theorems take the
 per-setting evaluations as hypotheses: (a) the Hilbert-space adjoint and the exponential
 `e^{−iαG/2}` as a `Matrix` object with the expansion (306)–(308); (b) the two- and three-copy tensor
 algebra `Tr[(V^{⊗k})† B^{⊗k} V^{⊗k} · ρ₀^{⊗k}]` and the Pauli orthogonality behind `δ_{B,B'}`.
 
-Candidate reusable dependencies: `Matrix.conjTranspose_mul`, `Matrix.mul_add`,
+Related matrix and trigonometric identities: `Matrix.conjTranspose_mul`, `Matrix.mul_add`,
 `Matrix.add_mul`, `Matrix.mul_neg`, `Matrix.neg_mul`, `Real.cos_sq_add_sin_sq`,
 `Real.cos_pi_div_four`, `Real.sin_pi_div_four`, `Real.sin_pi_div_two`, `Matrix.trace_mul_cycle`,
 `Finset.sum_congr`, `Finset.sum_eq_zero`.
 
-Suggested takeover tactics: (1) build `e^{−iαG/2}` from the Pauli exponential (a `2×2`
-`Complex.exp`/`Matrix.exp` computation on the `G² = 1` eigenbasis) and derive (306)–(308) by
-`Matrix.ext` and `ring`; (2) define the two-copy map `B ↦ (B ⊗ B)` and use `Matrix.trace_mul_cycle`
-with `Fintype.sum_prod_type` to prove the Pauli orthogonality `Tr[P_σ P_τ] = 2^n δ_{σ,τ}`;
-(3) instantiate `suppProp4_second_moment`/`suppProp4_cross_moment` with those evaluations.
+The operator calculation uses the Pauli exponential `e^{−iαG/2}`, a `2×2`
+exponential calculation on the `G² = 1` eigenbasis, to obtain (306)–(308).
+For the two-copy map `B ↦ (B ⊗ B)`, trace cyclicity and summation over product indices
+give the Pauli orthogonality relation `Tr[P_σ P_τ] = 2^n δ_{σ,τ}`. These evaluations
+are the inputs to `suppProp4_second_moment` and `suppProp4_cross_moment`.
 -/
 
 end

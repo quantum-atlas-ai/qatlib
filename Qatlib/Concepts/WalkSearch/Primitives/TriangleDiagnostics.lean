@@ -29,8 +29,6 @@ motivating them [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
-
 set_option maxRecDepth 4096
 
 namespace Qatlib.Concepts.WalkSearch.Primitives

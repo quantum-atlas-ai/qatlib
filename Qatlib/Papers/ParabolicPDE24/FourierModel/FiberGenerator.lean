@@ -25,8 +25,6 @@ state identify the fiber differential equation under the stated parameter bounds
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

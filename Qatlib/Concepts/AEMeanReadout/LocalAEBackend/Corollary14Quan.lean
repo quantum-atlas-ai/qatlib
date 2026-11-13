@@ -24,7 +24,6 @@ hypotheses.
 * [Brassard et al., Corollary 14][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

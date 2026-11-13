@@ -30,7 +30,6 @@ whenever the error is smaller than the ideal output norm.
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.QspSimulation.Achievability

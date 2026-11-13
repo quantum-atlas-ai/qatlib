@@ -23,8 +23,6 @@ local search schedule of [RolandCerf2002]. For fixed positive `ε`, the schedule
 * [Roland and Cerf, 2002][RolandCerf2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

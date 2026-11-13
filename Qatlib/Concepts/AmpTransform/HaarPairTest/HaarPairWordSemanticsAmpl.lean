@@ -23,9 +23,6 @@ phase-queried Grover state followed by a Boolean Hadamard, as used in [Cornwell2
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 
 open Qatlib.Foundations.QueryWordCore.Circuit

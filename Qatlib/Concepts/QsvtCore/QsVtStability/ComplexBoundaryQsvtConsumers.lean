@@ -26,7 +26,6 @@ conditional-state distance bound.
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.ReferenceError.RefTraceError

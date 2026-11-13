@@ -83,7 +83,6 @@ open Classical
 open scoped ComplexOrder
 open NativeTape
 open scoped ENNReal
-set_option warningAsError false
 
 /-- In a read state, `program` uses the corresponding comparison command `readCommand` for the
 current symbol. -/

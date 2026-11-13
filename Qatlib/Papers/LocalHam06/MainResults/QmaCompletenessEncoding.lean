@@ -31,7 +31,6 @@ specified output terms and explicit bit-length formulas for its elementary encod
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

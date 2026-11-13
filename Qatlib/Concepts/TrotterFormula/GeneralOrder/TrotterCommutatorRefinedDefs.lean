@@ -59,7 +59,6 @@ open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterSourceBoundsDefs
 open Qatlib
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

@@ -23,7 +23,6 @@ process estimates support probabilistic algorithm analysis such as [DeckerDraism
 * [Decker et al., 2009][DeckerDraismaWocjan2009]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
 open Qatlib.Concepts.StoppingCore.BranchCostCore

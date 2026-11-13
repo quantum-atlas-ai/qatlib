@@ -30,11 +30,9 @@ Stopped-subspace transport supports the clock model for variable-time amplificat
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.PureStateMath

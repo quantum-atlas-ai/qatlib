@@ -33,7 +33,6 @@ background is developed in [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -66,8 +65,6 @@ open Qatlib SignalProcessing Polynomial Matrix
 open scoped Classical Matrix.Norms.L2Operator
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 section Sector
 
@@ -119,6 +116,8 @@ theorem clause40_closedSectorCoefficient_eq_one_of {δ x : ℝ} (hδ : 0 < δ) (
   rw [closedSectorCoefficient, hr]
   simp
 
+omit [DecidableEq O] in
+
 /-- The diagonal matrix of closed sector coefficients on the input indexed singular values is
 idempotent. -/
 private theorem closedSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
@@ -136,7 +135,9 @@ private theorem closedSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     rcases clause40_closedSectorCoefficient_zero_one δ (matrixSingularValues A i) with h | h
     · rw [h]; simp
     · rw [h]; simp
-  · simp only [Matrix.diagonal_apply, hij, if_false]
+  · simp only [Matrix.diagonal_apply, hij, ite_false]
+
+omit [DecidableEq O] in
 
 /-- The diagonal matrix of closed sector coefficients on the input indexed singular values is
 self adjoint. -/
@@ -152,6 +153,8 @@ private theorem closedSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
 
+omit [DecidableEq O] in
+
 /-- The diagonal matrix of closed sector coefficients on the output indexed singular values is
 self adjoint. -/
 private theorem closedLeftSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
@@ -165,6 +168,8 @@ private theorem closedLeftSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I
     simp [Matrix.conjTranspose_apply, closedSectorCoefficient, Complex.conj_ofReal]
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
+
+omit [DecidableEq O] in
 
 /-- The diagonal matrix of closed sector coefficients on the output indexed singular values is
 idempotent. -/
@@ -183,11 +188,12 @@ private theorem closedLeftSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     rcases clause40_closedSectorCoefficient_zero_one δ (matrixSingularValues A i) with h | h
     · rw [h]; simp
     · rw [h]; simp
-  · simp only [Matrix.diagonal_apply, hij, if_false]
+  · simp only [Matrix.diagonal_apply, hij, ite_false]
 
 /-- The closed right singular sector is an orthogonal projector for every matrix and threshold. -/
 theorem clause40_closedRightSector_isOrthogonalProjector (A : Matrix O I ℂ) (δ : ℝ) :
     IsOrthogonalProjector (closedRightSector A δ) := by
+  let _ := ‹DecidableEq O›
   constructor
   · change (basisColumns (rightSingularBasis A)
       * diagonal (fun i : Fin (Fintype.card I) =>
@@ -219,6 +225,7 @@ theorem clause40_closedRightSector_isOrthogonalProjector (A : Matrix O I ℂ) (�
 /-- The closed left singular sector is an orthogonal projector for every matrix and threshold. -/
 theorem clause40_closedLeftSector_isOrthogonalProjector (A : Matrix O I ℂ) (δ : ℝ) :
     IsOrthogonalProjector (closedLeftSector A δ) := by
+  let _ := ‹DecidableEq O›
   constructor
   · change (basisColumns (leftSingularBasis A)
       * diagonal (fun j : Fin (Fintype.card O) =>
@@ -252,6 +259,8 @@ theorem clause40_closedLeftSector_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (closedLeftSector A δ)ᴴ = closedLeftSector A δ :=
   (clause40_closedLeftSector_isOrthogonalProjector A δ).2
 
+omit [DecidableEq O] in
+
 /-- The Gram matrix between the left singular basis columns and left singular columns has
 entries given by their pairwise inner products. -/
 private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
@@ -268,10 +277,11 @@ private theorem closedLeftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (�
       = leftSingularColumns A
         * diagonal (fun i : Fin (Fintype.card I) =>
           closedSectorCoefficient δ (matrixSingularValues A i)) := by
+  let _ := ‹DecidableEq O›
   ext o i
   rw [closedLeftSector, Matrix.mul_assoc, Matrix.mul_assoc, leftCompanion_gram_entries]
   simp only [Matrix.mul_apply, Matrix.of_apply, Matrix.diagonal_apply, mul_ite, ite_mul,
-    mul_zero, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    mul_zero, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   by_cases hi : (i : ℕ) < Module.finrank ℂ A.toEuclideanLin.range
   · have hO : (i : ℕ) < Fintype.card O :=
       lt_of_lt_of_le hi (by simpa using! Submodule.finrank_le A.toEuclideanLin.range)
@@ -285,8 +295,8 @@ private theorem closedLeftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (�
     refine Eq.trans (Finset.sum_eq_single_of_mem (⟨(i : ℕ), hO⟩ : Fin (Fintype.card O))
       (Finset.mem_univ _) ?_) ?_
     · intro b _ hb
-      rw [if_neg hb]
-    · rw [if_pos rfl, hWk]
+      rw [ite_eq_right hb]
+    · rw [ite_eq_left rfl, hWk]
   · have hσ0 : matrixSingularValues A i = 0 :=
       A.toEuclideanLin.singularValues_eq_zero_iff_le_finrank_range.mpr (by omega)
     have h0 : leftSingularColumns A o i = 0 := by
@@ -451,10 +461,10 @@ theorem clause40_threshold_stratum_kept {δ : ℝ} (hδ : 0 < δ) :
     strictSectorCoefficient δ δ = 0 ∧ closedSectorCoefficient δ δ = 1 := by
   have hti0 : thresholdIndicator 0 δ = 1 := by
     simp only [thresholdIndicator]
-    rw [if_pos (show (0 : ℝ)^2 < δ^2 by nlinarith [sq_pos_of_pos hδ])]
+    rw [ite_eq_left (show (0 : ℝ)^2 < δ^2 by nlinarith [sq_pos_of_pos hδ])]
   have htiδ : thresholdIndicator δ δ = 0 := by
     simp only [thresholdIndicator]
-    rw [if_neg (show ¬(δ^2 < δ^2) by exact lt_irrefl _)]
+    rw [ite_eq_right (show ¬(δ^2 < δ^2) by exact lt_irrefl _)]
   refine ⟨?_, clause40_closedSectorCoefficient_eq_one_of hδ (le_of_lt hδ) (Or.inr (le_refl δ))⟩
   simp [strictSectorCoefficient, hti0]
 
@@ -633,13 +643,13 @@ theorem clause40_threshold_readout_kept {δ : ℝ} (hδ : 0 < δ) :
     clause40_closedSectorCoefficient_eq_one_of hδ (le_of_lt hδ) (Or.inr (le_refl δ)),
     clause40_threshold_stratum_kept hδ |>.1⟩
   · simp only [qlsStratum]
-    rw [if_neg (not_lt_of_ge (le_of_lt hδ)), if_pos hδ,
-      if_neg (lt_irrefl _), if_neg (lt_irrefl _)]
+    rw [ite_eq_right (not_lt_of_ge (le_of_lt hδ)), ite_eq_left hδ,
+      ite_eq_right (lt_irrefl _), ite_eq_right (lt_irrefl _)]
 
 /-- The sector readout residual is at most `ε` for singular values in `[0, 1]` outside the
 middle and negative strata, given the stated reciprocal approximation and zero value at
 zero. -/
-theorem clause40_qlsSectorReadout_residual_le {δ ε : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
+theorem clause40_qlsSectorReadout_residual_le {δ ε : ℝ} (hε : 0 ≤ ε) (_hδ : 0 < δ)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
     {σ : ℝ} (hσ0 : 0 ≤ σ) (hσ1 : σ ≤ 1)
@@ -651,10 +661,10 @@ theorem clause40_qlsSectorReadout_residual_le {δ ε : ℝ} (hε : 0 ≤ ε) (h�
       have hlt : σ < δ := lt_of_not_ge hcon
       have hmid : qlsStratum δ σ = .midBand := by
         simp only [qlsStratum]
-        rw [if_neg (not_lt_of_ge (le_of_lt hσpos)), if_pos hσpos, if_pos hlt]
+        rw [ite_eq_right (not_lt_of_ge (le_of_lt hσpos)), ite_eq_left hσpos, ite_eq_left hlt]
       exact absurd hmid hkeep.1
     rw [qlsSectorReadout]
-    simp only [qlsWindowResidual, hσpos, if_pos]
+    simp only [qlsWindowResidual, hσpos, ite_eq_left]
     have hx : σ ∈ Set.Icc δ 1 := ⟨hδσ, hσ1⟩
     have habs : |Pw.eval σ - (δ/2)/σ| ≤ ε := happrox σ hx
     exact habs
@@ -692,7 +702,7 @@ theorem clause40_qlsMaxResidual_le {δ ε : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
 
 /-- Reciprocal approximation on `[δ, 1]` with `0 < δ ≤ 1` implies that the polynomial value at
 `δ` is within `ε` of `1 / 2`. -/
-theorem clause40_threshold_point_consistency {ε δ : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
+theorem clause40_threshold_point_consistency {ε δ : ℝ} (_hε : 0 ≤ ε) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     {Pw : Polynomial ℝ} (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε) :
     |Pw.eval δ - 1/2| ≤ ε := by
   have hx : δ ∈ Set.Icc δ 1 := ⟨le_rfl, hδ1⟩
@@ -973,7 +983,7 @@ theorem clause40_relaxedWindowedReciprocal (ε δ : ℝ) (hε : 0 < ε) (hε1 : 
       linarith
     have hind : thresholdIndicator τ₀ x = 0 := by
       unfold thresholdIndicator
-      rw [if_neg]
+      rw [ite_eq_right]
       nlinarith
     have hgap : γ ≤ |x^2-τ₀^2| := by
       have hz : x^2-τ₀^2 ≤ -γ := by nlinarith
@@ -991,7 +1001,7 @@ theorem clause40_relaxedWindowedReciprocal (ε δ : ℝ) (hε : 0 < ε) (hε1 : 
     have hmem := thresholdPolynomial_eval_mem_Icc k hτ01 (abs_le.mpr ⟨by nlinarith, hx1⟩)
     have hind : thresholdIndicator τ₀ x = 1 := by
       unfold thresholdIndicator
-      rw [if_pos]
+      rw [ite_eq_left]
       nlinarith
     have hgap : γ ≤ |x^2-τ₀^2| := by
       rw [abs_of_nonneg (by nlinarith)]
@@ -1581,7 +1591,7 @@ theorem clause40_endpoint_execution_ledger
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (ε δ : ℝ)
     (henc : ProjectedUnitaryEncoding A U L R) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1/2) :
-    ∃ (Pw : Polynomial ℝ) (J k : ℕ) (Φ : List ℝ),
+    ∃ (_Pw : Polynomial ℝ) (J k : ℕ) (Φ : List ℝ),
       Φ.length = 2*J+1+2*3^k ∧
       (qlsExecutionLedger Φ (Fintype.card H)).wordLength = 2*J+1+2*3^k ∧
       (qlsExecutionLedger Φ (Fintype.card H)).dataCalls = 2*J+1+2*3^k ∧

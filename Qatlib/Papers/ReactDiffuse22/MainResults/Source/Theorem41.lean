@@ -71,18 +71,13 @@ measurement of the block register with probability lower bound Lemma 4.5; and
 amplitude amplification.  The error budget splits into the time-discretization
 error (Lemma 4.3) and the QLSA error.
 
-**Current Lean gap.**  The library has no circuit/QLSA model; this block models
-the algorithm by its query ledger (`QueryLedger`) and its output guarantee
-(`QCLRun`), so the statement records the existence of a run meeting the paper's
-error, probability and cost guarantees.  A genuine proof needs (i) the
-Euler discretization error Lemma 4.3, (ii) the condition-number bound Lemma 4.4,
-(iii) the measurement probability Lemma 4.5, and (iv) the QLSA query-complexity
-theorem of [38] (not formalized in the library).
-**Candidate reuse:** `QCLRun`, `QueryLedger.total`, `RDconst`, `source_lemma43`,
-`source_lemma44`, `source_lemma45`.
-**Suggested tactics:** once (i)–(iv) are available as hypotheses, assemble the
-ledger by a linear arithmetic combination and discharge the existence goal with
-`refine ⟨_, _, ...⟩`. -/
+Scope note: this theorem represents the algorithm by its query ledger
+(`QueryLedger`) and output guarantees (`QCLRun`), recording the existence of a
+run with the stated error, probability and cost bounds under `RDconst < 1`.
+A circuit construction and its QLSA correctness and cost analysis are outside
+the scope of this file. The paper's analysis uses the Euler discretization
+error of Lemma 4.3, the condition-number bound of Lemma 4.4, the measurement
+probability of Lemma 4.5, and the QLSA query-complexity theorem of [38]. -/
 theorem source_theorem41
     {n d : ℕ} (D a b lam1 lam : ℝ) (d1 M N s : ℕ) (Uin : GridIndex n d → ℝ)
     (T G eps : ℝ) (hT : 0 ≤ T) (hG : 0 < G)

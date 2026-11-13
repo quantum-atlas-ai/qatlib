@@ -26,7 +26,6 @@ follows the fixed point error estimate in [TemmeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 

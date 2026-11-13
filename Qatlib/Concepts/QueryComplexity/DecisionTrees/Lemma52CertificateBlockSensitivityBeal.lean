@@ -26,7 +26,6 @@ query analysis of [BealsEtAl2001].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
 
 set_option autoImplicit false

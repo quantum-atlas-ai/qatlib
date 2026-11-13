@@ -30,7 +30,6 @@ with at most one extra step in `trotter_gate_count`. The mathematical context is
 * [Farhi et al., 2000][FarhiEtAl2000]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

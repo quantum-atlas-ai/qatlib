@@ -25,8 +25,6 @@ multiplicative promise by choosing scale `Δ / 10`. For positive `Δ` and multip
 * [Aharonov and Arad, 2011][AharonovArad2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.BQPJonesPoly06.MainResults

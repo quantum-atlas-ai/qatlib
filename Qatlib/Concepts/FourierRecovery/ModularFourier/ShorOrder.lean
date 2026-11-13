@@ -46,14 +46,12 @@ open Qatlib.Concepts.WalshMoment.Forrelation
 open Qatlib.Concepts.PeriodSampling.OrderRecovery
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder
 
 open Qatlib
 open Matrix
 open scoped Classical BigOperators ComplexConjugate
-set_option warningAsError false
 
 /-- Raising natural numbers to a positive exponent preserves a strict inequality between their
 bases. -/
@@ -126,7 +124,7 @@ power exceeds `N`. -/
 theorem intRoot_eq_find (e N : ℕ) (he : 1 ≤ e) :
     intRoot e N = Nat.find (powExceedWitness e N he) - 1 := by
   unfold intRoot
-  rw [dif_neg (by omega : e ≠ 0)]
+  rw [dite_eq_right (by omega : e ≠ 0)]
 
 /-- For a positive exponent, the least natural number whose power exceeds `N` is positive. -/
 theorem find_pow_exceeds_pos (e N : ℕ) (he : 1 ≤ e) :
@@ -446,7 +444,7 @@ theorem firstSuccessAt_sound (N M R : ℕ) [NeZero N] (ω : Fin R → AttemptOut
 the tree has root and leaf product `n`, and each leaf is at most one or prime. -/
 theorem factorTreeOfFuel_spec (split : ∀ n, Option (ProperDivisor n)) :
     ∀ fuel n, n ≤ fuel →
-      (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
+      (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOfFuel split fuel n).leavesProduct = n ∧
         (factorTreeOfFuel split fuel n).root = n ∧
         (∀ p ∈ (factorTreeOfFuel split fuel n).leaves, p ≤ 1 ∨ Nat.Prime p) := by
@@ -467,7 +465,7 @@ theorem factorTreeOfFuel_spec (split : ∀ n, Option (ProperDivisor n)) :
       cases hsplit : split (n + 1) with
       | none =>
         refine ⟨?_, ?_, ?_⟩
-        · simp [FactorTree.leavesProduct, FactorTree.root]
+        · simp [FactorTree.leavesProduct]
         · simp [FactorTree.root]
         · intro p hp
           have hp' : p = n + 1 := by simpa [FactorTree.leaves] using! hp
@@ -507,7 +505,7 @@ theorem factorTreeOfFuel_spec (split : ∀ n, Option (ProperDivisor n)) :
 /-- If the splitter succeeds on every composite between two and `n`, then the factor tree for
 `n` is complete. -/
 theorem factorTreeOf_complete (split : ∀ n, Option (ProperDivisor n)) :
-    ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
+    ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOf split n).complete := by
   intro n hne
   have h := factorTreeOfFuel_spec split n n (by omega) hne
@@ -613,9 +611,9 @@ noncomputable def orderConditionalLaw (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (h
   nonneg := by
     intro y
     by_cases h : OrderGoodEvent N M a y
-    · simp only [h, if_pos]
+    · simp only [h, ite_eq_left]
       exact div_nonneg ((modularOrderLaw N M a hM).nonneg y) (le_of_lt hpos)
-    · simp only [h, if_neg]
+    · simp only [h]
       exact le_rfl
   sum_one := by
     classical
@@ -659,7 +657,7 @@ def clause2_endpoint : Prop :=
   (∀ (N d : ℕ), d ∈ perfectPowerDivisors N → 1 < d ∧ d < N ∧ d ∣ N) ∧
   (∀ (N d : ℕ), perfectPowerDivisor N = some d → 1 < d ∧ d < N ∧ d ∣ N) ∧
   (∀ N : ℕ, preprocessBitCost N ≤ polyLogBound 1 4 N) ∧
-  (∀ (N : ℕ) [NeZero N] (hp : Nat.Prime N) (a : (ZMod N)ˣ), PrimeDirectionWitness N a) ∧
+  (∀ (N : ℕ) [NeZero N] (_hp : Nat.Prime N) (a : (ZMod N)ˣ), PrimeDirectionWitness N a) ∧
   (∀ (N d : ℕ), CompositeCertificate N d → ¬ Nat.Prime N)
 
 /-- The arithmetic preprocessing and certification properties collected in `clause2_endpoint`
@@ -683,7 +681,7 @@ def clause3_endpoint : Prop :=
   (∀ n : ℕ, GateCount (localProgramCircuit (localQFT n)) = localQftGateCount n ∧
       QueryCount (localProgramCircuit (localQFT n)) = 0 ∧
       localQftSpaceCost n = n) ∧
-  (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M),
+  (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (_hM : 0 < M),
       QueryCount (modularOrderCircuit N M a) = M * (M - 1) / 2 ∧
         GateCount (modularOrderCircuit N M a) = M * (M - 1) + 2) ∧
   (∀ (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (q : ℕ),
@@ -718,7 +716,7 @@ def clause4_endpoint : Prop :=
           ∀ d : ℕ, attemptOutcomeFactor N M (ω j) = some d →
             1 < d ∧ d < N ∧ d ∣ N) ∧
   (∀ (split : ∀ n, Option (ProperDivisor n)) (n : ℕ),
-      (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
+      (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
         (factorTreeOf split n).complete)
 
 /-- The factor extraction soundness and conditional factor tree completeness properties
@@ -762,8 +760,8 @@ its conditional probability formula under the stated size and order assumptions,
 divisibility of small prime powers. -/
 def clause6_endpoint : Prop :=
   (∀ N : ℕ, 1 < N → ∃ q, OriginalClockWindow N q) ∧
-  (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (hN : 1 < N)
-      (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M),
+  (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (_hN : 1 < N)
+      (_hr : 1 < orderOf a) (_hsize : 2 * N ^ 2 < M),
       0 < orderGoodMass N M a hM) ∧
   (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (hN : 1 < N)
       (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M) (y : Fin M),

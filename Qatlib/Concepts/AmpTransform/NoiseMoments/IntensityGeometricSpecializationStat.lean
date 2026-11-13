@@ -24,8 +24,6 @@ comparison, and limits as the noise sequence grows in the setting of [Cornwell20
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 set_option autoImplicit false
 open scoped Classical

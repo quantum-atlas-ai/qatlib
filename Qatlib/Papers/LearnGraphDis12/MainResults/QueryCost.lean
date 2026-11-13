@@ -14,24 +14,23 @@ set_option backward.isDefEq.respectTransparency false
 # Query-cost vocabulary for the learning-graph paper
 
 Source: A. Belovs, *Learning-Graph-Based Quantum Algorithm for k-distinctness*,
-fixed preprint arXiv:1205.1534v2 (`arXiv:1205.1534v2 [quant-ph] 9 Aug 2012`,
-PDF SHA-256 of `prove/assets/1205.1534.pdf`).
+fixed preprint arXiv:1205.1534v2 (`arXiv:1205.1534v2 [quant-ph] 9 Aug 2012`).
 Paper block `MainResults`; this module carries the paper-local vocabulary shared
 by the Theorem 7, Theorem 8 and Lemma 9 contracts.
 
 * `BoundedErrorQueryCostAtMost f T` is the paper's phrase *"can be solved in
   `T` queries with bounded error"*.  It is phrased over the house counted-query
   circuit model (`Circuit`, `Run`, `QueryCount` of
-  `QuantumAlgorithm.Foundations.ReferenceError.MixturePaths`) with the house
+  `Qatlib.Foundations.QueryWordCore.Circuit`) with the house
   bounded-error run predicate
-  `QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.IsBoundedErrorRun`
+  `Qatlib.Concepts.AdversaryBounds.AdvDuality.IsBoundedErrorRun`
   (unitary circuit word, normalized initial state, POVM readout, success
   probability `≥ 1 − ε` with `ε ≤ 1/2` on every input).  `T` bounds the
   worst-case query ledger `QueryCount C`.
 * `graphCollisionWord` is Theorem 7's Boolean input encoding: the queried word
   is the vertex labelling `x : Fin n → Fin 2`, and the known graph `G` is fixed
   and never queried.  The decision function itself is the house
-  `QuantumAlgorithm.Foundations.GraphQuery.EdgeQuery.graphCollision` read on
+  `Qatlib.Concepts.GraphQuery.EdgeQuery.graphCollision` read on
   that labelling.
 * `kDistinctness` is Theorem 8's decision function, paper §1:
   `f(x) = 1` iff some `k` positions carry one common value.

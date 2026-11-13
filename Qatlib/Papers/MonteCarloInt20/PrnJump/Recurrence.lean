@@ -33,7 +33,6 @@ indexing convention. See [KanekoEtAl2020].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.MatrixAccess.RitzPipeline

@@ -24,7 +24,7 @@ For `h = f ∘ (g₁, …, g_k)` and block costs `βᵢ = ADV±_{αᵢ}(gᵢ)`,
 Theorem 13 is the optimized specialization; Lemma 17 is the same inequality
 for any cost vector `β` dominated coordinatewise by the block values (which is
 how the theorem is applied).  The paper-layer bridge uses the frozen
-`QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.source_negative_adversary_composition_lower`
+`Qatlib.Concepts.AdversaryBounds.AdvDuality.source_negative_adversary_composition_lower`
 for the printed `ℝ≥0∞` value `advAlphaPmENN`, where `blockCostsPm` is exactly
 `βᵢ = ADV±_{αᵢ}(gᵢ)`.  A second, conservative real-division form
 `advPlus` is bridged to the frozen `advPlus_composition_ge`.

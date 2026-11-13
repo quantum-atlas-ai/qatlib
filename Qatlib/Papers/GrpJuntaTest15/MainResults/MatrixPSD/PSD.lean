@@ -13,8 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 # Positive semidefiniteness closure properties (Proposition A.1)
 
 Fixed source: arXiv:1507.03126v1, *Efficient Quantum Algorithms for (Gapped) Group
-Testing and Junta Testing*, Appendix A, page 39.  PDF
-`prove/assets/1507.03126.pdf`.
+Testing and Junta Testing*, Appendix A, page 39.
 
 Claim c025 (Proposition A.1): if `A` and `B` are positive semidefinite matrices of
 the same size, then so are

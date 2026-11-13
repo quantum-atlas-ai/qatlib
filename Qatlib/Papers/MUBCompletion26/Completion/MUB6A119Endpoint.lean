@@ -27,7 +27,6 @@ enclosure hypotheses.
 * [Sun, 2026][Sun2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 open Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Certificate

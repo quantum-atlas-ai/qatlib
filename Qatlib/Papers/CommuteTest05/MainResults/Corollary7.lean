@@ -31,7 +31,6 @@ weights `ν i ^ 2` and denominators `1 - lam i`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

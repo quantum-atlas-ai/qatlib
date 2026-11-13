@@ -32,7 +32,6 @@ circuits in the signal-processing and block-encoding setting of [LowChuang2017] 
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Concepts.LocalMachine.LocalTransport

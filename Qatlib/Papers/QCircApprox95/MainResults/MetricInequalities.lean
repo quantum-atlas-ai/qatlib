@@ -30,8 +30,6 @@ the tested prefixes, together with composition estimates using operator-norm con
 * [Knill, 1995][Knill1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

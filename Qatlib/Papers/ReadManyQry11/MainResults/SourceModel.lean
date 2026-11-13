@@ -17,10 +17,8 @@ set_option backward.isDefEq.respectTransparency false
 # ReadManyQry11 — source model
 
 Fixed paper: Childs, Kimmel and Kothari, *The quantum query complexity of read-many
-formulas*, arXiv:1112.0548v1 (2 December 2011).  The asset copy
-`prove/assets/1112.0548.pdf` (text
-`prove/assets/1112.0548.txt`) was used; all
-page/line references below are to that v1 PDF.
+formulas*, arXiv:1112.0548v1 (2 December 2011); all page/line references below
+are to that v1 source.
 
 This module owns the paper-layer objects used by every claim in
 `QuantumAlgorithmDev.Papers.ReadManyQry11.MainResults`:
@@ -38,8 +36,8 @@ This module owns the paper-layer objects used by every claim in
   gates and inputs.  `gateCount` is the circuit size (only `and`/`or` gates,
   p. 3), `depth` is the longest input-to-output path, `IsFormula` says no gate
   has fan-out, and `IsMonotone` says there is no `not` gate.
-* Bounded-error quantum query complexity, expressed over the frozen concrete
-  model of legal query programs `QuantumAlgorithm.Concepts.QueryComplexity.
+* Bounded-error quantum query complexity, expressed over the concrete
+  model of legal query programs `Qatlib.Concepts.QueryComplexity.
   DegreeMethod.DecisionProgram` (a counted bit-oracle circuit, its initial
   state and its acceptance set).  `BoundedErrorQueryAtMost f b` means some legal
   program decides `f` with error at most `1/3` using at most `b` queries;
@@ -347,7 +345,7 @@ end Circuit
 
 /-! ## §3. Bounded-error quantum query complexity
 
-The frozen `DecisionProgram` model is the paper's black-box query model: a
+The `DecisionProgram` model is the paper's black-box query model: a
 counted bit-oracle circuit, an initial state, and an acceptance event.  The
 paper's `Q(f)` (bounded error `1/3`, p. 2) is expressed through the two
 predicates below, exactly as `Q(f) ≤ b` and `Q(f) ≥ b`. -/

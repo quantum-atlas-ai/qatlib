@@ -25,13 +25,11 @@ argument of [BennettEtAl1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QueryComplexity.Amplification
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The number of true bits in a finite Boolean word. -/
 def MajorityCount {k : ℕ} (w : Fin k → Bool) : ℕ :=
@@ -133,11 +131,11 @@ theorem majority_copies_fail_mass {I : Type*} [Fintype I] [DecidableEq I] (r : �
         simp only [Fintype.mem_piFinset]
         intro j
         by_cases hj : j ∈ G
-        · rw [if_pos hj]
+        · rw [ite_eq_left hj]
           have hjmem : j ∈ good ω := by
             rw [hge]; exact hj
           exact (Finset.mem_filter.mp hjmem).2
-        · rw [if_neg hj, Finset.mem_compl]
+        · rw [ite_eq_right hj, Finset.mem_compl]
           intro hmem
           have hmem2 : j ∈ good ω :=
             Finset.mem_filter.mpr ⟨Finset.mem_univ j, hmem⟩
@@ -165,9 +163,9 @@ theorem majority_copies_fail_mass {I : Type*} [Fintype I] [DecidableEq I] (r : �
             = if j ∈ G then MeasureProb φ S else MeasureProb φ Sᶜ := by
           intro j
           by_cases hj : j ∈ G
-          · simp only [hj, if_true]
+          · simp only [hj, ite_true]
             rfl
-          · simp only [hj, if_false]
+          · simp only [hj, ite_false]
             rfl
         rw [h1, Finset.prod_congr rfl fun j _ => hper j]
         simp only [Finset.prod_ite]

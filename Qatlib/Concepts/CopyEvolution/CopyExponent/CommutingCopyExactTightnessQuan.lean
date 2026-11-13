@@ -29,7 +29,6 @@ illustrating the copy dependence of density-matrix exponentiation [LloydMohseniR
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers

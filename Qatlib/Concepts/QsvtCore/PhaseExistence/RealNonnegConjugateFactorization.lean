@@ -27,9 +27,6 @@ providing tools for polynomial completion in quantum signal processing. See
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.PolyApprox
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis

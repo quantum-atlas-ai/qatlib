@@ -18,8 +18,7 @@ set_option backward.isDefEq.respectTransparency false
 # Complexity arithmetic of quantum simulated annealing
 
 Source: R. D. Somma, S. Boixo, H. Barnum, *Quantum Simulated Annealing*,
-fixed arXiv:0712.1008v1 (6 Dec 2007). Local PDF `local archive
-tmp/prove/assets/0712.1008.pdf`, text twin `0712.1008.txt`.
+fixed arXiv:0712.1008v1 (6 Dec 2007).
 
 This file formalizes the arithmetic content of the closed-form resource bounds:
 
@@ -32,9 +31,9 @@ This file formalizes the arithmetic content of the closed-form resource bounds:
   zero-phase amplitude obeys `|o_{j,0}| ≤ π/(2^p·2φ_j)`; hence choosing
   `2^p` on the order of `1/(ν√δ)` suffices once `φ_j ≳ √δ`.
 
-The file does not formalize the algorithm itself; it pins down the displayed
-inequalities with the paper's own symbols. The trig phase identity used by the
-PEA error estimate is the only analytic ingredient.
+Scope note: this file formalizes the displayed resource inequalities in the
+paper's notation; the algorithm itself is outside its scope.  The trigonometric
+phase identity used by the PEA error estimate is the only analytic ingredient.
 -/
 
 set_option autoImplicit false

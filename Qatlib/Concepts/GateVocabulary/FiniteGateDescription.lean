@@ -32,7 +32,6 @@ recorded explicitly, using the gate conventions of [NielsenChuang2010].
 -/
 
 open Qatlib.Foundations.BornMetrics.EventProbability
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

@@ -5599,7 +5599,6 @@ theorem clause12_native_attempt_total_error {I : Type*} [Fintype I] [DecidableEq
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
-set_option warningAsError false
 
 /-- If an orthogonal projection preserves a vector's squared norm, the vector belongs to the
 projected subspace. -/

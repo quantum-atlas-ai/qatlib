@@ -35,7 +35,6 @@ unrestricted complex-input identity `QubitSecondMomentUnboundaried`.
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring

@@ -26,8 +26,6 @@ matrix analysis setting of [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 
 open Matrix Polynomial

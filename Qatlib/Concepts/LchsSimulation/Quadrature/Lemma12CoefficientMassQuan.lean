@@ -31,8 +31,6 @@ the nodal-product identity from exactness. See [AnChildsLin2026] for the mathema
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.LchsSimulation.Kernel
 

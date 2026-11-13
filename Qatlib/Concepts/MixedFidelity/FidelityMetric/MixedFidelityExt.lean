@@ -20,7 +20,6 @@ the trace-norm expression on tensor products.
 square. See [Uhlmann1976], [Jozsa1994], and
 [Watrous, fidelity of states][Watrous2018]; trace-norm background is [Simon2005].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath

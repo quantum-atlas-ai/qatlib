@@ -5,7 +5,7 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
-import Mathlib.Data.Real.Sign
+import Mathlib.Basic.Real.Sign
 
 /-!
 # Clipped reciprocal filters for uniform HHL
@@ -29,7 +29,6 @@ with an explicit grid requirement.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -52,7 +51,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.UniformHHL
 

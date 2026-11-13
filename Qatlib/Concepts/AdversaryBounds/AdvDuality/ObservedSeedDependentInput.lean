@@ -28,7 +28,6 @@ query count of seed-selected execution with their weighted component values.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -37,7 +36,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Concepts.ShadowModels.ShadowChannel
-
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 variable {I : Type*} [Fintype I] [DecidableEq I] {s : ℕ}

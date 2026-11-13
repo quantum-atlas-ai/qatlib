@@ -31,7 +31,6 @@ The construction gives probability semantics to finite-budget randomized search 
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SearchStopping.UnknownCount

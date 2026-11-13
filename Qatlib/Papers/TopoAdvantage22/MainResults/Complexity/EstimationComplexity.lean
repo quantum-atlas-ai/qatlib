@@ -18,15 +18,16 @@ set_option backward.isDefEq.respectTransparency false
 # EstimationComplexity — the TDA resource-complexity lemmas
 
 Source: *Analyzing Prospects for Quantum Advantage in Topological Data Analysis*,
-McArdle–Gilyén–Turaev (arXiv:2209.13581), PDF `assets/2209.13581.pdf`.
+McArdle–Gilyén–Turaev (arXiv:2209.13581).
 
 This file records the resource (Toffoli / call-count) complexity claims of the
 paper: Lemma 1 (`c001`), Lemma 2 (`c002`), Lemma 3 (`c003`), Lemma 4 (`c004`),
-Lemma 5 (`c005`) and Lemma 6 (`c006`). All statements are faithful transcriptions
-of the paper's Toffoli/call bookkeeping; the proofs of algorithm existence are
-`sorry` because the library has no costed gate model for the Dicke-preparation /
-clique-checking / block-encoding circuits. The cost expressions themselves are
-defined concretely below so the statements are checkable.
+Lemma 5 (`c005`) and Lemma 6 (`c006`). The cost expressions are defined concretely,
+and the theorems establish scalar arithmetic relations between them.
+
+Scope note: the Dicke-preparation, clique-checking and block-encoding circuit
+constructions, together with their correctness and gate-cost guarantees, are
+outside the scope of this file.
 
 A `complexity` claim is a *cost accounting identity*: it asserts the number of
 Toffolis (or block-encoding calls) of a specific primitive equals a closed form.
@@ -104,12 +105,12 @@ and Toffoli complexity `secondSchemeCost n k`.
 Fixed arXiv:2209.13581. Substantive content: the seed-based amplitude
 amplification of Faehrmann–de Boor–Eisert (Ref. [25]) plus the closed success
 probability sum; the proof manipulates the geometric-series telescoping
-`Σ[ℓ^k-(ℓ-1)^k](cn-ℓ)^{n-k}` and shows it is `1 - 1/(2c) + O(1/(cn))`. Lean gap:
-the asymptotic `≈` and the count-sum are not formally connected; there is no
-costed Toffoli circuit for the Dicke preparation in the library.
-Candidate reuse: `Concepts.AmplitudeCore` (amplitude amplification only).
-Suggested tactic: prove the telescoping identity for `firstSchemeProb` by Abel
-summation, and the `1/(2c)` expansion by `Filter.Tendsto`/`isBigO`. -/
+`Σ[ℓ^k-(ℓ-1)^k](cn-ℓ)^{n-k}` and shows it is `1 - 1/(2c) + O(1/(cn))`.
+Scope note: this file records the finite count-sum and the scalar cost formulas;
+the asymptotic approximation and a costed Dicke-preparation circuit are outside
+its scope. The telescoping identity for `firstSchemeProb` can be analysed by Abel
+summation, with the `1/(2c)` expansion expressed through limits and big-O bounds.
+The related `Qatlib.Concepts.AmplitudeCore` results concern amplitude amplification. -/
 theorem lemma2_dicke_preparation (c n k nseed : ℕ) (hc : 0 < c) (hn : 0 < n)
     (hseed : nseed = Nat.log2 (c * n)) :
     (dickePrepCostFirst n nseed = (nseed + 1) * (n / 2 * (nseed + 2) + Nat.log2 n)) ∧
@@ -138,16 +139,16 @@ using `N = (π/ϵ)√(1+α²) = (1/(2ϵ))ln(1/δ) + O(ϵ⁻¹ ln ln(1/δ))` call
 `U` or `U†`.
 
 Fixed arXiv:2209.13581. This is the Bhartia–Herman–Mao–Tang (BHMT) amplitude-estimation
-guarantee from Appendix D. Lean gap: the exact leading `2/π`-scaling 'N =
-π/ε √(1+α²)' and the `O(ε⁻¹ ln ln(1/δ))` refinement require the QPE kernel
-concentration proof plus a big-O two-variable asymptotic, and a costed
-`U`/`U†`-call model. Candidate reuse (partial): the Dev/Frozen blocks
-`Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation`
+guarantee from Appendix D. Scope note: the exact leading `2/π`-scaling
+`N = π/ε √(1+α²)` and the `O(ε⁻¹ ln ln(1/δ))` refinement require QPE kernel
+concentration, a two-variable big-O estimate and a costed `U`/`U†`-call model;
+these are outside the scope of this file. Related results are in
+`Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation`
 (`prepared_ae_bhmt_error_and_endpoints`, windowed concentration) and
-`Concepts.AEMeanReadout.RankOneSubspace.Theorem6AmplitudeEstimation`.
-Suggested tactic: instantiate the windowed guarantee at
-`P = ⌈π/(ε)·√(1+α²)⌉` and convert the window event to `|â - a| ≤ ε` by
-`sin`-monotonicity; the `O`-term then follows from `Real.log` asymptotics. -/
+`Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem6AmplitudeEstimation`.
+The windowed guarantee at `P = ⌈π/(ε)·√(1+α²)⌉` is related to
+`|â - a| ≤ ε` through monotonicity of `sin`; the refinement involves logarithmic
+asymptotics. -/
 theorem lemma4_amplitude_estimation (a α ε δ : ℝ) (ha0 : 0 < a) (ha1 : a < 1)
     (hε : 0 < ε) (hδ0 : 0 < δ) (hδ1 : δ < 1) :
     ∃ N : ℝ, N = Real.pi / ε * Real.sqrt (1 + α ^ 2) ∧
@@ -176,8 +177,8 @@ encoding of `B_G`, given that the gap from eigenvalue `0` is at least `lamMin`.
 
 Fixed arXiv:2209.13581. We prove the positivity/shape of the call count (the
 substantive number is `filterCalls n lamMin ε`). The query-count-equals-formula
-step rests on the QSVT/Chebyshev filter construction, which is `sorry`-free in
-shape but not tied to a circuit here. -/
+step rests on the QSVT/Chebyshev filter construction; connecting this formula
+to a circuit is outside the scope of this file. -/
 theorem lemma6_eigenvalue_filtering (n lamMin ε : ℝ)
     (hn : 0 < n) (hgap : 0 < lamMin) (hε : 0 < ε) (hε2 : ε < 2) :
     0 ≤ filterCalls n lamMin ε := by
@@ -199,10 +200,9 @@ missing-edge database.
 
 The two methods (12)/(13) differ only in the Dicke-preparation factor
 `√(C(n,k)/|Cl_k(G)|)` versus `√((n^k/k!)/|Cl_k(G)|)`. Fixed arXiv:2209.13581.
-Lean gap: assembling steps 1-7 of §III F into a single costed expression requires
-a circuit-cost algebra that the library lacks; the statement is recorded
-structurally (the two per-iteration costs are defined below). Candidate reuse:
-none for the cost algebra. -/
+Scope note: assembling steps 1–7 of §III F into a verified circuit-cost bound is
+outside the scope of this file. The statement records the structural cost
+expression, with the two per-iteration costs defined below. -/
 def lemma1IterCostFirst (n k : ℕ) (edges cliques betti r3 lamMin : ℝ) : ℝ :=
   Real.pi / 2 * Real.sqrt ((Nat.choose n k : ℝ) / cliques) *
       (6 * edges + (n : ℝ) * (log2 n : ℝ)) +

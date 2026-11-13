@@ -31,7 +31,6 @@ Unitarity of the supplied matrix ensures well-formedness and a zero query budget
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

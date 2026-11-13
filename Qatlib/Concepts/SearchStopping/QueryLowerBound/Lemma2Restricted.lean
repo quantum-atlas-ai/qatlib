@@ -25,7 +25,6 @@ iteration range reaches `1 / Real.sin (2 * θ)`. For the quantum-search analysis
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound

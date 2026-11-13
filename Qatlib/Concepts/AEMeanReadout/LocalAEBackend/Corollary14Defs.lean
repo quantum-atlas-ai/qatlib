@@ -26,7 +26,6 @@ amplitude estimate to an integer using `⌊x + 1/2⌋`.
 * [Brassard et al., Corollary 14][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend

@@ -50,7 +50,6 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 open scoped Classical
-set_option warningAsError false
 
 namespace Qatlib.Papers.KoopmanSim26.StatePrep.Observables
 

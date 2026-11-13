@@ -25,8 +25,6 @@ and adds two gates per query. The mathematical context is [BrassardHoyerTapp1998
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QCounting98.MainResults.BooleanCompiler

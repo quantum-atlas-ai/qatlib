@@ -61,8 +61,6 @@ structure LinearSystemProblem (I : Type*) [Fintype I] [DecidableEq I] where
 
   hκ : ∀ i, 1 ≤ |eigval i| ∧ |eigval i| ≤ κ
 
-set_option linter.unusedSectionVars false
-
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- The inner product of a finite linear combination with a fixed state is the sum of the inner

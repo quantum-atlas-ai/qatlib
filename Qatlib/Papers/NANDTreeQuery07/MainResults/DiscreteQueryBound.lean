@@ -32,8 +32,6 @@ gates and success probability at least two thirds on every input.
 * [Childs et al., 2009][ChildsEtAl2009Formula]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

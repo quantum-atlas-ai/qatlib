@@ -28,7 +28,6 @@ The mathematical background is described in [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.BlockEncoding.EncodingCore
 open Qatlib.Concepts.BlockEncoding

@@ -28,7 +28,6 @@ mathematical background.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HspRecovery.ReductionCore

@@ -25,8 +25,6 @@ when every ratio of eigenvector entries has a real square root [AharonovEtAl2007
 * [Aharonov et al., 2007][AharonovEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

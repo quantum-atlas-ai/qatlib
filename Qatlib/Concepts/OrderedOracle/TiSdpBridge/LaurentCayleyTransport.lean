@@ -29,7 +29,6 @@ circle factorization used in the ordered-search approach of [ChildsLandahlParril
 * [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 

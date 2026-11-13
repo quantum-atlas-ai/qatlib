@@ -9,26 +9,13 @@ import Qatlib.Papers.MultivarMean21.MainResults.SourceModel
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Three-Regime Aggregate Phase-Oracle Mean Estimator and `ℓp` Conversion
+# Mean-estimation specification and proved norm comparisons
 
-This module formalizes Section 4.2, Theorem 4.5 (p. 23) of Cornelissen and Jerbi
-on the three-regime phase-oracle multivariate mean estimator for random variables
-in `[-1 / 4, 1 / 4]^d`, together with box preservation of the expectation and the
-`d^{1 / p}` conversion from `ℓ∞` error to `ℓp` error for all `p ≥ 1`.
-
-## Main statements
-
-* `abs_mean_le_of_inBox`: Coordinatewise bound `|E[X]_i| ≤ B` from `r.InBox B`.
-* `linf_mean_le_of_inBox`: `ℓ∞` bound `‖E[X]‖∞ ≤ B` from `r.InBox B`.
-* `norm_le_rpow_linf`: Norm comparison `‖v‖_p ≤ d^{1 / p} ‖v‖∞` for `1 ≤ p`.
-* `theorem4_5_lp`: Conversion of `ℓ∞` estimation error to `ℓp` error.
-* `theorem4_5`: Theorem 4.5, three-regime phase-oracle mean estimator
-  specification and `Õ` cost bounds.
-
-## References
-
-* [Cornelissen and Jerbi, 2021][CornelissenJerbi2021Mean], Section 4.2,
-  Theorem 4.5, p. 23.
+The box bounds and finite-dimensional norm comparisons below are proved.
+`theorem4_5_statement` is an unproved output-error/resource specification
+corresponding to Theorem 4.5 of Cornelissen and Jerbi (arXiv:2111.09787).
+**Statement only — not proved in Qatlib.** The estimator's oracle implementation
+is an explicit predicate parameter; no sampling or quantum algorithm is constructed.
 -/
 
 set_option autoImplicit false
@@ -77,12 +64,10 @@ theorem linf_mean_le_of_inBox {d : ℕ} (r : FinRV d) (B : ℝ) (hB : 0 ≤ B) (
 /-- The norm conversion used in the last sentence of Theorem 4.5 (p. 23):
 `‖x‖_p ≤ d^{1/p} ‖x‖∞` for `p ∈ [1,∞)`.
 
-Lean gap: Hölder's inequality applied to `∑ᵢ |xᵢ|^p` with the counting measure, i.e.
-`(∑ᵢ |xᵢ|^p)^{1/p} ≤ d^{1/p} maxᵢ |xᵢ|`.  Candidate dependencies:
-`Real.inner_le_Lp_mul_Lq`/`NNReal.Lp_add_le`-style Hölder bounds, or
-`Finset.sum_le_card_nsmul` together with `Real.rpow_le_rpow`.  Suggested tactics:
-`calc (∑ i, |v i| ^ p) ≤ ∑ i, linf v ^ p := ...`, `Finset.sum_const`, then
-`Real.rpow_le_rpow` and `Real.rpow_natCast`. -/
+This is the finite counting-measure norm comparison
+`(∑ᵢ |xᵢ|^p)^{1/p} ≤ d^{1/p} maxᵢ |xᵢ|`, also obtainable from Hölder's
+inequality. The proof bounds each `|v i| ^ p` by `linf v ^ p`, sums to obtain
+`∑ i, |v i| ^ p ≤ d * linf v ^ p`, and takes the monotone `1/p` power. -/
 theorem norm_le_rpow_linf {d : ℕ} (p : ℝ) (hp : 1 ≤ p) (v : Vec d) :
     lpNat p v ≤ (d : ℝ) ^ (1 / p) * linf v := by
   have hp0 : 0 < p := by linarith
@@ -118,18 +103,14 @@ theorem theorem4_5_lp {d : ℕ} (p : ℝ) (hp : 1 ≤ p) (v w : Vec d) :
     lpNat p (fun i => v i - w i) ≤ (d : ℝ) ^ (1 / p) * linfErr v w := by
   simpa [lpNat, linfErr] using norm_le_rpow_linf p hp (fun i => v i - w i)
 
-/-- Fixed arXiv:2111.09787, Theorem 4.5 (p. 23).  There is a phase-oracle mean estimator
-achieving the three-regime `ℓ∞` bound of Theorem 4.5 with probability at least `1 − δ`, at cost
-`Õ(n)` calls to `U_P` and `Õ(n')` calls to `P_X`.
-
-Lean gap: Theorems 4.3 and 4.4 supply the second and third branches; the first branch
-(`n' < d` or `n < log(d/δ)`) is the all-zeros output, whose error is bounded by `1` via
-`linf_mean_le_of_inBox`.  Candidate dependencies: `theorem4_3`, `theorem4_4`,
-`linf_mean_le_of_inBox`.  Suggested tactics: split on `p.n' < d`, `(p.n : ℝ) < d`, and
-`Real.log (d/δ) ≤ p.n`; in the trivial branch use `linf_mean_le_of_inBox` with `B = 1/4` and
-`norm_num`; otherwise instantiate the matching theorem. -/
-theorem theorem4_5 (d : ℕ) :
+/-- **Statement only — not proved in Qatlib.**
+Three-regime output-error and resource specification of Theorem 4.5.
+`Implemented` must certify an oracle implementation, including its output law
+and resource accounting. No implementation or existence proof is supplied. -/
+def theorem4_5_statement (d : ℕ)
+    (Implemented : Estimator d PhaseParams → Prop) : Prop :=
     ∃ E : Estimator d PhaseParams,
+      Implemented E ∧
       ∀ (p : PhaseParams) (r : FinRV d),
         0 < p.δ → p.δ < 1 → r.InBox (1 / 4) →
         E.failProb r p (fun v =>
@@ -142,49 +123,6 @@ theorem theorem4_5 (d : ℕ) :
                 max (Real.sqrt (d : ℝ) / (p.n : ℝ)) ((d : ℝ) / (p.n' : ℝ)) *
                   Real.log ((d : ℝ) / p.δ)) ≤ p.δ ∧
         SoftOLe ((E.cost p).experiments : ℝ) (p.n : ℝ) ((d : ℝ) / p.δ) ∧
-        SoftOLe ((E.cost p).queries : ℝ) (p.n' : ℝ) ((d : ℝ) / p.δ) := by
-  classical
-  refine ⟨{ seed := Unit, run := fun r _ _ => r.mean, cost := fun _ => ⟨0, 0⟩ }, ?_⟩
-  intro p r hδ0 hδ1 hbox
-  by_cases _htriv : r.InBox (1 / 4)
-  swap
-  · exact False.elim (_htriv hbox)
-  have herr : linfErr r.mean r.mean = 0 := by
-    simp only [linfErr, linf, sub_self, abs_zero]
-    rw [Finset.fold_const 0 (by simp)]
-    split_ifs <;> simp
-  have hlog : 0 ≤ Real.log ((d : ℝ) / p.δ) := by
-    rcases Nat.eq_zero_or_pos d with rfl | hd
-    · simp
-    · apply Real.log_nonneg
-      have hd1 : (1 : ℝ) ≤ d := by exact_mod_cast hd
-      exact (one_le_div hδ0).2 (hδ1.le.trans hd1)
-  have hgood :
-      linfErr r.mean r.mean ≤
-        if p.n' < d then 1
-        else if (p.n : ℝ) < (d : ℝ) then
-          max (1 / Real.sqrt (p.n : ℝ)) ((d : ℝ) / (p.n' : ℝ)) *
-            Real.log ((d : ℝ) / p.δ)
-        else
-          max (Real.sqrt (d : ℝ) / (p.n : ℝ)) ((d : ℝ) / (p.n' : ℝ)) *
-            Real.log ((d : ℝ) / p.δ) := by
-    rw [herr]
-    split_ifs
-    · norm_num
-    · exact mul_nonneg (le_max_of_le_right (by positivity)) hlog
-    · exact mul_nonneg (le_max_of_le_right (by positivity)) hlog
-  have hlog_cost : 0 ≤ Real.log ((d : ℝ) / p.δ + 2) := by
-    apply Real.log_nonneg
-    have hratio : 0 ≤ (d : ℝ) / p.δ := by positivity
-    linarith
-  refine ⟨?_, ?_, ?_⟩
-  · change 1 - (∑ _s : Unit, (Fintype.card Unit : ℝ)⁻¹ *
-        if linfErr r.mean r.mean ≤ _ then 1 else 0) ≤ p.δ
-    simpa only [hgood, ↓reduceIte, Fintype.card_unit, Nat.cast_one, inv_one, one_mul,
-      Finset.sum_const, Finset.card_univ, nsmul_eq_mul, sub_self] using hδ0.le
-  · refine ⟨1, zero_lt_one, 0, ?_⟩
-    simpa using mul_nonneg (Nat.cast_nonneg p.n) hlog_cost
-  · refine ⟨1, zero_lt_one, 0, ?_⟩
-    simpa using mul_nonneg (Nat.cast_nonneg p.n') hlog_cost
+        SoftOLe ((E.cost p).queries : ℝ) (p.n' : ℝ) ((d : ℝ) / p.δ)
 
 end Qatlib.Papers.MultivarMean21.MainResults.LowPrecision

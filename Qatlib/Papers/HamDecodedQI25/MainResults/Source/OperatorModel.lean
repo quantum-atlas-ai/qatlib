@@ -28,15 +28,11 @@ and their supporting lemmas):
 * `hmExp` is the matrix exponential of a Hermitian matrix (continuous functional
   calculus), `gibbsState` the Gibbs state `e^{-βH}/Tr e^{-βH}`, and `polyState`
   the polynomial Hamiltonian state `P²(H)/Tr P²(H)` (Eqn. (26), (30), (45));
-* `Procedure` is a lightweight model of a state-preparation procedure recording
-  the produced state and a declared resource count, and `PreparesIn` is the
-  assertion that a target state is produced within a stated resource bound.
-
-Boundary: `Procedure` does not encode a gate-level circuit compiler, oracle
-tapes or classical preprocessing.  Those aspects of the paper's algorithmic
-claims are recorded in the docstrings of the corresponding theorems as declared
-model boundaries, while the state produced and the resource bound are part of
-the Lean conclusion.
+* `Procedure` is a specification record, with no implementation guarantee.
+* `PreparationModel` supplies an external operational semantics and its operation
+  traces. `PreparesIn` requires a program in that supplied model, with output and
+  trace length matching the specification. No such model or preparation algorithm
+  is constructed here. The trace-distance lemmas below are unconditional.
 -/
 
 set_option autoImplicit false
@@ -70,19 +66,37 @@ def polyState {d : ℕ} (P : Polynomial ℂ) (H : Mat d) : Mat d :=
   let M := Polynomial.aeval H P
   (trace (M * M))⁻¹ • (M * M)
 
-/-- A lightweight state-preparation procedure: the produced matrix state and a
-declared resource count (number of elementary operations).  Circuit
-implementability is not part of this structure (see the module note). -/
+/-- Output and budget specification; this record alone is not a preparation algorithm. -/
 structure Procedure (d : ℕ) where
-  /-- The matrix state produced by the procedure. -/
+  /-- Specified output matrix. -/
   state : Mat d
   /-- Declared resource count of the procedure. -/
   cost : ℕ
 
-/-- `PreparesIn ρ T` asserts that some preparation procedure produces exactly
-the state `ρ` with resource count at most `T`. -/
-def PreparesIn {d : ℕ} (ρ : Mat d) (T : ℕ) : Prop :=
-  ∃ Q : Procedure d, Q.state = ρ ∧ Q.cost ≤ T
+/-- External preparation semantics. The caller must supply a physical model in
+which `operations` lists all charged operations and `execute` is its output.
+This interface does not construct or certify that physical interpretation. -/
+structure PreparationModel (d : ℕ) where
+  Program : Type
+  Operation : Type
+  operations : Program → List Operation
+  execute : Program → Mat d
+
+/-- A specification is realized relative to the supplied operational model. -/
+def Procedure.Realized {d : ℕ} (M : PreparationModel d) (Q : Procedure d) : Prop :=
+  ∃ p : M.Program, M.execute p = Q.state ∧ (M.operations p).length = Q.cost
+
+/-- Conditional preparation assertion in an explicitly supplied model; an arbitrary
+matrix and budget record no longer suffices as a witness. -/
+def PreparesIn {d : ℕ} (M : PreparationModel d) (ρ : Mat d) (T : ℕ) : Prop :=
+  ∃ p : M.Program, M.execute p = ρ ∧ (M.operations p).length ≤ T
+
+/-- A realized specification transfers its budget bound to the supplied model. -/
+theorem preparesIn_of_realized {d : ℕ} {M : PreparationModel d}
+    {Q : Procedure d} (h : Q.Realized M) {T : ℕ} (hT : Q.cost ≤ T) :
+    PreparesIn M Q.state T := by
+  obtain ⟨p, hp, hc⟩ := h
+  exact ⟨p, hp, hc.trans_le hT⟩
 
 /-- Trace distance is symmetric. -/
 theorem traceDistance_symm {d : ℕ} (ρ σ : Mat d) :

@@ -29,14 +29,11 @@ For the block-encoding framework, see [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 
 namespace Qatlib.Concepts.BlockEncoding.EncodingCore
 
 open Matrix
-
-set_option linter.unusedSectionVars false
 
 variable {J K I : Type*} [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
   [Fintype I] [DecidableEq I]
@@ -63,6 +60,8 @@ theorem sum_fiber_mul_right {X : Type*} [Fintype X] [DecidableEq X] (p₀ : X) (
 def encodingFiber (j₀ : J) : Matrix (J × I) I ℂ :=
   Matrix.of fun x i => if x.1 = j₀ ∧ x.2 = i then 1 else 0
 
+omit [Fintype J] [Fintype I] in
+
 /-- An entry of the coordinate embedding is one exactly at the paired index `(j₀, i)` and zero
 elsewhere. -/
 theorem encodingFiber_apply (j₀ : J) (x : J × I) (i : I) :
@@ -70,6 +69,7 @@ theorem encodingFiber_apply (j₀ : J) (x : J × I) (i : I) :
   obtain ⟨a, b⟩ := x
   by_cases h1 : a = j₀ <;> by_cases h2 : b = i <;> simp [encodingFiber, h1, h2]
 
+omit [Fintype J] [Fintype I] in
 /-- The conjugate-transpose coordinate embedding has the same indicator entries with its indices
 reversed. -/
 theorem encodingFiber_conjTranspose (j₀ : J) (i : I) (x : J × I) :
@@ -101,11 +101,11 @@ theorem encodingFiber_isIsometry (j₀ : J) : IsIsometry (encodingFiber (I := I)
       intro p
       rw [encodingFiber_conjTranspose, encodingFiber_apply]
       by_cases hp : p = (j₀, i)
-      · rw [if_pos hp, one_mul]
-        refine if_neg ?_
+      · rw [ite_eq_left hp, one_mul]
+        refine ite_eq_right ?_
         intro h
         exact hik (congrArg Prod.snd (hp.symm.trans h))
-      · rw [if_neg hp, zero_mul]
+      · rw [ite_eq_right hp, zero_mul]
     calc ((encodingFiber j₀)ᴴ * encodingFiber j₀ : Matrix I I ℂ) i k
         = ∑ p, (encodingFiber j₀)ᴴ i p * encodingFiber j₀ p k := Matrix.mul_apply
       _ = 0 := Finset.sum_eq_zero fun p _ => hterm p

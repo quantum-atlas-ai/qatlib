@@ -15,18 +15,18 @@ Fixed paper version: **arXiv:1106.1445v8** (v8, 2019-07-14).
 
 This file fixes the finite-dimensional vocabulary used by every paper-layer
 statement in this directory.  The state/entropy/relative-entropy layer reuses
-the frozen `QuantumAlgorithm.Foundations.QuantumEntropy.EntropyCalculus`
+the `Qatlib.Concepts.QuantumEntropy.EntropyCalculus`
 interface (`Density`, `entropy`, `relative`, `MState.traceLeft/traceRight`);
 fidelity, trace distance, effects, POVMs, Kraus representations and the
 composite entropies are defined here from those primitives.
 
 Conventions
 * `Op I` is the complex matrix algebra on a finite index type `I`.
-* `Dens I` is the frozen `Density I`: PSD and trace one.
+* `Dens I` is the `Density I` subtype: PSD and trace one.
 * A bipartite state `ρ : Dens (A × B)` has marginals `marginR` (on `A`) and
   `marginL` (on `B`); `H_A`/`H_B` denote `H(A)`/`H(B)`.
 * A tripartite state is written `Dens (A × C × B)` with the *conditioning*
-  system `C` in the middle, matching the frozen strong-subadditivity order.
+  system `C` in the middle, matching the library's strong-subadditivity order.
 -/
 
 namespace Qatlib.Papers.QShannonWilde11.MainResults.Model
@@ -42,7 +42,7 @@ noncomputable section
 /-- Operators on a finite index type. -/
 abbrev Op (I : Type) : Type _ := Matrix I I ℂ
 
-/-- Density operators: the frozen PSD trace-one subtype. -/
+/-- Density operators: the PSD trace-one subtype. -/
 abbrev Dens (I : Type) [Fintype I] [DecidableEq I] : Type _ := Density I
 
 /-- A unit vector. -/

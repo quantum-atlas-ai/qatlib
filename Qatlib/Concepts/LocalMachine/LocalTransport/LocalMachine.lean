@@ -36,13 +36,11 @@ counted evaluation and a polynomial bound for the time schedule.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
 open Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

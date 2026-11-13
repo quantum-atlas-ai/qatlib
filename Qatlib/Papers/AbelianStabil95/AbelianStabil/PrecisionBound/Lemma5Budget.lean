@@ -24,7 +24,6 @@ to event probabilities and to an existing target-error bound. The development fo
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -36,7 +36,6 @@ invalid wire records and the powers of one half determined by `networkCounts`.
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open Qatlib
@@ -45,8 +44,6 @@ open Qatlib
 open Qatlib
 open scoped ComplexOrder
 open scoped Classical
-
-set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

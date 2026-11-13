@@ -30,8 +30,6 @@ label.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.RecordExtract
 
 open Qatlib.Foundations.PureStateMath
@@ -62,7 +60,6 @@ def sieveWindowWidth (n m j : ℕ) : ℕ := min m (n - 1 - m * j)
 whose label agrees on the selected window, discarding unmatched heads. -/
 noncomputable def sievePairWith (n : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod (2 ^ n)) (w t : ℕ) (L : List α) : List (α × α) := by
-  set_option linter.unusedVariables false in
   match L with
   | [] => exact []
   | r :: rest =>

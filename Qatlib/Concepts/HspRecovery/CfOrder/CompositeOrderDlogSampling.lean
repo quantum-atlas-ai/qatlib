@@ -29,13 +29,11 @@ to hidden subgroup sampling. These constructions support the discrete logarithm 
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -93,7 +91,7 @@ private theorem stdAddChar_val {p : ℕ} [NeZero p] (j : ZMod p) :
 /-- The standard additive character of `ZMod p` equals one exactly at zero. -/
 private theorem stdAddChar_eq_one_iff {p : ℕ} [NeZero p] (j : ZMod p) :
     ZMod.stdAddChar (N := p) j = 1 ↔ j = 0 := by
-  haveI : NeZero p := ⟨NeZero.ne p⟩
+  have : NeZero p := ⟨NeZero.ne p⟩
   rw [stdAddChar_val]
   constructor
   · intro h
@@ -179,7 +177,7 @@ noncomputable def cyclicDlogHidden (p : ℕ) [NeZero p] (d : ZMod p) :
     AddSubgroup (ZMod p × ZMod p) where
   carrier := {x | x.1 + d * x.2 = 0}
   zero_mem' := by
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     change (0 : ZMod p) + d * 0 = 0
     ring
   add_mem' := by

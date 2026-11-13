@@ -29,8 +29,6 @@ initial state.
 * [Roland and Cerf, 2002][RolandCerf2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

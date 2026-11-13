@@ -24,7 +24,6 @@ is Lipschitz. Combining this quadratic remainder with the QAE bias and second mo
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

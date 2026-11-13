@@ -27,7 +27,7 @@ this library:
 * a state-generation problem is a family of normalized target states, whose Gram
   matrix `σ(x,y) = ⟨σ_x | σ_y⟩` (Section 2.1) is `StateGenerationProblem.gram`;
 * coherent and non-coherent query complexity use the counted `SourceWord` model of
-  `QuantumAlgorithm.Concepts.GramQueryCore.LowerBoundTools` (`sourceWordCalls`,
+  `Qatlib.Concepts.GramQueryCore.LowerBoundTools` (`sourceWordCalls`,
   `sourceWordMatrix`, `sourceAlphabetOracle`, `sourceClean`), which is the library's
   general-alphabet version of the paper's query model;
 * `Adv*` is Definition 3.1 (p.7), `Madv` is Definition 3.5 (p.8), and `γ₂` is

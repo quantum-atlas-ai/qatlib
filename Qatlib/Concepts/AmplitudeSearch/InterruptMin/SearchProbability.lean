@@ -32,7 +32,6 @@ cost by `(29 / 2) * √(card I / card A)` in the search setting of [BoyerEtAl199
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

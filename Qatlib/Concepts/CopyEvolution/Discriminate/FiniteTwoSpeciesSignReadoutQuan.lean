@@ -35,7 +35,6 @@ thirds when the budget is at most one third.
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
@@ -49,7 +48,6 @@ noncomputable section
 namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped Classical BigOperators ComplexOrder
-set_option warningAsError false
 
 /-- A phase label with the wrong sign is at circular phase distance greater than `γ / 8` from
 `-x / 4` under the stated magnitude and gap bounds. -/

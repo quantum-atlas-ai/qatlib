@@ -27,9 +27,7 @@ query and gate counts and a dyadic simulation error, combining the method of
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.CoherentSim.CleanQPEBands
@@ -54,7 +52,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
-set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.CoherentSim.EndToEnd
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -104,7 +101,7 @@ private theorem logTaylor_evolution_spectral (D : ℕ) (A V : Operator D) (eig :
   let W : unitary (Operator D) := ⟨V, hV⟩
   let f := Unitary.conjStarAlgAut ℂ (Operator D) W
   let B := Matrix.diagonal (fun i => -Complex.I * (t : ℂ) * (eig i : ℂ))
-  letI : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
   have hm := NormedSpace.map_exp f f.toAlgEquiv.toLinearMap.continuous_of_finiteDimensional B
   have he : f B = (-Complex.I * (t : ℂ)) • A := by
     rw [hs]
@@ -172,7 +169,7 @@ theorem logTaylor_data_frame {D : ℕ} (K : ℕ) (B : Operator D) (j0 : J) :
   by_cases hw : w = taylorEmptyLabel J K <;> by_cases hb : b = false <;> by_cases ha : a = j0 <;>
     simp [hw, hb, ha, eq_comm, logTaylorDataGate, tensorGate_apply,
       taylorFrame, Prod.mk.injEq]
-  simp_all only [eq_comm, false_and, if_false, Finset.sum_const_zero]
+  simp_all only [eq_comm, false_and, ite_false, Finset.sum_const_zero]
 
 /-- Lifting a unitary data operator by identity factors preserves unitarity. -/
 theorem logTaylor_data_unitary {D : ℕ} (K : ℕ) (B : Operator D)
@@ -216,7 +213,7 @@ theorem logTaylor_preparation_wellformed {D : ℕ} (M K : ℕ) (B : Operator D)
     WellFormedAdjointCircuit
       [AdjointStep.gate (TensorGate (1 : Operator M)
         (TensorGate (1 : Matrix Bool Bool ℂ) (logTaylorDataGate (J := J) K B)))] := by
-  letI : DecidableEq (TaylorWordLabel J K) := instDecidableEqSum
+  let : DecidableEq (TaylorWordLabel J K) := instDecidableEqSum
   simp only [WellFormedAdjointCircuit.gate_cons_iff, WellFormedAdjointCircuit.nil, and_true]
   have hphase : (1 : Operator M) ∈ Matrix.unitaryGroup (Fin M) ℂ := Submonoid.one_mem _
   have hflag : (1 : Matrix Bool Bool ℂ) ∈ Matrix.unitaryGroup Bool ℂ := Submonoid.one_mem _
@@ -343,12 +340,11 @@ theorem log_taylor_actual_energy_window : ∀ (D : ℕ) (h : J → ℝ) (U : J �
     simpa only [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] using! hS
   have hb : Sᴴ *ᵥ (B *ᵥ Ket j) = Ket i := by
     rw [hi, Matrix.mulVec_mulVec, hSp, Matrix.one_mulVec]
-  try dsimp only at herr
   rw [hb] at herr
   have hn (x : Fin D) : ‖Ket i x‖^2 = if x=i then (1:ℝ) else 0 := by
     by_cases hx : x=i <;> simp [Ket, hx]
   simp_rw [hn] at herr
-  simp only [ite_mul, one_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true] at herr
+  simp only [ite_mul, one_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at herr
   have hl : 8/Real.pi^2 ≤ ∑ z ∈ E, ‖qpeKernel M (-t*eig i/(2*Real.pi)) z‖^2 :=
     offgrid_phase_window_probability M (-t*eig i/(2*Real.pi)) hM
   have hh := (abs_le.mp herr).1

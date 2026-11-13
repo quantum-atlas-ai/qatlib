@@ -18,7 +18,6 @@ uniqueness proves the intertwining identity.
 The adiabatic approximation framework is [JansenRuskaiSeiler2007]. This is the
 comparison-evolution identity, prior to any final approximation-error estimate.
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

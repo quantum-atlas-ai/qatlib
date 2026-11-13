@@ -60,14 +60,10 @@ def coarse_graining_exists {D L k c ℓ r : ℕ} (hrk : r ≤ k)
   -- (property 2); (iii) side ℓ gives |C_{a,i}| ≤ ℓ^D (property 3); (iv) the
   -- disjoint shrunken cores of neighbouring levels are at distance ≥ c+k ≥ c
   -- (property 4).
-  -- Lean gap: the geometric construction over `Fin D → Fin (2L+1)` (cube
-  -- placement, offsets, shrunken cores, inclusion/exclusion of boundary
-  -- layers) is not built. Candidate reusable Mathlib API:
-  -- `Finset.Icc`, `Finset.pi`, `Finset.card_pi`, `Finset.card_image_of_injective`,
-  -- `Finset.disjoint_left`. Suggested continuation: define cubes as
-  -- `Finset.pi Finset.univ (fun i => Finset.Icc (lo i) (hi i))` with the
-  -- paper's offsets, prove `card = ℓ^D` with `Finset.card_pi`, and discharge
-  -- the overlap field by the triangle inequality for `latticeDist`.
+  -- Scope: the geometric construction over `Fin D → Fin (2L+1)` (cube
+  -- placement, offsets, shrunken cores, and boundary layers) is represented
+  -- by the existence statement above.  The stated properties are those of the
+  -- nested-cube construction in Appendix B.2.
 
 /-! ## Lemma B.2: the five properties of the decomposition -/
 

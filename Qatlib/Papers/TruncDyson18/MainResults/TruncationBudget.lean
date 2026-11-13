@@ -20,7 +20,7 @@ Two ingredients of the headline complexity are isolated here.
 
 * **Per-segment accuracy.** §VI (paragraph between Eqs. (35) and (36)) fixes the
   dyadic precision `k` so that the truncation-plus-discretization error of *one*
-  segment is `O(ε/r)`. The frozen layer already proves the corresponding concrete
+  segment is `O(ε/r)`. The underlying layer already proves the corresponding concrete
   bound `‖truncated grid sum - ordered evolution‖ ≤ 2^{-(k+6)}`
   (`effectiveDysonParameters_error`, from Eqs. (13)/(14) and the computed grid of
   Eq. (41)); the bridges below turn it into the paper's `ε/r` budget.
@@ -49,13 +49,13 @@ open Qatlib.Papers.TruncDyson18.MainResults.SourceParameters
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
-/-! ## Per-segment accuracy: bridge to the frozen truncated-grid estimate -/
+/-! ## Per-segment accuracy: bridge to the truncated-grid estimate -/
 
 /-- Bridge (paper §VI, Eqs. (13)--(14) and the paragraph after Eq. (35)): for any
-frozen segment parameter set satisfying the frozen domain and field conditions, the
+segment parameter set satisfying the stated domain and field conditions, the
 truncated grid sum approximates the exact ordered evolution to `2^{-(k+6)}`, where
-`k` is the segment precision. This is the frozen reusable theorem
-`QuantumAlgorithm.Concepts.InteractionEvo.MeanDerivGrid.effectiveDysonParameters_error`
+`k` is the segment precision. This theorem is
+`Qatlib.Concepts.InteractionEvo.MeanDerivGrid.effectiveDysonParameters_error`
 restated in the paper layer. -/
 theorem perSegmentTruncationError_le_half_pow (q : EffectiveSegmentParameters)
     (H Hd : ℝ → Matrix (Reg q.ns) (Reg q.ns) ℂ)

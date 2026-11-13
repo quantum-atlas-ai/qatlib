@@ -31,17 +31,17 @@ Bell pair example whose two measurement outcomes are dependent.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 namespace Qatlib.Papers.ThermalRate98.MainResults
 open Matrix
 open scoped BigOperators
 open Qatlib.Foundations.PureStateMath
 variable {I : Type*} [Fintype I] [DecidableEq I]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The Born probability of an outcome is the squared norm of its amplitude. See
 [LidarWang1999]. -/
@@ -64,6 +64,8 @@ theorem position_basis_energy_coords {V : Matrix I I ℂ} (j : I) :
 entries times position amplitudes. See [LidarWang1999]. -/
 def energyAmplitude (V : Matrix I I ℂ) (ψ : QState I) (n : I) : ℂ :=
   ∑ j, star (V j n) * ψ j
+
+omit [DecidableEq I] in
 
 /-- The energy amplitude is the corresponding entry of `Vᴴ *ᵥ ψ`. See [LidarWang1999]. -/
 theorem energyAmplitude_eq_coords (V : Matrix I I ℂ) (ψ : QState I) (n : I) :
@@ -106,7 +108,7 @@ theorem amplitude_recovery {V : Matrix I I ℂ} (hV : V ∈ Matrix.unitaryGroup 
         rw [Finset.sum_eq_single j]
         · simp
         · intro b _ hb
-          rw [if_neg hb.symm]
+          rw [ite_eq_right hb.symm]
           simp
         · intro h; exact absurd (Finset.mem_univ j) h
 
@@ -128,7 +130,7 @@ theorem energyAmplitude_propagation {V U : Matrix I I ℂ} (hV : V ∈ Matrix.un
   rw [Finset.sum_eq_single n]
   · simp
   · intro k _ hk
-    rw [if_neg hk.symm]
+    rw [ite_eq_right hk.symm]
     simp
   · intro h; exact absurd (Finset.mem_univ n) h
 
@@ -176,7 +178,7 @@ theorem born_eigenspace_mass (ψ : QState I) (E : I → ℝ) (lam : ℝ) :
     rw [Finset.sum_eq_single i]
     · simp
     · intro k _ hk
-      rw [if_neg hk.symm]
+      rw [ite_eq_right hk.symm]
       simp
     · intro h
       exact absurd (Finset.mem_univ i) h
@@ -184,10 +186,12 @@ theorem born_eigenspace_mass (ψ : QState I) (E : I → ℝ) (lam : ℝ) :
   apply Finset.sum_congr rfl
   intro i _
   by_cases h : E i = lam
-  · rw [hproj i, if_pos h]
+  · rw [hproj i, ite_eq_left h]
     simp [h]
-  · rw [hproj i, if_neg h]
+  · rw [hproj i, ite_eq_right h]
     simp [h]
+
+omit [DecidableEq I] in
 
 /-- For injective energy labels, the mass of the level containing `i` equals the squared norm of
 `ψ i`. See [LidarWang1999]. -/
@@ -201,6 +205,8 @@ theorem born_single_level (ψ : QState I) (E : I → ℝ) (hE : Function.Injecti
   rw [hset, MeasureProb, Finset.sum_singleton]
   rfl
 
+omit [DecidableEq I] in
+
 /-- For a normalized state, the measurement masses of all distinct energy levels sum to one. See
 [LidarWang1999]. -/
 theorem born_level_masses_total (ψ : QState I) (E : I → ℝ) (hψ : Normalized ψ) :
@@ -211,6 +217,8 @@ theorem born_level_masses_total (ψ : QState I) (E : I → ℝ) (hψ : Normalize
     (g := E) (f := fun i => ‖ψ i‖ ^ 2)
     (fun i _ => Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩)]
   simpa using! hψ
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Multiplication of a state by a complex scalar of norm one preserves each Born probability.
 See [LidarWang1999]. -/
@@ -227,6 +235,8 @@ theorem measureProb_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (S : Fins
   apply Finset.sum_congr rfl
   intro i _
   rw [born_gauge c hc]
+
+omit [DecidableEq I] in
 
 /-- Scaling the state by a complex scalar scales every energy amplitude by the same scalar. See
 [LidarWang1999]. -/
@@ -277,7 +287,7 @@ theorem bell_pair_not_independent :
       (∑ b, BornProb bellPair (false, b)) * (∑ a, BornProb bellPair (a, false)) := by
   have hjoint : BornProb bellPair (false, false) = 1 / 2 := by
     unfold BornProb bellPair
-    simp only [if_true]
+    simp only [ite_true]
     rw [norm_inv]
     simp only [Complex.norm_real, Real.norm_eq_abs]
     have hpos : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.2 (by norm_num)

@@ -33,7 +33,6 @@ endpoint; a uniform preparation also gives a quantum-counting consumer.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -67,7 +66,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -342,7 +340,7 @@ theorem localAE_state_diff (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset 
 
 /-- For `n ≥ 1`, local AE uses `2^n - 1` queries and `5(2^n - 1) + 1 + localAEFourierGates n b`
 gates, with the stated bound on Fourier gates. -/
-theorem local_ae_actual_compilation_resources (n b : ℕ) (hn : 1 ≤ n)
+theorem local_ae_actual_compilation_resources (n b : ℕ) (_hn : 1 ≤ n)
     (A : Matrix I I ℂ) (j : I) :
     QueryCount (localAECircuit n b A j) = 2^n - 1 ∧
     GateCount (localAECircuit n b A j) = 5*(2^n-1)+1+localAEFourierGates n b ∧

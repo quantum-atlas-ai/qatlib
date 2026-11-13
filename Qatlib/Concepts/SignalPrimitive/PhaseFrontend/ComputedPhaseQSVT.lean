@@ -40,7 +40,6 @@ gap `delta`, with block error `signPolynomialError delta k + eps` and query coun
   beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding

@@ -27,7 +27,6 @@ of `p - 1`. These conditions formalize a CRT recovery step in the setting of [Sh
 * [Shor, 1997, Section 6][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PeriodSampling.DlogSamplingLaw

@@ -32,7 +32,6 @@ The mathematical background is developed in [MarriottWatrous2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
@@ -42,7 +41,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Matrix
 open scoped BigOperators Classical
-set_option linter.unusedSectionVars false
 
 variable {H W : Type} [Fintype H] [DecidableEq H] [Fintype W] [DecidableEq W]
 
@@ -68,6 +66,8 @@ theorem pulledAccept_projector (U : Matrix H H ℂ) (S : Finset H)
     simp only [conjTranspose_mul, conjTranspose_conjTranspose,
       projector_conjTranspose, mul_assoc]
 
+omit [DecidableEq H] in
+
 /-- If `Eᴴ * E = 1`, then `E * Eᴴ` is an orthogonal projector. -/
 theorem cleanProjector_projector (E : Matrix H W ℂ) (hE : Eᴴ * E = 1) :
     IsOrthogonalProjector (cleanProjector E) := by
@@ -79,12 +79,16 @@ theorem cleanProjector_projector (E : Matrix H W ℂ) (hE : Eᴴ * E = 1) :
   · change (E * Eᴴ)ᴴ = E * Eᴴ
     rw [conjTranspose_mul, conjTranspose_conjTranspose]
 
+omit [DecidableEq H] in
+
 /-- The clean projector fixes every vector embedded by the isometry `E`. -/
 theorem clean_embed (E : Matrix H W ℂ) (hE : Eᴴ * E = 1) (w : QState W) :
     cleanProjector E *ᵥ (E *ᵥ w) = E *ᵥ w := by
   rw [mulVec_mulVec, cleanProjector]
   have he : E * Eᴴ * E = E := by rw [Matrix.mul_assoc, hE, Matrix.mul_one]
   rw [he]
+
+omit [DecidableEq H] [DecidableEq W] in
 
 /-- Every output of `cleanProjector E` lies in the image of `E`. -/
 theorem clean_output (E : Matrix H W ℂ) (ψ : QState H) :
@@ -118,6 +122,8 @@ theorem pulledAccept_probability (U : Matrix H H ℂ) (S : Finset H)
 /-- The acceptance matrix compressed to witness coordinates, `Eᴴ * pulledAccept U S * E`. -/
 noncomputable def witnessAcceptOperator (U : Matrix H H ℂ) (S : Finset H)
     (E : Matrix H W ℂ) : Matrix W W ℂ := Eᴴ * pulledAccept U S * E
+
+omit [DecidableEq W] in
 
 /-- Applying acceptance and then the clean matrix to an embedded witness equals embedding the
 compressed witness-operator output. -/

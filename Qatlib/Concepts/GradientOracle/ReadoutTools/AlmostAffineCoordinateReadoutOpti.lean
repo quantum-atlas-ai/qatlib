@@ -163,7 +163,6 @@ theorem gridProductState_marginal {d M : ℕ} (v : Fin d → QState (Fin M))
 
 end AlmostAffineCoordinateReadoutAux
 open Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutAux
-set_option warningAsError false
 
 /-- Under the stated almost-affine phase and exceptional-set bounds, each signed coordinate
 estimate is within `4/2^n` of its target with probability at least `2/3`; the circuit is

@@ -25,8 +25,6 @@ bound to `n + 4` samples when the original group has size at most `2 ^ n`. [Kita
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath

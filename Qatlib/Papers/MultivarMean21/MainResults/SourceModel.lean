@@ -29,7 +29,7 @@ This module fixes the notation shared by every claim file of the `MainResults` b
   distribution over `Fin d → Fin m`;
 * `OracleBudget`, the query/experiment budget of the paper's input models
   (Definitions 2.5–2.7, pp. 6–7);
-* `Estimator`, a query-bounded mean estimator interface, and `successProb`, the success
+* `Estimator`, an output-law specification with an independent ledger, and `successProb`, the success
   probability of its (uniformly sampled) internal randomness;
 * `SoftOLe`-style asymptotic vocabulary for the paper's `Õ`/`Õ(log²)` bounds.
 
@@ -38,12 +38,13 @@ This module fixes the notation shared by every claim file of the `MainResults` b
 The paper states its algorithms as quantum circuits acting on `H_G ⊗ H_Ω ⊗ H_aux` and
 counts calls to the unitaries `U_P` (Definition 2.5) and `B_X` / `P_X`
 (Definitions 2.6–2.7).  This paper layer deliberately does *not* rebuild the unitary
-circuit model: `Estimator.cost` records the query/experiment budget that the paper's
-algorithm achieves, and the guarantee is stated as a probability bound on the output law
-of the estimator.  This is the same interface-level treatment used by other high-level
-paper blocks of this repository; it keeps the source constants and the input-model
-distinction (`B_X` versus `P_X` versus `U_P`) while leaving circuit synthesis to the
-`Concepts`/`Foundations` layers.
+circuit model. `Estimator.run` has unrestricted access to the full random variable;
+`Estimator.cost` is an independent annotation, with no invariant relating it to
+execution. Likewise, the phase-state records below do not certify state preparation.
+These legacy structures are retained for compatibility and cannot establish query
+complexity. The claim modules expose statement-only propositions with an explicit
+implementation predicate; they do not prove quantum algorithm existence. The norm
+and box inequalities in `LowPrecision.Theorem45` remain proved analytic facts.
 -/
 
 set_option autoImplicit false
@@ -218,9 +219,9 @@ structure PhaseParams where
   /-- The failure probability `δ`. -/
   δ : ℝ
 
-/-- A mean-estimation algorithm with a finite internal random seed.  `run r p s` is the
-output on the finite random variable `r`, the numerical parameters `p`, and the internal
-seed `s`; `cost p` is the oracle budget the algorithm uses at parameters `p`. -/
+/-- Legacy output-law specification with finite internal randomness. `run` can inspect
+the full input, and `cost` is an independent annotation. This record does not certify
+oracle access, an execution, or any computational cost. -/
 structure Estimator (d : ℕ) (Params : Type) where
   seed : Type
   [fintype : Fintype seed]
@@ -294,16 +295,16 @@ noncomputable def stateDistSq {N : ℕ} (φ ψ : Fin N → ℂ) : ℝ :=
 noncomputable def targetPhaseState (N : ℕ) (θ : ℝ) : Fin N → ℂ :=
   fun j => if j.val = 0 then Complex.exp (Complex.I * θ) else 0
 
-/-- A family of phase-encoding states produced by a directional oracle, with its oracle
-budget.  `state u` is the auxiliary state prepared on grid point `u`. -/
+/-- Legacy family of target state vectors and independent resource annotations.
+There is no state-preparation circuit or relation between `state` and the counters. -/
 structure PhaseEncoding (d : ℕ) where
   N : ℕ
   state : Vec d → Fin N → ℂ
   experiments : ℕ
   queries : ℕ
 
-/-- A family of phase-encoding states indexed additionally by a sample `ω` of the random
-variable, as in Lemma 4.1 (`L_{X,m,ε} : |u⟩|ω⟩|0̃⟩ ↦ |u⟩|ω⟩|φ_{u,ω}⟩`). -/
+/-- Legacy state-vector specification indexed by a sample, as in Lemma 4.1.
+The independent `queries` annotation does not certify preparation of these states. -/
 structure SamplePhaseEncoding (d : ℕ) (Ω : Type) where
   N : ℕ
   state : Ω → Vec d → Fin N → ℂ
@@ -326,8 +327,8 @@ def IsSearchParityInstance {N M : ℕ} (a : Fin N × Fin M → Bool) : Prop :=
   (∀ i, rowWeight a i = M / 2 ∨ rowWeight a i = M / 2 + 1) ∧
   (Finset.univ.filter (fun i : Fin N => rowWeight a i = M / 2)).card = N / 2
 
-/-- A quantum algorithm for `Search_N ∘ Parity_M`: `run a s` is the output vector on the
-oracle matrix `a`, with internal seed `s`; `queries` is its worst-case query count. -/
+/-- Legacy output specification for `Search_N ∘ Parity_M`. `run` receives the full
+matrix; the independent `queries` annotation is not a certified query count. -/
 structure MatrixQueryAlgorithm (N M : ℕ) where
   seed : Type
   [fintype : Fintype seed]
@@ -337,8 +338,8 @@ structure MatrixQueryAlgorithm (N M : ℕ) where
 
 attribute [instance] MatrixQueryAlgorithm.fintype MatrixQueryAlgorithm.nonempty
 
-/-- A bit-recovery algorithm with oracle access to `b : Fin d → Bool` (through the
-fractional phase oracle `F_ε` of Lemma 4.6, or its Hadamard variant of Lemma 4.8). -/
+/-- Legacy bit-recovery output specification. It receives the full bit string;
+the independent `queries` annotation does not enforce fractional phase-oracle access. -/
 structure BitRecoveryAlgorithm (d : ℕ) where
   seed : Type
   [fintype : Fintype seed]

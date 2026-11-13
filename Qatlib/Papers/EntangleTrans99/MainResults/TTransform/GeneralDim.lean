@@ -32,7 +32,6 @@ with identity operators. Its communication cost is the chain length, giving the 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

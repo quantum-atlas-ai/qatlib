@@ -28,7 +28,6 @@ background in [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -43,7 +42,6 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 
 variable {m k : Type} [Fintype m] [Fintype k]

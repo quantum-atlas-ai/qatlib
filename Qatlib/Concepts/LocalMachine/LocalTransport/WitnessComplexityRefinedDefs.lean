@@ -30,11 +30,9 @@ soundness to general witness densities. See [MarriottWatrous2005] for the quantu
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 

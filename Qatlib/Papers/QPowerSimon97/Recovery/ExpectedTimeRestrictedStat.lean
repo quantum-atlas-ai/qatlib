@@ -26,8 +26,6 @@ limiting classical-work bound for the restricted cost analysis of [Simon1997].
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.ReductionCore
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.WalshMoment.Forrelation

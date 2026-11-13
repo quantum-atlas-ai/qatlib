@@ -33,11 +33,9 @@ These classical counting estimates complement the quantum counting and estimatio
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 

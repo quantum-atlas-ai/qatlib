@@ -23,7 +23,6 @@ associated with Lemma 2 of [HarrowHassidimLloyd2009].
 * [Harrow et al., 2009, Lemma 2][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HHL2009

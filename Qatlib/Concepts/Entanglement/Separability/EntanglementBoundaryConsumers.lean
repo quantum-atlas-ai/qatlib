@@ -31,7 +31,6 @@ normalization, entanglement, a maximally mixed first marginal, and entropy `Real
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath

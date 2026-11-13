@@ -24,8 +24,6 @@ formula and its positive inverse-square lower bound in the setting motivated by
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 open Qatlib.Foundations.QueryWordCore.Circuit

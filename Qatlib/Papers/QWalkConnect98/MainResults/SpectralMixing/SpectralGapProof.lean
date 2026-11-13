@@ -30,8 +30,6 @@ of degree at least two. These results support the connectivity analysis in [Watr
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing
 
 open Finset
@@ -39,7 +37,6 @@ open Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator
 open scoped BigOperators Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
@@ -53,12 +50,16 @@ def elemRho (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (u : V) : ℝ :=
 def edgeEnergy (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) : ℝ :=
   ∑ u, ∑ v, if G.Adj u v then (x u - x v) ^ 2 else 0
 
+omit [DecidableEq V] in
+
 /-- The edge energy is nonnegative. -/
 theorem edgeEnergy_nonneg (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
     0 ≤ edgeEnergy G x := by
   unfold edgeEnergy
   exact Finset.sum_nonneg fun u _ => Finset.sum_nonneg fun v _ => by
     split_ifs <;> positivity
+
+omit [DecidableEq V] in
 
 /-- The sum of the adjacency indicators in a row is the degree of its vertex. -/
 theorem sum_ite_adj_row (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
@@ -71,6 +72,8 @@ theorem sum_ite_adj_row (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     rw [← Finset.sum_filter]
     rw [Finset.sum_const, nsmul_eq_mul, mul_one]
   rw [h, hfilter]
+
+omit [DecidableEq V] in
 
 /-- The quadratic form of the adjacency matrix is the sum of `x u * x v` over ordered adjacent
 vertex pairs. -/
@@ -97,8 +100,8 @@ theorem edgeEnergy_eq (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
         - (if G.Adj u v then 2 * (x u * x v) else 0)) := by
     intro u v
     by_cases h : G.Adj u v
-    · simp only [h, if_true]; ring
-    · simp only [h, if_false]; ring
+    · simp only [h, ite_true]; ring
+    · simp only [h, ite_false]; ring
   have hA : (∑ u, ∑ v, (if G.Adj u v then x u ^ 2 else 0)) = D := by
     rw [hD]
     apply Finset.sum_congr rfl
@@ -161,6 +164,8 @@ theorem dotProduct_walkM_self (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
   have h1 : walkA d + walkB d * d = 1 := walkA_add_walkB_mul d
   linear_combination (∑ u, x u ^ 2) * h1
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- A zero-sum family bounded between `m` and `M` on a finite set has sum of squares at most the
 set's cardinality times `(M - m) ^ 2 / 4`. -/
 theorem sum_sq_le_card_mul_range_sq {s : Finset V} (x : V → ℝ) {m M : ℝ}
@@ -189,6 +194,8 @@ theorem sum_sq_le_card_mul_range_sq {s : Finset V} (x : V → ℝ) {m M : ℝ}
         apply mul_le_mul_of_nonneg_left hMM (Nat.cast_nonneg _)
     _ = (s.card : ℝ) * (M - m) ^ 2 / 4 := by ring
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- Every vertex selected by `getVert` along a walk is reachable from its starting vertex. -/
 theorem walk_reachable_getVert {G : SimpleGraph V} {a b : V} (p : G.Walk a b) (i : ℕ) :
     G.Reachable a (p.getVert i) := by
@@ -200,6 +207,8 @@ theorem walk_reachable_getVert {G : SimpleGraph V} {a b : V} (p : G.Walk a b) (i
     | succ n =>
       rw [SimpleGraph.Walk.getVert_cons_succ]
       exact (SimpleGraph.Adj.reachable h).trans (ih n)
+
+omit [Fintype V] [DecidableEq V] in
 
 /-- Every vertex in the support of a walk is reachable from its starting vertex. -/
 theorem walk_reachable_of_mem_support {G : SimpleGraph V} {a b : V} (p : G.Walk a b) :
@@ -234,6 +243,8 @@ theorem length_le_compSize {G : SimpleGraph V} [DecidableRel G.Adj] {a b u : V}
   have hle := Finset.card_le_card (support_toFinset_subset_compSet p ha)
   rw [hcard, SimpleGraph.Walk.length_support] at hle
   simpa [compSize] using hle
+
+omit [Fintype V] [DecidableEq V] in
 
 /-- The sum of successive coordinate differences along a walk telescopes to the difference
 between its endpoint values. -/
@@ -383,7 +394,7 @@ theorem edgeEnergy_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
       ≤ (if G.Adj u v then 2 * x u ^ 2 + 2 * x v ^ 2 else 0) := by
     intro u v
     by_cases h : G.Adj u v
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       nlinarith [sq_nonneg (x u + x v)]
     · simp [h]
   have hstep : (∑ u, ∑ v, (if G.Adj u v then (x u - x v) ^ 2 else 0))
@@ -425,8 +436,8 @@ theorem edgeEnergy_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
         apply Finset.sum_congr rfl
         intro u _
         by_cases h : G.Adj u v
-        · rw [if_pos h, if_pos h.symm]
-        · rw [if_neg h, if_neg (fun hc => h hc.symm)]
+        · rw [ite_eq_left h, ite_eq_left h.symm]
+        · rw [ite_eq_right h, ite_eq_right (fun hc => h hc.symm)]
       rw [hs, sum_ite_adj_row]
       exact hreg v
     simp only [h1, hdeg]
@@ -538,6 +549,8 @@ theorem delta_le (d : ℝ) (N : ℕ) (hd : 2 ≤ d) (hN : 3 ≤ N) :
   field_simp
   nlinarith [hkey, hp2]
 
+omit [Fintype V] in
+
 /-- The vertex-space walk matrix is symmetric. -/
 theorem walkM_transpose (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) :
     (walkM G d)ᵀ = walkM G d := by
@@ -576,6 +589,8 @@ theorem abs_dotProduct_walkM_self_le (G : SimpleGraph V) [DecidableRel G.Adj] {d
   constructor
   · nlinarith [mul_le_mul_of_nonneg_right hρneg hS, hlow]
   · exact hup
+
+omit [DecidableEq V] in
 
 /-- For `2 ≤ d` and component size at least three, the coefficient `elemRho G d u` is
 nonnegative. -/

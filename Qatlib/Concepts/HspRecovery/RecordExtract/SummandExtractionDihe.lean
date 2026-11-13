@@ -25,7 +25,6 @@ mathematical background.
 * [Kuperberg, 2005][Kuperberg2005]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HspRecovery.RecordExtract
 

@@ -1032,7 +1032,6 @@ open Qatlib
 open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
-set_option warningAsError false
 namespace G6
 
 noncomputable local instance : DecidableEq QuantumStep := Classical.decEq _

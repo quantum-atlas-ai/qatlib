@@ -25,7 +25,6 @@ for continuous Lipschitz Hamiltonians, in the time-dependent simulation setting
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-
 open Qatlib.Concepts.InteractionEvo.DysonGrid
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
@@ -35,7 +34,6 @@ set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.CoherentSim.TimeDependent
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The sum of products of all length-`k` sublists of a matrix list. -/
 private noncomputable def layer {I : Type} [Fintype I] [DecidableEq I]

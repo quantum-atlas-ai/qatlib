@@ -28,7 +28,6 @@ L / M`, supporting finite sampling in the qDRIFT setting of [Campbell2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 600000

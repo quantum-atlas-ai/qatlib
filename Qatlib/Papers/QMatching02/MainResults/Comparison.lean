@@ -30,7 +30,6 @@ The results evaluate both expressions exactly and establish the strict inequalit
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix

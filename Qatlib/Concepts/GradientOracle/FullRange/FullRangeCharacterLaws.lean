@@ -26,8 +26,6 @@ response to the value oracle. See [Jordan2005Gradient] for background.
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.GradientOracle.ValueKickback

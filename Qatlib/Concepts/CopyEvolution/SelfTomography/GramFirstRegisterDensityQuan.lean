@@ -25,8 +25,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 * [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 

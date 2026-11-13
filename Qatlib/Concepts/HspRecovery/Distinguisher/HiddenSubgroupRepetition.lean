@@ -31,9 +31,6 @@ sampling schedule, as used in abelian hidden subgroup algorithms [NielsenChuang2
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.WalkFind.UniformThree

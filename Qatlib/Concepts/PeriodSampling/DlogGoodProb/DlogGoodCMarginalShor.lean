@@ -23,7 +23,6 @@ mass of a small-residue first coordinate in the discrete-logarithm setting of [S
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997

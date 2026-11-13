@@ -31,7 +31,6 @@ The module also defines an abstract control trace over a block of data cells and
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine

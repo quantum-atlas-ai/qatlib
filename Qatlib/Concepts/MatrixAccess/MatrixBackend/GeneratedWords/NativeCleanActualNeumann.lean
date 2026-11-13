@@ -79,14 +79,15 @@ theorem nativeMultiNodeRelabeled_clean_block (b : ℕ) (hb : 0 < b)
   rw [nativeMultiNodeRelabeledWord_evaluate]
   exact hr.trans (nativeMultiNodeNeumann_per_label b hb F A U α hbe ps p slack).1.encoded
 
-/- UNVERIFIED DRAFT: the weighted endpoint below times out in `whnf`
-at 1200000 heartbeats. It is retained for later diagnosis and is not a theorem.
+/- Scope note: this module proves the per-label clean-block identity. The weighted
+construction below is a commented specification; its encoding and cost claims
+are outside the formalized results of this file.
 
 /-- Insert the same actual relabeled word into the ideal weight PREPARE and
 phase macros. The weight macros are not a finite-gate implementation. -/
 def nativeWeightedCleanNeumannWord (b : ℕ) (hb : 0 < b)
-    (F : Matrix H I ℂ) (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
-    (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool) (d : J → ℂ) (j₀ : J) :=
+    (F : Matrix H I ℂ) (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
+    (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool) (d : J → ℂ) (j₀ : J) :=
   weightedLCUSlotWord d j₀ (nativeMultiNodeRelabeledWord b hb F ps p slack)
 
 omit [Fintype J] in
@@ -107,7 +108,7 @@ private theorem clean_phase_unitary (d : J → ℂ)
     prepareRegister (I := T) (Matrix.diagonal (fun j => coefficientPhase (d j))) ∈
       unitaryGroup (J × T) ℂ := by
   rw [← clean_actual_phase d]
-  exact QuantumAlgorithm.Papers.QuantumPCA14.Discriminate.select_unitary _
+  exact Qatlib.Concepts.CopyEvolution.Discriminate.select_unitary _
     (phaseAbsorbed_unitary d _ (fun _ => (unitaryGroup T ℂ).one_mem))
 
 /-- The actual shared-oracle word encodes the weighted sum of its per-node
@@ -116,7 +117,7 @@ phase are charged as three ideal macros. -/
 theorem nativeWeightedCleanNeumann_encoding (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)
-    (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
+    (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
     (d : J → ℂ) (j₀ : J) (hmass : 0 < coefficientMass d) :
     let L := uniformNeumannFrame b hb (nativeDataFrame F)
     let O := parallelOracle (J := J) (uniformNeumannOracle b (nativeDataQuery U))
@@ -174,10 +175,10 @@ theorem nativeWeightedCleanNeumann_encoding (b : ℕ) (hb : 0 < b)
       ((unitaryGroup (J × T) ℂ).mul_mem
         ((unitaryGroup (J × T) ℂ).mul_mem (adjoint_unitary hP) hphase) hR) hP
   have hO : O ∈ unitaryGroup (J × T) ℂ := by
-    apply QuantumAlgorithm.Papers.QuantumPCA14.Discriminate.select_unitary
+    apply Qatlib.Concepts.CopyEvolution.Discriminate.select_unitary
     intro j
     apply tensorGate_unitary (unitaryGroup _ ℂ).one_mem
-    apply QuantumAlgorithm.Papers.QuantumPCA14.Discriminate.select_unitary
+    apply Qatlib.Concepts.CopyEvolution.Discriminate.select_unitary
     intro k
     exact nativeDataQuery_unitary U hbe.unitary
   refine ⟨⟨hW, htag, htag, ?_⟩, hO, ?_, ?_⟩

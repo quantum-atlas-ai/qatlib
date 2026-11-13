@@ -21,7 +21,7 @@ This file fixes the paper's notation in Lean: the ℓ1/ℓ2 balls, the ε-minimi
 `D'_{p,W}` (Ridge, Section 5), the expected squared losses `L_D` (Section 2.3), the
 closed forms of Theorem 4.1 / Section 5, the explicit gradient/Hessian of the Lasso
 loss, the vectors `θ* = v·e_W` (Lasso) and `θ*_j = (-1)^{[j∈W]}/√d` (Ridge), and the
-KP-tree data structure of Definition 2.9.
+abstract KP-tree metadata inspired by Definition 2.9.
 
 Boundary: this is the paper-layer model. It does not modify any shared Foundations or
 Concepts declaration. The finite probability laws are built on the shared
@@ -182,14 +182,13 @@ def lassoHessian (p : ℝ) (W : Finset (Fin d)) (j k : Fin d) : ℝ :=
 def lassoHessianForm (p : ℝ) (W : Finset (Fin d)) (v : Fin d → ℝ) : ℝ :=
   ∑ j, ∑ k, v j * lassoHessian p W j k * v k
 
-/-! ## KP-tree (Definition 2.9) — explicit finite model
+/-! ## Abstract KP-tree metadata
 
-The tree stores a root scalar `A`, a per-coordinate leaf value, and a depth.  Reading
-coordinate `j` follows the binary path of `j` (so it reads at most `depth` nodes), and
-updating to `a·θ + b·e_j` rewrites the root scalar and one leaf, touching at most
-`depth+1` nodes.  The internal "sum of absolute children" fields of Definition 2.9 are
-only used by the state-preparation construction of Theorem 2.12 and are not needed for
-the cost statements of Theorems 2.10 and 2.11. -/
+The stored scalar, leaves, depth and support do not include internal tree nodes
+or traversal paths. The read/update budgets below are assigned from `depth` by
+definition. Only the represented-vector update identity is proved; no counted
+tree traversal or coherent state-preparation algorithm is constructed.
+-/
 structure KPTree (d : ℕ) where
   /-- The scalar `A` stored at the root. -/
   rootScalar : ℝ
@@ -203,12 +202,12 @@ structure KPTree (d : ℕ) where
 /-- The vector represented by a KP-tree: `θ_j = A · leafValue_j`. -/
 def KPTree.theta (K : KPTree d) : Fin d → ℝ := fun j => K.rootScalar * K.leafValue j
 
-/-- Number of nodes read on the root-to-leaf path of `j`. -/
+/-- Assigned read budget, defined to be the stored depth; no traversal is modelled. -/
 def KPTree.readCost (K : KPTree d) (_j : Fin d) : ℕ := K.depth
 
-/-- Update to `a·θ + b·e_j`: the root scalar becomes `a·A`, the leaf of `j` becomes
-`(θ_j + b)/(a·A)` (in units of the old tree, `leafValue_j + b/(a·A)`), and all other
-leaves are unchanged. -/
+/-- Algebraic update: the root becomes `a·A`, the leaf of `j` becomes
+`leafValue_j + b/(a·A)`, and the other leaves are unchanged. For nonzero `a`
+and `A`, the represented vector becomes `a·θ + b·e_j`. -/
 def KPTree.update (K : KPTree d) (a b : ℝ) (j : Fin d) : KPTree d where
   rootScalar := a * K.rootScalar
   leafValue := fun k => if k = j then K.leafValue k + b / (a * K.rootScalar)
@@ -216,14 +215,14 @@ def KPTree.update (K : KPTree d) (a b : ℝ) (j : Fin d) : KPTree d where
   depth := K.depth
   support := if K.leafValue j = 0 ∧ b ≠ 0 then K.support + 1 else K.support
 
-/-- Number of node values rewritten by `update`: the root, the new leaf, and the path. -/
+/-- Assigned update budget; this definition does not count an executed traversal. -/
 def KPTree.updateCost (K : KPTree d) (_j : Fin d) : ℕ := K.depth + 1
 
-/-! ## Abstract resource profiles for quantum algorithms
+/-! ## Legacy numeric resource profiles
 
-The source theorems assert the existence (or the cost of any) bounded-error quantum
-algorithm.  At this paper layer we record the paper's numeric resource guarantees in
-these profiles; no amplitude-amplification or query-model semantics is re-derived here.
+`RunProfile` is metadata only: it has no execution, output or success event.
+Algorithm resource specifications require a separate realization contract and
+are marked statement only. No algorithm existence follows from these fields.
 -/
 structure RunProfile where
   /-- Worst-case number of oracle queries (as a real number). -/

@@ -33,7 +33,6 @@ and total mass bounds, and apply at every finite fuel value.
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch2007
@@ -41,7 +40,6 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch200
 set_option autoImplicit false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
 

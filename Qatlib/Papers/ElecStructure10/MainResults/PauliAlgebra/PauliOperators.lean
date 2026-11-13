@@ -12,12 +12,12 @@ set_option backward.isDefEq.respectTransparency false
 # ElecStructure10.MainResults.PauliAlgebra — per-site Pauli operators on `Reg n`
 
 Source: Whitfield, Biamonte, Aspuru-Guzik, *Simulation of Electronic Structure
-Hamiltonians Using Quantum Computers*, fixed arXiv:1001.3855v3 (PDF fetched from
-`assets/1001.3855.pdf`), Section 3.1 (Eqs. (5a)/(5b), around p. 6) and Table A2.
+Hamiltonians Using Quantum Computers*, arXiv:1001.3855v3, Section 3.1
+(Eqs. (5a)/(5b), around p. 6) and Table A2.
 
 This file fixes the paper's Pauli vocabulary on the computational register
-`Reg n = Fin n → Bool` of the frozen fermion package
-`QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision`.  The paper's `σ^x, σ^y, σ^z`
+`Reg n = Fin n → Bool` of the fermion package
+`Qatlib.Concepts.FermionAlgebra.CarJordanWigner`.  The paper's `σ^x, σ^y, σ^z`
 (single-qubit Pauli matrices with eigenvalues `±1`) act as a tensor product with
 the identity on the remaining qubits; we spell out those *per-site* operators
 entry-wise so that the Jordan–Wigner decompositions of Eqs. (17) and (21) become

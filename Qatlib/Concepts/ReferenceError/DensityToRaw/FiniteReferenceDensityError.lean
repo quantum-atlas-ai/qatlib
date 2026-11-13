@@ -28,7 +28,6 @@ trace norm framework of [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit
 open Qatlib.Foundations.PureStateMath

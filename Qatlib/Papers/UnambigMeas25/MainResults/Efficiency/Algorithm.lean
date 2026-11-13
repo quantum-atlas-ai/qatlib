@@ -53,15 +53,9 @@ def theorem7 (n : ℕ) (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C 
   -- which is a POVM in `Γ(S)`; (d) evaluate `ρ` on it and use Equation (13) to
   -- get `ρ(S; {F}) = ∑_i |α̂_i|² λ_i = ρ^L(S; λ)`; (e) the circuit for `U`
   -- plus the Hadamards and the controlled operations gives item 2.
-  -- Gap: the model has no quantum-circuit / cost semantics, so both
-  -- "efficiently quantum sampleable" (hypothesis) and "efficiently implementable
-  -- in time poly(n)" (conclusion) are not expressible; only the existence and
-  -- value identity are stated.  Item (a) depends on Theorem 2, which is also not
-  -- yet proved in this block.
-  -- Suggested next steps: prove Theorem 2's coset-constancy (this block), then
-  -- build `M` from the `β_s^H` amplitudes; for the efficiency part, introduce a
-  -- minimal `QuantumCircuit` cost model (or reuse `Physlib`'s circuit library if
-  -- one exists) and state sampleability as an assumption on a cost function.
-  -- Candidate dependencies: Proposition 11 (basis `|A_s^{H,y}⟩`), Theorem 2.
+  -- Scope note: this definition states the existence and value identity.
+  -- Quantum-circuit cost semantics for sampleability and implementation, as
+  -- well as the coset-constancy result in Theorem 2, are outside this block.
+  -- Related paper statements: Proposition 11 (basis `|A_s^{H,y}⟩`) and Theorem 2.
 
 end Qatlib.Papers.UnambigMeas25.MainResults.Efficiency

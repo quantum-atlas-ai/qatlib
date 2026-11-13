@@ -25,7 +25,6 @@ The theorem supplies the coefficient-divisibility bounds used in the modular rec
 * [Shor, 1997, Section 6][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

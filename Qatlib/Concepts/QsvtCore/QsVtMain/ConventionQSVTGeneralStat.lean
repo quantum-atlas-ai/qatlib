@@ -23,9 +23,6 @@ minimal lengths for constant responses, in the QSVT setting of [GilyenSuLowWiebe
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.WalkSearch.Spectral

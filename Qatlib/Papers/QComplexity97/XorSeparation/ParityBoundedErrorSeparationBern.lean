@@ -30,8 +30,6 @@ identity.
 * [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

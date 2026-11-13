@@ -32,7 +32,6 @@ and the sum of a mantissa length with its scale, respectively.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.IntervalArith.IntervalOps
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod

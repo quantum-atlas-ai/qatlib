@@ -42,7 +42,6 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 namespace Qatlib.Concepts.MatrixAccess.RitzPipeline
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 

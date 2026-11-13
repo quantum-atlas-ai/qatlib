@@ -28,8 +28,6 @@ yields `abelianStabilizerWideGenerationSubgoal`. [Kitaev1995]
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 open Qatlib.Concepts.StabilizerAlg.NearUniformGen

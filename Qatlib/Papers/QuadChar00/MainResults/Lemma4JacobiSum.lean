@@ -25,8 +25,6 @@ than one. Supporting results establish its value at zero and multiplicativity. S
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -25,8 +25,6 @@ upper bounds indexed by positive `q`. The mathematical background is developed i
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QsvtCore.HamiltonianSim
 
 open Real

@@ -30,7 +30,6 @@ discriminant used in [ClaudonPiquemalMonmarche2025].
 * [Claudon et al., 2025][ClaudonPiquemalMonmarche2025]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

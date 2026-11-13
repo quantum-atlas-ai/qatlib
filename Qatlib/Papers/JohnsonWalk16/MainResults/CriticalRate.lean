@@ -26,8 +26,6 @@ Johnson-graph search in [Wong2016]. It evaluates the rate at `100`, gives the ex
 * [Wong, 2016][Wong2016]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.JohnsonWalk16.MainResults.CriticalRate

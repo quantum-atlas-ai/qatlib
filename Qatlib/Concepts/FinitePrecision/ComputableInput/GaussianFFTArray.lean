@@ -26,8 +26,6 @@ For background on finite Fourier transforms in quantum computation, see [Nielsen
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput
 

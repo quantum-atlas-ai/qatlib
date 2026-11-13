@@ -75,7 +75,6 @@ For background on normed-algebra exponentials and operator calculus, see [ReedSi
 * [Reed and Simon, 1980][ReedSimon1980I]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

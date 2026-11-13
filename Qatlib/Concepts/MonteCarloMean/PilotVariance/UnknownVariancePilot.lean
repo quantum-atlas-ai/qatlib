@@ -51,7 +51,6 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
-set_option warningAsError false
 
 /-- The rational empirical mean and second moment of `N` observations, together with a count
 accumulated by the same fold. -/

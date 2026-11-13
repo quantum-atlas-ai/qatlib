@@ -26,8 +26,6 @@ formulas. See [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option autoImplicit false
 noncomputable section

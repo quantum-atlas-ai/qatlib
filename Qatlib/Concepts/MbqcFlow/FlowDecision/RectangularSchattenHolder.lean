@@ -35,10 +35,8 @@ The module also treats zero-dimensional matrices and row-column Schur multiplier
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1500000
 
 noncomputable section

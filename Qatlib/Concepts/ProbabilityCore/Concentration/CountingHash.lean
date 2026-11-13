@@ -29,12 +29,10 @@ also studied through amplitude estimation in [BrassardEtAl2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.ProbabilityCore.Concentration.CountingHash
 

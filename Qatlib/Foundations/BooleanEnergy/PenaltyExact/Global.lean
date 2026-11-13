@@ -26,8 +26,6 @@ the setting of [SuksmonoMinato2019].
 * [Suksmono and Minato, 2019][SuksmonoMinato2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators
 namespace Qatlib.Foundations.BooleanEnergy.PenaltyExact

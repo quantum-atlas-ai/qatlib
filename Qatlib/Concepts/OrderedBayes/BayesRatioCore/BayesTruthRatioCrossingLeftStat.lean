@@ -24,8 +24,6 @@ analysis of [BenOrHassidim2007]
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal BigOperators Classical
 

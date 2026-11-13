@@ -27,8 +27,6 @@ selected computations map the initial basis state to the specified output basis 
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section

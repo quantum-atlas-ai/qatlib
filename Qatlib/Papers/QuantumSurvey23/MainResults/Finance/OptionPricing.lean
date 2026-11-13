@@ -28,11 +28,10 @@ content of the "quartic speedup in `σ/ε`" phrasing: the quantum query count is
 the square root of the classical sample count, which is what amplitude
 estimation provides.
 
-Reusable dependency (Dev bind `MonteCarloMean.PayoffEncoding`,
-`AmplitudeCore.AmplifyCore`): the payoff/mean encoding is
-`QuantumAlgorithm.Concepts.MonteCarloMean.PayoffEncoding`, and the
+The payoff/mean encoding is
+`Qatlib.Concepts.MonteCarloMean.PayoffEncoding`, and the
 amplitude-estimation backend is
-`QuantumAlgorithm.Concepts.AmplitudeCore.AmplifyCore` (paper `MCMontanaro15`
+`Qatlib.Concepts.AmplitudeCore.AmplifyCore` (paper `MCMontanaro15`
 proves the `1/ε` query bound as `monteCarlo_standard_deviation_queries`).  This
 module records only the sample-count arithmetic.
 -/

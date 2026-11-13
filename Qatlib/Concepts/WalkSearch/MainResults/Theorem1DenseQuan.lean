@@ -42,7 +42,6 @@ n^(10 / 7)`. -/
 theorem dense_source_four_terms (n : ℕ) (hn : 1≤n) :
     sourceFourTermBudget n (3/7) (1/7) (1/7)≤4*(n:ℝ)^(10/7:ℝ) := source_dense_four_term_budget n hn
 open scoped Classical
-set_option warningAsError false
 
 /-- The dense corrected triangle search statement `Theorem1Dense` holds, with its search
 capability assumptions, rejection count bound, and explicit `n^(10 / 7)` query estimate. -/

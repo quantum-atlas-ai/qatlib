@@ -28,8 +28,6 @@ This development concerns variable-time amplitude amplification in [Ambainis2012
 
 set_option backward.isDefEq.respectTransparency false
 
-
-
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
@@ -39,9 +37,7 @@ open Qatlib.Concepts.QlsReadoutSpec.ProgramModel
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open scoped Classical BigOperators
-set_option warningAsError false
 noncomputable section
-set_option linter.unusedSectionVars false
 
 /-- The number of oracle instructions in a word with the specified slot and adjoint-direction
 flag. -/

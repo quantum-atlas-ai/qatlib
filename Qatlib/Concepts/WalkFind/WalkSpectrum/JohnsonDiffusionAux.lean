@@ -30,7 +30,6 @@ original unitary while preserving orthogonality to a fixed starting vector.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
 set_option autoImplicit false

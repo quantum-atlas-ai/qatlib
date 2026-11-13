@@ -144,8 +144,6 @@ The results retain explicit constants and phase separation hypotheses. The theor
 * [Ambainis et al., 2004][AmbainisKempeRivosh2004]
 -/
 
-set_option warningAsError false
-
 open Matrix
 open scoped BigOperators ComplexOrder
 

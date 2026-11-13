@@ -25,7 +25,6 @@ Pauli loop product. Products of operators fixing a state also fix that state. Se
 * [Setia and Whitfield, 2018][SetiaWhitfield2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

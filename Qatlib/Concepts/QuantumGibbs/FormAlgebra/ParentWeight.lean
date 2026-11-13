@@ -26,8 +26,6 @@ arguments use the matrix-analysis framework of [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QuantumGibbs.FormAlgebra

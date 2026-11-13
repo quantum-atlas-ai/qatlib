@@ -34,7 +34,6 @@ accuracy, oracle perturbation bounds, and explicit finite-resolution parameters.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
@@ -60,7 +59,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.UniformHHL
 
@@ -231,7 +229,7 @@ theorem uniformHHLFlag_product {D M : ℕ} (d : ℝ)
   simp only [Fintype.sum_prod_type, Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply,
       TensorState]
   rw [Finset.sum_eq_single y]
-  · simp only [if_true]
+  · simp only [ite_true]
     simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro f' _
@@ -448,10 +446,10 @@ theorem uniformHHLIdeal_collapse {D M : ℕ} (hM : 2 ≤ M)
   cases flag
   · simp [collapse_apply, uniformHHLSuccessEmbed, TensorState, Ket]
   · simp only [collapse_apply, Finset.mem_filter, Finset.mem_univ, and_true,
-      if_true, uniformHHLIdeal, uniformHHLSuccessEmbed, TensorState,
+      ite_true, uniformHHLIdeal, uniformHHLSuccessEmbed, TensorState,
       Pi.smul_apply, smul_eq_mul]
     rw [hg, Matrix.smul_mulVec]
-    simp only [Pi.smul_apply, smul_eq_mul, Ket, if_true]
+    simp only [Pi.smul_apply, smul_eq_mul, Ket, ite_true]
     ring
 
 /-- For a normalized prepared input and eigenphase magnitudes in `[d, 1/4]`, the ideal success
@@ -539,8 +537,7 @@ theorem uniformHHLIdeal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
     simp only [uniformHHLSuccessEmbed, TensorState, Pi.smul_apply, smul_eq_mul,
       RCLike.real_smul_eq_coe_mul]
     push_cast
-    simp only [Algebra.cast, RCLike.algebraMap_eq_ofReal,
-      RCLike.ofReal_eq_complex_ofReal]
+    simp only [RCLike.ofReal_eq_complex_ofReal]
     ring
   have heq := he.trans htarget.symm
   exact (WithLp.equiv 2 _).symm.injective heq

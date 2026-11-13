@@ -29,7 +29,6 @@ reindexed circuit as a projected unitary encoding of the scaled Hamiltonian.
 * [Costa et al., 2025][CostaEtAl2025]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

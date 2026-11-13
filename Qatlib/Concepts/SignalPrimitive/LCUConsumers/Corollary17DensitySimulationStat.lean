@@ -28,8 +28,6 @@ with exact query and gate counts. Their fourfold scaled compressions combine to 
 - [Low and Chuang, 2019][LowChuang2019], Corollary 17.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QspSimulation.Achievability

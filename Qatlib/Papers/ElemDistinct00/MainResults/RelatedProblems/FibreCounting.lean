@@ -25,6 +25,9 @@ The update lemmas describe the effect of changing one function value, culminatin
 `collSum_update_delta`. These identities supply the counting calculations for the related
 collision problems in Theorem 8 of [BuhrmanEtAl2005].
 
+All results concern finite fibres and their cardinalities. No algorithm or
+query-complexity lower bound is asserted here.
+
 ## Main statements
 
 * `sum_fibre_card`: the fibre sizes sum to `N`.
@@ -41,7 +44,6 @@ collision problems in Theorem 8 of [BuhrmanEtAl2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

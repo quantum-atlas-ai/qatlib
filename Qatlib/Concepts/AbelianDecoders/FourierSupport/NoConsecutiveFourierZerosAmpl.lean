@@ -25,8 +25,6 @@ state on `ZMod N`. For background, see [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.AbelianDecoders.FourierSupport

@@ -49,7 +49,6 @@ statements for subsequent use.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -85,7 +84,6 @@ theorem povm_final_progress_label {X H Y : Type} [Fintype X] [DecidableEq X]
     hz he0 he1 hsuccess'
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Packages the final progress bound for label POVMs and its explicit estimate with coefficient
 `2 * sqrt (eps * (1 - eps)) + 2 * eps` for error between zero and one half. -/
@@ -109,7 +107,6 @@ theorem stageA_general_adversary_clause16 :
     exact povm_final_progress_label Gamma f label eps weight states hG hw hs hz he0 he1
       (isPovm_labelPovm label) hsuccess
 end
-set_option linter.unusedVariables false in
 noncomputable section
 
 /-- The norm ratio of a Hermitian adversary matrix vanishing on equal outputs is bounded by
@@ -161,7 +158,6 @@ theorem adversary_ratio_le_sdp {X E : Type} [Fintype X] [DecidableEq X] [Fintype
   rw [hnorm]
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- The norm of a Hermitian matrix vanishing on pairs of equal outputs and with all query filter
 norms at most one is bounded by `generalAdversaryValue`. -/
@@ -175,7 +171,6 @@ theorem adversary_witness_le_sdp {X E : Type} [Fintype X] [DecidableEq X] [Finty
   exact ENNReal.ofReal_le_ofReal le_rfl
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Every query-filtered matrix is zero when the maximum filter norm of the adversary matrix is
 zero. -/
@@ -192,7 +187,6 @@ theorem adversary_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X] [Fi
   exact norm_eq_zero.mp hj
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Collects the normalized witness and positive-denominator ratio comparisons with
 `generalAdversaryValue`, the zero-filter conclusion, and the comparison of an individual
@@ -247,7 +241,6 @@ theorem stageA_general_adversary_clause17_degenerate
   exact Or.inl ⟨ENNReal.ofReal_ne_zero_iff.mpr hnorm, rfl⟩
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Combines the comparison of individual witnesses with `advPmValue` and attainment of a finite
 `generalAdversaryValue` by a real symmetric feasible matrix. -/
@@ -293,7 +286,6 @@ theorem adversary_feasible_relabel {X E E' : Type} [Fintype X] [DecidableEq X]
     exact h x y hsigma
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Pairs invariance of adversary feasibility under output relabeling with the identity
 implication for a zero maximum filter norm. -/
@@ -311,7 +303,6 @@ theorem stageA_general_adversary_clause19 :
   exact hzero
 end
 noncomputable section
-set_option linter.unusedVariables false in
 
 /-- Bounds `generalAdversaryValue` and the norm of every normalized feasible Hermitian witness
 by the filtered gamma-two norm of the function evaluation matrix. -/

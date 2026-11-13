@@ -25,13 +25,11 @@ accuracy `ε` for `kTrapSum`. See [AnLiuLin2023] for the mathematical setting.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 set_option autoImplicit false
-
 
 open Qatlib.Concepts.LchsSimulation.WindowLchs
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution

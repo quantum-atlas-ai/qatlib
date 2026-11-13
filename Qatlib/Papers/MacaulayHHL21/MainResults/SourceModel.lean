@@ -22,7 +22,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed paper: arXiv:2111.00405, *Limitations of the Macaulay matrix approach for
 using the HHL algorithm to solve multivariate polynomial systems*.
-PDF `prove/assets/2111.00405.pdf`,
+PDF `2111.00405.pdf`,
 plain text `assets/2111.00405.txt`.
 
 This module fixes the notation that the paper uses before its numbered

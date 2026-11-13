@@ -20,7 +20,6 @@ The distinguishability bound is the pure-state form associated with
 [FuchsVanDeGraaf1999]; instruments have their operational foundation in
 [Davies & Lewis][DaviesLewis1970].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

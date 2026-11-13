@@ -23,8 +23,6 @@ the input and divided by the total absolute coefficient mass.
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false

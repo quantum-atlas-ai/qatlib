@@ -28,7 +28,6 @@ For the complete index word at `Corrected.jumpIndexWidth`, the fee equals `Corre
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Papers.MonteCarloInt20.PrnJump.Affine

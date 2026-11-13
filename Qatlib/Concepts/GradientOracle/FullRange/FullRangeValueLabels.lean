@@ -24,7 +24,6 @@ computes its action on basis inputs, supporting the construction of [Jordan2005G
 * [Jordan, 2005][Jordan2005Gradient]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.GradientOracle.ValueKickback

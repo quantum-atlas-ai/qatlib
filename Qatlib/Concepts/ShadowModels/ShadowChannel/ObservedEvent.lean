@@ -29,7 +29,6 @@ than a chosen number of queries. See [NielsenChuang2010] for background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveQuery.RawProcess
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

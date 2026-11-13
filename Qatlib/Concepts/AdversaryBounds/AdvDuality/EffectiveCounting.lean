@@ -29,10 +29,7 @@ fiber. The computational background is the classical and quantum complexity fram
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 

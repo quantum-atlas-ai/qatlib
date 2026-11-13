@@ -32,7 +32,6 @@ machine mass in a scalar error window by the corresponding event mass of the unr
 - [Watrous, 2018][Watrous2018], *The Theory of Quantum Information*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

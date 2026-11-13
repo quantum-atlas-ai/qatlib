@@ -31,7 +31,6 @@ A record retains its native result and includes a quantum leaf when native execu
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

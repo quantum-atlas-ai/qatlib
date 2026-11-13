@@ -99,8 +99,6 @@ The development follows [Lomont2004].
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped BigOperators

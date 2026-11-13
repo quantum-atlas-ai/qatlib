@@ -29,7 +29,6 @@ implementation framework of [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw
@@ -46,7 +45,6 @@ open Matrix Qatlib SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- A unitary spectral decomposition with nonnegative eigenvalues, together with a legal query
 free reflection word realizing the unitary and satisfying the stated length and gate bounds. -/

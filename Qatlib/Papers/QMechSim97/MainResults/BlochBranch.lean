@@ -39,10 +39,7 @@ coefficient; these results assume the branch and its differentiability.
 * [Boghosian and Taylor, 1998][BoghosianTaylor1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unnecessarySeqFocus false
 noncomputable section
 
 namespace Qatlib.Papers.QMechSim97.MainResults.BlochBranch
@@ -175,7 +172,7 @@ theorem smooth_branch_derivative (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
   have hmul : HasDerivAt (fun x => 2 * traceHalf a b x * (lam x))
       (2 * (0 * lam 0 + traceHalf a b 0 * l)) 0 := by
     have h := (hQ.const_mul 2).mul hderiv
-    convert! h using 1 <;> ring
+    convert! h using 1; ring
   have hc : HasDerivAt (fun _ : ℝ => (a ^ 2 - b ^ 2) ^ 2) 0 0 :=
     hasDerivAt_const 0 _
   have hg := (hp.sub hmul).add hc

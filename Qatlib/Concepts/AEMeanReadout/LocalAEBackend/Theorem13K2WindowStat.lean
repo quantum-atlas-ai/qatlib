@@ -24,7 +24,6 @@ radius and larger-parameter success bound of [BrassardEtAl2002].
 * [Brassard et al., Theorem 13][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout

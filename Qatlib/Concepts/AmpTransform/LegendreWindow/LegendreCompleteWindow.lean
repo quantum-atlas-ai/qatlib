@@ -30,7 +30,6 @@ analysis relevant to the Fourier recovery method of [Cornwell2014].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.LegendreWindow
 
@@ -52,7 +51,7 @@ def aqResidueNumerator (N P y : ℕ) : ℕ :=
 half-tie, failure of the unconditional closed-window claim, and recovery using the rounded
 modular numerator. -/
 def clause25_endpoint : Prop :=
-  (∀ (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 0 < b) (hc : Nat.Coprime b a.natAbs),
+  (∀ (ξ : ℝ) (a : ℤ) (b : ℕ) (_hb : 0 < b) (_hc : Nat.Coprime b a.natAbs),
       |ξ - (a : ℝ) / (b : ℝ)| ≤ 1 / (2 * (b : ℝ) ^ 2) →
       (∃ n : ℕ, ((a : ℚ) / (b : ℚ)) = ξ.convergent n) ∨
         (b = 1 ∧ ξ = (a : ℝ) - 1 / 2))
@@ -60,7 +59,7 @@ def clause25_endpoint : Prop :=
       (∃ n : ℕ, q = ξ.convergent n) ∨
         (q.den = 1 ∧ ξ = (q : ℝ) - 1 / 2))
   ∧ (¬ ∀ (ξ : ℝ) (q : ℚ), aqLegendreWindow ξ q → ∃ n : ℕ, q = ξ.convergent n)
-  ∧ (∀ (N P y : ℕ) (hN : 0 < N) (hP : 0 < P) (hsize : P ^ 2 ≤ N),
+  ∧ (∀ (N P y : ℕ) (_hN : 0 < N) (_hP : 0 < P) (_hsize : P ^ 2 ≤ N),
       aqResidueDistance N P y ≤ P / 2 →
       ∃ a b : ℕ, 0 < b ∧ Nat.Coprime a b ∧ b ∣ P ∧
         ((a : ℚ) / b = (aqResidueNumerator N P y : ℚ) / P) ∧
@@ -213,11 +212,11 @@ theorem aqNext_residue_window_complete {N P y : ℕ} (hN : 0 < N) (hP : 0 < P)
   have hdist : |(P : ℝ) * y - (N : ℝ) * aqResidueNumerator N P y| =
       (aqResidueDistance N P y : ℝ) := by
     by_cases hh : r ≤ N - r
-    · rw [hnum, if_pos hh, add_zero]
+    · rw [hnum, ite_eq_left hh, add_zero]
       have hz : (P : ℝ) * y - (N : ℝ) * t = r := by linarith
       rw [hz, abs_of_nonneg (Nat.cast_nonneg _)]
       simp [aqResidueDistance, r, hh]
-    · rw [hnum, if_neg hh, Nat.cast_add, Nat.cast_one]
+    · rw [hnum, ite_eq_right hh, Nat.cast_add, Nat.cast_one]
       have hle : N - r ≤ r := by omega
       have hcastsub : ((N - r : ℕ) : ℝ) = (N : ℝ) - r := by
         exact_mod_cast (Nat.cast_sub (by omega : r ≤ N))

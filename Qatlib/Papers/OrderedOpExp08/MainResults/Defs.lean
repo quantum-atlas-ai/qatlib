@@ -35,7 +35,6 @@ noncomputable section
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 

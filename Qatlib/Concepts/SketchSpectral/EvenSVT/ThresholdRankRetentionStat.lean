@@ -26,8 +26,6 @@ retain the first `k` singular values above a given threshold. The condition comp
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.RandCompile.ChannelBudget
 

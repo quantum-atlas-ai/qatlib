@@ -37,7 +37,6 @@ support the circuit-to-Hamiltonian analysis of [KempeKitaevRegev2006].
 * [Kempe, Kitaev and Regev, 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -52,7 +51,6 @@ open Matrix
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The register equivalence separating `w` witness bits, `a` ancilla bits, and one output bit. -/
 def qmaRegSplit (w a : ℕ) : Reg (w + a + 1) ≃ (Reg w × Reg a) × Reg 1 :=

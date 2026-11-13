@@ -24,7 +24,6 @@ estimation grid size. This is the cost ledger for the adaptive approximate count
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend

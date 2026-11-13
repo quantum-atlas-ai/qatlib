@@ -104,8 +104,6 @@ The source paper is [Montanaro2011].
 * [Montanaro, 2011][Montanaro2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

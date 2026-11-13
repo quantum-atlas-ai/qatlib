@@ -15,8 +15,6 @@ set_option backward.isDefEq.respectTransparency false
 # Source model: notation of *A Theory of Trotter Error*
 
 Childs--Su--Tran--Wiebe--Zhu, fixed arXiv:1912.08854v3.
-PDF `prove/assets/1912.08854v3.pdf`,
-plain text `prove/assets/1912.08854v3.txt`.
 
 This module fixes the paper's vocabulary that is shared by the main body and
 the appendices:
@@ -24,7 +22,7 @@ the appendices:
 * `Op D` — the finite-dimensional operator space of Section 2.1 (complex
   square matrices, spectral norm);
 * `OrderCondition` — Definition of Eq. (171), `F(τ) = O(τ^p)` near zero;
-  this is the frozen `trotterOrder` predicate, so paper statements reuse the
+  this is the library's `trotterOrder` predicate, so paper statements reuse the
   same radius/constant convention as the `Concepts.TrotterFormula` layer;
 * `NestedCommutator` — the right-nested commutator
   `[H_{γ_{p+1}}, ··· [H_{γ_2}, H_{γ_1}]]` used in Theorem 11, Eq. (54);
@@ -32,7 +30,7 @@ the appendices:
   (Section 2.1), spelled as Mathlib's `IsBigO atTop`.
 
 Boundary: this is a paper-layer model only.  It does not redefine or weaken
-any frozen `Concepts.TrotterFormula` contract; frozen theorems are imported and
+any existing `Concepts.TrotterFormula` contract; library theorems are imported and
 cited, not re-proved.
 -/
 
@@ -52,7 +50,7 @@ norm (Section 2.1, "operators can be represented by complex square matrices"). -
 abbrev Op (D : ℕ) := Matrix (Fin D) (Fin D) ℂ
 
 /-- The paper's order condition `F(τ) = O(τ^p)` near `τ = 0` (Eq. (171)).
-This is definitionally the frozen `trotterOrder`, i.e. there are a positive
+This is definitionally the library's `trotterOrder`, i.e. there are a positive
 constant and radius with `‖F τ‖ ≤ c |τ|^p` on `|τ| ≤ t₀`. -/
 abbrev OrderCondition {E : Type*} [NormedAddCommGroup E] (F : ℝ → E) (p : ℕ) : Prop :=
   Qatlib.Concepts.TrotterFormula.GeneralOrder.trotterOrder F p

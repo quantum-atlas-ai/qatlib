@@ -46,16 +46,13 @@ singlet projector.
 * [Nielsen, 1999][Nielsen1999]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.FiniteLocc.LOCCProgram
 
@@ -685,8 +682,8 @@ theorem schmidtW_inner (ψ : QState (Fin D × Fin E)) (j j' : Fin D) :
   rw [schmidtU_mulVec, inner_smul_right]
   by_cases h : j = j'
   · subst h
-    rw [if_pos rfl, schmidtU_inner, if_pos rfl, mul_one]
-  · rw [if_neg h, schmidtU_inner, if_neg h, mul_zero]
+    rw [ite_eq_left rfl, schmidtU_inner, ite_eq_left rfl, mul_one]
+  · rw [ite_eq_right h, schmidtU_inner, ite_eq_right h, mul_zero]
 
 /-- Conjugating a coordinate of an adjoint matrix-vector product gives the sum of matrix entries
 times conjugated vector entries. -/
@@ -744,7 +741,7 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
       simp only [schmidtSupport, Finset.mem_filter, Finset.mem_univ, true_and]
       exact hne
     have hself : Qatlib.Foundations.PureStateMath.Inner (schmidtW ψ t) (schmidtW ψ t) = 0 := by
-      rw [schmidtW_inner, if_pos rfl, hLam]
+      rw [schmidtW_inner, ite_eq_left rfl, hLam]
       simp
     exact (inner_self_eq_zero_iff (schmidtW ψ t)).mp hself
 
@@ -802,8 +799,8 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
       rw [schmidtU_inner]
       by_cases hab : a = b
       · subst hab
-        rw [if_pos rfl, if_pos rfl]
-      · rw [if_neg hab, if_neg (fun hcon => hab (heinj a b hcon))]
+        rw [ite_eq_left rfl, ite_eq_left rfl]
+      · rw [ite_eq_right hab, ite_eq_right (fun hcon => hab (heinj a b hcon))]
     exact hU
   · have hcross : ∀ a b : Fin r,
         (∑ j : Fin E, schmidtW ψ ((e.symm a : S)) j
@@ -820,11 +817,11 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
       rw [hconj, schmidtW_inner]
       by_cases hab : a = b
       · subst hab
-        rw [if_pos rfl, if_pos rfl]
+        rw [ite_eq_left rfl, ite_eq_left rfl]
         rw [show (cfun a * cfun a : ℝ) = schmidtΛ ψ ((e.symm a : S)) from
           Real.mul_self_sqrt (schmidtΛ_nonneg ψ _)]
         exact Complex.conj_ofReal _
-      · rw [if_neg hab, if_neg (fun hcon => hab (heinj a b hcon)), map_zero]
+      · rw [ite_eq_right hab, ite_eq_right (fun hcon => hab (heinj a b hcon)), map_zero]
     intro k k'
     have hleaf : ∀ j : Fin E,
         (starRingEnd ℂ) (vfun k j) * vfun k' j
@@ -860,7 +857,7 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
     rw [hsum, hcross k k']
     by_cases h : k = k'
     · subst h
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       have hsq : (cfun k * cfun k : ℝ) = schmidtΛ ψ ((e.symm k : S)) :=
         Real.mul_self_sqrt (schmidtΛ_nonneg ψ _)
       have hAA : ((Real.sqrt (schmidtΛ ψ ((e.symm k : S))) : ℝ) : ℂ)
@@ -869,7 +866,7 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
         rw [← Complex.ofReal_mul, Real.mul_self_sqrt (schmidtΛ_nonneg ψ _)]
       rw [hsq, ← hAA]
       field_simp [hcnz k]
-    · rw [if_neg h, if_neg h, mul_zero]
+    · rw [ite_eq_right h, ite_eq_right h, mul_zero]
   · funext p
     obtain ⟨i, j⟩ := p
     have hpt : (∑ k : Fin r, (cfun k : ℂ) • TensorState (ufun k) (vfun k)) (i, j)
@@ -1135,12 +1132,12 @@ theorem g1 :
     cases h with
     | inl hD =>
       subst hD
-      haveI : IsEmpty (Fin 0 × Fin E) := ⟨fun p => Fin.elim0 p.1⟩
+      have : IsEmpty (Fin 0 × Fin E) := ⟨fun p => Fin.elim0 p.1⟩
       rw [Finset.sum_of_isEmpty] at hN'
       exact absurd hN' zero_ne_one
     | inr hE =>
       subst hE
-      haveI : IsEmpty (Fin D × Fin 0) := ⟨fun p => Fin.elim0 p.2⟩
+      have : IsEmpty (Fin D × Fin 0) := ⟨fun p => Fin.elim0 p.2⟩
       rw [Finset.sum_of_isEmpty] at hN'
       exact absurd hN' zero_ne_one
   · intro ψ _

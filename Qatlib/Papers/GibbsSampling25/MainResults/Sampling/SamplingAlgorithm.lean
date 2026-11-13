@@ -64,15 +64,14 @@ def quasi_optimal_sampling {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   --                     + (1/N)‖e^{t L_Λ}ρ − σ‖_{W¹} ≤ ε + ε,
   -- and the ancilla/gate counts follow from Theorem C.1's mixing time plus the
   -- `O(polylog)` overhead of the simulation.
-  -- Lean gap: no circuit/gate model, no diamond-norm simulation theorem, and no
-  -- concrete Lindblad-simulation construction is available in the imported API;
+  -- Scope note: the circuit/gate model, the diamond-norm simulation theorem,
+  -- and a concrete Lindblad-simulation construction are outside this file's scope;
   -- the output state and the resource counts are existentially quantified
   -- interface data, with the *quantitative shape* of the paper's bound retained.
-  -- Candidate reusable dependencies: `quasi_rapid_wasserstein_mixing`
+  -- Related result: `quasi_rapid_wasserstein_mixing`
   -- (Theorem 2.9), `WOneDist`, `Real.exp_le_exp`.
-  -- Suggested continuation: model the circuit family concretely (gate count and
-  -- ancilla count as functions of `(N, ε)`), formalise the Lindblad simulation
-  -- theorem [CKBG23, Theorem III.2], and instantiate with the mixing time of
+  -- A concrete circuit family would have gate and ancilla counts depending on
+  -- `(N, ε)`, obtained from [CKBG23, Theorem III.2] with the mixing time of
   -- Theorem C.1.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.Sampling

@@ -27,8 +27,6 @@ The matrix identities implement the prepare-select-unprepare algebra used in
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.LcuPostselect.ScaledLCU.PaidWeightedLCUSlot

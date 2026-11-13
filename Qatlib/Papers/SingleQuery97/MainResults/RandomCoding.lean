@@ -28,8 +28,6 @@ is no larger than the classical one.
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SingleQuery97.MainResults.RandomCoding
 
 open Qatlib.Papers.SingleQuery97.MainResults.CharacterSum

@@ -21,6 +21,10 @@ The separate identity `triangle_cost_identity` simplifies the product of square-
 to `n + sqrt (n * m)` for positive natural parameters. It records the algebraic cost scale
 associated with Theorem 10.
 
+The graph equivalence and scalar identity are separate results. This module
+does not simulate graph-query circuits or prove triangle-finding upper or lower
+query bounds.
+
 ## Main statements
 
 * `hasTriangle_apexGraph_iff`: adding a universal apex converts edge existence into triangle
@@ -33,8 +37,6 @@ associated with Theorem 10.
 * [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
   arXiv:quant-ph/0007016 (2000 preprint).
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

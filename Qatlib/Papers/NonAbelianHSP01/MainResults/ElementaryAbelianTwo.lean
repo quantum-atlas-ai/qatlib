@@ -28,10 +28,7 @@ coset with a subgroup as empty or a coset of the intersection subgroup. See
 * [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 

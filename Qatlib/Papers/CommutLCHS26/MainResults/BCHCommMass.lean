@@ -40,7 +40,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.BCHCommMass
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

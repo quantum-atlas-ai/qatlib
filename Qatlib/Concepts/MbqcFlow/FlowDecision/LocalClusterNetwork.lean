@@ -33,7 +33,6 @@ computation, whose one-way model is introduced in [RaussendorfBriegel2001].
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.InstrumentCore.Measurement
 
@@ -48,7 +47,5 @@ open Qatlib
 open Qatlib
 open scoped ComplexOrder
 open scoped Classical
-
-set_option linter.unusedSectionVars false
 
 end Qatlib.Concepts.MbqcFlow.FlowDecision

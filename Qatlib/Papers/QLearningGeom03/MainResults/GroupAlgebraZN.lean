@@ -30,10 +30,7 @@ These statements provide the cyclic group-algebra description in Proposition 5.2
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -87,6 +84,8 @@ lemma chiN_sum (b : ZMod N) : ∑ x : ZMod N, chiN x b
   unfold chiN
   exact AddChar.sum_mulShift b (ZMod.isPrimitive_stdAddChar N)
 
+omit [NeZero N] in
+
 /-- For positive N, the square of the complex embedding of 1/√N, multiplied by N, is 1. -/
 lemma sqrt_inv_mul_self (hN : 0 < N) :
     (((Real.sqrt N : ℝ) : ℂ)⁻¹) * (((Real.sqrt N : ℝ) : ℂ)⁻¹) * ((N : ℕ) : ℂ) = 1 := by
@@ -112,11 +111,11 @@ lemma fourier_mul_shift (g : ZMod N) :
   rw [Finset.sum_eq_single (z + g)]
   · rw [Matrix.diagonal_mul]
     unfold fourier shift
-    rw [if_pos rfl, mul_one, chiN_add_right]
+    rw [ite_eq_left rfl, mul_one, chiN_add_right]
     ring
   · intro w _ hw
     unfold fourier shift
-    rw [if_neg hw, mul_zero]
+    rw [ite_eq_right hw, mul_zero]
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
@@ -145,9 +144,9 @@ lemma fourier_mul_conjTranspose (hN : 0 < N) : fourier N * (fourier N)ᴴ = 1 :=
     rw [hcard]]
   by_cases hjk : j - k = 0
   · have hjk' : j = k := sub_eq_zero.mp hjk
-    rw [if_pos hjk, if_pos hjk', sqrt_inv_mul_self hN]
+    rw [ite_eq_left hjk, ite_eq_left hjk', sqrt_inv_mul_self hN]
   · have hjk' : j ≠ k := fun hcontra => hjk (by rw [hcontra]; abel)
-    rw [if_neg hjk, if_neg hjk']
+    rw [ite_eq_right hjk, ite_eq_right hjk']
     simp
 
 /-- The first column of `groupAlgebraElem v` is `v`, as in [Hunziker et al., Proposition
@@ -174,12 +173,12 @@ theorem fourier_conj_groupAlgebraElem (hN : 0 < N) (v : ZMod N → ℂ) :
     ext j k
     rw [Matrix.sum_apply, Matrix.diagonal_apply]
     by_cases hjk : j = k
-    · rw [if_pos hjk]
+    · rw [ite_eq_left hjk]
       rw [Finset.sum_congr rfl (fun x _ => by
-        rw [Matrix.smul_apply, Matrix.diagonal_apply, if_pos hjk, smul_eq_mul])]
-    · rw [if_neg hjk]
+        rw [Matrix.smul_apply, Matrix.diagonal_apply, ite_eq_left hjk, smul_eq_mul])]
+    · rw [ite_eq_right hjk]
       refine Finset.sum_eq_zero fun x _ => ?_
-      rw [Matrix.smul_apply, Matrix.diagonal_apply, if_neg hjk, smul_zero]
+      rw [Matrix.smul_apply, Matrix.diagonal_apply, ite_eq_right hjk, smul_zero]
   refine Eq.trans ?_ hdiag
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [Matrix.mul_smul, Matrix.smul_mul, fourier_mul_shift, Matrix.mul_assoc,

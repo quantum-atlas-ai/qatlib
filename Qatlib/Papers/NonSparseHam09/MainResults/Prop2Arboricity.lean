@@ -30,11 +30,7 @@ inequality, nonnegative homogeneity, and entrywise nonnegativity of `absMatrix`.
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset
@@ -47,8 +43,8 @@ variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 /-- The proposition asserting that the complex entrywise absolute-value matrix has spectral norm
 at most `2 * k * mcnNorm H` and `2 * k * specNorm H`, and that `specNorm H ≤ 2 * k * mcnNorm
 H`. -/
-def prop2Statement (H : Matrix ι ι ℂ) (hH : H.IsHermitian) {k : ℕ}
-    (hk : GraphArboricityLE (matrixGraph H) k) : Prop :=
+def prop2Statement (H : Matrix ι ι ℂ) (_hH : H.IsHermitian) {k : ℕ}
+    (_hk : GraphArboricityLE (matrixGraph H) k) : Prop :=
   specNorm ((absMatrix H).map Complex.ofReal) ≤ 2 * (k : ℝ) * mcnNorm H ∧
   specNorm ((absMatrix H).map Complex.ofReal) ≤ 2 * (k : ℝ) * specNorm H ∧
   specNorm H ≤ 2 * (k : ℝ) * mcnNorm H
@@ -65,6 +61,8 @@ theorem specNorm_add_le (A B : Matrix ι ι ℂ) :
 lemma specNorm_smul_nonneg {c : ℝ} (hc : 0 ≤ c) (A : Matrix ι ι ℂ) :
     specNorm (c • A) = c * specNorm A := by
   rw [specNorm_eq_l2, specNorm_eq_l2, norm_smul, Real.norm_of_nonneg hc]
+
+omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
 /-- Every entry of `absMatrix H` is nonnegative [ChildsKothari2010]. -/
 lemma absMatrix_nonneg (H : Matrix ι ι ℂ) (i j : ι) : 0 ≤ absMatrix H i j :=

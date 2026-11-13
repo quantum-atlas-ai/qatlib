@@ -24,10 +24,8 @@ of Corollary 6.2 in [BarencoEtAl1995], with at most eight single-qubit gates and
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
-set_option linter.unusedSimpArgs false
 set_option maxRecDepth 3000
 set_option maxHeartbeats 200000
 set_option autoImplicit false

@@ -27,8 +27,6 @@ These properties connect circuit interruption with randomized search analysis [B
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 

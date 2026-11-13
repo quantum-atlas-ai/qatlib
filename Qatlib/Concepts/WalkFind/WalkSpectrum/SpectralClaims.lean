@@ -34,7 +34,6 @@ estimates, and `Claim1Statement` records the first half-step in type coordinates
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
@@ -43,7 +42,6 @@ open Qatlib
 open scoped BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- The proposition that the full Johnson walk and marked phase flip transport to their reduced

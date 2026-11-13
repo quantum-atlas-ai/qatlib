@@ -28,8 +28,6 @@ give the resulting phase, support, and normalization. The development follows
 * [Brassard and Hoyer, 1997][BrassardHoyer1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 

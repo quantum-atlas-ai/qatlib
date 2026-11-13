@@ -226,14 +226,11 @@ Composing the simplicial boundary operator with itself annihilates every chain.
 Fixed arXiv:2209.13581. Proof route: the classical alternating-face cancellation
 — the coefficient of a `(k-1)`-face `ρ = σ \ {a,b}` in `∂∂⟨σ⟩` is
 `(-1)^{pos a + pos b - 1} + (-1)^{pos b + pos a} = 0`, since swapping the order of
-the two deletions flips the sign. Lean gap: the cancellation is a pure
-`Finset.sort`/`List.idxOf` parity identity over the doubly-indexed sum `∑ v, ∑ w`;
-Mathlib has no packaged abstract-simplicial-complex boundary chain complex, so the
-parity bookkeeping (`List.idxOf` under `erase`) must be proved by hand.
-Candidate dependencies: `Finset.sort`, `List.idxOf`, `Finset.sum_eq_zero`.
-Suggested tactic: expand `simplicialBoundary (simplicialBoundary σ)`, then
-`Finset.sum_eq_zero` with the parity lemma `(-1)^i + (-1)^(i+1) = 0` over paired
-deletions. -/
+the two deletions flips the sign. The cancellation is a
+`Finset.sort`/`List.idxOf` parity identity over the doubly-indexed sum `∑ v, ∑ w`:
+the positions under `erase` determine the two signs. Expanding
+`simplicialBoundary (simplicialBoundary σ)` pairs the deletions using
+`(-1)^i + (-1)^(i+1) = 0`; `Finset.sum_eq_zero` expresses the resulting cancellation. -/
 theorem proposition5_boundary_comp_zero [LinearOrder V] :
     ∀ c : (Finset V →₀ ℤ), boundaryLin (V := V) (boundaryLin (V := V) c) = 0 := by
   intro c
@@ -300,10 +297,10 @@ edge `{u,v}` which is an up-neighbour of the vertex `u`.
 Fixed arXiv:2209.13581. Proof route: choose `u ∈ σ`; map each up-neighbour
 `τ = σ ∪ {v}` to the edge `{u,v}`, which is a face by downward closure and is
 an up-neighbour of the vertex `{u}`; distinct `v` give distinct edges, so the
-up-degree of `σ` is at most `upDegree {u} ≤ d`. Lean gap: the `{u}`-annotation
-and the disjointness bookkeeping for `{u} ∪ (τ \ σ)`; the underlying counting is
-elementary. Candidate dependencies: `Finset.card_le_card_of_injOn`,
-`Finset.le_sup`. -/
+up-degree of `σ` is at most `upDegree {u} ≤ d`. Since `u ∈ σ`, the singleton
+`{u}` is disjoint from `τ \ σ`, which makes the map `τ ↦ {u} ∪ (τ \ σ)` injective.
+The cardinality comparison uses `Finset.card_le_card_of_injOn`, and the bound by
+the maximum vertex up-degree uses `Finset.le_sup`. -/
 theorem upDegree_le_maxVertexUpDegree (K : SimplicialComplex V) {σ : Finset V}
     (hσ : σ ∈ K.faces) (hne : σ.Nonempty) :
     K.upDegree σ ≤ K.maxVertexUpDegree := by

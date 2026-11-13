@@ -1,6 +1,15 @@
 name: Docs
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'README.en.md'
+      - 'docs/**'
+      - 'scripts/build_site.py'
+      - '.github/assets/**'
+      - '.github/workflows/docs.yml'
   workflow_run:
     workflows: ["Build"]
     types: [completed]
@@ -18,8 +27,9 @@ jobs:
       group: docs-build
       cancel-in-progress: true
     if: >-
+      (github.event_name == 'push' && vars.QATLIB_SKIP_DOCS != 'true') ||
       github.event_name == 'workflow_dispatch' ||
-      (vars.QATLIB_SKIP_DOCS != 'true' &&
+      (github.event_name == 'workflow_run' && vars.QATLIB_SKIP_DOCS != 'true' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main' &&
        (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
@@ -29,7 +39,7 @@ jobs:
     env:
       LAKE_CACHE_DIR: ${{ github.workspace }}/.lake/cache
       LEAN_NUM_THREADS: ${{ vars.QATLIB_DOCS_THREADS || '2' }}
-      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,7 +55,14 @@ jobs:
             lake --version
             exit 0
           fi
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          ELAN_VERSION="v4.1.2"
+          ELAN_SHA256="4bacca9502cb89736fe63d2685abc2947cfbf34dc87673504f1bb4c43eda9264"
+          ELAN_SCRIPT="$RUNNER_TEMP/elan-init.sh"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/leanprover/elan/$ELAN_VERSION/elan-init.sh" \
+            --output "$ELAN_SCRIPT"
+          printf '%s  %s\n' "$ELAN_SHA256" "$ELAN_SCRIPT" | sha256sum --check --strict
+          sh "$ELAN_SCRIPT" --default-toolchain none -y
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Free runner disk space and configure swap
@@ -67,31 +84,32 @@ jobs:
           set -euo pipefail
           lake exe get_cache --no-qatlib
           TC_DIR="$(sed -e 's|/|--|g' -e 's|:|---|g' < lean-toolchain | tr -d '[:space:]')"
-          TC_LEGACY="$(sed -e 's|/|-|g' -e 's|:|-|g' < lean-toolchain | tr -d '[:space:]')"
           REPO_SLUG="quantum-atlas-ai/qatlib"
-          LEGACY_SCOPE="qatlib-main/$TC_LEGACY/qatlib"
           INPUT_TREE="$(git rev-parse HEAD:Qatlib HEAD:Qatlib.lean HEAD:lakefile.toml HEAD:lean-toolchain HEAD:lake-manifest.json | sha256sum | cut -d' ' -f1)"
           CANDIDATE="$RUNNER_TEMP/qatlib-docs-outputs.jsonl"
           FOUND="false"
-          CACHE_MODE="repo"
-          for MODE in repo scope; do
-            if [ "$MODE" = "repo" ]; then
-              BASE="https://lake-cache.quantum-atlas.ai/revisions/$REPO_SLUG/tc/$TC_DIR"
-            else
-              BASE="https://lake-cache.quantum-atlas.ai/revisions/$LEGACY_SCOPE"
-              CACHE_MODE="scope"
-            fi
-            for attempt in $(seq 1 30); do
-              if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/$TARGET_SHA.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
-              if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
-              for ANC in $(git rev-list --max-count=25 HEAD~1 2>/dev/null || true); do
-                if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/$ANC.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
-              done
-              [ "$FOUND" = "true" ] && break
-              echo "Waiting for Cache workflow to finish publishing Qatlib R2 manifest (mode=$MODE attempt $attempt/30)..."
-              sleep 10
-            done
-            [ "$FOUND" = "true" ] && break
+          BASE="https://lake-cache.quantum-atlas.ai/revisions/$REPO_SLUG/tc/$TC_DIR"
+          manifest_has_entries() {
+            python3 - "$1" <<'PY'
+          import json, sys
+          from pathlib import Path
+          lines = [line.strip() for line in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines() if line.strip()]
+          rows = []
+          for line in lines[1:]:
+              try:
+                  row = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(row, list) and len(row) >= 2 and isinstance(row[0], str) and row[0]:
+                  rows.append(row)
+          raise SystemExit(0 if rows else 1)
+          PY
+          }
+          for attempt in $(seq 1 36); do
+            if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/$TARGET_SHA.jsonl" -o "$CANDIDATE" 2>/dev/null && manifest_has_entries "$CANDIDATE"; then FOUND="true"; break; fi
+            if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && manifest_has_entries "$CANDIDATE"; then FOUND="true"; break; fi
+            echo "Waiting for Cache workflow to finish publishing the exact Qatlib R2 manifest (attempt $attempt/36)..."
+            sleep 10
           done
           if [ "$FOUND" != "true" ]; then
             echo "Error: Prebuilt Qatlib R2 manifest not found for $TARGET_SHA (input_tree=$INPUT_TREE)." >&2
@@ -100,16 +118,12 @@ jobs:
           TMP_CURL="$(mktemp -d "$RUNNER_TEMP/curlrc.XXXXXX")"
           trap 'rm -rf "$TMP_CURL"' EXIT
           printf 'connect-timeout = 15\nspeed-time = 20\nspeed-limit = 1024\nretry = 3\nretry-delay = 1\n' > "$TMP_CURL/.curlrc"
-          if [ "$CACHE_MODE" = "repo" ]; then
-            LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" lake cache get "$CANDIDATE" --package=Qatlib --repo="$REPO_SLUG"
-          else
-            LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" lake cache get "$CANDIDATE" --package=Qatlib --scope="$LEGACY_SCOPE"
-          fi
+          LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" lake cache get "$CANDIDATE" --package=Qatlib --repo="$REPO_SLUG"
 
       - name: Verify prebuilt Qatlib cache is complete (never compile Qatlib in Docs)
         run: |
           set -euo pipefail
-          if ! lake --no-build build -KCI Qatlib > "$RUNNER_TEMP/nobuild.log" 2>&1; then
+          if ! lake --no-build build Qatlib > "$RUNNER_TEMP/nobuild.log" 2>&1; then
             tail -n 100 "$RUNNER_TEMP/nobuild.log"
             exit 1
           fi
@@ -173,10 +187,11 @@ jobs:
               if not p.stem.startswith("core-") and not ok(p.stem):
                   for q in doc_data.glob(f"{p.stem}.doc*"): q.unlink(missing_ok=True)
           if db.is_file():
-              with sqlite3.connect(db) as c:
+              with sqlite3.connect(db, timeout=30) as c:
                   c.execute("PRAGMA foreign_keys = ON")
                   stale = [(n,) for (n,) in c.execute("SELECT name FROM modules") if not ok(n)]
                   if stale: c.executemany("DELETE FROM modules WHERE name = ?", stale)
+                  c.commit()
                   c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
           PY
           run_docgen() {
@@ -205,7 +220,7 @@ jobs:
           from pathlib import Path
           db = Path(".lake/build/api-docs.db")
           if db.is_file():
-              with sqlite3.connect(db) as c:
+              with sqlite3.connect(db, timeout=30) as c:
                   c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
           PY
 

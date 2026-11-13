@@ -19,7 +19,6 @@ measurement-pattern semantics are developed in
 [Danos, Kashefi & Panangaden, *The measurement calculus*][DanosKashefiPanangaden2007].
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.InstrumentCore.PatternCompile
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

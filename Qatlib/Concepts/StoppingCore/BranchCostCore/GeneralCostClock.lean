@@ -32,7 +32,6 @@ the compiled clock. For background, see [Ambainis2012].
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
@@ -41,7 +40,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
@@ -133,7 +131,7 @@ theorem costClock_weighted_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
         cases fuel with
         | zero => rfl
         | succ n =>
-          rw [costClock_weighted_point, if_neg (by have := hc s; omega)]
+          rw [costClock_weighted_point, ite_eq_right (by have := hc s; omega)]
           simp [CostedLaw.ret, PMF.pure_apply]
       | succ k =>
         obtain ⟨n, rfl⟩ : ∃ n, fuel = n+1 := ⟨fuel-1, by omega⟩
@@ -216,7 +214,7 @@ theorem costClock_countdown (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       CostedLaw.charge, PMF.map, Function.comp_def]
   | succ d ih =>
     rw [costClock_unit_succ]
-    simp only [costClockNext, Nat.succ_ne_zero, if_false,
+    simp only [costClockNext, Nat.succ_ne_zero, ite_false,
       Nat.add_sub_cancel, PMF.pure_bind, ih, CostedLaw.charge, PMF.map_comp, Function.comp_def]
     congr 1
     funext x
@@ -245,7 +243,7 @@ theorem costClock_countdown_prefix (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   | succ n ih =>
     rw [costClock_unit_succ]
     have hd : d ≠ 0 := by omega
-    simp only [costClockNext, if_neg hd, PMF.pure_bind]
+    simp only [costClockNext, ite_eq_right hd, PMF.pure_bind]
     rw [ih (d-1) (by omega)]
     simp only [CostedLaw.charge, PMF.pure_map]
     congr 1
@@ -271,7 +269,7 @@ theorem costClock_halt_running (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       if c s ≤ k then ∑' x, next s x *
         haltJoint (costClockNext next c) (costClockEmbed c x) o (k-c s) else 0 := by
   by_cases hfit : c s ≤ k
-  · rw [if_pos hfit]
+  · rw [ite_eq_left hfit]
     unfold haltJoint
     have he := costClock_countdown_resume next c s (c s-1) (k-c s)
     have hp : c s-1+1 = c s := by omega
@@ -279,8 +277,8 @@ theorem costClock_halt_running (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     rw [hk] at he
     change runFor (costClockNext next c) k (.inr (s,c s-1)) (.inl o,k) = _
     rw [he, PMF.bind_apply]
-    simp only [GeneralExecution.charge_point_mass, hp, if_pos hfit]
-  · rw [if_neg hfit]
+    simp only [GeneralExecution.charge_point_mass, hp, ite_eq_left hfit]
+  · rw [ite_eq_right hfit]
     unfold haltJoint
     change runFor (costClockNext next c) k (.inr (s,c s-1)) (.inl o,k) = 0
     rw [costClock_countdown_prefix next c s k (c s-1) (by omega)]
@@ -308,7 +306,7 @@ theorem cost_clock_arbitrary_configuration_halt_joint :
       | inr s =>
         cases k with
         | zero =>
-          rw [costClock_halt_running next c s (hc s), if_neg (by have := hc s; omega)]
+          rw [costClock_halt_running next c s (hc s), ite_eq_right (by have := hc s; omega)]
           simp [weightedRunFor, CostedLaw.ret, PMF.pure_apply]
         | succ k =>
           rw [costClock_halt_running next c s (hc s), costClock_weighted_point]
@@ -392,7 +390,7 @@ theorem costClock_event_outputs (p : CostedLaw (O ⊕ S)) (E : O → Prop) :
   unfold CostedLaw.event CostedLaw.expectation
   rw [tsum_prod_type', tsum_sum_type']
   simp only [Sum.inl.injEq, exists_eq_left', Sum.inr_ne_inl, false_and,
-    exists_false, if_false, mul_zero, tsum_zero, add_zero]
+    exists_false, ite_false, mul_zero, tsum_zero, add_zero]
   apply tsum_congr
   intro o
   by_cases h : E o <;> simp [h]
@@ -407,14 +405,14 @@ theorem costClock_finite_event (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
   apply tsum_congr
   intro o
   by_cases h : E o
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     refine (tsum_eq_sum (s := Finset.range (B+1)) (fun k hk => ?_)).trans ?_
     · exact GeneralExecution.runFor_point_cost_gt_fuel next B cfg (.inl o) k
         (by have := Finset.mem_range.not.mp hk; omega)
     · exact Finset.sum_congr rfl fun k hk =>
         GeneralExecution.runFor_point_halt_ge next cfg o B k
           (by have := Finset.mem_range.mp hk; omega)
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
 
 /-- For any output predicate, its eventual halting mass is bounded by the finite-budget event
 probability plus expected unbounded time divided by `B + 1`. -/
@@ -431,7 +429,7 @@ theorem costClock_general_event_cutoff (next : S → PMF (O ⊕ S)) (cfg : O ⊕
     apply tsum_congr
     intro o
     by_cases h : E o
-    · simp only [if_pos h]
+    · simp only [ite_eq_left h]
       exact general_haltJoint_tsum_split next cfg o B
     · simp [h]
   rw [hsplit, ← costClock_finite_event]

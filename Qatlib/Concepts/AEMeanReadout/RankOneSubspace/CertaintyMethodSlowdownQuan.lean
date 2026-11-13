@@ -25,7 +25,6 @@ ideal stopping point, suitable unit-modulus phases give marked mass one.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 

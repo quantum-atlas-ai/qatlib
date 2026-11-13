@@ -20,8 +20,7 @@ set_option backward.isDefEq.respectTransparency false
 Source: A. Belovs, *Learning-Graph-Based Quantum Algorithm for k-distinctness*,
 fixed preprint arXiv:1205.1534v2 (`arXiv:1205.1534v2 [quant-ph] 9 Aug 2012`).
 
-Paper statement, **Lemma 9** (p. 16, local text
-`prove/assets/1205.1534.txt` l. 1088–1091):
+Paper statement, **Lemma 9** (p. 16):
 
 > Let `R` and `s` be as above.  If `x` and `y` agree on
 > `S = R[D₁←a₁, …, D_ℓ←a_ℓ]` then the contribution from the block on `S` is
@@ -56,7 +55,7 @@ the paper; at the leaf (`levels = []`, i.e. `ℓ = s−1`) the value is `q` by (
 `sourceBlockContribution` prefixes the sign `(−1)^{ℓ+|D₁|+⋯+|D_ℓ|}` of the
 already-chosen subsets, giving the paper's displayed quantity.
 
-What is proved here, with complete tactic proofs:
+The following results are proved here:
 
 * `alternating_powerset_sum` and `nonempty_alternating_sum`: the
   inclusion–exclusion identity at the end of the paper's proof;
@@ -67,13 +66,10 @@ What is proved here, with complete tactic proofs:
 * `inclusion_exclusion_step`: the paper's last displayed line;
 * `source_lemma9_agree` / `source_lemma9_disagree`: the lemma as stated.
 
-What is **not** formalized (recorded honestly): the concrete arc matrices
-`X^S_{a_s}` of §6.1 with their assignment semantics.  The library has no
-learning-graph framework (`rg "LearningGraph"` over `QuantumAlgorithmDev/` and
-Frozen v2.0.2 returns nothing), so this module formalizes the paper's induction
-starting from the two leaf values that §6.1 supplies: `±q` when the inputs
-agree (13) and `0` when they disagree.  Turning those leaf values into the
-formal `X`-matrices is a separate construction goal.
+Scope note: this module formalizes the paper's induction starting from the
+two leaf values supplied by §6.1: `±q` when the inputs agree (13) and `0` when
+they disagree.  The construction of the concrete arc matrices `X^S_{a_s}` of
+§6.1 with their assignment semantics is outside the scope of this file.
 -/
 
 set_option autoImplicit false

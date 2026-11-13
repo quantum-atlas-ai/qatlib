@@ -40,8 +40,6 @@ oracle. These are circuit-level consumers of the block-encoding and QSVT framewo
   transformation and beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 

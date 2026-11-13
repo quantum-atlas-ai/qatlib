@@ -30,7 +30,6 @@ exponential-tail sample threshold. See [WocjanYard2006].
 * [Wocjan and Yard, 2006][WocjanYard2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

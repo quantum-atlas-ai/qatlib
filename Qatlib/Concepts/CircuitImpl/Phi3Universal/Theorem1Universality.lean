@@ -22,7 +22,6 @@ transformations with an exponential gate bound and a linear ancillary-wire bound
 * [Yao, 1993, Theorem 1][Yao1993]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

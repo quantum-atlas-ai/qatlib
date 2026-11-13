@@ -30,7 +30,6 @@ the framework of [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.TensorResidual
 

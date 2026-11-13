@@ -30,7 +30,6 @@ The mathematical context is discussed in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -45,7 +44,6 @@ namespace Qatlib.Concepts.CompressedQuery.CompressOracle
 
 open Qatlib Matrix
 open scoped Classical BigOperators
-set_option linter.unusedSectionVars false
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
@@ -60,6 +58,8 @@ unchanged otherwise. -/
 def route : Full I W → Full I W
   | (((x, false), w), r) => (((x, false), w), r)
   | (((x, true), w), r) => (((r, true), w), x)
+
+omit [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W] in
 
 /-- Applying controlled address routing twice returns the original basis state. -/
 theorem route_involutive : Function.Involutive (route (I := I) (W := W)) := by
@@ -162,6 +162,8 @@ def oneBitCircuit : Circuit (Full I W) :=
 theorem oneBitCircuit_unitary : IsUnitaryCircuit (oneBitCircuit (I := I) (W := W)) := by
   simp only [oneBitCircuit, isUnitaryCircuit_gate, isUnitaryCircuit_query, isUnitaryCircuit_nil]
   exact ⟨dataHadamard_unitary, routeGate_unitary, routeGate_unitary, dataHadamard_unitary, trivial⟩
+
+omit [Fintype I] [Fintype W] in
 
 /-- The bit simulation circuit uses exactly one oracle query. -/
 theorem oneBitCircuit_queries : QueryCount (oneBitCircuit (I := I) (W := W)) = 1 := by

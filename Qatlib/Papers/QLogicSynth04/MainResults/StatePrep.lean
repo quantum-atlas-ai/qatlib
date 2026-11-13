@@ -27,7 +27,6 @@ coordinate. Applying this construction blockwise yields `theorem9_disentangle` a
 * [Shende et al., 2006][ShendeBullockMarkov2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open scoped Matrix

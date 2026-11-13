@@ -37,11 +37,10 @@ formalised.  The classification is imported from [19] (exhaustive search);
 the paper does not reprove it.  The `Shape*` predicates here encode the structural families
 at the level of the paper's notation (parameters `ξ,η,ζ,χ,σ,τ` are existentially quantified
 through the matrices `R`, `S` and the per-`J` qubit bases), but the concrete `F₃, H_y, H_w`
-tables and the equivalence-reduction are not formalised.  Candidate reuse: the qutrit
-Hadamard tables in `Mub6Maximum.ThreeBasis.MUBProductBases`
-(`H`, `K`).  Suggested route: build the concrete `C²⊗C³` qutrit bases with `Complex.exp`
-roots of unity, enumerate pairs with `fin_cases`, and close the equivalence by Gram
-computations.
+tables and the equivalence-reduction are not formalised.  Related qutrit Hadamard
+tables `H` and `K` appear in `Mub6Maximum.ThreeBasis.MUBProductBases`.
+The concrete `C²⊗C³` bases involve roots of unity; the pair classification
+requires equivalence and Gram-matrix computations.
 -/
 set_option autoImplicit false
 noncomputable section

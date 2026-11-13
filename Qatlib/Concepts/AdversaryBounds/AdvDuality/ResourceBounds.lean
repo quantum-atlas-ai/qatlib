@@ -31,7 +31,6 @@ with direct consequences of the uniform resource-bound predicates.
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ResourceBounds.AsymBounds
 open Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs

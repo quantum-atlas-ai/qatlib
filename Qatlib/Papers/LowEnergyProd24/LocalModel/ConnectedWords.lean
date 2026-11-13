@@ -27,8 +27,6 @@ number of words by a factorial times powers of the locality and degree bounds. S
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section

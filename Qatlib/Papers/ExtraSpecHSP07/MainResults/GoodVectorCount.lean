@@ -36,8 +36,6 @@ p)^4`. Fiber bounds for a quadratic map yield cardinality and probability lower 
 * [Ivanyos et al., 2007][IvanyosSanselmeSantha2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.ExtraSpecHSP07.MainResults

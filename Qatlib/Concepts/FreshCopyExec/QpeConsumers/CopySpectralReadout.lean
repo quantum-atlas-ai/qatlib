@@ -36,7 +36,6 @@ spectral law, in the density matrix exponentiation and phase estimation setting 
 * [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

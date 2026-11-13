@@ -29,7 +29,6 @@ and final three moves. `clause4_complete` collects the local conditions and the 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine

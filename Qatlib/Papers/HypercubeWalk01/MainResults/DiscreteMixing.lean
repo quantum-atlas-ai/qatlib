@@ -32,8 +32,6 @@ estimate and deduces distance of order `n ^ (-7 / 6)` at rounded odd multiples o
 * [Moore and Russell, 2001][MooreRussell2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

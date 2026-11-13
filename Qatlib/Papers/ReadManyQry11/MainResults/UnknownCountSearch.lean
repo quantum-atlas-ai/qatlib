@@ -19,7 +19,7 @@ Fixed paper: arXiv:1112.0548v1 (2 December 2011), Lemma 1, p. 4 (text line 88):
 > `O(√(N/t))` queries in expectation when there are `t` marked items.  If there are no
 > marked items the algorithm runs indefinitely.
 
-The frozen `QuantumAlgorithm.Concepts.SearchStopping.UnknownCount.theorem3Corrected`
+The established `Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected`
 (BBHT, quant-ph/9605034v1, §4, claim 1443) is exactly this result: it fixes the explicit
 schedule `ExponentialSizes N`, proves exact uniform output on the marked set, gives the
 explicit constants `(9/2)√(N/t)` (expected Grover iterations) and `(29/2)√(N/t)`
@@ -37,8 +37,8 @@ open Qatlib.Concepts.SearchStopping.UnknownCount
 
 namespace Qatlib.Papers.ReadManyQry11.MainResults
 
-/-- Paper Lemma 1 (p. 4, line 88), by reuse of the frozen BBHT contract
-`QuantumAlgorithm.Concepts.SearchStopping.UnknownCount.theorem3Corrected`
+/-- Paper Lemma 1 (p. 4, line 88), by reuse of the BBHT contract
+`Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected`
 (quant-ph/9605034v1, §4).  With `N = Fintype.card I` and `t = A.card`, `sizes` is the
 paper's fixed doubling schedule `ExponentialSizes N` (`m₀ = 1`, `m_{k+1} = min((6/5)m_k, √N)`):
 
@@ -55,7 +55,7 @@ theorem lemma1_unknown_count_search :
   Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected
 
 /-- The cost and correctness conclusions of Lemma 1 (p. 4, line 88) for a nonempty
-marked set `A`, extracted from the frozen BBHT contract; the paper's `O(√(N/t))` is the
+marked set `A`, extracted from the BBHT contract; the paper's `O(√(N/t))` is the
 explicit `(29/2)√(N/t)` Boolean-query clock and `(9/2)√(N/t)` expected iterations. -/
 theorem lemma1_search_conclusions
     {I : Type} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I)

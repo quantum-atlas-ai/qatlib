@@ -36,7 +36,6 @@ measurement update at a mode avoided by every gate of `gl`.
 * [Terhal and DiVincenzo, 2002][TerhalDiVincenzo2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -43,7 +43,6 @@ residual nontermination mass to `none`. Classical probabilistic computation is d
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

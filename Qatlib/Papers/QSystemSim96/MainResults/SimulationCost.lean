@@ -35,8 +35,6 @@ and one phase per value bit.
 * [Zalka, 1998][Zalka1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QftPreparation.LocalQft

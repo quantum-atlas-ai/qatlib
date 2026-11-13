@@ -26,7 +26,6 @@ explicit solution. For diagonal `D`, the V2 Taylor matrix splits into scalar blo
 -/
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis

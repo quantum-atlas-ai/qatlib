@@ -28,15 +28,11 @@ The schedule follows the unknown-success search strategy associated with [BoyerE
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 
@@ -209,6 +205,8 @@ theorem geometric_search_actual_fresh_attempt_recursion :
   intro A hA j₀ S valid m ms
   exact ⟨rfl, rfl⟩
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- States the exact result, attempt-list, candidate-list, and resource-counter updates
 performed by `prependSearchReceipt`. -/
 theorem geometric_search_receipt_actual_ledger_updates :
@@ -315,7 +313,7 @@ theorem geometric_search_actual_support_soundness_and_metadata :
                 simpa [PMF.mem_support_pure_iff] using htr2
               subst htr'
               simp only [prependSearchReceipt, emptySearchTrace, ho, hg,
-                Option.isSome_some, if_true, Option.map_some, Option.getD_some,
+                Option.isSome_some, ite_true, Option.map_some, Option.getD_some,
                 List.sum_cons, List.sum_nil, List.length_cons, List.length_nil,
                 Nat.add_zero]
               refine ⟨fun y' hy' => ?_, ⟨ms, by simp⟩, ?_, ?_, ?_, ?_⟩
@@ -327,7 +325,7 @@ theorem geometric_search_actual_support_soundness_and_metadata :
               · trivial
               · trivial
               · trivial
-            · rw [if_neg hv] at htr2
+            · rw [ite_eq_right hv] at htr2
               obtain ⟨tr', htr', htr''⟩ := (PMF.mem_support_map_iff _ _ _).mp htr2
               obtain ⟨hres, hpre, hph, hva, hpr, hma⟩ := ih tr' htr'
               obtain ⟨rfl⟩ := htr''

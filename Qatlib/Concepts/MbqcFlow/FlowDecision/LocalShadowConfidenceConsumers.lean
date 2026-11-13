@@ -31,7 +31,6 @@ records the total classical estimator work together with the shared quantum reso
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

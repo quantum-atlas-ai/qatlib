@@ -23,10 +23,7 @@ counts and a tensor-product execution formula. The background is described in [B
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
@@ -44,6 +41,8 @@ while retaining that copy's workspace. -/
 private def copySwap (j : Fin k)
     (z : (Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   ((z.2 j).1, Function.update z.2 j (z.1, (z.2 j).2))
+
+omit [Fintype W] [DecidableEq W] in
 
 /-- Exchanging the shared oracle register with the register of copy `j` twice restores the full
 configuration. -/
@@ -113,12 +112,16 @@ theorem standardCopyCircuit_unitary (j : Fin k)
         (isUnitaryCircuit_query _).mpr ((isUnitaryCircuit_gate _ _).mpr
           ⟨copySwapGate_unitary j, ih htail⟩)⟩
 
+omit [Fintype W] in
+
 /-- Routing a circuit to one copy preserves its query count. -/
 theorem standardCopyCircuit_queries (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :
     QueryCount (StandardCopyCircuit j C) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [StandardCopyCircuit, QueryCount, ih]
+
+omit [Fintype W] in
 
 /-- Routing a circuit to one copy adds exactly two gates per oracle query to its gate count. -/
 theorem standardCopyCircuit_gates (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :

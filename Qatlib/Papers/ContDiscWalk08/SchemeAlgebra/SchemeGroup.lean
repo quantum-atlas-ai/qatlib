@@ -23,11 +23,7 @@ formulas, complementing the association-scheme operators of [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -44,6 +40,8 @@ theorem phase_add (φ ψ : ℝ) : phase (φ + ψ) = phase φ * phase ψ := by
   push_cast
   rw [mul_add, Complex.exp_add]
 
+omit [Fintype J] in
+
 /-- If the matrices sum to the identity, their zero-phase sum is the identity. This supplies the
 identity operator for the construction in [Childs2010]. -/
 theorem schemeUnitary_zero {m : ℕ} (E : Fin m → Matrix J J ℂ)
@@ -52,6 +50,8 @@ theorem schemeUnitary_zero {m : ℕ} (E : Fin m → Matrix J J ℂ)
   unfold schemeUnitary phase
   simp only [mul_zero, Complex.ofReal_zero, Complex.exp_zero, one_smul]
   exact hComplete
+
+omit [DecidableEq J] in
 
 /-- For mutually orthogonal idempotents, multiplying two scheme phase sums adds their phase
 functions. See [Childs2010]. -/
@@ -98,6 +98,8 @@ theorem schemeUnitary_forall_mem_unitaryGroup {m : ℕ} (E : Fin m → Matrix J 
     (hComplete : ∑ i, E i = 1) (φ : Fin m → ℝ) :
     schemeUnitary E φ ∈ Matrix.unitaryGroup J ℂ :=
   schemeUnitary_mem_unitaryGroup E hHerm hIdem hOrth hComplete φ
+
+omit [Fintype J] [DecidableEq J] in
 
 /-- Pointwise equal phase functions give equal scheme phase sums. -/
 theorem schemeUnitary_congr {m : ℕ} (E : Fin m → Matrix J J ℂ)

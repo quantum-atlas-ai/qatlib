@@ -23,9 +23,9 @@ c006 (Result 3, `history_norm_bound`).
 
 The remaining claims are recorded as abstract statements:
 - c001 (Theorem 5, robust amplitude amplification) is stated through the
-  frozen `BlockEncoding` interface; the `m + 1` ancilla growth and the
+  shared `BlockEncoding` interface; the `m + 1` ancilla growth and the
   `O(α/(δ‖Ξ‖)·log(α/(‖Ξ‖εa)))` controlled-`U` query count are omitted
-  because the frozen interface deliberately does not model circuit
+  because the shared interface deliberately does not model circuit
   synthesis or query bounds, and no robust amplitude-amplification
   construction exists in Mathlib or in this repository.
 - c002 (Theorem 6, one-step propagator, Eq. (30)) is stated as the
@@ -39,7 +39,6 @@ The remaining claims are recorded as abstract statements:
   aggregation `∑‖u(kh)‖² ≤ M·B²` on top of the proved per-time bound,
   which is what makes the history-state preparation cost explicit.
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

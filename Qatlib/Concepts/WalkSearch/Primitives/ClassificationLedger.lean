@@ -25,7 +25,6 @@ graph-search analysis; see [Ambainis2005] for quantum search background.
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkSearch.MainResults

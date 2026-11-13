@@ -24,8 +24,6 @@ expression and its specialization to `pottsZ` at the reciprocal parameter [Gerac
 * [Geraci and Lidar, 2008][GeraciLidar2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.PottsBridge

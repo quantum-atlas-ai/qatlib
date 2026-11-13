@@ -27,8 +27,6 @@ under the marked perturbation, and verify normalization and orthogonality facts 
 * [Shenvi et al., 2003][ShenviKempeWhaley2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

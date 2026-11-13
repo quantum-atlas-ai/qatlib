@@ -37,7 +37,6 @@ open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.RootLaws
 open Qatlib.Foundations.MatrixAlgebra.TorusMoments
 open Qatlib.Foundations.MatrixAlgebra.FrameProject.Tensor
-set_option warningAsError false
 
 /-- For positive `q`, the inner product of the zero-bias Fourier columns indexed by `j` and `k`
 is one if `j = k` and zero otherwise. -/

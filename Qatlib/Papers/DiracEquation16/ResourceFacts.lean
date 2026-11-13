@@ -36,7 +36,6 @@ noncomputable section
 namespace Qatlib.Papers.DiracEquation16.ResourceFacts
 
 open Qatlib.Concepts.ResourceBounds.AsymBounds (uniformUpperBound)
-set_option warningAsError false
 
 /-- The circuit-width model `4 * nx + 2`. -/
 def circuitWidth (nx : ℕ) : ℕ := 4 * nx + 2

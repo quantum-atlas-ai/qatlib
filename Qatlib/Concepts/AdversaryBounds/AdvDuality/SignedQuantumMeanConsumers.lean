@@ -43,7 +43,6 @@ open Qatlib.Concepts.MonteCarloMean.LayeredMean
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 set_option autoImplicit false
 
 /-- Measuring the Hadamard image of `Ket false` gives each Boolean outcome probability `1 / 2`. -/

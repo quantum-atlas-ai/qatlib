@@ -319,10 +319,9 @@ DARE statements are the same decay for the powers `S_F^k` and the unit-disk penc
 Source proof (p. 95): write `H` in the basis where `Π±` are the half-plane projectors;
 the unstable part grows like `e^{-tH}Π₊`, and the stable part `e^{tH}Π₋` decays, so the
 second summand tends to zero.  The analytic decay hypothesis is exposed as `hdecay`.
-Lean gap: matrix exponential norm decay on spectral subspaces.
-Candidate dependencies: `NormedSpace.exp` growth bounds, `spectrum` calculus.
-Suggested follow-up: prove `‖e^{tH}Π₋‖ ≤ C e^{-ct}` from the spectral gap using
-`Matrix.exp_diagonal` after diagonalizing the restriction. -/
+Scope note: the theorem is conditional on `hdecay`; deriving matrix-exponential
+norm decay on spectral subspaces is outside the scope of this file. A bound of
+the form `‖e^{tH}Π₋‖ ≤ C e^{-ct}` relates this hypothesis to the spectral gap. -/
 theorem lemma_F_1_limits
     (H : Matrix (Sum n n) (Sum n n) ℂ)
     (Pip Pim : Matrix (Sum n n) (Sum n n) ℂ)

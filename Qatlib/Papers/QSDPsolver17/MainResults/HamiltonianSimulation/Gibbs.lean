@@ -9,26 +9,13 @@ import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Purified Gibbs-State Preparation Specification
+# Gibbs
 
-This module formalizes Appendix B, Lemma 44 (p. 29) of van Apeldoorn, Gilyén,
-Gribling, and de Wolf on the specification-level existence of a purified
-Gibbs-state preparation achieving trace distance at most `ε` with multiplicative
-cost overhead `Õ(√(1 / z))` given a partition-function lower bound `0 < z ≤ Tr(e^{-H})`.
-
-## Main definitions
-
-* `GibbsPreparation`: Abstract purified Gibbs-state preparation interface with
-  reduced state, trace distance, success probability, and cost overhead.
-
-## Main statements
-
-* `lemma44_purified_gibbs`: Lemma 44, purified Gibbs-state preparation accuracy
-  and `Õ(√(1 / z))` overhead bound.
-
-## References
-
-* [van Apeldoorn et al., 2020][VanApeldoornEtAl2020], Appendix B, Lemma 44, p. 29.
+The headline algorithm and resource claims in this module are proposition definitions
+with the suffix `_statement`: **Statement only — not proved in Qatlib.**
+No circuit or oracle implementation is constructed for these specifications.
+The remaining definitions and proved lemmas concern only mathematical identities.
+Resource annotations in the legacy records have no execution semantics.
 -/
 
 set_option autoImplicit false
@@ -48,34 +35,16 @@ structure GibbsPreparation (n : ℕ) where
   successProbability : Matrix (Fin n) (Fin n) ℂ → ℝ → ℝ
   costFactor : Matrix (Fin n) (Fin n) ℂ → ℝ → ℝ
 
-/-- **Lemma 44** (arXiv:1705.01843v4, p. 29).  One can probabilistically
-prepare a purified Gibbs state `|γ̃⟩_{AB}` such that, with high probability,
-`‖Tr_B(|γ̃⟩⟨γ̃|_{AB}) - e^{-H}/Tr(e^{-H})‖₁ ≤ ε`, using expected cost
-`Õ(√(n/Tr(e^{-H})))` times the complexity of Theorem 43.  If a number
-`z ≤ Tr(e^{-H})` is given, the state can be prepared unitarily with cost
-`Õ(√(n/z))` times the complexity of Theorem 43. -/
-theorem lemma44_purified_gibbs :
+/-- **Statement only — not proved in Qatlib.**
+Headline resource specification for `lemma44_purified_gibbs`.
+The records below carry independent output and resource annotations; this proposition
+does not certify an oracle execution, sampling procedure, or gate decomposition. -/
+def lemma44_purified_gibbs_statement : Prop :=
     ∃ prep : GibbsPreparation 1,
       ∀ (H : Matrix (Fin 1) (Fin 1) ℂ) (z ε : ℝ),
         (2 : ℝ) / 3 ≤ prep.successProbability H ε →
         0 < z → z ≤ (Matrix.trace (matExp H)).re → 0 < ε → ε ≤ 1 →
         prep.traceDistance H ε ≤ ε ∧
-        IsSoftO (prep.costFactor H ε) (Real.sqrt (1 / z)) (1 / ε) := by
-  classical
-  let prep : GibbsPreparation 1 :=
-    { reduced := 0
-      traceDistance := fun _ _ => 0
-      successProbability := fun _ _ => 1
-      costFactor := fun _ _ => 0 }
-  refine ⟨prep, ?_⟩
-  intro H z ε hsucc hz htr hε hε1
-  by_cases hparams :
-      (2 : ℝ) / 3 ≤ prep.successProbability H ε ∧
-        0 < z ∧ z ≤ (Matrix.trace (matExp H)).re ∧ ε ≤ 1
-  · constructor
-    · exact hε.le
-    · refine ⟨1, zero_lt_one, 0, ?_⟩
-      simpa only [prep, pow_zero, one_mul, mul_one] using Real.sqrt_nonneg (1 / z)
-  · exact False.elim (hparams ⟨hsucc, hz, htr, hε1⟩)
+        IsSoftO (prep.costFactor H ε) (Real.sqrt (1 / z)) (1 / ε)
 
 end Qatlib.Papers.QSDPsolver17.MainResults.HamiltonianSimulation

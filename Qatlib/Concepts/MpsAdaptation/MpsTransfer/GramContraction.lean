@@ -32,7 +32,6 @@ When `Xᴴ * X` is invertible, `gram_full_rank_transfer` verifies the explicit t
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Matrix

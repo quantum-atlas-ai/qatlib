@@ -18,16 +18,15 @@ set_option backward.isDefEq.respectTransparency false
 # FastMixing26.MainResults.DirichletComparison — Section 5
 
 Bergamaschi, *Fast mixing of all-to-all quantum systems at high temperatures*,
-fixed arXiv:2606.26090v2 (PDF SHA-256 70f1cf62dfec60d72f2d721539a6ffc9447afb15b950de72411b8b3b06ed2b7a).
+arXiv:2606.26090v2.
 
-The Section 5 statements (Theorem 5.1, Lemmas 5.4/5.5, claims c015–c017) are not
-formalized — their proofs are the multiscale Dirichlet-form comparison of the paper's
-Section 5 — and their statements are preserved in this branch's history.  This module
-remains as the import point for the frozen vocabulary.
+Scope note: this module imports the vocabulary for the multiscale Dirichlet-form
+comparison in Section 5.  Theorem 5.1 and Lemmas 5.4/5.5 (claims c015–c017), whose
+proofs use that comparison, are outside the scope of this file.
 
-The CKG Lindbladian `L` is `QuantumAlgorithm.Concepts.LindbladFlow.GkslSemigroup.gkslHeisenbergMap`
-(the trace dual of the Schrödinger generator); its Dirichlet form is the frozen
-`kmsDirichlet`. The Pauli generator `K = Σ_a K_a` is the frozen `kmsGeneratorFam`.
+The CKG Lindbladian `L` is `Qatlib.Concepts.LindbladFlow.GkslSemigroup.gkslHeisenbergMap`
+(the trace dual of the Schrödinger generator); its Dirichlet form is
+`kmsDirichlet`. The Pauli generator `K = Σ_a K_a` is `kmsGeneratorFam`.
 -/
 
 set_option autoImplicit false

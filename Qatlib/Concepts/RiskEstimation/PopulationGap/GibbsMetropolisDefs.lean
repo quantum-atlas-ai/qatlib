@@ -34,9 +34,7 @@ and gate ledgers, and two dimensional test operators.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 

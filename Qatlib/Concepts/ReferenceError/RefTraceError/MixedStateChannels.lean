@@ -26,5 +26,4 @@ trace-preserving maps, following the finite-dimensional framework of [Watrous201
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

@@ -28,8 +28,6 @@ three and rejecting sets of sizes zero and one.
 * [Reichardt and Spalek, 2008][ReichardtSpalek2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

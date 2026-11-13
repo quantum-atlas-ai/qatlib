@@ -30,7 +30,6 @@ discrimination application of [LloydMohseniRebentrost2014] using `twoSpeciesSign
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod

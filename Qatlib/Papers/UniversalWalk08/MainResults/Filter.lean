@@ -33,8 +33,6 @@ when the transfer parameter exceeds two.
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Filter
 
 open Matrix

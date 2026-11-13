@@ -18,8 +18,6 @@ contract supplies a basic input to the marked-state detection bounds of [Szegedy
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Matrix
 
 open Qatlib.Concepts.WalkSearch.ProjectorCS

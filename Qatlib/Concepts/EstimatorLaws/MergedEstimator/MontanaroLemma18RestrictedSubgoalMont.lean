@@ -50,7 +50,6 @@ open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase Qatlib.Concepts.MonteCarl
 namespace Qatlib.Concepts.EstimatorLaws.MergedEstimator
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- Bounds the difference of expectations of a test valued in `[0, 1]` by half the L1 distance
 between two finite probability laws. -/

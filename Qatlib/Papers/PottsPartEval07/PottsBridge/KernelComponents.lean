@@ -25,8 +25,6 @@ weight-enumerator identity [GeraciLidar2008].
 * [Geraci and Lidar, 2008][GeraciLidar2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.PottsBridge

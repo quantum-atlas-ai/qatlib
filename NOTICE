@@ -1,0 +1,29 @@
+Qatlib
+Copyright 2026 Qatlib Contributors.
+
+This distribution includes adapted source from the following Apache-2.0 projects.
+
+TauCeti
+-------
+Copyright (c) 2026 The Tau Ceti contributors.
+Repository: https://github.com/TauCetiProject/TauCeti
+Source commit: 8dca2d129899c2695bdf1c672cc9448d37843254
+Repository snapshot inspected: 3780371ca1bebf9f1c2bb3d753e4bb56c9526023
+License: Apache-2.0 (see the upstream LICENSE file).
+Adapted paths: Qatlib/Foundations/CbmdAnalysis/Residue/TauCeti/
+The TauCeti analysis and contour sources were adapted to Lean 4.35 and the
+Qatlib namespace and import layout.
+
+CausalSmith / Causalean
+-----------------------
+Copyright (c) 2026 Jiyuan Tan.
+Repository: https://github.com/Jiyuan-Tan/CausalSmith
+Source commits: e298f64908520f29348e3f480b72db63d37dd574;
+47acf19565b6c280f0f515fcf1f11f26324381c6
+Repository snapshot inspected: a7085d88d2e4b30003db7097ca374f4718da0f01
+License: Apache-2.0 (see the upstream LICENSE file).
+Adapted paths: Qatlib/Foundations/CbmdAnalysis/Approximation/Causalean/
+The Causalean Chebyshev approximation sources were adapted to Lean 4.35,
+the Qatlib.Foundations.CbmdAnalysis.Approximation namespace, and Qatlib's
+import layout. The files retain the original Jiyuan Tan copyright attribution
+and identify their upstream source commit in their headers.

@@ -9,7 +9,7 @@ import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.AlgebraicTopology.SimplexCategory.Basic
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Int.Star
+import Mathlib.Algebra.Order.Star.Int
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import Mathlib.Tactic.FieldSimp
@@ -47,11 +47,7 @@ expected phase, validation, and total query bounds.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

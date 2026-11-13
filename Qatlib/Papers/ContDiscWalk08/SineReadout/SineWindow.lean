@@ -26,11 +26,7 @@ its real part using a weighted phase-error second moment, following the readout 
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -81,6 +77,8 @@ theorem sinePhase_sub_bound (t θ φ : ℝ) :
 def sineWindowMatrix (t : ℝ) (φ : ι → ℝ) : Matrix ι ι ℂ :=
   Matrix.diagonal (fun i => sinePhase t (φ i))
 
+omit [Fintype ι] in
+
 /-- The sine-window matrix has the specified sine phase on the diagonal and zero off the
 diagonal. -/
 theorem sineWindowMatrix_apply (t : ℝ) (φ : ι → ℝ) (i j : ι) :
@@ -126,6 +124,8 @@ def idealVec (t : ℝ) (θ : ι → ℝ) (w : ι → ℂ) : QState ι :=
 (φ i)`. -/
 def simVec (t : ℝ) (φ : ι → ℝ) (w : ι → ℂ) : QState ι :=
   fun i => w i * sinePhase t (φ i)
+
+omit [DecidableEq ι] in
 
 /-- The ideal and simulated vectors have inner product equal to the sum of phase differences
 weighted by `‖w i‖ ^ 2`. This is the overlap formula underlying [Childs2010]. -/
@@ -202,6 +202,8 @@ theorem readout_fidelity_of_variance (t M : ℝ) (θ φ : ι → ℝ) (w : ι �
   rw [inner_idealVec_simVec_re]
   exact fidelity_of_variance_le (fun i => ‖w i‖ ^ 2) (fun i => sq_nonneg _) hsum θ φ t M hM hV
 
+omit [DecidableEq ι] in
+
 /-- If the squared amplitude norms sum to one, `simVec t φ w` is normalized. This verifies
 normalization for the readout model in [Childs2010]. -/
 theorem normalized_simVec (t : ℝ) (φ : ι → ℝ) (w : ι → ℂ)
@@ -210,6 +212,8 @@ theorem normalized_simVec (t : ℝ) (φ : ι → ℝ) (w : ι → ℂ)
   rw [← hsum]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [norm_mul, sinePhase_norm, mul_one]
+
+omit [DecidableEq ι] in
 
 /-- If the squared amplitude norms sum to one, `idealVec t θ w` is normalized. -/
 theorem normalized_idealVec (t : ℝ) (θ : ι → ℝ) (w : ι → ℂ)

@@ -41,7 +41,6 @@ developed in [DehaeneDeMoor2003], and the tableau setting is described in
 * [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath

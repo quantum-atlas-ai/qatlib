@@ -35,7 +35,6 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.GradientOracle.ReadoutTools
 open Qatlib
 open scoped Classical
-set_option warningAsError false
 
 /-- The difference of squared complex norms equals the real part of the conjugate difference
 multiplied by the sum. -/

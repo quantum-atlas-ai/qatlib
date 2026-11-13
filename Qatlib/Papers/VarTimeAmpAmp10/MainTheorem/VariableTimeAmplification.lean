@@ -40,7 +40,6 @@ open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -48,7 +47,6 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.MainTheorem
 
 open Matrix Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- A variable-time stage chain equipped with real overlaps satisfying a multiplicative step
 recurrence and specified initial and final overlap identities. -/

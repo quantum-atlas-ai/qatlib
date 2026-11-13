@@ -26,11 +26,10 @@ classical scale `N` (`quartic_of_two_quadratic`).  The "clever initial state"
 caveat is the statement that the preparation cost is not allowed to dominate;
 we record it as the docstring condition and do not model a specific state.
 
-Reusable dependencies (Dev binds `AmplitudeCore.AmplifyCore`,
-`AmplitudeCore.PhaseEstimation`): the amplitude-amplification/estimation stage
-is `QuantumAlgorithm.Concepts.AmplitudeCore.AmplifyCore` (its
+The amplitude-amplification/estimation stage
+is `Qatlib.Concepts.AmplitudeCore.AmplifyCore` (its
 `theorem2QuadraticSpeedup` contract) and the eigenvalue readout stage is
-`QuantumAlgorithm.Concepts.AmplitudeCore.PhaseEstimation`.
+`Qatlib.Concepts.AmplitudeCore.PhaseEstimation`.
 -/
 
 set_option autoImplicit false

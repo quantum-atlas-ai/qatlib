@@ -30,9 +30,6 @@ formulas here concern the set state and its marked circuit.
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.AmpTransform.ErrorStream
 

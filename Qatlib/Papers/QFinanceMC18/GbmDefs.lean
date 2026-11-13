@@ -26,7 +26,6 @@ and recovery of the initial stock level after discounting. The mathematical cont
 * [Rebentrost et al., 2018][RebentrostGuptBromley2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.QFinanceMC18.GbmDefs

@@ -25,8 +25,6 @@ the robustness estimate for oblivious amplification [BerryEtAl2015Taylor] explic
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath.BornBridge
 

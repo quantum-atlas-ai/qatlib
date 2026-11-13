@@ -29,7 +29,6 @@ The proposition records the complement-marked graph formulation associated with 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.Reflections

@@ -35,7 +35,6 @@ probabilities, together with exact oracle-query and macro-gate counts.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -53,8 +52,6 @@ open Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Concepts.BlockEncoding.EncodingCore
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 
@@ -102,7 +99,7 @@ theorem applyGate_modularOrderMatrix (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   rw [Finset.sum_eq_single (((a⁻¹ : (ZMod N)ˣ) : ZMod N) * x)]
   · have hmul : (a : ZMod N) * (((a⁻¹ : (ZMod N)ˣ) : ZMod N) * x) = x := by
       rw [← mul_assoc, ← Units.val_mul, mul_inv_cancel, Units.val_one, one_mul]
-    rw [if_pos hmul.symm, one_mul]
+    rw [ite_eq_left hmul.symm, one_mul]
   · intro v _ hv
     have hne : x ≠ (a : ZMod N) * v := by
       intro h
@@ -111,7 +108,7 @@ theorem applyGate_modularOrderMatrix (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
 
       rw [← mul_assoc, ← Units.val_mul, inv_mul_cancel, Units.val_one, one_mul] at h2
       exact h2.symm
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     simp
   · simp
 
@@ -170,11 +167,11 @@ theorem applyGate_modularOrderOracle (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   simp only [modularOrderOracle, ApplyGate, Matrix.mulVec, dotProduct,
     Fintype.sum_prod_type]
   rw [Finset.sum_eq_single w]
-  · simp only [BlockDiag, Matrix.of_apply, if_true]
+  · simp only [BlockDiag, Matrix.of_apply, ite_true]
   · intro u _ hu
     apply Finset.sum_eq_zero
     intro v _
-    simp only [BlockDiag, Matrix.of_apply, if_neg (Ne.symm hu), zero_mul]
+    simp only [BlockDiag, Matrix.of_apply, ite_eq_right (Ne.symm hu), zero_mul]
   · simp
 
 /-- The oracle replaces the target argument by `a⁻¹ * x` on the last clock fiber and leaves all
@@ -185,9 +182,9 @@ theorem applyGate_modularOrderOracle_fiber (N M : ℕ) [NeZero N] (a : (ZMod N)�
       if w.val + 1 = M then Ψ (w, (((a⁻¹ : (ZMod N)ˣ) : ZMod N) * x)) else Ψ (w, x) := by
   rw [applyGate_modularOrderOracle]
   by_cases hw : w.val + 1 = M
-  · rw [if_pos hw, if_pos hw]
+  · rw [ite_eq_left hw, ite_eq_left hw]
     exact applyGate_modularOrderMatrix N a _ x
-  · rw [if_neg hw, if_neg hw]
+  · rw [ite_eq_right hw, ite_eq_right hw]
     exact congrFun (applyGate_one _) x
 
 /-- Swaps two clock labels while preserving the modular target register. -/
@@ -277,9 +274,9 @@ theorem run_modularOrderSwapBlock (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y las
   rw [show Equiv.swap y last (Equiv.swap y last z) = z from by
     rw [← Equiv.trans_apply, Equiv.swap_swap, Equiv.refl_apply]]
   by_cases hz : z = y
-  · rw [if_pos ((modularOrderSwapPerm_last_iff M y last z hlast).mpr hz), if_pos hz]
-  · rw [if_neg (fun h => hz ((modularOrderSwapPerm_last_iff M y last z hlast).mp h)),
-      if_neg hz]
+  · rw [ite_eq_left ((modularOrderSwapPerm_last_iff M y last z hlast).mpr hz), ite_eq_left hz]
+  · rw [ite_eq_right (fun h => hz ((modularOrderSwapPerm_last_iff M y last z hlast).mp h)),
+      ite_eq_right hz]
 
 /-- Repeating the swap-query-swap block `k` times shifts target arguments by `a⁻ᵏ` only on clock
 fiber `y`, assuming `last` is final. -/
@@ -300,10 +297,10 @@ theorem run_modularOrderSwapBlock_repeat (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     funext p
     obtain ⟨z, x⟩ := p
     by_cases hz : z = y
-    · simp only [hz, if_true]
+    · simp only [hz, ite_true]
       congr 2
       rw [← mul_assoc, ← Units.val_mul, ← pow_succ']
-    · simp only [hz, if_false]
+    · simp only [hz, ite_false]
 
 /-- The increasing list of nonzero clock labels in `Fin M`. -/
 def modularOrderLabels (M : ℕ) : List (Fin M) :=
@@ -473,10 +470,10 @@ theorem fiberPowShift_cons (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y : Fin M)
   simp only [fiberPowShift, List.mem_cons]
   by_cases hzy : z = y
   · subst hzy
-    rw [if_pos (Or.inl rfl), if_neg hny, if_pos rfl]
+    rw [ite_eq_left (Or.inl rfl), ite_eq_right hny, ite_eq_left rfl]
   · by_cases hzys : z ∈ ys
-    · rw [if_pos (Or.inr hzys), if_pos hzys, if_neg hzy]
-    · rw [if_neg (not_or.mpr ⟨hzy, hzys⟩), if_neg hzys, if_neg hzy]
+    · rw [ite_eq_left (Or.inr hzys), ite_eq_left hzys, ite_eq_right hzy]
+    · rw [ite_eq_right (not_or.mpr ⟨hzy, hzys⟩), ite_eq_right hzys, ite_eq_right hzy]
 
 /-- For a duplicate-free label list and a final `last` label, the repeated swap-query-swap
 blocks implement `fiberPowShift`. -/
@@ -522,11 +519,11 @@ theorem fiberPowShift_tensorState_uniform_ket_one (N M : ℕ) [NeZero N] (a : (Z
       (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
         (if x = ((a ^ z.val : (ZMod N)ˣ) : ZMod N) then 1 else 0) := by
   by_cases hz : z ∈ modularOrderLabels M
-  · simp only [fiberPowShift, if_pos hz]
+  · simp only [fiberPowShift, ite_eq_left hz]
     simp only [TensorState, Qatlib.Foundations.PureStateMath.Ket]
     congr 1
     simp only [inv_pow_mul_eq_one_iff N a z.val x]
-  · simp only [fiberPowShift, if_neg hz]
+  · simp only [fiberPowShift, ite_eq_right hz]
     have hzv : z.val = 0 := by
       by_contra h
       exact hz (mem_modularOrderLabels.mpr h)
@@ -546,7 +543,7 @@ theorem controlledPowers_modularOrderMatrix_tensorState_ket_one_apply (N M : ℕ
   simp only [ControlledPowers, Matrix.mulVec, dotProduct, Matrix.of_apply,
     Fintype.sum_prod_type]
   rw [Finset.sum_eq_single z]
-  · simp only [if_true]
+  · simp only [ite_true]
     have hfactor : (∑ x' : ZMod N, (modularOrderMatrix N a ^ z.val) x x' *
           TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N))
             (z, x'))
@@ -564,7 +561,7 @@ theorem controlledPowers_modularOrderMatrix_tensorState_ket_one_apply (N M : ℕ
   · intro w _ hw
     apply Finset.sum_eq_zero
     intro x' _
-    rw [if_neg hw.symm]
+    rw [ite_eq_right hw.symm]
     simp
   · simp
 
@@ -578,7 +575,7 @@ theorem modularLast_val_add_one (M : ℕ) (hM : 0 < M) :
 
 /-- Prepares the uniform clock, runs the modular-order loop, and applies the inverse clock
 Fourier transform; for `M = 0` it is empty. -/
-noncomputable def modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
+noncomputable def modularOrderCircuit (N M : ℕ) [NeZero N] (_a : (ZMod N)ˣ) :
     Circuit (Fin M × ZMod N) :=
   if hM : 0 < M then
     [Step.gate (TensorGate (Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare
@@ -661,7 +658,7 @@ theorem run_modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 
         (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M)) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N))) =
       qpeOutput M (modularOrderMatrix N a) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N)) := by
   unfold modularOrderCircuit
-  rw [dif_pos hM, run_append, run_append]
+  rw [dite_eq_left hM, run_append, run_append]
   simp only [run_gate, run_nil]
   rw [applyGate_prepGate_ket_zero N M hM, run_modularOrderCircuit_loop N M a hM]
   rfl
@@ -688,7 +685,7 @@ theorem modular_order_exact_query_macro_ledger :
         GateCount (modularOrderCircuit N M a) = M * (M - 1) + 2 := by
   intro N M _ a hM
   unfold modularOrderCircuit
-  rw [dif_pos hM]
+  rw [dite_eq_left hM]
   refine ⟨?_, ?_, ?_⟩
   · rw [isUnitaryCircuit_append, isUnitaryCircuit_append]
     refine ⟨⟨?_, isUnitaryCircuit_modularOrderLoop N M (modularLast M hM)⟩, ?_⟩
@@ -837,14 +834,14 @@ theorem orbitFourier_coeff_rotate (r : ℕ) (hr : 0 < r) (s j : Fin r) :
   | succ n =>
     rw [coe_finRotate]
     by_cases hj : j = Fin.last n
-    · rw [if_pos hj]
+    · rw [ite_eq_left hj]
       subst j
       simp only [Fin.val_last, Nat.cast_zero, zero_mul, neg_zero, zpow_zero, mul_one]
       have he : -((n : ℤ) * s.val) = (s.val : ℤ) + -(((n + 1 : ℕ) : ℤ) * s.val) := by
         push_cast
         ring
       rw [he, zpow_add₀ (primRoot_ne_zero _), hp, mul_one, mul_comm]
-    · rw [if_neg hj]
+    · rw [ite_eq_right hj]
       push_cast
       rw [mul_left_comm, ← zpow_add₀ (primRoot_ne_zero _)]
       congr 1
@@ -863,11 +860,11 @@ theorem modularOrbit_rotate (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   | succ n =>
     rw [coe_finRotate]
     by_cases hj : j = Fin.last n
-    · rw [if_pos hj]
+    · rw [ite_eq_left hj]
       subst j
       simp only [Fin.val_last, pow_zero, Units.val_one]
       rw [← Units.val_mul, ← pow_succ', ← he, pow_orderOf_eq_one, Units.val_one]
-    · rw [if_neg hj, ← Units.val_mul, ← pow_succ']
+    · rw [ite_eq_right hj, ← Units.val_mul, ← pow_succ']
 
 /-- The orbit Fourier state indexed by `s` is an eigenvector of modular multiplication with
 eigenvalue `primRoot (orderOf a) ^ s.val`. -/
@@ -926,8 +923,8 @@ theorem modular_order_born_uniform_orbit_spectrum :
     (fun s => (s.val : ℝ) / (orderOf a : ℝ))
     (fun j k => by
       by_cases hj : j = k
-      · simpa only [if_pos hj] using! modularOrbitFourier_orthonormal N a j k
-      · simpa only [if_neg hj] using! modularOrbitFourier_orthonormal N a j k)
+      · simpa only [ite_eq_left hj] using! modularOrbitFourier_orthonormal N a j k
+      · simpa only [ite_eq_right hj] using! modularOrbitFourier_orthonormal N a j k)
     (fun j => by simpa only [Complex.ofReal_div] using! modularOrbitFourier_eigen N a j)]
   simp_rw [modularOrbitFourier_weight]
   exact (Finset.mul_sum _ _ _).symm

@@ -28,7 +28,6 @@ its columns to span the ambient space. See [Watrous2018] for the quantum measure
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.Reflection

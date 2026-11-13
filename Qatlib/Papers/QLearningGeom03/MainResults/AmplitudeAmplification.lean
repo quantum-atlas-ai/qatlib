@@ -29,8 +29,6 @@ gives the success and query bounds used for amplified impatient learning in [Hun
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unnecessarySeqFocus false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -53,7 +51,9 @@ noncomputable def groverStep (θ : ℝ) (x : AmplState) : AmplState :=
 /-- Reflection in the first coordinate axis preserves the first coordinate and negates the
 second. -/
 lemma refl_target (x : AmplState) : planeRefl (1, 0) x = (x.1, -x.2) := by
-  apply Prod.ext <;> simp [planeRefl] <;> ring
+  apply Prod.ext
+  all_goals simp [planeRefl]
+  ring
 
 /-- The coordinate formula for `groverStep θ` in terms of cos(2θ) and sin(2θ). -/
 lemma groverStep_apply (θ : ℝ) (x : AmplState) :

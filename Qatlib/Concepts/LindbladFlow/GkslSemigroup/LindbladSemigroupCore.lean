@@ -46,7 +46,6 @@ It also relates Kraus representations to Choi positivity and derives stationarit
 * [Choi, 1975][Choi1975]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

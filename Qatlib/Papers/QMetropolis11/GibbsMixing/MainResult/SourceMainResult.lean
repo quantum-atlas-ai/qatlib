@@ -37,9 +37,9 @@ discursive, not propositions about a formal model; they are recorded here but
 not asserted as Lean theorems.
 
 Reused FQNs:
-* `QuantumAlgorithm.Papers.QMetropolis11.AcceptanceCoin.coherentInstrumentSubgoal`;
-* `QuantumAlgorithm.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`;
-* `QuantumAlgorithm.Concepts.MixedInstrument.RewindAlgebra.rejectionFailureBound`.
+* `Qatlib.Papers.QMetropolis11.AcceptanceCoin.coherentInstrumentSubgoal`;
+* `Qatlib.Concepts.QuantumGibbs.DetailedBalance.quantumDetailedBalanceFixedPoint`;
+* `Qatlib.Concepts.MixedInstrument.RewindAlgebra.rejectionFailureBound`.
 -/
 
 set_option autoImplicit false
@@ -49,7 +49,7 @@ namespace Qatlib.Papers.QMetropolis11.GibbsMixing.MainResult
 /-- **c018 (abstract / main result).**  The three formalised pillars of the
 quantum Metropolis sampler: the coherent accept/reject instrument, the
 detailed-balance fixed point (Gibbs state as steady state), and the
-exponentially small reject-failure probability.  Assembled from the frozen
+exponentially small reject-failure probability.  Assembled from the established
 contracts; no new analytic content. -/
 theorem source_mainResult :
     Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoal ∧

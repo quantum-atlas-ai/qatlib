@@ -39,7 +39,6 @@ See [AnChildsLin2026] for the mathematical setting.
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-
 open Qatlib.Foundations.OperatorErrors.OperatorError
 
 set_option autoImplicit false
@@ -52,7 +51,6 @@ namespace Qatlib.Concepts.LchsSimulation.Kernel
 open MeasureTheory Set
 open Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder Topology
-set_option warningAsError false
 
 /-- The positive normalization factor `2 * Real.pi * Real.exp (-(2 : ℝ)^β)` for the
 principal-power kernel. -/

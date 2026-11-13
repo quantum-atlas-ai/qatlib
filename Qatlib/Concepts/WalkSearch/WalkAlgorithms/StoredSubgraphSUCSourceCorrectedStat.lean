@@ -28,8 +28,6 @@ perspective on quantum-walk search [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- The stored-subgraph contract for symmetric loop-free adjacency, specifying induced-edge

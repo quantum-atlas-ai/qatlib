@@ -39,11 +39,8 @@ truncation index. The mathematical background is developed in [GilyenSuLowWiebe2
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open scoped BigOperators
-
-
 
 namespace Qatlib.Concepts.QsvtCore.ApproxToolkit
 open Matrix Polynomial
@@ -61,7 +58,6 @@ open Polynomial Real
 open scoped BigOperators
 open Qatlib
 open Real intervalIntegral MeasureTheory Polynomial
-set_option warningAsError false
 noncomputable section
 
 /-- The central binomial coefficient `choose (2 * i) i`, normalized by `4 ^ i` and viewed as a

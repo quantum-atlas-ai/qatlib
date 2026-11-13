@@ -27,8 +27,6 @@ The result establishes the packaged `Corollary10RealQSP` formulation associated 
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.QsvtCore.LinearSystems
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis

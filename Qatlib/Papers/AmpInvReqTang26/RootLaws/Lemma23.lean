@@ -38,7 +38,6 @@ namespace Qatlib.Papers.AmpInvReqTang26.RootLaws
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The chosen `q`th root of unity raised to the positive order `q` equals one. -/
 theorem omega_pow_card (q : ℕ) (hq : 0 < q) : omega q ^ q = 1 := by

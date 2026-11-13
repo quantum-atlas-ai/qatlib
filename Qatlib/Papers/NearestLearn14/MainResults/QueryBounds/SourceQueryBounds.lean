@@ -32,15 +32,15 @@ preparation budgets of Lemma 11 (`|a₀| = 8/π²`) and Lemma 12
 (B41) (`|a₀| = 8/π²`, one amplitude instead of two).  The paper's quantum
 algorithmic side (the samplers and circuits realizing those amplitudes) is
 consumed as the input budget `Q`; it is exactly the interface at which the
-shared Frozen blocks `QuantumAlgorithm.Concepts.AmplitudeCore.AmplifyCore`
+shared Frozen blocks `Qatlib.Concepts.AmplitudeCore.AmplifyCore`
 (deterministic amplification from a known amplitude) and
-`QuantumAlgorithm.Concepts.QueryComplexity.Amplification`
+`Qatlib.Concepts.QueryComplexity.Amplification`
 (query accounting for repeated subroutines) are reused.
 
 Boundary: these theorems state the source's closed-form query counts and the
 composition identities between them; they do not re-derive the amplitude
 estimation sampler itself (that is the Frozen
-`QuantumAlgorithm.Concepts.AEMeanReadout.*` layer).
+`Qatlib.Concepts.AEMeanReadout.*` layer).
 -/
 
 set_option autoImplicit false

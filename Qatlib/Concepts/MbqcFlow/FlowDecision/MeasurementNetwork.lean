@@ -38,7 +38,6 @@ quantum-information setting of [Watrous2018], with teleportation as in
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

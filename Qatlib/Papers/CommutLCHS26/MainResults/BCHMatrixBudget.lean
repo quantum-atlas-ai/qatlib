@@ -30,7 +30,6 @@ logarithm in `norm_existing_word_log_le`, giving the reciprocal squared degree b
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

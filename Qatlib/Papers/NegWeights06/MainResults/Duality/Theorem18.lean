@@ -20,7 +20,7 @@ Theorem 18 (Duality of adversary bounds), §6, printed page 17:
 
 The paper-layer theorem is a reference/bridge to the frozen strong-duality
 theorem
-`QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.advAlphaR_eq_minimax`,
+`Qatlib.Concepts.AdversaryBounds.AdvDuality.advAlphaR_eq_minimax`,
 which proves the equality on every finite observable Boolean input domain with
 positive coordinate costs; the flat domain `Fin n → Bool` is the paper's
 `{0,1}^n`.  The paper's implicit nonconstancy of `f` is made explicit: for a

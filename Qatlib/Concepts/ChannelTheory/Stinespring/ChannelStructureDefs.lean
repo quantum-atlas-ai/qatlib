@@ -34,7 +34,6 @@ and qubit moment predicates for subsequent averaging results.
 * [Stinespring, 1955][Stinespring1955]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath

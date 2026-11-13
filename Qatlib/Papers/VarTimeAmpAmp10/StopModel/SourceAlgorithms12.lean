@@ -39,12 +39,11 @@ component to stage `i+1`.  The mathematical content used later:
   `T_{i+1} = (2·k_i + 1)·(T_i + 2^i)` (the `2^i` is the stage-`i` preparation);
 * the final good component is a scalar multiple of the original good ray.
 
-The frozen library proves exactly this as
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.StopModel.cascadePrefixTransport_answer`
+The library proves these properties as
+`Qatlib.Papers.VarTimeAmpAmp10.StopModel.cascadePrefixTransport_answer`
 (the `CascadePrefixTransport` Prop).  The paper-layer theorem below states the
 four clauses for explicit stages, history, initial running ket and schedule and
-derives them from that frozen result.  Reused FQN:
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.StopModel.cascadePrefixTransport_answer`.
+derives them from that result.
 The success-probability bookkeeping `r_i` / `r_i'` of eq. (4) and the time
 bounds of eq. (5)–(6) are the separate claims c003 (Lemma 2) and c004
 (Lemma 3); this file covers the stage construction itself.

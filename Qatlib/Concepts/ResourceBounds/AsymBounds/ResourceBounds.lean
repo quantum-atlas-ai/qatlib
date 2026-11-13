@@ -59,7 +59,6 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBounds
 open Matrix
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

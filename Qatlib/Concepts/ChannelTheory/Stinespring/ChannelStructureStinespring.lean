@@ -38,7 +38,6 @@ together with identity-channel and nonunitary reset-channel examples.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Naimark

@@ -29,10 +29,7 @@ maximum-column norm. See [ChildsKothari2010] for the surrounding analysis.
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 open Matrix Finset
@@ -99,6 +96,8 @@ lemma specNorm_sum_le {m : ℕ} (S : Fin m → Matrix ι ι ℂ) :
   rw [specNorm_eq_l2]
   calc ‖∑ l, S l‖ ≤ ∑ l, ‖S l‖ := norm_sum_le _ _
     _ = ∑ l, specNorm (S l) := by simp [specNorm_eq_l2]
+
+omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
 /-- An entrywise additive decomposition of absolute-value matrices remains additive after
 mapping the real entries into the complex numbers [ChildsKothari2010]. -/

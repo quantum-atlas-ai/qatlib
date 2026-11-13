@@ -30,8 +30,6 @@ flattening of valid address pairs and correctness of XOR lookup through the flat
 * [von Burg et al., 2021][VonBurgEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -28,7 +28,6 @@ This proposition records the corrected witness hypothesis for the effective-gap 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.Reflections

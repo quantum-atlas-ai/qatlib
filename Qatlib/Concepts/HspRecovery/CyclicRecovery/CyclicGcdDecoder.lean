@@ -31,11 +31,9 @@ gate, and Euclidean-step budgets. This develops cyclic period postprocessing in 
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -393,13 +391,13 @@ theorem cyclic_candidate_actual_two_query_verification (N r m : ℕ) (hN : 0 < N
   · rw [cyclicVerifiedDecode_def]
     by_cases hc : f (⟨0, hN⟩ : Fin N) =
         f (⟨(cyclicPeriodDecode N ω) % N, Nat.mod_lt _ hN⟩ : Fin N)
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       constructor
       · intro h
         exact Option.some.inj h
       · intro h
         rw [h]
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       constructor
       · intro h
         cases h
@@ -409,11 +407,11 @@ theorem cyclic_candidate_actual_two_query_verification (N r m : ℕ) (hN : 0 < N
     rw [cyclicVerifiedDecode_def] at h
     by_cases hc : f (⟨0, hN⟩ : Fin N) =
         f (⟨(cyclicPeriodDecode N ω) % N, Nat.mod_lt _ hN⟩ : Fin N)
-    · rw [if_pos hc] at h
+    · rw [ite_eq_left hc] at h
       have h1 : cyclicPeriodDecode N ω = p' := Option.some.inj h
       rw [← h1]
       exact hcond.mp hc
-    · rw [if_neg hc] at h
+    · rw [ite_eq_right hc] at h
       cases h
   · intro x
     show ApplyGate (AddOracle f) (Ket (x, (0 : R))) = Ket (x, f x)
@@ -437,11 +435,11 @@ theorem cyclicSampleDist_probOf (N r : ℕ) (hN : 0 < N) (f : Fin N → R)
   show (∏ i, (cyclicSampleDist N hN f).prob (ω i)) = _
   rw [Finset.prod_congr rfl (fun i _ => hprob (ω i))]
   by_cases hs : ∀ i, (N / r) ∣ (ω i).val
-  · rw [if_pos hs, Finset.prod_congr rfl (fun i _ => if_pos (hs i)),
+  · rw [ite_eq_left hs, Finset.prod_congr rfl (fun i _ => ite_eq_left (hs i)),
       Finset.prod_const, Finset.card_univ, Fintype.card_fin]
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     obtain ⟨i, hi⟩ := not_forall.mp hs
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- Events that agree on all supported cyclic record sequences have equal probabilities under
 the exact collision promise. -/
@@ -649,7 +647,7 @@ theorem cyclic_verified_recovery_probability (N r m : ℕ) (hN : 0 < N) (f : Fin
     · exfalso
       exact hpr ((cyclic_candidate_actual_two_query_verification N r m hN f ω hr hrdvd hcol
         hsupp).2.1 p hvp)
-    · rw [if_neg hsupp]
+    · rw [ite_eq_right hsupp]
 
 /-- With `m = Nat.log2 N + 1 + k`, verified recovery has success probability at least `1 - 2 ^
 (-k)`, uses `m + 2` queries including verification and `2 * m` sampling gate macros, and has

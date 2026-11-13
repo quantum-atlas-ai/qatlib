@@ -32,7 +32,6 @@ expressing the mixed and entangled extensions of teleportation in
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -44,8 +43,6 @@ namespace Qatlib.Concepts.QuditTeleport.TeleportCore
 
 open Matrix
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Summing a fixed scalar multiple over the four Boolean outcome pairs multiplies its scalar by
 four. -/
@@ -169,7 +166,6 @@ theorem bell_corrected_channel_and_mass :
         (fun o _ => teleportCorrectedInstrument_branch_apply ρ o),
       sum_univ_boolPair_smul, show ((4 : ℂ) * (1 / 4 : ℂ)) = 1 from by norm_num, one_smul]
 
-set_option linter.unusedVariables false in
 
 /-- For every density operator, each Bell outcome has probability one quarter and its
 conditional corrected state equals the input [BennettEtAl1993Teleportation]. -/

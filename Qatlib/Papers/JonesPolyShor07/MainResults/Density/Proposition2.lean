@@ -24,8 +24,6 @@ the two-element cardinality needed for the base-sector analysis. See [ShorJordan
 * [Shor and Jordan, 2008][ShorJordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

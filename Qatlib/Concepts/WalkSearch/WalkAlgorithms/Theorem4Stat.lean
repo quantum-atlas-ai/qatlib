@@ -21,8 +21,6 @@ The underlying triangle-search complexity is discussed in [Ambainis2005].
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- The triangle-search proposition `theorem4WalkFreshValidation`, using least-power subset

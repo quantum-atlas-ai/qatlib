@@ -25,8 +25,6 @@ generator of that group, the module proves existence and uniqueness of an expone
 * [Brassard and Hoyer, 1997][BrassardHoyer1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 

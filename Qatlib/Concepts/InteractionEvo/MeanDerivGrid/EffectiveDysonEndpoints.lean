@@ -30,7 +30,6 @@ programs in the framework of [LowWiebe2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.InteractionEvo.EffCosts

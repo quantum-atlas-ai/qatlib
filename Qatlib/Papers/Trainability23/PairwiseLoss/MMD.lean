@@ -31,8 +31,6 @@ coordinatewise discrepancy and gives product and exponential-sum forms of `gauss
 * [Rudolph et al., 2024][RudolphEtAl2024]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.Trainability23.VarianceScaling

@@ -34,7 +34,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 namespace Qatlib.Concepts.InteractionEvo.EffCosts
 open Matrix
-set_option warningAsError false
 
 /-- For Hermitian `A` and `B`, evolution under `A + B` equals evolution under `A` multiplied by
 the ordered interaction picture evolution from zero to `t`. See [Low and Wiebe, Equation

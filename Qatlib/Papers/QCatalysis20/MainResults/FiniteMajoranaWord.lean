@@ -25,7 +25,6 @@ vector as the coefficients of the conjugated first Majorana. See [VonBurgEtAl202
 * [von Burg et al., 2021][VonBurgEtAl2021]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

@@ -18,14 +18,14 @@ that the failure probability after `n ≥ 2` rounds obeys
 `p_fail(n) ≤ d*(1-d*)(d*² + (1-d*)²)^n`,                        (6)
 `p_fail(n) ≤ 1/(2(n+1)) (1/(1+1/n))^n ≈ 1/(2e(n+1))`.            (7)
 
-The frozen contract `RejectionFailureBound` formalises the actual finite
+The formal contract `RejectionFailureBound` formalises the actual finite
 Kraus-word recursion `Σ_s ‖W_s ξ‖²` with `W_s = P₀ Q_s P₀` and proves the
 strict universal bound `≤ 1/(2(n+1))`.  It records in its docstring why the
 middle expression, not `1/(2e(n+1))`, is the exact finite-`n` maximum of
 `d(1-d)(d²+(1-d)²)^n`; the `e`-constant is asymptotic.
 
 Reused FQNs:
-`QuantumAlgorithm.Concepts.MixedInstrument.RewindAlgebra.rejectionFailureBound`
+`Qatlib.Concepts.MixedInstrument.RewindAlgebra.rejectionFailureBound`
 and `rejectFailProb` (same namespace).
 -/
 
@@ -52,7 +52,7 @@ theorem source_rejection_failure_le (P Q : Operator D)
     rejectFailProb P Q ψ n ≤ 1 / (2 * (n + 1)) :=
   rejectionFailureBound D P Q hPs hPi hQs hQi ψ hnorm hψ n hn
 
-/-- **c005, full claim.**  The frozen `RejectionFailureBound` contract in one
+/-- **c005, full claim.**  The `RejectionFailureBound` contract in one
 line.  Reused FQN:
 `...RewindAlgebra.rejectionFailureBound`. -/
 theorem source_rejectionFailureBound : RejectionFailureBound :=

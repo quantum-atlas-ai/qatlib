@@ -30,8 +30,6 @@ windows and constants are part of the propositions and are examined by subsequen
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- The original graph-collision contract asserting a subset parameter, soundness, a finite-seed

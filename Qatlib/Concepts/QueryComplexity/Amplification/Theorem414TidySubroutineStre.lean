@@ -27,11 +27,9 @@ desired answer, within the stated gate budget, as in the cleaning argument of [B
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.CircuitReversal.ReversalAlgebra
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.QueryComplexity.Amplification
 

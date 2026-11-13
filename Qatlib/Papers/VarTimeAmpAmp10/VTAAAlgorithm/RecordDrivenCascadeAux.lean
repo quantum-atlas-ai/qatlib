@@ -47,7 +47,6 @@ noncomputable section
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 variable {C : Type} [Fintype C] [DecidableEq C]
 
 omit [Fintype C] [DecidableEq C] in

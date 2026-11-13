@@ -29,7 +29,6 @@ eigenstates of the weighted sum and serves as an auxiliary qubitization statemen
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding

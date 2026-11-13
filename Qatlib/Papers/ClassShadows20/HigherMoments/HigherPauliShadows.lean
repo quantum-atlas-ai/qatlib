@@ -29,9 +29,7 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.ShadowModels.ShadowChannel

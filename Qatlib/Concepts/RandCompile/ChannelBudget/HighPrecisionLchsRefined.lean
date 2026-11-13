@@ -52,7 +52,6 @@ open Filter
 open Set
 open Complex
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ComplexConjugate Topology
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

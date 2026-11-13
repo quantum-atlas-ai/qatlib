@@ -24,7 +24,6 @@ lemmas support the canonical-form analysis of stabilizer circuits.
 The source is [AaronsonGottesman2004]; stabilizer and binary-matrix background
 is [Gottesman, *Stabilizer Codes and Quantum Error Correction*][Gottesman1997].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

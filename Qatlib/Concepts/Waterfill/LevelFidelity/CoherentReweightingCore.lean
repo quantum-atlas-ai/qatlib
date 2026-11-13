@@ -28,14 +28,11 @@ overlap, and query-budget statements for applications of quantum rejection sampl
 * [Ozols et al., 2013][OzolsRoettelerRoland2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.Waterfill.LevelFidelity
 

@@ -28,7 +28,6 @@ candidate count. For background on quantum search and amplitude amplification, s
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.Primitives
 set_option autoImplicit false
 noncomputable section

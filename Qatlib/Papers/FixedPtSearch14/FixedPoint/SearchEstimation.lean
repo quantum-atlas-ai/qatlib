@@ -32,7 +32,6 @@ their stated input promises.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -68,8 +67,6 @@ open BHMTTh17
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 namespace SearchEstimationCore

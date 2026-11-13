@@ -25,11 +25,7 @@ used in the tree simulation discussion of [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -162,7 +158,7 @@ theorem treeAdjacency_eq_forests (u v : Fin N) :
       forestMatrix T Even u v + forestMatrix T Odd u v := by
   unfold treeAdjacency forestMatrix
   by_cases h : IsTreeEdge T u v
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
 
     have hmain : ∀ (w : Fin N), (∀ c, starEdge T c u v ↔ c = w) →
         (if ∃ c, Even (T.depth c) ∧ starEdge T c u v then (1 : ℂ) else 0) +
@@ -181,24 +177,24 @@ theorem treeAdjacency_eq_forests (u v : Fin N) :
         · intro hc
           exact ⟨w, hc, (hstar w).mpr rfl⟩
       by_cases hb : Even (T.depth w)
-      · rw [if_pos (hE.mpr hb),
-          if_neg (fun ho => (Nat.not_even_iff_odd.mpr (hO.mp ho)) hb)]
+      · rw [ite_eq_left (hE.mpr hb),
+          ite_eq_right (fun ho => (Nat.not_even_iff_odd.mpr (hO.mp ho)) hb)]
         norm_num
       · have hb' : Odd (T.depth w) := by
           rcases Nat.even_or_odd (T.depth w) with h' | h'
           · exact absurd h' hb
           · exact h'
-        rw [if_neg (fun he => hb (hE.mp he)), if_pos (hO.mpr hb')]
+        rw [ite_eq_right (fun he => hb (hE.mp he)), ite_eq_left (hO.mpr hb')]
         norm_num
     rcases h with h1 | h1
     · exact (hmain v (starEdge_iff_of_parent T h1)).symm
     · exact (hmain u (starEdge_iff_of_parent' T h1)).symm
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hE : ¬ ∃ c, Even (T.depth c) ∧ starEdge T c u v :=
       fun ⟨c, _, hsc⟩ => h (starEdge_isTreeEdge T hsc)
     have hO : ¬ ∃ c, Odd (T.depth c) ∧ starEdge T c u v :=
       fun ⟨c, _, hsc⟩ => h (starEdge_isTreeEdge T hsc)
-    rw [if_neg hE, if_neg hO]
+    rw [ite_eq_right hE, ite_eq_right hO]
     norm_num
 
 end Qatlib.Papers.ContDiscWalk08.TreeSimulation

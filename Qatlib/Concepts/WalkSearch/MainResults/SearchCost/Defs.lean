@@ -28,8 +28,6 @@ cost bounds and verifies the positivity and logarithmic estimates for the schedu
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 

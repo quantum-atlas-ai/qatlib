@@ -24,7 +24,6 @@ fit the complexity framework of [KitaevShenVyalyi2002].
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.ResourceBounds.AsymBounds

@@ -32,13 +32,10 @@ conventions discussed in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
 
 noncomputable section
 
@@ -169,7 +166,7 @@ theorem cpExponent_quarter_turns {n : ℕ} (a c : Fin n) (k : ℕ) (neg : Bool) 
   interval_cases k <;> cases neg <;>
     by_cases ha : x a = true <;> by_cases hc : x c = true <;>
       simp [cpExponent, cpQuarterTurns, ha, hc, dyadicPhaseAngle] <;>
-    push_cast <;> ring
+    ring
 
 /-- For a fixed controlled-phase word, the total exponent equals the sum of its integer phase
 counts times `π / 4`. -/
@@ -261,9 +258,11 @@ theorem parityPhaseWord_exponent {n : ℕ} (a c : Fin n) (k : ℕ) (neg : Bool) 
     wordExponent (parityPhaseWord a c k neg) x
       = if x a = x c then 0 else dyadicPhaseAngle k neg := by
   have hpred := dyadicPhaseAngle_pred_neg k neg hk
-  by_cases ha : x a = true <;> by_cases hc : x c = true <;>
-    simp [parityPhaseWord, wordExponent, cpExponent, ha, hc] <;>
-    try rw [hpred] <;> ring
+  by_cases ha : x a = true
+  all_goals by_cases hc : x c = true
+  all_goals
+    simp [parityPhaseWord, wordExponent, cpExponent, ha, hc];
+    try rw [hpred]; ring
 
 /-- For a positive exponent, `parityPhaseWord` realizes the corresponding `parityPhaseMatrix`. -/
 theorem parityPhaseWord_matrix {n : ℕ} (a c : Fin n) (k : ℕ) (neg : Bool) (hk : 1 ≤ k) :
@@ -283,8 +282,7 @@ theorem parityPhaseWord_matrix {n : ℕ} (a c : Fin n) (k : ℕ) (neg : Bool) (h
   congr 1
   funext x
   by_cases ha : x a = true <;> by_cases hc : x c = true <;>
-    simp [wordPhase, hexp, ha, hc] <;>
-    ring
+    simp [wordPhase, hexp, ha, hc]
 
 /-- A controlled phase of angle `2θ` multiplied by the parity phase of angle `θ` equals the
 product of the two single-wire phase matrices of angle `θ`. -/

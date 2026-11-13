@@ -33,7 +33,6 @@ open scoped BigOperators
 namespace Qatlib.Papers.AmpInvReqTang26.RootLaws
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Foundations.MatrixAlgebra.TorusMoments
-set_option warningAsError false
 
 /-- For positive `q`, the chosen root `omega q` has `q`th power one. -/
 theorem actual_omega_pow_card (q : ℕ) (hq : 0<q) : omega q^q=1 := by

@@ -30,7 +30,6 @@ frame range through endpoint sources and signed interior τ images, in the spect
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits

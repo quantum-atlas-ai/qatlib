@@ -28,8 +28,6 @@ inverse-fourth-power bound, then combines the corresponding estimates for [Child
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.UniversalComputer
 
 open Matrix

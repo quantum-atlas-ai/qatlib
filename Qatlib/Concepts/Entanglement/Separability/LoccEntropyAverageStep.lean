@@ -20,7 +20,6 @@ The entanglement setting is surveyed in [HorodeckiEtAl2009] and
 foundational source in [LiebRuskai1973].
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -30,7 +29,6 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 

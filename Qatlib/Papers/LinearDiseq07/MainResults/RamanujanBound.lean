@@ -115,8 +115,6 @@ through a Ramanujan sum, with elementary totient identities.
 * [Ivanyos, 2008][Ivanyos2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

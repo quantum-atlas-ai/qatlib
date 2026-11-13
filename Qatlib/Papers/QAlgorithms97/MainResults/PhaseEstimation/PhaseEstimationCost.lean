@@ -27,7 +27,6 @@ elementary QFT gates, matching the resource accounting discussed in [CleveEtAl19
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

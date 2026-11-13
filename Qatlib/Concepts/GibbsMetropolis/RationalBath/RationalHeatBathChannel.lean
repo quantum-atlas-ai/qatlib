@@ -36,7 +36,6 @@ system. See [TemmeEtAl2011] for background.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -53,9 +52,6 @@ namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 
 open Matrix
 open scoped ComplexOrder Classical BigOperators Matrix.Norms.L2Operator ENNReal
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The diagonal density with entries equal to the integer weights divided by their positive
 total. -/

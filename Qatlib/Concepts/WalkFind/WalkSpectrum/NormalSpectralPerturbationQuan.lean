@@ -28,9 +28,7 @@ analysis of Johnson walks. See [Bhatia1997] for the mathematical background.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 

@@ -23,8 +23,6 @@ arguments. See [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.BlockEncoding
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

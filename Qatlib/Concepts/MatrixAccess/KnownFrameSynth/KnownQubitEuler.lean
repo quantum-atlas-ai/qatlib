@@ -38,7 +38,6 @@ The elementary gate decomposition follows the setting of [BarencoEtAl1995].
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -50,10 +49,6 @@ open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
 namespace Qatlib.Concepts.MatrixAccess.KnownFrameSynth
 
 open Matrix
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
 
 /-- Four real parameters specifying a global phase and a phase-rotation-phase decomposition of a
 qubit unitary. -/

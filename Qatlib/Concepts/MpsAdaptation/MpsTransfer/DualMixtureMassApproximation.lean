@@ -26,7 +26,6 @@ mixture sampling for the dual constructions motivated by [BrandaoSvore2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer.Family

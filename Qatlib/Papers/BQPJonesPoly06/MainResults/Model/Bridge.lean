@@ -29,8 +29,6 @@ preserved vector in the larger complementary subspace. See [AharonovArad2011].
 * [Aharonov and Arad, 2011][AharonovArad2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model

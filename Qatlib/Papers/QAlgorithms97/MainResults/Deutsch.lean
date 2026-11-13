@@ -23,8 +23,6 @@ corresponding output probabilities with an exact one-query count, following [Cle
 * [Cleve et al., 1998][CleveEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

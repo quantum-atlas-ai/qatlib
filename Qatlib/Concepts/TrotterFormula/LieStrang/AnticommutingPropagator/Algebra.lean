@@ -27,8 +27,6 @@ identities, using the matrix-algebra setting of [Bhatia1997].
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator

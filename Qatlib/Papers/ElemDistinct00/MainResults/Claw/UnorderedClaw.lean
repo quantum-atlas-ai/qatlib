@@ -16,6 +16,9 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 complexity. Its two branches are selected by whether `M ≤ N²`, and the module provides
 simplification lemmas for each regime.
 
+This defines a scalar function and proves its branch identities; it does not
+prove `ClawQ2UpperBound clawQ2UpperFunction` or construct a claw algorithm.
+
 The mathematical setting follows [BuhrmanEtAl2005].
 
 ## Main statements
@@ -27,8 +30,6 @@ The mathematical setting follows [BuhrmanEtAl2005].
 
 * [Buhrman et al., 2005][BuhrmanEtAl2005]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -45,14 +46,14 @@ def clawQ2UpperFunction (N M : ℕ) : ℝ :=
   else
     Real.sqrt (M : ℝ) * Real.log (N : ℝ)
 
-/-- When `M ≤ N²`, the unordered claw upper bound function is `N^(1/2) * M^(1/4) * log N`. -/
+/-- When `M ≤ N²`, the defined cost expression is `N^(1/2) * M^(1/4) * log N`. -/
 theorem clawQ2UpperFunction_of_le {N M : ℕ} (h : M ≤ N ^ 2) :
     clawQ2UpperFunction N M =
       (N : ℝ) ^ ((1 : ℝ) / 2) * (M : ℝ) ^ ((1 : ℝ) / 4) * Real.log (N : ℝ) := by
   unfold clawQ2UpperFunction
   rw [if_pos h]
 
-/-- When `M > N²`, the unordered claw upper bound function is `sqrt M * log N`. -/
+/-- When `M > N²`, the defined cost expression is `sqrt M * log N`. -/
 theorem clawQ2UpperFunction_of_gt {N M : ℕ} (h : ¬ M ≤ N ^ 2) :
     clawQ2UpperFunction N M = Real.sqrt (M : ℝ) * Real.log (N : ℝ) := by
   unfold clawQ2UpperFunction

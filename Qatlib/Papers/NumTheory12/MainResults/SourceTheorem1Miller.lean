@@ -27,13 +27,13 @@ factors:
 
 Repeating the routine finds all factors of `N`.
 
-Lean decomposition (one theorem per step, all about *actual* programs):
+The formalization follows the program steps:
 
 * step 2 — `theorem1_classical_gcd_yields_factor`: proved directly in `ℕ`;
   from `2 ≤ a < N` and `gcd(a,N) ≠ 1` the gcd is a nontrivial divisor;
-* steps 3–4 — `theorem1_half_power_gcd_yields_factor`: the Frozen v2.0.2
-  checked program `orderFactor N a r` returns only `1 < d < N` with `d ∣ N`
-  (`QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`);
+* steps 3–4 — `theorem1_half_power_gcd_yields_factor`: the checked program
+  `orderFactor N a r` returns only `1 < d < N` with `d ∣ N`
+  (`Qatlib.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`);
 * steps 2–4 jointly — `theorem1_attempt_yields_nontrivial_factor`: every
   branch of one attempt (`attemptOutcomeFactor`, covering the classical gcd
   branch and the quantum order branch) returns a nontrivial divisor or nothing
@@ -73,8 +73,8 @@ half-order/gcd program `orderFactor N a r` — which computes
 `gcd(a^{r/2} − 1, N)` for even `r` and validates the result — returns only
 nontrivial factors.
 
-Bridges the Frozen v2.0.2 theorem
-`QuantumAlgorithm.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`. -/
+Uses the theorem
+`Qatlib.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`. -/
 theorem theorem1_half_power_gcd_yields_factor (N : ℕ) [NeZero N]
     (a : (ZMod N)ˣ) (r d : ℕ) (h : orderFactor N a r = some d) :
     1 < d ∧ d < N ∧ d ∣ N :=
@@ -85,8 +85,8 @@ nontrivial factor a single attempt returns, it is a proper divisor of `N`.
 The attempt outcome covers both the classical gcd branch (step 2) and the
 quantum order branch (steps 3–4).
 
-Bridges the Frozen v2.0.2 theorem
-`QuantumAlgorithm.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.attemptOutcomeFactor_sound`. -/
+Uses the theorem
+`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.attemptOutcomeFactor_sound`. -/
 theorem theorem1_attempt_yields_nontrivial_factor (N M : ℕ) [NeZero N]
     (t : AttemptOutcome N M) (d : ℕ)
     (h : attemptOutcomeFactor N M t = some d) :
@@ -101,8 +101,8 @@ a certified proper divisor, the factor tree `factorTreeOf split n` has leaves
 whose product is `n` and all of whose leaves are prime (up to the trivial
 leaves `p ≤ 1`).
 
-Bridges the Frozen v2.0.2 theorem
-`QuantumAlgorithm.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.factorTreeOf_complete`. -/
+Uses the theorem
+`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.factorTreeOf_complete`. -/
 theorem theorem1_finds_all_factors (split : ∀ n, Option (ProperDivisor n)) :
     ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOf split n).complete :=

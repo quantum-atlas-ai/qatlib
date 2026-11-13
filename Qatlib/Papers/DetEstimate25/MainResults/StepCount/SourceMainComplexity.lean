@@ -37,9 +37,9 @@ granted primitive (cited result [14]), supplied as a hypothesis `hNqs`, exactly
 as the paper treats it.  `mu` denotes `|mu|`, the magnitude of the mean log
 spectrum (Eq. (A7) bounds `|mu| >= log 2`).
 
-No pre-built theorem with this content exists in Frozen v2.0.2 (searched
-`determinant`/complexity step counts); the analytic constant chase is proved
-below with `C = 4/(log 2)^3`.
+The analytic constant chase is proved below with `C = 4/(log 2)^3`; the
+step-count interface and cited simulation cost are otherwise treated as in the
+paper.
 -/
 
 set_option autoImplicit false

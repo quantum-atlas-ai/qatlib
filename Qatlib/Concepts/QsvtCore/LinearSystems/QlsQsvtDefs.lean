@@ -33,7 +33,6 @@ background is developed in [GilyenSuLowWiebe2019].
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.QsvtCore.LinearSystems
@@ -52,8 +51,6 @@ namespace Qatlib.Concepts.QsvtCore.LinearSystems
 namespace StageBQLSQSVT
 
 open Qatlib Polynomial Matrix
-
-set_option linter.unusedSectionVars false
 
 variable {I O : Type*} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 

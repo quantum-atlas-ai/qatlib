@@ -44,7 +44,6 @@ These components support the quantum signal-processing approximation framework o
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
@@ -57,7 +56,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 800000
 
 open Matrix Polynomial

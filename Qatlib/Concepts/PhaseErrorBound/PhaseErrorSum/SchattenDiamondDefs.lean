@@ -32,7 +32,6 @@ representation, and `cbNormDual` takes their extended-real infimum.
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm

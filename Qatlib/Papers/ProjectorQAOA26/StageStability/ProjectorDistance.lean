@@ -28,8 +28,6 @@ controls complementary projectors, as in [ZhouAnLiu2026].
 * [Zhou et al., 2026][ZhouAnLiu2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.ProjectorQAOA26.StageStability

@@ -32,7 +32,6 @@ establish `topBitCoupling` through disjoint supports and affine top-bit formulas
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.RecordExtract
 open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian

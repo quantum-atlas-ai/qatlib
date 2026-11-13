@@ -36,7 +36,6 @@ trace-preserving map that is not completely positive.
 * [Kraus, 1971][Kraus1971]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath

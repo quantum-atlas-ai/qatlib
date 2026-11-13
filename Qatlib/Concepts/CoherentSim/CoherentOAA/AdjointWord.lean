@@ -28,8 +28,6 @@ resource counts.
 * [Brassard et al., 2002][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.CoherentSim.CoherentOAA
 
 open Matrix

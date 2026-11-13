@@ -27,8 +27,6 @@ amplitude approximation bound over the grid ball for an indexed family of amplit
 * [Regev, 2004][Regev2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped Classical BigOperators

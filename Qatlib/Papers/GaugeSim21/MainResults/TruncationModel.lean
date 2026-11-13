@@ -13,7 +13,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Source: Tong--Albert--McClean--Preskill--Su, *Provably accurate simulation of gauge
 theories and bosonic systems*, fixed arXiv:2110.06942v2 (Accepted in Quantum
-2022-09-13). Local copy `/tmp/prove/assets/2110.06942.pdf` / `.txt`.
+2022-09-13).
 
 This module fixes the finite-dimensional operator model used by the paper's
 Sections C (state truncation) and E (Hamiltonian truncation):

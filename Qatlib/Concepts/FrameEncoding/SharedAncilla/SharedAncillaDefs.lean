@@ -32,7 +32,6 @@ block encoding viewpoint follows the framework of [GilyenSuLowWiebe2019].
   exponential improvements for quantum matrix arithmetics.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError

@@ -23,8 +23,6 @@ the exact generator-list length, within the decomposition framework of [WiebeEtA
 * [Wiebe et al., 2010][WiebeEtAl2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 800000

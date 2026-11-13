@@ -34,7 +34,6 @@ and updating individual success probabilities. See [MarriottWatrous2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Finset
 set_option autoImplicit false

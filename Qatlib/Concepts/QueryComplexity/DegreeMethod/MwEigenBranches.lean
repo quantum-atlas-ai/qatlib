@@ -29,7 +29,6 @@ The mathematical background is developed in [MarriottWatrous2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
 
@@ -44,7 +43,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Matrix
 open scoped Classical BigOperators
-set_option linter.unusedSectionVars false
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
@@ -54,10 +52,14 @@ theorem inner_self_re_mass (ψ : QState H) :
   rw [inner_self, ← Complex.ofReal_sum]
   simp only [Complex.ofReal_re, MeasureProb, BornProb]
 
+omit [DecidableEq H] in
+
 /-- Scaling the second argument of `Inner` by `c` scales the inner product by `c`. -/
 theorem inner_smul_right (c : ℂ) (ψ φ : QState H) :
     Inner ψ (c • φ) = c * Inner ψ φ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct_smul, smul_eq_mul]
+
+omit [DecidableEq H] in
 
 /-- If `R *ᵥ (S *ᵥ ψ) = p • ψ` and `S` is an orthogonal projector, then `S *ᵥ ψ` is fixed by `S`
 and satisfies the corresponding eigenvector relation with the projectors exchanged. -/
@@ -160,7 +162,7 @@ theorem record_mass (R S : Matrix H H ℂ)
           obtain ⟨hfix', heig'⟩ := same_invariant R S hS ψ p heig
           change MeasureProb (branchState S R rest (S *ᵥ ψ)) Finset.univ = _
           rw [ih S R hS hR (S *ᵥ ψ) hfix' heig', same_mass R S hR hS ψ p hfix heig]
-          simp only [recordWeight, if_true]
+          simp only [recordWeight, ite_true]
           ring
       | false =>
           obtain ⟨hfix', heig'⟩ := different_invariant R S hS ψ p hfix heig
@@ -169,7 +171,7 @@ theorem record_mass (R S : Matrix H H ℂ)
           rw [ih (1 - S) (1 - R) (isOrthogonalProjector_compl hS)
             (isOrthogonalProjector_compl hR) ((1 - S) *ᵥ ψ) hfix' heig',
             different_mass R S hR hS ψ p hfix heig]
-          simp only [recordWeight, Bool.false_eq_true, if_false]
+          simp only [recordWeight, Bool.false_eq_true, ite_false]
           ring
 
 end Qatlib.Concepts.QueryComplexity.DegreeMethod

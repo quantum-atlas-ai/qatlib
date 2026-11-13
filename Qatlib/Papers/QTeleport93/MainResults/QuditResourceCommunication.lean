@@ -32,7 +32,6 @@ used in the resource and communication analysis of [BennettEtAl1993Teleportation
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.TeleportCore

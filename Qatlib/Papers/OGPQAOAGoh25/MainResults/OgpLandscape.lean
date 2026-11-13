@@ -27,11 +27,10 @@ set_option backward.isDefEq.respectTransparency false
   statement of Corollary 4.2.2: two outputs of the swapped-limit
   algorithm, both above `ηOGP` and at band distance, contradict the OGP.
 
-The random-instance asymptotics (n → ∞, w.h.p. overlap concentration of
-local algorithms at distance n/2, the Guerra-interpolation inputs) are
-not formalized here; see the PR work log.
-
-No axiom, no `admit`, no `native_decide`. -/
+Scope note: this module formalizes the deterministic consequences of the
+abstract OGP band property. The random-instance asymptotics (n → ∞, w.h.p.
+overlap concentration of local algorithms at distance n/2, and the
+Guerra-interpolation inputs) are outside the scope of this file. -/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.OGPQAOAGoh25.MainResults.OgpLandscape

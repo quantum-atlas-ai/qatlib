@@ -33,8 +33,6 @@ at most one when `q ≤ 3/4`. The functional-calculus and positive-matrix backgr
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer

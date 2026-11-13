@@ -33,7 +33,6 @@ the initial pair, and `calls` counts preparation and inverse preparation instruc
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
 /-- The orthogonal projection onto the closed span of basis vectors whose integer labels are

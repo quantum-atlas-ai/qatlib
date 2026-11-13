@@ -33,8 +33,6 @@ inverse bounds are controlled by `(ω + a) / ν`.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator

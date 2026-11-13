@@ -25,8 +25,6 @@ threshold `lambdaStar` tends to zero, the density factor `vAlpha` increases to `
 * [Altshuler et al., 2010][AltshulerKroviRoland2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

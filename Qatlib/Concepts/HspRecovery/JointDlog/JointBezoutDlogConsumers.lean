@@ -46,7 +46,6 @@ open Qatlib.Concepts.HspRecovery.JointDlog
 namespace Qatlib.Concepts.HspRecovery.JointDlog
 open Qatlib.Concepts.HspRecovery.BackendAudit Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
-set_option warningAsError false
 
 /-- Multiplication of one in `ZMod 6` by canonical residue representatives is injective. -/
 private theorem joint_six_injective : Function.Injective (fun x : ZMod 6 => x.val • (1 : ZMod 6)) := by

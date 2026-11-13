@@ -24,7 +24,7 @@ Then
 where `h` is the Laplace transform of `g`.
 
 Formalization notes (deviations, in the style of the Frozen
-`QuantumAlgorithm.Papers.LinDynamics23.LchsRep.GeneralAnalyticKernelLchs`
+`Qatlib.Papers.LinDynamics23.LchsRep.GeneralAnalyticKernelLchs`
 contract): the analyticity premise is recorded as `DifferentiableOn ℂ f
 {z | z.im ≤ 0}` (the contour-rectangle hypothesis actually used); `f ∈ H¹(ℂ₋)`
 is recorded through the printed decay condition `‖z‖^α‖f z‖ ≤ C` on the lower

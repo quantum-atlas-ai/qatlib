@@ -32,11 +32,9 @@ containment of the commutator subgroup.
 * [Cosme and Portugal, 2007][CosmePortugal2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
@@ -46,14 +44,14 @@ open scoped commutatorElement
 /-- For prime `p` and a `ClassOne` action, the group `SDG p r φ` is solvable, as follows from
 its finite `p`-group structure [CosmePortugal2007]. -/
 theorem classOne_isSolvable (p r : ℕ) (hp : p.Prime)
-    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (hφ : ClassOne p r φ) :
+    (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (_hφ : ClassOne p r φ) :
     Group.IsSolvable (SDG p r φ) := by
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : Finite (SDG p r φ) :=
+  have : Fact p.Prime := ⟨hp⟩
+  have : Finite (SDG p r φ) :=
     Nat.finite_of_card_ne_zero (by
       rw [card_SDG_prime_pow p r hp φ]
       exact pow_ne_zero _ hp.ne_zero)
-  haveI : Group.IsNilpotent (SDG p r φ) := (isPGroup_SDG p r hp φ).isNilpotent
+  have : Group.IsNilpotent (SDG p r φ) := (isPGroup_SDG p r hp φ).isNilpotent
   infer_instance
 
 /-- For prime `p`, `2 ≤ r`, and a `ClassOne` action, any subgroup containing the cyclic subgroup

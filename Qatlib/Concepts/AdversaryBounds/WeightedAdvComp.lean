@@ -46,7 +46,6 @@ empty-block counterexample to the unrestricted extreme-eigenvector contract.
 * [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -114,12 +113,12 @@ theorem weightedAdv_hadamard_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
     ‖Matrix.hadamard A B‖≤(⨆ y,(B y y).re)*‖A‖ := by
   classical
   rcases isEmpty_or_nonempty Y with hY|hY
-  · letI := hY
+  · let := hY
     have hA0 : A=0 := by ext x; exact isEmptyElim x
     rw [hA0]
     have hh : Matrix.hadamard (0 : Matrix Y Y ℂ) B=0 := by ext x y; simp [Matrix.hadamard]
     rw [hh,norm_zero,mul_zero]
-  · letI := hY
+  · let := hY
     obtain ⟨S,hS⟩ := CStarAlgebra.nonneg_iff_eq_star_mul_self.mp hB.nonneg
     have hgram : B=Sᴴ*S := by simpa only [Matrix.star_eq_conjTranspose] using hS
     let V := weightedAdvLift (id : Y → Y) S
@@ -236,7 +235,7 @@ theorem weightedAdv_positive_eigenvector {Y : Type} [Fintype Y] [DecidableEq Y] 
 theorem weightedAdv_nonempty_of_norm_pos {Y : Type} [Fintype Y] [DecidableEq Y]
     (G : Matrix Y Y ℂ) (hG : 0<‖G‖) : Nonempty Y := by
   by_contra hy
-  letI : IsEmpty Y := not_nonempty_iff.mp hy
+  let : IsEmpty Y := not_nonempty_iff.mp hy
   have hg : G=0 := by ext x; exact isEmptyElim x
   rw [hg,norm_zero] at hG
   exact lt_irrefl 0 hG
@@ -278,12 +277,11 @@ def weightedAdvInput {X : Fin k → Type} {n : Fin k → ℕ}
     (c : (i : Fin k) × Fin (n i)) : Bool :=
   gin c.1 (x c.1) c.2
 
-set_option linter.unusedVariables false in
 
 /-- The composed matrix whose entry is the outer matrix evaluated at inner output strings times
 the product of the shifted inner-matrix entries. -/
 noncomputable def weightedAdvGamma
-    (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
+    (g : ∀ i, X i → Bool) (_f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
     (Gg : ∀ i, Matrix (X i) (X i) ℂ) :
     Matrix ((i : Fin k) → X i) ((i : Fin k) → X i) ℂ :=
@@ -344,12 +342,12 @@ theorem weightedAdv_factor_posSemidef {Y : Type} [Fintype Y] [DecidableEq Y]
     (diagonal (fun _ : Y => (‖G‖ : ℂ))+G).PosSemidef := by
   classical
   rcases isEmpty_or_nonempty Y with hY|hY
-  · letI := hY
+  · let := hY
     have he : diagonal (fun _ : Y => (‖G‖ : ℂ))+G=0 := by ext x; exact isEmptyElim x
     rw [he]
     exact Matrix.PosSemidef.zero
-  · letI := hY
-    letI : CStarAlgebra (Matrix Y Y ℂ) := {}
+  · let := hY
+    let : CStarAlgebra (Matrix Y Y ℂ) := {}
     have hself : IsSelfAdjoint G := Matrix.isHermitian_iff_isSelfAdjoint.mp hG
     have hb := IsSelfAdjoint.neg_algebraMap_norm_le_self (a := G) (ha := by exact hself)
     rw [Matrix.le_iff] at hb
@@ -408,7 +406,7 @@ theorem weightedAdvGamma_norm_le
     rw [weightedAdvLift_gram,hgram]
     by_cases hxy : x=y
     · subst y
-      simp only [if_true,Matrix.diagonal_apply_eq]
+      simp only [ite_true,Matrix.diagonal_apply_eq]
       change (∏ i,(diagonal (fun _ : X i => (‖Gg i‖ : ℂ))+Gg i) (x i) (x i))=(r : ℂ)
       simp only [Matrix.add_apply,Matrix.diagonal_apply_eq,hzg _ _ _ rfl,add_zero]
       simp only [r,Complex.ofReal_prod]
@@ -448,11 +446,11 @@ theorem weightedAdv_sum_by_outputs (g : ∀ i,X i → Bool)
         (if (fun i => g i (y i))=s then (1 : ℂ) else 0)*(∏ i,p i (y i)) := by
     by_cases he : (fun i => g i (y i))=s
     · have hc (i : Fin k) : g i (y i)=s i := congrFun he i
-      simp only [if_pos he,if_pos (hc _),one_mul]
+      simp only [ite_eq_left he,ite_eq_left (hc _),one_mul]
     · have hz : (∏ i,if g i (y i)=s i then p i (y i) else 0)=0 := by
         obtain ⟨i,hi⟩ := Function.ne_iff.mp he
-        exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
-      rw [hz,if_neg he,zero_mul]
+        exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
+      rw [hz,ite_eq_right he,zero_mul]
   symm
   calc
     _ = ∑ s : Fin k → Bool,∑ y : (i : Fin k) → X i,
@@ -479,7 +477,7 @@ theorem weightedAdv_factor_fiber_action {Y : Type} [Fintype Y] [DecidableEq Y]
   · have hp (y : Y) : (if g y=b then (diagonal (fun _ : Y => (‖G‖ : ℂ))+G) x y*u y else 0)=
         if y=x then (‖G‖ : ℂ)*u x else 0 := by
       by_cases hyb : g y=b
-      · rw [if_pos hyb,Matrix.add_apply,hz x y (hxb.trans hyb.symm),add_zero]
+      · rw [ite_eq_left hyb,Matrix.add_apply,hz x y (hxb.trans hyb.symm),add_zero]
         by_cases hxy : x=y
         · subst y; simp
         · simp [hxy,Ne.symm hxy]
@@ -513,7 +511,7 @@ theorem weightedAdvGamma_product_eigenvector
       weightedAdvGamma g f Gf Gg*ᵥw=(lam : ℂ) • w ∧
       |lam|=‖Gf‖*∏ i,‖Gg i‖ := by
   classical
-  letI : ∀ i,Nonempty (X i) := fun i => weightedAdv_nonempty_of_norm_pos (Gg i) (hpos i)
+  let : ∀ i,Nonempty (X i) := fun i => weightedAdv_nonempty_of_norm_pos (Gg i) (hpos i)
   have hui (i : Fin k) : ∃ u : QState (X i),u≠0 ∧ Gg i*ᵥu=(‖Gg i‖ : ℂ) • u :=
     weightedAdv_positive_eigenvector (g i) (Gg i) (hGg i) (hzg i)
   choose ui hune hue using hui
@@ -619,7 +617,7 @@ theorem weightedAdvFilter_isHermitian {Y κ : Type} [DecidableEq κ]
   apply Matrix.IsHermitian.ext
   intro x y
   by_cases h : input x c≠input y c
-  · simp only [weightedAdvFilter,if_pos h,if_pos (Ne.symm h),hG.apply]
+  · simp only [weightedAdvFilter,ite_eq_left h,ite_eq_left (Ne.symm h),hG.apply]
   · have he : input x c=input y c := not_ne_iff.mp h
     simp [weightedAdvFilter,he]
 
@@ -802,7 +800,7 @@ theorem weightedAdvGamma_actual_lower_bound
     rw [h0] at hpsi
     simp [Normalized] at hpsi
   obtain ⟨z,_hz⟩ := Function.ne_iff.mp hnepsi
-  letI : Nonempty ((i : Fin k)×Fin (n i)) := ⟨e.symm z.1.1⟩
+  let : Nonempty ((i : Fin k)×Fin (n i)) := ⟨e.symm z.1.1⟩
   have hbdd : BddAbove (Set.range V) := Finite.bddAbove_range V
   have hv0 (c : (i : Fin k)×Fin (n i)) : 0≤V c := by
     apply mul_nonneg (mul_nonneg (norm_nonneg _) (norm_nonneg _))

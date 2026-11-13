@@ -29,8 +29,6 @@ bounded by `4 * zs.length * √(ε / α)`, with query count equal to the list le
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
-
 
 open Qatlib.Concepts.WalkSearch.Spectral
 

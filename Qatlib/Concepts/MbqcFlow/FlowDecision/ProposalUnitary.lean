@@ -26,7 +26,6 @@ Proposal and reversal operations appear in quantum Metropolis sampling; see [Tem
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

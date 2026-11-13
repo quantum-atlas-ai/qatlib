@@ -37,7 +37,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled BCHCommMass BCHMassProducts BCHPerturbation DysonCoefficients
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 /-- Shifting a convergent series by l places and filling the initial positions with zero
 preserves its sum. -/

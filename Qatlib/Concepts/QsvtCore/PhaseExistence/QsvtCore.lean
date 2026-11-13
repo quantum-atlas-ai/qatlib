@@ -37,7 +37,6 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial
 open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
-set_option warningAsError false
 
 /-- The symmetrized shifted sign polynomial with scale `(1 - ε₀ / 2) / 2` and offset `ε₀ / 2`. -/
 noncomputable def printedRectanglePolynomial (S : Polynomial ℝ) (ε₀ t : ℝ) : Polynomial ℝ :=

@@ -41,7 +41,6 @@ matrix-exponential perturbation arguments in [ChiaEtAl2022].
   Framework for Dequantizing Quantum Machine Learning.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 
 set_option autoImplicit false

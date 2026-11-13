@@ -24,7 +24,6 @@ This is the suffix consistency property used in [LowSu2026].
 * [Low and Su, 2026][LowSu2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

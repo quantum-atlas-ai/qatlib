@@ -36,7 +36,6 @@ evolution representation. See [AnChildsLin2026] for the mathematical setting.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.LchsSimulation.Kernel
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
@@ -50,7 +49,6 @@ namespace Qatlib.Concepts.LchsSimulation.LchsRep
 open MeasureTheory Matrix
 open scoped Classical BigOperators
 open scoped ComplexOrder Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- For nonnegative `x` and positive `α`, `β`, and `c`, the product `x^α * exp (-x^β * c)` is at
 most `(α / (β * c))^(α / β)`. -/

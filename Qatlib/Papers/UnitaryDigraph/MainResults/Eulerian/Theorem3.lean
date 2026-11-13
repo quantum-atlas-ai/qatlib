@@ -27,10 +27,8 @@ relation into blocks, and their cardinalities connect these blocks to the Euleri
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.UnitaryDigraph.MainResults.Eulerian

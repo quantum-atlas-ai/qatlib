@@ -31,8 +31,6 @@ program, using the computational framework discussed in [KitaevShenVyalyi2002].
 * [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.RecordExtract
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

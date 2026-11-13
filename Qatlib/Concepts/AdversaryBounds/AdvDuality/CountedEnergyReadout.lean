@@ -32,7 +32,6 @@ retaining exact circuit resource counts.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -47,8 +46,6 @@ open Matrix
 open scoped Classical BigOperators Kronecker
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The standard equivalence flattening a phase-register index and a system index into `Fin (M *
 D)`. -/

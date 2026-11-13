@@ -18,8 +18,8 @@ Theorem 3 (p. 3) takes a Hermitian `A ∈ ℝ^{n×n}` with spectral decompositio
 `A = ∑ᵢ λᵢ uᵢuᵢ†` and promises a state within `ε` of `|A⁻¹b⟩`.  The library
 represents exactly such a Hermitian matrix as `continuousHHLMatrix eig V =
 V·diag(eig)·Vᴴ` with `V` unitary, and provides the pseudoinverse semantics of
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse`, reused here with FQN
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`.
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse`, reused here with FQN
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`.
 
 This module states the two bridges the paper's output assertion needs:
 
@@ -44,8 +44,8 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
 /-- Bridge for **claim c001**, output-state semantics.  A nonsingular Hermitian
 `A = V·diag(eig)·Vᴴ` (all `eig i ≠ 0`, `V` unitary) stored in the data
 structure of Lemma 1: the paper's inverse `A⁻¹` coincides with the library
-pseudoinverse, in the sense `A · A⁺ = 1`.  The proof reuses the frozen result
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`:
+pseudoinverse, in the sense `A · A⁺ = 1`.  The proof reuses the library theorem
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`:
 it gives `A·A⁺ = spectralSupport eig V`, and with no zero eigenvalue the
 spectral support is the identity. -/
 theorem continuousHHLMatrix_mul_pseudoinverse_eq_one
@@ -69,7 +69,7 @@ theorem continuousHHLMatrix_mul_pseudoinverse_eq_one
 spectrum.  For any Hermitian `A = V·diag(eig)·Vᴴ` and any right-hand side `b`,
 the library pseudoinverse applied to `b` is the Euclidean least-squares
 solution — the vector the paper's filter map approximates when `b` has
-components in the ill-conditioned subspace.  Proof: the frozen
+components in the ill-conditioned subspace.  Proof: the library theorem
 `singular_hermitian_pseudoinverse_and_least_squares`, third conjunct. -/
 theorem pseudoinverse_apply_is_leastSquares
     {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)

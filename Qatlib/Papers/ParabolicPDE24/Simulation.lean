@@ -23,8 +23,6 @@ fiber model used in [JinLiu2024] for any input matrix and auxiliary parameter fu
 * [Jin and Liu, 2024][JinLiu2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

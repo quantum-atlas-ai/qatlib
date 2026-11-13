@@ -45,11 +45,9 @@ namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 open Matrix
 open Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The explicit conjugate-product formula `gramEntry` equals the corresponding entry of
 `gramOperator`. -/

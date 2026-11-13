@@ -30,7 +30,6 @@ The unitary and instrument interpretations are standard quantum-information cons
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.QueryWordCore.Circuit

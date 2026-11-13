@@ -55,10 +55,10 @@ def lemma2_position_moments (l : ℕ) : Prop :=
       ∀ (N m n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) → (m : ℝ) ≤ c * (N : ℝ) →
         ‖discXMoment l N m n - cvXMoment l m n‖ ≤ Real.exp (-β * (N : ℝ))
 
-/-- Fixed arXiv:1503.06319v2, Corollary 1 (p. 16, Eq. (A17)): the discrete
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Corollary 1 (p. 16, Eq. (A17)): the discrete
 Hermite states are almost orthonormal, `<psi_m^d|psi_n^d> = delta_{n,m}` up to
 `nu_1(N)`, for all `n, m <= c N`. -/
-def corollary1_almost_orthonormal : Prop :=
+def corollary1_almost_orthonormal_statement : Prop :=
     ∃ c β : ℝ, 0 < c ∧ 0 < β ∧
       ∀ (N m n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) → (m : ℝ) ≤ c * (N : ℝ) →
         ‖vInner (psiVec N m) (psiVec N n) - (if m = n then (1 : ℂ) else 0)‖ ≤
@@ -81,10 +81,10 @@ def lemma4_mixed_moments (l1 l2 : ℕ) : Prop :=
         ‖discPXMoment l1 l2 N m n - cvPXMoment l1 l2 m n‖ ≤
           Real.exp (-β * (N : ℝ))
 
-/-- Fixed arXiv:1503.06319v2, Corollary 2 (p. 18, Eq. (A35)): the low-energy
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1503.06319v2, Corollary 2 (p. 18, Eq. (A35)): the low-energy
 Hermite states are approximate eigenstates of `H^d`,
 `||(H^d - (n + 1/2)) |psi_n^d>||^2 = nu_1(N)` for all `n <= c N`. -/
-def corollary2_low_energy_residual : Prop :=
+def corollary2_low_energy_residual_statement : Prop :=
     ∃ c β : ℝ, 0 < c ∧ 0 < β ∧
       ∀ (N n : ℕ), 2 ≤ N → (n : ℝ) ≤ c * (N : ℝ) →
         vNormSq ((hamOp N - ((((n : ℝ) + 1 / 2 : ℝ) : ℂ)) •

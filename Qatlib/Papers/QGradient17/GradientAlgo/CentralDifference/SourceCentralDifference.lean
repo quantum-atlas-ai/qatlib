@@ -28,7 +28,7 @@ via faster quantum gradient computation*.
   6 e^{−7m/6} m^{k+3/2}` for `k ≥ 2m`.
 * Corollary 35 (App. A, p.51): the directional remainder in `d` dimensions.
 
-All five are bridges to the Frozen v2.0.2 concept theorems
+All five are bridges to the library's concept theorems
 `centralDifferenceExactness`, `centralDifferenceOneDimError`,
 `centralDifferenceCoeffLOneBound`, `centralDifferencePowerSumBound`,
 `centralDifferenceDirectionalError`.

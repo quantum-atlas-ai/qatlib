@@ -27,8 +27,6 @@ Cramér–Rao expression is saturated. See [GiovannettiLloydMaccone2006].
 * [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

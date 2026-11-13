@@ -31,7 +31,6 @@ source fields in the compiled programs. These are properties of the compiler def
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

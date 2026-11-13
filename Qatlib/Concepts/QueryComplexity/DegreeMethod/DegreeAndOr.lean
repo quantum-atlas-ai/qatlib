@@ -31,7 +31,6 @@ cube; the OR bound assumes a nonempty coordinate type.
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 set_option autoImplicit false

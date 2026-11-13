@@ -23,8 +23,6 @@ bound, and complement dimension, together with nonnegative runtime. See [Ioannou
 * [Ioannou and Mosca, 2008][IoannouMosca2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

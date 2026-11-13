@@ -24,8 +24,6 @@ nonnegative threshold and measurable superlevel set. See [TranEtAl2026] for the 
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

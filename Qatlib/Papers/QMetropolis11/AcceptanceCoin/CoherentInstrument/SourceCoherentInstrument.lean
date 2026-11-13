@@ -20,13 +20,13 @@ paper defines the energy-conditioned one-qubit unitary
 
 and shows that `C`, the (ideal) phase-estimation step and `W` prepare
 `Σ_k x_k √f_ik |ψ_k⟩|E_i⟩|E_k⟩|1⟩ + Σ_k x_k √(1-f_ik) |ψ_k⟩|E_i⟩|E_k⟩|0⟩`.
-The frozen paper-layer statement `CoherentInstrumentSubgoal` and its three
+The established paper-layer statement `CoherentInstrumentSubgoal` and its three
 clause theorems already formalise exactly this under ideal phase estimation;
 this file only re-exports them through the paper's notation and records that
 the block `MetropolisCoin (thermalAcceptance E β i k)` is literally the matrix
 printed in (2)-(3).
 
-Reused FQNs (namespace `QuantumAlgorithm.Papers.QMetropolis11.AcceptanceCoin`):
+Reused FQNs (namespace `Qatlib.Papers.QMetropolis11.AcceptanceCoin`):
 
 * `coherentInstrumentSubgoal` (all three clauses);
 * `metropolisControlledCoin_unitary`;
@@ -46,7 +46,7 @@ open Qatlib.Papers.QMetropolis11.AcceptanceCoin
 
 variable {D : ℕ}
 
-/-- **c004, Eq. (2) matrix form.**  The frozen block `MetropolisCoin f` is
+/-- **c004, Eq. (2) matrix form.**  The defined block `MetropolisCoin f` is
 literally the paper's `W(E_k,E_i)` reflection: its entries are `√(1-f)`, `√f`,
 `√f`, `-√(1-f)` in the computational coin basis. -/
 theorem source_W_block_entries (f : ℝ) :
@@ -54,7 +54,7 @@ theorem source_W_block_entries (f : ℝ) :
       ((Real.sqrt f : ℝ) : ℂ), (-(Real.sqrt (1 - f)) : ℂ)] := rfl
 
 /-- **c004, Eq. (3).**  The paper's acceptance probability
-`f_ik = min(1, exp(-β(E_k - E_i)))` is the frozen `thermalAcceptance`. -/
+`f_ik = min(1, exp(-β(E_k - E_i)))` is the `thermalAcceptance`. -/
 theorem source_acceptance_eq (E : Fin D → ℝ) (β : ℝ) (i k : Fin D) :
     thermalAcceptance E β i k = min 1 (Real.exp (-β * (E k - E i))) := rfl
 

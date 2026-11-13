@@ -25,8 +25,6 @@ uniform fine-grid sample times. These results support the contour-based algorith
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -47,7 +45,6 @@ open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBrid
 namespace Qatlib.Papers.Cbmd26.Algorithms
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 namespace CBMD
 open Matrix Set
@@ -88,7 +85,7 @@ theorem suppliedGridAddress_spec {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
       τ (suppliedGridAddress τ N u) ≤ u ∧ u < τ (suppliedGridAddress τ N u+1) := by
   classical
   have hex := suppliedGrid_interval_exists hτ0 hu0 huN
-  simpa only [suppliedGridAddress, dif_pos hex] using Nat.find_spec hex
+  simpa only [suppliedGridAddress, dite_eq_left hex] using Nat.find_spec hex
 
 /-- For a monotone supplied grid starting at zero, the selected sample time lies in `[0, τ N]`
 when `0 ≤ u < τ N`. -/
@@ -102,6 +99,8 @@ theorem suppliedGridSampleTime_mem {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 
 
 variable {I : Type} {W : Type*} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Inside the supplied time range, the supplied-grid field equals the matrix at the selected
 grid address. -/
 theorem suppliedGridField_eq_address {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
@@ -109,7 +108,7 @@ theorem suppliedGridField_eq_address {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     suppliedGridField τ B N u = B (suppliedGridAddress τ N u) := by
   classical
   have hex := suppliedGrid_interval_exists hτ0 hu0 huN
-  simp only [suppliedGridField, suppliedGridAddress, dif_pos hex]
+  simp only [suppliedGridField, suppliedGridAddress, dite_eq_left hex]
 
 /-- The supplied-grid field formed from samples of `A` equals `A` at the selected supplied-grid
 sample time. -/

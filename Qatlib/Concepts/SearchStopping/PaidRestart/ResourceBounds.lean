@@ -82,7 +82,6 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel Qatlib.Concepts.NonNormalSpec.ResolventWord Matrix
 open scoped BigOperators ENNReal ComplexOrder Matrix.Norms.L2Operator
-set_option warningAsError false
 
 set_option autoImplicit false
 

@@ -28,14 +28,12 @@ zero least-squares overlap. Related mathematical background is given in
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
-set_option linter.unusedSectionVars false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -390,10 +388,10 @@ theorem lowRank_ideal_collapse {D M : ℕ} (hM : 2 ≤ M)
   cases flag
   · simp [collapse_apply, uniformHHLSuccessEmbed, TensorState, Ket]
   · simp only [collapse_apply, Finset.mem_filter, Finset.mem_univ, and_true,
-      if_true, uniformHHLIdeal, uniformHHLSuccessEmbed, TensorState,
+      ite_true, uniformHHLIdeal, uniformHHLSuccessEmbed, TensorState,
       Pi.smul_apply, smul_eq_mul]
     rw [hg, Matrix.smul_mulVec]
-    simp only [Pi.smul_apply, smul_eq_mul, Ket, if_true]
+    simp only [Pi.smul_apply, smul_eq_mul, Ket, ite_true]
     ring
 
 /-- Postselection of the ideal HHL state onto the success flag equals the specified normalized
@@ -435,8 +433,7 @@ theorem lowRank_ideal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
     simp only [uniformHHLSuccessEmbed, TensorState, Pi.smul_apply, smul_eq_mul,
       RCLike.real_smul_eq_coe_mul]
     push_cast
-    simp only [Algebra.cast, RCLike.algebraMap_eq_ofReal,
-      RCLike.ofReal_eq_complex_ofReal]
+    simp only [RCLike.ofReal_eq_complex_ofReal]
     ring
   have heq := he.trans htarget.symm
   exact (WithLp.equiv 2 _).symm.injective heq
@@ -614,7 +611,7 @@ theorem lowRank_zero_overlap_coeff {D : ℕ} (eig : Fin D → ℝ) (V : Operator
   rw [hz, Matrix.mulVec_zero] at he
   intro i hi
   have hh := congrFun he i
-  simpa only [Matrix.mulVec_diagonal, if_neg hi, one_mul, Pi.zero_apply] using! hh.symm
+  simpa only [Matrix.mulVec_diagonal, ite_eq_right hi, one_mul, Pi.zero_apply] using! hh.symm
 
 /-- An input with zero least-squares overlap has success probability zero in the actual uniform
 HHL run. -/

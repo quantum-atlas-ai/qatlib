@@ -34,7 +34,6 @@ Hamiltonian query programs.
 -/
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -44,8 +43,6 @@ namespace Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 
 open Matrix
 open scoped ENNReal
-
-set_option linter.unusedSectionVars false
 
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
@@ -254,17 +251,25 @@ def derive (κ : Matrix I I ℂ → StepProfile) : Qatlib.Foundations.QueryWordC
   | Step.gate U :: C => ResourceCost.ofMacroStep (κ U) + derive κ C
   | Step.query :: C => ResourceCost.ofOracleStep + derive κ C
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The empty circuit has zero derived resource cost. -/
 @[simp] theorem derive_nil (κ : Matrix I I ℂ → StepProfile) : derive κ [] = 0 := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Prepending a gate adds its profiled macro-step cost to the cost of the remaining circuit. -/
 @[simp] theorem derive_gate (κ : Matrix I I ℂ → StepProfile) (U : Matrix I I ℂ)
     (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     derive κ (Step.gate U :: C) = ResourceCost.ofMacroStep (κ U) + derive κ C := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Prepending a query adds the unit oracle-step cost to the cost of the remaining circuit. -/
 @[simp] theorem derive_query (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     derive κ (Step.query :: C) = ResourceCost.ofOracleStep + derive κ C := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The query component of the derived cost equals the circuit query count. -/
 theorem derive_queries (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
@@ -276,6 +281,8 @@ theorem derive_queries (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundat
     | gate U => simp [derive, ih]
     | query => simp [derive, ih, Nat.add_comm]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The macro-gate component of the derived cost equals the circuit gate count. -/
 theorem derive_macroGates (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     (derive κ C).macroGates = Qatlib.Foundations.QueryWordCore.Circuit.GateCount C := by
@@ -285,6 +292,8 @@ theorem derive_macroGates (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foun
     cases s with
     | gate U => simp [derive, ih, Nat.add_comm]
     | query => simp [derive, ih]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The derived sequential depth equals the number of circuit steps. -/
 theorem derive_depth (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
@@ -296,12 +305,16 @@ theorem derive_depth (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundatio
     | gate U => simp [derive, ih, Nat.add_comm]
     | query => simp [derive, ih, Nat.add_comm]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Assigning the zero profile to every gate gives zero derived classical bit cost. -/
 theorem derive_zeroProfile (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     (derive (fun _ => StepProfile.zero) C).classicalBits = 0 := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [derive, ih]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The derived cost of concatenated circuits is the composition of their derived costs. -/
 theorem derive_append (κ : Matrix I I ℂ → StepProfile) (C D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
@@ -487,11 +500,17 @@ def parRight : ParCircuit I J → Qatlib.Foundations.QueryWordCore.Circuit.Circu
   | ParStep.gates _ V :: L => Step.gate V :: parRight L
   | ParStep.query :: L => Step.query :: parRight L
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- Converting an empty synchronized circuit gives an empty product-register circuit. -/
 @[simp] theorem parToCircuit_nil : parToCircuit ([] : ParCircuit I J) = [] := rfl
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The left projection of an empty synchronized circuit is empty. -/
 @[simp] theorem parLeft_nil : parLeft ([] : ParCircuit I J) = [] := rfl
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The right projection of an empty synchronized circuit is empty. -/
 @[simp] theorem parRight_nil : parRight ([] : ParCircuit I J) = [] := rfl
@@ -540,11 +559,15 @@ theorem run_parToCircuit (W : Matrix I I ℂ) (V : Matrix J J ℂ) (L : ParCircu
           Qatlib.Foundations.QueryWordCore.Circuit.run_query, Qatlib.Foundations.PureStateMath.applyGate_tensorGate]
       exact ih _ _
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The left projection has one step for each synchronized layer. -/
 theorem size_parLeft (L : ParCircuit I J) : Qatlib.Foundations.QueryWordCore.Circuit.Size (parLeft L) = L.length := by
   induction L with
   | nil => rfl
   | cons l L ih => cases l <;> simp [parLeft, ih]
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The right projection has one step for each synchronized layer. -/
 theorem size_parRight (L : ParCircuit I J) : Qatlib.Foundations.QueryWordCore.Circuit.Size (parRight L) = L.length := by
@@ -552,11 +575,15 @@ theorem size_parRight (L : ParCircuit I J) : Qatlib.Foundations.QueryWordCore.Ci
   | nil => rfl
   | cons l L ih => cases l <;> simp [parRight, ih]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The product-register circuit has one step for each synchronized layer. -/
 theorem size_parToCircuit (L : ParCircuit I J) : Qatlib.Foundations.QueryWordCore.Circuit.Size (parToCircuit L) = L.length := by
   induction L with
   | nil => rfl
   | cons l L ih => cases l <;> simp [parToCircuit, ih]
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The product-register circuit and its left projection have equal query counts. -/
 theorem queryCount_parToCircuit_parLeft (L : ParCircuit I J) :
@@ -565,12 +592,16 @@ theorem queryCount_parToCircuit_parLeft (L : ParCircuit I J) :
   | nil => rfl
   | cons l L ih => cases l <;> simp [parToCircuit, parLeft, ih]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The product-register circuit and its left projection have equal gate counts. -/
 theorem gateCount_parToCircuit_parLeft (L : ParCircuit I J) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (parToCircuit L) = Qatlib.Foundations.QueryWordCore.Circuit.GateCount (parLeft L) := by
   induction L with
   | nil => rfl
   | cons l L ih => cases l <;> simp [parToCircuit, parLeft, ih]
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The left and right projections of a synchronized circuit have equal query counts. -/
 theorem queryCount_parLeft_parRight (L : ParCircuit I J) :
@@ -583,13 +614,19 @@ theorem queryCount_parLeft_parRight (L : ParCircuit I J) :
 def Circuit.ofGates (gs : List (Matrix I I ℂ)) :
     Qatlib.Foundations.QueryWordCore.Circuit.Circuit I := gs.map Step.gate
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The circuit formed from an empty gate list is empty. -/
 @[simp] theorem Circuit.ofGates_nil : Circuit.ofGates ([] : List (Matrix I I ℂ)) = [] := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Forming a circuit from a nonempty gate list prepends the first gate to the circuit of the
 remaining gates. -/
 @[simp] theorem Circuit.ofGates_cons (U : Matrix I I ℂ) (gs : List (Matrix I I ℂ)) :
     Circuit.ofGates (U :: gs) = Step.gate U :: Circuit.ofGates gs := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The circuit formed from a gate list has size equal to the list length. -/
 theorem Circuit.size_ofGates (gs : List (Matrix I I ℂ)) :
@@ -619,10 +656,14 @@ def parOfGates : List (Matrix I I ℂ) → List (Matrix J J ℂ) → ParCircuit 
   | U :: gs, [] => ParStep.gates U (1 : Matrix J J ℂ) :: parOfGates gs []
   | [], V :: hs => ParStep.gates (1 : Matrix I I ℂ) V :: parOfGates [] hs
 
+omit [Fintype I] [Fintype J] in
+
 /-- Pairing two empty gate lists gives an empty synchronized circuit. -/
 @[simp] theorem parOfGates_nil_nil :
     parOfGates ([] : List (Matrix I I ℂ)) ([] : List (Matrix J J ℂ)) = [] := by
   simp only [parOfGates]
+
+omit [Fintype I] [Fintype J] in
 
 /-- Pairing two nonempty gate lists places their leading gates in the first layer. -/
 @[simp] theorem parOfGates_cons_cons (U : Matrix I I ℂ) (gs : List (Matrix I I ℂ))
@@ -630,12 +671,16 @@ def parOfGates : List (Matrix I I ℂ) → List (Matrix J J ℂ) → ParCircuit 
     parOfGates (U :: gs) (V :: hs) = ParStep.gates U V :: parOfGates gs hs := by
   simp only [parOfGates]
 
+omit [Fintype I] [Fintype J] in
+
 /-- Pairing a nonempty left gate list with an empty right list pads the first right gate with
 the identity. -/
 @[simp] theorem parOfGates_cons_nil (U : Matrix I I ℂ) (gs : List (Matrix I I ℂ)) :
     parOfGates (U :: gs) ([] : List (Matrix J J ℂ))
       = ParStep.gates U (1 : Matrix J J ℂ) :: parOfGates gs [] := by
   simp only [parOfGates]
+
+omit [Fintype I] [Fintype J] in
 
 /-- Pairing an empty left gate list with a nonempty right list pads the first left gate with the
 identity. -/
@@ -752,9 +797,13 @@ def derivePar (κI : Matrix I I ℂ → StepProfile) (κJ : Matrix J J ℂ → S
   | ParStep.gates U V :: L => parGateStep (κI U) (κJ V) + derivePar κI κJ L
   | ParStep.query :: L => ResourceCost.ofOracleStep + derivePar κI κJ L
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The empty synchronized circuit has zero derived cost. -/
 @[simp] theorem derivePar_nil (κI : Matrix I I ℂ → StepProfile)
     (κJ : Matrix J J ℂ → StepProfile) : derivePar κI κJ [] = 0 := rfl
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- Prepending paired gates composes their layer cost with the cost of the remaining
 synchronized circuit. -/
@@ -764,12 +813,16 @@ synchronized circuit. -/
     derivePar κI κJ (ParStep.gates U V :: L)
       = parGateStep (κI U) (κJ V) + derivePar κI κJ L := rfl
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- Prepending a synchronized query composes its unit query cost with the cost of the remaining
 layers. -/
 @[simp] theorem derivePar_query (κI : Matrix I I ℂ → StepProfile)
     (κJ : Matrix J J ℂ → StepProfile) (L : ParCircuit I J) :
     derivePar κI κJ (ParStep.query :: L)
       = ResourceCost.ofOracleStep + derivePar κI κJ L := rfl
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The synchronized derived query cost equals the query count of the product-register circuit. -/
 theorem derivePar_queries (κI : Matrix I I ℂ → StepProfile)
@@ -782,6 +835,8 @@ theorem derivePar_queries (κI : Matrix I I ℂ → StepProfile)
     | gates U V => simp [parToCircuit, derivePar, ih]
     | query => simp [parToCircuit, derivePar, ih, Nat.add_comm]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The synchronized derived macro-gate cost equals the gate count of the product-register
 circuit. -/
 theorem derivePar_macroGates (κI : Matrix I I ℂ → StepProfile)
@@ -793,6 +848,8 @@ theorem derivePar_macroGates (κI : Matrix I I ℂ → StepProfile)
     cases l with
     | gates U V => simp [parToCircuit, derivePar, ih, Nat.add_comm]
     | query => simp [parToCircuit, derivePar, ih]
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The synchronized derived depth equals the number of layers. -/
 theorem derivePar_depth (κI : Matrix I I ℂ → StepProfile)
@@ -847,6 +904,8 @@ theorem depth_par_lt_sum (κI : Matrix I I ℂ → StepProfile)
     rw [derivePar_depth, size_parLeft, size_parRight, List.length_cons]
     omega
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- The basic gate cost of synchronized execution is the sum of the derived basic gate costs of
 its projections. -/
 theorem derivePar_basicGates (κI : Matrix I I ℂ → StepProfile)
@@ -866,6 +925,8 @@ theorem derivePar_basicGates (κI : Matrix I I ℂ → StepProfile)
       simp only [parLeft, parRight, derive_query, derivePar_query,
         ResourceCost.add_basicGates, ResourceCost.ofOracleStep_basicGates, ih]
       omega
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- The peak space of synchronized execution is at most the sum of the peak spaces of its
 projections. -/
@@ -912,6 +973,8 @@ theorem derive_constant_gate_peakSpace (p : StepProfile) (U : Matrix I I ℂ)
     (derive (fun _ => p) (Step.gate U :: C)).peakSpace = p.space := by
   rw [derive_gate, ResourceCost.add_peakSpace, ResourceCost.ofMacroStep_peakSpace]
   exact Nat.max_eq_left (derive_constant_peakSpace_le p C)
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- For constant profiles, a synchronized circuit beginning with paired gates has peak space
 equal to the sum of the two workspace sizes. -/
@@ -1047,6 +1110,8 @@ theorem derive_compileCircuit_queries (κ : Matrix I I ℂ → StepProfile) (c :
     (derive κ (compileCircuit c C)).queries = (derive κ C).queries := by
   rw [derive_queries, queryCount_compileCircuit, derive_queries]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Circuit size is the sum of its gate count and query count. -/
 theorem size_eq_gateCount_add_queryCount (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     Qatlib.Foundations.QueryWordCore.Circuit.Size C = Qatlib.Foundations.QueryWordCore.Circuit.GateCount C + Qatlib.Foundations.QueryWordCore.Circuit.QueryCount C := by
@@ -1163,11 +1228,15 @@ theorem parLayerCompilation_macro_vs_basic (U : Matrix I I ℂ) (V : Matrix J J 
 def Circuit.UsesGateSet (G : Set (Matrix I I ℂ)) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) : Prop :=
   ∀ U, Step.gate U ∈ C → U ∈ G
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The empty circuit uses every specified gate set. -/
 @[simp] theorem Circuit.usesGateSet_nil (G : Set (Matrix I I ℂ)) :
     Circuit.UsesGateSet G [] := by
   intro U h
   simp at h
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- A concatenated circuit uses a gate set exactly when both component circuits use it. -/
 @[simp] theorem Circuit.usesGateSet_append (G : Set (Matrix I I ℂ)) (C D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
@@ -1296,6 +1365,8 @@ noncomputable def deriveHamiltonian (P : List (HamiltonianQueryStep I)) : Resour
   ⟨HamiltonianQueryCount P, hamiltonianGateCount P, 0, P.length, 0,
     ENNReal.ofReal (HamiltonianEvolutionTime P), 0⟩
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Explicit Hamiltonian-program gate counts add under concatenation. -/
 theorem hamiltonianGateCount_append (P Q : List (HamiltonianQueryStep I)) :
     hamiltonianGateCount (P ++ Q)
@@ -1308,6 +1379,8 @@ theorem hamiltonianGateCount_append (P Q : List (HamiltonianQueryStep I)) :
       simp only [List.cons_append, hamiltonianGateCount, ih]
       omega
     | evolve t => simp [hamiltonianGateCount, ih]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Total absolute Hamiltonian evolution time adds under concatenation. -/
 theorem hamiltonianEvolutionTime_append (P Q : List (HamiltonianQueryStep I)) :
@@ -1328,9 +1401,13 @@ theorem deriveHamiltonian_append (P Q : List (HamiltonianQueryStep I)) :
     hamiltonianGateCount_append, hamiltonianEvolutionTime_append,
     ENNReal.ofReal_add hP hQ, List.length_append]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The query component of Hamiltonian resource derivation equals `HamiltonianQueryCount`. -/
 theorem deriveHamiltonian_queries (P : List (HamiltonianQueryStep I)) :
     (deriveHamiltonian P).queries = HamiltonianQueryCount P := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Prepending an evolution step adds one query and adds the absolute value of its time
 parameter to total evolution time. -/

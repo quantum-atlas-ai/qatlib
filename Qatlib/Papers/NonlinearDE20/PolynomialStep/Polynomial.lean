@@ -28,8 +28,6 @@ variance identity for `polynomialJointEuler` in the framework of [LloydEtAl2020]
 * [Lloyd et al., 2020][LloydEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 1000000

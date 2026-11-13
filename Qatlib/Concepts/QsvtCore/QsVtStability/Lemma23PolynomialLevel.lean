@@ -25,8 +25,6 @@ the singular-transform robustness statement associated with Lemma 23 of [GilyenS
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
-
 
 open Qatlib.Concepts.QsvtCore.PhaseExistence
 open Qatlib.Concepts.QsvtCore.QsVtMain

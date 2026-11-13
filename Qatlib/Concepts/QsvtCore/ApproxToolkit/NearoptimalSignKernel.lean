@@ -33,7 +33,6 @@ lists. Background and related constructions are discussed in [GilyenSuLowWiebe20
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

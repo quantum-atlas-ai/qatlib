@@ -28,17 +28,16 @@ Source: p.2, §1 "Fitting Algorithm"; Appendix A, pp.5–6.
   `F†(F F⁺ y − y) = 0`.
 
 The exact cost functions `fitHeadlineCost` (Eq. (3)) and `simulationHeadlineCost`
-(Eq. (4)) are already fixed in the Frozen model
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL`.  §1 records them and bridges their
-monotonicity to the Frozen theorems `clause23_fit_headline_mono`,
+(Eq. (4)) are already fixed in the reusable model
+`Qatlib.Papers.QDataFit12.SparseHHL`.  §1 records them and bridges their
+monotonicity to the reusable theorems `clause23_fit_headline_mono`,
 `clause23_fit_headline_anti_mono_eps`, `clause23_simulation_headline_mono`,
 `clause23_simulation_headline_anti_mono_eps`.  §2 proves the Appendix-A least-squares
 optimality statement for an abstract linear map `F` satisfying the normal equations — this
 is the exact mathematics of the paper's A7–A9 derivation.
 
 The oracle program realising Eqs. (3)–(4) and the state-preparation bound on `|λ/|λ|⟩`
-are *not* modelled here (residuals of the `SparseHHL` block).  This module contains no
-`sorry`.
+are outside the scope of this paper-layer model (residuals of the `SparseHHL` block).
 -/
 
 set_option autoImplicit false
@@ -51,39 +50,39 @@ open Qatlib.Papers.QDataFit12.SparseHHL
 /-! ## §1 Eqs. (3)–(4): the two Algorithm-1 query complexities -/
 
 /-- **c003 Eq. (3) reuse.**  The Algorithm-1 fit query complexity `Õ(log N·s³κ⁶/ε)` is the
-Frozen function `fitHeadlineCost`, so the statement of Eq. (3) is definitional. -/
+library function `fitHeadlineCost`, so the statement of Eq. (3) is definitional. -/
 theorem algorithm1_fit_cost_eq (N s κ : ℕ) (ε : ℝ) :
     fitHeadlineCost N s κ ε = Real.log (N + 1) * (s : ℝ) ^ 3 * (κ : ℝ) ^ 6 / ε := rfl
 
 /-- **c003 Eq. (4) reuse.**  The alternative-simulation query complexity
-`Õ(log N·sκ⁶/ε²)` is the Frozen function `simulationHeadlineCost`. -/
+`Õ(log N·sκ⁶/ε²)` is the library function `simulationHeadlineCost`. -/
 theorem algorithm1_simulation_cost_eq (N s κ : ℕ) (ε : ℝ) :
     simulationHeadlineCost N s κ ε = Real.log (N + 1) * (s : ℝ) * (κ : ℝ) ^ 6 / ε ^ 2 := rfl
 
 /-- **c003 Eq. (3) monotonicity, by reference.**  Monotone in `N, s, κ` at fixed `ε`.
-Reuses the Frozen theorem
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL.clause23_fit_headline_mono`. -/
+Reuses the reusable theorem
+`Qatlib.Papers.QDataFit12.SparseHHL.clause23_fit_headline_mono`. -/
 theorem algorithm1_fit_cost_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (hε : 0 < ε)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') :
     fitHeadlineCost N s κ ε ≤ fitHeadlineCost N' s' κ' ε :=
   clause23_fit_headline_mono N N' s s' κ κ' ε hε hN hs hκ
 
-/-- **c003 Eq. (3) anti-monotonicity in `ε`, by reference.**  Reuses the Frozen theorem
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL.clause23_fit_headline_anti_mono_eps`. -/
+/-- **c003 Eq. (3) anti-monotonicity in `ε`, by reference.**  Reuses the reusable theorem
+`Qatlib.Papers.QDataFit12.SparseHHL.clause23_fit_headline_anti_mono_eps`. -/
 theorem algorithm1_fit_cost_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ) (hε : 0 < ε)
     (hle : ε ≤ ε') :
     fitHeadlineCost N s κ ε' ≤ fitHeadlineCost N s κ ε :=
   clause23_fit_headline_anti_mono_eps N s κ ε ε' hε hle
 
-/-- **c003 Eq. (4) monotonicity, by reference.**  Reuses the Frozen theorem
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL.clause23_simulation_headline_mono`. -/
+/-- **c003 Eq. (4) monotonicity, by reference.**  Reuses the reusable theorem
+`Qatlib.Papers.QDataFit12.SparseHHL.clause23_simulation_headline_mono`. -/
 theorem algorithm1_simulation_cost_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (hε : 0 < ε)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') :
     simulationHeadlineCost N s κ ε ≤ simulationHeadlineCost N' s' κ' ε :=
   clause23_simulation_headline_mono N N' s s' κ κ' ε hε hN hs hκ
 
-/-- **c003 Eq. (4) anti-monotonicity in `ε`, by reference.**  Reuses the Frozen theorem
-`QuantumAlgorithm.Papers.QDataFit12.SparseHHL.clause23_simulation_headline_anti_mono_eps`. -/
+/-- **c003 Eq. (4) anti-monotonicity in `ε`, by reference.**  Reuses the reusable theorem
+`Qatlib.Papers.QDataFit12.SparseHHL.clause23_simulation_headline_anti_mono_eps`. -/
 theorem algorithm1_simulation_cost_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ) (hε : 0 < ε)
     (hle : ε ≤ ε') :
     simulationHeadlineCost N s κ ε' ≤ simulationHeadlineCost N s κ ε :=
@@ -153,7 +152,7 @@ Appendix A pp.5–6.**
   normal equation (A4) — minimises the least-squares residual `‖Fλ − y‖²` (Appendix A,
   Eqs. A7–A9), with the residual decomposition `‖Fλ − y‖² = ‖Fz − y‖² + ‖F(λ − z)‖²`.
 
-*Proved:* all of the above (Eqs. (3)–(4) via the Frozen `clause23_*` theorems; Appendix A's
+*Proved:* all of the above (Eqs. (3)–(4) via the `clause23_*` theorems; Appendix A's
 A7–A9 derivation from the normal equation). — *Not modelled here:* the sparse-oracle
 program realising Eqs. (3)–(4) and the Euclidean-norm state-preparation bound on
 `|λ/|λ|⟩` (residuals of the `SparseHHL` block). -/

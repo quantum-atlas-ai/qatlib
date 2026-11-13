@@ -35,14 +35,13 @@ distance `n+1` satisfies the hypotheses of Theorem 1 with `ℓ = ⌊(n+1)/2⌋`.
 Formalisation scope.
 
 * The embedding and the two algebraic identities (`qᵀ C_i q = Q*(γ^i)` and
-  `f_QUADSAT = 2·f_OPI − (p−1)`) are proved here, without `sorry`.
+  `f_QUADSAT = 2·f_OPI − (p−1)`) are proved here, by direct proofs.
 * The reduction hypothesis — that the diagonal matrix family has an efficient
   decoder with parameter `ℓ = ⌊(n+1)/2⌋` — is an explicit hypothesis
   `hdec : HasEfficientDecoder …`, exactly the condition used by Theorem 1.
   The paper justifies it by the Reed–Solomon code of distance `n+1`.
-* The efficient-preparation conclusion is then obtained from
-  `theorem1_maxQUADSAT_statePrep`; no separate `sorry` is introduced in this
-  file.
+* The preparation conclusion is the explicit hypothesis `hprep`, returned
+  unchanged. The statement-only preparation definition is not used as a proof.
 -/
 
 set_option autoImplicit false
@@ -136,8 +135,8 @@ Quadratic OPI is a special case of max-QUADSAT: the embedding
 `quadraticOPIAsQUADSAT` is diagonal with no linear terms and its objective is
 `2·f_OPI(Q*) − (p−1)`.  Moreover, when the embedded diagonal family has the
 efficient decoder required by Theorem 1 at degree `ℓ = ⌊(n+1)/2⌋`, the
-corresponding degree-`ℓ` DQI state is efficiently preparable by Algorithm 1,
-with cost polynomial in `n` and `p`.
+preparation contract is returned only under the separate `hprep` hypothesis.
+It counts explicit two-level operations; no Algorithm 1 circuit is derived.
 
 The decoder hypothesis is the formal counterpart of the paper's statement that
 "all conditions of Theorem 1 hold, with the code being a Reed–Solomon code of

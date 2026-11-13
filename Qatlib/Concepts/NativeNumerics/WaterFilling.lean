@@ -34,7 +34,6 @@ precision bounds.
 * [Ozols, Roetteler, and Roland, 2013][OzolsRoettelerRoland2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing

@@ -46,7 +46,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 namespace ConstructionStageB

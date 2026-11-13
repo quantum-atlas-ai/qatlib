@@ -27,7 +27,6 @@ See [KempeKitaevRegev2006].
 * [Kempe et al., 2006][KempeKitaevRegev2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 noncomputable section

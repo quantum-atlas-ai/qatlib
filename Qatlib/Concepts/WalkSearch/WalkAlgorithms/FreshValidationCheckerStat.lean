@@ -25,7 +25,6 @@ For the surrounding setup, update, and checking perspective on quantum-walk sear
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 

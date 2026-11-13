@@ -43,7 +43,6 @@ open Qatlib.Concepts.SdpMmwSolver.OracleError
 
 namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 /-- The original width-slack payoff-range contract with `sdpSampledWidthBudget α R ε ε` is
 false. -/

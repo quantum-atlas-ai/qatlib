@@ -25,7 +25,7 @@ The formalization uses `ReversibleMachine W`, whose `transform x : W ≃ W` is t
 transformation `Φ_x` and whose `space` profile is the paper's function `f`
 (bounded by `LogSpace`).
 
-**This file does not state Theorem 2 as a theorem.**  In the abstract record
+Theorem 2 is represented here as a predicate.  In the abstract record
 `ReversibleMachine` the `steps` field is an unconstrained function
 `List Bool → W → ℕ`: no field ties it to `transform`.  Consequently the
 existential conclusion of Theorem 2 would be trivially provable by replacing
@@ -33,8 +33,8 @@ existential conclusion of Theorem 2 would be trivially provable by replacing
 Lange–McKenzie–Tapp simulation, which is what actually produces an oblivious
 schedule performing the same transformation.  Recording that tautology as a
 proved theorem would inflate coverage, so the paper's Theorem 2 is instead
-recorded faithfully as the predicate `ReversibleSimulation`, and `theorem2` is
-left as a target for a future formal machine model.
+recorded faithfully as the predicate `ReversibleSimulation`; a concrete formal
+machine model would be needed to prove the simulation construction.
 -/
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
@@ -53,7 +53,7 @@ Faithful statement of the paper's Theorem 2 over the abstract
 docstring for why the record makes the statement trivially true and why
 proving it here would not represent the Lange–McKenzie–Tapp simulation.
 
-* **Fixed paper version.** Watrous, arXiv:cs/9812012v1 (1998).
+* **Source.** Watrous, arXiv:cs/9812012v1 (1998).
 * **Original statement.** Theorem 2, p. 4: quoted in full in the module
   docstring above.
 * **Key proof steps (not formalized).** Follows the Lange–McKenzie–Tapp
@@ -61,19 +61,10 @@ proving it here would not represent the Lange–McKenzie–Tapp simulation.
   a fixed number of times, computing auxiliary information reversibly so that
   the total number of sweeps depends only on the input, not on the tape
   contents; the simulation adds only a constant factor in space.
-* **Current Lean gap.** The libraries contain no formal Turing machine model
-  (neither deterministic nor reversible, and no closure under the LMT
-  simulation), so neither the simulated machine nor the oblivious schedule can
-  be constructed.  The statement is nonetheless faithful: `W`, `transform`,
-  and `space` are the paper's data.
-* **Candidate reusable dependencies.** A future formalization of reversible
-  Turing machines and of the Lange–McKenzie–Tapp simulation; the abstract
-  `ReversibleMachine` record of `MachineModel.lean`.
-* **Suggested takeover tactic.** Define reversible machines concretely
-  (transition function + tape alphabet), prove the LMT simulation theorem, then
-  instantiate `M'` with the simulated machine's `transform`; the step-count
-  independence is the LMT "oblivious" schedule, whose length depends only on
-  `|x|` and the space bound. -/
+* **Scope note.** The libraries do not yet provide a deterministic or reversible
+  Turing-machine model or the Lange–McKenzie–Tapp simulation, so constructing the
+  simulated machine and its oblivious schedule is outside this file.  The
+  predicate retains the paper's data `W`, `transform`, and `space`. -/
 def ReversibleSimulation : Prop :=
   ∀ {W : Type*} (M : ReversibleMachine W), M.LogSpace →
     ∃ M' : ReversibleMachine W,

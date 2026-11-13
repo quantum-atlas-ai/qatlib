@@ -22,8 +22,6 @@ lattice-sum estimate at the marginal dimension four in [ChildsGoldstone2004].
 * [Childs and Goldstone, 2004][ChildsGoldstone2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

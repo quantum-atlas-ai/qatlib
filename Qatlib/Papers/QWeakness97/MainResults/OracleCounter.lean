@@ -32,8 +32,6 @@ about the actual XOR query primitive and its query clock.
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QWeakness97.MainResults

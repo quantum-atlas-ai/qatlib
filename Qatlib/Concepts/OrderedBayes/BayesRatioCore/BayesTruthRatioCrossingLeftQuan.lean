@@ -24,8 +24,6 @@ corresponding to the ratio analysis associated with Lemma 2.5 of [BenOrHassidim2
 * [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal BigOperators NNReal
 

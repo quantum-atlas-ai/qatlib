@@ -38,7 +38,6 @@ namespace Qatlib.Concepts.LchsSimulation.InteractHybrid
 
 open Matrix MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The unrestricted-time double-Cauchy representation of an evolved observable quadratic form
 for continuous positive semidefinite `L` and Hermitian `H`. -/

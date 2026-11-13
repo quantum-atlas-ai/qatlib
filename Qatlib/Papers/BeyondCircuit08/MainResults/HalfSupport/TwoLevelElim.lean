@@ -31,8 +31,6 @@ of any set containing the two selected coordinates, supporting the elimination a
 * [Jordan, 2008][Jordan2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

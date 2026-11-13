@@ -38,7 +38,6 @@ framework of [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ShadowModels.ShadowChannel
 open Qatlib.Concepts.ClusterPatterns.WireComposition
@@ -57,7 +56,6 @@ open Qatlib
 open Qatlib
 open scoped ComplexOrder
 
-set_option linter.unusedSectionVars false
 set_option autoImplicit false
 
 /-- The observed Kraus leaf for wire-program outcome `a`, lifted at wire `i` to the network
@@ -366,7 +364,6 @@ theorem networkLedgerGeneric {n : ℕ} (cost : ClusterNetworkGate n → Bool × 
       rw [h1, h2]
       ring
 
-set_option linter.unusedVariables false in
 
 /-- For a legal word with `W` wire gates and `C` CZ gates, every valid history has zero queries,
 `5 * W + 13 * C` gates, and `W + 2 * C` measurements and feedback bits, with peak `n` wires

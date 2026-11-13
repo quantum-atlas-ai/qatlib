@@ -26,9 +26,7 @@ multi-controlled synthesis [BarencoEtAl1995].
 * [Barenco et al., 1995, Section 7][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 

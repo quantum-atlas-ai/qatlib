@@ -42,7 +42,6 @@ bound into the repetition series need not bound the actual expected attempts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

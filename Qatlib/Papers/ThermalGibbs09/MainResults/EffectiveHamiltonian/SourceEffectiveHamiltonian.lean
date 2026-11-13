@@ -31,7 +31,7 @@ then there is a self-adjoint `H̃` with `e^{itH̃} = Ũ` and
    (eq. (A14), choosing `R = 2`).
 4. Combining turns `‖U - Ũ‖ ≤ ε` into `t‖H - H̃‖ ≤ K ε`.
 
-## Lean gap / candidate dependencies
+## Scope and related matrix-logarithm results
 
 * Self-adjoint logarithms of unitaries and the identity
   `expUnitary (argSelfAdjoint u) = u` exist in Mathlib:
@@ -39,24 +39,23 @@ then there is a self-adjoint `H̃` with `e^{itH̃} = Ũ` and
   (`Mathlib.Analysis.CStarAlgebra.Unitary.Connected`, with
   `Mathlib.Analysis.CStarAlgebra.Matrix` supplying the C⋆-algebra structure
   on `Matrix I I ℂ`). `Unitary.norm_sub_eq` gives the relative form.
-* What is missing is the quantitative Lipschitz estimate (A14)
+* The quantitative Lipschitz estimate (A14)
   `‖argSelfAdjoint u - argSelfAdjoint v‖ ≤ K‖u - v‖` for `u, v` in the ball
   `‖u - 1‖ < 2`, together with the transfer of the norm bound through the
-  `1/t` rescaling of `H̃`. Mathlib provides the exact modulus
-  `Unitary.norm_argSelfAdjoint` for a single `u`, but no two-point Lipschitz
-  constant.
-* Suggested next tactics: prove the two-point bound by differentiating
-  `t ↦ argSelfAdjoint (expUnitary (t • x))` along the `Unitary.path` from
-  `u` to `v` (available as `Unitary.path`/`Unitary.joined`), bounding the
-  derivative by the contour estimates `(R-1)⁻¹`, `R/(R-1)`, `2` of Appendix A;
-  then instantiate `R = 2` to get `K = 6π + 12`.
+  `1/t` rescaling of `H̃`, is outside the scope of this file. Mathlib provides
+  the exact modulus `Unitary.norm_argSelfAdjoint` for a single `u`, but no
+  two-point Lipschitz constant.
+* A differential approach to the two-point bound would study
+  `t ↦ argSelfAdjoint (expUnitary (t • x))` along a path from `u` to `v`
+  (related constructions are `Unitary.path` and `Unitary.joined`). The relevant
+  derivative bounds are the contour estimates `(R-1)⁻¹`, `R/(R-1)`, `2` of
+  Appendix A; at `R = 2` these give the paper's constant `K = 6π + 12`.
 
-## Status
+## Formalization scope
 
-Because the two-point Lipschitz constant (A14) is absent from Mathlib, the
-quantitative statement of claim `c003` cannot be proved here.  We record it in
-prose rather than assert an unprovable `∃` whose trivial witness would restate
-the conclusion.
+Scope note: the quantitative statement of claim `c003`, including the
+two-point Lipschitz estimate (A14), is described here in prose. This file
+does not provide a theorem asserting that bound.
 -/
 
 set_option autoImplicit false
@@ -80,14 +79,13 @@ guarantee: let `H` be a self-adjoint Hamiltonian with `‖H‖ ≤ π/(4t)`, let
 The constant `6π+12` is the paper's `K` from the resolvent estimates
 `(A19)--(A25)` at `R = 2`; the paper's `κ` in the main text is this `K`.
 
-## Status: unformalised quantitative content
+## Scope of the quantitative statement
 
 The existence half is available in Mathlib (`Unitary.argSelfAdjoint`,
 `expUnitary_argSelfAdjoint`), but the *quantitative* norm bound needs the
 two-point contour Lipschitz estimate (A14), which Mathlib does not provide
 (only the single-point modulus `Unitary.norm_argSelfAdjoint`).  See the
-module docstring for the proposed derivation.  The statement is therefore
-recorded in prose only; asserting it as an `∃` with an unconstrained witness
-would restate the conclusion. -/
+module docstring for the analytic approach. The quantitative statement is
+recorded in prose only and is outside the formalized results of this file. -/
 
 end Qatlib.Papers.ThermalGibbs09.MainResults.EffectiveHamiltonian

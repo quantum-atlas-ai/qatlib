@@ -25,7 +25,6 @@ obstructions to be transported between permutation-equivalent digraphs.
 * [Severini, 2003][Severini2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

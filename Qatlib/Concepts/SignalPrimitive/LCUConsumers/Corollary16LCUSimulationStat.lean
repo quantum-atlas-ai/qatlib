@@ -31,7 +31,6 @@ and logarithmically in `1 / ε`.
 -/
 
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
-set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.QspSimulation.Achievability

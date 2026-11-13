@@ -27,8 +27,6 @@ queries, and a repetition bound controls the resulting finite word cost.
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

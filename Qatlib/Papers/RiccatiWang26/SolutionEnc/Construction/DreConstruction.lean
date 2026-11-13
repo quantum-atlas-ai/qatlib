@@ -38,12 +38,7 @@ variable {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-! ## Proposition D.5: stability and cost of direct recovery -/
 
-/-- RiccatiWang26, Proposition D.5 (p. 78), Eqs. (D.17)–(D.18).  If encoding `E(t)` with
-normalization `αE` and decoded error `δE` costs `QE(δE)` matrix queries, then for `0 < ε ≤ 1`
-the choices `δE ≤ ε/(8(1+M)²)` and `εinv = ε/(4(1+αE))` give decoded product error at most
-`ε/4`, and the upper-block pseudoinverse threshold `4αE/αP(t)` returns an `(αP(t), aP(t), ε)`
-block-encoding of `P(t)` using `O(QE(δE) αP(t) log(e + αP(t)/ε))` matrix queries.  The same
-holds for any graph projector satisfying Lemma D.3. -/
+/-- Arithmetic core associated with Proposition D.5: assuming the displayed formula for `Q`, proves only `0 ≤ Q`, `δE ≤ ε` and `εinv ≤ ε/4`. The matrix arguments are unused. No block encoding, decoded product-error estimate or query implementation is constructed. -/
 theorem proposition_D_5_stability_and_cost
     (E P : Sq n) (αE αP M ε δE εinv QE Q : ℝ) (QEfun : ℝ → ℝ)
     (hM : 0 ≤ M) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
@@ -57,12 +52,9 @@ theorem proposition_D_5_stability_and_cost
   -- pseudoinverse threshold `4αE/αP` makes the QSVT inverse accurate on the whole nonzero
   -- spectrum of `E₁*E`, and the cost multiplies by the `log(e + αP/ε)` inverse-iteration
   -- term.
-  -- Lean gap: the decoded product-error propagation and the pseudoinverse threshold
-  -- analysis (Proposition 2.6 + Lemma A.2).
-  -- Candidate dependencies: `BlockEncodes` (PaperModel), `proposition_2_6_inverse_primitive`,
-  -- `lemma_A_2_inverse_perturbation`.
-  -- Suggested follow-up: prove `αP δE ≤ ε/8` from (D.17) and `αP εinv ≤ ε/4` from the
-  -- threshold, then combine by the triangle inequality.
+  -- Scope note: this theorem proves nonnegativity of the cost and bounds the
+  -- chosen accuracies. Decoded product-error propagation and pseudoinverse threshold
+  -- analysis (Proposition 2.6 and Lemma A.2) are outside the scope of this file.
   refine ⟨?_, ?_, ?_⟩
   · -- nonnegativity of the cost expression
     have h1 : 0 ≤ QEfun δE * αP := mul_nonneg hQE hαP.le
@@ -89,10 +81,7 @@ theorem proposition_D_5_stability_and_cost
 
 /-! ## Corollary D.7: output normalization -/
 
-/-- RiccatiWang26, Corollary D.7 (p. 80), Eq. (D.27).  For the rectangular rule of
-Proposition D.4 with `γ₊ = Θ(σmin(Π₊R₀))`, direct assembly and the default output scale give
-`αP(t) = O(√(1+M²) RDRE + α_{R₀} RDRE²/σmin(Π₊R₀))`, reducing to (3.5) when
-`M, α_{R₀} = O(1)`. -/
+/-- Arithmetic core associated with Corollary D.7: proves nonnegativity of the displayed normalization expression. The bound on `αP` is an assumption and is not derived. -/
 theorem corollary_D_7_output_normalization
     (αP M RDRE αR0 σminInit C : ℝ)
     (hM : 0 ≤ M) (hRDRE : 0 ≤ RDRE) (hαR0 : 0 ≤ αR0) (hσ : 0 < σminInit) (hC : 0 < C)
@@ -101,11 +90,9 @@ theorem corollary_D_7_output_normalization
   -- Source: Cor. D.7 (p. 80).  The output normalization is the sum of the `[I;X]` factor
   -- `√(1+‖X‖²) ≤ √(1+M²)` and the pseudoinverse factor `α_{R₀} R²/σmin(Π₊R₀)`, both
   -- multiplied by `RDRE` from the raw contour normalization.
-  -- Lean gap: the derivation of (D.27) from (D.23) needs the pseudoinverse threshold chain.
-  -- Candidate dependencies: `proposition_D_6_dre_stability_and_query_bound`,
-  -- `proposition_D_5_stability_and_cost`.
-  -- Suggested follow-up: substitute `γ₊ ≥ c σmin(Π₊R₀)` into (D.23) and use
-  -- `α_{R₀} ≤ 1 + αP` to absorb the `√(1+M²)` factor.
+  -- Scope note: this theorem proves nonnegativity of the normalization expression.
+  -- Deriving (D.27) from (D.23) through the pseudoinverse threshold chain, including
+  -- the substitution `γ₊ ≥ c σmin(Π₊R₀)`, is outside the scope of this file.
   have h1 : 0 ≤ Real.sqrt (1 + M ^ 2) := Real.sqrt_nonneg _
   have h2 : 0 ≤ αR0 * RDRE ^ 2 / σminInit :=
     div_nonneg (mul_nonneg hαR0 (sq_nonneg RDRE)) hσ.le
@@ -115,11 +102,7 @@ theorem corollary_D_7_output_normalization
 
 /-! ## Lemma F.2: CARE normalization on a finite rectangle -/
 
-/-- RiccatiWang26, Lemma F.2 (p. 96), Eqs. (F.10)–(F.11).  With node inverse-norm estimates
-`βj ≤ cβ ‖(zj I - HCARE)⁻¹‖`, the CARE contour normalization satisfies
-`αCARE ≤ cβ RCARE Σ_j |ωj|/(|zj| + αH)`; for the left rectangle (B.9) with a nonnegative
-quadrature rule exact on constants, `αΠ₋ = αCARE ≤ (6cβ/π) RCARE = O(RCARE)`, uniformly in the
-panel and node counts, with the direct LCU normalization. -/
+/-- Arithmetic core associated with Lemma F.2: returns the assumed contour normalization inequality and proves nonnegativity of `(6*cβ/π)*RCARE`. No quadrature normalization bound is derived. -/
 theorem lemma_F_2_care_normalization
     (cβ RCARE αCARE αH sumT : ℝ) (hβ : 4 ≤ cβ) (hR : 0 ≤ RCARE)
     (hαH : 0 ≤ αH) (hsum : 0 ≤ sumT)
@@ -127,24 +110,17 @@ theorem lemma_F_2_care_normalization
     αCARE ≤ cβ * RCARE * sumT ∧ 0 ≤ (6 * cβ / Real.pi) * RCARE := by
   -- Source: Lemma F.2 (p. 96).  `α_CARE = Σ_j |ωj| βj ≤ cβ Σ_j |ω_j| ‖(z_jI - H)⁻¹‖` and on
   -- the left rectangle `|ωj|/(|zj| + αH) ≤ 6/π` after the panel parameterization `zℓ(t)`.
-  -- Lean gap: the panel-length normalization `Σ |ωj|/(|zj|+αH) = 6/π` for a rule exact on
-  -- constants.
-  -- Candidate dependencies: `NodeInvEstimates`, `genSingFactor` (PaperModel).
-  -- Suggested follow-up: sum the panel weights `hℓ wj/2πi` against `1/(|zℓ(t)| + αH)` and use
-  -- `Σ wj = 2` to get the `6/π` factor.
+  -- Scope note: this theorem retains the assumed contour normalization inequality
+  -- and proves nonnegativity of `(6cβ/π) RCARE`. The panel-length normalization
+  -- `Σ |ωj|/(|zj|+αH) = 6/π`, obtained by summing the panel weights
+  -- `hℓ wj/2πi` using `Σ wj = 2`, is outside the scope of this file.
   refine ⟨hα, ?_⟩
   have hcβ : (0:ℝ) ≤ cβ := by linarith
   exact mul_nonneg (div_nonneg (by positivity) Real.pi_pos.le) hR
 
 /-! ## Proposition F.3: CARE on a finite rectangle -/
 
-/-- RiccatiWang26, Proposition F.3 (p. 96), Eqs. (F.12)–(F.20).  With a supplied lower bound
-`0 < Δax ≤ Δax`, `d = Δax/2`, the rectangle contour `Γ₋ = ∂{x+iy : -2αH ≤ x ≤ -d, |y| ≤ 2αH}`
-of length `ℓ(Γ₋) = 12αH - Δax` (positive since `Δax < 6αH`) is divided into `Npan ≤ ℓ/d + 4` panels with `p`-point
-Gauss–Legendre nodes; then `‖Sm - Π₋‖ ≤ 2ℓ(Γ₋)4^{-p}/(πd)`, `RCARE ≤ (1+2√2)αH/d`,
-`‖Π₋‖ ≤ ℓ/(2πd)`, `αΠ₋ = αCARE ≤ (6cβ/π)RCARE = O(αH/Δax)`; `p = ⌈log(4ℓ/(πdδ))/(2 log 2)⌉`
-gives `‖Sm - Π₋‖ ≤ δ/2` for `0 < δ ≤ 1/8`, and with `δ = ε/[8(1+‖X‖²)]` the recovery has
-decoded error at most `ε`, normalization `αX = 8αΠ₋√(1+‖X‖²)` and query cost (F.19). -/
+/-- Arithmetic core associated with Proposition F.3: proves positivity of `d`, `ℓΓ` and `αX`, and returns the assumed panel bound. No decoded-error estimate, block encoding or query cost is constructed. -/
 theorem proposition_F_3_care_finite_rectangle
     (αH Δax d ℓΓ cβ RCARE αCARE αX Xnorm ε p Npan : ℝ)
     (hαH : 0 < αH) (hΔ : 0 < Δax) (hd : d = Δax / 2) (hℓ : ℓΓ = 12 * αH - Δax)
@@ -158,11 +134,11 @@ theorem proposition_F_3_care_finite_rectangle
   -- Source: Prop. F.3 (pp. 96–97).  The rectangle encloses the stable branch by Theorem B.4;
   -- the panel count is `⌈length/d⌉ ≤ ℓ/d + 4` summing the four sides; the `(2p)`-th derivative
   -- of the resolvent on the panel is bounded by `2/d^{2p+1}`, giving the `4^{-p}` rate.
-  -- Lean gap: Gauss–Legendre quadrature theory and the rectangle/panel geometry.
-  -- Candidate dependencies: `lemma_F_2_care_normalization`, `theorem_B_4_...` (Geometry),
-  -- `proposition_D_5_stability_and_cost`.
-  -- Suggested follow-up: prove `‖Sm - Π₋‖ ≤ Σ_panels (ℓ_panel/d) 4^{-p}` by the standard
-  -- analytic Gauss–Legendre estimate, then `p = ⌈log(4ℓ/(πdδ))/(2log2)⌉`.
+  -- Scope note: this theorem proves positivity of the geometric and normalization
+  -- parameters and retains the assumed panel-count bound. Gauss–Legendre error
+  -- theory and the rectangle/panel geometry, including the analytic estimate
+  -- `‖Sm - Π₋‖ ≤ Σ_panels (ℓ_panel/d) 4^{-p}` and the choice
+  -- `p = ⌈log(4ℓ/(πdδ))/(2log2)⌉`, are outside the scope of this file.
   refine ⟨by rw [hd]; linarith, by rw [hℓ]; linarith, ?_, hNpan⟩
   rw [hαX]
   have h1 : 0 < Real.sqrt (1 + Xnorm ^ 2) := Real.sqrt_pos.mpr (by nlinarith [sq_nonneg Xnorm])

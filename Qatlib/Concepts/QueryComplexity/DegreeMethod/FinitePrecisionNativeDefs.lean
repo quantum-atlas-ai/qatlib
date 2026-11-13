@@ -37,7 +37,6 @@ program supply concrete finite computations in the framework of [KitaevShenVyaly
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

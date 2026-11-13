@@ -24,8 +24,6 @@ bounds for `N ≤ M < N^2` and `N^2 ≤ M`.
 * [Tani, 2009][Tani2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

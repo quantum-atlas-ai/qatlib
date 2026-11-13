@@ -32,7 +32,6 @@ noncomputable section
 namespace Qatlib.Papers.CommutLCHS26.MainResults.MultilinearSums
 
 open scoped BigOperators Classical
-set_option warningAsError false
 
 variable {E F : Type} [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]

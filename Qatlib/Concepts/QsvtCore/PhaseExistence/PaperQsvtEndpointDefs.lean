@@ -28,8 +28,6 @@ respectively. `paperLedger` constructs the same record from arbitrary supplied c
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence

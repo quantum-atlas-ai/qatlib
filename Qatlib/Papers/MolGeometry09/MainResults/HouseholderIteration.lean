@@ -34,11 +34,9 @@ positive grid size.
 * [Kassal and Aspuru-Guzik, 2009][KassalAspuruGuzik2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.MolGeometry09.MainResults.HouseholderIteration
@@ -126,7 +124,7 @@ theorem householderCircuit_query_count (d M l : ℕ) (hM : 0 < M) :
 
 /-- For positive grid size, the order-one Householder circuit word equals `newtonCircuit d M`;
 see [KassalAspuruGuzik2009]. -/
-theorem householder_order_one_eq_newton_circuit (d M : ℕ) (hM : 0 < M) :
+theorem householder_order_one_eq_newton_circuit (d M : ℕ) (_hM : 0 < M) :
     householderCircuit d M 1 = newtonCircuit d M := by
   rw [householderCircuit_succ, householderCircuit_zero, newtonCircuit_eq_gradient_hessian]
 

@@ -26,8 +26,6 @@ scaled complex estimate has error at least `Δ * ε` is at most one quarter.
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Theorem34
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds

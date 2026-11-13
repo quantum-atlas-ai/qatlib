@@ -34,8 +34,6 @@ the corresponding singular transforms differ by at most `4 * d * √‖A - B‖`
 -/
 
 open Qatlib.Concepts.BlockEncoding.Postselection
-set_option warningAsError false
-
 
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.QsvtCore.LinearSystems

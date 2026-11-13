@@ -39,7 +39,6 @@ least `1 - 16*d/(M*w) - 4*pi*B` when the phase differs from its affine target by
   Estimation*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

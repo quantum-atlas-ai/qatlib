@@ -25,7 +25,6 @@ vocabulary used for ordered-search semidefinite programs [ChildsLandahlParrilo20
 * [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

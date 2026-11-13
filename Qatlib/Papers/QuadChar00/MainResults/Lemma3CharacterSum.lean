@@ -23,8 +23,6 @@ This module evaluates the sum of the finite field quadratic character. The two c
 * [van Dam and Hallgren, 2000][VanDamHallgren2000]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

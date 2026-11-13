@@ -80,7 +80,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The QPE query obtained by reference amplification of the two-species copy run at time `π`. -/
 def twoSpeciesQPEQuery (D M n : ℕ) (ρ σ : Operator D)

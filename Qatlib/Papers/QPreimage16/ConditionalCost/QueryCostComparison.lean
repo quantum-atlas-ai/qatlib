@@ -28,8 +28,6 @@ of at least 275 billion.
 * [Amy et al., 2017][AmyEtAl2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

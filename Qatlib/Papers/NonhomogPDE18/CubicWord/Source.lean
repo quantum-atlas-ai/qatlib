@@ -23,8 +23,6 @@ x_j x_k x_l. See [ArrazolaEtAl2019].
 * [Arrazola et al., 2019][ArrazolaEtAl2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

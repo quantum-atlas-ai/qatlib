@@ -40,7 +40,6 @@ gate, measurement, and query counts in the given circuit syntax.
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -59,7 +58,6 @@ open Matrix
 open scoped ComplexOrder Kronecker
 
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
 
 /-- The single-qubit basis change used to measure the selected Pauli axis: a normalized Hadamard
 matrix for axis zero, its displayed complex variant for axis one, and the identity for axis
@@ -355,7 +353,7 @@ theorem axis_leaf_operator (a : Fin 3) (b : Bool) :
           rw [Matrix.mul_add, Matrix.add_mul, Matrix.mul_one, hun, hcz]
       _ = PauliProjector a true := by
           rw [PauliProjector]
-          simp only [if_true, one_smul]
+          simp only [ite_true, one_smul]
 
 /-- The leaf selected by `pauliLeafIndex a b` has operator `PauliProjector a b` and records `(2,
 0)` for `true` or `(2, 1)` for `false`. -/

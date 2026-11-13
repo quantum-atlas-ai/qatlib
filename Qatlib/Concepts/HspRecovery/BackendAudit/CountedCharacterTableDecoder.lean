@@ -29,10 +29,7 @@ query, and two gates. [Lomont2004]
 * [Lomont, 2004][Lomont2004]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -61,6 +58,8 @@ def tableCandidateScan (tab : G → G → Bool) (x : G) : List G → Bool × ℕ
     let rest := tableCandidateScan tab x xs
     (hit && rest.1, rest.2 + 1)
 
+omit [Fintype G] [DecidableEq G] in
+
 /-- A candidate scan returns true exactly when all table entries for the candidate and sampled
 labels are true. -/
 private theorem tableCandidateScan_spec (tab : G → G → Bool) (x : G) (xs : List G) :
@@ -68,6 +67,8 @@ private theorem tableCandidateScan_spec (tab : G → G → Bool) (x : G) (xs : L
   induction xs with
   | nil => simp [tableCandidateScan]
   | cons a xs ih => simp [tableCandidateScan, ih]
+
+omit [Fintype G] [DecidableEq G] in
 
 /-- Scanning one candidate reads exactly one table entry per sampled label. -/
 private theorem tableCandidateScan_reads (tab : G → G → Bool) (x : G) (xs : List G) :
@@ -165,6 +166,8 @@ noncomputable def tableSamplingCircuit (e : G ≃ AddChar G ℂ) (A : Matrix G G
     Circuit (G × R) :=
   Step.gate (TensorGate A 1) :: hiddenSubgroupSamplingCircuit (R := R) e
 
+omit [DecidableEq G] [AddCommGroup R] [Fintype R] in
+
 /-- The character table sampling circuit has exactly one oracle query and two gates. -/
 theorem tableSamplingCircuit_resources (e : G ≃ AddChar G ℂ) (A : Matrix G G ℂ) :
     QueryCount (tableSamplingCircuit (R := R) e A) = 1 ∧
@@ -216,6 +219,8 @@ open scoped Classical
 
 variable {G R : Type} [AddCommGroup G] [Fintype G] [DecidableEq G]
   [AddCommGroup R] [Fintype R] [DecidableEq R]
+
+omit [AddCommGroup G] in
 
 /-- The character table decoder returns exactly the candidates passing every sampled table test
 and uses exactly `card G * xs.length` table reads [Lomont2004]. -/

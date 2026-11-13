@@ -71,8 +71,6 @@ background, see [FillionGourdeauMacLeanLaflamme2017].
 * [Fillion-Gourdeau et al., 2017][FillionGourdeauMacLeanLaflamme2017]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

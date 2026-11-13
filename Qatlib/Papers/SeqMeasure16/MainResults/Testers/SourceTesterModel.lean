@@ -24,15 +24,16 @@ The paper studies four kinds of procedures:
 * `ε`-testers for `S`-isomorphism of unitaries (Theorem 6);
 * `ε`-testers for `G`-isomorphism of functions (Section 1.1, Theorem 2).
 
-In each case a tester is a procedure which (i) has a fixed resource budget
-(queries to the unknown function, or copies/uses of the unknown state or
-unitary), and (ii) accepts with probability at least `2/3` on inputs having
-the property and at most `1/3` on inputs promised to be `ε`-far from it.  The
-structures below record exactly these two attributes: the acceptance
-probability is the actual output probability of the procedure on the input,
-and the budget field is the number of queries/copies/uses it consumes.  The
-structures are interfaces, not executable circuits; the paper's algorithms
-are asserted to exist with the stated budgets.
+The legacy structures below are semantic specifications: their real-valued
+acceptance maps satisfy completeness and soundness, but their budgets are
+independent labels. They do not require probability ranges, measurements or
+query circuits, and their existence alone is not a resource bound.
+`TesterModel` supplies external program semantics and charged call traces.
+The four `Realizes...` predicates require one program to match both acceptance
+and the declared budget. Physical validity and complete accounting of calls
+are assumptions on the supplied model. No such physical model or tester
+implementation is constructed in this file; the other probability inequalities
+in this paper do not provide these realization certificates.
 
 Distances follow the paper:
 * pure-state trace distance, equation (1), page 5:
@@ -78,13 +79,10 @@ noncomputable def unitaryDistance {d : ℕ}
 def IsUnitary {d : ℕ} (U : Matrix (Fin d) (Fin d) ℂ) : Prop :=
   Uᴴ * U = 1 ∧ U * Uᴴ = 1
 
-/-- A quantum `ε`-tester for a finite set `P` of pure states (Section 1.2,
-page 5; Theorem 4).  `copies` is the number of copies of the input state used;
-`acceptProb ψ` is the acceptance probability of the procedure on input `ψ`.
-The two correctness fields are the paper's completeness and soundness
-requirements (success probability `2/3`, trace distance at least `ε` from `P`). -/
+/-- Semantic state-property specification (Theorem 4). Its budget and acceptance
+map require a separate `RealizesStateTester` certificate in a supplied model. -/
 structure StatePropertyTester (d : ℕ) (P : Finset (QState (Fin d))) (ε : ℝ) where
-  /-- Number of copies of the unknown state consumed by the tester. -/
+  /-- Declared copy budget; no copy consumption is certified by this field. -/
   copies : ℕ
   /-- Acceptance probability of the tester on a given input state. -/
   acceptProb : QState (Fin d) → ℝ
@@ -95,11 +93,11 @@ structure StatePropertyTester (d : ℕ) (P : Finset (QState (Fin d))) (ε : ℝ)
   rejects_far : ∀ ψ, Normalized ψ →
     (∀ φ, φ ∈ P → Normalized φ → ε ≤ pureTraceDistance ψ φ) → acceptProb ψ ≤ 1 / 3
 
-/-- A quantum `ε`-tester for a finite set `P` of unitary operators
-(Corollary 5, page 13).  `uses` is the number of uses of the input unitary. -/
+/-- Semantic unitary-property specification (Corollary 5); physical realization
+and resource consumption are separate obligations. -/
 structure UnitaryPropertyTester (d : ℕ) (P : Finset (Matrix (Fin d) (Fin d) ℂ))
     (ε : ℝ) where
-  /-- Number of uses of the unknown unitary operator. -/
+  /-- Declared unitary-use budget, requiring a realization certificate. -/
   uses : ℕ
   /-- Acceptance probability of the tester on a given input unitary. -/
   acceptProb : Matrix (Fin d) (Fin d) ℂ → ℝ
@@ -111,12 +109,12 @@ structure UnitaryPropertyTester (d : ℕ) (P : Finset (Matrix (Fin d) (Fin d) �
   rejects_far : ∀ U, IsUnitary U →
     (∀ V, V ∈ P → ε ≤ unitaryDistance U V) → acceptProb U ≤ 1 / 3
 
-/-- A quantum `ε`-tester for unitary `S`-isomorphism (page 6, Theorem 6): the
+/-- Semantic specification for unitary `S`-isomorphism (page 6, Theorem 6): the
 property is `∃ U ∈ S, U V U† = W`, and the far case is
 `∀ U ∈ S, D(U V U†, W) ≥ ε`. -/
 structure UnitaryIsomorphismTester (d : ℕ)
     (S : Finset (Matrix (Fin d) (Fin d) ℂ)) (ε : ℝ) where
-  /-- Number of uses of the unknown unitaries `V` and `W`. -/
+  /-- Declared total use budget for `V` and `W`, requiring realization. -/
   uses : ℕ
   /-- Acceptance probability of the tester on input `(V, W)`. -/
   acceptProb : Matrix (Fin d) (Fin d) ℂ → Matrix (Fin d) (Fin d) ℂ → ℝ
@@ -128,13 +126,13 @@ structure UnitaryIsomorphismTester (d : ℕ)
   rejects_far : ∀ V W, IsUnitary V → IsUnitary W →
     (∀ U, U ∈ S → ε ≤ unitaryDistance (U * V * Uᴴ) W) → acceptProb V W ≤ 1 / 3
 
-/-- A quantum `ε`-tester for `G`-isomorphism of functions `f, g : X → Y`
+/-- Semantic specification for `G`-isomorphism of functions `f, g : X → Y`
 (Section 1.1, page 3; Theorem 2).  `G` is an arbitrary finite set of
 permutations of `X` (the paper stresses that `G` need not be a group).  The
-`queries` field counts queries to `f` and `g`. -/
+`queries` field is only a label until `RealizesGTester` is supplied. -/
 structure GIsomorphismTester (X Y : Type*) [Fintype X] [Fintype Y] [DecidableEq Y]
     (G : Finset (Equiv.Perm X)) (ε : ℝ) where
-  /-- Number of queries made to `f` and `g`. -/
+  /-- Declared query budget for `f` and `g`, requiring realization. -/
   queries : ℕ
   /-- Acceptance probability of the tester on input `(f, g)`. -/
   acceptProb : (X → Y) → (X → Y) → ℝ
@@ -147,5 +145,53 @@ structure GIsomorphismTester (X Y : Type*) [Fintype X] [Fintype Y] [DecidableEq 
       ε * (Fintype.card X : ℝ) ≤
         (((Finset.univ : Finset X).filter (fun x => g x ≠ f (σ x))).card : ℝ)) →
     acceptProb f g ≤ 1 / 3
+
+/-- External tester semantics. The model provider must justify that `accept`
+is the program's physical acceptance probability and `calls` lists all consumed
+copies or oracle uses. This interface itself supplies no such justification. -/
+structure TesterModel (Input : Type*) where
+  Program : Type
+  Call : Type
+  calls : Program → List Call
+  accept : Program → Input → ℝ
+
+/-- Matching output semantics and trace length in an explicitly supplied model. -/
+def TesterModel.Realizes {Input : Type*} (M : TesterModel Input)
+    (budget : ℕ) (accept : Input → ℝ) : Prop :=
+  ∃ p : M.Program, (M.calls p).length = budget ∧ ∀ x, M.accept p x = accept x
+
+/-- Transfer any semantic correctness predicate to a program, conditional on
+its realization certificate. No program is synthesized by this theorem. -/
+theorem TesterModel.correct_of_realizes {Input : Type*} {M : TesterModel Input}
+    {budget : ℕ} {accept : Input → ℝ} (h : M.Realizes budget accept)
+    (Correct : (Input → ℝ) → Prop) (hCorrect : Correct accept) :
+    ∃ p : M.Program, (M.calls p).length = budget ∧ Correct (M.accept p) := by
+  obtain ⟨p, hc, hp⟩ := h
+  have heq : M.accept p = accept := funext hp
+  exact ⟨p, hc, heq.symm ▸ hCorrect⟩
+
+/-- Conditional realization with one trace entry per input-state copy. -/
+def RealizesStateTester {d : ℕ} {P : Finset (QState (Fin d))} {ε : ℝ}
+    (T : StatePropertyTester d P ε) (M : TesterModel (QState (Fin d))) : Prop :=
+  M.Realizes T.copies T.acceptProb
+
+/-- Conditional realization with one trace entry per unitary use. -/
+def RealizesUnitaryTester {d : ℕ} {P : Finset (Matrix (Fin d) (Fin d) ℂ)} {ε : ℝ}
+    (T : UnitaryPropertyTester d P ε)
+    (M : TesterModel (Matrix (Fin d) (Fin d) ℂ)) : Prop :=
+  M.Realizes T.uses T.acceptProb
+
+/-- Conditional realization counting uses of both unknown unitaries. -/
+def RealizesUnitaryIsomorphismTester {d : ℕ}
+    {S : Finset (Matrix (Fin d) (Fin d) ℂ)} {ε : ℝ}
+    (T : UnitaryIsomorphismTester d S ε)
+    (M : TesterModel (Matrix (Fin d) (Fin d) ℂ × Matrix (Fin d) (Fin d) ℂ)) : Prop :=
+  M.Realizes T.uses (fun x => T.acceptProb x.1 x.2)
+
+/-- Conditional realization counting queries to both functions. -/
+def RealizesGTester {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
+    {G : Finset (Equiv.Perm X)} {ε : ℝ} (T : GIsomorphismTester X Y G ε)
+    (M : TesterModel ((X → Y) × (X → Y))) : Prop :=
+  M.Realizes T.queries (fun x => T.acceptProb x.1 x.2)
 
 end Qatlib.Papers.SeqMeasure16.MainResults.Testers

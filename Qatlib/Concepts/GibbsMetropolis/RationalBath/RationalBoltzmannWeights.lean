@@ -32,13 +32,11 @@ identifies the resulting integer-weight probabilities with the normalized Taylor
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
 
 namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 open scoped BigOperators Classical
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- The degree-`K` rational Taylor sum for `exp (1 - E)`. -/
 def rationalBoltzmannTaylor (K : ℕ) (E : ℚ) : ℚ :=
@@ -111,7 +109,7 @@ def boltzmannIntegerWeights {N : ℕ} (K : ℕ) (E : Fin N → ℚ) (i : Fin N) 
 /-- The common denominator of the rational Taylor weights is strictly positive. -/
 theorem boltzmannCommonDenominator_pos {N : ℕ} (K : ℕ) (E : Fin N → ℚ) :
     0 < boltzmannCommonDenominator K E :=
-  Finset.prod_pos fun i _ => Rat.den_pos _
+  Finset.prod_pos fun _i _ => Rat.den_pos _
 
 /-- For energies at most one, each integer weight equals the common denominator times its
 rational Taylor weight after casting to the reals. -/

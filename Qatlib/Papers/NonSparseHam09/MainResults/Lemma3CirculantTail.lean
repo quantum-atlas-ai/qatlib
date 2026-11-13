@@ -27,11 +27,7 @@ analysis.
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset Filter
@@ -42,7 +38,7 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 /-- For positive `d`, the proposition that, for every positive `ε` and eventually in `M`, the
 probability of circulant spectral norm at least `4 * d * √(M * log M)` is at most `(4 + ε) /
 M^(2 * d² - 1)`. -/
-def lemma3Statement (d : ℝ) (hd : 0 < d) : Prop :=
+def lemma3Statement (d : ℝ) (_hd : 0 < d) : Prop :=
   ∀ ε : ℝ, 0 < ε → ∀ᶠ M : ℕ in Filter.atTop,
     probOf M (fun b => 4 * d * Real.sqrt ((M : ℝ) * Real.log (M : ℝ))
         ≤ specNorm (circulantMatrix (signVec b)))

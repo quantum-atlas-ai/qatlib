@@ -36,8 +36,6 @@ threshold `n / 2 + v * log2 n ≤ C` into a bound of `2 ^ C` on the query count 
 * [Amy et al., 2017][AmyEtAl2017]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QPreimage16.GroverBudget
 set_option autoImplicit false
 noncomputable section

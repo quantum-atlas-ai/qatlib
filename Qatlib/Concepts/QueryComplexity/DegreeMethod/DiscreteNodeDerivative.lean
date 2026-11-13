@@ -52,8 +52,6 @@ derivative bound.
 * [Beals et al., 2001, Theorem 4.12][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

@@ -24,7 +24,6 @@ and achieves error at most `2⁻ᵏ`. The mathematical background is developed i
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.QsvtCore.LinearSystems

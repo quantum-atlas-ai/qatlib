@@ -16,12 +16,12 @@ set_option backward.isDefEq.respectTransparency false
 Fixed arXiv:1305.1021v1.  This file fixes the query-model vocabulary used by every
 Theorem/Lemma of the paper *Parameterized Quantum Query Complexity of Graph Collision*.
 
-The decision function is the frozen `graphCollision` of
-`QuantumAlgorithm.Foundations.GraphQuery.EdgeQuery`: the graph `adj` is a known
+The decision function is `graphCollision` of
+`Qatlib.Concepts.GraphQuery.EdgeQuery`: the graph `adj` is a known
 parameter and the queried input is only the vertex labelling `x : Fin n → Bool`.
 The oracle family is the library's textbook bit oracle `BitOracleOn x` on the
 register `Fin n × Bool` (main register plus oracle target qubit).  A bounded-error
-algorithm is represented by the frozen fixed-space certificate
+algorithm is represented by the fixed-space certificate
 `FixedSpaceQueryUpperBound` with error `1/3`; its acceptance event is "the target
 qubit of the final state reads the correct COL decision".
 
@@ -46,7 +46,7 @@ noncomputable def graphCollisionOracle {n : ℕ} (x : Fin n → Bool) :
     Matrix (Fin n × Bool) (Fin n × Bool) ℂ :=
   BitOracleOn x
 
-/-- The graph-collision oracle is unitary, so the frozen fixed-space model applies. -/
+/-- The graph-collision oracle is unitary, so the fixed-space model applies. -/
 theorem graphCollisionOracle_mem_unitaryGroup {n : ℕ} (x : Fin n → Bool) :
     graphCollisionOracle x ∈ Matrix.unitaryGroup (Fin n × Bool) ℂ :=
   bitOracleOn_unitary x

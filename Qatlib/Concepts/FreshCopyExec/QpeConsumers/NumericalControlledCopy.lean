@@ -32,7 +32,6 @@ primitive of [LloydMohseniRebentrost2014].
 * [Lloyd et al., 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend

@@ -29,8 +29,6 @@ two risk quantities explicit in the finite credit model. See [KanekoEtAl2020].
 * [Kaneko et al., 2020][KanekoEtAl2020]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators Classical

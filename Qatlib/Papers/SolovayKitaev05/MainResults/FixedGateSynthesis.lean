@@ -32,7 +32,6 @@ package these facts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.NumericalWord.MixedWordError
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.MatrixAccess.RitzPipeline

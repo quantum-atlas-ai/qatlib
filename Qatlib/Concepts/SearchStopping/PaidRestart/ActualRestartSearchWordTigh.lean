@@ -23,8 +23,6 @@ used by the paid restart laws. For the quantum-search analysis, see [BoyerEtAl19
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

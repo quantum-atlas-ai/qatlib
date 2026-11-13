@@ -34,7 +34,6 @@ related to [MarriottWatrous2005].
 * [Marriott and Watrous, 2005][MarriottWatrous2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
 open Qatlib.Foundations.PureStateMath
@@ -42,7 +41,6 @@ open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.LocalMachine.LocalTransport
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.QmaCompleteness.HistoryHam
 

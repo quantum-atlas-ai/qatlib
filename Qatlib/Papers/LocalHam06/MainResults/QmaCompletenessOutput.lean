@@ -34,7 +34,6 @@ and show in `outputTerms_value_sum` that their sum represents `fullHamiltonian`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

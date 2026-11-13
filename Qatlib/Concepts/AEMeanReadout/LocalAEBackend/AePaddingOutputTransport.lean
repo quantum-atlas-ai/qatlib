@@ -53,7 +53,6 @@ open Qatlib
 open Qatlib
 
 open scoped Classical
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -334,7 +333,6 @@ theorem count_n1_boundary (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin 1)) :
     rw [← ha]
     exact hsrc
 
-set_option linter.unusedVariables false in
 
 /-- Collects padded output and law transport, exact circuit counts, success windows, endpoint
 guarantees, and their counting specializations. -/

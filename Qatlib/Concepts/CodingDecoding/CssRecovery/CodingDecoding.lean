@@ -20,7 +20,6 @@ The code originates in [Steane1996], within the CSS construction of
 the numerical gadget bounds here refer to the local cost and fault model.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters
 open Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode

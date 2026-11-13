@@ -44,7 +44,6 @@ restoring the ancilla to false.
 - [Roland and Cerf, 2003][RolandCerf2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

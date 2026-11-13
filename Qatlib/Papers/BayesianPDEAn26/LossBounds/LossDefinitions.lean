@@ -14,8 +14,6 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed source: arXiv:2608.27028v1 (D. An, Y. Li, P. Tang, Y. Xiong),
 "A quantum-assisted framework for PDE-based Bayesian inverse problems".
-Local PDF/txt: `prove/assets/2608.27028v1.{pdf,txt}`.
-
 This file fixes the real vector-space vocabulary used by the deterministic error
 estimates of Section 4:
 

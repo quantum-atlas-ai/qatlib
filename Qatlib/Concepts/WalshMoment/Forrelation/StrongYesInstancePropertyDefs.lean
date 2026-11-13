@@ -24,8 +24,6 @@ The Boolean Fourier and quantum information background is discussed in [Roettele
 - [Nielsen and Chuang, 2010][NielsenChuang2010].
 -/
 
-set_option warningAsError false
-
 open Qatlib
 open scoped BigOperators
 open Classical

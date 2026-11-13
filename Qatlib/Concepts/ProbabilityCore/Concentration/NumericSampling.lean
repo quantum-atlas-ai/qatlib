@@ -29,7 +29,6 @@ to include numerical precision.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb

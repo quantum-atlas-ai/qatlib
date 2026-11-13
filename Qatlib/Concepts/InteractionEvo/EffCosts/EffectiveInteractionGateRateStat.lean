@@ -23,7 +23,6 @@ full-duration bound with an additive term for the number of calls, in the settin
 * [Low and Wiebe, 2018][LowWiebe2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.EffCosts
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid

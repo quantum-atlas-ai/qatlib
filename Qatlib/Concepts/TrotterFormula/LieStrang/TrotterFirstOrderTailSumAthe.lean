@@ -26,7 +26,6 @@ to obtain the positive-segment statement `trotterFirstOrderTailSum`.
 * [Childs et al., Proposition 15][ChildsEtAl2021Trotter]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

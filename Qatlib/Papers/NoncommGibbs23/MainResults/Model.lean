@@ -15,7 +15,7 @@ import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentWeight
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# QuantumAlgorithmDev.Papers.NoncommGibbs23.MainResults.Model
+# Qatlib.Papers.NoncommGibbs23.MainResults.Model
 
 Vocabulary layer for the paper-layer formalization of
 
@@ -32,12 +32,12 @@ sibling modules, one module per paper section.
 
 Conventions used throughout:
 
-* `Operator D = Matrix (Fin D) (Fin D) ℂ` (from the pinned Physlib/QuantumAlgorithm
+* `Operator D = Matrix (Fin D) (Fin D) ℂ` (from the Physlib/Qatlib
   vocabulary).
 * A square root of `ρ` is passed explicitly as a pair `(r, rInv)` with
   `r * rInv = 1`, `rInv * r = 1`, `r * r = ρ`.  This avoids committing to a
   particular continuous-functional-calculus normalisation in every statement; the
-  frozen `CFC.sqrt` instance satisfies the same interface and is used in
+  `CFC.sqrt` instance satisfies the same interface and is used in
   `ParentHamiltonian` for the Proposition I.1 bridge.
 * The modular (Bohr-frequency) eigen-relation is written as
   `rInv * A * r = exp (β * ν / 2) • A`, i.e. `ρ^{1/2} A ρ^{-1/2} = exp(-βν/2) A`,
@@ -55,14 +55,14 @@ variable {D : ℕ}
 variable {ι : Type*} [Fintype ι]
 
 /-- Finite-dimensional complex matrices on `D` modes.  Definitionally equal to the
-frozen `QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision.Operator`; redeclared here
+`Qatlib.Concepts.MbqcFlow.FlowDecision.Operator`; redeclared here
 so that every paper-layer module sees the same abbreviation without extra `open`. -/
 abbrev Operator (D : ℕ) := Matrix (Fin D) (Fin D) ℂ
 
 /-! ## Super-operators and the Hilbert–Schmidt adjoint -/
 
 /-- A super-operator on `D × D` matrices, kept unbundled: only pointwise equalities
-are needed by the paper-layer statements (the frozen GKSL layer supplies the bundled
+are needed by the paper-layer statements (the GKSL layer supplies the bundled
 linear maps when a semigroup is required). -/
 abbrev SuperOp (D : ℕ) := Operator D → Operator D
 
@@ -210,9 +210,9 @@ noncomputable def gaussianCoeff (σE σγ ωγ ν1 ν2 : ℝ) : ℝ :=
 noncomputable def gaussianBeta (σE σγ ωγ : ℝ) : ℝ :=
   2 * ωγ / (σE ^ 2 + σγ ^ 2)
 
-/-- Closed-form CKG coefficient as used in the frozen `CkgBounds` layer
+/-- Closed-form CKG coefficient as used in the `CkgBounds` layer
 (`ckgWeight`, `CKGWeight.lean`), recorded here so the paper-layer statements can name
-the frozen specialization without importing its internals at every use site. -/
+the specialization without importing its internals at every use site. -/
 noncomputable def ckgCoeff (β ν ν' : ℝ) : ℝ :=
   Real.exp (-(1 : ℝ) / 4) / (2 * Real.sqrt 2) *
     Real.exp (-(β * (ν + ν')) / 4 - (β ^ 2 / 16) * (3 * ν ^ 2 - 2 * ν * ν' + 3 * ν' ^ 2))

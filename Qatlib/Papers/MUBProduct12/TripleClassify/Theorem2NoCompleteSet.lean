@@ -30,8 +30,8 @@ so the full reduction cannot yet be closed.  The mechanistic steps still to form
 (i) select three distinct bases `rA, rB, rS` of the seven hosting the constellation and a
 fourth distinct index `r4`; (ii) apply Lemma 2 on the restricted triple; (iii) feed one
 vector `M r4 j` (MU to the triple by `IsCompleteMuSet.2`) into the general Theorem 1.
-Suggested route: prove `IsMuTriple` restriction lemmas and reduce the general Theorem 1 to
-the canonical T0 instance through the `ProductEquiv` classes of Lemma 1.
+The reduction to the canonical T0 instance uses `IsMuTriple` restrictions and the
+`ProductEquiv` classes of Lemma 1.
 -/
 set_option autoImplicit false
 noncomputable section

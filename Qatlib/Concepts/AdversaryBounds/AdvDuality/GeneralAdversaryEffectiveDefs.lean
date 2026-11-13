@@ -42,7 +42,6 @@ filtered-norm viewpoint of [LeeEtAl2011], and introduces finite cut certificates
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

@@ -38,8 +38,6 @@ certificates into feasible Schur multipliers for the duality framework of [LeeEt
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

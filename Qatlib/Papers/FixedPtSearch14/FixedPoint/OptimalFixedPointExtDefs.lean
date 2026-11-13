@@ -31,7 +31,6 @@ conditional output are defined through overlap with the fiber target.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 

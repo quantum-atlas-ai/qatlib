@@ -29,7 +29,6 @@ The mathematical background is developed in [MarriottWatrous2005].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath.Reflection

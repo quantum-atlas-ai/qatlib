@@ -30,8 +30,6 @@ of finite real vectors, including the square-root cardinality bound.
 * [Arad and Landau, 2010][AradLandau2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Norm

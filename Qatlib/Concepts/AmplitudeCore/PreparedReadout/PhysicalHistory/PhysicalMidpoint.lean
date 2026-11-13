@@ -31,7 +31,6 @@ and satisfies a Lipschitz bound. These finite-dimensional matrix estimates, in t
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 open MeasureTheory Matrix Set

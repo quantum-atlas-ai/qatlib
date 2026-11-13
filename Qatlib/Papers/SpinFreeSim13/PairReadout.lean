@@ -28,8 +28,6 @@ The distinct-pair example is normalized and has equal weight in the two readout 
 * [Whitfield, 2013][Whitfield2013]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

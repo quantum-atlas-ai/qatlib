@@ -30,7 +30,6 @@ consequence of the teleportation communication requirement in [BennettEtAl1993Te
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000

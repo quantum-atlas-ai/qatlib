@@ -59,7 +59,6 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
 open Matrix
 open scoped Classical ComplexOrder BigOperators Kronecker Matrix.Norms.L2Operator
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

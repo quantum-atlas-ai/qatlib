@@ -33,7 +33,6 @@ the error and query bounds from quantum signal processing [LowChuang2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

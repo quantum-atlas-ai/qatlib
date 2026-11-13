@@ -37,7 +37,6 @@ and certify reference-system approximation and actual-run costs at precision ind
 * [Poulin and Wocjan, 2009][PoulinWocjan2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -51,8 +50,6 @@ namespace Qatlib.Concepts.SamplingBackend.GibbsBackend
 open Matrix
 open scoped Classical BigOperators ComplexOrder ENNReal
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- A rational Taylor-evaluation record containing the current term, accumulated value, and
 counts of multiplications, divisions, additions, and subtractions. -/

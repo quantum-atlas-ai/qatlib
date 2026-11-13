@@ -26,10 +26,10 @@ for every character `Ψ` on `G`
 Characters are written additively here (`AddChar G ℂ`), so "trivial on `G`"
 is `Ψ = 0` (whose value is `1` everywhere, `AddChar.zero_apply`) and
 "trivial on `H`" is `Ψ ∈ characterAnnihilator H`. The unnormalized pair of
-identities and the annihilator criterion are the Frozen v2.0.2 theorems
+identities and the annihilator criterion are given by the theorems
 `sum_character_subgroup`, `sum_character_mul_conj` and
 `mem_characterAnnihilator`
-(`QuantumAlgorithm.Concepts.QuditTeleport.TeleportCore`); the results below
+(`Qatlib.Concepts.QuditTeleport.TeleportCore`); the results below
 only supply the paper's normalization and dichotomy.
 
 No oracle, gate or cost model is involved: this is pure finite-abelian-group

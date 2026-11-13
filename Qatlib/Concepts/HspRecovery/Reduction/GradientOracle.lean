@@ -70,7 +70,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped BigOperators
-set_option warningAsError false
 
 /-- The clean frame fixing the ancillary register at `a₀` is an isometry. -/
 theorem cleanFrame_isometry {X A : Type*} [Fintype X] [Fintype A]

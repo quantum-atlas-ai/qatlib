@@ -31,7 +31,6 @@ These are finite basis-change identities for the circuit formalism of [NielsenCh
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

@@ -32,7 +32,6 @@ conclusions supplied by `GaussianCofactorInduction`. See [KoehlerLeung2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.BosonFock.PermAnalysis
 

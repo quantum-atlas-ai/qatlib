@@ -37,7 +37,6 @@ uniform finite approximation and prefix characterizations of expected cost bound
 * [Watrous, 2018][Watrous2018], The Theory of Quantum Information.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

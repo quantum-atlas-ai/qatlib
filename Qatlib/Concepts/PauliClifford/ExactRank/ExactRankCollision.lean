@@ -29,8 +29,6 @@ of stabilizer data is motivated by [DehaeneDeMoor2003].
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
 

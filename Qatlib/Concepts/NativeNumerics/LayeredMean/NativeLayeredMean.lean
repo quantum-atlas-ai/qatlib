@@ -59,7 +59,6 @@ open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase Qatlib.Concepts.MonteCarl
 namespace Qatlib.Concepts.NativeNumerics.LayeredMean
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The rational dyadic payoff: layer zero retains values below one, and layer `l+1` rescales
 values in `[2^l, 2^(l+1))` by `2^(l+1)`. -/

@@ -28,7 +28,6 @@ error bounds, giving a refined parameter choice for truncated Taylor simulation
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -57,7 +56,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The Taylor cutoff `2 * (k + Nat.clog 2 (max 1 s) + 4)` with logarithmic overhead in the
 segment count. -/
@@ -101,6 +99,8 @@ theorem logTaylor_word_counts (h : J → ℝ) (j0 : J)
       = s * (6 * K + 13)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
+
+omit [DecidableEq J] in
 
 /-- The chosen segment duration makes coefficient mass times absolute duration at most `1 / 2`. -/
 private theorem logTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)

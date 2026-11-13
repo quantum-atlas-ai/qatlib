@@ -64,7 +64,7 @@ a PREPARE unitary `P` with `P |j₀⟩ = ∑ⱼ √(w j / s) |j⟩` at the posit
 `s = ∑ⱼ w j` (paper: `|G⟩ = ∑ⱼ √(αⱼ/‖α‖₁) |j⟩`), the composite
 `⟨j₀| ⊗ I) (PREPARE† SELECT PREPARE) (|j₀⟩ ⊗ I)` equals
 `∑ⱼ w j • U j / s`, i.e. `IsBlockEncoding (LCUWorkspace U P) j₀ (∑ⱼ w j • U j) s`
-with `s = ∑ⱼ w j`. Reuses the frozen
+with `s = ∑ⱼ w j`. Reuses the library theorem
 `lcu_isBlockEncoding_of_isScaledPrepare`. -/
 theorem lemma5_lcu_block_encoding {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (U : J → Matrix I I ℂ)
@@ -78,7 +78,7 @@ theorem lemma5_lcu_block_encoding {J I : Type*} [Fintype J] [DecidableEq J]
 purification/SWAP oracle. For a unitary `U` on the purification register and any
 seed `seed`, the `seed`-fiber corner of the physical SWAP word
 `purificationBody U = (U† ⊗ I) SWAP (U ⊗ I)` is the reduced density matrix
-`ρ = purifiedDensity (U |seed⟩)` of Eq. (13). Reuses the frozen
+`ρ = purifiedDensity (U |seed⟩)` of Eq. (13). Reuses the library theorem
 `purification_corner`. -/
 theorem lemma7_purification_corner {A I : Type*} [Fintype A] [DecidableEq A]
     [Fintype I] [DecidableEq I] (U : Matrix (A × I) (A × I) ℂ) (seed : A × I) :
@@ -91,7 +91,7 @@ standard-form encoding statement plus the paid oracle ledger. The density matrix
 `ρ = purifiedDensity (U |seed⟩)` is positive semidefinite with unit trace,
 `purificationBody U` is a projected unitary encoding of `ρ` between the seed
 fiber frames, the instruction word is well formed, and each oracle access costs
-exactly 2 preparation-direction queries and 1 SWAP gate. Reuses the frozen
+exactly 2 preparation-direction queries and 1 SWAP gate. Reuses the library theorem
 `purification_actual_positive_block_and_cost`. -/
 theorem lemma7_purification_encoding {A I : Type*} [Fintype A] [DecidableEq A]
     [Fintype I] [DecidableEq I] (U : Matrix (A × I) (A × I) ℂ) (seed : A × I)
@@ -106,9 +106,9 @@ theorem lemma7_purification_encoding {A I : Type*} [Fintype A] [DecidableEq A]
 
 /-- Fixed arXiv:1610.06546v3, Corollary 16 (PDF p.16): LCU Hamiltonian
 simulation with the paper's query count `O(‖α‖₁ t + log(1/ε))` and the explicit
-degree/ledger budget of the frozen contract. This is exactly the frozen
+degree/ledger budget of the library's contract. This is
 `Corollary16LCUSimulation`, proved by
-`QuantumAlgorithm.Papers.Qubitization19.LCUConsumers.corollary16LCUSimulation`;
+`Qatlib.Concepts.SignalPrimitive.LCUConsumers.corollary16LCUSimulation`;
 it feeds Lemma 5's encoding at scale `∑ⱼ w j` into the Theorem 1 operator core. -/
 theorem corollary16_lcu_simulation :
     Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulation :=
@@ -116,8 +116,8 @@ theorem corollary16_lcu_simulation :
 
 /-- Fixed arXiv:1610.06546v3, Corollary 17 (PDF p.16): simulation of a density
 matrix given the purified access oracle of Eq. (14), with query count
-`O(t + log(1/ε))`. This is exactly the frozen `Corollary17DensitySimulation`,
-proved by `QuantumAlgorithm.Papers.Qubitization19.LCUConsumers.corollary17DensitySimulation`;
+`O(t + log(1/ε))`. This is exactly the library's `Corollary17DensitySimulation`,
+proved by `Qatlib.Concepts.SignalPrimitive.LCUConsumers.corollary17DensitySimulation`;
 it feeds Lemma 7's `purificationBody` encoding of `ρ` into the Theorem 1
 operator core at scale `α = 1`. -/
 theorem corollary17_density_simulation :

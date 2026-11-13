@@ -43,7 +43,6 @@ phase, a density input for the approximation framework of [DawsonNielsen2006].
 - [Dawson and Nielsen, 2006][DawsonNielsen2006], *The Solovay-Kitaev algorithm*.
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.Euler
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.SU2

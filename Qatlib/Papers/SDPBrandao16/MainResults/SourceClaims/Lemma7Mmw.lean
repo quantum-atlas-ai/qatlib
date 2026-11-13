@@ -20,7 +20,7 @@ learning rate `ε' = −ln(1−ε)`, define `W^(t) = exp(−ε' ∑_{τ<t} M^(τ
 
 `∑_t tr(M^(t) ρ^(t)) ≤ (1+ε) λ_min(∑_t M^(t)) + ln(n)/ε`.
 
-The frozen `sdpLemma7SourceCoefficients` already proves this exact statement
+The established `sdpLemma7SourceCoefficients` already proves this exact statement
 with the actual Gibbs history (`mmwState`) and the minimum eigenvalue; this
 file restates it in paper notation and reuses that theorem.
 -/
@@ -41,15 +41,15 @@ open scoped Matrix.Norms.L2Operator ComplexOrder MatrixOrder BigOperators
 Let `M : ℕ → Operator D` be a finite history of PSD contractions
 (`M t` is PSD and `M t ≤ 1` for every `t < T`), let `0 < ε < 1/2`, and let
 `ε' = −ln(1 − ε)`.  Writing `W^(t) = exp(−ε' ∑_{τ<t} M τ)` and
-`ρ^(t) = W^(t) / tr(W^(t))` (the frozen `mmwState D M ε' t`), and
+`ρ^(t) = W^(t) / tr(W^(t))` (the `mmwState D M ε' t` definition), and
 `λ_min = ` the smallest eigenvalue of `∑_{t<T} M t`, one has
 
 `∑_{t<T} tr(M^(t) ρ^(t)) ≤ (1 + ε) λ_min + ln D / ε`.
 
-Frozen dimension `D` plays the role of the source's `n`.
+The dimension `D` plays the role of the source's `n`.
 
-Reused frozen theorem (FQN):
-`QuantumAlgorithm.Concepts.SdpMmwSolver.MmwCore.sdpLemma7SourceCoefficients`
+The theorem used here is:
+`Qatlib.Concepts.SdpMmwSolver.MmwCore.sdpLemma7SourceCoefficients`
 (coverage `equivalent`, `MmwCore/SdpLemma7SourceCoefficientsQuan`). -/
 theorem lemma7_matrixMultiplicativeWeights (D T : ℕ) (M : ℕ → Operator D) (eps : ℝ)
     (hD : 0 < D) (heps : 0 < eps) (heps2 : eps < 1 / 2)

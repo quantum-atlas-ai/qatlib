@@ -40,7 +40,6 @@ and third moments, and a tableau simulator driven by a finite fair-bit tape; see
 * [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement

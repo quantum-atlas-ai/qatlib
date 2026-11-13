@@ -30,7 +30,6 @@ action as a single T-transform with mixing parameter in the unit interval.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

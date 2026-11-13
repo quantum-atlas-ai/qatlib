@@ -26,7 +26,6 @@ propagator sum `kTrapSum`. See [AnLiuLin2023] for the mathematical setting.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -39,7 +38,6 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
-
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 

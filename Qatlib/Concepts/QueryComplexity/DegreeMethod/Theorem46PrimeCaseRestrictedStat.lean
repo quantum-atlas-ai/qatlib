@@ -24,8 +24,6 @@ twice the circuit's observed query depth, matching the prime case in [BealsEtAl2
 * [Beals et al., 2001, Corollary 4.7][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

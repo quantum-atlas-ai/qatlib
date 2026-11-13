@@ -33,18 +33,18 @@ The paper then uses "taking the sine gives an estimate of `E_k/λ`" to remove th
 
 ## Reuse
 
-The eigenphase statement Eqs. (12)–(13) is already formalized in the Frozen
+The eigenphase statement Eqs. (12)–(13) is formalized in the
 library as
 
-`QuantumAlgorithm.Papers.HamSimQSP17.SparseWalk.sparseWalkEigenphasesRestricted`
-(file `QuantumAlgorithm/Papers/HamSimQSP17/SparseWalk/SparseWalkEigenphasesRestrictedLowc/SparseWalkEigenphasesRestricted.lean`),
+`Qatlib.Concepts.QspSimulation.SparseWalk.sparseWalkEigenphasesRestricted`
+(module `Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc`),
 
 which is a `generalization`: for isometric frames `L, R` with `LᴴR = c·H` and a
 self-adjoint involution `S` exchanging them, the walk `V = i·S·(2LLᴴ − 1)` has
 eigenvectors `wp, wm` with exactly the Eq. (12) eigenphases
 `e^{i arcsin(c ev)}`, `−e^{−i arcsin(c ev)}`, and the frame state is the balanced
 Eq. (13) superposition.  We record that bridge here so the paper's claim is
-linked to the verified Frozen statement rather than re-proved.
+linked to that general spectral statement.
 
 The remaining step — "take the sine to eliminate the phase ambiguity" — is
 proved below from first principles for every `|r| ≤ 1`, and specialized to
@@ -59,10 +59,10 @@ namespace Qatlib.Papers.FermEigState17.MainResults.QubitizationSpectrum
 open Qatlib.Concepts.QspSimulation.SparseWalk
 
 /-- **Claim c004, Eqs. (12)–(13) (arXiv:1711.10460 §IV p. 6).**  Bridge to the
-verified Frozen generalization of the exact qubiterate spectrum.
+generalization of the exact qubiterate spectrum.
 
 Reused FQN:
-`QuantumAlgorithm.Papers.HamSimQSP17.SparseWalk.sparseWalkEigenphasesRestricted`. -/
+`Qatlib.Concepts.QspSimulation.SparseWalk.sparseWalkEigenphasesRestricted`. -/
 theorem eq12_eq13_exact_spectrum : SparseWalkEigenphasesRestricted :=
   sparseWalkEigenphasesRestricted
 

@@ -32,8 +32,6 @@ Fourier phase states, the inverse circuit reads the correct grid label with prob
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout
@@ -56,7 +54,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 /-- Every natural number `n` is at most `2^n`. -/
 private theorem nat_le_two_pow : ∀ n : ℕ, n ≤ 2 ^ n := by

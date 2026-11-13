@@ -36,8 +36,6 @@ probability for an exactly representable eigenphase in the stated phase-estimati
 * [Aspuru-Guzik et al., 2005][AspuruGuzikEtAl2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

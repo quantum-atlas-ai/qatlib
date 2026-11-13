@@ -33,8 +33,6 @@ The budget lemmas compare this clock with the exact filtering and adiabatic cost
 * [Costa et al., 2025][CostaEtAl2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.AdiabaticQLS23.MainResults
 noncomputable section

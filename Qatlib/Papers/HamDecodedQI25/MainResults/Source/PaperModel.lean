@@ -29,17 +29,11 @@ This module fixes the paper-local objects shared by the claim modules:
   (Definition 9);
 * the anticommutation graph of formal variables (Definition 17), the
   antisymmetry character `α_G` and the `β`-function (Definitions 18–20);
-* elementary symmetric polynomials `e_a(V)` (Eqn. (285));
-* a minimal gate-list model of a state-preparation procedure, used only to
-  phrase the "efficiently prepares" conclusions.  The model records an actual
-  unitary acting on `n` qubits plus an ancilla register, together with a
-  declared gate count; gate locality is *not* imposed (see the module note in
-  `StatePreparation.lean`).
+* elementary symmetric polynomials `e_a(V)` (Eqn. (285)).
 
 Boundary: this block models the paper's mathematical objects.  It does not
 model a uniform circuit compiler, oracle input tapes or classical preprocessing
-machines; those aspects of the algorithmic claims are recorded in the docstring
-of the corresponding theorem and are not folded into the statements.
+machines. No state-preparation implementation or runtime bound is proved here.
 -/
 
 set_option autoImplicit false

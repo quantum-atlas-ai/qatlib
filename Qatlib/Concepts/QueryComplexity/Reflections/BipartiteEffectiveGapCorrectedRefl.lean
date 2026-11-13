@@ -29,7 +29,6 @@ corrected local version of the bipartite argument in [Reichardt2011].
 * [Reichardt, Lemma 3.3][Reichardt2011]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 noncomputable section

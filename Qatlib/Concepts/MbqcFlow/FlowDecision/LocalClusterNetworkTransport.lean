@@ -32,7 +32,6 @@ The lifting preserves well-formedness and acts leaf by leaf on the Kraus enumera
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open Qatlib
@@ -41,8 +40,6 @@ open Qatlib
 open Qatlib
 open scoped ComplexOrder
 open scoped Classical
-
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

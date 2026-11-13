@@ -261,7 +261,6 @@ theorem sinh_sq_re_ge {β y : ℝ} (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 4)
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule (transformed)
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm

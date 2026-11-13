@@ -41,7 +41,6 @@ open Qatlib.Concepts.AmplitudeCore.PayoffMedian
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- Bounds the relative error of a product by `ε` when each positive target factor is estimated
 to relative error at most `ε / (2 * ℓ)`, for `ℓ > 0` and `0 < ε < 1`. -/

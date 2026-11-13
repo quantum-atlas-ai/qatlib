@@ -28,12 +28,10 @@ described in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 namespace Qatlib.Concepts.DimConditioning.EventCondition
 open Qatlib.Concepts.DimInstruments.DimTreeExec

@@ -31,8 +31,6 @@ with probability `(1 / 2) ^ m`. This is the halfspace estimate used in Simon-typ
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.QueryWordCore.Circuit
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist

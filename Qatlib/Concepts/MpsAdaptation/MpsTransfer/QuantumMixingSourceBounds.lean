@@ -29,8 +29,6 @@ described in [BreuerPetruccione2007].
 * [Breuer and Petruccione, 2007][BreuerPetruccione2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

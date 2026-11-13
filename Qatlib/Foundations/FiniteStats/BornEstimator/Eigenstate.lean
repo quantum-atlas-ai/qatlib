@@ -26,8 +26,6 @@ These spectral witnesses support the state optimization arguments associated wit
 * [Xu et al., 2026][XuEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.FiniteStats.BornEstimator

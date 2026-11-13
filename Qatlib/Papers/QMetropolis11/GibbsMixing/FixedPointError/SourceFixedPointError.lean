@@ -22,7 +22,7 @@ where `η₁ < 1` is the ergodicity coefficient (Eq. (43) trace-norm
 contraction) and `‖E[ρ_G] - ρ_G‖₁ ≤ ε_sg` is the single-application error.
 
 Reused FQN:
-`QuantumAlgorithm.Concepts.MixedInstrument.Contraction.contractionFixedPointError`.
+`Qatlib.Concepts.MixedInstrument.Contraction.contractionFixedPointError`.
 -/
 
 set_option autoImplicit false
@@ -49,7 +49,7 @@ theorem source_fixedPointError (T : QuantumChannel D D) (σs ρG : Operator D)
     SchattenOne (σs - ρG) ≤ ε / (1 - η) :=
   contractionFixedPointError D T σs ρG hσ hρ hfix η hη0 hη1 hcontr ε hε0 hε
 
-/-- **c009, full contract.**  The frozen Eq. (44) statement in one line.
+/-- **c009, full contract.**  The Eq. (44) statement in one line.
 Reused FQN: `...Contraction.contractionFixedPointError`. -/
 theorem source_contractionFixedPointError : ContractionFixedPointError :=
   contractionFixedPointError

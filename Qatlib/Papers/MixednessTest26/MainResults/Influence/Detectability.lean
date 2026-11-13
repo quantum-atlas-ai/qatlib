@@ -21,15 +21,15 @@ Appendix A.1:
 > where `P ∼ u[{X,Y,Z}^{⊗N}]`.
 
 The Pauli vocabulary (`pauliMatches`, `pauliWeight`, `pauliInfluence`,
-`pauliNormSq`) lives in `Model/SourceModel.lean`; the statement below uses the
+`pauliNormSq`) lives in `Model/SourceModel.lean`; the quoted statement uses the
 cardinality form of the uniform probability, `#(filter …)/3^N`, and the
 equivalent threshold `(3^i/9)·L = 3^{i-2}·L`.
 
-## Proof status (scaffolds removed; statements in branch history c93d182c6)
+## Mathematical background and scope
 
 * Fixed source: arXiv:2608.18839v3, Lemma 2.2, proof in Appendix A.1 via
   Lemma A.1 (Levin's work-investment strategy).
-* Key proof route (all finite, no probability spaces needed):
+* Proof outline (all finite, no probability spaces needed):
   1. Fiber counting: for every `Q ≠ Id`, exactly `3^{N-w(Q)}` of the `3^N`
      bases satisfy `Q ◁ P` (each support coordinate is forced to `Q i`, the
      complement is free).  Hence
@@ -45,24 +45,20 @@ equivalent threshold `(3^i/9)·L = 3^{i-2}·L`.
      contradicting the mean identity.
   3. Apply step 2 with `f = L_P` and `µ = L`; `f ≥ 0` is immediate from the
      squares, and step 1 gives the mean hypothesis.
-* Lean gap: step 1 needs the fiber equivalence
+* The combinatorial ingredients are the fiber equivalence
   `{P // Q ◁ P} ≃ ({i // i ∉ pauliSupport Q} → Fin 3)` and the cardinality
-  computation `card {i // i ∉ supp Q} = N - w(Q)`; step 2 needs the binning /
-  telescoping argument over `Finset.Icc`/`Finset.range` with `Finset.max'` on the
-  largest threshold below `f P`.  Both are routine but lengthy; this file
-  records the faithful statement and the two proved monotonicity facts that the
-  proof consumes.  (The identical argument is carried out for Pauli bases in
-  the paper's Appendix A.1.)
-* Reusable dependencies: `SourceModel.pauliInfluence`, `pauliNormSq`,
-  `pauliMatches`, `pauliWeight`, `pauliSupport`, `pauliEmbed`; `Fintype.card_pi`,
-  `Fintype.card_subtype_compl`, `Finset.card_compl`, `Finset.sum_boole`,
-  `Finset.sum_le_sum`, `Finset.sum_range_sub`.
-* Suggested tactics: build the fiber equivalence with
-  `Equiv.ofBijective` (`Option.get`/`not_isSome_iff_eq_none` for the support
-  coordinates); then `Fintype.card_congr` + `Fintype.card_fun` + `Fintype.card_fin`;
-  for Levin use `by_contra`/`push_neg`, `Finset.max'`, `Finset.sum_ite`,
-  `Finset.sum_range_sub` for the telescoping, and `nlinarith` for the final
-  geometric comparison `5·3^{N-2} < 3^N`.
+  computation `card {i // i ∉ supp Q} = N - w(Q)`, followed by binning and
+  telescoping over the largest threshold below each `f P`. The fiber
+  equivalence fixes coordinates in the support and leaves the others free;
+  equality of cardinalities gives the count. The contradiction in Levin's
+  argument ends with the geometric comparison `5·3^{N-2} < 3^N`.
+  (The identical argument is carried out for Pauli bases in Appendix A.1.)
+* Scope note: this module defines the literal influence and coefficient norm,
+  including the identity observable, and proves their nonnegativity. The fiber
+  count, telescoping argument, and detectability theorem are outside the scope
+  of this file.
+* Related definitions: `SourceModel.pauliInfluence`, `pauliNormSq`,
+  `pauliMatches`, `pauliWeight`, `pauliSupport`, and `pauliEmbed`.
 -/
 
 set_option autoImplicit false

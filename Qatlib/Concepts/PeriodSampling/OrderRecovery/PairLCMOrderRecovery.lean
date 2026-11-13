@@ -31,7 +31,6 @@ independent samples.
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
@@ -39,8 +38,6 @@ open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 open scoped Classical BigOperators
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- Decodes two reduced rational denominators, verifies their least common multiple as an
 exponent of `a`, and records total scan work and the verification exponent. -/
@@ -72,7 +69,7 @@ theorem reduced_order_pair_lcm_arithmetic :
   intro r s t hr hs ht hc
   rw [Nat.div_lcm_eq_div_gcd (Nat.gcd_dvd_right s r) (Nat.gcd_dvd_right t r)]
   have hg : Nat.gcd (Nat.gcd s r) (Nat.gcd t r) = Nat.gcd (Nat.gcd s t) r := by
-    simp [Nat.gcd_assoc, Nat.gcd_left_comm, Nat.gcd_comm]
+    simp [Nat.gcd_left_comm, Nat.gcd_comm]
   rw [hg, hc.gcd_eq_one, Nat.div_one]
 
 /-- Under the nontriviality and clock-size hypotheses, two good phase windows recover the exact
@@ -89,7 +86,7 @@ theorem pair_lcm_order_actual_good_event :
   have hl := reduced_order_pair_lcm_arithmetic (orderOf a) s.val t.val
     (modular_order_pos N a) s.isLt t.isLt hc
   simp only [pairLCMOrderDecode, hd, he, hl, orderVerificationProduct_eq_pow,
-    pow_orderOf_eq_one, if_true]
+    pow_orderOf_eq_one, ite_true]
 
 /-- The pair decoder uses at most `N * (N + 1)` scan tests and verification exponent at most `N
 ^ 2`, returning only positive exponents with `a ^ q = 1`. Every successful `pairLCMFactor`
@@ -113,12 +110,16 @@ theorem pair_lcm_order_soundness_and_actual_work :
     unfold pairLCMOrderDecode
     (try dsimp only)
     cases hd : (reducedOrderDecode N M y).1 with
-    | none => simp <;> omega
+    | none =>
+      simp
+      all_goals omega
     | some x =>
       obtain ⟨p,q⟩ := x
       have hq := reducedOrderDecode_sound N M y p q hd
       cases he : (reducedOrderDecode N M z).1 with
-      | none => simp <;> omega
+      | none =>
+        simp
+        all_goals omega
       | some x =>
         obtain ⟨u,v⟩ := x
         have hv := reducedOrderDecode_sound N M z u v he

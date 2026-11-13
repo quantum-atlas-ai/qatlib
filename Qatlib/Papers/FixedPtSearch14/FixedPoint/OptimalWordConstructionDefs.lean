@@ -30,7 +30,6 @@ access counts, success and failure amplitudes, and embedding into a selected anc
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 

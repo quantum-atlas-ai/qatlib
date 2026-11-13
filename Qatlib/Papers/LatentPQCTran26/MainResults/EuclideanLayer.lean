@@ -29,8 +29,6 @@ right inverse of every decoder. Norm estimates control the columns, decoder, and
 * [Tran et al., 2026][TranEtAl2026]
 -/
 
-set_option warningAsError false
-
 noncomputable section
 set_option maxHeartbeats 600000
 open scoped BigOperators

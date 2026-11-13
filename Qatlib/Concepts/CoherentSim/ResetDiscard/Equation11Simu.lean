@@ -24,7 +24,6 @@ divided by its preparation scale, as in Eq. (11) of [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 

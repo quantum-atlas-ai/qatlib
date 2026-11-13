@@ -18,9 +18,7 @@ set_option backward.isDefEq.respectTransparency false
 # StreamlineTDA22 — shared paper-level vocabulary
 
 Paper under formalisation: *A streamlined quantum algorithm for topological data
-analysis with exponentially fewer qubits* (arXiv:2209.12887, accepted in Quantum
-2026-02-17; the PDF/plain-text snapshot used here is `2209.12887.pdf` /
-`2209.12887.txt` from the qatlas asset cache).
+analysis with exponentially fewer qubits* (arXiv:2209.12887).
 
 This file fixes the vocabulary every claim in `MainResults` shares:
 
@@ -33,13 +31,14 @@ This file fixes the vocabulary every claim in `MainResults` shares:
   and `Λ_{ΠΠ}` (deviation of the largest non-unit singular value of
   `PKer · PIm` from one, Sec. 5.4);
 * an **incoherent-repetition estimator** together with its success probability
-  and the cost ledger (`reps`, `calls`, `gates`, `qubits`, `depth`) that the
-  paper's complexity statements charge;
+  and independent resource labels (`reps`, `calls`, `gates`, `qubits`, `depth`);
 * the explicit depth budget of Theorem 1, Eq. (1).
 
-The quantum-circuit *semantics* (that the estimator is produced by the
-amplitude-estimation circuit of Appendix B.1/B.2) is the content of the claim
-files; this vocabulary only fixes the accounting interface.
+The main Theorem 1 estimator construction is absent. `EstimatorExecution` supplies
+a conditional interface to an explicit word in a caller-supplied circuit model;
+the word determines its output law and resource counts. The estimator contract is
+a statement only. The separate QSVT module proves matrix-word identities and
+query counts, without constructing this estimator or proving its depth budget.
 -/
 
 set_option autoImplicit false
@@ -111,11 +110,10 @@ def IsProjectorOverlapGap {I : Type*} [Fintype I] [DecidableEq I]
 
 /-! ## Incoherent-repetition estimators and their cost ledger -/
 
-/-- An incoherent-repetition estimator: a finite outcome space `Ω` with a
-probability law, an estimate `value ω` for each outcome, and the resource
-ledger charged by the paper (`reps` incoherent repetitions of a circuit with
-`calls` oracle calls, `gates` additional single- and two-qubit gates, `qubits`
-qubits and `depth` circuit depth). -/
+/-- An output-law specification with independent resource labels.
+The probability and value fields impose no execution requirement on `reps`,
+`calls`, `gates`, `qubits` or `depth`. `EstimatesWithin` only checks probability.
+Use `EstimatorExecution` for an additional circuit implementation obligation. -/
 structure IncoherentEstimator (Ω : Type*) [Fintype Ω] where
   prob : Ω → ℝ
   prob_nonneg : ∀ ω, 0 ≤ prob ω
@@ -132,8 +130,8 @@ noncomputable def successProb {Ω : Type*} [Fintype Ω]
     (E : IncoherentEstimator Ω) (target δ : ℝ) : ℝ :=
   ∑ ω ∈ Finset.univ.filter (fun ω => |E.value ω - target| ≤ δ), E.prob ω
 
-/-- A successful estimator: the estimate is within additive `δ` of `target`
-with probability at least `1 − η`. -/
+/-- An output-law success condition, with no resource or implementation claim:
+the estimate is within additive `δ` with probability at least `1 − η`. -/
 def EstimatesWithin {Ω : Type*} [Fintype Ω]
     (E : IncoherentEstimator Ω) (target δ η : ℝ) : Prop :=
   1 - η ≤ successProb E target δ
@@ -190,19 +188,73 @@ theorem successProb_add_failureProb {Ω : Type*} [Fintype Ω]
 
 /-! ## Theorem 1's explicit budget, Eq. (1) -/
 
-/-- Theorem 1's depth, Eq. (1):
+/-- A standalone scale inspired by Theorem 1's depth, Eq. (1):
 `Õ( N^{3/2} sqrt(k β^{i,j}_k) / (Δ Λ_{ΠΠ}^{1/2} min(Λ_∂i, Λ_∂j)) )`.
 The `Õ` suppresses polylogarithmic factors; the explicit representative used
-here carries the factor `(1 + log N)^2` and the constant `2`. -/
+here carries the factor `(1 + log N)^2` and the constant `2`. Neither this choice
+of factors nor a depth bound for an implemented estimator is proved here. -/
 noncomputable def theorem1DepthBudget (N k : ℕ) (β Δ Λdi Λdj Λpipi : ℝ) : ℝ :=
   2 * (1 + Real.log (N : ℝ)) ^ 2 * (N : ℝ) ^ (3 / 2 : ℝ) *
     Real.sqrt ((k : ℝ) * β) /
       (Δ * Real.sqrt Λpipi * min Λdi Λdj)
 
-/-- Theorem 1's qubit count, `O(min{k log N, N})` (the constant is folded into
-the contract's existential, so this is the bare scale). -/
+/-- The bare qubit scale `min{k log N, N}` from Theorem 1.
+No implemented estimator's qubit bound is proved here. -/
 noncomputable def theorem1QubitScale (N k : ℕ) : ℝ :=
   min ((k : ℝ) * Real.log (N : ℝ)) (N : ℝ)
+
+/-- Conditional circuit model: each instruction is one serial primitive layer.
+Initialization, primitive action, the repeated-measurement law, and decoding are
+supplied by the caller. Native gate synthesis and the measurement law's physical
+realizability must be justified by that caller; this record proves neither. -/
+structure EstimatorCircuitModel (Ω : Type*) where
+  State : Type
+  Instruction : Type
+  initial : State
+  step : State → Instruction → State
+  law : ℕ → State → Ω → ℝ
+  decode : Ω → ℝ
+  oracleCalls : Instruction → ℕ
+  additionalGates : Instruction → ℕ
+  width : ℕ
+
+/-- A word in the supplied model that realizes the estimator's law and values.
+`calls` and `gates` count totals across repetitions; `depth` counts serial layers
+per repetition and `qubits` equals model width. Primitive charges are assumptions
+of the model. An empty word cannot certify a nonzero per-repetition depth. -/
+structure EstimatorExecution {Ω : Type*} [Fintype Ω]
+    (E : IncoherentEstimator Ω) (M : EstimatorCircuitModel Ω) where
+  word : List M.Instruction
+  repetitions_pos : 0 < E.reps
+  law_eq : E.prob = M.law E.reps (word.foldl M.step M.initial)
+  value_eq : E.value = M.decode
+  calls_eq : E.calls = E.reps * (word.map M.oracleCalls).sum
+  gates_eq : E.gates = E.reps * (word.map M.additionalGates).sum
+  qubits_eq : E.qubits = M.width
+  depth_eq : E.depth = word.length
+
+/-- A nonempty implemented word has positive per-repetition depth. -/
+theorem EstimatorExecution.depth_pos {Ω : Type*} [Fintype Ω]
+    {E : IncoherentEstimator Ω} {M : EstimatorCircuitModel Ω}
+    (h : EstimatorExecution E M) (hne : h.word ≠ []) : 0 < E.depth := by
+  rw [h.depth_eq]
+  exact List.length_pos_iff.mpr hne
+
+/-- Conditional accounting: an implemented repeated word is charged once per
+repetition for every oracle call in that very word. No estimator existence follows. -/
+theorem estimator_total_calls {Ω : Type*} [Fintype Ω]
+    (E : IncoherentEstimator Ω) (M : EstimatorCircuitModel Ω)
+    (h : EstimatorExecution E M) :
+    E.calls = E.reps * (h.word.map M.oracleCalls).sum := h.calls_eq
+
+/-- **Statement only — not proved in Qatlib.**
+An estimator in a supplied circuit model meeting a chosen depth bound and success
+target. The budget may be `theorem1DepthBudget`; that formula alone establishes
+neither implementation nor success. This is not a proof of Theorem 1. -/
+def estimator_statement {Ω : Type*} [Fintype Ω] (M : EstimatorCircuitModel Ω)
+    (target δ η depthBudget : ℝ) : Prop :=
+  ∃ E : IncoherentEstimator Ω, Nonempty (EstimatorExecution E M) ∧
+    EstimatesWithin E target δ η ∧ (E.depth : ℝ) ≤ depthBudget
 
 end
 

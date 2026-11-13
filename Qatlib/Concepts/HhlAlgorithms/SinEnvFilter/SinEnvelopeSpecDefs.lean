@@ -28,9 +28,7 @@ transition amplitudes and their three-state embedding.
 * [Harrow et al., 2009, Appendix A][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 

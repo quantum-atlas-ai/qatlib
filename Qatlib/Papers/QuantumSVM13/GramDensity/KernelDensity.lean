@@ -15,8 +15,8 @@ big data classification", arXiv:1307.0471v3 (10 Jul 2014), p. 2, left column:
 the preparation of `|χ⟩ = 1/√Nχ ∑_i |x_i| |i⟩ |x_i⟩` and the partial trace
 `tr₂{|χ⟩⟨χ|} = K/tr K` with `K_ij = x_i · x_j` and `Nχ = ∑_i |x_i|²`.
 
-The weighted-Gram identity is the Frozen result
-`QuantumAlgorithm.Concepts.CopyEvolution.GramReadout.gramFirstRegisterDensity`.
+The weighted-Gram identity is the established result
+`Qatlib.Concepts.CopyEvolution.GramReadout.gramFirstRegisterDensity`.
 This file only bridges the paper's data-dependent normalisation to it: the
 data vectors are real `x_i ∈ ℝ^N`, their norms `|x_i| = sqrt(∑_k x_{ik}²)`
 supply the weights `w_i = |x_i| / sqrt(Nχ)`, and the partial trace is exactly

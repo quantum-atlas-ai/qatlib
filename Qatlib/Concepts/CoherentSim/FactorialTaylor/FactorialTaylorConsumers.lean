@@ -31,7 +31,6 @@ method [BerryEtAl2015Taylor].
 -/
 
 open Qatlib.Concepts.OperatorErrors.Robustness
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
@@ -66,7 +65,6 @@ open scoped BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 attribute [local irreducible] factorialTaylorCutoff factorialTaylorPrecision
-set_option linter.unusedSectionVars false
 
 /-- The repeated coherently amplified Taylor circuit with segment count `taylorSegments` and a
 factorially chosen truncation cutoff. -/
@@ -105,6 +103,8 @@ theorem factorialTaylor_word_counts (h : J → ℝ) (j0 : J)
       = s * (6 * K + 13)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
+
+omit [DecidableEq J] in
 
 /-- The coefficient mass times the absolute segment duration is at most `1 / 2` under the
 supplied coefficient and time bounds. -/

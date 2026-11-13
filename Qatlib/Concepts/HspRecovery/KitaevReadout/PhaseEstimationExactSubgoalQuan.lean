@@ -23,8 +23,6 @@ returns the exact label while preserving the eigenvector, in the phase estimatio
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.HspRecovery.KitaevReadout

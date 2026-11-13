@@ -39,7 +39,6 @@ specifications; their definitions alone do not establish the collected propertie
   Estimation*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -53,7 +52,6 @@ open Qatlib.Concepts.GradientOracle.ValueKickback
 open Qatlib.Concepts.QspSimulation.Achievability
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.SignalPrimitive.GridGradient
 

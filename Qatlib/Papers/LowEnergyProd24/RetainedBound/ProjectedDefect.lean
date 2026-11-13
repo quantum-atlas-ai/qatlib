@@ -24,8 +24,6 @@ providing the pointwise estimates for the retained-error integral in [HejaziZini
 * [Hejazi et al., 2024][HejaziZiniArrazola2024]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 250000
 noncomputable section

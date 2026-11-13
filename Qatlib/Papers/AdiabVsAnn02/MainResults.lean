@@ -209,8 +209,6 @@ probabilities, and free-energy derivative and monotonicity estimates, including
 * [Farhi et al., 2002][FarhiGoldstoneGutmann2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

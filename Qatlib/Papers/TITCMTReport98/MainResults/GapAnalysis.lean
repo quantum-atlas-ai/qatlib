@@ -35,11 +35,9 @@ energy differences. Its square-root schedule scales exactly as inverse time.
 * [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.TITCMTReport98.MainResults

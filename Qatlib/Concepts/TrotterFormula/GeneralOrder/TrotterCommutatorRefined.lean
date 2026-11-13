@@ -59,7 +59,6 @@ open Qatlib
 open Qatlib
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
 open scoped Classical BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -1138,7 +1137,6 @@ theorem clause49_remainder_source_level_sum (xs : List (Matrix I I ℂ)) (B : Ma
         = orderedRemainderLevel xs B p (xs.length - (xs.length - k)) t
     rw [show xs.length - (xs.length - k) = k by omega]
 
-set_option linter.unusedSectionVars false in
 
 /-- The source generator and outer-prefix length agree with the reversed source-level indexing. -/
 theorem clause49_frozen_level_alignment (xs : List (Matrix I I ℂ)) (ℓ : ℕ)

@@ -21,11 +21,11 @@ The paper compares two oracle models for a function `f`:
   previous contents of the `|x⟩` register.
 
 This module gives both models as concrete matrices over the computational
-basis of `QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision` and proves the
+basis of `Qatlib.Concepts.MbqcFlow.FlowDecision` and proves the
 structural facts that the paper takes for granted:
 
-* the standard oracle is the Frozen value oracle
-  `QuantumAlgorithm.Foundations.BitColumnAccess.ColumnAssemble.valueMatrix`,
+* the standard oracle is the value oracle
+  `Qatlib.Foundations.BitColumnAccess.ColumnAssemble.valueMatrix`,
   and its action on basis states is the XOR update;
 * the erasing oracle for `f : X → Y` is the matrix with columns `e_{f x}`;
   it maps `|x⟩` to `|f x⟩`, and it is an isometry exactly when `f` is
@@ -49,14 +49,14 @@ open scoped BigOperators Matrix.Norms.L2Operator
 /-! ## §1. The standard (value / XOR) oracle -/
 
 /-- The paper's standard oracle `|x,a⟩ ↦ |x, a ⊕ f(x)⟩` (arXiv:2109.06917v1,
-§9, p. 6) is exactly the Frozen value-oracle update
-`QuantumAlgorithm.Foundations.BitColumnAccess.ColumnAssemble.valueUpdate`. -/
+§9, p. 6) is exactly the value-oracle update
+`Qatlib.Foundations.BitColumnAccess.ColumnAssemble.valueUpdate`. -/
 theorem standardOracle_eq_valueUpdate {N b : ℕ} (f : Fin N → Reg b) :
     Qatlib.Concepts.BitColumnAccess.ColumnAssemble.valueUpdate f =
       fun s : Fin N × Reg b => (s.1, fun j => s.2 j ^^ f s.1 j) := rfl
 
-/-- The standard oracle matrix is the Frozen value-oracle matrix
-`QuantumAlgorithm.Foundations.BitColumnAccess.ColumnAssemble.valueMatrix`. (arXiv:2109.06917v1, §9, p. 6). -/
+/-- The standard oracle matrix is the value-oracle matrix
+`Qatlib.Foundations.BitColumnAccess.ColumnAssemble.valueMatrix`. (arXiv:2109.06917v1, §9, p. 6). -/
 theorem standardOracleMatrix_eq_valueMatrix {N b : ℕ} (f : Fin N → Reg b) :
     Qatlib.Concepts.BitColumnAccess.ColumnAssemble.valueMatrix f =
       permMatrix (fun s : Fin N × Reg b => (s.1, fun j => s.2 j ^^ f s.1 j)) := by

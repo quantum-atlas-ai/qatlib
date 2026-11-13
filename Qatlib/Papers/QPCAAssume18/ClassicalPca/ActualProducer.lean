@@ -26,8 +26,6 @@ value cutoff, and spectral gaps into record accuracy and a failure bound for [Ta
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

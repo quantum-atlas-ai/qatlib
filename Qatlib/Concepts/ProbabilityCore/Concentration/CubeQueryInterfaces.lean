@@ -32,7 +32,6 @@ The circuit degree statement implements the polynomial method of [BealsEtAl2001]
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree

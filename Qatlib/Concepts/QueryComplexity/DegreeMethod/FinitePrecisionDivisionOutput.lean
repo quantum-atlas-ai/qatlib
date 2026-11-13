@@ -26,7 +26,6 @@ output routine uses the finite machine setting described in [KitaevShenVyalyi200
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatTag

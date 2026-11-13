@@ -35,7 +35,6 @@ the bias and full derivative norms for outputs concentrated near a reference poi
 
 noncomputable section
 set_option maxHeartbeats 600000
-set_option linter.unusedSectionVars false
 open MeasureTheory Filter
 open scoped Topology
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
@@ -48,6 +47,8 @@ variable {E H P Z : Type*}
 /-- The integral of `L (T (h z) w)` over the latent measure `r`. -/
 def populationLoss (r : Measure Z) (h : Z → H) (T : H → P →L[ℝ] E)
     (L : E → ℝ) (w : P) : ℝ := ∫ z, L (T (h z) w) ∂r
+
+omit [CompleteSpace E] [NormedSpace ℝ H] in
 
 /-- Under the stated measurability, uniform boundedness, and smoothness assumptions, the sample
 derivative is integrable and its integral is the Fréchet derivative of `populationLoss`. -/
@@ -114,6 +115,8 @@ theorem bias_identity
   change ((fderiv ℝ L (T (h z) w)).comp ((T (h z)).comp b)) v = _
   rw [hb]
   rfl
+
+omit [CompleteSpace E] [NormedAddCommGroup H] [NormedSpace ℝ H] in
 
 /-- If decoded outputs stay within `gamma` of `theta` and the loss derivative is
 `Lambda`-Lipschitz with `Lambda ≥ 0`, an integrable mean derivative has norm at least `g -

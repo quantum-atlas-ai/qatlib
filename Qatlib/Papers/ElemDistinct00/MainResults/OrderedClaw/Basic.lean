@@ -20,6 +20,9 @@ Every function on `Fin 1` is monotone, so the existing singleton claw lower boun
 the ordered problem. The results `orderedclaw_qe_lower_at_one` and `orderedclaw_q2_lower_at_one`
 give explicit special cases relevant to Theorem 4 of [BuhrmanEtAl2005].
 
+The lower bounds are restricted to a singleton first domain. The guarantee
+transfers do not construct algorithms or prove general ordered claw upper bounds.
+
 ## Main statements
 
 * `orderedClawBoundedError_of_clawBoundedError` and `orderedClawExact_of_clawExact`:
@@ -37,8 +40,6 @@ give explicit special cases relevant to Theorem 4 of [BuhrmanEtAl2005].
 * [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
   arXiv:quant-ph/0007016 (2000 preprint).
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

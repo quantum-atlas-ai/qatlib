@@ -27,8 +27,6 @@ deviation bound.
 * [Jordan, 2008][Jordan2008a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

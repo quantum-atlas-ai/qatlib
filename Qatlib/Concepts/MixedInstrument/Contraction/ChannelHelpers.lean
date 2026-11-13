@@ -31,7 +31,6 @@ Metropolis sampling [TemmeEtAl2011].
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport

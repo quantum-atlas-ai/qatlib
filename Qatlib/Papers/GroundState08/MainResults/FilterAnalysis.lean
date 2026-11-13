@@ -29,8 +29,6 @@ energy within the band.
 * [Poulin and Wocjan, 2009][PoulinWocjan2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

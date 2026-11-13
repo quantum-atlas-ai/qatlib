@@ -33,8 +33,6 @@ ideal outcome. This develops part of the framework of [EttingerHoyerKnill2004].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1000000
 
 namespace Qatlib.Papers.EttingerHSP04.MainResults
@@ -53,6 +51,8 @@ def IsHPeriodic (f : G → β) (H : Subgroup G) : Prop :=
 def IsStrictlyHPeriodic (f : G → β) (H : Subgroup G) : Prop :=
   IsHPeriodic f H ∧ ∀ g h : G, f (g * h) = f g → h ∈ H
 
+omit [Fintype G] [DecidableEq G] [Fintype β] [DecidableEq β] in
+
 /-- Periodicity with respect to a subgroup implies periodicity with respect to each smaller
 subgroup. -/
 theorem IsHPeriodic.mono {f : G → β} {H K : Subgroup G} (hKH : K ≤ H)
@@ -60,12 +60,16 @@ theorem IsHPeriodic.mono {f : G → β} {H K : Subgroup G} (hKH : K ≤ H)
   intro g k hk
   exact hf g k (hKH hk)
 
+omit [Fintype G] [DecidableEq G] [Fintype β] [DecidableEq β] in
+
 /-- Every function is periodic with respect to the trivial subgroup. -/
 theorem isHPeriodic_bot (f : G → β) : IsHPeriodic f (⊥ : Subgroup G) := by
   intro g h hh
   have h1 : h = 1 := by simpa using hh
   subst h1
   simp
+
+omit [Fintype G] [DecidableEq G] [Fintype β] [DecidableEq β] in
 
 /-- For a strictly `H`-periodic function, right multiplication preserves its value exactly when
 the multiplier belongs to `H`. -/
@@ -81,11 +85,13 @@ noncomputable def cosetAvg (K : Subgroup G) (ψ : QState G) : QState G :=
 def RightKInvariant (K : Subgroup G) (ψ : QState G) : Prop :=
   ∀ g k : G, k ∈ K → ψ (g * k) = ψ g
 
+omit [DecidableEq G] in
+
 /-- Subgroup averaging fixes a state invariant under right multiplication by `K`. -/
 theorem cosetAvg_eq_self_of_invariant {K : Subgroup G} {ψ : QState G}
     (hψ : RightKInvariant K ψ) : cosetAvg K ψ = ψ := by
   funext g
-  haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
+  have : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
   have hcard : ((Fintype.card ↥K : ℂ)) ≠ 0 := by
     exact_mod_cast (Fintype.card_pos (α := ↥K)).ne'
   have hsum : (∑ k : ↥K, ψ (g * (k : G))) = (Fintype.card ↥K : ℂ) * ψ g := by
@@ -93,6 +99,8 @@ theorem cosetAvg_eq_self_of_invariant {K : Subgroup G} {ψ : QState G}
       Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   simp only [cosetAvg, hsum]
   field_simp
+
+omit [DecidableEq G] in
 
 /-- Averaging over `K` produces amplitudes invariant under right multiplication by `K`. -/
 theorem cosetAvg_invariant (K : Subgroup G) (ψ : QState G) {g k : G} (hk : k ∈ K) :
@@ -110,11 +118,13 @@ theorem cosetAvg_invariant (K : Subgroup G) (ψ : QState G) {g k : G} (hk : k �
           rw [Subgroup.coe_mul, mul_assoc]
     _ = ∑ k' : ↥K, ψ (g * (k' : G)) := h
 
+omit [DecidableEq G] in
+
 /-- Subgroup averaging is idempotent. -/
 theorem cosetAvg_idem (K : Subgroup G) (ψ : QState G) :
     cosetAvg K (cosetAvg K ψ) = cosetAvg K ψ := by
   funext g
-  haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
+  have : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
   have hcard : ((Fintype.card ↥K : ℂ)) ≠ 0 := by
     exact_mod_cast (Fintype.card_pos (α := ↥K)).ne'
   have hinner : ∀ k : ↥K,
@@ -137,11 +147,15 @@ theorem cosetAvg_idem (K : Subgroup G) (ψ : QState G) :
   simp only [hinner, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   field_simp
 
+omit [DecidableEq G] in
+
 /-- Subgroup averaging preserves addition of states. -/
 theorem cosetAvg_add (K : Subgroup G) (ψ φ : QState G) :
     cosetAvg K (ψ + φ) = cosetAvg K ψ + cosetAvg K φ := by
   funext g
   simp only [cosetAvg, Pi.add_apply, Finset.sum_add_distrib, mul_add]
+
+omit [DecidableEq G] in
 
 /-- Subgroup averaging commutes with complex scalar multiplication. -/
 theorem cosetAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState G) :
@@ -152,10 +166,12 @@ theorem cosetAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState G) :
   intro k _
   ring
 
+omit [DecidableEq G] in
+
 /-- Subgroup averaging does not increase the sum of squared amplitude norms. -/
 theorem cosetAvg_contract {K : Subgroup G} (ψ : QState G) :
     (∑ g, ‖cosetAvg K ψ g‖ ^ 2) ≤ ∑ g, ‖ψ g‖ ^ 2 := by
-  haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
+  have : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
   have hcard : 0 < Fintype.card ↥K := Fintype.card_pos
   have hcardne : ((Fintype.card ↥K : ℂ)) ≠ 0 := by exact_mod_cast hcard.ne'
   have hcardR : (0:ℝ) < (Fintype.card ↥K : ℝ) := by exact_mod_cast hcard
@@ -213,6 +229,8 @@ elsewhere. -/
 noncomputable def initialCouplet (f : G → β) : QState (G × β) :=
   fun p => if p.2 = f p.1 then ((Real.sqrt (Fintype.card G : ℝ) : ℂ))⁻¹ else 0
 
+omit [DecidableEq G] in
+
 /-- The uniform oracle graph state is normalized. -/
 theorem initialCouplet_normalized (f : G → β) : Normalized (initialCouplet f) := by
   have hNpos : 0 < Fintype.card G := Fintype.card_pos
@@ -227,7 +245,7 @@ theorem initialCouplet_normalized (f : G → β) : Normalized (initialCouplet f)
     rw [Finset.sum_eq_single (f g)]
     · simp only [initialCouplet, ↓reduceIte, hnorm]
     · intro b _ hb
-      simp only [initialCouplet, if_neg hb, norm_zero, ne_eq, OfNat.ofNat_ne_zero,
+      simp only [initialCouplet, ite_eq_right hb, norm_zero, ne_eq, OfNat.ofNat_ne_zero,
         not_false_eq_true, zero_pow]
     · intro h
       exact absurd (Finset.mem_univ (f g)) h
@@ -243,12 +261,14 @@ theorem initialCouplet_normalized (f : G → β) : Normalized (initialCouplet f)
 noncomputable def coupletAvg (K : Subgroup G) (ψ : QState (G × β)) : QState (G × β) :=
   fun p => ((Fintype.card ↥K : ℂ))⁻¹ * ∑ k : ↥K, ψ (p.1 * (k : G), p.2)
 
+omit [DecidableEq G] [Fintype β] in
+
 /-- Averaging the first register fixes the oracle graph state of a `K`-periodic function. -/
 theorem coupletAvg_eq_self_of_periodic {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) : coupletAvg K (initialCouplet f) = initialCouplet f := by
   funext p
   obtain ⟨g, b⟩ := p
-  haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
+  have : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
   have hcard : ((Fintype.card ↥K : ℂ)) ≠ 0 := by
     exact_mod_cast (Fintype.card_pos (α := ↥K)).ne'
   have hterm : ∀ k : ↥K, initialCouplet f (g * (k : G), b) = initialCouplet f (g, b) := by
@@ -260,11 +280,15 @@ theorem coupletAvg_eq_self_of_periodic {K : Subgroup G} {f : G → β}
     nsmul_eq_mul]
   field_simp
 
+omit [DecidableEq G] [Fintype β] [DecidableEq β] in
+
 /-- Averaging the first register preserves addition of two-register states. -/
 theorem coupletAvg_add (K : Subgroup G) (ψ φ : QState (G × β)) :
     coupletAvg K (ψ + φ) = coupletAvg K ψ + coupletAvg K φ := by
   funext p
   simp only [coupletAvg, Pi.add_apply, Finset.sum_add_distrib, mul_add]
+
+omit [DecidableEq G] [Fintype β] [DecidableEq β] in
 
 /-- Averaging the first register commutes with complex scalar multiplication. -/
 theorem coupletAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState (G × β)) :
@@ -282,9 +306,12 @@ noncomputable def coupletAvgLM (K : Subgroup G) :
   map_add' := coupletAvg_add K
   map_smul' := coupletAvg_smul K
 
+omit [DecidableEq β] in
+
 /-- Averaging the first register does not increase the sum of squared amplitude norms. -/
 theorem coupletAvg_contract (K : Subgroup G) (ψ : QState (G × β)) :
     (∑ p : G × β, ‖coupletAvg K ψ p‖ ^ 2) ≤ ∑ p : G × β, ‖ψ p‖ ^ 2 := by
+  let _ := (inferInstance : DecidableEq G)
 
   rw [Fintype.sum_prod_type, Fintype.sum_prod_type]
 
@@ -316,6 +343,8 @@ noncomputable def projS (K : Subgroup G) (s : ℕ)
   fun p => ((Fintype.card ↥K : ℂ) ^ s)⁻¹ *
     ∑ kvec : (Fin s → ↥K), φ (fun i => ((p i).1 * (kvec i : G), (p i).2))
 
+omit [DecidableEq G] [Fintype β] [DecidableEq β] in
+
 /-- Averaging all copies of a tensor power equals the tensor power of the averaged state. -/
 theorem projS_multisetState (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ) :
     projS K s (multisetState ψ s) = multisetState (coupletAvg K ψ) s := by
@@ -330,11 +359,15 @@ theorem projS_multisetState (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ) :
   simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
   rw [inv_pow]
 
+omit [DecidableEq G] [Fintype β] [DecidableEq β] in
+
 /-- Averaging all group registers preserves addition. -/
 theorem projS_add (K : Subgroup G) (s : ℕ) (φ ψ : QState (Fin s → G × β)) :
     projS K s (φ + ψ) = projS K s φ + projS K s ψ := by
   funext p
   simp only [projS, Pi.add_apply, Finset.sum_add_distrib, mul_add]
+
+omit [DecidableEq G] [Fintype β] [DecidableEq β] in
 
 /-- Averaging all group registers commutes with complex scalar multiplication. -/
 theorem projS_smul (K : Subgroup G) (s : ℕ) (a : ℂ)
@@ -359,7 +392,11 @@ theorem projS_fixes_multisetState_of_periodic {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) (s : ℕ) :
     projS K s (multisetState (initialCouplet f) s) =
       multisetState (initialCouplet f) s := by
+  let _ := (inferInstance : DecidableEq G)
+  let _ := (inferInstance : Fintype β)
   rw [projS_multisetState, coupletAvg_eq_self_of_periodic hf]
+
+omit [Group G] [DecidableEq G] [DecidableEq β] in
 
 /-- The squared norm of the `s`-fold tensor power is the `s`th power of the original squared
 norm. -/
@@ -387,6 +424,8 @@ power has squared norm at most `(1 / 2) ^ s`. -/
 theorem projS_normSq_le (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ)
     (h : ∑ q : G × β, ‖coupletAvg K ψ q‖ ^ 2 ≤ (1/2 : ℝ)) :
     ∑ p : Fin s → G × β, ‖projS K s (multisetState ψ s) p‖ ^ 2 ≤ (1/2 : ℝ) ^ s := by
+  let _ := (inferInstance : DecidableEq G)
+  let _ := (inferInstance : DecidableEq β)
   rw [projS_multisetState, multisetState_normSq]
   exact pow_le_pow_left₀ (by positivity) h s
 
@@ -447,6 +486,8 @@ theorem prodState_normSq [Fintype σ] [Fintype Ω] (q : QState σ) (φ : QState 
     simp only [prodState, norm_mul, mul_pow]
   simp only [hterm]
   rw [Finset.sum_mul]
+
+omit [Fintype I] in
 
 /-- The Euclidean state norm is the square root of the sum of squared amplitude norms. -/
 theorem stateNorm_eq_sqrt [Fintype I] (ψ : QState I) :
@@ -518,6 +559,8 @@ end Tensor
 noncomputable def fiberCard (f : G → β) (K : Subgroup G) (g : G) (b : β) : ℕ :=
   (Finset.univ.filter (fun k : ↥K => f (g * (k : G)) = b)).card
 
+omit [DecidableEq G] [Fintype β] in
+
 /-- For a strictly `H`-periodic function, every nonempty fiber on `g * K` has cardinality `|K ∩
 H|`. -/
 theorem fiberCard_eq_of_strict {H : Subgroup G} {f : G → β}
@@ -552,6 +595,8 @@ theorem fiberCard_eq_of_strict {H : Subgroup G} {f : G → β}
     simp only [Subgroup.coe_inv]
     group
 
+omit [DecidableEq G] in
+
 /-- The fiber cardinalities of `f` on `g * K` sum to `|K|`. -/
 theorem sum_fiberCard (f : G → β) (K : Subgroup G) (g : G) :
     (∑ b : β, fiberCard f K g b) = Fintype.card ↥K := by
@@ -571,6 +616,7 @@ theorem sum_sq_fiberCard {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriod
     (K : Subgroup G) (g : G) :
     (∑ b : β, (fiberCard f K g b : ℝ) ^ 2) =
       (Fintype.card ↥(K ⊓ H) : ℝ) * (Fintype.card ↥K : ℝ) := by
+  let _ := (inferInstance : DecidableEq G)
   have hsq : ∀ b : β, (fiberCard f K g b : ℝ) ^ 2 =
       (Fintype.card ↥(K ⊓ H) : ℝ) * (fiberCard f K g b : ℝ) := by
     intro b
@@ -595,6 +641,8 @@ theorem sum_sq_fiberCard {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriod
           rw [← Nat.cast_sum, sum_fiberCard]
         rw [hsumR]
 
+omit [DecidableEq G] [Fintype β] in
+
 /-- The sum of oracle graph amplitudes over `g * K` is the fiber cardinality multiplied by `1 /
 √|G|`. -/
 theorem sum_initialCouplet_eq_card {f : G → β} (K : Subgroup G) (g : G) (b : β) :
@@ -605,9 +653,9 @@ theorem sum_initialCouplet_eq_card {f : G → β} (K : Subgroup G) (g : G) (b : 
     intro k
     by_cases h : f (g * (k : G)) = b
     · have h' : b = f (g * (k : G)) := h.symm
-      simp only [initialCouplet, if_pos h', if_pos h]
+      simp only [initialCouplet, ite_eq_left h', ite_eq_left h]
     · have h' : b ≠ f (g * (k : G)) := fun hh => h hh.symm
-      simp only [initialCouplet, if_neg h', if_neg h]
+      simp only [initialCouplet, ite_eq_right h', ite_eq_right h]
   simp only [hterm]
   rw [Finset.sum_ite]
   simp only [Finset.sum_const, nsmul_eq_mul, mul_zero, add_zero]
@@ -620,6 +668,8 @@ theorem norm_sq_couplet_eq {f : G → β} (K : Subgroup G) (g : G) (b : β) :
     ‖coupletAvg K (initialCouplet f) (g, b)‖ ^ 2 =
       (((Real.sqrt (Fintype.card G : ℝ))⁻¹) ^ 2 * (Fintype.card ↥K : ℝ)⁻¹ ^ 2) *
         (fiberCard f K g b : ℝ) ^ 2 := by
+  let _ := (inferInstance : DecidableEq G)
+  let _ := (inferInstance : Fintype β)
   rw [coupletAvg, sum_initialCouplet_eq_card]
   have hG : ‖(((Real.sqrt (Fintype.card G : ℝ) : ℂ))⁻¹)‖ =
       ((Real.sqrt (Fintype.card G : ℝ))⁻¹) := by
@@ -681,8 +731,8 @@ squared norm at most `1 / 2`. -/
 theorem coupletAvg_initialCouplet_le_half {H : Subgroup G} {f : G → β}
     (hf : IsStrictlyHPeriodic f H) {K : Subgroup G} (hK : ¬ IsHPeriodic f K) :
     (∑ p : G × β, ‖coupletAvg K (initialCouplet f) p‖ ^ 2) ≤ (1/2 : ℝ) := by
-  haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
-  haveI : Nonempty ↥(K ⊓ H) := ⟨⟨1, K.one_mem, H.one_mem⟩⟩
+  have : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
+  have : Nonempty ↥(K ⊓ H) := ⟨⟨1, K.one_mem, H.one_mem⟩⟩
   have hKH : ¬ K ≤ H := fun hle => hK (hf.1.mono hle)
   have htop : (K ⊓ H).subgroupOf K ≠ ⊤ := by
     intro h
@@ -944,7 +994,7 @@ theorem outcomeProb_close {r : ℕ} {ψ φ : QState (Fin r × Ω)} (ν : Fin r)
     intro p _
     by_cases hp : p.1 = ν
     · simp [hp]
-    · simp only [hp, if_false]
+    · simp only [hp, ite_false]
       exact pow_nonneg (norm_nonneg _) 2
   have hsqrt1 : Real.sqrt (∑ p ∈ A, ‖ψ p - φ p‖ ^ 2) ≤ stateNorm (ψ - φ) := by
     calc Real.sqrt (∑ p ∈ A, ‖ψ p - φ p‖ ^ 2)
@@ -959,7 +1009,7 @@ theorem outcomeProb_close {r : ℕ} {ψ φ : QState (Fin r × Ω)} (ν : Fin r)
       intro p _
       by_cases hp : p.1 = ν
       · simp [hp]
-      · simp only [hp, if_false]
+      · simp only [hp, ite_false]
         positivity
     have hpt : ∀ p : Fin r × Ω, (‖ψ p‖ + ‖φ p‖) ^ 2 ≤
         2 * (‖ψ p‖ ^ 2 + ‖φ p‖ ^ 2) := by
@@ -988,6 +1038,8 @@ theorem outcomeProb_close {r : ℕ} {ψ φ : QState (Fin r × Ω)} (ν : Fin r)
         mul_le_mul hsqrt1 hsqrt2 (Real.sqrt_nonneg _)
           (by rw [stateNorm]; exact norm_nonneg _)
     _ = 2 * stateNorm (ψ - φ) := by ring
+
+omit [Group G] [DecidableEq G] [DecidableEq β] in
 
 /-- A normalized state within distance `2 * r * (1 / 2) ^ (s / 2)` of a normalized state
 supported on `ν` has outcome probability at least `1 - 4 * r * (1 / 2) ^ (s / 2)`. See
@@ -1037,6 +1089,9 @@ theorem theorem1_reduction {r : ℕ} (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
       (∀ p, p.1 ≠ ν → Φ p = 0) →
       stateNorm (Ψ - Φ) ≤ 2 * (r : ℝ) * (1/2 : ℝ) ^ ((s : ℝ) / 2) →
       1 - ε ≤ outcomeProb Ψ ν := by
+  let _ := (inferInstance : Group G)
+  let _ := (inferInstance : DecidableEq G)
+  let _ := (inferInstance : DecidableEq β)
   obtain ⟨s, hs⟩ := exists_test_count r hr ε hε
   refine ⟨s, ?_⟩
   intro Ψ Φ ν hΨ hΦ hΦ0 hdist

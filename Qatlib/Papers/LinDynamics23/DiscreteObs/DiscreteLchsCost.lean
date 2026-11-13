@@ -34,8 +34,6 @@ errors. See [AnChildsLin2026] for the paper context.
 * [An et al., 2026][AnChildsLin2026]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.BlockEncoding.Postselection
 

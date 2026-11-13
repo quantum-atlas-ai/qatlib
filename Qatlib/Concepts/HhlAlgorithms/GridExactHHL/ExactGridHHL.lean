@@ -32,8 +32,6 @@ representation; the oracle powers are represented inside matrix gates.
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 open Qatlib.Concepts.GateVocabulary.GateVocab
@@ -43,8 +41,6 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Foundations.PureStateMath.BornBridge
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
@@ -219,7 +215,7 @@ theorem grid_hhl_flag_rotation_actual :
     show BlockDiag (gridHHLBlock M c) ∈ Matrix.unitaryGroup (Fin M × Bool) ℂ
     exact blockDiag_unitary _ fun j => gridHHLBlock_unitary M c hM hc0 hc1 j
   refine ⟨hunit, fun j => ?_⟩
-  rw [gridHHLRotation, Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_pos rfl]
+  rw [gridHHLRotation, Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_left rfl]
   show (gridHHLSin M c j : ℂ) = _
   simp only [gridHHLSin]
   by_cases hj : j.val = 0

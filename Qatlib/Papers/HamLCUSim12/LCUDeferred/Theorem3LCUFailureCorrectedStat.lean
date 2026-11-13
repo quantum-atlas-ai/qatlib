@@ -27,8 +27,6 @@ coefficient mass divided by the absolute negative coefficient mass.
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false

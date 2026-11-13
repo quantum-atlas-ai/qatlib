@@ -29,8 +29,6 @@ The explicit exponent used here is `Nat.ceil (6 / C²) * d`, which satisfies `6 
 [Nayak and Wu, 1998][NayakWu1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -32,7 +32,6 @@ and finite-fuel cost support of fair-bit instrument programs. For background, se
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

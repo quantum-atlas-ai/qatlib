@@ -232,7 +232,6 @@ accuracy, dyadic outputs, and resource counts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -250,8 +249,6 @@ open Qatlib.Concepts.CopyEvolution.Discriminate
 open Qatlib.Concepts.SignalPrimitive.GridGradient
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier

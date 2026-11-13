@@ -24,7 +24,6 @@ Clifford state preparation; see [DehaeneDeMoor2003] for the binary stabilizer fr
 * [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.ExactRank
 

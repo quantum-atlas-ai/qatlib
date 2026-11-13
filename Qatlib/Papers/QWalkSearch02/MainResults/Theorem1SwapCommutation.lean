@@ -24,8 +24,6 @@ symmetry stated in Theorem 1 of [ShenviKempeWhaley2003].
 * [Shenvi et al., 2003][ShenviKempeWhaley2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

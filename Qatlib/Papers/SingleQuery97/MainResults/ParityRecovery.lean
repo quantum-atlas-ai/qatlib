@@ -28,8 +28,6 @@ connects `parityAnswer` with Bernstein–Vazirani phase bits and proves exact re
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SingleQuery97.MainResults.ParityRecovery
 
 open Qatlib.Papers.SingleQuery97.MainResults.DatabaseDefs

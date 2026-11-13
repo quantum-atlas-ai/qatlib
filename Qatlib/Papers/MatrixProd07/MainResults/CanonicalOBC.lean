@@ -20,7 +20,6 @@ The source is [PerezGarciaEtAl2007]; tensor-network background is
 in chain length for fixed local dimension; no polynomial bond claim is needed.
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

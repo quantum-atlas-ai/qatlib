@@ -38,9 +38,8 @@ bound `1/3`, its sharpness at `κ² = 1/3`, and the resulting uniform `1/√3` b
 
 Boundary: the Floquet/Bessel solution of Appendix C (Eq. (C1)--(C17)) is not formalised here;
 no Bessel functions occur in Mathlib at this pin, so the passage from the driven
-Schrödinger equation to the Eq. (C17) expansion remains open. The frozen QAtlas release does
-carry a power-series Bessel function and a Jacobi--Anger expansion
-(`QuantumAlgorithm.Papers.QSingValue19.PhaseExistence.Lc17AuxBessel.lcBesselJ` and
+Schrödinger equation to the Eq. (C17) expansion remains open. The shared library provides a power-series Bessel function and a Jacobi--Anger expansion
+(`Qatlib.Papers.QSingValue19.PhaseExistence.Lc17AuxBessel.lcBesselJ` and
 `...lcBesselJacobiAnger`), which covers the shape of Eq. (C14), but the Floquet quasi-energies
 and quasi-modes of Eq. (C3)--(C13) are absent there, so the expansion (C15)--(C18) is not
 reached. The source hypotheses `0 < ω` and `λ ≪ ω` enter only through that omitted step, so

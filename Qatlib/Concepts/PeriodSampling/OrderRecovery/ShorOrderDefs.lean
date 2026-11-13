@@ -49,14 +49,12 @@ open Qatlib.Concepts.PeriodSampling.OrderRecovery
 open Qatlib.Concepts.WalshMoment.Forrelation
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 
 open Qatlib
 open Matrix
 open scoped Classical BigOperators ComplexConjugate
-set_option warningAsError false
 
 /-- Natural powers preserve an inequality between their bases. -/
 theorem pow_le_pow_of_le_base (a b n : ℕ) (h : a ≤ b) : a ^ n ≤ b ^ n := by
@@ -91,7 +89,7 @@ def powExceedSet (e N : ℕ) : Finset ℕ :=
   (Finset.filter (fun r => r ^ e > N) (Finset.range (N + 2)))
 
 /-- For positive exponent `e`, provides a natural number whose `e`th power exceeds `N`. -/
-def powExceedWitness (e N : ℕ) (he : 1 ≤ e) : ∃ r, r ^ e > N :=
+theorem powExceedWitness (e N : ℕ) (he : 1 ≤ e) : ∃ r, r ^ e > N :=
   ⟨N + 1, by
     have hpow := pow_ge_self (N + 1) e (by omega) he
     omega⟩

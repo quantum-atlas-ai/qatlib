@@ -36,7 +36,6 @@ arbitrary operator inputs and norm-bounded test matrices.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Foundations.PureStateMath
@@ -49,8 +48,6 @@ open Matrix Qatlib
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 4000000
 set_option synthInstance.maxHeartbeats 400000
 

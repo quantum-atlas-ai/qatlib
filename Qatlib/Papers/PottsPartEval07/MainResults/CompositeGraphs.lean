@@ -21,8 +21,11 @@ import Mathlib.Tactic
 
 Weight enumerators with additive weights factor over products of finite codeword types. The
 record `ExactEvaluator` stores a cost and a correctness proposition, and its `directSum`
-construction adds costs and conjoins those propositions for the product weight
+construction adds declared costs and conjoins those propositions for the product weight
 [GeraciLidar2008].
+
+These records have no execution semantics. Their composition proves only an
+identity of declared costs, not an algorithmic complexity bound.
 
 ## Main statements
 

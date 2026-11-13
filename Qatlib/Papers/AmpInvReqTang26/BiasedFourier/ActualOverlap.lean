@@ -24,7 +24,6 @@ squared-overlap sum bounded by `2 * eps^2` for `q > 1` and `eps ∈ [0, 1]`. See
 * [Tang and Wright, 2025][TangWright2025]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

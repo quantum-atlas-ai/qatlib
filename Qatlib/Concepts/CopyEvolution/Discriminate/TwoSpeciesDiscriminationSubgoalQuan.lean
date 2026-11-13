@@ -32,7 +32,6 @@ endpoint orthogonality, supplying algebraic ingredients for the discrimination a
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -44,7 +43,6 @@ noncomputable section
 namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped Classical ComplexOrder
-set_option warningAsError false
 
 /-- The outer product of `χ` is reconstructed from its overlap coefficients in the columns of a
 unitary `V`. -/

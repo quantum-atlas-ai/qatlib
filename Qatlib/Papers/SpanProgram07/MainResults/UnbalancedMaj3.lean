@@ -29,10 +29,7 @@ nonnegative rescaling used in [ReichardtSpalek2008].
 * [Reichardt and Spalek, 2008][ReichardtSpalek2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -475,7 +472,7 @@ theorem wsize_true_02 (β : ℝ) (hβ : 0 ≤ β) :
       rw [SpanProgram.wt, Fin.sum_univ_three, z_zero, z_one, z_two, hw0, hw1, hw2]
       rw [norm_zero_sq]
       rw [norm_two_I_uA_mul β d, hd2]
-      simp only [mul_zero, mul_one, one_mul, add_zero, zero_add]
+      simp only [mul_zero, mul_one, one_mul, add_zero]
       rw [four_uA_add β]
     exact le_of_eq hwt
 
@@ -526,7 +523,7 @@ theorem wsize_true_12 (β : ℝ) (hβ : 0 ≤ β) :
       rw [show ‖-(2 * Complex.I * ((uA β : ℝ) : ℂ) * d)‖ ^ 2
           = ‖2 * Complex.I * ((uA β : ℝ) : ℂ) * d‖ ^ 2 by rw [norm_neg]]
       rw [norm_two_I_uA_mul β d, hd2]
-      simp only [mul_zero, mul_one, one_mul, add_zero, zero_add]
+      simp only [mul_zero, mul_one, one_mul, zero_add]
       rw [four_uA_add β]
     exact le_of_eq hwt
 
@@ -635,7 +632,7 @@ theorem wsize_false_one (β : ℝ) (hβ : 0 ≤ β) :
         = ((uC β : ℝ) : ℂ) + 2 * Complex.I * (((uA β : ℝ) : ℂ)) ^ 2 := by
       push_cast; ring
     rw [e0, norm_two_uA_sq β, h1n, e2, ← Complex.normSq_eq_norm_sq, normSq_uC_add β hβ]
-    simp only [mul_zero, mul_one, one_mul, zero_add]
+    simp only [mul_zero, mul_one, one_mul]
     linarith [four_uA_add β]
 
 /-- For nonnegative `β`, there is a normalized negative witness orthogonal to column two of
@@ -676,7 +673,7 @@ theorem wsize_false_two (β : ℝ) (hβ : 0 ≤ β) :
         rw [hr]; push_cast; have hα : ((uA β : ℝ) : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr ha; field_simp; ring
       rw [e2]; simp
     rw [hp0, hp1, hp2]
-    simp only [mul_zero, mul_one, one_mul, zero_add, add_zero]
+    simp only [mul_zero, one_mul, add_zero]
     linarith [two_uA_add β hβ, hr2']
 
 /-- For nonnegative `β`, there is a normalized negative witness for the empty available set of
@@ -712,7 +709,7 @@ theorem wsize_false_none (β : ℝ) (hβ : 0 ≤ β) :
         rw [hr]; push_cast; have hα : ((uA β : ℝ) : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr ha; field_simp; ring
       rw [e2]; simp
     rw [hp0, hp1, hp2]
-    simp only [mul_zero, mul_one, one_mul, zero_add, add_zero]
+    simp only [mul_zero, one_mul, add_zero]
     linarith [two_uA_add β hβ, hr2']
 
 /-- For nonnegative `β`, collect the exact positive witness size `uM β` on `{0, 1}` and witness

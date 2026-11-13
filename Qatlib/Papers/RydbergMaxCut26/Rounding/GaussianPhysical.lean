@@ -27,7 +27,6 @@ rounded vectors, almost-sure unit norm at every site, and integrable pairwise do
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

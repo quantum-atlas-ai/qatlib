@@ -23,8 +23,6 @@ yields integrability over the positive parameters. See [CrostaSaubanereHuber2026
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 600000
 noncomputable section

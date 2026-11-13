@@ -35,8 +35,8 @@ any pointwise upper bound `M` (`M` plays `|fdot|_max`), the normalized sum is
 at most `M / q` where `q = 2^m`, and then the full `(1/mu_f)`-scaled bound
 follows by monotonicity of multiplication by the positive `1/mu_f`.
 
-No pre-built theorem with this content exists in Frozen v2.0.2 (searched
-`determinant`/`rmse`/spectral-sum bounds), so it is proved here from Mathlib.
+The finite-sum inequality is proved here from Mathlib; the heuristic
+identification preceding the inequality remains part of the paper-level scope.
 -/
 
 set_option autoImplicit false

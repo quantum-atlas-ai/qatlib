@@ -29,7 +29,7 @@ development library rather than inventing a parallel quantum library:
 * the additive characters `χ_y(x)` are built from a primitive additive character of `𝔽`
   (`AddChar`, Mathlib), so that `χ_y(x) = ψ (∑ᵢ xᵢ yᵢ)`, matching Definition 19;
 * the quantum Fourier transform, the shift `X_b` and the phase `Z_b` operators act on the
-  `QState (FVec 𝔽 n)` of `QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision`;
+  `QState (FVec 𝔽 n)` of `Qatlib.Concepts.MbqcFlow.FlowDecision`;
 * the q-ary symmetric channel weights `bernoulliCoeff`, the codeword noise state
   `qaryNoiseState`, and the row-code `codeFrom G` follow Definitions 7--16;
 * `bornProb` is the Born statistic `⟨ψ|A|ψ⟩` of an effect `A` on a pure state `ψ`;

@@ -33,7 +33,8 @@ open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
 open scoped ENNReal Classical
 
 set_option autoImplicit false
-set_option warningAsError false
+
+namespace Qatlib.Concepts.HspRecovery.OpenSieve
 
 /-- Subgroup data at modulus four with rotation step two and reflection parameter zero. -/
 def H0 : DihedralSubgroupData 4 := ⟨2, by omega, some 0⟩
@@ -232,3 +233,5 @@ theorem clause137_conjunct12_false :
         SubgroupRecoveryEndpoint (2 ^ 2) lg ∧ ShiftRecoveryEndpoint (2 ^ 2) (2 / 3) lg) := by
   intro ⟨lg, h, _⟩
   exact not_subgroup_endpoint lg h
+
+end Qatlib.Concepts.HspRecovery.OpenSieve

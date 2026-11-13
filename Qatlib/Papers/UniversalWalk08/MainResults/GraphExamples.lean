@@ -25,8 +25,6 @@ degree-three bound, and generates a unitary walk, illustrating the finite model 
 * [Childs, 2009][Childs2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.UniversalWalk08.MainResults.GraphExamples
 
 open Matrix

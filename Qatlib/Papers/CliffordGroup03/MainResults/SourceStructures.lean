@@ -23,10 +23,10 @@ Fixed source: **arXiv:quant-ph/0304125v1**, Dehaene & De Moor, Phys. Rev. A 68, 
   admit the quadratic-form expansion of Eq. (6.x) (`source_theorem_six_matrix_elements`).
 
 Each headline result below is recorded as a `Prop`-valued definition (`source_theorem_*_... : Prop`),
-i.e. the exact formal statement with no proof claimed; the deferred proofs are described in the
-roadmap comments and require the constructive reduction algorithm of Sec. IV (Theorem 4), the
-stabilizer normal form of Sec. V (Theorem 5), and the amalgamation of the decomposition with
-Theorem 1 (Theorem 6). Nothing in the repository assumes these statements.
+i.e. the exact formal statement. Their proofs require the constructive reduction algorithm of
+Sec. IV (Theorem 4), the stabilizer normal form of Sec. V (Theorem 5), and the amalgamation of
+the decomposition with Theorem 1 (Theorem 6); these constructions are outside the scope of this
+module. Nothing in the repository assumes these statements.
 -/
 
 set_option autoImplicit false
@@ -116,7 +116,7 @@ def shearB (n r : ℕ) (hr : r ≤ n)
       (0 : Matrix (RHalf n r) (RHalf n r) (ZMod 2))
       (1 : Matrix (RHalf n r) (RHalf n r) (ZMod 2)))
 
-/-- **Theorem 4 (statement, proof deferred)** (arXiv:quant-ph/0304125v1, p.4–5, Eq. (5)/(6)).
+/-- **Theorem 4 (formal statement)** (arXiv:quant-ph/0304125v1, p.4–5, Eq. (5)/(6)).
 If `C` is symplectic (`Cᵀ P C = P`), it decomposes as
 `C = [[T1^{-T},0],[0,T1]] · S1 · H_r · S2 · [[T2^{-T},0],[0,T2]]`
 with `T1,T2` invertible, `Z1,Z2` symmetric `r×r`, `Z3` symmetric `(n−r)×(n−r)`, and `V1,V2`
@@ -124,14 +124,13 @@ with `T1,T2` invertible, `Z1,Z2` symmetric `r×r`, `Z3` symmetric `(n−r)×(n�
 (`Aᵀ T = 1 ∧ T Aᵀ = 1`). The five factors are `f1 n Ad T1`, `shearA n r hr Z3 V1 Z1`,
 `hadR n r hr`, `shearB n r hr V2 Z2`, `f1 n Bd T2`.
 
-Roadmap (deferred): the constructive proof (p.5) reduces `C` to the identity by column operations
-on pairs `(m, n+m)`. Formally: take `r = rank(G′)` for the top-right block `G′` of `C`, choose
+The constructive proof (p.5) reduces `C` to the identity by column operations on pairs
+`(m, n+m)`. Formally: take `r = rank(G′)` for the top-right block `G′` of `C`, choose
 `R1,R2` with `R1⁻¹ G′ R2 = [[0,0],[0,I_r]]`, and read off `T1 = R1`, `T2 = R2`, and the `Z`/`V`
-blocks from the reduction of `[G′ᵀ H′ᵀ]`. Lean gap: no `rank`-based column reduction; the block
-identities `R1⁻¹ G′ R2 = diag(0,I_r)` and the symplecticity preserved under each elementary
-factor are unproven. Candidate deps: `Symplectic`, `f1`, `shearA`, `hadR`, `shearB`, `e4`.
-Suggested tactic: prove each factor is symplectic (`Cᵀ P C = P`) by `Matrix.ext` block algebra, then
-show the product of the reductions of `C` on the left is `C` itself. -/
+blocks from the reduction of `[G′ᵀ H′ᵀ]`. A full rank-based column reduction, the identities
+`R1⁻¹ G′ R2 = diag(0,I_r)`, and preservation of symplecticity under each elementary factor are
+outside the scope of this module.
+-/
 def source_theorem_four_symplectic_decomposition {n : ℕ}
     (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) : Prop :=
   Symplectic n C →
@@ -171,7 +170,7 @@ def stabSum {n d : ℕ} (Z : Matrix (Fin d) (Fin d) (ZMod 2)) (ba : BV d)
     (T : Matrix (Fin n) (Fin d) (ZMod 2)) (t : BV n) (x : Reg n) : ℂ :=
   ∑ ya : BV d, stabCoeff Z ba ya * (if toRegBV (T.mulVec ya + t) = x then (1 : ℂ) else 0)
 
-/-- **Theorem 5 (statement, proof deferred)** (arXiv:quant-ph/0304125v1, p.6–7, Eq. (18)/(19)).
+/-- **Theorem 5 (formal statement)** (arXiv:quant-ph/0304125v1, p.6–7, Eq. (18)/(19)).
 A stabilizer state `ψ` represented by `(S,b)` admits an invertible index transform `T`, an
 invertible stabilizer basis
 change, a full-rank symmetric `Z` (`f_a = diag(Z)`), `b_a`, and shift `t` such that
@@ -179,15 +178,13 @@ change, a full-rank symmetric `Z` (`f_a = diag(Z)`), `b_a`, and shift `t` such t
 δ(T y_a + t, x)`. (Normal form (18) is the existence of the data `T, Z, b_a, t` making the
 expansion valid and `Z` full-rank symmetric.)
 
-Roadmap (deferred): the normal form is obtained by the Gaussian-elimination procedure of Sec. V on
+The normal form is obtained by the Gaussian-elimination procedure of Sec. V on
 the stabilizer matrix `S̄`, which produces `T` (index transform) and `R` (stabilizer basis change)
 placing the generators in the block form (18). The amplitude formula (19) follows by diagonalising
-the canonical quadratic form. Lean gap: the elimination procedure and the full-rank symplectic
-reduction on `S̄` are not yet formalised; the `r_a,r_b,r_c` block labels are compressed into the
-single parameter `y_a`. Candidate deps: `RepresentsStabilizerState`, `stabCoeff`, `quadForm`,
-`lows`, `Symm`, `diagVec`. Suggested tactic: prove `ψ` is supported on the affine space
-`T y_a + t` from the eigenstate relations, then identify the phase by induction over the Gaussian
-elimination. -/
+the canonical quadratic form. The elimination procedure and full-rank symplectic reduction on
+`S̄`, as well as the compression of the `r_a,r_b,r_c` block labels into `y_a`, are outside the
+scope of this module.
+-/
 def source_theorem_five_stabilizer_form {n m : ℕ}
     (S : Matrix (Fin (2 * n)) (Fin m) (ZMod 2)) (b : BV m) (ψ : Reg n → ℂ) : Prop :=
   RepresentsStabilizerState S b ψ →
@@ -214,19 +211,18 @@ def cliffSum {n d : ℕ} (Z : Matrix (Fin d) (Fin d) (ZMod 2)) (hc : BV d)
     ((if toRegBV (T1.mulVec ya) = y then (1 : ℂ) else 0) *
      (if toRegBV (T2.mulVec ya + t) = x then (1 : ℂ) else 0))
 
-/-- **Theorem 6 (statement, proof deferred)** (arXiv:quant-ph/0304125v1, p.7–8). A Clifford
+/-- **Theorem 6 (formal statement)** (arXiv:quant-ph/0304125v1, p.7–8). A Clifford
 operation `Q` represented by `(C̄,h)` has matrix elements
 `Q(y,x) = (1/√(2^r)) · Σ_{y_a} (-i)^{dᵀ y_a} (-1)^{hᵀ y_a + y_aᵀ lows(Z+d dᵀ) y_a} ·
 δ(T1 y_a, y) · δ(T2 y_a + t, x)`,
 with `T1,T2` invertible, `Z` symmetric full-rank, `d = diag(Z)` (`t ∈ Z_2^n`).
 
-Roadmap (deferred): expand `Q` via the symplectic decomposition of Theorem 4 applied to the data
+Expanding `Q` via the symplectic decomposition of Theorem 4 applied to the data
 `(C̄,h)`, using Theorem 1 to phase-carry each elementary factor; the quadratic-form structure comes
-from the shear factors `Z`. Lean gap: the composition of Theorems 1/4 across all `n` sites and the
-resulting sum-over-paths is not yet formalised; the block labels are compressed into a single `y_a`.
-Candidate deps: `source_theorem_one_conjugation`, `source_theorem_four_symplectic_decomposition`,
-`cliffCoeff`, `RepresentsClifford`. Suggested tactic: build `Q` from the five factors of Theorem 4
-and compute its matrix element as the product of the (Gaussian) matrix elements of the factors. -/
+from the shear factors `Z`. The composition of Theorems 1 and 4 across all `n` sites and the
+resulting sum-over-paths are outside the scope of this module; the block labels are compressed into
+a single `y_a`.
+-/
 def source_theorem_six_matrix_elements {n : ℕ}
     (Q : Matrix (Reg n) (Reg n) ℂ)
     (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h : BV (2 * n)) : Prop :=

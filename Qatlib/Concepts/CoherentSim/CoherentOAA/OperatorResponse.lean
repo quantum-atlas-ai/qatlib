@@ -32,8 +32,6 @@ dilation, following the singular value transformation framework of [GilyenSuLowW
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

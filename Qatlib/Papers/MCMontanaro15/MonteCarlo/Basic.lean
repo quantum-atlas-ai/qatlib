@@ -35,7 +35,6 @@ record formulas rather than construct algorithms.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -50,11 +49,10 @@ open Qatlib
 open Qatlib.Papers.MCMontanaro15.MonteCarlo.StageBMONTECARLO
 open scoped BigOperators
 
-set_option linter.unusedSectionVars false
-set_option linter.unnecessarySeqFocus false
-
 variable {X : Type} [Fintype X] [DecidableEq X]
 variable {n₀ : ℕ}
+
+omit [DecidableEq X] in
 
 /-- Event inclusion implies monotonicity of finite product-event probabilities. -/
 theorem probEvent_mono {L : ℕ} (p : FinDist X) (E E' : (Fin L → X) → Prop)
@@ -68,6 +66,8 @@ theorem probEvent_mono {L : ℕ} (p : FinDist X) (E E' : (Fin L → X) → Prop)
   refine Finset.sum_le_sum_of_subset_of_nonneg hsub (fun i _ _ => ?_)
   unfold FinDist.probOf
   exact Finset.prod_nonneg fun k _ => p.nonneg _
+
+omit [DecidableEq X] in
 
 /-- The probability of a fixed draw record is at most the probability of any event containing
 it. -/
@@ -406,6 +406,8 @@ theorem clause54_endpoint (p : FinDist X) (f : X → ℝ) (σ m muNeg muPos ε :
   exact ⟨clause54_algorithm3_error_ledger p f σ m muNeg muPos ε hσ hneg hpos,
     (clause54_algorithm3_success (1 / 9) (by norm_num)).2, rfl, rfl, rfl⟩
 
+omit [DecidableEq X] in
+
 /-- A real payoff bounded in absolute value by one has variance at most one. -/
 theorem clause56_variance_le_one_of_bounded (p : FinDist X) (f : X → ℝ)
     (hf : ∀ x, |f x| ≤ 1) : p.variance f ≤ 1 := by
@@ -452,6 +454,8 @@ theorem clause56_pilot_certificate (p : FinDist X) (f : X → ℝ) (hL : 0 < n�
       exact div_le_div_of_nonneg_right hsq (by positivity)
     _ = 1 / (n₀ * t ^ 2) := by rfl
 
+omit [DecidableEq X] in
+
 /-- If a pilot second moment is within t of the true second moment, `pilotVarianceBound` bounds
 the payoff variance. -/
 theorem clause56_pilot_certifies_variance (p : FinDist X) (f : X → ℝ)
@@ -468,6 +472,8 @@ theorem clause56_pilot_certifies_variance (p : FinDist X) (f : X → ℝ)
   unfold pilotVarianceBound
   linarith
 
+omit [Fintype X] [DecidableEq X] in
+
 /-- The certified samples per group equal the ceiling of four times the pilot second moment plus
 tolerance, divided by ε². -/
 theorem clause56_certified_stopping_is_record_only {n₀ : ℕ} (f : X → ℝ) (t ε : ℝ)
@@ -475,6 +481,8 @@ theorem clause56_certified_stopping_is_record_only {n₀ : ℕ} (f : X → ℝ) 
     certifiedSamplesPerGroup f t ε ω
       = Nat.ceil (4 * (pilotSecondMoment f ω + t) / ε ^ 2) := by
   rfl
+
+omit [DecidableEq X] in
 
 /-- A positive pilot variance bound dominating the true variance gives a positive certified
 group size satisfying 4 Var(f) ≤ Lε² for ε > 0. -/
@@ -547,14 +555,14 @@ theorem twoLevelLaw_mean {N : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
       intro x
       by_cases h0x : x = 0
       · by_cases h1x : x = twoLevelLarge N
-        · simp only [twoLevelLaw, if_pos h0x, if_pos h1x]
+        · simp only [twoLevelLaw, ite_eq_left h0x, ite_eq_left h1x]
           ring
-        · simp only [twoLevelLaw, if_pos h0x, if_neg h1x]
+        · simp only [twoLevelLaw, ite_eq_left h0x, ite_eq_right h1x]
           ring
       · by_cases h1x : x = twoLevelLarge N
-        · simp only [twoLevelLaw, if_neg h0x, if_pos h1x]
+        · simp only [twoLevelLaw, ite_eq_right h0x, ite_eq_left h1x]
           ring
-        · simp only [twoLevelLaw, if_neg h0x, if_neg h1x]
+        · simp only [twoLevelLaw, ite_eq_right h0x, ite_eq_right h1x]
           ring
     rw [Finset.sum_congr rfl (fun x _ => e x), Finset.sum_add_distrib]
     rw [Fintype.sum_ite_eq' (0 : Fin (N + 2)) (fun j => (1 - p) * (j : ℕ))]

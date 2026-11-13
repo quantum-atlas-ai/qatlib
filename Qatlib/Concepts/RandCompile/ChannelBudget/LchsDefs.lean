@@ -26,7 +26,6 @@ queries, and shots for one sample or an entire sampling run.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LchsSimulation.TimeTrapezoid
 
 set_option autoImplicit false

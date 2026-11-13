@@ -23,10 +23,8 @@ used with the detailed-balance symmetry of [TemmeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.QuantumGibbs.DetailedBalance
 

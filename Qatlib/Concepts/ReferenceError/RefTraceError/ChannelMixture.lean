@@ -26,7 +26,6 @@ density operators, following the standard mixed-unitary channel construction in 
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 

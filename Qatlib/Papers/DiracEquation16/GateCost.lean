@@ -39,7 +39,6 @@ noncomputable section
 namespace Qatlib.Papers.DiracEquation16.GateCost
 
 open Qatlib.Concepts.ResourceBounds.AsymBounds (uniformUpperBound)
-set_option warningAsError false
 
 /-- The quadratic per-axis cost model `na * na`. -/
 def perAxisCostModel (na : ℕ) : ℕ := na * na

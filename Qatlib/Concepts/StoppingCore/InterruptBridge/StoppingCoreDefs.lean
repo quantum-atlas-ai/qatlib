@@ -28,7 +28,6 @@ The state-vector circuit semantics follow the quantum computation framework of
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
 open Qatlib.Foundations.QueryWordCore.Circuit

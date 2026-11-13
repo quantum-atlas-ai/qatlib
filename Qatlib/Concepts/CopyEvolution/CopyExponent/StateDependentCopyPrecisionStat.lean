@@ -25,7 +25,6 @@ The underlying simulation method is density-matrix exponentiation [LloydMohseniR
 * [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers

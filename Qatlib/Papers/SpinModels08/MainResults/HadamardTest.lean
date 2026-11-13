@@ -26,7 +26,6 @@ used for additive approximation in [VanDenNestEtAl2009].
 * [Van den Nest et al., 2009][VanDenNestEtAl2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 noncomputable section

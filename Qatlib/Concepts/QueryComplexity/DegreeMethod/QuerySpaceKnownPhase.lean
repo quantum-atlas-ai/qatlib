@@ -27,7 +27,6 @@ preserves the reference input while applying the workspace bit oracle to the dat
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -43,7 +42,6 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Qatlib Matrix
 open scoped Classical BigOperators
-set_option linter.unusedSectionVars false
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
@@ -56,6 +54,8 @@ def knownCorrection (c : Bool) : Matrix (Full I W) (Full I W) ℂ :=
 theorem knownCorrection_unitary (c : Bool) :
     knownCorrection (I := I) (W := W) c ∈ unitaryGroup (Full I W) ℂ :=
   phaseOracle_unitary _
+
+omit [Fintype I] [Fintype W] in
 
 /-- For reference value false, the correction matrix is the identity. -/
 theorem knownCorrection_false :
@@ -96,10 +96,14 @@ theorem knownOneBitCircuit_unitary (c : Bool) :
   exact ⟨dataHadamard_unitary, routeGate_unitary, routeGate_unitary,
     knownCorrection_unitary c, dataHadamard_unitary, trivial⟩
 
+omit [Fintype I] [Fintype W] in
+
 /-- The known-reference bit-query simulation uses exactly one oracle query. -/
 theorem knownOneBitCircuit_queries (c : Bool) :
     QueryCount (knownOneBitCircuit (I := I) (W := W) c) = 1 := by
   rfl
+
+omit [Fintype I] [Fintype W] in
 
 /-- The known-reference bit-query simulation uses exactly five gates. -/
 theorem knownOneBitCircuit_gates (c : Bool) :

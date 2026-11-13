@@ -71,7 +71,6 @@ For quantum-walk search background, see [MagniezNayakRolandSantha2011].
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.WalkSearch06.ReverseWalk.TimeReversal
 
@@ -90,6 +89,8 @@ omit [Fintype X] [DecidableEq X] in
 theorem timeReversal_apply (P : Matrix X X ℝ) (π : X → ℝ) (x y : X) :
     timeReversal P π x y = π y * P y x / π x := rfl
 
+omit [Fintype X] [DecidableEq X] in
+
 /-- With positive weights, detailed balance makes the time-reversed matrix equal to the original
 matrix. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
 theorem timeReversal_eq_of_detailedBalance (P : Matrix X X ℝ) (π : X → ℝ)
@@ -101,6 +102,8 @@ theorem timeReversal_eq_of_detailedBalance (P : Matrix X X ℝ) (π : X → ℝ)
   rw [mul_comm (P x y) (π x)]
   exact (hdb x y).symm
 
+omit [Fintype X] [DecidableEq X] in
+
 /-- Nonnegative transition entries and positive weights give nonnegative time-reversed entries. -/
 theorem timeReversal_nonneg (P : Matrix X X ℝ) (π : X → ℝ)
     (hP : ∀ x y, 0 ≤ P x y) (hπ : ∀ x, 0 < π x) :
@@ -108,6 +111,8 @@ theorem timeReversal_nonneg (P : Matrix X X ℝ) (π : X → ℝ)
   intro x y
   rw [timeReversal_apply]
   exact div_nonneg (mul_nonneg (hπ y).le (hP y x)) (hπ x).le
+
+omit [DecidableEq X] in
 
 /-- For positive stationary weights, every row of the time-reversed matrix sums to one. -/
 theorem timeReversal_row_sum (P : Matrix X X ℝ) (π : X → ℝ)
@@ -122,6 +127,8 @@ theorem timeReversal_row_sum (P : Matrix X X ℝ) (π : X → ℝ)
     rw [timeReversal_apply]
   rw [hsum, hstat x]
   exact div_self hx
+
+omit [DecidableEq X] in
 
 /-- For positive weights and unit row sums of `P`, the same weights are stationary for the
 time-reversed matrix. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
@@ -140,6 +147,8 @@ theorem timeReversal_stationary (P : Matrix X X ℝ) (π : X → ℝ)
     _ = π y * ∑ x, P y x := by rw [Finset.mul_sum]
     _ = π y := by rw [hrow y, mul_one]
 
+omit [Fintype X] [DecidableEq X] in
+
 /-- Time reversal relative to positive weights is involutive. -/
 theorem timeReversal_involutive (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x) :
@@ -153,6 +162,8 @@ theorem timeReversal_involutive (P : Matrix X X ℝ) (π : X → ℝ)
 /-- The matrix whose `(x, y)` entry is the square root of `P x y * timeReversal P π y x`. -/
 noncomputable def discriminant (P : Matrix X X ℝ) (π : X → ℝ) : Matrix X X ℝ :=
   fun x y => Real.sqrt (P x y * timeReversal P π y x)
+
+omit [Fintype X] [DecidableEq X] in
 
 /-- For nonnegative transitions and positive weights, each discriminant entry is `sqrt (π x) * P
 x y / sqrt (π y)`. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/

@@ -51,7 +51,6 @@ namespace Qatlib.Concepts.MatrixWeights.LambdaMin
 
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 /-- For `0 ≤ x ≤ 1` and any real rate `eta`, bounds `exp (-eta * x)` by the chord `1 - (1 - exp
 (-eta)) * x`. -/

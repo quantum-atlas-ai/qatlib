@@ -27,7 +27,6 @@ the amplification discussion of [DurrHoyer1996].
 * [Durr and Hoyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

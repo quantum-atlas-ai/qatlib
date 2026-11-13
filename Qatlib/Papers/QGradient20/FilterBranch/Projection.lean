@@ -27,8 +27,6 @@ empty-dimensional unitarity statement. The mathematical context is [GaoEtAl2021]
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix

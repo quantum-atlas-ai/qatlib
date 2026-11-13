@@ -25,8 +25,8 @@ This module introduces the objects used by the paper-layer statements:
   `h_X(t)`, `h_X = 0` when `diam X > 1`, `‖h_X(t)‖ ≤ 1`, `O(1)` qubits per unit
   ball and entrywise piecewise-slow variation;
 * the time-ordered propagator `U_t` for `i ∂_t U = H(t) U`;
-* a gate-counted circuit model with an arbitrary finite ancilla register, used
-  by the lower-bound statements (Theorems 2--3, Lemmas 7--11);
+* legacy matrix records with resource metadata and a separate layer-realization
+  predicate tying those records to explicit operations;
 * the Bernstein ellipse `E_ρ` of Appendix D.
 
 Nothing here asserts any paper result; the claim files import this module.
@@ -147,7 +147,7 @@ def heisenbergEvolve (H : Matrix Q Q ℂ) (t : ℝ) (A : Matrix Q Q ℂ) : Matri
 
 /-- The time-ordered propagator `U_t` of `i ∂_t U = H(t) U`, i.e.
 `U_t = 𝒯 exp(-i ∫_0^t H)`, built from the Dyson series in
-`QuantumAlgorithm.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`
+`Qatlib.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`
 (generator `i • H`). -/
 def evolution (H : ℝ → Matrix Q Q ℂ) (t : ℝ) : Matrix Q Q ℂ :=
   Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution
@@ -159,9 +159,8 @@ def staticEvolution (H : Matrix Q Q ℂ) (t : ℝ) : Matrix Q Q ℂ :=
 
 /-! ## Circuits used by the lower bounds -/
 
-/-- A gate-counted circuit on a finite register.  `matrix` is the unitary it
-implements, `gates` the number of two-qubit gates and `depth` the number of
-layers (the paper's cost measures, p.5). -/
+/-- Legacy unitary matrix with independent resource metadata. Only `Realized`
+relates these fields to operations; this record alone is not a counted circuit. -/
 structure GateCircuit (W : Type) [Fintype W] [DecidableEq W] where
   /-- Number of two-qubit gates. -/
   gates : ℕ
@@ -171,6 +170,36 @@ structure GateCircuit (W : Type) [Fintype W] [DecidableEq W] where
   matrix : Matrix W W ℂ
   /-- The matrix is unitary. -/
   mem_unitary : matrix ∈ Matrix.unitaryGroup W ℂ
+
+/-- A counted implementation of a legacy matrix record, relative to an explicit
+elementary gate library and admissible parallel layers. These predicates must
+encode the desired locality and disjointness restrictions. Counts and matrix are
+determined by the same layers; the legacy record alone has no such guarantee. -/
+def GateCircuit.Realized {W : Type} [Fintype W] [DecidableEq W]
+    (C : GateCircuit W) (elementary : Matrix W W ℂ → Prop)
+    (parallel : List (Matrix W W ℂ) → Prop) : Prop :=
+  ∃ layers : List (List (Matrix W W ℂ)),
+    (∀ layer ∈ layers, parallel layer ∧ ∀ g ∈ layer, elementary g) ∧
+    C.gates = (layers.map List.length).sum ∧
+    C.depth = layers.length ∧
+    C.matrix = layers.foldr (fun layer acc => layer.prod * acc) 1
+
+/-- A realized zero-gate record must implement the identity matrix. -/
+theorem GateCircuit.matrix_eq_one_of_realized_zero {W : Type}
+    [Fintype W] [DecidableEq W] (C : GateCircuit W)
+    (elementary : Matrix W W ℂ → Prop) (parallel : List (Matrix W W ℂ) → Prop)
+    (h : C.Realized elementary parallel) (hz : C.gates = 0) : C.matrix = 1 := by
+  obtain ⟨layers, hallowed, hg, hd, hm⟩ := h
+  rw [hm]
+  have hcount : (layers.map List.length).sum = 0 := hg.symm.trans hz
+  clear hm hg hz hallowed hd
+  induction layers with
+  | nil => simp
+  | cons layer layers ih =>
+    have hc : layer.length = 0 ∧ (layers.map List.length).sum = 0 :=
+      Nat.add_eq_zero_iff.mp (by simpa using hcount)
+    have hl : layer = [] := List.length_eq_zero_iff.mp hc.1
+    simpa [hl] using ih hc.2
 
 /-- `n` qubits together with an arbitrary finite ancilla register `A`
 (the lower bounds allow unlimited ancillas, paper p.5). -/
@@ -182,8 +211,8 @@ def extendByAncilla {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     Matrix (WithAncilla n A) (WithAncilla n A) ℂ :=
   U ⊗ₖ (1 : Matrix A A ℂ)
 
-/-- `C` approximates the `n`-qubit unitary `U` to spectral error `ε`, possibly
-using the ancilla register `A` (paper p.2: spectral-norm distance). -/
+/-- Spectral matrix comparison on the enlarged register. This predicate alone
+imposes no implementation or resource constraints on `C`. -/
 def ApproximatesWithAncillas {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     (U : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) (ε : ℝ)
     (C : GateCircuit (WithAncilla n A)) : Prop :=

@@ -35,7 +35,6 @@ estimates, keeping the abstract machine counters separate from the elementary ev
 * [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstruction

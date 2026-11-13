@@ -27,8 +27,6 @@ rank times its squared Hilbert–Schmidt norm. See [Bhatia1997] for related back
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.MixedFidelity.TraceNormRankBound
 
 open scoped BigOperators ComplexOrder

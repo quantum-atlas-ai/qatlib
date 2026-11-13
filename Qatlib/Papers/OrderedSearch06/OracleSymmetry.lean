@@ -27,7 +27,6 @@ translation-invariant semidefinite bridge.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.OrderedSearch06.OracleSymmetry
 
@@ -36,19 +35,19 @@ def paperF (j x : ℤ) : ℤ := if x < j then -1 else 1
 
 /-- For `x ≥ 1`, increasing the comparison threshold by one is equivalent to decreasing the
 query position by one [ChildsLandahlParrilo2007]. -/
-theorem paperF_succ_eq (j x : ℤ) (hx : 1 ≤ x) :
+theorem paperF_succ_eq (j x : ℤ) (_hx : 1 ≤ x) :
     paperF (j + 1) x = paperF j (x - 1) := by
   unfold paperF
   by_cases h : x < j + 1
   · have h' : x - 1 < j := by omega
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
   · have h' : ¬ (x - 1 < j) := by omega
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
 
 /-- For `j ≥ 0`, the comparison sign at position zero and threshold `j + 1` is −1. -/
 theorem paperF_zero (j : ℤ) (hj : 0 ≤ j) : paperF (j + 1) 0 = -1 := by
   unfold paperF
-  rw [if_pos (by omega)]
+  rw [ite_eq_left (by omega)]
 
 /-- The periodic ordered-search sign determined by whether `(x − j) mod (2 * N)` lies in the
 first half. -/
@@ -57,7 +56,7 @@ def paperG (N : ℕ) (j x : ℤ) : ℤ :=
 
 /-- For a representative in `[0, 2 * N)`, shifting by `N` exchanges the first-half and
 second-half tests. -/
-theorem paperG_half_test (N : ℕ) (hN : 0 < N) {a : ℤ} (ha0 : 0 ≤ a)
+theorem paperG_half_test (N : ℕ) (_hN : 0 < N) {a : ℤ} (ha0 : 0 ≤ a)
     (ham : a < 2 * (N : ℤ)) :
     ((a + (N : ℤ)) % (2 * (N : ℤ)) < (N : ℤ)) ↔ ¬ (a < (N : ℤ)) := by
   by_cases h : a < (N : ℤ)
@@ -81,7 +80,7 @@ theorem paperG_neg_half (N : ℕ) (hN : 0 < N) :
   exact Int.emod_eq_of_lt hn0 hn2
 
 /-- Adding `−N` or `N` gives the same remainder modulo `2 * N`. -/
-theorem paperG_add_neg_half (N : ℕ) (hN : 0 < N) (b : ℤ) :
+theorem paperG_add_neg_half (N : ℕ) (_hN : 0 < N) (b : ℤ) :
     (b + (-(N : ℤ))) % (2 * (N : ℤ)) = (b + (N : ℤ)) % (2 * (N : ℤ)) := by
   refine (Int.emod_eq_emod_iff_emod_sub_eq_zero).mpr ?_
   rw [show (b + (-(N : ℤ))) - (b + (N : ℤ)) = -(2 * (N : ℤ)) by ring]
@@ -96,7 +95,7 @@ theorem paperG_piecewise (N : ℕ) (hN : 0 < N) (j x : ℤ) (hj0 : 0 ≤ j)
   push_cast
   have hm : (0 : ℤ) < 2 * (N : ℤ) := by positivity
   by_cases hxN : x < (N : ℤ)
-  · rw [if_pos hxN]
+  · rw [ite_eq_left hxN]
     by_cases hxj : x < j
     · have hlo : -(2 * (N : ℤ)) < x - j := by omega
       have hlt0 : x - j < 0 := by omega
@@ -106,24 +105,24 @@ theorem paperG_piecewise (N : ℕ) (hN : 0 < N) (j x : ℤ) (hj0 : 0 ≤ j)
       have : (x - j) % (2 * (N : ℤ)) = x - j + 2 * (N : ℤ) := by
         conv_lhs => rw [he]
         rw [Int.add_mul_emod_self_left, Int.emod_eq_of_lt hmid hmid2]
-      rw [this, if_pos hxj, if_neg (by omega : ¬ (x - j + 2 * (N : ℤ) < (N : ℤ)))]
+      rw [this, ite_eq_left hxj, ite_eq_right (by omega : ¬ (x - j + 2 * (N : ℤ) < (N : ℤ)))]
     · have hge : j ≤ x := by omega
       have hmid : 0 ≤ x - j := by omega
       have hmid2 : x - j < 2 * (N : ℤ) := by omega
       have : (x - j) % (2 * (N : ℤ)) = x - j := Int.emod_eq_of_lt hmid hmid2
-      rw [this, if_neg hxj, if_pos (by omega : x - j < (N : ℤ))]
-  · rw [if_neg hxN]
+      rw [this, ite_eq_right hxj, ite_eq_left (by omega : x - j < (N : ℤ))]
+  · rw [ite_eq_right hxN]
     by_cases hxj : x - (N : ℤ) < j
     · have hmid : 0 ≤ x - j := by omega
       have hmid2 : x - j < 2 * (N : ℤ) := by omega
       have hlt : x - j < (N : ℤ) := by omega
       have : (x - j) % (2 * (N : ℤ)) = x - j := Int.emod_eq_of_lt hmid hmid2
-      rw [this, if_pos hlt, if_pos (by omega : x - (N : ℤ) < j)]
+      rw [this, ite_eq_left hlt, ite_eq_left (by omega : x - (N : ℤ) < j)]
       norm_num
     · have hmid : (N : ℤ) ≤ x - j := by omega
       have hmid2 : x - j < 2 * (N : ℤ) := by omega
       have : (x - j) % (2 * (N : ℤ)) = x - j := Int.emod_eq_of_lt (by omega) hmid2
-      rw [this, if_neg (by omega : ¬ (x - j < (N : ℤ))), if_neg (by omega : ¬ (x - (N : ℤ) < j))]
+      rw [this, ite_eq_right (by omega : ¬ (x - j < (N : ℤ))), ite_eq_right (by omega : ¬ (x - (N : ℤ) < j))]
 
 /-- Shifting the threshold by `N` negates `paperG` for positive `N` [ChildsLandahlParrilo2007]. -/
 theorem paperG_add_half (N : ℕ) (hN : 0 < N) (j x : ℤ) :
@@ -162,7 +161,7 @@ theorem paperG_query_half (N : ℕ) (hN : 0 < N) (j x : ℤ) :
   by_cases h : a < (N : ℤ) <;> simp [h]
 
 /-- The query-position period of `paperG` is `2 * N` for positive `N`. -/
-theorem paperG_period (N : ℕ) (hN : 0 < N) (j x : ℤ) :
+theorem paperG_period (N : ℕ) (_hN : 0 < N) (j x : ℤ) :
     paperG N j (x + 2 * (N : ℤ)) = paperG N j x := by
   unfold paperG
   push_cast
@@ -180,12 +179,12 @@ theorem paperG_shift (N : ℕ) (j x l : ℤ) :
 
 /-- On doubled finite indices, `paperG` equals 1 when `ospBit` is true and −1 otherwise
 [ChildsLandahlParrilo2007]. -/
-theorem paperG_eq_ospBit (N : ℕ) [NeZero N] (hN : 0 < N) (j x : Fin (2 * N)) :
+theorem paperG_eq_ospBit (N : ℕ) [NeZero N] (_hN : 0 < N) (j x : Fin (2 * N)) :
     paperG N (j : ℤ) (x : ℤ) =
       (if Qatlib.Concepts.OrderedOracle.TiSdpBridge.ospBit N j x then 1 else -1) := by
   unfold paperG Qatlib.Concepts.OrderedOracle.TiSdpBridge.ospBit
   by_cases h : ((x : ℤ) - (j : ℤ)) % ((2 * N : ℕ) : ℤ) < (N : ℤ)
-  · rw [if_pos h, if_pos (by simpa using h)]
-  · rw [if_neg h, if_neg (by simpa using h)]
+  · rw [ite_eq_left h, ite_eq_left (by simpa using h)]
+  · rw [ite_eq_right h, ite_eq_right (by simpa using h)]
 
 end Qatlib.Papers.OrderedSearch06.OracleSymmetry

@@ -37,7 +37,6 @@ set_option autoImplicit false
 open Qatlib Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
-set_option warningAsError false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.PaidFractionInverse
 
 /-- The Boolean-stack slots for four natural-number arguments, parsing workspace, comparison

@@ -27,7 +27,6 @@ This is a concrete resource-accounted formulation of the witness approach in [Le
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

@@ -27,8 +27,6 @@ of unity, providing explicit checks of the quarter-angle discussion in Lemma 2 o
 * [Shepherd and Bremner, 2009][ShepherdBremner2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

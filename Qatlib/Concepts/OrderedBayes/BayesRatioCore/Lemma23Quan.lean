@@ -45,8 +45,6 @@ drift estimate `zoo_bayes_expected_info_rise`.
 * [Ben-Or and Hassidim, Lemma 2.3][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 
 open scoped BigOperators NNReal ENNReal

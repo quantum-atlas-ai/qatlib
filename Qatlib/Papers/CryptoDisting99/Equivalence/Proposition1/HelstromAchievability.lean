@@ -42,7 +42,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteInformationDivergence
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Matrix
 open scoped BigOperators
-set_option warningAsError false
 
 /-- A finite real list has a common positive lower bound, at most one, on the absolute values of
 all its nonzero entries. -/

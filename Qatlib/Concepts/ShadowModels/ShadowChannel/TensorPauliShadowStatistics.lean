@@ -27,9 +27,7 @@ counts for fresh measurement records in the classical-shadow framework [HuangKue
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.GateVocabulary.GateVocab

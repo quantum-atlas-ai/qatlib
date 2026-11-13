@@ -32,8 +32,6 @@ The output has the prescribed parameter length and polynomial degree bounds. Und
 * [Alexis et al., 2026][AlexisEtAl2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.LaurentPolys.CanonicalComplementFFT

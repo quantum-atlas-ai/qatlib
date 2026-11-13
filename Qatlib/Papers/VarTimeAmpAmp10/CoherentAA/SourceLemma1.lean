@@ -28,7 +28,7 @@ then there is an algorithm `A′` using `2m+1` calls to `A` and `A⁻¹` that ou
   `δ_new ≥ (1 − (2m+1)²δ/3)·(2m+1)²δ`.   (3)
 
 The frozen library proves exactly this about the *actual* prepared
-amplitude-amplification circuit: `QuantumAlgorithm.Papers.VarTimeAmpAmp10.
+amplitude-amplification circuit: `Qatlib.Papers.VarTimeAmpAmp10.
 CoherentAA.clause88` gives, for the real circuit `preparedAACircuit A j₀ r` run on
 `|j₀⟩`, the bound `tightAASuccess δ r ≤ MeasureProb out S`, the preservation of
 the target direction, and `2r+1` input queries.  The paper-layer theorem below
@@ -61,7 +61,7 @@ source's window `r ≤ π/(4 arcsin√ε) − 1/2`, the actual amplified circuit
 `tightAASuccess δ r = (1 − (2r+1)²δ/3)(2r+1)²δ`, keeps the prepared success
 direction, and uses exactly `2r+1` calls to `A`/`A⁻¹`.
 
-Reused frozen result: `QuantumAlgorithm.Papers.VarTimeAmpAmp10.CoherentAA.clause88`
+Reused frozen result: `Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.clause88`
 (second conjunct), whose first conjunct `coherentAmplification_answer` supplies
 the `sin²` law of the same circuit. -/
 theorem source_lemma1 (I : Type) [Fintype I] [DecidableEq I]

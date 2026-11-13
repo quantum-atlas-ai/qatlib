@@ -16,8 +16,7 @@ set_option backward.isDefEq.respectTransparency false
 # Thermalize11.MainResults.SourceModel — finite-dimensional microcanonical vocabulary
 
 Riera--Gogolin--Eisert, *Thermalization in Nature and on a Quantum Computer*,
-fixed arXiv:1102.2389v4 (PDF SHA-256 of the prefetched copy
-`prove/assets/1102.2389.pdf`, 12 Mar 2012).
+fixed arXiv:1102.2389v4 (12 Mar 2012).
 
 This file introduces the small amount of source vocabulary needed by the three
 active claims of the paper:
@@ -29,11 +28,11 @@ active claims of the paper:
   of Theorem 1, Eq. (1) on p. 2.
 
 Two general facts about the shared `traceDistance` of
-`QuantumAlgorithm.Foundations.MixedFidelity.FidelityMetric` are proved here and
+`Qatlib.Concepts.MixedFidelity.FidelityMetric` are proved here and
 reused by the claim files:
 
 * `traceDistance_partialTrace_le` — discarding a register (the partial trace of
-  `QuantumAlgorithm.Concepts.MbqcFlow.FlowDecision`) never increases the trace
+  `Qatlib.Foundations.PureStateMath`) never increases the trace
   distance. This is exactly the first inequality of Eq. (3) on p. 2,
   `𝒟(ω_Π^S, ω_Π^{S(0)}) ≤ 𝒟(ω_Π, ω_Π^{(0)})`, obtained there from "monotonicity
   of the trace distance";
@@ -41,7 +40,7 @@ reused by the claim files:
   `𝒟(ω_QC^S, ρ_Gibbs^S) ≤ 𝒟(ω_QC^S, ω_u^{S(0)}) + 𝒟(ω_u^{S(0)}, ρ_Gibbs^S)`.
 
 The partial-trace contraction is proved for Hermitian matrices (the physical
-case: differences of dephased projectors) by reusing the frozen library lemma
+case: differences of dephased projectors) by reusing the shared library lemma
 `traceRight_hermitian_trace_contraction`; the triangle inequality holds for all
 complex matrices, because `traceDistance` itself is a total function.
 
@@ -111,8 +110,8 @@ Hermitian matrix `X` on `Fin D × Fin E`, the trace norm of the partial trace is
 at most that of `X`.
 
 Paper: Eq. (3), p. 2, first inequality, "by monotonicity of the trace distance".
-This is the frozen library lemma
-`QuantumAlgorithm.Foundations.ReferenceError.DensityToRaw.traceRight_hermitian_trace_contraction`,
+This is the library lemma
+`Qatlib.Concepts.ReferenceError.DensityToRaw.traceRight_hermitian_trace_contraction`,
 transported across the definitional identity `PartialTrace = Matrix.traceRight`. -/
 theorem traceNorm_partialTrace_le {X : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (hX : X.IsHermitian) :
@@ -133,7 +132,7 @@ theorem traceDistanceGen_eq_traceDistance (ρ σ : Operator D) :
 The second inequality of Eq. (3) on p. 2 is preceded by exactly this step: the
 subsystem distance is bounded by the full-space distance. The Hermiticity
 hypotheses are the physical density-matrix case (`ρ`, `σ` are dephased
-projectors) and are what the frozen contraction lemma consumes. -/
+projectors) and are what the contraction lemma requires. -/
 theorem traceDistanceGen_partialTrace_le
     {ρ σ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (hρ : ρ.IsHermitian) (hσ : σ.IsHermitian) :

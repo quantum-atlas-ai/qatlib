@@ -323,7 +323,6 @@ theorem composite_dlog_actual_verification_work (r : ℕ) [NeZero r] (C : Type)
       simpa [← heq] using! hv
     · cases he
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- For `r ≥ 2`, injective cyclic exponent labeling, `r • g = 0`, and `h = d.val • g`, decoding
 and verifying `m` independent records returns `d` with probability exactly `1 - (1 - φ(r) /

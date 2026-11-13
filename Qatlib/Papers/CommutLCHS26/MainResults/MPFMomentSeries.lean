@@ -39,7 +39,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal ENNReal
 open BCHControlled BCHPerturbation DysonExpansion
 open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K]
 

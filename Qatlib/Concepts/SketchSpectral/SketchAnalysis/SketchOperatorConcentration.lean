@@ -41,7 +41,6 @@ the original Gram sketch, including a separate zero-matrix case.
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.MatrixWeights.WeightsCore
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -1508,7 +1507,6 @@ theorem sketchNormalizedRow_norm_sq {K C : Type} [Fintype K] [Fintype C] (p : Fi
   rw [← Finset.mul_sum,inv_pow,Real.sq_sqrt (mul_nonneg (p.nonneg k) hS)]
   simp only [sketchRowSquared,Complex.normSq_eq_norm_sq]
   ring
-set_option warningAsError false
 open scoped Matrix.Norms.Frobenius in
 
 /-- A nonzero matrix has positive total squared energy. -/

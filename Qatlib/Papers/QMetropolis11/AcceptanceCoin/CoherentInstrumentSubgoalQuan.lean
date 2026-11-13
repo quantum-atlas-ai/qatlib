@@ -27,8 +27,6 @@ mass is the proposal-weighted acceptance sum.
 * [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3).
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 set_option autoImplicit false

@@ -23,8 +23,6 @@ equally sized fibers. These constructions support the results of [BrassardHoyer1
 * [Brassard and Hoyer, 1997][BrassardHoyer1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 

@@ -26,7 +26,6 @@ simulation [BerryEtAl2015Taylor].
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -55,7 +54,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 /-- The positive segment count `max 1 (2 * Λ * T)`. -/
 def taylorSegments (Λ T : ℕ) : ℕ := max 1 (2 * Λ * T)
@@ -110,6 +108,8 @@ theorem taylor_actual_oaa_expansion_and_segment_cost (h : J → ℝ) (j0 : J)
       = s * (6 * K + 13)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
+
+omit [DecidableEq J] in
 
 /-- The coefficient mass times the absolute duration of each chosen Taylor segment is at most `1
 / 2`. -/

@@ -27,10 +27,10 @@ a primal feasible witness `X ⪰ 0` (source Eq. (75)–(79)); or, after all
 `p = ȳ/‖ȳ‖₁`, where `ȳ = (δα/2R)e₁ + (1/T)∑_t y⁽ᵗ⁾` (Eq. (55)) is nonnegative,
 `(1+δ)α`-optimal (Eq. (63)) and dual feasible (Eq. (64)–(71)).
 
-Both branches are delivered by the frozen normalized exact-arithmetic contract
+Both branches follow from the normalized exact-arithmetic contract
 `SdpRunDecisionContract`; this file exposes each branch in paper notation.
-Reused frozen theorem (FQN):
-`QuantumAlgorithm.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`.
+The underlying theorem is
+`Qatlib.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`.
 -/
 
 set_option autoImplicit false
@@ -81,8 +81,8 @@ If the macro run stops at a sound oracle failure `t₀ < T`, it outputs the labe
 `tr X ≤ R`, and objective `tr(CX) ≥ (1−δ)α`, i.e. the optimal objective value is
 larger than `(1−δ)α`.
 
-Frozen contract reused:
-`QuantumAlgorithm.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`. -/
+Underlying contract:
+`Qatlib.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`. -/
 theorem algorithm3_largerBranch (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε η : ℝ)
     (hD : 0 < D) (hα : 0 < α) (hα1 : 1 ≤ α) (hR : 0 < R) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
@@ -109,8 +109,8 @@ outputs the scale `L = ‖ȳ‖₁ > 0` and the distribution `p = ȳ/‖ȳ‖₁
 (`∑ ȳ_i A_i − C ⪰ 0`), and by weak duality bounds every primal feasible
 value by `(1+δ)α`.
 
-Frozen contract reused:
-`QuantumAlgorithm.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`. -/
+Underlying contract:
+`Qatlib.Concepts.SdpMmwSolver.SdpContract.sdpRunDecisionContract`. -/
 theorem algorithm3_completionBranch (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε η : ℝ)
     (hD : 0 < D) (hα : 0 < α) (hα1 : 1 ≤ α) (hR : 0 < R) (hδ : 0 < δ) (hδ1 : δ ≤ 1)

@@ -31,7 +31,6 @@ normalized garbage states and bounding the compression error by `2⁻μ`. See [V
 * [von Burg et al., 2021][VonBurgEtAl2021]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

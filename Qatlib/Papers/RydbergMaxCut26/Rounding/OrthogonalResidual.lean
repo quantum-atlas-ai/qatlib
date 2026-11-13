@@ -25,8 +25,6 @@ orthonormal pair and reconstructs the second Gaussian projection through `correl
 * [Crosta et al., 2026][CrostaSaubanereHuber2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section

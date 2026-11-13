@@ -33,8 +33,6 @@ express any parity-invariant unitary cell pair as a phase multiple of `cellPairM
 * [Meyer, 1996][Meyer1996a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

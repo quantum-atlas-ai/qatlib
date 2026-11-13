@@ -27,7 +27,6 @@ analysis [BrandaoSvore2017]. Expectation identities and positivity bounds are pr
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
 open Qatlib.Foundations.PureStateMath

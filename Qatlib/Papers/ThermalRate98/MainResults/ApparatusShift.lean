@@ -68,7 +68,6 @@ proves an amplitude reconstruction identity under a stated orthogonality hypothe
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.ThermalRate98.MainResults
@@ -91,6 +90,8 @@ def shiftPerm (E : I → ZMod M) : (I × ZMod M) ≃ (I × ZMod M) where
 inverse of `shiftPerm E`. -/
 def jointShift (E : I → ZMod M) (Ψ : I × ZMod M → ℂ) : I × ZMod M → ℂ :=
   fun p => Ψ ((shiftPerm E).symm p)
+
+omit [Fintype I] [DecidableEq I] [NeZero M] in
 
 /-- The translated joint amplitude at `(n, x)` equals the original amplitude at `(n, x - E n)`. -/
 @[simp] theorem jointShift_apply (E : I → ZMod M) (Ψ : I × ZMod M → ℂ)
@@ -119,8 +120,10 @@ theorem jointShift_delta (E : I → ZMod M) (n : I) (x : ZMod M) :
       rw [h]
       simp
   by_cases h : p = (n, x + E n)
-  · rw [if_pos (hiff.mpr h), if_pos h]
-  · rw [if_neg (fun hp => h (hiff.mp hp)), if_neg h]
+  · rw [ite_eq_left (hiff.mpr h), ite_eq_left h]
+  · rw [ite_eq_right (fun hp => h (hiff.mp hp)), ite_eq_right h]
+
+omit [DecidableEq I] in
 
 /-- The controlled pointer translation preserves the sum of squared complex amplitudes over the
 joint register. -/
@@ -146,10 +149,14 @@ system index. -/
 def appProb (Ψ : I × ZMod M → ℂ) (x : ZMod M) : ℝ :=
   ∑ n, Complex.normSq (Ψ (n, x))
 
+omit [DecidableEq I] [NeZero M] in
+
 /-- Every pointer marginal weight is nonnegative. -/
 theorem appProb_nonneg (Ψ : I × ZMod M → ℂ) (x : ZMod M) : 0 ≤ appProb Ψ x := by
   unfold appProb
   exact Finset.sum_nonneg (fun n _ => Complex.normSq_nonneg _)
+
+omit [DecidableEq I] in
 
 /-- The sum of pointer marginal weights equals the total squared amplitude of the joint
 register. -/
@@ -172,8 +179,8 @@ theorem apparatus_marginal (E : I → ZMod M) (ξ : I → ℂ) (x0 x : ZMod M) :
   unfold coherentState
   have hiff : (x - E n = x0) ↔ (x = x0 + E n) := sub_eq_iff_eq_add
   by_cases h : x = x0 + E n
-  · rw [if_pos (hiff.mpr h), if_pos h]
-  · rw [if_neg (fun hh => h (hiff.mp hh)), if_neg h]
+  · rw [ite_eq_left (hiff.mpr h), ite_eq_left h]
+  · rw [ite_eq_right (fun hh => h (hiff.mp hh)), ite_eq_right h]
     simp
 
 /-- The total pointer marginal weight after translating `coherentState ξ x0` equals the sum of
@@ -200,6 +207,8 @@ end Shift
 section Recovery
 
 variable {J : Type*} [Fintype J] [DecidableEq J]
+
+omit [DecidableEq I] in
 
 /-- If `ξ` is the conjugate coefficient transform of `ψ` and the stated row orthogonality holds
 for `A`, then summing `ξ n * A j n` recovers `ψ j`. This is the finite reconstruction

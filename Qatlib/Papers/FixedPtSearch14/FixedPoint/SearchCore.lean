@@ -61,7 +61,6 @@ open Matrix
 open scoped BigOperators Classical
 open Qatlib
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

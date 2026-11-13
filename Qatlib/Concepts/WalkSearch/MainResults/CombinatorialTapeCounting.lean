@@ -38,7 +38,6 @@ set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- A bound `fiber * R ≤ C * Fintype.card X` on every fiber of a product presentation `Ω ≃ A ×
 X` yields `event * R ≤ C * Fintype.card Ω`. -/

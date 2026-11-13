@@ -26,8 +26,6 @@ The resulting singleton marked success probability is at least one half. See [Gr
 * [Grover, 1997][Grover1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

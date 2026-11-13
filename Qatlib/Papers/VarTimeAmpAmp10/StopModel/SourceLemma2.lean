@@ -26,13 +26,12 @@ The source proof splits into `Aᵢ = Bᵢ` (same state, `rᵢ = rᵢ′`, same t
 `Aᵢ = Amplify(Bᵢ, k)` (time `(2k+1)(Tᵢ₋₁ + 2^{i−1})` with `2k+1` extracted from
 Lemma 1's `rᵢ ≥ (1 − 1/(3m))(2k+1)²rᵢ′`).
 
-The frozen stage model `VtStageChain` carries exactly this data: the stage
+The stage model `VtStageChain` carries exactly this data: the stage
 records with `ampWeight = rᵢ`, `baseWeight = rᵢ′`, the odd multiplier, the
 exact time recurrence `timeRec`, and the Algorithm 2 gain window.  The
 paper-layer theorem below states (5) in source notation and derives it from
-the frozen endpoint `clause89_endpoint`, whose proof consumes `g89_event_bounds`.
-Reused FQN:
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.MainTheorem.clause89_endpoint`.
+the theorem `clause89_endpoint`, whose proof uses `g89_event_bounds`:
+`Qatlib.Papers.VarTimeAmpAmp10.MainTheorem.clause89_endpoint`.
 -/
 
 set_option autoImplicit false

@@ -32,7 +32,6 @@ The mathematical background is described in [Kraus1983].
 * [Kraus, 1983][Kraus1983]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring

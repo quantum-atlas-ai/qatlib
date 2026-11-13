@@ -25,8 +25,6 @@ an explicit logarithmic choice of repetition count. The background is described 
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.Amplification

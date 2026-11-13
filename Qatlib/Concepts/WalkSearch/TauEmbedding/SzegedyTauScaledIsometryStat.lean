@@ -25,7 +25,6 @@ This contract refines the source spectral correspondence by recording its metric
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

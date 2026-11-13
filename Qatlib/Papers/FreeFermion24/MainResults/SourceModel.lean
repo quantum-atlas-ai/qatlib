@@ -17,7 +17,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # SourceModel — shared objects for *Solving Free Fermion Problems on a Quantum Computer*
 
-Fixed arXiv:2409.04550 (prefetched PDF `assets/2409.04550.pdf`, text `assets/2409.04550.txt`).
+Source: arXiv:2409.04550.
 
 This file records the paper's objects in the notation of the quantum-algorithm library:
 
@@ -37,10 +37,11 @@ This file records the paper's objects in the notation of the quantum-algorithm l
 * `QuantumDecider`, `PolyTimeReduces`, `BQPComplete` — the complexity interface for
   Theorem 13.
 
-Boundary: this is a paper layer.  It does not claim that the block encodings are
-synthesised into elementary gates; the resource ledger is a faithful *accounting*
-of the paper's counts attached to an actual block-encoding unitary.  No statement
-here is used to enlarge the shared `Foundations`/`Concepts` layer.
+The block-encoding record certifies a matrix's unitarity and block error. Its resource
+ledger is independent of that matrix and supplies no accounting theorem. The resource
+headlines are unproved `_statement : Prop` definitions. The scalar bound predicates
+below quantify constants and polynomials pointwise; they do not assert uniform
+asymptotic bounds over input families. No query or gate implementation is provided.
 -/
 
 set_option autoImplicit false
@@ -146,9 +147,9 @@ def pathAmplitude (L : ℕ) (t : ℝ) : ℂ :=
 
 /-! ## Resource ledger and controlled block encodings -/
 
-/-- Resource ledger of an implementation: number of oracle calls, extra ancillary
-qubits, elementary gates, and classical computing time.  Real-valued so that the
-paper's `poly(n)/ε` bounds are stated directly. -/
+/-- Unverified resource annotations: oracle calls, ancillary qubits, gates, and
+classical time. These real-valued fields have no execution relation. They are
+vocabulary for headline specifications, not certificates of an implementation. -/
 structure ResourceLedger where
   oracleCalls : ℝ
   ancillaryQubits : ℝ
@@ -160,7 +161,9 @@ structure ResourceLedger where
 /-- A controlled approximate `(α, ε)`-block-encoding of `A` on `N` data dimensions,
 with a resource ledger.  `U` acts on `m` ancilla qubits (dimension `2^m`) tensored
 with the data register, is unitary, and its `j₀`-corner encodes `A` up to spectral
-error `ε` (normalisation `α`).  This reuses the frozen `BlockCorner` convention. -/
+error `ε` (normalisation `α`). This reuses the frozen `BlockCorner` convention.
+Only unitarity and block error are certified. The independent `cost` field has
+no relation to `U`, so this record alone proves no resource bound. -/
 structure ControlledBlockEncoding (N : ℕ) (A : Matrix (Fin N) (Fin N) ℂ)
     (α ε : ℝ) where
   m : ℕ

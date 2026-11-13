@@ -33,7 +33,6 @@ selected event alone does not bound the complementary branch error.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget
@@ -41,9 +40,6 @@ open Qatlib.Concepts.HspRecovery.SieveLaw
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.RandCompile.ChannelBudget
 

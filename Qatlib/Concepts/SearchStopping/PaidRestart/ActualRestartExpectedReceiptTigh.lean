@@ -28,7 +28,6 @@ masses, and evaluate a fixed-price retry expectation. For the quantum-search ana
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
 set_option autoImplicit false

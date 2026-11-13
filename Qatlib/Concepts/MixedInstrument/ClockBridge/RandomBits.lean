@@ -25,7 +25,6 @@ classical randomness are discussed in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -44,7 +43,6 @@ open scoped BigOperators Classical ComplexOrder ENNReal
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
 
 /-- When `m ≤ 2 ^ k`, each accepted label of the finite-coin transition has mass `fairBitMass
 k`, and its retry state has mass `fairBitRejectedMass k m`. -/

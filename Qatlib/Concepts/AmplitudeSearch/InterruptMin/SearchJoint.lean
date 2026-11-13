@@ -32,7 +32,6 @@ These joint laws retain iteration counts needed for the randomized search cost a
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 
 namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin

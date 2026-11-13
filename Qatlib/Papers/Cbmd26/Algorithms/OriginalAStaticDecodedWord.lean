@@ -32,7 +32,6 @@ adds exactly two fixed gates without increasing the query count. See [WangEtAl20
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend

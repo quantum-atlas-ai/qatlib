@@ -34,7 +34,6 @@ perturbations; see [NielsenChuang2010] for the measurement and unitary-evolution
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Matrix
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

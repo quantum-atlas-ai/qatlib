@@ -27,12 +27,9 @@ components, supplying finite-precision inputs for the HHL computations of
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
-
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvFilter
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter (quantizeReal)

@@ -32,8 +32,6 @@ balanced cost for one and two qubits. The phase-estimation setting is described 
 * [van Dam et al., 2007][VanDamEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

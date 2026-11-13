@@ -29,8 +29,6 @@ of [MagniezEtAl2008].
 * [Magniez et al., 2008][MagniezEtAl2008]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

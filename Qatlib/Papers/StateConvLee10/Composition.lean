@@ -28,7 +28,6 @@ theorem also produces a legal query word with success probability at least two t
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

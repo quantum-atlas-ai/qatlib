@@ -29,7 +29,6 @@ The register and binary-label conventions fit the quantum circuit framework of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 open scoped BigOperators

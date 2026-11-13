@@ -26,9 +26,6 @@ on every real input. The mathematical background is developed in [GilyenSuLowWie
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.QsvtCore.PolyApprox
 

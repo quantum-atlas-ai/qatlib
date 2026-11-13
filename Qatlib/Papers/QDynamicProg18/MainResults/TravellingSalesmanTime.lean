@@ -49,14 +49,14 @@ with the splitting recurrence Eq. (6) (p. 12); the two complexity estimates
 `α ≈ 0.055362`, giving `2^{0.788595n} = 1.727391…^n < 1.728^n`; arithmetic adds
 the `log L` factor.
 
-Lean gap: neither the minimum-finding composition nor the numerical balance of
-the two exponent estimates is formalised.  The statement carries the `log L`
-factor explicitly through `IsExpTimeBoundWithFactor`.  Candidate dependencies:
-`QuantumAlgorithm.Papers.QMinimum99.Amplification.MinimumRuntimeCompletion`
-for quantum minimum finding, and `entropy_approximation` for the
-`2^{H((1−α)/4)n}` estimate.  Suggested tactics: prove
-`Real.log 2 * 0.788595 < Real.log 1.728` by `norm_num`-style interval bounds on
-`Real.log`, then assemble the two cost estimates into the max. -/
+Scope note: the theorem gives a bounded-error specification and carries the
+`log L` factor explicitly through `IsExpTimeBoundWithFactor`.  The
+minimum-finding composition and the numerical balance of the two exponent
+estimates are outside the scope of this file.  The paper's cost analysis uses
+quantum minimum finding and the entropy estimate `2^{H((1−α)/4)n}` (related to
+`entropy_approximation`); the final comparison is
+`Real.log 2 * 0.788595 < Real.log 1.728`, applied to the maximum of the two
+cost estimates. -/
 theorem theorem8_tsp (n : ℕ) (hn : 0 < n) :
     SolvesValueInTimeWithFactor (tspProblem n hn) (fun w => tspLogWeight w) (1.728 : ℝ) := by
   unfold SolvesValueInTimeWithFactor

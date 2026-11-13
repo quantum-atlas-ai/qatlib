@@ -33,7 +33,6 @@ of [GilyenSuLowWiebe2019].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
@@ -49,7 +48,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- For 0 ≤ a ≤ q/2, twice the sum of the parity-restricted factorial tail starting at q is at
 most `(8 / 3) * (a ^ q / q.factorial)`. -/

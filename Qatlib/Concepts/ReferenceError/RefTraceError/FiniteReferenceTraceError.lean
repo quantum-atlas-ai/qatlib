@@ -30,7 +30,6 @@ branch-replacement bounds controlled by the probability-weighted operator distan
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -44,9 +43,6 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 
 /-- The probability-weighted sum of the operator norm distances between corresponding branch
 operators. -/

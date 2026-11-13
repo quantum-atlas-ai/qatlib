@@ -25,10 +25,7 @@ bounded below by one quarter and two-sided square-root bounds on a norm-ratio ex
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -45,14 +42,14 @@ theorem exists_phase_sum_eq_sum_abs {m : ℕ} (a : Fin m → ℝ) :
       = ((|a j| : ℝ) : ℂ) := by
     intro j
     by_cases h : 0 ≤ a j
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hphase : phase (0 : ℝ) = 1 := by
         unfold phase
         simp
       rw [hphase]
       rw [abs_of_nonneg h]
       ring
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have hneg : a j < 0 := lt_of_not_ge h
       have hphase : phase Real.pi = -1 := by
         unfold phase

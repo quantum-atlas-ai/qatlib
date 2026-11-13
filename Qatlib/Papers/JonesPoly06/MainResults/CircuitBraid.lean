@@ -27,8 +27,6 @@ compiled operator lists, and records that a unit-state return probability lies i
 * [Wocjan and Yard, 2006][WocjanYard2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

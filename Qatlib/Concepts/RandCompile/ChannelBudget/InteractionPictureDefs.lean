@@ -31,7 +31,6 @@ to a sparse effective program.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Qatlib.Concepts.InteractionEvo.EffCosts
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid

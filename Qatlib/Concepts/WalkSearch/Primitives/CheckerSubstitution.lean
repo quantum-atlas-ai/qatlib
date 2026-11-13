@@ -29,7 +29,6 @@ search background, see [HoyerMoscaDeWolf2003].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms

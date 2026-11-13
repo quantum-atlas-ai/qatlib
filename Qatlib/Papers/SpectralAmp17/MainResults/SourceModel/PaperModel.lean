@@ -16,29 +16,16 @@ import Mathlib.MeasureTheory.Integral.Bochner.Basic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# SpectralAmp17 — source model (paper vocabulary)
+# SpectralAmp17 — algebraic vocabulary and legacy resource metadata
 
-Fixed source: Low & Chuang, *Hamiltonian Simulation by Uniform Spectral
-Amplification*, arXiv:1707.05391 (working text = the arXiv preprint; PDF at
-`prove/assets/1707.05391.pdf`).
+`StandardForm` records a Hermitian matrix, a block identity, and real-valued
+resource labels. It does not require unitarity of `U`, nonnegative counts, or a
+circuit implementing `U`. Its fields alone cannot certify query complexity.
+The resource specifications in sibling modules have no existence proofs.
 
-This module records the paper's vocabulary so that every active Claim of
-`SpectralAmp17` can be stated as a Lean theorem whose hypotheses and conclusion
-match the printed text:
-
-* `StandardForm` — Definition 1 (`standard-form-(Ĥ, α, Û, d)`): the encoded
-  Hamiltonian `H` is the `(0,0)`-block of the signal unitary `U` scaled by `α⁻¹`.
-  `queries`/`gates` record the paper's cost parameters `Q` and the primitive-gate
-  count.
-* `polyEval` — spectral multiplication `B[Ĥ] = ∑ b_j Ĥ^j` (Thm. 2–4).
-* `matrixExp` / `timeEvolution` — `e^{-iĤt}` used by Thm. 5, 6, 8, Lem. 8, Cor. 1–2.
-* `IsParityPoly` — the parity condition of Thm. 4, 7, Lem. 4.
-* `signFun`, `rectFun` — the paper's `sgn` (Eq. 58) and `rect` (Eq. 59).
-* `IsLowEnergyProjector` — the projector `Π̂` of Thm. 3 / Cor. 2.
-* `HasAmplitude` — the state-preparation condition of Thm. 7/8, Lem. 4 (`G|0⟩_a|0⟩_b = λ|t⟩_a|0⟩_b + √(1−λ²)|t⊥⟩_ab`).
-* `bigOConst` — the paper's `O(·)` read as `Q ≤ C · bound`.
-
-Everything here is definitional; the claim theorems live in the sibling blocks.
+The remaining definitions express polynomial evaluation, time evolution,
+projector conditions, and approximation predicates. `BlackBoxSimulator` also
+stores metadata only: its proposition-valued flag is not an execution model.
 -/
 
 open scoped Matrix.Norms.L2Operator BigOperators
@@ -48,16 +35,14 @@ namespace Qatlib.Papers.SpectralAmp17.MainResults.SourceModel
 
 universe u v
 
-/-- Definition 1 of the paper: a `standard-form-(Ĥ, α, Û, d)` encoding.
-`H` acts on the system register `S`, `U` jointly on `S × A` (`A` = the ancilla
-register, `d = card A`), `α` is the normalization with `‖H‖ ≤ α`, and the
-`(0,0)`-block of `U` in the ancilla basis point `ancilla0` equals `H / α`.
-`queries` and `gates` are the paper's cost parameters for the circuit of `U`. -/
+/-- Legacy algebraic block-encoding record inspired by Definition 1.
+The block identity and norm bound are certified. Unitarity and the resource
+labels are not certified by this structure; it is not a circuit witness. -/
 structure StandardForm (S A : Type*) [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] where
   /-- The encoded system Hamiltonian. -/
   H : Matrix S S ℂ
-  /-- The signal unitary on system ⊗ ancilla. -/
+  /-- The signal matrix on system ⊗ ancilla; unitarity is not a field. -/
   U : Matrix (S × A) (S × A) ℂ
   /-- Normalization `α ≥ ‖H‖`. -/
   α : ℝ
@@ -72,9 +57,9 @@ structure StandardForm (S A : Type*) [Fintype S] [DecidableEq S]
   /-- `(⟨0|_a ⊗ I) U (|0⟩_a ⊗ I) = H / α`. -/
   encodes : (fun s s' => U (s, ancilla0) (s', ancilla0))
               = ((α : ℂ))⁻¹ • H
-  /-- Number of queries to the controlled signal unitary. -/
+  /-- Unconstrained query label; no execution count is certified. -/
   queries : ℝ
-  /-- Number of primitive quantum gates. -/
+  /-- Unconstrained gate label; no execution count is certified. -/
   gates : ℝ
 
 variable {S A : Type*} [Fintype S] [DecidableEq S] [Fintype A] [DecidableEq A]
@@ -129,10 +114,9 @@ def IsLowEnergyProjector (H : Matrix S S ℂ) (α Δ : ℝ) (P : Matrix S S ℂ)
       ∃ lam : ℝ, -1 ≤ lam ∧ lam ≤ -1 + Δ ∧
         ((α : ℂ))⁻¹ • (H.mulVec ψ) = (lam : ℂ) • ψ
 
-/-- The state-preparation condition of Thm. 7/8 and Lem. 4:
-`G|0⟩_a|0⟩_b = λ|t⟩_a|0⟩_b + √(1−λ²)|t⊥⟩_ab`, i.e. the `b = 0` part of the
-first column is exactly `λ t`, and the `b = 1` part lives on `t⊥`
-(automatic from unitarity). -/
+/-- A normalized target vector whose multiple `λ t` is the `b = 0` part
+of the first column of `G`. This predicate does not constrain the other
+entries or certify unitarity or a complete state-preparation circuit. -/
 def HasAmplitude {d : ℕ} [NeZero d] (G : Matrix (Fin d × Fin 2) (Fin d × Fin 2) ℂ)
     (lam : ℝ) : Prop :=
   ∃ t : Fin d → ℂ, (∑ i : Fin d, ‖t i‖ ^ 2) = 1 ∧
@@ -154,16 +138,15 @@ structure SparseAccess (n : Type*) [Fintype n] [DecidableEq n] where
   oneNorm_nonneg : 0 ≤ oneNorm
   row_sparse : ∀ i, (Finset.univ.filter (fun j => H i j ≠ 0)).card ≤ d
 
-/-- A black-box simulation algorithm for Thm. 6: it carries the number of
-queries it makes to the sparse matrix oracles of Definition 2, its output
-operator, and the flag that it really uses only these oracles.  The paper's
-lower bound quantifies over all such algorithms. -/
+/-- Legacy simulator metadata, without an oracle program or a link between
+`queries` and `output`. The `usesSparseOracles` field stores a proposition,
+not a proof of that proposition. This is not an algorithm certificate. -/
 structure BlackBoxSimulator (n : Type*) [Fintype n] [DecidableEq n] where
-  /-- Number of queries to the sparse oracles. -/
+  /-- Unconstrained reported sparse-oracle query label. -/
   queries : ℝ
-  /-- The operator produced by the algorithm. -/
+  /-- Reported output operator, without an execution certificate. -/
   output : Matrix n n ℂ
-  /-- The algorithm is a sparse-oracle query algorithm (black-box model). -/
+  /-- Proposition-valued label; the record does not require its proof. -/
   usesSparseOracles : Prop
 
 /-- `alg` approximates `e^{-iĤt}` to operator-norm error `ε`. -/

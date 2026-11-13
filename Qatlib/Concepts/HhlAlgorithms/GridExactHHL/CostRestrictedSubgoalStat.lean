@@ -22,8 +22,6 @@ in the restricted HHL development. It isolates arithmetic consequences of a grid
 * [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
 /-- The proposition that `κ ≥ 1`, `ε > 0`, and `M ≥ κ / ε` imply `1 / κ² > 0` and `M⁻¹ ≤ ε / κ`. -/

@@ -28,7 +28,6 @@ acceptance-polynomial multilinearization to obtain the required representation a
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod

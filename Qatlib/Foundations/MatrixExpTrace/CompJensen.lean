@@ -33,8 +33,6 @@ are finite-dimensional exponential convexity estimates in the setting of [HiaiPe
 * [Hiai and Petz, 2014][HiaiPetz2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 set_option backward.isDefEq.respectTransparency false

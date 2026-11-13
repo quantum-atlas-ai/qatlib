@@ -29,8 +29,6 @@ their total are nonzero, it factors out the total and rescales each operator by 
 * [Sasaki et al., 2001][SasakiCarliniJozsa2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.TemplMatch01.MainResults.BayesReduction
 
 open Qatlib.Foundations.PureStateMath

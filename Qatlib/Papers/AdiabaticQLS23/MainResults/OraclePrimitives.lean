@@ -33,8 +33,6 @@ groups circuit registers into ancilla and data factors.
 * [Costa et al., 2025][CostaEtAl2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AdiabaticQLS23.MainResults.SourceCircuit

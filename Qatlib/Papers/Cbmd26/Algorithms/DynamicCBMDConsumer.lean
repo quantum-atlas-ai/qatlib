@@ -78,7 +78,6 @@ noncomputable section
 namespace CBMD
 open Matrix Set
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
-set_option warningAsError false
 
 /-- Abbreviates the static kernel index type at the chosen analytic budget. -/
 abbrev DynamicCBMDFrequency (α T ε η : ℝ) := StaticKernelIndex α T (staticAnalyticBudget ε η)

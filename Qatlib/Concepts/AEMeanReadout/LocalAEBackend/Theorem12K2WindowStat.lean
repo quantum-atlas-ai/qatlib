@@ -26,7 +26,6 @@ and the finite label law `aeLaw`, expressing the larger-parameter part of [Brass
 * [Brassard et al., Theorem 12][BrassardEtAl2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowSpec

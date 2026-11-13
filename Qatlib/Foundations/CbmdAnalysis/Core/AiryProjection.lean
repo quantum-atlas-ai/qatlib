@@ -28,8 +28,6 @@ with a normalized Airy propagator. This supplies the scalar projection and norma
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false

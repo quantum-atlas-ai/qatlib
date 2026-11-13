@@ -26,8 +26,6 @@ The result supplies the witness-validity component of graph checking used in qua
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms

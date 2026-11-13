@@ -27,7 +27,6 @@ function. It packages the adversary composition estimates associated with [LeeEt
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Concepts.GramQueryCore.FilteredNorm

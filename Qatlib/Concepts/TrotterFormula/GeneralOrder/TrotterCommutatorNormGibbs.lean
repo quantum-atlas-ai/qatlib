@@ -31,7 +31,6 @@ while the ledger separately records preparation calls and readout shots.
 * [Chowdhury and Somma, 2017][ChowdhurySomma2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 

@@ -31,9 +31,6 @@ supported traces.
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -43,8 +40,6 @@ open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 
@@ -133,7 +128,7 @@ private theorem searchCont_some_invalid (A : Matrix I I ℂ) (hA : A ∈ Matrix.
         {(emptySearchTrace (I := I)) with result := some y})
       else (searchForSchedule A hA j₀ S valid ms).map
           (prependSearchReceipt m (some (y, g), bits, q))) = _
-  rw [if_neg hv]
+  rw [ite_eq_right hv]
 
 /-- An attempt with a valid candidate terminates in the pure law of the corresponding successful
 trace. -/
@@ -148,7 +143,7 @@ private theorem searchCont_some_valid (A : Matrix I I ℂ) (hA : A ∈ Matrix.un
         {(emptySearchTrace (I := I)) with result := some y})
       else (searchForSchedule A hA j₀ S valid ms).map
           (prependSearchReceipt m (some (y, g), bits, q))) = _
-  rw [if_pos hv]
+  rw [ite_eq_left hv]
 
 /-- Every failed attempt continues with the remaining search law and prepends its attempt
 receipt. -/
@@ -164,6 +159,8 @@ private theorem searchCont_fail (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
       obtain ⟨y, g⟩ := pair
       exact searchCont_some_invalid A hA j₀ S valid m ms y g bits q
         (fun hv => hfail ⟨y, g, rfl, hv⟩)
+
+omit [DecidableEq I] in
 
 /-- An attempt does not fail exactly when it contains a candidate accepted by validation. -/
 private theorem slotFail_iff (valid : I → Bool) (out : Option (I × ℕ) × ℕ × ℕ) :
@@ -199,7 +196,7 @@ theorem search_event_none_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
     intro out
     obtain ⟨o1, bits, q⟩ := out
     by_cases hfail : searchSlotFail valid (o1, bits, q)
-    · rw [if_pos hfail, searchCont_fail A hA j₀ S valid m ms (o1, bits, q) hfail,
+    · rw [ite_eq_left hfail, searchCont_fail A hA j₀ S valid m ms (o1, bits, q) hfail,
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map]
       exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_congr (fun tr =>
         show (prependSearchReceipt m (o1, bits, q) tr).result = none ↔ tr.result = none from by
@@ -214,9 +211,9 @@ theorem search_event_none_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
           exact h)
     · obtain ⟨y, g, ho, hv⟩ := (slotFail_iff valid (o1, bits, q)).mp hfail
       subst ho
-      rw [searchCont_some_valid A hA j₀ S valid m ms y g bits q hv, if_neg hfail,
+      rw [searchCont_some_valid A hA j₀ S valid m ms y g bits q hv, ite_eq_right hfail,
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
-      refine if_neg ?_
+      refine ite_eq_right ?_
       show ¬(some y : Option I) = none
       simp
   rw [searchCons_eq, houter, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit, expectation_indicator_mul,
@@ -229,7 +226,7 @@ theorem search_ledger_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
     (inc : Option (I × ℕ) × ℕ × ℕ → ℕ)
     (hinc : ∀ (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ) (tr : CappedSearchTrace I),
       L (prependSearchReceipt m out tr) = inc out + L tr)
-    (hzero : ∀ (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ) (y : I),
+    (hzero : ∀ (_m : ℕ) (_out : Option (I × ℕ) × ℕ × ℕ) (y : I),
       L {(emptySearchTrace (I := I)) with result := some y} = 0)
     (m : ℕ) (ms : List ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (searchForSchedule A hA j₀ S valid (m :: ms)) (fun tr => (L tr : ℝ≥0∞))
@@ -248,7 +245,7 @@ theorem search_ledger_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
     intro out
     obtain ⟨o1, bits, q⟩ := out
     by_cases hfail : searchSlotFail valid (o1, bits, q)
-    · rw [if_pos hfail, searchCont_fail A hA j₀ S valid m ms (o1, bits, q) hfail,
+    · rw [ite_eq_left hfail, searchCont_fail A hA j₀ S valid m ms (o1, bits, q) hfail,
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr (fun tr => by
           show ((L (prependSearchReceipt m (o1, bits, q) tr) : ℕ) : ℝ≥0∞)
@@ -257,7 +254,7 @@ theorem search_ledger_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
     · obtain ⟨y, g, ho, hv⟩ := (slotFail_iff valid (o1, bits, q)).mp hfail
       subst ho
-      rw [searchCont_some_valid A hA j₀ S valid m ms y g bits q hv, if_neg hfail,
+      rw [searchCont_some_valid A hA j₀ S valid m ms y g bits q hv, ite_eq_right hfail,
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
         hinc m (some (y, g), bits, q) {(emptySearchTrace (I := I)) with result := some y},
         hzero m (some (y, g), bits, q) y]
@@ -388,9 +385,9 @@ theorem geometric_window_mature {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) (M k : �
   have hmin : (1/s) ≤ min ((M:ℕ):ℝ) (((6^k+5^k-1)/5^k : ℕ):ℝ) := by
     rw [min_def]
     by_cases h : ((M:ℕ):ℝ) ≤ (((6^k+5^k-1)/5^k : ℕ):ℝ)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact hinv1
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact hinvg
   rw [hwm, Nat.cast_min]
   have hgoal : min ((M:ℕ):ℝ) (((6^k+5^k-1)/5^k : ℕ):ℝ) * s ≥ (1/s)*s :=
@@ -876,7 +873,7 @@ private theorem ledger_cap {I : Type} [Fintype I] [DecidableEq I]
     (L : CappedSearchTrace I → ℕ) (inc : Option (I × ℕ) × ℕ × ℕ → ℕ)
     (hinc : ∀ (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ) (tr : CappedSearchTrace I),
       L (prependSearchReceipt m out tr) = inc out + L tr)
-    (hzero : ∀ (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ) (y : I),
+    (hzero : ∀ (_m : ℕ) (_out : Option (I × ℕ) × ℕ × ℕ) (y : I),
       L {(emptySearchTrace (I := I)) with result := some y} = 0)
     (hLempty : L emptySearchTrace = 0)
     (β C K LIM : ℝ) (hβ : (0:ℝ) ≤ β) (hC : (0:ℝ) ≤ C) (hK5C : K = 5*β + C)
@@ -1149,7 +1146,7 @@ theorem geometric_search_intrinsic_expected_resource_budget :
       | some pair =>
           obtain ⟨y, g⟩ := pair
           show ((if (some (y, g) : Option (I × ℕ)).isSome then 2*q+1 else 0 : ℕ) : ℝ≥0∞) ≤ _
-          simp only [Option.isSome_some, if_true]
+          simp only [Option.isSome_some, ite_true]
           exact_mod_cast Nat.succ_le_succ (Nat.mul_le_mul_left 2 h2)
     refine le_trans (expectation_le_of_support _ _ _ hle) ?_
     have hw := geometric_window_le M off
@@ -1280,7 +1277,7 @@ private theorem search_support_path_caps (A : Matrix I I ℂ) (hA : A ∈ Matrix
               ≤ ms.length + 1 ∧
             (none, bits, q).2.1 + tr'.bits
               ≤ 3 * (Nat.clog 2 m + (List.map (Nat.clog 2) ms).sum)
-          simp only [Option.isSome_none, Bool.false_eq_true, if_false]
+          simp only [Option.isSome_none, Bool.false_eq_true, ite_false]
           have hq : ((none : Option (I × ℕ)), bits, q).2.2 = q := rfl
           have hbb : ((none : Option (I × ℕ)), bits, q).2.1 = bits := rfl
           exact ⟨by omega, by omega, by omega⟩
@@ -1297,7 +1294,7 @@ private theorem search_support_path_caps (A : Matrix I I ℂ) (hA : A ∈ Matrix
                 ≤ ms.length + 1 ∧
               (some (y, g), bits, q).2.1
                 ≤ 3 * (Nat.clog 2 m + (List.map (Nat.clog 2) ms).sum)
-            simp only [Option.isSome_some, if_true]
+            simp only [Option.isSome_some, ite_true]
             have hq : (some (y, g), bits, q).2.2 = q := rfl
             have hbb : (some (y, g), bits, q).2.1 = bits := rfl
             exact ⟨le_trans hqle (Nat.le_add_right _ _), by omega, by omega⟩
@@ -1318,7 +1315,7 @@ private theorem search_support_path_caps (A : Matrix I I ℂ) (hA : A ∈ Matrix
                 + tr'.validationQueries ≤ ms.length + 1 ∧
               (some (y, g), bits, q).2.1 + tr'.bits
                 ≤ 3 * (Nat.clog 2 m + (List.map (Nat.clog 2) ms).sum)
-            simp only [Option.isSome_some, if_true]
+            simp only [Option.isSome_some, ite_true]
             have hq : (some (y, g), bits, q).2.2 = q := rfl
             have hbb : (some (y, g), bits, q).2.1 = bits := rfl
             exact ⟨by omega, by omega, by omega⟩

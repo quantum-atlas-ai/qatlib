@@ -129,7 +129,6 @@ noncomputable section
 open Finset
 
 open scoped BigOperators
-set_option warningAsError false
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 

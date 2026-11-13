@@ -9,7 +9,7 @@ import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.AlgebraicTopology.SimplexCategory.Basic
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.Real.StarOrdered
+import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Tactic.Ext
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
@@ -37,7 +37,6 @@ including a one-parameter phase family, within the linear-combination framework
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 
@@ -45,9 +44,6 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 
 open Matrix
 open scoped Matrix.Norms.L2Operator
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
@@ -73,7 +69,7 @@ theorem fig3Fiber (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (j₀ : J) (
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, Select, Matrix.of_apply,
       TensorState]
     rw [Finset.sum_eq_single q.1]
-    · simp only [if_true]
+    · simp only [ite_true]
       have hsum : (∑ k : I, (U q.1) q.2 k * (φ q.1 * ψ k))
           = φ q.1 * ((U q.1 *ᵥ ψ) q.2) := by
         simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
@@ -83,7 +79,7 @@ theorem fig3Fiber (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (j₀ : J) (
       have hne : ¬(q.1 = m) := fun e => hm e.symm
       rw [Finset.sum_eq_zero]
       intro k _
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
     · intro hcon
       exact absurd (Finset.mem_univ q.1) hcon
@@ -98,10 +94,10 @@ theorem fig3Fiber (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (j₀ : J) (
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, hexp]
     refine Finset.sum_congr rfl fun m _ => ?_
     rw [Finset.sum_eq_single y]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       ring
     · intro k _ hk
-      rw [if_neg (show ¬(y = k) from fun e => hk e.symm)]
+      rw [ite_eq_right (show ¬(y = k) from fun e => hk e.symm)]
       ring
     · intro hcon
       exact absurd (Finset.mem_univ y) hcon
@@ -145,6 +141,8 @@ theorem fig3SuccessProb_of_coeff (U : J → Matrix I I ℂ) (A B : Matrix J J �
   exact Finset.sum_congr rfl fun i _ => by
     rw [hfib i, norm_mul, mul_pow]
 
+omit [DecidableEq J] in
+
 /-- The sum of products of two nonnegative real families is bounded by the product of their
 Euclidean norms. -/
 theorem cauchySchwarzSum (x y : J → ℝ) (hx : ∀ m, 0 ≤ x m) (hy : ∀ m, 0 ≤ y m) :
@@ -169,7 +167,6 @@ theorem fig3ColNormSq {A : Matrix J J ℂ} (hA : A ∈ Matrix.unitaryGroup J ℂ
   have e : ∑ m, (starRingEnd ℂ) (A m j₀) * A m j₀ = 1 := by
     have h1 : (Aᴴ * A) j₀ j₀ = (1 : Matrix J J ℂ) j₀ j₀ := by rw [h0]
     simpa using! h1
-  (try simp only [RCLike.star_def] at e)
   have conv : ∀ m : J, ((‖A m j₀‖ ^ 2 : ℝ) : ℂ) = (starRingEnd ℂ) (A m j₀) * A m j₀ := by
     intro m
     rw [← Complex.normSq_eq_norm_sq]
@@ -186,7 +183,6 @@ theorem fig3RowNormSq {B : Matrix J J ℂ} (hB : B ∈ Matrix.unitaryGroup J ℂ
   have e : ∑ m, B j₀ m * (starRingEnd ℂ) (B j₀ m) = 1 := by
     have h1 : (B * Bᴴ) j₀ j₀ = (1 : Matrix J J ℂ) j₀ j₀ := by rw [h0]
     simpa using! h1
-  (try simp only [RCLike.star_def] at e)
   have conv : ∀ m : J, ((‖B j₀ m‖ ^ 2 : ℝ) : ℂ) = B j₀ m * (starRingEnd ℂ) (B j₀ m) := by
     intro m
     rw [← Complex.normSq_eq_norm_sq, Complex.normSq_eq_conj_mul_self]
@@ -241,9 +237,9 @@ theorem existsUnitaryColumn (j₀ : K₁) (v : QState K₁) (hv : ∑ m, ‖v m�
   set ω : ℂ := if v j₀ = 0 then 1 else (starRingEnd ℂ) (v j₀) / ‖v j₀‖ with hωdef
   have hω1 : ‖ω‖ = 1 := by
     by_cases h0 : v j₀ = 0
-    · rw [hωdef, if_pos h0]
+    · rw [hωdef, ite_eq_left h0]
       simp
-    · rw [hωdef, if_neg h0]
+    · rw [hωdef, ite_eq_right h0]
       have hz : ‖v j₀‖ ≠ 0 := by
         intro h
         exact h0 (norm_eq_zero.mp h)
@@ -273,9 +269,9 @@ theorem existsUnitaryColumn (j₀ : K₁) (v : QState K₁) (hv : ∑ m, ‖v m�
     rw [Finset.sum_congr rfl fun m _ => h m, hv]
   have hv'j₀ : v' j₀ = ((‖v j₀‖ : ℝ) : ℂ) := by
     by_cases h0 : v j₀ = 0
-    · rw [hv', hωdef, if_pos h0]
+    · rw [hv', hωdef, ite_eq_left h0]
       simp [h0]
-    · rw [hv', hωdef, if_neg h0]
+    · rw [hv', hωdef, ite_eq_right h0]
       have hz : ‖v j₀‖ ≠ 0 := by
         intro h
         exact h0 (norm_eq_zero.mp h)
@@ -437,9 +433,9 @@ theorem fig3SaturatingCircuit (j₀ : J) (C : J → ℂ)
   have hanorm : ∀ m, ‖a m‖ ^ 2 = ‖C m‖ / s := by
     intro m
     by_cases h0 : C m = 0
-    · simp only [ha, if_pos h0, h0]
+    · simp only [ha, ite_eq_left h0, h0]
       simp
-    · simp only [ha, if_neg h0]
+    · simp only [ha, ite_eq_right h0]
       have hCn : ‖C m‖ ≠ 0 := fun h => h0 (norm_eq_zero.mp h)
       have hρn : 0 ≤ ρ m := Real.sqrt_nonneg _
       rw [norm_div, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hρn,
@@ -470,9 +466,9 @@ theorem fig3SaturatingCircuit (j₀ : J) (C : J → ℂ)
       rw [Matrix.conjTranspose_apply, hXcol m, ← starRingEnd_apply, Complex.conj_conj]
     rw [hXm, hAcol m]
     by_cases h0 : C m = 0
-    · simp only [hb, hρ, norm_eq_zero.2 h0, ha, if_pos h0, h0]
+    · simp only [hb, hρ, ha, ite_eq_left h0, h0]
       simp
-    · simp only [hb, ha, if_neg h0, smul_eq_mul]
+    · simp only [hb, ha, ite_eq_right h0]
       have hCn : ‖C m‖ ≠ 0 := fun h => h0 (norm_eq_zero.mp h)
       have h1 : ((ρ m : ℝ) : ℂ) * ((ρ m : ℝ) : ℂ) = ((‖C m‖ / s : ℝ) : ℂ) := by
         rw [← Complex.ofReal_mul, ← sq, hρ2 m]
@@ -573,7 +569,7 @@ theorem cwRotation_unitary : cwRotation ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [hreal false j, hreal true j]
   rcases j <;> rcases m <;>
     simp only [cwRotation, Matrix.of_apply] <;>
-    simp [cwSqrtTwoThirds_pow, cwSqrtOneThird_pow, cwSqrtTwoThirds_sq, cwSqrtOneThird_sq] <;>
+    simp [cwSqrtTwoThirds_sq, cwSqrtOneThird_sq] <;>
     norm_num <;>
     ring
 
@@ -582,7 +578,7 @@ minus one, according to the Boolean branch. -/
 theorem cwRotation_coeff (m : Bool) :
     cwRotation false m * cwRotation m false = (1 / 3 : ℂ) * (if m then -1 else 2) := by
   rcases m <;>
-    simp only [cwRotation, Matrix.of_apply, if_true, if_false, Bool.false_eq_true]
+    simp only [cwRotation, Matrix.of_apply, ite_true, ite_false, Bool.false_eq_true]
   · rw [cwSqrtTwoThirds_sq]
     norm_num
   · rw [← cwSqrtOneThird_sq]
@@ -596,7 +592,7 @@ noncomputable def cwBranchesTwoMinusOne : Bool → Matrix (Fin 1) (Fin 1) ℂ :=
 theorem cwBranchesTwoMinusOne_mem_unitaryGroup (m : Bool) :
     cwBranchesTwoMinusOne m ∈ Matrix.unitaryGroup (Fin 1) ℂ := by
   refine scalarOne_mem_unitaryGroup ?_
-  rcases m <;> simp [cwBranchesTwoMinusOne]
+  rcases m <;> simp []
 
 /-- The explicit rotation realizes the coefficients two and minus one with factor `1 / 3`, and
 the corresponding identity and negative-identity branches give success probability one. -/
@@ -610,8 +606,8 @@ theorem theorem13RefutedByTwoMinusOne :
       (fun m => if m then -1 else (2 : ℂ)) false (1 / 3 : ℂ) cwRotation_coeff (Ket 0)]
   have hV : (∑ m : Bool, (if m then (-1 : ℂ) else 2) • cwBranchesTwoMinusOne m)
       = (3 : ℂ) • (1 : Matrix (Fin 1) (Fin 1) ℂ) := by
-    simp only [Fintype.sum_bool, Bool.false_eq_true, cwBranchesTwoMinusOne, if_true,
-      if_false, smul_smul, one_mul]
+    simp only [Fintype.sum_bool, Bool.false_eq_true, cwBranchesTwoMinusOne, ite_true,
+      ite_false, smul_smul]
     module
   rw [hV, Matrix.smul_mulVec, Matrix.one_mulVec]
   have hket : ((3 : ℂ) • (Ket (0 : Fin 1))) = fun _ => (3 : ℂ) := by
@@ -660,8 +656,8 @@ theorem cwBranchesPhase_mem_unitaryGroup {n : ℕ} (hn : 0 < n) (m : Bool) :
     cwBranchesPhase n m ∈ Matrix.unitaryGroup (Fin 1) ℂ := by
   refine scalarOne_mem_unitaryGroup ?_
   rcases m
-  · simp [cwBranchesPhase]
-  · simp only [cwBranchesPhase, if_true]
+  · simp []
+  · simp only [ite_true]
     have h1 : ‖cwZ n‖ = 1 := by
       rcases (sq_eq_one_iff (a := ‖cwZ n‖)).mp (cwZ_normSq n hn) with h' | h'
       · exact h'
@@ -696,8 +692,8 @@ theorem theorem13RefutedByPhaseFamily (n : ℕ) (hn : 1 ≤ n) :
       (fun m => if m then (-1 : ℂ) else 2) false (1 / 3 : ℂ) cwRotation_coeff (Ket 0)]
     have hV : (∑ m : Bool, (if m then (-1 : ℂ) else 2) • cwBranchesPhase n m)
         = ((2 : ℂ) - cwZ n) • (1 : Matrix (Fin 1) (Fin 1) ℂ) := by
-      simp only [Fintype.sum_bool, Bool.false_eq_true, cwBranchesPhase, if_true, if_false,
-        smul_smul, one_mul]
+      simp only [Fintype.sum_bool, Bool.false_eq_true, cwBranchesPhase, ite_true, ite_false,
+        smul_smul]
       rw [← add_smul]
       congr 1
       ring

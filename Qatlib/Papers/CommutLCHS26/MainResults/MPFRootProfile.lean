@@ -38,7 +38,6 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.MPFRootProfile
 open scoped BigOperators Classical Matrix.Norms.L2Operator NNReal
 open CommutatorGrowth CommutatorProducts BCHControlled
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
-set_option warningAsError false
 
 variable {I : Type} [Fintype I]
 

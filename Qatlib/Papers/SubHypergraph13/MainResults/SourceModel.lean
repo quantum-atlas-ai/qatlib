@@ -25,7 +25,7 @@ notation (`Σ₁,Σ₂,Σ₃`, `rᵢ,fᵢⱼ,eᵢⱼₖ`, `Mᵢⱼₖ`, `Γᵢ�
 Model boundary. A 3-uniform hypergraph on `Fin n` is a finite set of
 3-element vertex sets (the paper's `(V,E)` with `E ⊆ {unordered triples}`).
 A quantum query algorithm is a finite list-based circuit
-(`QuantumAlgorithm.Foundations.ReferenceError.MixturePaths.Circuit`) over a
+(`Qatlib.Foundations.QueryWordCore.Circuit`) over a
 finite computational basis, initialised in one displayed computational basis
 state, with the paper's oracle
 `|{u,v,w},b⟩ ↦ |{u,v,w}, b ⊕ χ({u,v,w})⟩` as the only query step. Fixed gates

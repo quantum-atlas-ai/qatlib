@@ -9,7 +9,7 @@ import Lean.Elab.Tactic.NormCast
 import Lean.Elab.Tactic.Omega
 import Mathlib.Analysis.Normed.Order.Lattice
 import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Complex.Basic
+import Mathlib.Basic.Complex.Basic
 import Mathlib.Data.Matrix.Diagonal
 import Mathlib.Data.Nat.Factorial.BigOperators
 import Mathlib.Tactic.Ext
@@ -45,7 +45,6 @@ quantum query bound from the polynomial method of [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -53,9 +52,6 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open scoped Classical BigOperators
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
@@ -103,6 +99,8 @@ theorem card_weight_eq_choose (n : ℕ) (hn : Fintype.card I = n) (k : ℕ) :
     rw [Fintype.card_congr e2, Fintype.card_coe, Finset.card_powersetCard, Finset.card_univ,
       hn]
   rw [h1, h2]
+
+omit [Fintype I] in
 
 /-- If `S` is contained in `g`, adjoining the difference `g \ S` to `S` recovers `g`. -/
 theorem union_sdiff (S g : Finset I) (h : S ⊆ g) : S ∪ (g \ S) = g := by
@@ -305,6 +303,8 @@ abbrev WeightCont (S : Finset I) (k : ℕ) : Type :=
 /-- Embeds a Boolean input into real coordinates by sending false to zero and true to one. -/
 def boolPoint (f : I → Bool) : I → ℝ := fun i => if f i = true then 1 else 0
 
+omit [DecidableEq I] in
+
 /-- An index belongs to the true support exactly when its input bit is true. -/
 theorem boolSupp_mem_iff (f : I → Bool) (i : I) : i ∈ boolSupp f ↔ f i = true := by
   simp only [boolSupp, Finset.mem_filter, Finset.mem_univ, true_and]
@@ -328,18 +328,18 @@ theorem eval_monomial_indicator (m : I →₀ ℕ) (f : I → Bool) :
   have h2 : (∏ i ∈ m.support, (boolPoint f i) ^ m i)
       = if m.support ⊆ boolSupp f then 1 else 0 := by
     by_cases hsub : m.support ⊆ boolSupp f
-    · rw [if_pos hsub]
+    · rw [ite_eq_left hsub]
       have hall : ∀ i ∈ m.support, (boolPoint f i) ^ m i = 1 := by
         intro i hi
         have hf : f i = true := (boolSupp_mem_iff f i).mp (hsub hi)
-        rw [boolPoint, if_pos hf, one_pow]
+        rw [boolPoint, ite_eq_left hf, one_pow]
       exact Finset.prod_eq_one hall
-    · rw [if_neg hsub]
+    · rw [ite_eq_right hsub]
       obtain ⟨i, hiS, hiNS⟩ := Finset.not_subset.mp hsub
       have hf : f i ≠ true := fun h => hiNS ((boolSupp_mem_iff f i).mpr h)
       have hmi : m i ≠ 0 := Finsupp.mem_support_iff.mp hiS
       have hz : (boolPoint f i) ^ m i = 0 := by
-        simp only [boolPoint, if_neg hf]
+        simp only [boolPoint, ite_eq_right hf]
         have hone : m i = (m i - 1) + 1 := by omega
         rw [hone, pow_succ, mul_zero]
       exact Finset.prod_eq_zero (f := fun i => (boolPoint f i) ^ m i) (s := m.support)
@@ -359,7 +359,7 @@ theorem boolSupp_invFun (k : ℕ) (t : {t : Finset I // t.card = k}) :
 
 /-- Counts weight-`k` Boolean inputs whose support contains `S` using the ratio of the
 corresponding binomial coefficients, when `k` and `S.card` do not exceed the input size. -/
-theorem card_containing_real (S : Finset I) (k : ℕ) (hk : k ≤ Fintype.card I)
+theorem card_containing_real (S : Finset I) (k : ℕ) (_hk : k ≤ Fintype.card I)
     (hS : S.card ≤ Fintype.card I) :
     (Fintype.card {f : I → Bool // boolWeight f = k ∧ S ⊆ boolSupp f} : ℝ)
       = (Nat.choose (Fintype.card I) k : ℝ) * (Nat.choose k S.card : ℝ)
@@ -543,6 +543,8 @@ theorem layerAverage_eq_avgPoly (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ F
           rw [Polynomial.eval_mul, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_C,
             binomPoly_eval]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The support size of an exponent occurring in a polynomial is bounded by the polynomial's
 total degree. -/
 private theorem support_card_le_totalDegree (p : MvPolynomial I ℝ) (m : I →₀ ℕ)
@@ -556,6 +558,7 @@ private theorem support_card_le_totalDegree (p : MvPolynomial I ℝ) (m : I →�
 /-- The degree of the univariate layer-average polynomial is at most the original polynomial's
 total degree. -/
 theorem avgPoly_natDegree_le (p : MvPolynomial I ℝ) : (avgPoly p).natDegree ≤ p.totalDegree := by
+  let _ := ‹DecidableEq I›
   refine natDegree_sum_le fun m hm => ?_
   have hne : (p.coeff m : ℝ) ≠ 0 := Finsupp.mem_support_iff.mp hm
   have hnd : (Polynomial.C (p.coeff m) * Polynomial.C
@@ -767,7 +770,7 @@ theorem card_roots_ge (p : MvPolynomial I ℝ)
     have hspec := (Classical.choose_spec (root_between p k hk hyp))
     have hg' : g k = (Classical.choose (root_between p k hk hyp)) := by
       rw [hg]
-      simp only [dif_pos hk]
+      simp only [dite_eq_left hk]
     rw [hg']
     have hne0 : (avgPoly p - Polynomial.C ((1 : ℝ) / 2)) ≠ 0 := by
       intro hQ
@@ -790,18 +793,18 @@ theorem card_roots_ge (p : MvPolynomial I ℝ)
     intro k hk
     have hg' : g k = (Classical.choose (root_between p k hk hyp)) := by
       rw [hg]
-      simp only [dif_pos hk]
+      simp only [dite_eq_left hk]
     rw [hg']
     exact (Classical.choose_spec (root_between p k hk hyp)).1
   have hgval : ∀ k : ℕ, (hk : k < Fintype.card I) →
       g k = (Classical.choose (root_between p k hk hyp)) := by
     intro k hk
     rw [hg]
-    simp only [dif_pos hk]
+    simp only [dite_eq_left hk]
   have hgneg : ∀ k : ℕ, ¬(k < Fintype.card I) → g k = -(k : ℝ) := by
     intro k hk
     rw [hg]
-    simp only [dif_neg hk]
+    simp only [dite_eq_right hk]
   have hginj : Function.Injective g := by
     intro a b hab
     by_cases ha : a < Fintype.card I

@@ -80,8 +80,6 @@ all diagonal entries vanish. See [KnillLaflamme1999] for the source development.
 * [Knill and Laflamme, 1999][KnillLaflamme1999]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

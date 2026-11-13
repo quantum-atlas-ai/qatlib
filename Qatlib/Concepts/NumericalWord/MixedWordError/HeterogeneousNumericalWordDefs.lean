@@ -27,7 +27,6 @@ tolerances of known gates, providing data for circuit error estimates in the set
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Foundations.PureStateMath
 

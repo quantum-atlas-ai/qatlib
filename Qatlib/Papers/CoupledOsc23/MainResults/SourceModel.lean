@@ -22,7 +22,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed paper: arXiv:2303.13012 (Babbush–Berry–Costa–Combes–Morales–Neven–Wiebe,
 "Exponential quantum speedup in simulating coupled classical oscillators"; the
-prefetched PDF is the 2023-09-21 build).
+paper version is dated 2023-09-21).
 
 This module fixes the mathematical vocabulary shared by every paper-layer claim of
 `CoupledOsc23.MainResults`:

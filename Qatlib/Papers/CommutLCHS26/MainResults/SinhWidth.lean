@@ -38,7 +38,6 @@ open scoped Topology BigOperators Matrix.Norms.L2Operator ComplexOrder
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.MainResults.SinhStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule (transformed)
-set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm

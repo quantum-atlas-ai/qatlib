@@ -57,16 +57,17 @@ def weak_transport_cost_inequality {I : Type} [Fintype I] [DecidableEq I]
   -- gradient gives the bound; the `√(2|A_i^∂|)` factor comes from the number
   -- of boundary sites in `A_i`, and `|Λ|√(2c₂)` from the additive weak-AT
   -- error `c₂`.
-  -- Lean gap: the W1 distance of Definition 2.8 (sup over gradients of
+  -- Scope note: the W1 distance of Definition 2.8 (sup over gradients of
   -- Lipschitz observables, eqs. (9)–(10)), its dual formulation, and the
   -- interrelations between `D(ρ‖E_A(ρ))` and local gradients are not
   -- formalised. `W1` is an interface datum here; the weak AT enters through
   -- the hypothesis `hAT` with abstract channels `davies`.
-  -- Candidate reusable dependencies: `relEnt`, `Real.sqrt_le_sqrt`,
+  -- Related definitions and inequalities: `relEnt`, `Real.sqrt_le_sqrt`,
   -- `Real.sqrt_mul`, `Finset.sum_le_sum`, `relEnt_nonneg`.
-  -- Suggested continuation: first formalise the W1 distance and its dual
-  -- `‖ρ − σ‖_W1 = sup_{Lip f ≤ 1} tr[f(ρ−σ)]` (Definition 2.8), then bound
-  -- `tr[f(ρ−E_A ρ)]` by `√(2|A^∂|) √(D(ρ‖E_A ρ))` (Pinsker + local
-  -- Lipschitz constant), sum over `i`, and apply Cauchy–Schwarz with `hAT`.
+  -- In the dual formulation
+  -- `‖ρ − σ‖_W1 = sup_{Lip f ≤ 1} tr[f(ρ−σ)]` (Definition 2.8), Pinsker's
+  -- inequality and the local Lipschitz constant bound `tr[f(ρ−E_A ρ)]` by
+  -- `√(2|A^∂|) √(D(ρ‖E_A ρ))`. Summing over `i` and applying
+  -- Cauchy–Schwarz with `hAT` yields the paper's estimate.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.Mixing

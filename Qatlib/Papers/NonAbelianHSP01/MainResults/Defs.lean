@@ -18,28 +18,21 @@ import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic
 
 /-!
-# Black-box group and task interfaces
+# Black-box group vocabulary and algebraic task feasibility
 
-Defines encodings, black-box group metadata, hidden-subgroup instances, and oracle
-specifications. The records `CostLedger`, `TaskSolution`, and `HiddenSubgroupSolution` express
-feasibility and supplied cost bounds for the later algebraic reductions. See
-[IvanyosMagniezSantha2003] for the surrounding analysis.
+Encodings and hiding predicates specify mathematical data. The legacy
+`TaskSolution` and `HiddenSubgroupSolution` records attach independent ledgers;
+there is no oracle program or execution semantics linking their fields.
+`PolySolvable` and `PolySolvableIn` therefore describe ledger packaging only,
+not operational polynomial-time solvability. Their polynomial constants are
+chosen for a single instance, not uniformly over inputs.
 
-## Main statements
-
-* `HiddenSubgroupInstance`: A subgroup `H` and a function `f` whose equal values are
-  characterized by `a⁻¹ * b ∈ H`.
-* `CostLedger`: A ledger recording query, group-operation, and gate counts.
-* `HiddenSubgroupSolution`: A finite generating set for the hidden subgroup together with a cost
-  ledger.
-
-## References
-
-* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+The claim modules prove finite-group feasibility and algebraic reconstruction
+without promoting these results to complexity claims. All structure and field
+names are retained for compatibility.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 
@@ -89,7 +82,7 @@ def inputSize (B : BlackBoxGroupData G) : ℕ :=
   B.encodingLength * B.generators.card
 
 /-- The natural cardinality `Nat.card G` of the underlying group. -/
-noncomputable def groupOrder (B : BlackBoxGroupData G) : ℕ := Nat.card G
+noncomputable def groupOrder (_B : BlackBoxGroupData G) : ℕ := Nat.card G
 
 end BlackBoxGroupData
 
@@ -98,7 +91,7 @@ structure NuSpec (G : Type*) [Group G] (ν : ℕ) : Prop where
 
   pos : 1 ≤ ν
 
-  solvable_eq_one : IsSolvable G → ν = 1
+  solvable_eq_one : Group.IsSolvable G → ν = 1
 
 /-- A subgroup `H` and a function `f` whose equal values are characterized by `a⁻¹ * b ∈ H`. -/
 structure HiddenSubgroupInstance (G : Type*) [Group G] (X : Type*) where
@@ -135,7 +128,7 @@ structure Oracles {G : Type*} [Group G] (B : BlackBoxGroupData G) where
 
   order_spec : ∀ g : G, orderOracle g = orderOf g
 
-  elementaryMembership : ∀ (S : Finset G) (g : G), Bool
+  elementaryMembership : ∀ (_S : Finset G) (_g : G), Bool
 
   elementaryMembership_spec :
     ∀ (S : Finset G) (g : G),
@@ -154,7 +147,7 @@ theorem orderOracle_eq_orderOf (Ω : Oracles B) (g : G) :
 
 end Oracles
 
-/-- A ledger recording query, group-operation, and gate counts. -/
+/-- Numerical resource metadata, with no certified link to an execution. -/
 structure CostLedger where
 
   queries : ℕ
@@ -225,14 +218,14 @@ def HasCompositionSeries (G : Type*) [Group G] : Prop :=
 
 /-- The predicate that every group element is a finite product of integer powers of group
 elements. -/
-def HasGeneratorWords {G : Type*} [Group G] (B : BlackBoxGroupData G) : Prop :=
+def HasGeneratorWords {G : Type*} [Group G] (_B : BlackBoxGroupData G) : Prop :=
   ∀ g : G, ∃ w : List (G × ℤ), (w.map (fun q => q.1 ^ q.2)).prod = g
 
 /-- The task-dependent feasibility predicate expressing word representations, a presentation on
 finitely many generators, generators of the center, a composition series, or Sylow subgroup
 existence. -/
 def TaskFeasible {G : Type*} [Group G] (B : BlackBoxGroupData G)
-    (Ω : Oracles B) : Task → Prop
+    (_Ω : Oracles B) : Task → Prop
   | .membershipTest => HasGeneratorWords B
   | .orderAndPresentation =>
       ∃ (α : Type) (_ : Fintype α) (rel : Set (FreeGroup α)),
@@ -254,13 +247,14 @@ structure TaskSolution {G : Type*} [Group G] (B : BlackBoxGroupData G)
 
   feasible : TaskFeasible B Ω task
 
-/-- The existence of a `TaskSolution` whose task label is `t`. -/
+/-- Legacy feasibility/ledger packaging for a single instance. Despite its
+name this predicate does not assert an implemented polynomial-time algorithm. -/
 def PolySolvable {G : Type*} [Group G] (B : BlackBoxGroupData G)
     (Ω : Oracles B) (t : Task) : Prop :=
   ∃ s : TaskSolution B Ω, s.task = t
 
-/-- The existence of a ledger satisfying `PolyBoundedIn B p` together with feasibility of task
-`t`. -/
+/-- Legacy single-instance ledger packaging and mathematical feasibility;
+this does not assert an implemented polynomial-time algorithm. -/
 def PolySolvableIn {G : Type*} [Group G] (B : BlackBoxGroupData G)
     (Ω : Oracles B) (p : ℕ) (t : Task) : Prop :=
   ∃ cost : CostLedger, PolyBoundedIn B p cost ∧ TaskFeasible B Ω t

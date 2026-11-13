@@ -18,6 +18,9 @@ This file states Theorem 1 (p. 15), Proposition 7 (p. 12), Lemma 1 (p. 12),
 Lemma 2 (p. 13), Proposition 8 (p. 14), Proposition 9 (p. 16), Proposition 10
 (p. 16) and Proposition 11 (p. 17) in the vocabulary of
 `MainResults.Definitions.UnambigMeasModel`.
+
+Scope note: the results below are defined as propositions.  Their mathematical
+proofs are described in the comments but are outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -73,12 +76,11 @@ def theorem1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C 
   -- ρ₂, so the maximum may be taken over Γ_s(S);
   -- (iii) Proposition 8 identifies Tr(F_H |ψ_0⟩⟨ψ_0|) with
   --       ∑_i |α̂_i|² ⟨b_i|F_H|b_i⟩ = ∑_{i,y} |α̂_i|² ⟨b_i|F_{H,y}|b_i⟩.
-  -- Lean gap: the Lean model has all objects (rho, thm1Value, GammaS), but no
-  -- lemmas relating sSup over Γ and Γ_s, and no trace/Fourier diagonal algebra.
-  -- Candidate dependencies: Proposition 8 (this file), Lemma 1/2 (this file),
-  -- `Matrix.trace_mul_comm`, orthonormality of `fourierBasis`.
-  -- Suggested tactic: prove Lemma 1 and Lemma 2 first, then unfold
-  -- `rho`, `rho2Max`, `thm1Value` and close by `congr` + `simp [FHSum]`.
+  -- The supremum comparison over Γ and Γ_s and the trace/Fourier diagonal
+  -- identity connect `rho`, `rho2Max` and `thm1Value` through `FHSum`.
+  -- The argument uses Proposition 8, Lemmas 1 and 2, trace cyclicity
+  -- (`Matrix.trace_mul_comm`) and orthonormality of `fourierBasis`;
+  -- these connections are not derived in this file.
 
 /-- **Proposition 7** (arXiv:2510.07298v2, p. 12).  `ρ(S)` is the maximum of
 `ρ₂(S, {F})` over symmetric measurements `Γ_s(S)`.
@@ -89,8 +91,8 @@ def proposition7 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 �
   rho S C = rho2Max S C
   -- Paper: arXiv:2510.07298v2, Proposition 7, p. 12.
   -- Key steps: Γ_s(S) ⊆ Γ(S) gives ≥; Lemma 2 gives the reverse inequality.
-  -- Gap: no lemma `score = rho2` yet (Lemma 1 below), and no Γ_s ⊆ Γ usage.
-  -- Suggested tactic: `le_antisymm` with `csSup_le` and `le_csSup`.
+  -- The comparison uses `score = rho2` on Γ_s (Lemma 1 below) and
+  -- Γ_s ⊆ Γ; these supremum inequalities are not proved in this file.
 
 /-- **Lemma 1** (arXiv:2510.07298v2, p. 12).  For `{F} ∈ Γ_s(S)`,
 `ρ(S,{F}) = ρ₂(S,{F})`.
@@ -105,10 +107,9 @@ def lemma1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (M : Measurement n)
   -- Key steps: Tr(X_x F X_x |ψ_0⟩⟨ψ_0|) = Tr(F |ψ_x⟩⟨ψ_x|) (cyclicity);
   -- Γ_s gives X_x F_{H,y} X_x = F_{H,y+Hx}; reindex y ↦ a = y + Hx, which
   -- runs over F₂^k exactly 2^{n-k} times as x ranges over its fibre.
-  -- Gap: Lean has `score`/`rho2` definitions but no trace-cyclicity lemma for
-  -- `expect`, no `Xop` shift action on `S.ψ`, and no fibre counting.
-  -- Suggested tactic: `unfold score rho2`; rewrite `expect` under conjugation
-  -- by `Xop`; `Finset.sum_comm`; `Finset.sum_fiberwise`.
+  -- Scope note: the trace-cyclicity calculation for `expect`, the `Xop`
+  -- shift action on `S.ψ` and the fibre count relating `score` to `rho2`
+  -- are outside the scope of this file.
 
 /-- **Lemma 2** (arXiv:2510.07298v2, p. 13).  If `{F} ∈ Γ(S)` then its
 symmetrisation `F̄_{H,y} = 2^{-n}∑_a X_a F_{H,y+Ha} X_a` lies in `Γ_s(S)`.
@@ -123,12 +124,11 @@ def lemma2 {n : ℕ} (S : SymFamily n) (M : Measurement n) (hM : Gamma S M) : Pr
   -- Key steps: PosSemidef of `X_a F X_a` and of finite sums; `X_a = X_aᴴ`;
   -- `X_b X_a = X_{a+b}`; `X_a S.ψ x = S.ψ (x+a)`; the unambiguity premise
   -- `H(x+a) ≠ y+Ha` is equivalent to `Hx ≠ y`.
-  -- Gap: no PSD closure lemmas for `Matrix.PosSemidef` under conjugation/sums
-  -- in this vocabulary, and no `Xop` multiplication table.
-  -- Candidate dependencies: `Matrix.PosSemidef.conjTranspose_mul_mul_same`,
-  -- `Matrix.PosSemidef.sum`.
-  -- Suggested tactic: refine `⟨⟨?_, ?_⟩, ?_⟩`; prove `Xop_add : Xop a * Xop b = Xop (a+b)`
-  -- by `funext`/`Matrix.ext` and `decide` on ZMod 2.
+  -- The positive-semidefinite closure properties are expressed by
+  -- `Matrix.PosSemidef.conjTranspose_mul_mul_same` and `Matrix.PosSemidef.sum`.
+  -- Scope note: applying these properties in this model and establishing
+  -- the multiplication identity `Xop a * Xop b = Xop (a+b)` over ZMod 2
+  -- are outside the scope of this file.
 
 /-! ### Proposition 8 and Proposition 9 -/
 
@@ -148,10 +148,9 @@ def proposition8 {n : ℕ} (S : SymFamily n) (M : Measurement n)
   -- Key steps: Γ_s gives F_{H,Ha} = X_{a+b} F_{H,y} X_{a+b} for Hb = y;
   -- `Zop b` is diagonal, so (F̂_H)_{i,j} = 2^{-(n-k)} ∑_a (-1)^{(a+b)·(i+j)} (F̂_{H,y})_{i,j};
   -- the character sum is 0 for i ≠ j and 2^n for i = j.
-  -- Gap: no character orthogonality lemma (`∑_a χ a (i+j) = 2^n if i=j else 0`),
-  -- no `opFourier` multiplicativity under `Xop`/`Zop`.
-  -- Suggested tactic: prove `chi_sum` by reducing to `ZMod 2` with `Finset.sum_ite_eq'`
-  -- and `Fintype.card_pi`; then `unfold opFourier FHSum` and `simp [Finset.sum_comm]`.
+  -- Scope note: character orthogonality over ZMod 2,
+  -- `∑_a χ a (i+j) = 2^n if i=j else 0`, and the transformation of
+  -- `opFourier` under `Xop`/`Zop` are outside the scope of this file.
 
 /-- **Proposition 9** (arXiv:2510.07298v2, p. 16).  Under full dual support the
 `2^n` states `|ψ_x⟩` are linearly independent; every subfamily indexed by `T` is
@@ -167,12 +166,11 @@ def proposition9 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S) : Prop 
   -- Key steps: the character inversion identity above exhibits every dual basis
   -- vector in the span; the dual basis is a basis of ℂ^{F₂ⁿ}; independence of a
   -- subfamily follows because the map x ↦ ψ_x is injective modulo the basis.
-  -- Gap: no linear independence API for the Fourier basis in this model, and no
-  -- proof that `fourierBasis` is a basis.
-  -- Suggested tactic: build `Fintype.linearIndependent_iff` for `S.ψ` from the
-  -- inversion identity; use `finrank_span_eq_card`.
-  -- Candidate dependencies: `Module.finrank_span_eq_card`,
+  -- The inversion identity supplies linear independence of `S.ψ`; the
+  -- dimension step is expressed by `Module.finrank_span_eq_card` and
   -- `LinearIndependent.finrank_span_eq_card`.
+  -- Scope note: establishing the basis property of `fourierBasis` and this
+  -- linear-independence argument is outside the scope of this file.
 
 /-! ### Propositions 10 and 11 -/
 
@@ -196,13 +194,12 @@ def proposition10 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S)
   -- Key steps: spectral theorem for PSD matrices; Equation (7)
   -- Tr(F |ψ_x⟩⟨ψ_x|) = 0 gives ⟨ψ_x|B_i⟩ = 0 for Hx ≠ y;
   -- dim W_{H,y} = 2^{n-k} by Proposition 9.
-  -- Gap: no spectral decomposition interface for `Matrix.PosSemidef` producing
-  -- an orthonormal eigenbasis in this function-space model.
-  -- Candidate dependencies: `Matrix.IsHermitian.spectral_theorem`,
-  -- `Matrix.PosSemidef.eigenvalues_nonneg`.
-  -- Suggested tactic: obtain the spectral decomposition from
-  -- `Matrix.IsHermitian.spectral_theorem`, then transfer the orthogonality
-  -- condition `expect (S.ψ x) (M.w ...) = 0` to each eigenvector using PSD-ness.
+  -- The spectral decomposition and nonnegative eigenvalues are expressed by
+  -- `Matrix.IsHermitian.spectral_theorem` and `Matrix.PosSemidef.eigenvalues_nonneg`.
+  -- Positivity transfers `expect (S.ψ x) (M.w ...) = 0` to orthogonality
+  -- of each eigenvector with `S.ψ x`.
+  -- Scope note: constructing the orthonormal eigenbasis in this function-space
+  -- model and carrying out that transfer are outside the scope of this file.
 
 /-- **Proposition 11** (arXiv:2510.07298v2, p. 17).  For every dual-coset
 parametrisation `D_H(s) = {Hᵀu + v_s}`, the vectors `|A_s^{H,y}⟩` of Eq. (8)
@@ -229,9 +226,8 @@ def proposition11 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S)
   --      when Hx ≠ y by character orthogonality;
   -- (iii) each A_s ≠ 0 because α̂ is nowhere zero (full dual support);
   -- (iv) the 2^{n-k} orthogonal vectors span the 2^{n-k}-dimensional W_{H,y}.
-  -- Gap: character orthogonality over `Fin k → ZMod 2`, support-disjointness,
-  -- and the dimension count are all missing.
-  -- Suggested tactic: prove a general `sum_chi_eq_zero_of_ne` lemma over
-  -- `Fin k → ZMod 2` first; then `Finset.sum_eq_zero` and dimension counting.
+  -- Scope note: the character-orthogonality argument over `Fin k → ZMod 2`,
+  -- the use of disjoint supports and the dimension count are outside the
+  -- scope of this file.
 
 end Qatlib.Papers.UnambigMeas25.MainResults.Reformulation

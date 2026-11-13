@@ -37,8 +37,8 @@ Formalisation choices (documented at the corresponding theorem):
   per-mode bound.  The base-2 logarithm is the one used by the paper's `2^t` estimate.
 
 Boundary: this file formalises the analytic error estimate for a fixed spectral packet.
-It does not construct the QPE circuit; the circuit-level zero-event mass is the Frozen
-theorem `QuantumAlgorithm.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`.
+It does not construct the QPE circuit; the circuit-level zero-event mass is given by
+`Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_detection_mass`.
 -/
 
 set_option autoImplicit false

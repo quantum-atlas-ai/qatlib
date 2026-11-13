@@ -29,8 +29,6 @@ integer multiple of π or an odd multiple of π/2, covering the corresponding ca
 * [Shepherd and Bremner, 2009][ShepherdBremner2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

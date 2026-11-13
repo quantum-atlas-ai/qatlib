@@ -30,9 +30,7 @@ bound uses the constant `4`.
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
@@ -43,7 +41,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Concepts.RandCompile.ReferenceModel
 
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical

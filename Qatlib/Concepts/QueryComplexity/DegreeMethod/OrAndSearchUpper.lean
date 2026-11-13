@@ -30,7 +30,6 @@ AND without changing the query count.
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -40,7 +39,6 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs.Coin
 open Qatlib.Foundations.BornMetrics.EventProbability
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
-
 
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
 open Matrix

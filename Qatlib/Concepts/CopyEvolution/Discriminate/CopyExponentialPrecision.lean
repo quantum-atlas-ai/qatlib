@@ -34,7 +34,6 @@ explicit resource counts, and gives an observable-trace bound.
 -/
 
 open Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -48,7 +47,6 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 4000000
 
 /-- Each eigenvalue of a density operator is at most one. -/

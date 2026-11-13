@@ -45,14 +45,10 @@ emitter.
 - [Dawson and Nielsen, 2006][DawsonNielsen2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
-set_option linter.unreachableTactic false
 
 noncomputable section
 
@@ -86,7 +82,7 @@ theorem cleanEmbed_self (w : ℕ) : cleanEmbed w w = 1 := by
   simp only [cleanEmbed, Matrix.one_apply]
   have hkey : (fun i : Fin w => if h : i.val < w then t ⟨i, h⟩ else false) = t := by
     funext i
-    rw [dif_pos i.isLt]
+    rw [dite_eq_left i.isLt]
   rw [hkey]
 
 /-- Any two bit registers of width zero are equal. -/
@@ -108,7 +104,7 @@ theorem ancillaRestored_trivial {w width : ℕ} (h : width = w)
   have hfun : (fun z : Reg w =>
       if auxBits w z = ZeroStr (w - w) then (0:ℂ) else (M *ᵥ ψ) z) = 0 := by
     funext z
-    rw [hz z, if_pos rfl]
+    rw [hz z, ite_eq_left rfl]
     simp
   have hzero : toEuclidean_fromVec (0 : QState (Reg w)) = 0 := rfl
   rw [hfun, hzero, norm_zero]
@@ -329,13 +325,13 @@ theorem emptyWord_approx_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : 
     rw [hnorm, pi_norm_le_iff_of_nonneg (tolerance_nonneg k)]
     intro x
     by_cases hx : x a && x c
-    · rw [if_pos hx, exp_half_mul_exp]
+    · rw [ite_eq_left hx, exp_half_mul_exp]
       refine le_trans (one_sub_exp_mul_I_norm _) ?_
       have hθ : |dyadicPhaseAngle e neg / 2| = |dyadicPhaseAngle e neg| / 2 :=
         abs_div_two _
       rw [hθ]
       exact smallAngle_tol_le e k neg he
-    · rw [if_neg hx, mul_one]
+    · rw [ite_eq_right hx, mul_one]
       refine le_trans (one_sub_exp_mul_I_norm _) ?_
       have hθ : |(-(dyadicPhaseAngle e neg) / 2 : ℝ)| = |dyadicPhaseAngle e neg| / 2 := by
         rw [abs_div_two, abs_neg]
@@ -410,14 +406,14 @@ theorem partialCompiler_emit_primitive {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
   | cp a c e neg =>
     have he : e ≤ 3 := hg
     show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = [LocalQFTGate.cp a c e neg]
-    rw [if_pos he]
+    rw [ite_eq_left he]
 
 /-- A controlled phase with exponent greater than three produces the empty word under the
 partial compiler. -/
 theorem partialCompiler_emit_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 3 < e) : partialCompiler.emit w (.cp a c e neg) k = [] := by
   show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = []
-  rw [if_neg (Nat.not_le.mpr he)]
+  rw [ite_eq_right (Nat.not_le.mpr he)]
 
 /-- Every word emitted by the partial compiler has length at most one. -/
 theorem partialCompiler_emit_length {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
@@ -450,7 +446,7 @@ theorem partialCompiler_segment_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool
     partialCompiler.Segment w (.cp a c e neg) k = ⟨w, [LocalQFTGate.cp a c e neg]⟩ := by
   change (⟨w + 0, if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []⟩ : SynthAnswer)
     = ⟨w, [LocalQFTGate.cp a c e neg]⟩
-  rw [if_pos he]
+  rw [ite_eq_left he]
   exact rfl
 
 /-- For exponent greater than three, the partial compiler's controlled-phase answer is the empty
@@ -459,7 +455,7 @@ theorem partialCompiler_segment_cp_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg 
     (he : 3 < e) :
     partialCompiler.Segment w (.cp a c e neg) k = ⟨w, []⟩ := by
   change (⟨w + 0, if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []⟩ : SynthAnswer) = ⟨w, []⟩
-  rw [if_neg (Nat.not_le.mpr he)]
+  rw [ite_eq_right (Nat.not_le.mpr he)]
   exact rfl
 
 /-- The partial compiler satisfies the acceptance contract for every fixed primitive at every
@@ -649,9 +645,9 @@ theorem formCount_append {n : ℕ} {S : Type} (φ : CallForm S) (xs ys : List (P
         = formCount φ rest + (if ψ = φ then 1 else 0) + formCount φ ys
       rw [ih]
       by_cases h : ψ = φ
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         omega
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         omega
 
 /-- The total number of paid calls is additive under concatenation of mixed words. -/
@@ -756,8 +752,6 @@ theorem knownGates_map_known {n : ℕ} {S : Type} (gs : List (LocalQFTGate n)) :
   induction gs with
   | nil => rfl
   | cons g gs ih => simp [knownGates, ih]
-
-set_option linter.unusedSimpArgs false
 
 /-- Extracting known gates commutes with concatenation of mixed words. -/
 theorem knownGates_append {n : ℕ} {S : Type} (xs ys : List (PaidStep n S)) :
@@ -1074,8 +1068,8 @@ theorem partialCompiler_answerBits_empty (w : ℕ) (a c : Fin w) (e : ℕ) (neg 
       = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits w).length + 1 := by
   rw [partialCompiler_segment_cp_empty _ _ _ _ _ he]
   have h0 : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 0).length = 1 := rfl
-  simp [answerBits, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.wordBits, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
-    List.flatMap_nil, List.length_append, List.length_cons, List.length_nil, List.append_nil, h0]
+  simp [answerBits, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.wordBits, List.flatMap_cons,
+    List.flatMap_nil, List.length_append, List.length_nil, List.append_nil, h0]
 
 /-- The bit length of a partial-compiler answer is at most its synthesis input length plus
 three. -/
@@ -1090,8 +1084,7 @@ theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
         = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits w).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits k).length
           + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 0).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a.val).length := by
       simp [synthInputBits, synthInput, gateFields, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
-        List.flatMap_nil, List.length_append, List.length_cons, List.length_nil,
-        List.append_nil]
+        List.flatMap_nil, List.length_append, List.append_nil]
       omega
     rw [hB, h0]
     have := natBits_length_pos k
@@ -1103,8 +1096,7 @@ theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
           + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 2).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a.val).length
           + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits c.val).length := by
       simp [synthInputBits, synthInput, gateFields, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
-        List.flatMap_nil, List.length_append, List.length_cons, List.length_nil,
-        List.append_nil]
+        List.flatMap_nil, List.length_append, List.append_nil]
       omega
     rw [hB]
     have := natBits_length_pos k
@@ -1118,8 +1110,7 @@ theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
             + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits c.val).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits e).length
             + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits (if neg then 1 else 0)).length := by
         simp [synthInputBits, synthInput, gateFields, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
-          List.flatMap_nil, List.length_append, List.length_cons, List.length_nil,
-          List.append_nil]
+          List.flatMap_nil, List.length_append, List.append_nil]
         omega
       rw [hB]
       have := natBits_length_pos k
@@ -1131,8 +1122,7 @@ theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
             + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits c.val).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits e).length
             + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits (if neg then 1 else 0)).length := by
         simp [synthInputBits, synthInput, gateFields, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
-          List.flatMap_nil, List.length_append, List.length_cons, List.length_nil,
-          List.append_nil]
+          List.flatMap_nil, List.length_append, List.append_nil]
         omega
       rw [hB, h1]
       have h1' := natBits_length_pos k
@@ -1265,8 +1255,7 @@ theorem partialCompiler_machine_budget :
   have hplan : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.emitterInput (answerPlan (partialCompiler.Segment w g k)) [] k).length
       = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.planBits (answerPlan (partialCompiler.Segment w g k))).length
         + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 0).length + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits k).length := by
-    simp only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.emitterInput, List.length_append, List.flatMap_nil, List.length_nil,
-      List.nil_append]
+    simp only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.emitterInput, List.length_append, List.flatMap_nil, List.length_nil]
     omega
   have hsz0 : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 0).length = 1 := rfl
   have hnat : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits k).length ≤ 2 * k + 1 := by

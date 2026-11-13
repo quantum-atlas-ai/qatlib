@@ -20,12 +20,12 @@ Paper: Yuxin Zhang, Changpeng Shao, *Quantum spectral method for gradient and
 Hessian estimation*, arXiv:2407.03833v2 (fixed version, 5 May 2026).
 
 This file fixes the shared vocabulary used by all claim modules of
-`QuantumAlgorithmDev.Papers.QSpectralHess24.MainResults`:
+`Qatlib.Papers.QSpectralHess24.MainResults`:
 
 * the **costed query-algorithm certificate** used to state the "there is a quantum
   algorithm … with probability at least `1 - ρ` using `O(…)` queries" claims of the
-  paper, grounded on the frozen fixed-space query model
-  (`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`);
+  paper, grounded on the established fixed-space query model
+  (`Qatlib.Concepts.QueryComplexity.DegreeMethod.FixedSpaceQueryUpperBound`);
 * the **sampling grids** `G_n^d` (Definition 2.26) and `S_q` (Equation (4.2));
 * the **polydisc** and `maps ℝ^d into ℝ` predicates for analytic functions
   (Definitions 2.19–2.22);

@@ -27,8 +27,6 @@ reproduce `braidOperator` with explicit length bounds. See [AharonovJonesLandau2
 * [Aharonov et al., 2009][AharonovJonesLandau2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -50,7 +50,6 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 
 /-- Event probability is monotone under pointwise inclusion of events. -/
 private theorem event_le_of_subset {X : Type*} (p : PMF X) (E F : X → Prop)

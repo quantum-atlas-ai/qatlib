@@ -33,8 +33,6 @@ background.
 * [Simon, 1997][Simon1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.Distinguisher
 open Qatlib.Concepts.WalshMoment.Forrelation
 open Qatlib.Concepts.PauliClifford.ExactRank

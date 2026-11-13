@@ -37,7 +37,6 @@ open scoped BigOperators
 open Matrix
 namespace Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The weighted Fourier column `fourierUnitVec eps q k` viewed as an element of complex
 Euclidean space. -/

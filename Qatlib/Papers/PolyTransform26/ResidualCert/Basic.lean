@@ -30,7 +30,6 @@ residual-certificate setting follows [ShenEtAl2026].
 * [Shen et al., 2026][ShenEtAl2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra
 
 namespace Qatlib.Papers.PolyTransform26.ResidualCert

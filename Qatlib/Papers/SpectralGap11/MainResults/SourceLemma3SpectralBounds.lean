@@ -11,11 +11,19 @@ import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 /-!
 # Spectral Bounds for Rank-One Perturbed Hamiltonians
 
-This module formalizes Lemma 3 of Boixo and Somma for the Hamiltonian family
+This module proves finite-dimensional spectral inequalities associated with
+Lemma 3 of Boixo and Somma for the Hamiltonian family
 `H_x = -|x⟩⟨x| + F / 4`, where `F` is an `x`-independent Hermitian perturbation
 satisfying `‖F‖ ≤ 1`. It establishes upper bounds on the ground-state energy,
 lower bounds on the first excited eigenvalue and spectral gap, and a constant
 lower bound on the ground-state overlap `|⟨x|ψ_x⟩|²`.
+
+The lowest-eigenvalue bound assumes `0 < M`; the second-eigenvalue, gap, and
+overlap bounds assume `3 ≤ M`. Eigenvalues are ordered decreasingly, so the
+last two indices represent the two smallest eigenvalues. The overlap theorem
+concerns the selected normalized eigenvector in `orderedHermitianBasis`.
+These are matrix inequalities, with no algorithmic spectral-gap amplification
+or oracle complexity theorem asserted.
 
 ## Main statements
 
@@ -43,8 +51,8 @@ namespace Qatlib.Papers.SpectralGap11.MainResults
 
 variable {M : ℕ}
 
-/-- The Hamiltonian `H_x = -|x⟩⟨x| + F / 4` of Lemma 3, Eq. (25), with `F` the
-`x`-independent perturbation. -/
+/-- The matrix expression `H_x = -|x⟩⟨x| + F / 4` of Lemma 3, Eq. (25).
+Hermiticity and a norm bound on `F` are separate hypotheses of later theorems. -/
 def sourceH (F : Matrix (Fin M) (Fin M) ℂ) (x : Fin M) : Matrix (Fin M) (Fin M) ℂ :=
   -outerProduct (Ket x) + (1 / 4 : ℂ) • F
 
@@ -197,8 +205,8 @@ lemma source_rayleigh_of_coord_zero (F : Matrix (Fin M) (Fin M) ℂ) (x : Fin M)
     Complex.mul_re]
   norm_num
 
-/-- **Lemma 3 (excited-state bound)**: the second-smallest eigenvalue satisfies
-`λ_{M-2} ≥ -1 / 4`. -/
+/-- For `3 ≤ M`, Hermitian `F`, and `‖F‖ ≤ 1`, the second-smallest eigenvalue
+of `sourceH F x` satisfies `λ_{M-2} ≥ -1 / 4`. -/
 theorem source_second_eigenvalue_ge (hM : 3 ≤ M) (F : Matrix (Fin M) (Fin M) ℂ)
     (hF : F.IsHermitian) (hFn : ‖F‖ ≤ 1) (x : Fin M) :
     -(1 / 4) ≤ orderedHermitianValues (sourceH_isHermitian F hF x) (finPrev (by omega)) := by
@@ -250,7 +258,8 @@ theorem source_second_eigenvalue_ge (hM : 3 ≤ M) (F : Matrix (Fin M) (Fin M) �
     positivity
   nlinarith [hub, hlas, hFlb, hpos]
 
-/-- **Lemma 3 (spectral gap)**: `Δ = λ_{M-2} - λ_{M-1} ≥ 1 / 2`. -/
+/-- For `3 ≤ M`, Hermitian `F`, and `‖F‖ ≤ 1`, the two smallest eigenvalues
+of `sourceH F x` satisfy `λ_{M-2} - λ_{M-1} ≥ 1 / 2`. -/
 theorem source_spectral_gap_ge (hM : 3 ≤ M) (F : Matrix (Fin M) (Fin M) ℂ)
     (hF : F.IsHermitian) (hFn : ‖F‖ ≤ 1) (x : Fin M) :
     1 / 2 ≤ orderedHermitianValues (sourceH_isHermitian F hF x) (finPrev (by omega))
@@ -259,7 +268,7 @@ theorem source_spectral_gap_ge (hM : 3 ≤ M) (F : Matrix (Fin M) (Fin M) ℂ)
   have h2 := source_lowest_eigenvalue_le (by omega : 0 < M) F hF hFn x
   linarith
 
-/-- **Lemma 3 (ground-state overlap)**: the ground state
+/-- For `3 ≤ M`, Hermitian `F`, and `‖F‖ ≤ 1`, the selected ground state
 `ψ_x = orderedHermitianBasis hH (finLast _)` of `H_x = -|x⟩⟨x| + F / 4` satisfies
 `|⟨x|ψ_x⟩|² = ‖ψ_x(x)‖² ≥ 1 / 2`. -/
 theorem source_ground_overlap (hM : 3 ≤ M) (F : Matrix (Fin M) (Fin M) ℂ)

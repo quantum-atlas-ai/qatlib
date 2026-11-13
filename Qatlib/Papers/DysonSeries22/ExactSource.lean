@@ -45,7 +45,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

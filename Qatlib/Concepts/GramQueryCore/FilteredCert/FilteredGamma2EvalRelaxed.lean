@@ -26,7 +26,6 @@ adversary lower bound for evaluation-filtered gamma-two, in the comparison frame
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.GramQueryCore.GammaDuality
 

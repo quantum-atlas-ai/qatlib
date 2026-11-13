@@ -35,7 +35,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.InteractionEvo.DysonGrid
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- If the bounded Hermitian Lipschitz grid estimate is at most `ε`, applying the grid to any
 input vector has Euclidean error at most `ε` times its norm. This transfers the grid

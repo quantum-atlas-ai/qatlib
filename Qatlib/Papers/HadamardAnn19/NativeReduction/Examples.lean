@@ -29,8 +29,6 @@ provided there are at least two rows. The concrete examples use coefficients 16 
 * [Suksmono and Minato, 2019][SuksmonoMinato2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.HadamardAnn19.NativeReduction.Examples
 open Qatlib.Foundations.BooleanEnergy.HadamardGram

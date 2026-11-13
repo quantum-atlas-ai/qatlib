@@ -32,7 +32,6 @@ through `clause8_endpoint`.
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout
@@ -52,7 +51,6 @@ open Qatlib.Concepts.AmpTransform.ErrorStream
 open Qatlib.Concepts.AmplitudeCore.InvFreeSampling
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -69,8 +67,8 @@ theorem aqVerifiedCandidates_mem {N s M : ℕ} (h : Fin N → Bool) {P : ℕ} (h
 /-- Two distinct candidates below N that pass verification ensure that the verified candidate
 set contains an element different from P. -/
 theorem aqVerifiedCandidates_two {N s M : ℕ} (h : Fin N → Bool) {P P' : ℕ}
-    (hP : P < N) (hP' : P' < N) (hne : P ≠ P')
-    (hv : (aqVerify h s M P).1 = true) (hv' : (aqVerify h s M P').1 = true) :
+    (_hP : P < N) (hP' : P' < N) (hne : P ≠ P')
+    (_hv : (aqVerify h s M P).1 = true) (hv' : (aqVerify h s M P').1 = true) :
     ∃ q ∈ aqVerifiedCandidates N h s M, q ≠ P := by
   refine ⟨P', aqVerifiedCandidates_mem h hP' hv', Ne.symm hne⟩
 
@@ -139,8 +137,8 @@ theorem aqZeroNoInformation {N s M P P' : ℕ} (p : ℝ) (hp : 0 ≤ p) (hp1 : p
 
 /-- For 0 < M ≤ L and 2L ≤ N, the layer and public round counts equal `aqRounds N L` and
 `aqRounds N M`, respectively. -/
-theorem aqLayerScheduleDensity {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L)
-    (hLN : 2 * L ≤ N) :
+theorem aqLayerScheduleDensity {N M L : ℕ} (_hN : 0 < N) (_hM : 0 < M) (_hML : M ≤ L)
+    (_hLN : 2 * L ≤ N) :
     aqLayerRoundCount N M L = aqRounds N L ∧ aqPublicRoundCount N M = aqRounds N M := by
   constructor <;> rfl
 
@@ -192,7 +190,7 @@ private theorem aqNextQftSelected (N : ℕ) [NeZero N]
       (if x ∈ S then (Real.sqrt (N : ℝ) : ℂ)⁻¹ else 0) =
       if x ∈ S then (N : ℂ)⁻¹ * ZMod.stdAddChar (x*y) else 0 := by
     by_cases hx : x ∈ S
-    · simp only [if_pos hx]
+    · simp only [ite_eq_left hx]
       rw [mul_right_comm, hs, mul_comm y x]
     · simp [hx]
   simp_rw [he]
@@ -338,8 +336,8 @@ theorem aqNext_recovery_query_runtime (N M L : ℕ) :
   constructor <;> rfl
 
 /-- Under 0 < M ≤ L and 2L ≤ N, the recovery query saving equals the amplification round saving. -/
-theorem aqNext_recovery_query_saving (N M L : ℕ) (hN : 0 < N) (hM : 0 < M)
-    (hML : M ≤ L) (hLN : 2 * L ≤ N) :
+theorem aqNext_recovery_query_saving (N M L : ℕ) (hN : 0 < N) (_hM : 0 < M)
+    (_hML : M ≤ L) (_hLN : 2 * L ≤ N) :
     aqNextRecoveryQuerySaving N M L = aqRoundSaving N M L := by
   unfold aqNextRecoveryQuerySaving aqNextPublicRecoveryQueries aqNextLayerRecoveryQueries
     aqRoundSaving aqPublicRoundCount aqLayerRoundCount

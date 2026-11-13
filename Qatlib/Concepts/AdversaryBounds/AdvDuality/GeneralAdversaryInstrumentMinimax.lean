@@ -43,7 +43,6 @@ viewpoint of [HoyerLeeSpalek2007].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -60,8 +59,6 @@ open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -319,8 +316,6 @@ theorem optimal_minimax_denominator {X K : Type} [Fintype X] [DecidableEq X]
   rw [one_div, ← hi]
   exact ciInf_le (Set.finite_range _).bddBelow (⟨(x,y),hxy⟩ : J)
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

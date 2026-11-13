@@ -48,7 +48,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Under the unified approximation hypotheses, the iteration weights sum to one, `m ≤ 2 * α / τ
 + 1`, weighted success is at least `1 / 8`, and each window word has at most `2 * m + 1`

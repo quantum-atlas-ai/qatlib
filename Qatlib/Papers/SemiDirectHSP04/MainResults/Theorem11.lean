@@ -26,8 +26,6 @@ of a finite encoding, and the proof applies the general solver available in that
 * [Inui and Le Gall, 2007][InuiLeGall2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

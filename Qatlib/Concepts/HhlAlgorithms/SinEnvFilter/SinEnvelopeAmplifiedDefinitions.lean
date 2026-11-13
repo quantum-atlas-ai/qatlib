@@ -7,8 +7,8 @@ Authors: Qatlib Contributors
 import Lean.Elab.Tactic.Omega
 import Mathlib.Algebra.Ring.BooleanRing
 import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Archimedean
+import Mathlib.Basic.Complex.Basic
+import Mathlib.Algebra.Order.Archimedean.Real.Basic
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
@@ -35,7 +35,6 @@ requirements using `sinEnvelopeWellSet`.
 * [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -59,7 +58,6 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeProgramDefinitions
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvFilter
 

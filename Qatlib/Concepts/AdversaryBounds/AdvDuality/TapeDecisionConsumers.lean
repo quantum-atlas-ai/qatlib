@@ -35,7 +35,6 @@ machines provide examples in the computation framework discussed in [NielsenChua
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib

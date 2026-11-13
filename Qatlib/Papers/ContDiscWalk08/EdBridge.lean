@@ -5,7 +5,7 @@ Authors: Qatlib Contributors
 -/
 
 import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Real.Sqrt
+import Mathlib.Analysis.Real.Sqrt
 
 /-!
 # Effective matrix for element distinctness
@@ -26,7 +26,6 @@ eigenvalues and records how eigenpairs behave under scalar multiplication.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 
 noncomputable section
 

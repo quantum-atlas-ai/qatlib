@@ -31,7 +31,6 @@ The mathematical background is described in [AnLiuLin2023].
 * [An et al., 2023][AnLiuLin2023]
 -/
 
-
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -44,7 +43,6 @@ set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.LchsSimulation.TimeOrdered
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The Duhamel expression consisting of homogeneous ordered evolution of the initial vector
 plus the integrated propagated source. -/

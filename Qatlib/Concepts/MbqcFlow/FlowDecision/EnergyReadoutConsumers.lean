@@ -35,7 +35,6 @@ counts and probability-weighted costs.
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -51,8 +50,6 @@ open Matrix
 open scoped Classical BigOperators Kronecker
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The pure-state density matrix of `(Ket 0 + Ket 1) / sqrt 2` in a three-dimensional register. -/
 noncomputable def degenerateConsumerState : Operator 3 :=

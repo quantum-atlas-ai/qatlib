@@ -27,7 +27,6 @@ The mathematical background is described in [NielsenChuang2010].
 -/
 
 open Qatlib.Foundations.PureStateMath.Reflection
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath

@@ -32,9 +32,7 @@ error, and specializes them to an explicit two-eigenvalue example.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.NativeNumerics.LayeredMean
@@ -55,8 +53,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 800000
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
@@ -620,7 +616,7 @@ theorem neargrid_hhl_two_eigenvalue_actual_consumer :
         ext
         simpa using! h
       subst hi
-      have hif : (if (0 : Fin 2) = 0 then 1/4 + u else 1/2) = 1/4 + u := if_pos rfl
+      have hif : (if (0 : Fin 2) = 0 then 1/4 + u else 1/2) = 1/4 + u := ite_eq_left rfl
       have hval : ((label (0 : Fin 2)).val : ℝ) = 1 := by rw [hlabel]; norm_num
       rw [hif, hval]
       refine ⟨by linarith, by nlinarith [hu0, hu_le], by norm_num, ?_⟩
@@ -629,7 +625,7 @@ theorem neargrid_hhl_two_eigenvalue_actual_consumer :
         ext
         simpa using! h
       subst hi
-      have hif : (if (1 : Fin 2) = 0 then 1/4 + u else 1/2) = 1/2 := if_neg (by decide)
+      have hif : (if (1 : Fin 2) = 0 then 1/4 + u else 1/2) = 1/2 := ite_eq_right (by decide)
       have hval : ((label (1 : Fin 2)).val : ℝ) = 2 := by rw [hlabel]; norm_num
       rw [hif, hval]
       refine ⟨by norm_num, by norm_num, by norm_num, ?_⟩

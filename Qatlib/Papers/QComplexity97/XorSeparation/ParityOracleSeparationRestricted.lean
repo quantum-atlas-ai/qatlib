@@ -39,7 +39,6 @@ deterministic classical lower bound.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Foundations.QueryWordCore.Circuit

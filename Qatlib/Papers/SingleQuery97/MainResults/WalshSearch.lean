@@ -26,8 +26,6 @@ reproduce the quantum-time expression when the database size is even.
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SingleQuery97.MainResults.WalshSearch
 
 open Qatlib.Papers.SingleQuery97.MainResults.CharacterSum

@@ -13,12 +13,14 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # One-Copy Quantum OR Bound (Corollary 11)
 
-This module formalizes Corollary 11 (Section 3, p. 11) of Harrow, Lin, and
-Montanaro together with the elementary numerical comparison `(1 - e^{-1}) / 4 ≥ 1 / 7`:
+This module proves a scalar analogue of the acceptance inequalities in
+Corollary 11 (Section 3, p. 11), together with `(1 - e^{-1}) / 4 ≥ 1 / 7`:
 for `n ≥ 1` orthogonal projectors `Λ_1, ..., Λ_n` on `ℂ^D`, density operator `ρ`,
 `ε ∈ (0, 1 / 2]`, and `δ ≥ 0`, there is a test function `test Λ ρ ε` bounded below
 by `(1 - ε)^2 / 7` whenever some projector achieves `Re tr(Λ_i ρ) ≥ 1 - ε`, and
 bounded above by `4 δ n` whenever the average acceptance is at most `δ`.
+The witness inspects a proposition about the entire input using classical case
+analysis. No measurement, one-copy implementation or query bound is constructed.
 
 ## Main statements
 
@@ -26,7 +28,7 @@ bounded above by `4 δ n` whenever the average acceptance is at most `δ`.
 * `four_sevenths_le_one_sub_exp_neg_one`: Bound `4 / 7 ≤ 1 - e^{-1}`.
 * `one_seventh_le_quarter_mw_constant`: Bound `1 / 7 ≤ (1 - e^{-1}) / 4`.
 * `seventh_le_mw_lower`: Monotone scaling `x / 7 ≤ (1 - e^{-1}) x / 4` for `x ≥ 0`.
-* `source_or_bound_corollary11`: Corollary 11, one-copy quantum OR acceptance bounds.
+* `source_or_bound_corollary11`: Scalar inequalities patterned on Corollary 11.
 
 ## References
 
@@ -69,17 +71,14 @@ theorem seventh_le_mw_lower (x : ℝ) (hx : 0 ≤ x) :
       mul_le_mul_of_nonneg_right one_seventh_le_quarter_mw_constant hx
     _ = (1 - Real.exp (-1)) * x / 4 := by ring
 
-/-- **Corollary 11** (arXiv:1607.03236v3, page 11).  There is a test which uses
-one copy of the input state `ρ` and, for every sequence of projectors
+/-- Scalar acceptance inequalities inspired by Corollary 11
+(arXiv:1607.03236v3, page 11). For every sequence of projectors
 `Λ : Fin n → Operator D`, every density operator `ρ`, every `0 < ε ≤ 1/2` and
 every `δ ≥ 0`, satisfies the two acceptance bounds of the corollary.
 
-Statement only at the level of the concrete test interface: `test Λ ρ ε` is
-the acceptance probability of Algorithm 1 on `Λ, ρ` with
-`N = ⌈n/(1-ε)⌉`.  The lower bound follows from Theorem 9 and Lemma 10
-(gentle measurement, page 11), the upper bound from Theorem 9 with `N ≤ 2n`
-(using `ε ≤ 1/2`).  Gap: the formal gentle-measurement lemma relating
-`tr Qρ` to the trace distance, and the concrete Algorithm 1 semantics. -/
+The witness is a classical indicator scaled by `(1-ε)^2/7`. It is not
+identified with Algorithm 1 or any physical one-copy measurement. The theorem
+proves only the displayed inequalities, without resource guarantees. -/
 theorem source_or_bound_corollary11 (D n : ℕ) (hn : 0 < n) :
     ∃ test : (Fin n → Operator D) → Operator D → ℝ → ℝ,
       ∀ (Λ : Fin n → Operator D) (ρ : Operator D) (ε δ : ℝ),

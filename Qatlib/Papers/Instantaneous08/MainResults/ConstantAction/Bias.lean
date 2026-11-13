@@ -30,8 +30,6 @@ autocorrelation of `expAction`, providing the Fourier form used in Theorem 1 of
 * [Shepherd and Bremner, 2009][ShepherdBremner2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

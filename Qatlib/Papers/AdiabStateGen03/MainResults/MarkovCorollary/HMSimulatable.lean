@@ -27,8 +27,6 @@ square-root distribution state has zero Rayleigh value for this Hamiltonian thro
 * [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

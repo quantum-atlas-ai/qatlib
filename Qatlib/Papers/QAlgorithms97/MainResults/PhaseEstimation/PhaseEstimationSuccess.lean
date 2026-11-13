@@ -27,7 +27,6 @@ a grid spacing in circular distance and mass at least `4 / π²`, following the 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

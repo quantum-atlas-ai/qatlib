@@ -33,7 +33,6 @@ preparation call count is bounded by positive constant multiples of `1 / sqrt a`
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
 

@@ -18,8 +18,8 @@ Both algorithms of the paper output the normalized solution
 `|x> = A^{-1} |b> / ||A^{-1} |b>||` (Eq. (1), p. 2) of the quantum linear
 system `A |x> = |b>`, under the standing assumption that `A` is Hermitian and
 invertible (and `|b>` has unit norm).  Claims `c001`/`c002` bind the concept
-`QlsReadoutSpec.PseudoInverse`, whose Frozen formalisation is
-`QuantumAlgorithm.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`
+`QlsReadoutSpec.PseudoInverse`, whose formalisation is
+`Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.singular_hermitian_pseudoinverse_and_least_squares`
 (spectral decomposition of the pseudoinverse, `A A^+ = spectralSupport A`,
 and the minimum-norm Euclidean least-squares property).
 
@@ -32,10 +32,10 @@ this canonical object is exactly the paper's readout target:
 * `pseudoinverse_solution_ne_zero`: `b != 0 -> A^+ b != 0` (the target is a
   well-defined non-null state, so Eq. (1)'s normalization is legitimate);
 * `pseudoinverse_mulVec_leastSquares`: the usual least-squares specification,
-  inherited from the Frozen result.
+  inherited from the established result.
 
 No new quantum-mechanical content is introduced here; the proofs are direct
-consequences of the Frozen theorem.
+consequences of the reusable theorem.
 -/
 
 set_option autoImplicit false
@@ -64,7 +64,7 @@ theorem spectralSupport_eq_one_of_ne_zero {D : ℕ} (eig : Fin D → ℝ) (V : O
 
 /-- Paper Eq. (1), p. 2: on the invertible Hermitian input class the canonical
 pseudoinverse readout is the ordinary inverse, `A^+ = A^{-1}`, so the algorithm
-target `A^{-1}|b>` is the Frozen least-squares output `A^+ |b>`. -/
+target `A^{-1}|b>` is the established least-squares output `A^+ |b>`. -/
 theorem pseudoinverse_eq_inv_of_ne_zero {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hne : ∀ i, eig i ≠ 0) :
     matrixPseudoinverse (continuousHHLMatrix eig V) = (continuousHHLMatrix eig V)⁻¹ := by
@@ -101,7 +101,7 @@ theorem pseudoinverse_solution_ne_zero {D : ℕ} (eig : Fin D → ℝ) (V : Oper
 
 /-- Paper Eqs. (1)-(2), p. 2 (least-squares readout spec): the readout vector
 `A^+ |b>` is the minimum Euclidean-norm least-squares solution, inherited
-verbatim from the Frozen concept `QlsReadoutSpec.PseudoInverse`. -/
+verbatim from the established concept `QlsReadoutSpec.PseudoInverse`. -/
 theorem pseudoinverse_mulVec_leastSquares {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (b : QState (Fin D)) :
@@ -112,7 +112,7 @@ theorem pseudoinverse_mulVec_leastSquares {D : ℕ} (eig : Fin D → ℝ) (V : O
   exact hls b
 
 /-- Paper Eq. (1), p. 2, assembled: for a Hermitian operator given by its
-spectral decomposition with all eigenvalues nonzero, the Frozen pseudoinverse
+spectral decomposition with all eigenvalues nonzero, the established pseudoinverse
 readout is simultaneously the ordinary inverse, solves `A x = b`, and is the
 minimum-norm least-squares solution. -/
 theorem eq1_pseudoinverse_readout {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)

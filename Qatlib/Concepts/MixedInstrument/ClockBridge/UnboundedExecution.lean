@@ -25,7 +25,6 @@ reformulations of charged success comparisons. The quantum algorithmic setting i
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AmplitudeSearch.Amplification

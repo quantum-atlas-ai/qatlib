@@ -42,7 +42,6 @@ accumulates an error bounded by `8 * t ^ 2 / n` times the input trace for positi
 -/
 
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit

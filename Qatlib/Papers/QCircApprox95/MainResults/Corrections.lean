@@ -27,7 +27,6 @@ with Knill's analysis. See [Knill1995].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

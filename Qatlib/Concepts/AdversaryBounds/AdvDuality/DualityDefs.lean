@@ -39,7 +39,6 @@ resource counts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

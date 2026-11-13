@@ -56,7 +56,6 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The Cauchy-weighted integral of ordered Hamiltonian evolutions applied to `v` equals the
 nonunitary ordered evolution applied to `v` under the continuity and positivity hypotheses. -/

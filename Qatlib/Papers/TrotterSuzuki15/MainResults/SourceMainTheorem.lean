@@ -22,8 +22,8 @@ The paper states the result for a real Lie algebra of (possibly infinite) basis
 dimension `K`, with skew-Hermitian generators `ĥ_k`, error measured on a state
 `|ψ⟩` (Eq. (2)) and the product `W = ∏ e^{t_n ĥ_{k_n}}` (Eq. (3)).  This file
 records the finite-dimensional matrix specialization already proved in the
-library as `Qatlib.Concepts.TrotterFormula.GeneralOrder.clause17`
-(frozen v2.0.2): for a list `hs` of skew-Hermitian matrices, recursion depth `k`
+library as `Qatlib.Concepts.TrotterFormula.GeneralOrder.clause17`:
+for a list `hs` of skew-Hermitian matrices, recursion depth `k`
 (i.e. Suzuki order `2p` with `p = k+1`), time `t` and precision `ε > 0`, the
 segmented recursive Suzuki word built from `recursiveSuzukiGenerators hs k`
 (whose five-block recursion `a ++ a ++ b ++ a ++ a` is the paper's
@@ -33,7 +33,7 @@ segmented recursive Suzuki word built from `recursiveSuzukiGenerators hs k`
 
 The state-dependent Eq. (2) error and the abstract series condition Eq. (4) in
 `β_{j+1}`, `f_j` are replaced by the concrete operator-norm certificate
-`pfCommAlphaSelf` of the frozen spec; see the `covered_by` note on claim c001.
+`pfCommAlphaSelf` of the library's product-formula specification.
 -/
 
 set_option autoImplicit false
@@ -49,7 +49,7 @@ namespace Qatlib.Papers.TrotterSuzuki15.MainResults.SourceMainTheorem
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
-/-- The segment count realizing Eq. (4): the same explicit choice as the frozen
+/-- The segment count realizing Eq. (4): the same explicit choice as the library's
 `clause17` ε-guarantee,
 `r = max 1 ⌈(p! α |t|^{p+1} / ((p+1)! ε))^{1/p}⌉` with matched order
 `p = 2(k+1)` and `α = pfCommAlphaSelf (recursiveSuzukiGenerators hs k) (2(k+1)+1)`. -/
@@ -185,8 +185,8 @@ the paper's generators `ĥ_k`, with `L = |hs|`), recursion depth `k` (Suzuki
 order `2p` with `p = k+1`), time `t` and precision `ε > 0`, there are a segment
 count `r ≥ 1` and a unitary product `W` of exactly `r * (2 * |hs| * 5^k)` =
 `r N_p` exponentials such that `‖W - exp(t • ∑ hs)‖ ≤ ε`.  The word is the
-recursive Suzuki word of the frozen construction; the bridge to the frozen
-theorem is `Qatlib.Concepts.TrotterFormula.GeneralOrder.clause17`. -/
+recursive Suzuki word of the library's construction; the underlying theorem is
+`Qatlib.Concepts.TrotterFormula.GeneralOrder.clause17`. -/
 theorem mainResult_productFormula {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t ε : ℝ)
     (hhs : ∀ X ∈ hs, Xᴴ = -X) (hε : 0 < ε) :

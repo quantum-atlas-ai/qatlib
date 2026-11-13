@@ -39,7 +39,6 @@ open Qatlib.Concepts.MonteCarloMean.LayeredMean
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- Identifies the probability of an event on one sample with `SignedMean.mass` of that event
 under the same finite law. -/

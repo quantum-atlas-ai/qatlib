@@ -28,7 +28,6 @@ identities from [Bravyi2005Fermionic].
 * [Bravyi, 2005][Bravyi2005Fermionic]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

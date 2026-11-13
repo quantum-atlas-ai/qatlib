@@ -302,7 +302,6 @@ theorem budget_radius (c ρ M C εm εt : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     _ = _ := by ring
 
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
 /-- For positive `b`, `c`, and radius, the operator truncation error is bounded by

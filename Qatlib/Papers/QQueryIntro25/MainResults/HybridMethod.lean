@@ -287,9 +287,9 @@ If the two final states are at distance at least `1/3`, then the accumulated
 disagreement-fiber query weights satisfy `Σ_t √(weight_t) ≥ 1/6`, where the sum runs
 over the actual pre-query states of the `x`-run (the paper's `t = 0..T−1`).
 
-This is obtained directly from the frozen cumulative hybrid bound
+This is obtained directly from the cumulative hybrid bound
 `workspace_mark_set_hybrid` (FQN
-`QuantumAlgorithm.Concepts.QueryComplexity.AdversarySearch.workspace_mark_set_hybrid`). -/
+`Qatlib.Concepts.QueryComplexity.AdversarySearch.workspace_mark_set_hybrid`). -/
 theorem corollary11_query_weight_lower_bound (x y : I → Bool)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (hC : IsUnitaryCircuit C)

@@ -26,8 +26,6 @@ events, and transfer to a tree-valued pushforward distribution.
 * [Childs et al., 2003][ChildsEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

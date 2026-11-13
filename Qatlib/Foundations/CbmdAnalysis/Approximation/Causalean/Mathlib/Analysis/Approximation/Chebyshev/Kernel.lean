@@ -1,7 +1,8 @@
 /-
-Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Copyright (c) 2026 Jiyuan Tan. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Qatlib Contributors
+Authors: Jiyuan Tan, Qatlib Contributors
+Adapted from https://github.com/Jiyuan-Tan/CausalSmith@e298f64
 -/
 
 import Mathlib.Tactic.NormNum.Parity
@@ -26,8 +27,6 @@ with [WangEtAl2026].
 
 * [Wang et al., 2026][WangEtAl2026]
 -/
-
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
 

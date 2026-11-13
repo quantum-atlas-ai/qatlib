@@ -30,7 +30,6 @@ from `EffectiveQRAMImplementationContract` for the collision-search implementati
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 

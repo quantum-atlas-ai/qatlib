@@ -24,7 +24,6 @@ universality from [Yao1993]. For each unitary on `n ≥ 1` qubits, it requires a
 * [Yao, Theorem 1][Yao1993]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MatrixAccess.KnownFrameSynth

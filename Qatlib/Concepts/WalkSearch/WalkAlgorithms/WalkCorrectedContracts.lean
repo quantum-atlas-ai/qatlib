@@ -31,8 +31,6 @@ formulations support the quantum search bounds discussed in [Ambainis2005].
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- Tries up to `c₀` collision-search seeds for a fixed vertex, retains the first candidate

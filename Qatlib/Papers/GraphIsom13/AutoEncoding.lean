@@ -26,7 +26,6 @@ adjacency-preserving permutations in the graph-isomorphism cost construction of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

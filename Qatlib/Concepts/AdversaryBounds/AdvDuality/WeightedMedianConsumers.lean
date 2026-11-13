@@ -46,8 +46,6 @@ open Matrix
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The probability mass function of a Boolean coin with true probability one quarter when `b`
 is false and three quarters when `b` is true. -/
@@ -134,7 +132,7 @@ theorem sum_fin_two_mul_of_parity {A B : ℝ} : ∀ m : ℕ,
           have e1 : ¬ (Fin.natAdd (2*k) (1 : Fin 2)).val % 2 = 0 := by
             show ((2*k : ℕ) + 1) % 2 = 0 → False
             omega
-          rw [if_pos e0, if_neg e1]
+          rw [ite_eq_left e0, ite_eq_right e1]
         rw [h1, h2, h3, add_assoc]
       rw [hsplit, ih]
       push_cast

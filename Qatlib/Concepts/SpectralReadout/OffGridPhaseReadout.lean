@@ -54,9 +54,7 @@ probability at least `8/π²` for `M ≥ 2`.
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Foundations.PureStateMath

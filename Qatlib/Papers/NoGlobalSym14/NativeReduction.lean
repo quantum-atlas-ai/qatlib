@@ -29,8 +29,6 @@ corresponding reduced-matrix power.
 * [Janmark et al., 2014][JanmarkMeyerWong2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 namespace Qatlib.Papers.NoGlobalSym14.NativeReduction
 open Matrix

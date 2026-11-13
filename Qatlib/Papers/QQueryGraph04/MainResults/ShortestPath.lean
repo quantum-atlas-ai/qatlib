@@ -93,8 +93,6 @@ The source paper is [DurrEtAl2006].
 * [Dürr et al., 2006][DurrEtAl2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QQueryGraph04.MainResults.ShortestPath

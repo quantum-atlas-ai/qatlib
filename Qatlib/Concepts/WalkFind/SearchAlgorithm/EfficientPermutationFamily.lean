@@ -36,7 +36,6 @@ binary encodings and explicit bounds on seed size, register width, and implement
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QspSimulation.Achievability

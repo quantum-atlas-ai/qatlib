@@ -29,8 +29,6 @@ described in [BennettEtAl1997].
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QmaCompleteness.WitnessSampler

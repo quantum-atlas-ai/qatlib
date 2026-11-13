@@ -27,8 +27,8 @@ opportunities in quantum generative modeling*, fixed arXiv:2305.02881v2.
   exponential concentration of Definition 1 (`μ = b^{-n}`, `b > 1`) this is
   `δ ∈ O(poly(n)/c^n)`, the paper's conclusion;
 * `theorem1_loss_eq_fixedPoint_of_noOverlap` — the deterministic half of Theorem 1: disjoint
-  supports make the empirical pairwise loss equal the fixed point of Eq. (23), citing the Frozen
-  theorem `QuantumAlgorithm.Papers.Trainability23.PairwiseLoss.pairwiseLoss_eq_lossFixedPoint`;
+  supports make the empirical pairwise loss equal the fixed point of Eq. (23), citing
+  `Qatlib.Papers.Trainability23.PairwiseLoss.pairwiseLoss_eq_lossFixedPoint`;
 * `corollary3_fixedPoint_param_difference` — Corollary 3, Eqs. (94)–(95): the difference of the
   fixed points at two parameter values is the difference of the model-side sums and therefore
   carries no dependence on the training distribution;
@@ -140,7 +140,7 @@ theorem noOverlapProb_ge_one_sub_exponential {X Θ : Type*} [Fintype X] [Fintype
 /-- **Theorem 1, deterministic half.**  When the model support and the training support are
 disjoint, the empirical pairwise loss of Eq. (3) equals the fixed point of Eq. (23).  This is the
 implication behind "`L̃ = L₀` iff there is no overlap" used at the start of the appendix proof
-(p.~28); it cites the Frozen development of the same statement. -/
+(p.~28); it uses the shared development of the same statement. -/
 theorem theorem1_loss_eq_fixedPoint_of_noOverlap {X : Type*} [Fintype X] [DecidableEq X]
     (f : ℝ → ℝ → ℝ) (hf : f 0 0 = 0) (p q : FinDist X)
     (hdisj : Disjoint (support p) (support q)) :

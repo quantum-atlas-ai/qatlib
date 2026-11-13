@@ -29,8 +29,6 @@ definitions support concrete setup and update accounting for graph data in quant
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

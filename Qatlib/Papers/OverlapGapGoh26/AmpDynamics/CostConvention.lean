@@ -26,8 +26,6 @@ convention change explicit in the setting of [GohMuller2026].
 * [Goh and Müller, 2026][GohMuller2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

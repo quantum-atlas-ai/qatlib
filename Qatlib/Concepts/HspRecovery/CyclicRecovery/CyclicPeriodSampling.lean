@@ -33,11 +33,9 @@ mechanism underlying [Shor1997].
 * [Shor, 1997][Shor1997]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -46,7 +44,6 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Foundations.PureStateMath.BornBridge
-
 
 namespace Qatlib.Concepts.HspRecovery.CyclicRecovery
 
@@ -66,6 +63,8 @@ theorem qftMatrix_conjTranspose_unitary (N : ℕ) (hN : 0 < N) :
   have h := Unitary.star_mem (qftMatrix_unitary hN)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+omit [AddCommGroup R] in
+
 /-- For positive `N`, every gate in the cyclic sampling circuit is unitary. -/
 theorem isUnitaryCircuit_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) :
     IsUnitaryCircuit (cyclicSamplingCircuit (R := R) N) := by
@@ -84,10 +83,12 @@ theorem applyGate_qftMatrix_ket_zero (N : ℕ) (hN : 0 < N) :
     ApplyGate (QFTMatrix N) (Ket (⟨0, hN⟩ : Fin N)) = Uniform (Fin N) := by
   funext x
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, qftMatrix_apply, Uniform,
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, qftMatrix_apply, Uniform,
     Fintype.card_fin]
   show (Real.sqrt (N : ℝ) : ℂ)⁻¹ * primRoot N ^ ((x.val : ℤ) * ((0 : ℕ) : ℤ)) = _
   simp
+
+omit [AddCommGroup R] in
 
 /-- Applying `U` to the first register and the identity to the second acts by `U` on each fixed
 second-register slice. -/
@@ -167,7 +168,7 @@ theorem cyclicSampleLaw_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R) (y : Fin 
   simp only [cyclicSampleLaw, cyclicJointLaw, PMF.map_apply, tsum_fintype,
     Fintype.sum_prod_type, bornDistribution_apply]
   rw [Finset.sum_comm]
-  simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   rw [← ENNReal.ofReal_sum_of_nonneg (fun z _ => bornProb_nonneg _ (y, z)),
     cyclicSampleDist_prob_apply]
   unfold MarginalProbLeft MeasureProb
@@ -287,10 +288,10 @@ theorem sum_primRoot_zpow_step (N : ℕ) (hN : 0 < N) {d M : ℕ} (hdM : d * M =
     rw [he]
     exact (primRoot_zpow_eq_one_iff hN _).mpr ⟨c, by ring⟩
   by_cases hw : primRoot N ^ (c * (d : ℤ)) = 1
-  · rw [if_pos (hdiv_iff.mp ((primRoot_zpow_eq_one_iff hN _).mp hw))]
+  · rw [ite_eq_left (hdiv_iff.mp ((primRoot_zpow_eq_one_iff hN _).mp hw))]
     rw [Finset.sum_congr rfl (fun k _ => by rw [hw, one_pow]), Finset.sum_const,
       Finset.card_range, nsmul_eq_mul, mul_one]
-  · rw [if_neg (fun hMc => hw ((primRoot_zpow_eq_one_iff hN _).mpr (hdiv_iff.mpr hMc)))]
+  · rw [ite_eq_right (fun hMc => hw ((primRoot_zpow_eq_one_iff hN _).mpr (hdiv_iff.mpr hMc)))]
     rw [geom_sum_eq hw M, hwM, sub_self, zero_div]
 
 /-- Evaluates the root-of-unity sum over a residue fiber modulo `r`: it vanishes unless `N / r`
@@ -350,8 +351,10 @@ theorem sum_fiber_mod_primRoot (N : ℕ) (hN : 0 < N) {r : ℕ} (hr : 0 < r) (hr
   rw [Finset.sum_congr rfl fun k _ => hterm k, ← Finset.mul_sum,
     sum_primRoot_zpow_step N hN (d := r) (M := q) hq c]
   by_cases hdvd : ((q : ℕ) : ℤ) ∣ c
-  · rw [if_pos hdvd, if_pos hdvd]; ring
-  · rw [if_neg hdvd, if_neg hdvd, mul_zero]
+  · rw [ite_eq_left hdvd, ite_eq_left hdvd]; ring
+  · rw [ite_eq_right hdvd, ite_eq_right hdvd, mul_zero]
+
+omit [Fintype R] [AddCommGroup R] in
 
 /-- If collisions of `f` are exactly equality of residues modulo a positive divisor `r` of `N`,
 the image of `f` has cardinality `r`. -/
@@ -419,8 +422,8 @@ theorem cyclic_period_born_uniform_multiples (N r : ℕ) (hN : 0 < N) (f : Fin N
       intro x
       rw [hqftH yy x]
       by_cases h : z = f x
-      · rw [if_pos h, if_pos h.symm]; ring
-      · rw [if_neg h, if_neg (fun h' => h h'.symm), mul_zero]
+      · rw [ite_eq_left h, ite_eq_left h.symm]; ring
+      · rw [ite_eq_right h, ite_eq_right (fun h' => h h'.symm), mul_zero]
     rw [Finset.sum_congr rfl fun x _ => h1 x, ← Finset.sum_filter, ← Finset.mul_sum,
       inv_sqrt_mul_inv_sqrt hN]
   have hborn : ∀ z : R, BornProb ψ (y, z)
@@ -430,7 +433,7 @@ theorem cyclic_period_born_uniform_multiples (N r : ℕ) (hN : 0 < N) (f : Fin N
     unfold BornProb
     by_cases hz : z ∈ Finset.univ.image f
     · obtain ⟨s, -, hs⟩ := Finset.mem_image.mp hz
-      rw [if_pos hz]
+      rw [ite_eq_left hz]
       have hfilter : Finset.univ.filter (fun x : Fin N => f x = z)
           = Finset.univ.filter (fun x : Fin N => x.val % r = s.val % r) := by
         apply Finset.filter_congr
@@ -461,15 +464,15 @@ theorem cyclic_period_born_uniform_multiples (N r : ℕ) (hN : 0 < N) (f : Fin N
         linarith
       rw [hamp y z, hfilter, hexp, hsum]
       by_cases hqy : q ∣ y.val
-      · rw [if_pos (hdvd_iff.mpr hqy), if_pos hqy]
+      · rw [ite_eq_left (hdvd_iff.mpr hqy), ite_eq_left hqy]
         rw [norm_mul, norm_mul, hnormN, hnormq, norm_primRoot_zpow, mul_one]
         have hN' : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
         have heq : (N : ℝ)⁻¹ * (q : ℝ) = (r : ℝ)⁻¹ := by
           rw [hqR, div_eq_mul_inv, ← mul_assoc, inv_mul_cancel₀ hN', one_mul]
         rw [heq]
-      · rw [if_neg (fun h => hqy (hdvd_iff.mp h)), if_neg hqy]
+      · rw [ite_eq_right (fun h => hqy (hdvd_iff.mp h)), ite_eq_right hqy]
         simp
-    · rw [if_neg hz]
+    · rw [ite_eq_right hz]
       have hfilter : Finset.univ.filter (fun x : Fin N => f x = z) = ∅ := by
         apply Finset.filter_eq_empty_iff.mpr
         intro x _ hfx
@@ -486,15 +489,15 @@ theorem cyclic_period_born_uniform_multiples (N r : ℕ) (hN : 0 < N) (f : Fin N
   · rw [show (∑ z : R, if z ∈ Finset.univ.image f then
             (if q ∣ y.val then ((r : ℝ))⁻¹ ^ 2 else 0) else 0)
         = ∑ z : R, if z ∈ Finset.univ.image f then ((r : ℝ))⁻¹ ^ 2 else 0 from
-      Finset.sum_congr rfl fun z _ => by rw [if_pos hqy]]
-    rw [if_pos hqy, ← Finset.sum_filter, Finset.filter_mem_eq_inter, Finset.univ_inter,
+      Finset.sum_congr rfl fun z _ => by rw [ite_eq_left hqy]]
+    rw [ite_eq_left hqy, ← Finset.sum_filter, Finset.filter_mem_eq_inter, Finset.univ_inter,
       Finset.sum_const, nsmul_eq_mul, card_image_of_exact_collision N hN f hr hrdvd hcol, sq]
     calc (r : ℝ) * ((r : ℝ)⁻¹ * (r : ℝ)⁻¹) = (r * (r : ℝ)⁻¹) * (r : ℝ)⁻¹ := by ring
       _ = (r : ℝ)⁻¹ := by rw [mul_inv_cancel₀ hrR, one_mul]
       _ = 1 / (r : ℝ) := (one_div (r : ℝ)).symm
   · rw [show (∑ z : R, if z ∈ Finset.univ.image f then
             (if q ∣ y.val then ((r : ℝ))⁻¹ ^ 2 else 0) else 0) = (0 : ℝ) from
-      Finset.sum_eq_zero fun z _ => by rw [if_neg hqy]; split_ifs <;> rfl]
-    rw [if_neg hqy]
+      Finset.sum_eq_zero fun z _ => by rw [ite_eq_right hqy]; split_ifs <;> rfl]
+    rw [ite_eq_right hqy]
 
 end Qatlib.Concepts.HspRecovery.CyclicRecovery

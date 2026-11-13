@@ -28,7 +28,6 @@ expression by `δ`, as in the threshold analysis of [SattathArad2015].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 

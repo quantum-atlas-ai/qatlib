@@ -29,7 +29,6 @@ minimal blocks yields a certificate whose size is bounded by squared block sensi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

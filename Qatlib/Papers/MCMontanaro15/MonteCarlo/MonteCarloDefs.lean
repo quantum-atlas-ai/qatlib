@@ -42,8 +42,6 @@ namespace StageBMONTECARLO
 open Qatlib
 open scoped BigOperators
 
-set_option linter.unusedSectionVars false
-
 variable {X : Type} [Fintype X] [DecidableEq X]
 
 /-- A finite probability distribution together with a real-valued payoff on its sample space. -/
@@ -73,11 +71,15 @@ noncomputable def bandBelowZero (v : ℝ) : ℝ := if v < 0 then v else 0
 /-- The nonnegative part of a real value, set to zero on negative inputs. -/
 noncomputable def bandAtLeastZero (v : ℝ) : ℝ := if 0 ≤ v then v else 0
 
+omit [DecidableEq X] in
+
 /-- Expectation under a finite distribution is additive on real payoffs. -/
 theorem expect_add (p : FinDist X) (f g : X → ℝ) :
     p.expect (f + g) = p.expect f + p.expect g := by
   simp only [FinDist.expect, Pi.add_apply, mul_add]
   rw [← Finset.sum_add_distrib]
+
+omit [DecidableEq X] in
 
 /-- The expectation of a negated payoff is the negative of its expectation. -/
 theorem expect_neg (p : FinDist X) (f : X → ℝ) :
@@ -87,6 +89,8 @@ theorem expect_neg (p : FinDist X) (f : X → ℝ) :
     rw [Finset.sum_congr rfl fun x _ => e x, Finset.sum_neg_distrib]
   unfold FinDist.expect
   exact hmain
+
+omit [DecidableEq X] in
 
 /-- Subtracting a constant from a payoff subtracts the same constant from its expectation. -/
 theorem expect_sub_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
@@ -98,6 +102,8 @@ theorem expect_sub_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
     rw [Finset.sum_congr rfl fun x _ => e x, Finset.sum_sub_distrib, h]
   unfold FinDist.expect
   exact hmain
+
+omit [DecidableEq X] in
 
 /-- Dividing a payoff by a real constant divides its expectation by that constant. -/
 theorem expect_div_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
@@ -141,6 +147,8 @@ theorem algorithm3_reconstruction (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
       = p.expect (fun i => f i / σ) - m := expect_sub_const p _ _
   linarith
 
+omit [DecidableEq X] in
+
 /-- The empirical mean of a one-draw record equals the payoff of its single entry. -/
 theorem recordMean_one (f : X → ℝ) (ω : DrawRecord 1 X) : recordMean f ω = f (ω 0) := by
   unfold recordMean FinDist.avg
@@ -180,10 +188,10 @@ theorem tailAbove_le_secondMoment_div (p : FinDist X) (f : X → ℝ)
         have hmul' := mul_le_mul_of_nonneg_right h (hf x)
         simpa [mul_comm, pow_two] using hmul'
       have hcancel : f x * m / m = f x := by field_simp
-      rw [if_pos h]
+      rw [ite_eq_left h]
       calc f x = f x * m / m := hcancel.symm
         _ ≤ f x ^ 2 / m := div_le_div_of_nonneg_right hsq hm.le
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact div_nonneg (sq_nonneg _) hm.le
   unfold tailAbove
   calc
@@ -253,14 +261,14 @@ noncomputable def twoLevelLaw (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (N : ℕ
   nonneg x := by
     by_cases h0 : x = 0
     · by_cases h1 : x = twoLevelLarge N
-      · rw [if_pos h0, if_pos h1]
+      · rw [ite_eq_left h0, ite_eq_left h1]
         linarith
-      · rw [if_pos h0, if_neg h1]
+      · rw [ite_eq_left h0, ite_eq_right h1]
         linarith
     · by_cases h1 : x = twoLevelLarge N
-      · rw [if_neg h0, if_pos h1]
+      · rw [ite_eq_right h0, ite_eq_left h1]
         linarith
-      · rw [if_neg h0, if_neg h1]
+      · rw [ite_eq_right h0, ite_eq_right h1]
         norm_num
   sum_one := by
     have h1 : (∑ x : Fin (N + 2), (if x = 0 then 1 - p else 0)) = 1 - p :=
@@ -295,10 +303,10 @@ theorem partitionFnLimit_le_partitionFn {Ω : Type} [Fintype Ω] (H : Ω → ℕ
   have hpoint : ∀ x : Ω, (if H x = 0 then 1 else 0) ≤ Real.exp (-(β * (H x : ℝ))) := by
     intro x
     by_cases h : H x = 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hz : (H x : ℝ) = 0 := by exact_mod_cast h
       rw [hz, mul_zero, neg_zero, Real.exp_zero]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact (Real.exp_pos _).le
   unfold partitionFnLimit partitionFn
   exact Finset.sum_le_sum fun x _ => hpoint x
@@ -314,7 +322,7 @@ theorem partitionFn_sub_partitionFnLimit_le {Ω : Type} [Fintype Ω] (H : Ω →
       Real.exp (-(β * (H x : ℝ))) - (if H x = 0 then 1 else 0) ≤ Real.exp (-β) := by
     intro x
     by_cases h : H x = 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hz : (H x : ℝ) = 0 := by exact_mod_cast h
       rw [hz, mul_zero, neg_zero, Real.exp_zero]
       constructor
@@ -324,7 +332,7 @@ theorem partitionFn_sub_partitionFnLimit_le {Ω : Type} [Fintype Ω] (H : Ω →
     · have hpos : 1 ≤ (H x : ℝ) := by
         have hn : (0 : ℕ) < H x := by omega
         exact_mod_cast hn
-      rw [if_neg h]
+      rw [ite_eq_right h]
       constructor
       · have : 0 < Real.exp (-(β * (H x : ℝ))) := Real.exp_pos _
         linarith

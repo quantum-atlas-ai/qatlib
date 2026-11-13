@@ -30,7 +30,6 @@ their ordered evolutions over nonnegative time `T` by `sqrt (2 * T * δ)`. See
 * [van Dam et al., 2001][VanDamMoscaVazirani2001]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

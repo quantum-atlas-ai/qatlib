@@ -36,7 +36,6 @@ recovery. [Kitaev1995]
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling

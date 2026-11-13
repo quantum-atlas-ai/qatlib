@@ -29,7 +29,6 @@ logical square root of Pauli-X, illustrating the wire and rotation constructions
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -47,8 +46,6 @@ open Qatlib
 open Qatlib
 open Qatlib
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- The complex number one has norm one. -/
 theorem clusterOne_norm : ‖(1 : ℂ)‖ = 1 := by simp

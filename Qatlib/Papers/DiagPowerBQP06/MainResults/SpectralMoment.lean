@@ -29,7 +29,6 @@ These constructions accompany the results of [JanzingWocjan2006a].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

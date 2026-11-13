@@ -82,8 +82,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -100,7 +98,6 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Filter
 open scoped Topology
-set_option warningAsError false
 
 /-- For M ≥ 1 and u ≥ 0, the product (1 − u)(3M − 1 + 4u) is at most 3M. -/
 private lemma source_failure_bound (u M : ℝ) (hM1 : 1 ≤ M) (hu0 : 0 ≤ u) :

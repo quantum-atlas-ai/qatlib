@@ -27,11 +27,7 @@ in `fidelity_of_variance_le` and `step_count_suffices` translate the variance es
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 

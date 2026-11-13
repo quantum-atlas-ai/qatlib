@@ -30,9 +30,7 @@ coefficient errors.
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates

@@ -28,7 +28,6 @@ These Gram-matrix constructions use the finite-dimensional matrix analysis descr
 -/
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 

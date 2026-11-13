@@ -27,8 +27,6 @@ characterizing stationary points. For the quantum-search analysis, see [BoyerEtA
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.SearchStopping.RestartLaw

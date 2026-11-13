@@ -33,7 +33,6 @@ parameter and is continuous on `[0, 1]`, with zero values at both endpoints.
 * [Farhi et al., 2002][FarhiGoldstoneGutmann2002a]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

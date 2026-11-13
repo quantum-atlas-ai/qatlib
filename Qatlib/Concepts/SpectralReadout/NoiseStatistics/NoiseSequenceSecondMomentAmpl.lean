@@ -24,8 +24,6 @@ result to the spectral-readout interface used for the intensity calculations of 
 * [Cornwell, 2014, Theorems 4 and 5][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SpectralReadout.NoiseStatistics
 
 /-- Establish the uniform noise-sequence second-moment specification, including the shifted

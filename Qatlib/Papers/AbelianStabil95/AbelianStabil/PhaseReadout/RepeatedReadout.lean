@@ -26,8 +26,6 @@ data state is normalized. The development follows [Kitaev1995].
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open Matrix
@@ -36,8 +34,6 @@ open Qatlib.Concepts.HspRecovery.KitaevReadout
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Foundations.QueryWordCore.Circuit
 open scoped BigOperators Classical
-
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout
 
@@ -56,9 +52,11 @@ theorem i_mul_eigenPhase (φ : ℝ) :
   rw [Complex.exp_add]
   have hhalf : Complex.exp (((Real.pi / 2 : ℝ) : ℂ) * Complex.I) = Complex.I := by
     rw [Complex.exp_mul_I]
-    simp [Real.cos_pi_div_two, Real.sin_pi_div_two]
+    simp []
   rw [hhalf]
   ring
+
+omit [DecidableEq I] in
 
 /-- An eigenvector of `U` with phase `φ` is an eigenvector of `i • U` with phase `φ + 1 / 4`, as
 used in [Kitaev1995]. -/
@@ -102,6 +100,8 @@ theorem runDist_prob (φ : ℝ) (s : ℕ) (j : Fin (s + s)) (b : Bool) :
 amplitudes. -/
 def freshControlState (ψ : QState I) (φ : ℝ) (s : ℕ) : QState (I × (Fin (s + s) → Bool)) :=
   fun p => ψ p.1 * ∏ j : Fin (s + s), hadamardTestBitState (runPhase φ s j) (p.2 j)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The Born probability of a data index and control record factors into the data Born
 probability and the product of the individual control Born probabilities, as used in

@@ -19,7 +19,7 @@ Lemma 19, §6.1, printed page 17:
 `ADV_α(h) ≤ ADV_β(f)` for `h = f ∘ (g₁, …, g_k)` and `βᵢ = ADV_{αᵢ}(gᵢ)`.
 
 The paper-layer theorem is a reference/bridge to the frozen
-`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.composition_upper_bound_on_source_scope`.
+`Qatlib.Concepts.QueryComplexity.DegreeMethod.composition_upper_bound_on_source_scope`.
 The frozen statement is on the source's legitimate block scope: positive
 coordinate costs, a nonconstant outer function, nonconstant blocks, and finite
 block costs.  These are not extra strength assumptions — the raw unrestricted

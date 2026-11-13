@@ -31,7 +31,6 @@ squared norm, factorial tail estimates, and adjacent-boundary estimates yield
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.LocalMachine.LocalTransport
 open Qatlib.Concepts.BlockEncoding.Postselection
 
@@ -46,7 +45,6 @@ open Matrix Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator BigOperators
-set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 

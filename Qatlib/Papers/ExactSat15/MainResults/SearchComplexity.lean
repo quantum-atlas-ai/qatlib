@@ -27,8 +27,8 @@ This module gives the paper-layer complexity statements.
   `O(√(2^(n-M')))` quantumly with polynomial space, where `M' ≤ min {n, M}` is
   the number of linearly independent clauses; the quantum algorithm has bounded
   error decreasing exponentially with repetitions.  The quantum search bound is
-  bridged to the Frozen unknown-count BBHT contract
-  `QuantumAlgorithm.Concepts.SearchStopping.UnknownCount.theorem3Corrected`.
+  bridged to the unknown-count BBHT theorem
+  `Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected`.
 * **c002**, source p. 5 and p. 11: the corresponding counting problem is bounded
   by `O(2^(n-M'))` classically and by `O(√(V · 2^(n-M')))` quantumly, where
   `V ≤ 2^(n-M')` is the (a priori unknown) number of valid assignments.
@@ -84,7 +84,7 @@ theorem polynomial_space (n M' : ℕ) (hM' : M' ≤ n) (hpos : 1 ≤ M') :
   have h2 : oracleAncillas M' ≤ n := oracleAncillas_le n M' hM' hpos
   omega
 
-/-! ## c001: the quantum search bridge to the Frozen BBHT contract -/
+/-! ## c001: the quantum search bridge to the BBHT theorem -/
 
 /-- For `N` candidates with at least one valid assignment, `√(N/V) ≤ √N`. -/
 theorem sqrt_div_le_sqrt_self {N V : ℕ} (hV : 1 ≤ V) :
@@ -96,8 +96,8 @@ theorem sqrt_div_le_sqrt_self {N V : ℕ} (hV : 1 ≤ V) :
   have hV1 : (1 : ℝ) ≤ (V : ℝ) := by exact_mod_cast hV
   nlinarith [mul_nonneg hN (show (0 : ℝ) ≤ (V : ℝ) - 1 by linarith)]
 
-/-- **Bridging theorem, BBHT Boolean-query cost.**  Reused Frozen FQN:
-`QuantumAlgorithm.Concepts.SearchStopping.UnknownCount.theorem3Corrected` (its
+/-- **Bridging theorem, BBHT Boolean-query cost.**  Reuses
+`Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected` (its
 fifth conjunct, `TerminalBooleanQueries`).  For a finite search space `I` and a
 nonempty marked set `A`, the unknown-count search makes at most
 `(29/2)√(|I|/|A|)` phase-kickback Boolean queries in expectation. -/
@@ -142,8 +142,8 @@ theorem bbht_on_candidate_register (n M' V : ℕ) (hV : 1 ≤ V)
   rw [Fintype.card_fin] at hq
   simpa [Nat.cast_pow] using hq
 
-/-- **Bridging theorem, exponential error decay.**  Reused Frozen FQN:
-`QuantumAlgorithm.Concepts.SearchStopping.UnknownCount.theorem3Corrected` (its
+/-- **Bridging theorem, exponential error decay.**  Reuses
+`Qatlib.Concepts.SearchStopping.UnknownCount.theorem3Corrected` (its
 final conjunct, `RetryReach`).  There is an `N`-dependent cutoff `K = O(√N)` such
 that the failure probability after `K+k` attempts is at most `(3/4)^k`; this is
 the "bounded error decreasing exponentially with the number of repetitions" of
@@ -237,7 +237,7 @@ algorithm's output on the instance, `solutionExists` records whether a valid
 assignment exists, and `exact_output` is the exactness invariant (no false
 positives, no false negatives).  The deterministic decision-tree structure that
 this model abstracts is the one developed in
-`QuantumAlgorithm.Concepts.QueryComplexity.DecisionTrees.certificateTree_exists`. -/
+`Qatlib.Concepts.QueryComplexity.DecisionTrees.certificateTree_exists`. -/
 structure BacktrackingRun where
   /-- Decision-tree size `T(n)`. -/
   treeSize : ℕ

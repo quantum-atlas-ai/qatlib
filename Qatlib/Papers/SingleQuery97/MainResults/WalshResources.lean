@@ -26,7 +26,6 @@ encoding contains `q * 2^(q-1)` components and that encoding followed by its neg
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

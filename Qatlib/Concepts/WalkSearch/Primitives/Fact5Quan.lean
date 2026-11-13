@@ -25,7 +25,6 @@ neighbors at insertion time, a counting ingredient for subset-search reductions
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
 namespace Qatlib.Concepts.WalkSearch.Primitives
 
 /-- Establishes `Fact5` from the incremental bound `fact5_incremental`. -/

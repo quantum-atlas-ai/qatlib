@@ -24,7 +24,6 @@ scalar sum S = ∑ⱼ |aⱼ| ‖Hⱼ‖ |t| and applies to arbitrary finite comp
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 set_option autoImplicit false

@@ -31,8 +31,6 @@ potential term to a scalar generator.
 * [Boghosian and Taylor, 1998][BoghosianTaylor1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -28,7 +28,6 @@ the refined statements.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Papers.MCMontanaro15.MonteCarlo
@@ -40,8 +39,6 @@ open Qatlib
 open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 /-- The payoff expectation with all values at least 2^k replaced by zero. -/
 noncomputable def truncatedExpectation {X : Type} [Fintype X] (p : FinDist X)
@@ -116,7 +113,7 @@ noncomputable def tableSelectGates (k : ℕ) : ℕ := k
 noncomputable def gcdGates (bits : ℕ) : ℕ := bits
 
 /-- The memory-bit expression log₂(N maxAbs + 1) + k + 1, using the natural binary logarithm. -/
-noncomputable def memoryBits (N k Q maxAbs : ℕ) : ℕ := Nat.log2 (N * maxAbs + 1) + k + 1
+noncomputable def memoryBits (N k _Q maxAbs : ℕ) : ℕ := Nat.log2 (N * maxAbs + 1) + k + 1
 
 /-- The persistent-space expression log₂(N maxAbs + 1) + log₂ Q + log₂(k + 1), using natural
 binary logarithms. -/

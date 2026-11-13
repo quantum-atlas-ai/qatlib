@@ -55,8 +55,8 @@ p. 13).  Let `p` be a multilinear polynomial on `n` Boolean variables.  Then the
 is a univariate polynomial `q` with `q(k) = E_{|x| = k}[p(x)]` for every integer
 `k ∈ {0, …, n}` and `natDegree q ≤ totalDegree p`.
 
-Bridge to the frozen theorem `symmetrizationAverageSubgoal` (FQN
-`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.symmetrizationAverageSubgoal`),
+Bridge to the library theorem `symmetrizationAverageSubgoal` (FQN
+`Qatlib.Concepts.QueryComplexity.DegreeMethod.symmetrizationAverageSubgoal`),
 which proves exactly this statement with `layerAverage p k` in place of the
 expectation over the weight-`k` layer. -/
 theorem prop27_symmetrization {I : Type} [Fintype I] [DecidableEq I]
@@ -131,9 +131,9 @@ for Parity on the finite query alphabet `I` that makes at most `T` queries satis
 Stated for one explicit `T`-query circuit (the paper's `Q(Parity) ≤ T` unpacked;
 `SourceModel.QuantumQueryComplexityAtMost` is the packaged form of the same data).
 The proof converts the `2/3`-correctness hypotheses into the `1/3`-approximation
-hypothesis of the frozen theorem
+hypothesis of the library theorem
 `parity_actual_bounded_error_query_lower_bound` (FQN
-`QuantumAlgorithm.Concepts.QueryComplexity.DegreeMethod.parity_actual_bounded_error_query_lower_bound`)
+`Qatlib.Concepts.QueryComplexity.DegreeMethod.parity_actual_bounded_error_query_lower_bound`)
 and concludes `|I| ≤ 2 * QueryCount C ≤ 2 * T`. -/
 theorem prop28_parity_query_lower_bound {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W]

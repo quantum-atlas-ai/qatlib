@@ -26,11 +26,8 @@ transfers the result to outer products of pure states, as in the reduced-state f
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.FiniteLocc.LOCCProgram
 

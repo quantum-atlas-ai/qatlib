@@ -34,8 +34,6 @@ provides the broader context [YoderLowChuang2014].
 * [Yoder, Low, and Chuang, 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.PhaseGeometry.Phase

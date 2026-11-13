@@ -39,8 +39,6 @@ with matrix-element and trace identities expressed through `sqInnerTarget`
 * [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

@@ -82,7 +82,7 @@ Proof status: statement registered, not proved in this layer.  The MNRS walk
 instantiation on `J(A, ⌈n^{2a/3}⌉)` — setup `|A|·|X|`, update `2|X|`, checking
 `√(|Δ_G(X,B,w)|)` from Lemma 4.2's estimate, summed with
 `∑_w |Δ_G(X,A,w)| ≤ |A|² n^{1-k}` — has no repository formalization path yet.
-Candidate reusable dependencies: `QuantumAlgorithm.Concepts.WalkSearch.MnrsAmplify`
+Candidate reusable dependencies: `Qatlib.Concepts.WalkSearch.MnrsAmplify`
 (MNRS walk guarantee and cost ledger) and `source_lemma_4_2`/`source_lemma_4_3`. -/
 def source_proposition_4_1 : Prop :=
   ∀ (a k : ℝ), 0 < a → a < 1 → 0 < k → k < 1 →

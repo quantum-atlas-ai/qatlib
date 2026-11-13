@@ -33,7 +33,6 @@ a concrete counterexample to the full `clause3Statement`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 
 set_option autoImplicit false

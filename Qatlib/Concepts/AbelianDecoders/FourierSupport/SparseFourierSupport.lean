@@ -28,14 +28,11 @@ weight estimate to obtain the support-product uncertainty inequality. For backgr
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
-
 
 namespace Qatlib.Concepts.AbelianDecoders.FourierSupport
 

@@ -33,7 +33,6 @@ use of block encodings [GilyenSuLowWiebe2019].
   transformation and beyond: exponential improvements for quantum matrix arithmetics*.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError

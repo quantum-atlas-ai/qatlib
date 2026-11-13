@@ -32,13 +32,11 @@ underlie the Taylor-system analysis in [BerryEtAl2017ODE].
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
-set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 

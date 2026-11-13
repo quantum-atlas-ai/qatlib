@@ -28,7 +28,6 @@ value negative one on that period. See [SantoliSchaffner2017] for the source dev
 * [Santoli and Schaffner, 2017][SantoliSchaffner2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Papers.SimonSymKey16.FeistelPeriod

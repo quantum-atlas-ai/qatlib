@@ -44,14 +44,12 @@ majority masses, and natural-number formulas for control labels and transition r
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Concepts.QueryComplexity.Amplification
 
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.ClassicalTape.TapeCompilation
 

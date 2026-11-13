@@ -58,7 +58,6 @@ open MeasureTheory
 open Filter
 open Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

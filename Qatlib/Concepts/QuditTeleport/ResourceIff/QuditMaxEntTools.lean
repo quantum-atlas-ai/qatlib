@@ -28,8 +28,6 @@ needed for the resource characterization in [BennettEtAl1993Teleportation].
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1500000
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -38,7 +36,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators
-set_option linter.unusedSimpArgs false
 
 /-- The square matrix whose columns are the vectors of the indexed family `u`. -/
 noncomputable def quditFamilyColumns {n : ℕ} (u : Fin n → QState (Fin n)) : Operator n :=
@@ -115,7 +112,7 @@ theorem qudit_maxEnt_first_marginal {n : ℕ}
       rw [Finset.sum_comm]
       simp only [inner_apply, Complex.star_def, Finset.mul_sum]
     _ = (s * s) * ∑ a, u a i * star (u a j) := by
-      simp only [hv', mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [hv', mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     _ = _ := by
       rw [quditFamily_complete hu]
       change ((Real.sqrt (n : ℝ) : ℂ)⁻¹ * (Real.sqrt (n : ℝ) : ℂ)⁻¹) * _ = _
@@ -129,7 +126,6 @@ theorem qudit_scaled_rows_orthonormal {n : ℕ} [NeZero n]
     QuditOrthonormalFamily n (fun j k => (Real.sqrt (n : ℝ) : ℂ) * Ψ (j,k)) := by
   intro i j
   have he := congrArg (fun A : Operator n => A j i) h
-  (try dsimp only at he)
   have hi : Inner (fun k => (Real.sqrt (n : ℝ) : ℂ) * Ψ (i,k))
       (fun k => (Real.sqrt (n : ℝ) : ℂ) * Ψ (j,k)) =
       (n : ℂ) * PartialTrace (outerProduct Ψ) j i := by

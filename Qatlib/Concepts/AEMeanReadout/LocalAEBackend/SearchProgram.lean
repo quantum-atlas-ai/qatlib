@@ -77,8 +77,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -93,7 +91,6 @@ open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Concepts.WalkSearch.QuantumAccess
-set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 

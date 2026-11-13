@@ -14,8 +14,11 @@ set_option backward.isDefEq.respectTransparency false
 "Hamiltonian Decoded Quantum Interferometry"
 (arXiv:2510.07913v1, 2025).
 
-This file records faithful `Prop` statements for the claims whose full
-formalisation meets substantive obstacles. Three cores are proved in
+**Statement only — not proved in Qatlib.** The `_statement` definitions are
+abstract proposition specifications, not proofs of the paper's algorithms.
+In particular, supplied `time` functions and call counts in c008/c014/c022
+are scalar parameters, with no circuit, oracle or operational realization.
+Three algebraic cores are proved in
 this block: `TannerSyndrome.mulVec_eq_card_inter` and
 `TannerSyndrome.syndrome_nonzero_of_unique_neighbor` (c034, Lemma 52
 and c035, Corollary 53), and `BellBasis.bell_orthonormal` with its
@@ -63,7 +66,6 @@ documented in the PR; they need machinery absent from Mathlib and this
 repository (quantum query models, polymer models, representation
 rings, expander mixing).
 
-No axiom, no `admit`, no `native_decide`.
 -/
 set_option autoImplicit false
 

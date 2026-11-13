@@ -29,13 +29,10 @@ in [Montanaro2015]; the statements here concern the abstract execution kernel.
 * [Montanaro, 2015][Montanaro2015]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
-
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Concepts.StoppingCore.BranchCostCore
 
@@ -214,6 +211,8 @@ end GeomHelpers
 
 section TailBridge
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
+
 /-- The total mass of halting with output `o` splits into costs at most `n` and costs greater
 than `n`. -/
 theorem haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
@@ -226,8 +225,8 @@ theorem haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg : Confi
         + haltJoint next cfg o k * (if n < k then (1 : ℝ≥0∞) else 0) := by
     intro k
     by_cases hk : n < k
-    · rw [if_pos hk, if_neg (by omega), zero_add, mul_one]
-    · rw [if_neg hk, mul_zero, add_zero, if_pos (by omega)]
+    · rw [ite_eq_left hk, ite_eq_right (by omega), zero_add, mul_one]
+    · rw [ite_eq_right hk, mul_zero, add_zero, ite_eq_left (by omega)]
   calc (∑' k : ℕ, haltJoint next cfg o k)
       = ∑' k : ℕ, ((if k < n + 1 then haltJoint next cfg o k else 0)
           + haltJoint next cfg o k * (if n < k then (1 : ℝ≥0∞) else 0)) :=
@@ -240,8 +239,8 @@ theorem haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg : Confi
         refine congrArg (· + _) ?_
         exact (tsum_eq_sum (L := SummationFilter.unconditional ℕ) (s := Finset.range (n + 1))
           (f := fun k => if k < n + 1 then haltJoint next cfg o k else 0)
-          (fun k hk => if_neg (Finset.mem_range.not.mp hk))).trans
-          (Finset.sum_congr rfl fun k hk => if_pos (Finset.mem_range.mp hk))
+          (fun k hk => ite_eq_right (Finset.mem_range.not.mp hk))).trans
+          (Finset.sum_congr rfl fun k hk => ite_eq_left (Finset.mem_range.mp hk))
 
 /-- The pending mass at time `n` equals the mass of halting later plus the nontermination mass. -/
 theorem pendingMass_eq_tail_add_nontermination (next : S → PMF (Configuration S O))
@@ -302,8 +301,8 @@ theorem tsum_indicator_lt_ennreal (k : ℕ) :
     ∑' n : ℕ, (if n < k then (1 : ℝ≥0∞) else 0) = (k : ℝ≥0∞) := by
   refine (tsum_eq_sum (L := SummationFilter.unconditional ℕ) (s := Finset.range k)
     (f := fun n => if n < k then (1 : ℝ≥0∞) else 0)
-    (fun n hn => if_neg (Finset.mem_range.not.mp hn))).trans ?_
-  rw [Finset.sum_congr rfl (fun n hn => if_pos (Finset.mem_range.mp hn) :
+    (fun n hn => ite_eq_right (Finset.mem_range.not.mp hn))).trans ?_
+  rw [Finset.sum_congr rfl (fun n hn => ite_eq_left (Finset.mem_range.mp hn) :
       ∀ n ∈ Finset.range k, (if n < k then (1 : ℝ≥0∞) else 0) = 1),
     Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
 
@@ -311,6 +310,8 @@ theorem tsum_indicator_lt_ennreal (k : ℕ) :
 theorem tsum_const_nat_ennreal (c : ℝ≥0∞) : ∑' _n : ℕ, c = ⊤ * c := by
   rw [ENNReal.tsum_const]
   simp
+
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 
 /-- Summing all halting tails equals the halting joint mass weighted by its stopping cost. -/
 theorem tsum_tail_eq_cost_weighted_haltJoint (next : S → PMF (Configuration S O))
@@ -449,13 +450,13 @@ theorem unbounded_geometric_kernel_runtime (next : S → PMF (Configuration S O)
       have hinl : (∑' o : O, next x (Sum.inl o)
             * (if (∃ u : S, Sum.inl o = Sum.inr u) then (1 : ℝ≥0∞) else 0)) = 0 := by
         refine ENNReal.tsum_eq_zero.mpr fun o => ?_
-        rw [if_neg (fun h : (∃ u : S, Sum.inl o = Sum.inr u) => Sum.inl_ne_inr h.choose_spec),
+        rw [ite_eq_right (fun h : (∃ u : S, Sum.inl o = Sum.inr u) => Sum.inl_ne_inr h.choose_spec),
           mul_zero]
       have hinr : (∑' t : S, next x (Sum.inr t)
             * (if (∃ u : S, Sum.inr t = Sum.inr u) then (1 : ℝ≥0∞) else 0))
           = ∑' t : S, next x (Sum.inr t) :=
         tsum_congr fun t => by
-          rw [if_pos (⟨t, rfl⟩ : ∃ u : S, (Sum.inr t : O ⊕ S) = Sum.inr u), mul_one]
+          rw [ite_eq_left (⟨t, rfl⟩ : ∃ u : S, (Sum.inr t : O ⊕ S) = Sum.inr u), mul_one]
       have hev : CostedLaw.event (next x) (fun cfg => ∃ u : S, cfg = Sum.inr u)
           = ∑' c : O ⊕ S, next x c
             * (if (∃ u : S, c = Sum.inr u) then (1 : ℝ≥0∞) else 0) := by
@@ -465,8 +466,8 @@ theorem unbounded_geometric_kernel_runtime (next : S → PMF (Configuration S O)
               (fun c => if (∃ u : S, c = Sum.inr u) then (1 : ℝ≥0∞) else 0) from rfl]
         refine CostedLaw.expectation_congr fun c => ?_
         by_cases h : (∃ u : S, c = Sum.inr u)
-        · rw [if_pos h, if_pos h]
-        · rw [if_neg h, if_neg h]
+        · rw [ite_eq_left h, ite_eq_left h]
+        · rw [ite_eq_right h, ite_eq_right h]
       rw [hev, hsplit, hinl, hinr, zero_add,
         tsum_fintype (L := SummationFilter.unconditional S)]
     rw [heq]; exact hstep x

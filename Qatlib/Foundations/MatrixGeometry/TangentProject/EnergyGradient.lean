@@ -27,8 +27,6 @@ identifies the derivative with the real Frobenius pairing against `2 • (O * U 
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option backward.isDefEq.respectTransparency false

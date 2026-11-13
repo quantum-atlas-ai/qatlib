@@ -35,7 +35,6 @@ for native measurement campaigns.
 * [Huang et al., 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
@@ -46,7 +45,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 namespace Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementStatistics

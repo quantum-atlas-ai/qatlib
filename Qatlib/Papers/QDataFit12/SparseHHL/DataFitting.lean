@@ -27,7 +27,6 @@ loading and preparation costs. The mathematical context is [WiebeBraunLloyd2012]
 * [Wiebe et al., 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualParameterRestrictedStat.QuantumDataFitting2012

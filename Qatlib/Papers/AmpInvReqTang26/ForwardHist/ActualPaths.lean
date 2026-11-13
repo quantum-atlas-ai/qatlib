@@ -33,7 +33,6 @@ open scoped BigOperators
 open MvPolynomial
 namespace Qatlib.Papers.AmpInvReqTang26.ForwardHist
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- The union of the monomial supports of all output-coordinate query polynomials after `n`
 queries. -/

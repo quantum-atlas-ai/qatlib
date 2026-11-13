@@ -39,7 +39,6 @@ terminal masses. These classical machine constructions use the computational set
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

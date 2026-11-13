@@ -26,8 +26,6 @@ functions and verifies the reciprocal identity for `repetitionCost`. See [McClea
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped Interval

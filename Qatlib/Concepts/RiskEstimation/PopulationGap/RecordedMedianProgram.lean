@@ -53,14 +53,12 @@ open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
 open Qatlib
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The rational indicator that outcome `i` has loss at most threshold `t`. -/
 def riskCDFPayoffRat {I : Type} (loss : I → ℚ) (t : ℚ) (i : I) : ℚ :=

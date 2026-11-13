@@ -17,11 +17,11 @@ is a sequence of two-qubit unitary gates applied to `|0⟩^{⊗n}` and concluded
 a single-qubit measurement.
 
 The reviewed hardness statement is about *that* circuit model. The repository's
-frozen finite-gate vocabulary
-`QuantumAlgorithm.Concepts.UniformBqp.FiniteGateWord` (the Concepts block bound
+finite-gate vocabulary
+`Qatlib.Concepts.UniformBqp.FiniteGateWord` (the Concepts block bound
 by the claim `c001`) fixes a concrete finite gate set `H, X, T, T†, CNOT`, its
 total matrix interpretation, effective legality, and exact syntactic counts. The
-lemma below re-exports, at this paper layer, the frozen theorem that legal words
+lemma below re-exports, at this paper layer, the established theorem that legal words
 are unitary and have exact query/gate counts — the executable content behind the
 `T` gate applications counted by Theorem 1.
 -/
@@ -37,7 +37,7 @@ open Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 /-- **Finite-gate bridge.** For every `n`-qubit description `gs` of finite gate
 tags: an illegal description rejects on every input, and a legal description is
 a genuine unitary circuit with zero oracle queries and exactly `gs.length` fixed
-gates. This is the frozen
+gates. This is the established
 `finite_gate_description_rejection_unitarity_and_counts` restated at the
 `QLinearSys15` paper layer; it supplies the gate-count bookkeeping used by the
 Theorem 1 circuit on the BQP side. -/

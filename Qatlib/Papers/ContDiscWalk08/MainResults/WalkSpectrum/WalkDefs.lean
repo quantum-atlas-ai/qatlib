@@ -25,8 +25,6 @@ construction of [Childs2010].
 * [Childs, 2010][Childs2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

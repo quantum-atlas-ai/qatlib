@@ -18,9 +18,9 @@ scaled PREPARE `P`, and `select(V)` folded into `W`, the projector
 `P₀ = |0⟩⟨0| ⊗ 1` applied to `W |0⟩|ψ⟩` returns exactly
 `(1/s) |0⟩ (Σ_j β_j V_j) |ψ⟩`.
 
-Frozen FQN reused: `QuantumAlgorithm.Papers.TruncTaylor14.ResetDiscard.equation11`
-(`Statements/Equation11.lean:11`).  The frozen form works with a supplied
-unitary preparation `IsScaledPrepare` and does not claim its gate synthesis.
+Library theorem: `Qatlib.Concepts.CoherentSim.ResetDiscard.equation11`.
+Scope note: the statement assumes a supplied unitary preparation
+`IsScaledPrepare`; its gate synthesis is outside the scope of this file.
 -/
 
 set_option autoImplicit false

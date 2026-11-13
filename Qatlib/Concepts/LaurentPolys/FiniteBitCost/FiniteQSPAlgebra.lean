@@ -26,7 +26,6 @@ connect polynomial constructions with the quantum signal processing framework [L
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.NativeNumerics.NlfftPipeline
 open Qatlib
 

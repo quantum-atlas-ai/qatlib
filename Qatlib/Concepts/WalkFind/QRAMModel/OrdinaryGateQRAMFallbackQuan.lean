@@ -30,7 +30,6 @@ The mathematical background is developed in [NielsenChuang2010].
 -/
 
 open Qatlib.Concepts.BlockEncoding.LinearCombination
-set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 

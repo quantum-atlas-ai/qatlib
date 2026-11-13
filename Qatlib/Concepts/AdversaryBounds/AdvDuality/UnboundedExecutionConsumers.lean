@@ -32,10 +32,6 @@ self-loop.
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
-set_option linter.unusedSectionVars false
-
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
@@ -154,27 +150,27 @@ theorem pendingMass_twoStepKernel (n : ℕ) :
     pendingMass twoStepKernel (Sum.inr false) n = if n < 2 then (1 : ℝ≥0∞) else 0 := by
   rw [pendingMass_eq_sum_point, Fintype.sum_bool]
   rcases Nat.lt_or_ge n 2 with hn | hn
-  · rw [if_pos hn]
+  · rw [ite_eq_left hn]
     rcases n with _ | _ | n
     · rw [runFor_zero]
       show (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inr false)) ((Sum.inr true : Bool ⊕ Bool), 0)
           + (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inr false)) ((Sum.inr false : Bool ⊕ Bool), 0) = 1
       show (PMF.pure ((Sum.inr false : Bool ⊕ Bool), 0)) ((Sum.inr true : Bool ⊕ Bool), 0)
           + (PMF.pure ((Sum.inr false : Bool ⊕ Bool), 0)) ((Sum.inr false : Bool ⊕ Bool), 0) = 1
-      rw [PMF.pure_apply, PMF.pure_apply, if_neg (fun h => by simp at h), if_pos rfl, zero_add]
+      rw [PMF.pure_apply, PMF.pure_apply, ite_eq_right (fun h => by simp at h), ite_eq_left rfl, zero_add]
     · rw [runFor_twoStepKernel_one_false]
       show (PMF.pure ((Sum.inr true : Bool ⊕ Bool), 1)) ((Sum.inr true : Bool ⊕ Bool), 1)
           + (PMF.pure ((Sum.inr true : Bool ⊕ Bool), 1)) ((Sum.inr false : Bool ⊕ Bool), 1) = 1
-      rw [PMF.pure_apply, PMF.pure_apply, if_pos rfl, if_neg (fun h => by simp at h), add_zero]
+      rw [PMF.pure_apply, PMF.pure_apply, ite_eq_left rfl, ite_eq_right (fun h => by simp at h), add_zero]
     · exact absurd hn (by omega)
-  · rw [if_neg (Nat.not_lt_of_ge hn)]
+  · rw [ite_eq_right (Nat.not_lt_of_ge hn)]
     show (runFor twoStepKernel n (Sum.inr false) ((Sum.inr true : Bool ⊕ Bool), n))
         + (runFor twoStepKernel n (Sum.inr false) ((Sum.inr false : Bool ⊕ Bool), n)) = 0
     rw [runFor_twoStepKernel_ge_two n hn]
     show (PMF.pure ((Sum.inl false : Bool ⊕ Bool), 2)) ((Sum.inr true : Bool ⊕ Bool), n)
         + (PMF.pure ((Sum.inl false : Bool ⊕ Bool), 2)) ((Sum.inr false : Bool ⊕ Bool), n) = 0
-    rw [PMF.pure_apply, PMF.pure_apply, if_neg (fun h => by simp at h),
-      if_neg (fun h => by simp at h), add_zero]
+    rw [PMF.pure_apply, PMF.pure_apply, ite_eq_right (fun h => by simp at h),
+      ite_eq_right (fun h => by simp at h), add_zero]
 
 /-- A deterministic kernel that returns its Boolean state as a running state forever. -/
 noncomputable def selfLoopKernel : Bool → PMF (Bool ⊕ Bool) :=
@@ -215,7 +211,7 @@ theorem pendingMass_selfLoopKernel (n : ℕ) :
   rw [pendingMass_eq_sum_point, runFor_selfLoopKernel, Fintype.sum_bool]
   show (PMF.pure ((Sum.inr false : Bool ⊕ Bool), n)) ((Sum.inr true : Bool ⊕ Bool), n)
       + (PMF.pure ((Sum.inr false : Bool ⊕ Bool), n)) ((Sum.inr false : Bool ⊕ Bool), n) = 1
-  rw [PMF.pure_apply, PMF.pure_apply, if_neg (fun h => by simp at h), if_pos rfl, zero_add]
+  rw [PMF.pure_apply, PMF.pure_apply, ite_eq_right (fun h => by simp at h), ite_eq_left rfl, zero_add]
 
 /-- The self-loop kernel from running `false` has nontermination mass one. -/
 theorem nonterminationMass_selfLoopKernel :

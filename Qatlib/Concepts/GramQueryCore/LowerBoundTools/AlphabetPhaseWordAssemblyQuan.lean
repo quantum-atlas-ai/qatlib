@@ -30,7 +30,6 @@ implementation into arbitrary legal words with at most twice their original quer
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing

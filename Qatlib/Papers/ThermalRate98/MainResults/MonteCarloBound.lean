@@ -95,7 +95,6 @@ unbiasedness for a positive number of samples.
 -/
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1600000
 noncomputable section
 open scoped BigOperators
@@ -268,6 +267,8 @@ and equal to zero when `n = 0`. -/
 def sampleMean (X : α → ℝ) (n : ℕ) (ω : Fin n → α) : ℝ :=
   (n : ℝ)⁻¹ * ∑ i, X (ω i)
 
+omit [DecidableEq α] in
+
 /-- The product weights of a finite probability distribution form a probability distribution on
 sequences of `n` outcomes. See [LidarWang1999]. -/
 theorem prodProb_isProb (p : α → ℝ) (hp : IsProb p) (n : ℕ) :
@@ -277,6 +278,8 @@ theorem prodProb_isProb (p : α → ℝ) (hp : IsProb p) (n : ℕ) :
   rw [← Fintype.piFinset_univ]
   rw [Finset.sum_prod_piFinset]
   simp [hp.2]
+
+omit [DecidableEq α] in
 
 /-- Summing a product of coordinate functions over all finite sequences factors into the product
 of their coordinate sums. See [LidarWang1999]. -/
@@ -312,8 +315,8 @@ theorem sampleMean_expect (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 <
             ∏ k, (if k = i then p (ω k) * X (ω k) else p (ω k)) := by
         intro ω
         unfold prodProb
-        rw [Finset.prod_eq_mul_prod_diff_singleton i (fun k => p (ω k)) (by simp)]
-        rw [Finset.prod_eq_mul_prod_diff_singleton i
+        rw [Finset.prod_eq_mul_prod_sdiff_singleton i (fun k => p (ω k)) (by simp)]
+        rw [Finset.prod_eq_mul_prod_sdiff_singleton i
           (fun k => if k = i then p (ω k) * X (ω k) else p (ω k)) (by simp)]
         have hdiff :
             (∏ k ∈ Finset.univ \ {i},
@@ -324,7 +327,7 @@ theorem sampleMean_expect (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 <
           have hki : k ≠ i := by simpa using hk
           simp [hki]
         rw [hdiff]
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         ring
       calc (∑ ω : Fin n → α, prodProb p n ω * X (ω i))
           = ∑ ω : Fin n → α,

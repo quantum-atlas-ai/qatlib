@@ -29,7 +29,6 @@ The expansion is the standard Pauli-basis representation of operators discussed 
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Matrix

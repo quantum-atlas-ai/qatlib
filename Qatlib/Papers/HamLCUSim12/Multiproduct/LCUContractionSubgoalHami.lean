@@ -23,8 +23,6 @@ constructions of [ChildsWiebe2012].
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct

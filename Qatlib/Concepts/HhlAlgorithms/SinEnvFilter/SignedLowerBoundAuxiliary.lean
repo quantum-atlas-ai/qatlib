@@ -29,7 +29,6 @@ then expresses target-state separation in terms of the Hamming distance `q86Ham`
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring

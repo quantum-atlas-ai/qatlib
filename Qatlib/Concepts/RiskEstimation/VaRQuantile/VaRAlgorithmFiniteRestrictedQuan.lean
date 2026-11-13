@@ -42,7 +42,6 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open Matrix
 open scoped Classical BigOperators ENNReal
-set_option warningAsError false
 set_option autoImplicit false
 
 /-- The cumulative risk probability is nondecreasing along valid indices of a sorted threshold

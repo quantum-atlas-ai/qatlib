@@ -28,7 +28,6 @@ These formulas support the clocked analysis of minimum finding [DurrHoyer1996].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AmplitudeSearch.Amplification
 open Qatlib.Concepts.AmplitudeSearch.Amplification.Experiment
 open Qatlib.Concepts.AmplitudeSearch.Amplification.RankedCallLaw

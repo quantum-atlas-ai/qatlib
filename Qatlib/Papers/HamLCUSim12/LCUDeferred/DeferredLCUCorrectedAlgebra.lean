@@ -33,7 +33,6 @@ conditions ensuring that the control bits are preserved.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.PureStateMath

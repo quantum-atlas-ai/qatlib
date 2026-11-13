@@ -28,8 +28,6 @@ has distinct neighbors when the port modulus is nonzero. See [DurrMhallaLei2003]
 * [Durr et al., 2003][DurrMhallaLei2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section

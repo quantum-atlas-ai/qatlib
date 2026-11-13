@@ -33,7 +33,6 @@ completion results used in quantum signal processing. See [GilyenSuLowWiebe2019]
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.QsvtCore.PolyApprox
 

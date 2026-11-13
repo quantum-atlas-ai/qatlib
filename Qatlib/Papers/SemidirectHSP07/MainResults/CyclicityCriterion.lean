@@ -35,10 +35,7 @@ stated sufficient conditions.
 * [Cosme and Portugal, 2007][CosmePortugal2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 open scoped IsMulCommutative
@@ -88,16 +85,16 @@ theorem not_isCyclic_of_Hx_ne_bot_of_Hy_ne_bot (p r : ℕ) (hp : p.Prime)
     (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (H : Subgroup (SDG p r φ))
     (hHx : Hx p r φ H ≠ ⊥) (hHy : Hy p r φ H ≠ ⊥) : ¬ IsCyclic H := by
   intro hcyc
-  haveI hcycI : IsCyclic H := hcyc
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI hnzr : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
-  haveI hnz2 : NeZero (p ^ 2) := ⟨pow_ne_zero _ hp.ne_zero⟩
-  haveI hGfin : Finite (SDG p r φ) :=
+  have hcycI : IsCyclic H := hcyc
+  have : Fact p.Prime := ⟨hp⟩
+  have hnzr : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  have hnz2 : NeZero (p ^ 2) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  have hGfin : Finite (SDG p r φ) :=
     Nat.finite_of_card_ne_zero (by
       rw [card_SDG_prime_pow p r hp φ]
       exact pow_ne_zero _ hp.ne_zero)
-  haveI hpgG : IsPGroup p (SDG p r φ) := isPGroup_SDG p r hp φ
-  haveI hpgH : IsPGroup p H := hpgG.to_subgroup H
+  have hpgG : IsPGroup p (SDG p r φ) := isPGroup_SDG p r hp φ
+  have hpgH : IsPGroup p H := hpgG.to_subgroup H
   set A : Subgroup H := HxIn p r φ H with hAdef
   set B : Subgroup H := HyIn p r φ H with hBdef
   have hA_ne : A ≠ ⊥ := by
@@ -236,7 +233,7 @@ cyclic factor is trivial [CosmePortugal2007]. -/
 theorem cyclic_of_HxGen_eq (p r : ℕ) (hp : p.Prime)
     (φ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) (H : Subgroup (SDG p r φ))
     (hHx : Hx p r φ H = ⊥) : IsCyclic H := by
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
   exact cyclic_of_Hx_eq_bot p r φ H hHx
 
 end Qatlib.Papers.SemidirectHSP07.MainResults

@@ -31,8 +31,6 @@ For background on classical computation and resource bounds, see [KitaevShenVyal
 * [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators
 

@@ -28,13 +28,14 @@ Source statement: using `O(log(m/p_e) h_precision⁻²)` copies of `ρ` and time
 Encoded here: a finite probability law over `m`-tuples of estimates such that the
 event "every estimate is within `h` of `tr(Aᵢρ)`" has mass at least `1 − p_e`,
 with the `m`-fold copy and oracle-time budgets (explicit constant `8`, `4` inside
-the logarithm, matching the Frozen `ExpectationEstimationBudget`).  The law is
-again the Frozen exact-expectation law of
-`QuantumAlgorithm.Concepts.RationalScan.Step2Scan.expectationClause_valid`.
+the logarithm, matching the library's `ExpectationEstimationBudget`).  The law is
+the library's exact-expectation law of
+`Qatlib.Concepts.RationalScan.Step2Scan.expectationClause_valid`.
 
-Not encoded: the oracle `O[h]` as a quantum channel
-`∑ cᵢ|i⟩ ↦ ∑ cᵢ|i, eᵢ⟩`, its phase-estimation/Chernoff implementation, and the
-sparsity structure of the `Aᵢ` (only `s` is used).
+Scope note: this module formalizes the estimate law and budgets. The oracle
+`O[h]` as a quantum channel `∑ cᵢ|i⟩ ↦ ∑ cᵢ|i, eᵢ⟩`, its
+phase-estimation/Chernoff implementation, and the sparsity structure of the
+`Aᵢ` are outside its scope; only the parameter `s` is used.
 -/
 
 set_option autoImplicit false
@@ -68,7 +69,7 @@ theorem lemma13_oracleImplementation (n m s : ℕ) (A : Fin m → Operator n) (�
     expectationClause_valid n m A (A ⟨0, hm⟩) ρ n s h p_e hn hn hm hs hh hp hp1
       hρ hA (hA ⟨0, hm⟩)
   refine ⟨Ω, w, estA, copiesO, oracle, hΩ, hlaw, ?_, ?_, ?_⟩
-  · -- The Frozen conjunction implies the all-`m` estimate event.
+  · -- The conjunction implies the all-`m` estimate event.
     have hmono :
         eventProb w (fun ω => (∀ i : Fin m,
             |estA ω i - (Matrix.trace (A i * ρ)).re| ≤ h) ∧

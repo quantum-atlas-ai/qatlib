@@ -35,8 +35,6 @@ records queries, gates, measurements, and message bits for each valid history.
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
-
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 

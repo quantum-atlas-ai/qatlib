@@ -59,15 +59,15 @@ def uniform_mcmi_decay {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- then gives `H_σ(A:C|D) ≤ 4 min{|A|,|C|} Δ e^{-μ dist(A,C)}`, and
   -- `min{|A|,|C|} ≤ |Λ|`, so the claim holds with `ξ = 1/μ` and
   -- `K = 4Δ`.
-  -- Lean gap: only the interface predicate `IsStrongLocalEffectiveHamiltonian`
+  -- Scope note: only the interface predicate `IsStrongLocalEffectiveHamiltonian`
   -- is available; the derivation of its existence from `(κ,r)`-locality,
   -- `J`-boundedness and growth constant `g` (cluster expansion of
-  -- [BluhmCapelPerezHernandez2024]) is far outside the imported API, and the matrix-level MCMI is
+  -- [BluhmCapelPerezHernandez2024]) is outside this file's scope, and the matrix-level MCMI is
   -- an interface datum.
-  -- Candidate reusable dependencies: `mcmi_decay_from_effective_hamiltonian`
+  -- Related result: `mcmi_decay_from_effective_hamiltonian`
   -- (Lemma D.1 below), `Finset.card_le_univ`, `Real.exp_pos`.
-  -- Suggested continuation: instantiate Lemma D.1 with `μ` and `Δ` and bound
-  -- `4 * min |A| |C| * Δ ≤ 4 * |Λ| * Δ` using `Finset.card_le_univ`.
+  -- The cardinality estimate in this application of Lemma D.1 is
+  -- `4 * min |A| |C| * Δ ≤ 4 * |Λ| * Δ`, using `Finset.card_le_univ`.
 
 /-- **Lemma D.1 (MCMI-decay from locality of the effective Hamiltonian)**,
 arXiv:2412.01732v1 p.46, eq. (73). Assume a strong effective Hamiltonian for
@@ -89,17 +89,17 @@ def mcmi_decay_from_effective_hamiltonian {Λ : Type} [Fintype Λ] [DecidableEq 
   --           ≤ 4 |A| Δ e^{-μ dist(A,C)}`,
   -- using `dist(A,C) ≤ diam(X)` whenever `X` meets both `A` and `C`, and
   -- symmetry to replace `|A|` by `min{|A|,|C|}`.
-  -- Lean gap: the inequality `setDistOf dist A C ≤ (X.card : ℝ)` (diameter
+  -- Scope note: the inequality `setDistOf dist A C ≤ (X.card : ℝ)` (diameter
   -- bound for a set meeting both `A` and `C`) and the counting estimate
   -- `∑_{X : X∩A≠∅, X∩C≠∅} ... ≤ 4 ∑_{x∈A} ∑_{X∋x} ...` are not formalised;
   -- the MCMI reconstruction and bound are assumptions (`hdiff`, `hbound`).
-  -- Candidate reusable dependencies: `Finset.sum_le_sum`,
+  -- Related inequalities and hypotheses: `Finset.sum_le_sum`,
   -- `Finset.sum_comm`, `Finset.sum_const`, `Real.exp_le_exp`,
   -- `Finset.card_le_card`, `hEff.1`, `hEff.2.1`, `hEff.2.2`.
-  -- Suggested continuation: prove the `X`-wise inequality
-  -- `|h̃^{ACD}_X + h̃^D_X − h̃^{AD}_X − h̃^{CD}_X| ≤ 4 max ...` and sum with
-  -- `Finset.sum_le_sum`, then extract `4 * min A.card C.card * Δ` from the
-  -- interaction-norm bound by summing over `x ∈ A` (or `x ∈ C`).
+  -- Termwise, the triangle inequality gives
+  -- `|h̃^{ACD}_X + h̃^D_X − h̃^{AD}_X − h̃^{CD}_X| ≤ 4 max ...`.
+  -- Summing this inequality and the interaction-norm bound over `x ∈ A`
+  -- (or `x ∈ C`) gives the factor `4 * min A.card C.card * Δ`.
 
 /-- **Theorem D.2 (MCMI decay for marginal commuting systems at high
 temperature)**, arXiv:2412.01732v1 p.47. Let `H_Λ` be marginal commuting
@@ -126,15 +126,15 @@ def mcmi_decay_marginal_commuting {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- commutativity ([BluhmCapelPerezHernandez2024, Theorem 3.8]) this yields a strong effective
   -- Hamiltonian with `H̃^{A}_{μ_ε} ≤ 1` for every `A`, i.e. `Δ = 1`; Lemma D.1
   -- then gives the bound with decay `μ = (1/r) log(1/(gκ(1+κg)e^{1/2}gJβ))`.
-  -- Lean gap: marginal commutativity of the Hamiltonian, the [BluhmCapelPerezHernandez2024]
+  -- Scope note: marginal commutativity of the Hamiltonian, the [BluhmCapelPerezHernandez2024]
   -- cluster-expansion theorem producing the strong effective Hamiltonian, and
   -- the matrix-level MCMI are all outside the formalised API; we record the
   -- existence of the strong effective Hamiltonian with `Δ = 1` as hypothesis
   -- `hEff`, which is exactly the conclusion of the [BluhmCapelPerezHernandez2024, Theorem 3.8]
   -- step.
-  -- Candidate reusable dependencies: `mcmi_decay_from_effective_hamiltonian`;
+  -- Related result: `mcmi_decay_from_effective_hamiltonian`;
   -- `Real.log_pos`, `Real.exp_pos`, `div_pos`, `one_div`.
-  -- Suggested continuation: instantiate Lemma D.1 with `Δ = 1` and the stated
-  -- `μ`, then simplify `4 * min A.card C.card * 1`.
+  -- This is the application of Lemma D.1 with `Δ = 1` and the stated `μ`;
+  -- the prefactor simplifies from `4 * min A.card C.card * 1`.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.Mcmi

@@ -25,8 +25,6 @@ Proves the inclusions `NISQ ⊆ NBQP ⊆ BQP` for the algorithm predicates defin
 * [Cotler et al., 2025][CotlerGongKannan2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

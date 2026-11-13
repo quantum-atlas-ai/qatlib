@@ -23,8 +23,6 @@ quantum walk spectral framework is developed in [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
-
 open Matrix
 
 open Qatlib.Foundations.PureStateMath

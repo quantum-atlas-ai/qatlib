@@ -32,7 +32,6 @@ one of its convergents.
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -42,7 +41,6 @@ open Qatlib.Concepts.AmpTransform.FullLayerCF
 open Qatlib.Concepts.AmpTransform.LegendreWindow
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 

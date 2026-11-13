@@ -20,13 +20,10 @@ SDP (1)--(2), the polytopes `P_ε(X)` and `P̃(ã, c')`, dual oracles and their
 width, the soft-O convention, and the abstract circuit/solver interfaces used
 by the paper-layer statements.
 
-The algorithmic statements in this paper quantify over quantum circuits and
-their query/gate counts.  This interface records the paper-level contract:
-an implementation is represented by the observable data used in the paper's
-statements (the flag amplitude, the block matrix, the query and gate counts),
-not by a full circuit semantics.  Where Frozen v2.0.2 already proves a
-concrete circuit theorem, the individual claim files name that FQN in the
-docstring as the candidate refinement target.
+The records below pair mathematical outputs with independent resource annotations.
+They contain no execution relation, query transcript, or gate decomposition and
+therefore cannot certify algorithmic complexity. Unimplemented algorithm headlines
+are recorded as `_statement : Prop` definitions, not existence theorems.
 -/
 
 set_option autoImplicit false
@@ -37,6 +34,9 @@ namespace Qatlib.Papers.QSDPsolver17.MainResults
 open Matrix
 
 /-! ## Asymptotic conventions -/
+
+/-! These legacy predicates quantify constants at a single input. They do not
+express uniform asymptotic bounds for a family of executions. -/
 
 /-- `O(g)` for concrete nonnegative cost functions, with an explicit constant. -/
 def BigOAt (cost bound : ℝ) : Prop := ∃ C : ℝ, 0 < C ∧ cost ≤ C * bound
@@ -202,8 +202,9 @@ def WidthBound {n m : ℕ} (P : SdpData n m) (O : DualOracle n m)
 
 /-! ## Algorithm interfaces -/
 
-/-- A quantum SDP solver: output on instance data at precision `ε`, together
-with its success probability and resource counts (paper Theorem 1). -/
+/-- Legacy output and resource specification for paper Theorem 1.
+The probability and cost annotations are independent of `output`; this is not
+an implementation certificate. -/
 structure QuantumSdpSolver where
   output : ∀ {n m : ℕ}, SdpData n m → ℝ → (Fin m → ℝ)
   successProb : ∀ {n m : ℕ}, SdpData n m → ℝ → ℝ
@@ -219,17 +220,17 @@ structure AmplitudeEstimator where
   usesU : ℝ → ℝ → ℝ
   gateCount : ℕ → ℝ → ℝ → ℝ
 
-/-- A flag-circuit implementation: `block` is the paper's compressed operator
+/-- A flag-circuit specification: `block` is the paper's compressed operator
 `(⟨0| ⊗ I) Ũ (|0⟩ ⊗ I)` (or the corresponding prepared probability when
 `prob` is used), with query and gate counts.  Used for Lemmas 11/13 and the
-smooth-function implementations. -/
+smooth-function specifications. No circuit execution is included. -/
 structure FlagCircuit (n : ℕ) where
   block : Matrix (Fin n) (Fin n) ℂ
   queries : ℝ
   gates : ℝ
 
-/-- A flag circuit specified by the prepared probability `‖(⟨0|⊗I) Ũ |0…0⟩‖²`
-(paper Lemma 9/11/13 statements), with resources. -/
+/-- Proposed flag probability and independent resource annotations
+(paper Lemma 9/11/13 statements). No probability law or circuit is certified. -/
 structure ProbabilityCircuit where
   prob : ℝ
   queries : ℝ

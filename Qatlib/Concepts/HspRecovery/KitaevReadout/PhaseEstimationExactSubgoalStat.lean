@@ -24,8 +24,6 @@ import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Matrix
 
 open Qatlib.Foundations.PureStateMath

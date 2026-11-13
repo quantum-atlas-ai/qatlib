@@ -30,7 +30,6 @@ discussed in [GroverRudolph2002].
 * [Grover and Rudolph, 2002][GroverRudolph2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw

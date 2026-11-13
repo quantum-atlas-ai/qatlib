@@ -31,7 +31,6 @@ of finite-window transitions. The background is described in [Yao1993].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

@@ -49,7 +49,6 @@ noncomputable section
 open Matrix Qatlib.Concepts.RationalScan.Step2Scan
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
-set_option warningAsError false
 
 /-- The sampled width equals the exact width plus the bridge slack. -/
 theorem widthSampled_eq (α R ε : ℝ) :

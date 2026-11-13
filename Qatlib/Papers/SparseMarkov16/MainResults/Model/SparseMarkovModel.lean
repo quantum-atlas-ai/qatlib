@@ -40,13 +40,12 @@ This module fixes the objects used by the paper-layer statements:
   (as a state-level power series, matching the Frozen `lindbladSemigroup`
   convention) and the second-order product formula of Proposition 2.
 
-The gate/query counts recorded by the algorithmic theorems are integer resource
-ledgers (the paper's resource formulas); a gate-synthesis semantics for
-arbitrary global gates is outside this layer, exactly as for the Frozen
-`Circuit` model.  Where a statement depends on a construction that is not
-formalized here, this is recorded on the corresponding claim.
-
-No axiom, `admit`, `unsafe`, or `native_decide` is introduced.
+This checkout supplies a model file, not simulation upper-bound theorems.
+`SparseSimProgram` is a legacy unverified ledger. `SparseProgramImplementation`
+ties it to a step list interpreted in a supplied primitive catalog. Composition
+and query bounds below are conditional on that catalog and implementation data;
+physical gate synthesis and the paper's quantum algorithms are not constructed.
+The separate decision-tree models constrain oracle dependence and query depth.
 -/
 
 set_option autoImplicit false
@@ -64,7 +63,8 @@ namespace Qatlib.Papers.SparseMarkov16.MainResults.Model
 /-- The paper's `Operator N`: complex `N × N` matrices (the Frozen `Operator`). -/
 abbrev Op (N : ℕ) := Operator N
 
-/-- Asymptotic bound `f = O(g)`: `f ≤ C g` for a positive constant `C`. -/
+/-- Pointwise comparison `f ≤ C g` for some positive multiplier. Uniform
+asymptotic bounds require quantifying `C` before all varying parameters. -/
 def BigO (f g : ℝ) : Prop :=
   ∃ C : ℝ, 0 < C ∧ f ≤ C * g
 
@@ -249,23 +249,87 @@ def SuperoperatorDiamondNormEq {N : ℕ} (c : ℝ) (F : Op N → Op N) : Prop :=
     (∃ (r : ℕ) (X : Matrix (Fin N × Fin r) (Fin N × Fin r) ℂ),
       Matrix.traceNorm X = 1 ∧ c ≤ Matrix.traceNorm (tensorImage F r X))
 
-/-- A simulation program: the operation it realizes together with the paper's
-gate and black-box query ledgers.  `realizes` is the operation induced by the
-gate sequence described in the source proof; the gate-synthesis semantics of
-arbitrary global gates is not part of this layer. -/
+/-- Legacy operation and independent resource annotations. This record alone does
+not certify a program. Use `SparseProgramImplementation` to tie all three fields
+to a step sequence in a supplied primitive catalog. -/
 structure SparseSimProgram (N : ℕ) where
-  /-- The operation realized by the program. -/
+  /-- Annotated operation, unverified until an implementation is supplied. -/
   realizes : Op N → Op N
-  /-- Number of two-qubit gates. -/
+  /-- Annotated two-qubit gate count. -/
   gateCount : ℕ
-  /-- Number of black-box queries. -/
+  /-- Annotated black-box query count. -/
   queryCount : ℕ
 
-/-- Constant black-box query overhead: the program for a combined generator
-issues at most `C` times as many queries as the programs for its parts. -/
+/-- A numerical comparison of legacy counters. An operational overhead claim
+additionally requires implementations of the combined program and its parts. -/
 def ConstantQueryOverhead {N : ℕ} (C : ℝ) (P : SparseSimProgram N)
     (parts : List (SparseSimProgram N)) : Prop :=
   (P.queryCount : ℝ) ≤ C * (parts.map (fun Q => (Q.queryCount : ℝ))).sum
+
+/-- A call to a named primitive: `true` denotes an oracle query, `false` a gate.
+Catalog entries and their physical validity are supplied hypotheses. -/
+abbrev SparseStep := Bool × ℕ
+
+/-- The number of calls of the indicated kind in a step list. -/
+def sparseStepCount (query : Bool) (w : List SparseStep) : ℕ :=
+  (w.filter (fun s => s.1 = query)).length
+
+/-- Execute calls in list order. No operation is attached to an empty list. -/
+def sparseEval {N : ℕ} (primitive : SparseStep → Op N → Op N)
+    (w : List SparseStep) (ρ : Op N) : Op N :=
+  w.foldl (fun σ s => primitive s σ) ρ
+
+/-- Conditional implementation certificate: semantics and both counters come from
+the same list. Physical oracle/gate realizations of `primitive` are assumed. -/
+structure SparseProgramImplementation {N : ℕ}
+    (primitive : SparseStep → Op N → Op N) (P : SparseSimProgram N) where
+  steps : List SparseStep
+  evaluates : P.realizes = sparseEval primitive steps
+  gates_eq : P.gateCount = sparseStepCount false steps
+  queries_eq : P.queryCount = sparseStepCount true steps
+
+/-- Concatenation executes the second supplied sequence after the first. -/
+theorem sparseEval_append {N : ℕ} (primitive : SparseStep → Op N → Op N)
+    (u v : List SparseStep) (ρ : Op N) :
+    sparseEval primitive (u ++ v) ρ = sparseEval primitive v (sparseEval primitive u ρ) := by
+  simp [sparseEval, List.foldl_append]
+
+/-- Counts add under actual sequence concatenation. -/
+theorem sparseStepCount_append (query : Bool) (u v : List SparseStep) :
+    sparseStepCount query (u ++ v) = sparseStepCount query u + sparseStepCount query v := by
+  simp [sparseStepCount]
+
+/-- An operational bound follows from an implementation and a bound on the calls
+in its supplied step list. This does not construct a simulation algorithm. -/
+theorem query_bound_of_implementation {N : ℕ}
+    {primitive : SparseStep → Op N → Op N} {P : SparseSimProgram N}
+    (I : SparseProgramImplementation primitive P) {q : ℕ}
+    (h : sparseStepCount true I.steps ≤ q) : P.queryCount ≤ q := by
+  rw [I.queries_eq]
+  exact h
+
+/-- Sequential composition of ledger annotations. Its operational interpretation
+requires implementations of both operands, as in `compose_implementation`. -/
+def composeSparsePrograms {N : ℕ} (P Q : SparseSimProgram N) : SparseSimProgram N where
+  realizes := Q.realizes ∘ P.realizes
+  gateCount := P.gateCount + Q.gateCount
+  queryCount := P.queryCount + Q.queryCount
+
+/-- Two supplied implementations compose by concatenating their actual call lists.
+Both resource counts add; no target operation is installed as an output witness. -/
+def compose_implementation {N : ℕ} {primitive : SparseStep → Op N → Op N}
+    {P Q : SparseSimProgram N}
+    (I : SparseProgramImplementation primitive P)
+    (J : SparseProgramImplementation primitive Q) :
+    SparseProgramImplementation primitive (composeSparsePrograms P Q) where
+  steps := I.steps ++ J.steps
+  evaluates := by
+    funext ρ
+    simp [composeSparsePrograms, I.evaluates, J.evaluates, sparseEval_append]
+  gates_eq := by
+    simp [composeSparsePrograms, sparseStepCount_append, I.gates_eq, J.gates_eq]
+  queries_eq := by
+    simp [composeSparsePrograms, sparseStepCount_append, I.queries_eq, J.queries_eq]
 
 /-! ## Decision-tree query models for Theorem 10 -/
 

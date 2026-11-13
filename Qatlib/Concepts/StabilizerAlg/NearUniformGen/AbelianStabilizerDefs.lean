@@ -34,7 +34,6 @@ Boolean-observation bisection process. For background, see [Kitaev1995].
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.AbelianSampling
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds

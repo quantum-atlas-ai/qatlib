@@ -30,7 +30,6 @@ Hermiticity, and unitarity for the modified scheduled evolution.
 * [Farhi et al., 2002][FarhiGoldstoneGutmann2002a]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

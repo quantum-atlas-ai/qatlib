@@ -74,7 +74,6 @@ open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib
 open Qatlib
-set_option warningAsError false
 
 /-- The coefficient-weighted polynomial Lipschitz bound is nonnegative. -/
 theorem polynomialLipschitzWeight_nonneg (p : Polynomial ℝ) :

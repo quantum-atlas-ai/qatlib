@@ -33,7 +33,6 @@ quadratic estimate for the parameter `2 * p + 2` is conditional on the propositi
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

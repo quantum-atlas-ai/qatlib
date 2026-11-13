@@ -32,7 +32,6 @@ the qubit protocol of [BennettEtAl1993Teleportation].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -47,8 +46,6 @@ namespace Qatlib.Concepts.QuditTeleport.TeleportCore
 
 open Matrix
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 /-- Relabeling matrix indices preserves addition. -/
 theorem relabelGate_add' {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]

@@ -21,8 +21,6 @@ The candidate-search framework is related to the quantum graph algorithms survey
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- The subgraph candidate-search proposition `theorem5WalkCorrected`, with least-power subset

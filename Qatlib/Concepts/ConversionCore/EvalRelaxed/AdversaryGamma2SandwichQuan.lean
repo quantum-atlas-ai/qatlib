@@ -26,7 +26,6 @@ The mathematical context is discussed in [LeeEtAl2011].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 open Qatlib.Concepts.GramQueryCore.GammaDuality

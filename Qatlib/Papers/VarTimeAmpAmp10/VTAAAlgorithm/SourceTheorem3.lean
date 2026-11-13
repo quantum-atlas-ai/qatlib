@@ -23,7 +23,7 @@ for time `T` can be simulated in time `C·min(T,1)`.  Then we can generate
   `O(C·κ·log³(κ/ε)/ε³ · log²(1/ε))`.
 
 The frozen library proves this endpoint as
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.VTAAAlgorithm.clause66`: for every QLS
+`Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.clause66`: for every QLS
 input there is one paid two-slot program whose readout has success mass above
 `1/2`, whose output state is within trace distance `ε` of the normalized
 pseudo-inverse solution, and whose charged unit-price access time is at most
@@ -63,7 +63,7 @@ success mass `> 1/2` on the readout, whose output state is within trace-norm
 is at most `K·qlsThm3Cost Csim κ ε = K·Csim·κ·log³(κ/ε)/ε³·log²(1/ε)`.
 
 Reused frozen result:
-`QuantumAlgorithm.Papers.VarTimeAmpAmp10.VTAAAlgorithm.clause66` (with its
+`Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.clause66` (with its
 `UniqueEstData` block; only the source-visible success/error/cost conclusions
 are kept here). -/
 theorem source_theorem3 :

@@ -34,9 +34,9 @@ The proof identifies the paper's word `∏_k [e^{iφ_k|A₀⟩⟨A₀|} · U]` w
 library alternating product `phasedAlternating` (the final frame phase of that
 product is the identity and drops out against `|B₀⟩`), then applies the forward
 QSVT identity
-`QuantumAlgorithm.Concepts.CoherentSim.CoherentOAA.qsvt_odd` at the rank-one
+`Qatlib.Concepts.CoherentSim.CoherentOAA.qsvt_odd` at the rank-one
 encoding `!![a]`, and finally reads off the Theorem 1 conditions from
-`QuantumAlgorithm.Papers.QSingValue19.PhaseExistence.PhaseSynthesis.completedPair_response`.
+`Qatlib.Papers.QSingValue19.PhaseExistence.PhaseSynthesis.completedPair_response`.
 
 Boundary: matrix-level amplitude identity for a supplied legal phase table and
 the two-dimensional Bloch model; no state preparation, no approximation of the

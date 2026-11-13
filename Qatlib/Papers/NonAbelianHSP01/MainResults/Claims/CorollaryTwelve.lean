@@ -9,50 +9,42 @@ import Qatlib.Papers.NonAbelianHSP01.MainResults.CommutatorExtraSpecial
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
 
 /-!
-# Extra-special hidden-subgroup reduction
+# Algebraic specialization of hidden-subgroup reconstruction
 
-Specializes the supplied-generator reduction to `IsExtraSpecial p G`. The result
-`corollary_twelve` combines the center-cardinality and commutative-quotient facts with a
-hidden-subgroup solution whose ledger satisfies `PolyBoundedIn B p`. See
-[IvanyosMagniezSantha2003] for the surrounding analysis.
-
-## Main statements
-
-* `corollary_twelve`: Given the stated generators, lifts into `I.H`, and ledger bound for an
-  extra-special group, the center has cardinality `p`, the quotient by the commutator is
-  commutative, and a hidden-subgroup solution exists with cost satisfying `PolyBoundedIn B p`.
-
-## References
-
-* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+The result below reconstructs a generating set from supplied generators and
+lifts. It provides no oracle implementation and assigns no execution cost.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
 open scoped IsMulCommutative
 
-/-- Given the stated generators, lifts into `I.H`, and ledger bound for an extra-special group,
-the center has cardinality `p`, the quotient by the commutator is commutative, and a
-hidden-subgroup solution exists with cost satisfying `PolyBoundedIn B p`
-[IvanyosMagniezSantha2003]. -/
-theorem corollary_twelve {G : Type*} [Group G] (B : BlackBoxGroupData G) {p : ℕ}
+/-- **Statement only — not proved in Qatlib.**
+Legacy ledger-level output target for Corollary 12. No oracle program is
+specified by this predicate. The separate theorem below proves only the
+group identities and reconstruction from supplied generators and lifts. -/
+def corollary_twelve_statement {G : Type*} [Group G] (B : BlackBoxGroupData G) {p : ℕ}
+    (_hp : IsExtraSpecial p G) {X : Type*} (I : HiddenSubgroupInstance G X)
+    (S : Finset G) (_hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)
+    (T : Finset G) (_hT : Subgroup.closure (T : Set G) = I.H ⊓ commutator G)
+    (u : G → G) (_hu_mem : ∀ x ∈ (S : Set G), u x ∈ I.H)
+    (_hu_eq : ∀ x ∈ (S : Set G), ∃ n ∈ commutator G, u x * n = x)
+    (costS : CostLedger) (_hcost : PolyBoundedIn B p costS) : Prop :=
+    (Nat.card (Subgroup.center G) = p ∧ IsMulCommutative (G ⧸ commutator G)) ∧
+      ∃ s : HiddenSubgroupSolution B I, PolyBoundedIn B p s.cost
+
+/-- Algebraic reconstruction from supplied data, without a complexity claim. -/
+theorem corollary_twelve_algebraic {G : Type*} [Group G] (_B : BlackBoxGroupData G) {p : ℕ}
     (hp : IsExtraSpecial p G) {X : Type*} (I : HiddenSubgroupInstance G X)
     (S : Finset G) (hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)
     (T : Finset G) (hT : Subgroup.closure (T : Set G) = I.H ⊓ commutator G)
     (u : G → G) (hu_mem : ∀ x ∈ (S : Set G), u x ∈ I.H)
     (hu_eq : ∀ x ∈ (S : Set G), ∃ n ∈ commutator G, u x * n = x)
-    (costS : CostLedger) (hcost : PolyBoundedIn B p costS) :
-    (Nat.card (Subgroup.center G) = p ∧ IsMulCommutative (G ⧸ commutator G)) ∧
-      ∃ s : HiddenSubgroupSolution B I, PolyBoundedIn B p s.cost := by
-  have hcard : Nat.card (commutator G) = p := hp.card_commutator
-  obtain ⟨s, hs⟩ :=
-    theorem_eleven_reduction (G := G) B I S hS T hT u hu_mem hu_eq costS
-      (hcard.symm ▸ hcost)
-  exact ⟨⟨hp.card_center, hp.quotient_commutative⟩, ⟨s, by simpa only [hcard] using hs⟩⟩
+    : (Nat.card (Subgroup.center G) = p ∧ IsMulCommutative (G ⧸ commutator G)) ∧
+      ∃ R : Finset G, Subgroup.closure (R : Set G) = I.H := by
+  exact ⟨⟨hp.card_center, hp.quotient_commutative⟩,
+    theorem_eleven_reduction_generators I S hS T hT u hu_mem hu_eq⟩
 
 end Qatlib.Papers.NonAbelianHSP01.MainResults.Claims

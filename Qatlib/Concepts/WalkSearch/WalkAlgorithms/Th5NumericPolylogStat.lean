@@ -20,8 +20,6 @@ This isolates a numerical aspect of the quantum search bounds surveyed in [Ambai
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 /-- The proposition that `hAlg` has a uniform cost bound proportional to n^(2 - 2/k) with a

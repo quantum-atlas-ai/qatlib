@@ -14,6 +14,12 @@ Its success probability averages a correctness indicator over that space; monoto
 deterministic mapping, and optional postprocessing preserve the three-quarter Monte Carlo
 correctness threshold when the supplied predicates are respected.
 
+The stored cost alone is unverified. `CoinImplementation` relates runs and costs
+to supplied primitive-step semantics. The legacy `map` and `bind` are semantic
+maps only and do not charge postprocessing; `mapCosted` and `bindCosted` add an
+explicit postprocessing budget. Proving that budget bounds an implementation
+remains a separate obligation.
+
 This development forms part of the formalization of [Kedlaya2006].
 
 ## Main statements
@@ -29,8 +35,6 @@ This development forms part of the formalization of [Kedlaya2006].
 
 * [Kedlaya, 2006][Kedlaya2006]
 -/
-
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
@@ -55,6 +59,51 @@ structure CoinAlgo (α : Type*) where
   cost : ℕ
 
 attribute [instance] CoinAlgo.instFintype CoinAlgo.instDecEq
+
+/-- Execution contract relative to a fixed primitive instruction semantics.
+Initialization and decoding are supplied by the machine model; their costs must
+be included in that model when interpreting a physical runtime claim. -/
+structure CoinImplementation {α : Type*} (A : CoinAlgo α)
+    (State Step : Type*) (initial : A.Coin → State)
+    (step : State → Step → State) (decode : State → Option α) where
+  program : List Step
+  run_eq : ∀ c, A.run c = decode (program.foldl step (initial c))
+  cost_eq : A.cost = program.length
+
+/-- Supplied implementation of optional postprocessing. Each instruction is one
+charged primitive call; physical costs of initialization, decoding and primitives
+belong to the external machine model. No such implementation is constructed here. -/
+structure PostprocessingContract {α β : Type*} (f : α → Option β) (cost : ℕ) where
+  State : Type
+  Step : Type
+  initial : α → State
+  step : State → Step → State
+  decode : State → Option β
+  program : List Step
+  output_eq : ∀ x, f x = decode (program.foldl step (initial x))
+  cost_eq : cost = program.length
+
+/-- Fixed primitive machine supplied by an implementation model. A program cannot
+replace initialization or decoding. Each executed instruction costs one primitive
+call; physical initialization, decoding and instruction costs are external. -/
+structure PrimitiveMachine (Input Output : Type) where
+  Coin : Type
+  instFintype : Fintype Coin
+  instDecEq : DecidableEq Coin
+  State : Type
+  Step : Type
+  initial : Input → Coin → State
+  step : State → Step → State
+  decode : State → Option Output
+
+/-- Run a supplied program with cost equal to its executed primitive-call count. -/
+def PrimitiveMachine.algorithm {Input Output : Type} (M : PrimitiveMachine Input Output)
+    (input : Input) (program : List M.Step) : CoinAlgo Output where
+  Coin := M.Coin
+  instFintype := M.instFintype
+  instDecEq := M.instDecEq
+  run c := M.decode (program.foldl M.step (M.initial input c))
+  cost := program.length
 
 /-- The real indicator that the selected coin produces an output satisfying `good`. -/
 noncomputable def CoinAlgo.indicator {α : Type*} (A : CoinAlgo α) (good : α → Prop)
@@ -160,6 +209,17 @@ def CoinAlgo.bind {α β : Type*} (A : CoinAlgo α) (g : α → Option β) : Coi
   instDecEq := A.instDecEq
   run c := (A.run c).bind g
   cost := A.cost
+
+/-- Semantic mapping with an explicit additional cost budget. Faithfulness of
+the budget to reconstruction is an implementation hypothesis, not proved here. -/
+def CoinAlgo.mapCosted {α β : Type*} (A : CoinAlgo α) (f : α → β)
+    (postCost : ℕ) : CoinAlgo β :=
+  { A.map f with cost := A.cost + postCost }
+
+/-- Optional postprocessing with an explicit additional implementation budget. -/
+def CoinAlgo.bindCosted {α β : Type*} (A : CoinAlgo α) (f : α → Option β)
+    (postCost : ℕ) : CoinAlgo β :=
+  { A.bind f with cost := A.cost + postCost }
 
 /-- If postprocessing succeeds with a good output on every good input, a good original run
 yields a good postprocessed run. -/

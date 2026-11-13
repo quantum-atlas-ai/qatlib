@@ -34,7 +34,6 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 set_option autoImplicit false
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open scoped Classical ENNReal
-set_option warningAsError false
 
 /-- Rational bisection agrees with real bisection after casting the samples and target from the
 rationals to the reals. -/

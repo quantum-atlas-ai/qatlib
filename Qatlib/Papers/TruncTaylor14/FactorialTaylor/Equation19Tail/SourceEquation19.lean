@@ -16,14 +16,14 @@ normalization `Σ_{k≤K} ln(2)^k/k!` leaves the tail
 
 `Σ_{k=K+1}^∞ ln(2)^k / k! ≤ ε/r`.
 
-The frozen scalar tail theorem `factorialTaylor_tail` bounds every unit-interval
+The established scalar tail theorem `factorialTaylor_tail` bounds every unit-interval
 tail by twice its first omitted term,
 `Σ_{j} θ^{K+1+j}/(K+1+j)! ≤ 2 θ^{K+1}/(K+1)!` for `0 ≤ θ ≤ 1`.  Taking
 `θ = ln 2 ∈ [0,1]` gives Eq. (19) as soon as the cutoff `K` is chosen so that
 `2·ln(2)^{K+1}/(K+1)! ≤ ε/r`, which is exactly the source's "so that" clause.
 
-Frozen FQN reused:
-`QuantumAlgorithm.Papers.TruncTaylor14.FactorialTaylor.factorialTaylor_tail`.
+The tail theorem used here is
+`Qatlib.Papers.TruncTaylor14.FactorialTaylor.factorialTaylor_tail`.
 -/
 
 set_option autoImplicit false
@@ -35,7 +35,7 @@ namespace Qatlib.Papers.TruncTaylor14.FactorialTaylor.Equation19Tail
 
 open Qatlib.Concepts.CoherentSim.FactorialTaylor
 
-/-- `ln 2` lies in the unit interval, the hypothesis of the frozen tail bound. -/
+/-- `ln 2` lies in the unit interval, the hypothesis of the tail bound. -/
 theorem log_two_mem_unit_interval : 0 ≤ Real.log 2 ∧ Real.log 2 ≤ 1 := by
   constructor
   · exact Real.log_nonneg (by norm_num)

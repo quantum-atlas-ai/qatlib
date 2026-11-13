@@ -34,7 +34,6 @@ invariance under relabeling, and equivalence of the two reference-factor convent
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
 

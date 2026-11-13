@@ -31,7 +31,6 @@ such pair outside the graph.
 * [Sun, 2026][Sun2026]
 -/
 
-set_option warningAsError false
 open Qatlib.Papers.MUBCompletion26.Completion
 open Qatlib.Foundations.PureStateMath
 

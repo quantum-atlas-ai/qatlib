@@ -58,7 +58,6 @@ namespace Qatlib.Papers.QSingValue19.AlgorithmApps
 
 open Qatlib
 open scoped BigOperators Classical Matrix.Norms.L2Operator
-set_option warningAsError false
 
 section G1
 

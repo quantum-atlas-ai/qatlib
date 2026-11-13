@@ -27,7 +27,6 @@ this representation for the argument in [BhartiHaugTanggara2026].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Papers.SpacetimeLB26.BellWitness

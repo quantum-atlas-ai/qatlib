@@ -20,9 +20,9 @@ This file fixes the finite-dimensional vocabulary used by the paper-layer
 theorems of *A quantum oracle separation between QMA(2) and QMA*
 (Bostanci–Grewal–Haferkamp–Huang–Hwang–Natarajan–Nirkhe, arXiv:2609.02865v1).
 
-Everything below is a *definition* (no axioms, no `sorry`); the mathematical
-content — `Lemma 4.1`, `Lemma 4.2`, `Lemma 4.3`, and the complexity-theoretic
-statements of Section 5/6 — lives in the sibling files.
+This module contains definitions and elementary tensor and product-value lemmas.
+Sibling files prove product-value algebra and specify conditional verifier
+interfaces. No oracle separation or query implementation is proved here.
 
 ## The four-register model
 

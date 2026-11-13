@@ -35,7 +35,6 @@ force orthogonality to the opposite training family.
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.ReferenceError.DensityToRaw
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.TrotterFormula.LieStrang
@@ -51,7 +50,6 @@ noncomputable section
 namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- The composition applying a controlled-copy step for `σ` at `-θ`, followed by a
 controlled-copy step for `ρ` at `θ`. -/

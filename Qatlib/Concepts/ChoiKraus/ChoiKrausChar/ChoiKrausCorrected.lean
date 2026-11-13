@@ -24,7 +24,6 @@ predicates.
 The source results are [Choi1975] and [Kraus1971]; a textbook account is
 [Nielsen & Chuang, Chapter 8][NielsenChuang2010].
 -/
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.ChannelTheory.Stinespring

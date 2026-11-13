@@ -30,7 +30,6 @@ unitary matrix sum to one for a normalized state. This development supports the 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
 open Matrix

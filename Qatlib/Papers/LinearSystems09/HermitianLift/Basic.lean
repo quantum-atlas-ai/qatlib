@@ -23,7 +23,6 @@ least-squares and residual identities for the reduction discussed in [HarrowHass
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

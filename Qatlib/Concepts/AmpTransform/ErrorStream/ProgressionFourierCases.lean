@@ -28,9 +28,7 @@ Fourier calculations used in the amplified-transform analysis of [Cornwell2014].
 * [Cornwell, 2014][Cornwell2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

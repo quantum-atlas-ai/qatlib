@@ -62,21 +62,13 @@ def weak_entropy_factorization (mABC : Density I → Density JABC)
   -- for Schatten norms against `‖H_σ(A:C|D)‖∞`; data processing
   -- (monotonicity of relative entropy under the partial trace onto `D`) gives
   -- the sign of the remaining term.
-  -- Lean gap: (i) no matrix-level MCMI (partial traces of `CFC.log` padded by
-  -- Kronecker identities, Definition 2.2) is formalised — `mcmiNorm` is an
-  -- interface datum here; (ii) Hoelder's inequality for Schatten-p norms of
-  -- arbitrary matrices is not available in the imported Frozen API; (iii) the
-  -- marginal maps are abstract rather than the concrete `ptraceD`/`ptraceL`
-  -- composites of `Model`.
-  -- Candidate reusable dependencies:
-  -- `QuantumEntropy.dpi_ssa_partial_trace_consumers` (data processing and
-  -- strong subadditivity), `relative_entropy_density_bridge` (trace-log
-  -- formula for `relative`), `Matrix.trace_mul_le_traceNorm_mul` style
-  -- Hoelder bounds from `Mathlib.Analysis.Matrix.Normed`.
-  -- Suggested continuation: first build the concrete MCMI operator from
-  -- `CFC.log` (`QuantumAlgorithm...LindbladSemigroupModel.matrixLog`), then
-  -- prove the difference identity
-  -- `condRelABC - condRelAB - condRelBC = ⟪σ, H_σ(A:C|D)⟫` and finish with
-  -- `abs_le` + the operator-norm/Schatten-1 duality.
+  -- Scope: the matrix-level MCMI (partial traces of `CFC.log` padded by
+  -- Kronecker identities, Definition 2.2) is represented by the interface datum
+  -- `mcmiNorm`; the marginal maps are likewise abstract rather than the concrete
+  -- `ptraceD`/`ptraceL` composites of `Model`.  The analytic ingredient is
+  -- Hölder's inequality for Schatten norms.  A full proof expands the concrete
+  -- MCMI operator, establishes
+  -- `condRelABC - condRelAB - condRelBC = ⟪σ, H_σ(A:C|D)⟫`, and applies the
+  -- operator-norm/Schatten-1 duality.
 
 end Qatlib.Papers.GibbsSampling25.MainResults.Entropy

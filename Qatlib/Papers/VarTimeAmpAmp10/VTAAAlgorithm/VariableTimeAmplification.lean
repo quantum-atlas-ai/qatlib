@@ -39,13 +39,11 @@ The variable-time amplification setting is described in [Ambainis2012].
 * [Ambainis, 2012][Ambainis2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
-
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentCore.Measurement

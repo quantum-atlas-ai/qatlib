@@ -18,8 +18,7 @@ noncomputable section
 # Max-E3LIN2 instance model (source §I–§II)
 
 Farhi–Goldstone–Gutmann, *A Quantum Approximate Optimization Algorithm Applied
-to a Bounded Occurrence Constraint Problem*, fixed arXiv:1412.6062v2 (25 Jun 2015),
-PDF at `prove/assets/1412.6062.pdf`.
+to a Bounded Occurrence Constraint Problem*, fixed arXiv:1412.6062v2 (25 Jun 2015).
 
 This file fixes the paper's combinatorial object: an instance of Max-E3LIN2 on
 `n` bits with `m` equations, at most one equation per ordered triple `a < b < c`,
@@ -27,7 +26,7 @@ each equation a sign `d_abc ∈ {−1,+1}` (paper (5)–(6)); the objective valu
 string is `(1/2) Σ_abc d_abc z_a z_b z_c` (paper (6)), and the number of satisfied
 equations is `#sat`.
 
-Boundary: this models the *instance* and the objective function only; the QAOA
+Scope note: this file models the *instance* and the objective function; the QAOA
 state and the spectral computation are in `QaoaObjective`.
 -/
 

@@ -30,7 +30,6 @@ signal processing framework [LowChuang2017].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.NativeNumerics.NlfftPipeline
 open Qatlib
 

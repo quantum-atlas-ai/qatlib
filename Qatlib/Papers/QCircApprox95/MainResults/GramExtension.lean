@@ -25,7 +25,6 @@ extension principle for the approximation arguments. See [Knill1995].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

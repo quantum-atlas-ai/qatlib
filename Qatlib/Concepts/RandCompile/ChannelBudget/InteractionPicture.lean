@@ -37,14 +37,12 @@ open Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 namespace Qatlib.Concepts.RandCompile.ChannelBudget
 
 open Matrix
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The printed interaction picture cutoff equals the natural ceiling of `2 log(2 / ε) /
 log(log(2 / ε))`. -/

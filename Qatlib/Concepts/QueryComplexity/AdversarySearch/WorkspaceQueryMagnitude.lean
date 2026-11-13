@@ -29,10 +29,7 @@ and an aggregate squared deviation estimate, implementing the query magnitude me
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -82,6 +79,8 @@ noncomputable def nullQueryInputs {H : Type} [Fintype H] [DecidableEq H] :
     (C : Circuit H) (ψ : QState H) :
     nullQueryInputs (Step.query :: C) ψ = ψ :: nullQueryInputs C ψ := rfl
 
+omit [DecidableEq I] in
+
 /-- A gate tensored with the workspace identity acts separately on each fixed workspace slice of
 a state. -/
 theorem applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) ℂ)
@@ -110,6 +109,8 @@ theorem applyGate_workspaceBitOracle_mk (f : I → Bool) (ψ : QState ((I × Boo
     (i : I) (b : Bool) (w : W) :
     ApplyGate (workspaceBitOracle (W := W) f) ψ ((i, b), w) = ψ ((i, b ^^ f i), w) :=
   applyGate_workspaceBitOracle f ψ ((i, b), w)
+
+omit [DecidableEq W] in
 
 /-- For a normalized state, the masses of all workspace query fibers sum to one. -/
 theorem measureProb_sum_workspaceQueryFiber {ψ : QState ((I × Bool) × W)}
@@ -197,13 +198,13 @@ theorem workspace_single_mark_query_l2 :
       have hm : ∀ b' : Bool,
           (((i, b'), w) : (I × Bool) × W) ∈ workspaceQueryFiber (W := W) x :=
         fun b' => Finset.mem_filter.mpr ⟨Finset.mem_univ _, hi⟩
-      rw [collapse_apply, collapse_apply, if_pos (hm _), if_pos (hm _)]
+      rw [collapse_apply, collapse_apply, ite_eq_left (hm _), ite_eq_left (hm _)]
     · have hdec : decide (i = x) = false := decide_eq_false hi
       rw [hdec, Bool.xor_false]
       have hoff : ∀ b' : Bool,
           (((i, b'), w) : (I × Bool) × W) ∉ workspaceQueryFiber (W := W) x :=
         fun b' hmem => hi (Finset.mem_filter.mp hmem).2
-      rw [collapse_apply, if_neg (hoff _), sub_self, sub_self]
+      rw [collapse_apply, ite_eq_right (hoff _), sub_self, sub_self]
   rw [hdiff]
   have hsub :
       toEuclidean_fromVec

@@ -25,7 +25,6 @@ squared modulus at least 1 − 16ε.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
@@ -34,7 +33,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.QspSimulation.Achievability
 

@@ -6,7 +6,7 @@ Authors: Qatlib Contributors
 
 import Lean.Elab.Tactic.NormCast
 import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Real.StarOrdered
+import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Tactic.Ext
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
@@ -42,7 +42,6 @@ the polynomial query setting of [BealsEtAl2001].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -185,7 +184,7 @@ times some coordinate flip influence. -/
 theorem cube_nu_exists_large_influence {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (hn : 0 < n) (f : (Fin n → Bool) → ℝ) :
     ∃ i : Fin n, cubeVar n (nuWeight p n) f ≤ 2*(n : ℝ)^2*cubeInf n (nuWeight p n) f i := by
-  letI : Nonempty (Fin n) := ⟨⟨0,hn⟩⟩
+  let : Nonempty (Fin n) := ⟨⟨0,hn⟩⟩
   obtain ⟨i,_hi,hmax⟩ := Finset.exists_max_image Finset.univ
     (fun i : Fin n => cubeInf n (nuWeight p n) f i) Finset.univ_nonempty
   let M := cubeInf n (nuWeight p n) f i

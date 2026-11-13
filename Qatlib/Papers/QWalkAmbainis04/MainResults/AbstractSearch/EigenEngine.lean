@@ -104,7 +104,6 @@ open Matrix
 open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch.Eigen
@@ -140,6 +139,8 @@ def wPrime (β : ι → ℝ) (ψ : ι → ℂ) (α : ℝ) : ι → ℂ :=
 def omega (β : ι → ℝ) (ψ : ι → ℂ) (α : ℝ) : ι → ℂ :=
   ψ + Complex.I • wPrime β ψ α
 
+omit [DecidableEq ι] in
+
 /-- The `i`th coordinate of `rankOne p p *ᵥ v` equals `p i * inner p v`. -/
 lemma rankOne_mulVec (p v : ι → ℂ) (i : ι) :
     (rankOne p p *ᵥ v) i = p i * inner p v := by
@@ -174,13 +175,19 @@ lemma walkM_mulVec (β : ι → ℝ) (ψ v : ι → ℂ) (i : ι) :
   rw [walkM, ← Matrix.mulVec_mulVec, reflM_mulVec, diagM_mulVec]
   simp [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, mul_sub]
 
+omit [DecidableEq ι] in
+
 /-- The inner product distributes over addition in its second argument. -/
 lemma inner_add_right (u v w : ι → ℂ) : inner u (v + w) = inner u v + inner u w := by
   simp only [inner, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+omit [DecidableEq ι] in
+
 /-- The inner product distributes over addition in its first argument. -/
 lemma inner_add_left (u v w : ι → ℂ) : inner (u + v) w = inner u w + inner v w := by
   simp only [inner, Pi.add_apply, star_add, add_mul, Finset.sum_add_distrib]
+
+omit [DecidableEq ι] in
 
 /-- Scaling the second argument by a complex scalar scales the inner product by that scalar. -/
 lemma inner_smul_right (u w : ι → ℂ) (c : ℂ) : inner u (c • w) = c * inner u w := by
@@ -193,6 +200,8 @@ lemma star_mul_self_cast (z : ℂ) : star z * z = ((‖z‖ ^ 2 : ℝ) : ℂ) :=
   rw [mul_comm, ← Complex.normSq_eq_norm_sq]
   exact Complex.mul_conj z
 
+omit [DecidableEq ι] in
+
 /-- The inner product of `ψ` with itself is the complex embedding of `normSq ψ`. -/
 lemma inner_self_cast (ψ : ι → ℂ) : inner ψ ψ = (normSq ψ : ℂ) := by
   have hp : ∀ i, star (ψ i) * ψ i = ((‖ψ i‖ ^ 2 : ℝ) : ℂ) := by
@@ -203,6 +212,8 @@ lemma inner_self_cast (ψ : ι → ℂ) : inner ψ ψ = (normSq ψ : ℂ) := by
         simp only [inner]
         exact Finset.sum_congr rfl fun i _ => hp i
     _ = ((∑ i, ‖ψ i‖ ^ 2 : ℝ) : ℂ) := by push_cast; ring
+
+omit [DecidableEq ι] in
 
 /-- Expresses `inner ψ (wPrime β ψ α)` as the complex embedding of the real sum weighted by `‖ψ
 i‖^2` and `cot ((α - β i) / 2)`. -/
@@ -218,6 +229,8 @@ lemma inner_wPrime_cast (β : ι → ℝ) (ψ : ι → ℂ) (α : ℝ) :
         simp only [inner, wPrime]
         exact Finset.sum_congr rfl fun i _ => hp i
     _ = ((∑ i, ‖ψ i‖ ^ 2 * Real.cot ((α - β i) / 2) : ℝ) : ℂ) := by push_cast; ring
+
+omit [Fintype ι] [DecidableEq ι] in
 
 /-- Expands a coordinate of `omega β ψ α` into `ψ i` plus its imaginary cotangent correction. -/
 lemma omega_apply (β : ι → ℝ) (ψ : ι → ℂ) (α : ℝ) (i : ι) :

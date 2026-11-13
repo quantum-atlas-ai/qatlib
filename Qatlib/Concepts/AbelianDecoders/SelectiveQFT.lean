@@ -32,8 +32,6 @@ relates normalized and unnormalized branches. For background, see [Cornwell2014]
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.QueryWordCore.Circuit

@@ -25,8 +25,6 @@ by a fixed power of `log (1/ε)`, in the setting of [DawsonNielsen2006].
 * [Dawson and Nielsen, 2006][DawsonNielsen2006]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.SolovayKitaev05.MainResults.SKTheorem
 
 open Matrix

@@ -32,7 +32,6 @@ flow and measurement-calculus setting is described in [DanosKashefi2006] and
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath

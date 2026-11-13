@@ -15,8 +15,6 @@ set_option backward.isDefEq.respectTransparency false
 # Framework: low-energy spectral projectors and symmetry groups
 
 Fixed paper version: arXiv:2312.08867v3 (Quantum **8**, 1409 (2024)).
-Local original text: `prove/assets/2312.08867.pdf`
-(extracted text `2312.08867.txt`).
 
 This module fixes the paper's basic objects that the MainResults claim files
 consume:

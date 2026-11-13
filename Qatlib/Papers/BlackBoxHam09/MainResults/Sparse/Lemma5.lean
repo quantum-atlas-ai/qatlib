@@ -25,7 +25,6 @@ These calculations support the walk step analysis of Lemma 5 in [BerryChilds2012
 * [Berry and Childs, 2012][BerryChilds2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

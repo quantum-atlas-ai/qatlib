@@ -26,9 +26,6 @@ single-qubit reflection word.
 * [Gilyén et al., Lemma 9][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.QsVtMain
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

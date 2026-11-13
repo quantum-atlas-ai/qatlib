@@ -19,7 +19,6 @@ The information-theoretic setting is [Wilde2017]. The partial-transpose test is
 [Peres, separability criterion][Peres1996]; a broader survey is [HorodeckiEtAl2009].
 -/
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
@@ -33,7 +32,6 @@ open scoped BigOperators Classical ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The specified Bell state has partial transpose expectation −1 on the given witness vector
 and is not separable. -/
@@ -72,9 +70,9 @@ theorem clause17_entropy_bell (s : Bool × Bool) :
 positivity of the partial transpose of every separable state. See [Wilde2017]. -/
 theorem clause4_endpoint :
     (¬ IsSeparableState (outerProduct (bell (true, true))) ∧
-    (∀ (D E : ℕ) (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ),
+    (∀ (D E : ℕ) (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ),
       IsSeparableState (outerProduct ψ) ↔ IsProductState ψ) ∧
-    (∀ (D E : ℕ) (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (hρ : IsSeparableState ρ),
+    (∀ (D E : ℕ) (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (_hρ : IsSeparableState ρ),
       (PartialTranspose ρ).PosSemidef)) := by
   refine And.intro ?_ (And.intro ?_ ?_)
   · exact bell_singlet_not_isSeparableState

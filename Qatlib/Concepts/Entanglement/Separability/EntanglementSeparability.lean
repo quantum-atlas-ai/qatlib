@@ -29,7 +29,6 @@ are discussed in [HorodeckiEtAl2009] and [Peres1996].
 * [Peres, 1996][Peres1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Qatlib.Foundations.PureStateMath.Reflection

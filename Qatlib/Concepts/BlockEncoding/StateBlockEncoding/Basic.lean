@@ -28,16 +28,12 @@ The mathematical background is described in [GilyenSuLowWiebe2019].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 
 namespace Qatlib.Concepts.BlockEncoding.StateBlockEncoding
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 
@@ -121,14 +117,18 @@ theorem fiberEmbed_apply {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     (j₀ : J) (A : Matrix I I ℂ) (a : J) (i : I) (b : J) (i' : I) :
     FiberEmbed j₀ A (a, i) (b, i') = if a = j₀ ∧ b = j₀ then A i i' else 0 := rfl
 
+omit [DecidableEq I] in
+
 /-- Embedding matrices in a fixed ancilla fiber is injective. -/
 theorem fiberEmbed_injective (j₀ : J) :
     Function.Injective (FiberEmbed (I := I) j₀) := by
   intro A B h
   ext i i'
   have h' := congrFun (congrFun h (j₀, i)) (j₀, i')
-  rw [fiberEmbed_apply, fiberEmbed_apply, if_pos ⟨rfl, rfl⟩, if_pos ⟨rfl, rfl⟩] at h'
+  rw [fiberEmbed_apply, fiberEmbed_apply, ite_eq_left ⟨rfl, rfl⟩, ite_eq_left ⟨rfl, rfl⟩] at h'
   exact h'
+
+omit [DecidableEq I] in
 
 /-- Embedding in a fixed fiber preserves matrix multiplication. -/
 theorem fiberEmbed_mul (j₀ : J) (A B : Matrix I I ℂ) :
@@ -137,23 +137,25 @@ theorem fiberEmbed_mul (j₀ : J) (A B : Matrix I I ℂ) :
   rw [Matrix.mul_apply, Fintype.sum_prod_type]
   simp only [fiberEmbed_apply]
   by_cases ha : a = j₀ <;> by_cases hb : b = j₀
-  · rw [if_pos ⟨ha, hb⟩, Matrix.mul_apply, Finset.sum_eq_single j₀]
+  · rw [ite_eq_left ⟨ha, hb⟩, Matrix.mul_apply, Finset.sum_eq_single j₀]
     · refine Finset.sum_congr rfl fun k _ => ?_
-      rw [if_pos ⟨ha, rfl⟩, if_pos ⟨rfl, hb⟩]
+      rw [ite_eq_left ⟨ha, rfl⟩, ite_eq_left ⟨rfl, hb⟩]
     · intro m _ hm
       refine Finset.sum_eq_zero fun k _ => ?_
-      rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => hm h.2), zero_mul]
+      rw [ite_eq_right (show ¬(a = j₀ ∧ m = j₀) from fun h => hm h.2), zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ j₀) hcon
-  · rw [if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
-    rw [if_neg (show ¬(m = j₀ ∧ b = j₀) from fun h => hb h.2), mul_zero]
-  · rw [if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+    rw [ite_eq_right (show ¬(m = j₀ ∧ b = j₀) from fun h => hb h.2), mul_zero]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
-    rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]
-  · rw [if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+    rw [ite_eq_right (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
-    rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]
+    rw [ite_eq_right (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]
+
+omit [DecidableEq I] in
 
 /-- Embedding in a fixed fiber commutes with conjugate transpose. -/
 theorem fiberEmbed_conjTranspose (j₀ : J) (A : Matrix I I ℂ) :
@@ -181,25 +183,25 @@ theorem fiberProjector_eq_fiberEmbed_one (j₀ : J) :
   ext ⟨a, i⟩ ⟨b, i'⟩
   rw [fiberProjector_apply, fiberEmbed_apply, Matrix.one_apply]
   by_cases ha : a = j₀ <;> by_cases hb : b = j₀ <;> by_cases hi : i = i'
-  · rw [if_pos ⟨ha, Prod.ext_iff.mpr ⟨ha.trans hb.symm, hi⟩⟩, if_pos ⟨ha, hb⟩,
-      if_pos hi]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
+  · rw [ite_eq_left ⟨ha, Prod.ext_iff.mpr ⟨ha.trans hb.symm, hi⟩⟩, ite_eq_left ⟨ha, hb⟩,
+      ite_eq_left hi]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
         fun h => hi ((Prod.mk.injEq _ _ _ _) ▸ h.2).2),
-      if_pos ⟨ha, hb⟩, if_neg hi]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
+      ite_eq_left ⟨ha, hb⟩, ite_eq_right hi]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
         fun h => hb (((Prod.mk.injEq _ _ _ _) ▸ h.2).1.symm.trans ha)),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from
         fun h => hb (((Prod.mk.injEq _ _ _ _) ▸ h.2).1.symm.trans ha)),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
-  · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
-      if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => hb h.2)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
+  · rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
+      ite_eq_right (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
 
 /-- The projector onto a fixed ancilla fiber is an orthogonal projector. -/
 theorem isOrthogonalProjector_fiberProjector (j₀ : J) :
@@ -220,23 +222,23 @@ theorem fiberProjector_mul (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
   simp only [fiberProjector_apply, Matrix.of_apply]
   by_cases ha : a = j₀
   · subst a
-    rw [if_pos rfl, Finset.sum_eq_single j₀]
+    rw [ite_eq_left rfl, Finset.sum_eq_single j₀]
     · rw [Finset.sum_eq_single i]
-      · rw [if_pos ⟨rfl, rfl⟩, one_mul]
+      · rw [ite_eq_left ⟨rfl, rfl⟩, one_mul]
       · intro k _ hk
-        rw [if_neg (show ¬(j₀ = j₀ ∧ (j₀, i) = (j₀, k)) from
+        rw [ite_eq_right (show ¬(j₀ = j₀ ∧ (j₀, i) = (j₀, k)) from
           fun h => hk ((Prod.mk.injEq _ _ _ _) ▸ h.2).2.symm), zero_mul]
       · intro hcon
         exact absurd (Finset.mem_univ i) hcon
     · intro m _ hm
       refine Finset.sum_eq_zero fun k _ => ?_
-      rw [if_neg (show ¬(j₀ = j₀ ∧ (j₀, i) = (m, k)) from
+      rw [ite_eq_right (show ¬(j₀ = j₀ ∧ (j₀, i) = (m, k)) from
         fun h => hm ((Prod.mk.injEq _ _ _ _) ▸ h.2).1.symm), zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ j₀) hcon
-  · rw [if_neg ha]
+  · rw [ite_eq_right ha]
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
-    rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]
+    rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]
 
 /-- Right multiplication by the fiber projector retains exactly the columns with ancilla label
 `j₀`. -/
@@ -248,23 +250,23 @@ theorem mul_fiberProjector (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
   simp only [fiberProjector_apply, Matrix.of_apply]
   by_cases hb : b = j₀
   · subst b
-    rw [if_pos rfl, Finset.sum_eq_single j₀]
+    rw [ite_eq_left rfl, Finset.sum_eq_single j₀]
     · rw [Finset.sum_eq_single i']
-      · rw [if_pos ⟨rfl, rfl⟩, mul_one]
+      · rw [ite_eq_left ⟨rfl, rfl⟩, mul_one]
       · intro k _ hk
-        rw [if_neg (show ¬(j₀ = j₀ ∧ (j₀, k) = (j₀, i')) from
+        rw [ite_eq_right (show ¬(j₀ = j₀ ∧ (j₀, k) = (j₀, i')) from
           fun h => hk ((Prod.mk.injEq _ _ _ _) ▸ h.2).2), mul_zero]
       · intro hcon
         exact absurd (Finset.mem_univ i') hcon
     · intro m _ hm
       refine Finset.sum_eq_zero fun k _ => ?_
-      rw [if_neg (show ¬(m = j₀ ∧ (m, k) = (j₀, i')) from
+      rw [ite_eq_right (show ¬(m = j₀ ∧ (m, k) = (j₀, i')) from
         fun h => hm ((Prod.mk.injEq _ _ _ _) ▸ h.2).1), mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ j₀) hcon
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
-    rw [if_neg (show ¬(m = j₀ ∧ (m, k) = (b, i')) from
+    rw [ite_eq_right (show ¬(m = j₀ ∧ (m, k) = (b, i')) from
       fun h => hb (((Prod.mk.injEq _ _ _ _) ▸ h.2).1 ▸ h.1)), mul_zero]
 
 /-- Projecting both sides of a workspace matrix onto one fiber gives the fiber embedding of its
@@ -321,7 +323,7 @@ theorem fiberReflection_mul_self (j₀ : J) :
 theorem fiberEmbed_mul_fiberReflection (j₀ : J) (A : Matrix I I ℂ) :
     FiberEmbed j₀ A * FiberReflection j₀ = FiberEmbed j₀ A := by
   simp only [FiberReflection, ReflectionAbout, Matrix.mul_sub, Matrix.mul_smul,
-    fiberProjector_eq_fiberEmbed_one, fiberEmbed_mul, mul_one, Matrix.mul_one]
+    fiberProjector_eq_fiberEmbed_one, fiberEmbed_mul, mul_one]
   module
 
 /-- The index equivalence regrouping two ancilla-system pairs into an ancilla pair and a system
@@ -334,7 +336,16 @@ def tensorBlockEquiv : (J × I) × (K × L) ≃ (J × K) × (I × L) where
 
 /-- The inverse tensor block equivalence separates paired ancilla and system labels. -/
 theorem tensorBlockEquiv_symm_apply (j : J) (k : K) (i : I) (l : L) :
-    tensorBlockEquiv.symm ((j, k), (i, l)) = ((j, i), (k, l)) := rfl
+    tensorBlockEquiv.symm ((j, k), (i, l)) = ((j, i), (k, l)) := by
+  let _ := (inferInstance : Fintype J)
+  let _ := (inferInstance : DecidableEq J)
+  let _ := (inferInstance : Fintype I)
+  let _ := (inferInstance : DecidableEq I)
+  let _ := (inferInstance : Fintype K)
+  let _ := (inferInstance : DecidableEq K)
+  let _ := (inferInstance : Fintype L)
+  let _ := (inferInstance : DecidableEq L)
+  rfl
 
 /-- Reindexing both matrix indices by the same equivalence commutes with conjugate transpose. -/
 theorem conjTranspose_reindex {M N : Type*} [Fintype M] [Fintype N] (e : M ≃ N)
@@ -351,8 +362,10 @@ theorem unitaryGroup_reindex {M N : Type*} [Fintype M] [DecidableEq M] [Fintype 
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hA ⊢
   rw [conjTranspose_reindex]
   have hmul := map_mul (Matrix.reindexAlgEquiv ℂ ℂ e) Aᴴ A
-  simp only [Matrix.reindexAlgEquiv_apply] at hmul
-  rw [← hmul, hA, ← Matrix.reindexAlgEquiv_apply ℂ ℂ e, map_one]
+  simp only [Matrix.coe_reindexAlgEquiv] at hmul
+  rw [← hmul, hA, ← Matrix.coe_reindexAlgEquiv ℂ ℂ e, map_one]
+
+omit [DecidableEq J] [DecidableEq I] [DecidableEq K] [DecidableEq L] in
 
 /-- After regrouping tensor indices, the paired ancilla corner is the tensor product of the two
 original corners. -/
@@ -362,7 +375,7 @@ theorem blockCorner_reindex_tensorGate (U : Matrix (J × I) (J × I) ℂ)
         (j₀, k₀)
       = TensorGate (BlockCorner U j₀) (BlockCorner V k₀) := by
   ext ⟨i, l⟩ ⟨i', l'⟩
-  simp [blockCorner_apply, Matrix.reindex_apply, tensorBlockEquiv_symm_apply,
+  simp [blockCorner_apply, Matrix.reindex_apply, tensorBlockEquiv,
     tensorGate_apply]
 
 /-- The tensor product of exact block encodings, with indices regrouped, encodes the tensor
@@ -444,22 +457,24 @@ theorem fiberProjector_mulVec_tensorState_ket (j₀ : J) (ψ : QState I) :
   · subst a
     rw [Finset.sum_eq_single j₀]
     · rw [Finset.sum_eq_single i]
-      · rw [if_pos ⟨rfl, rfl⟩]
+      · rw [ite_eq_left ⟨rfl, rfl⟩]
         simp [Ket]
       · intro k _ hk
-        rw [if_neg (show ¬(j₀ = j₀ ∧ (j₀, i) = (j₀, k)) from
+        rw [ite_eq_right (show ¬(j₀ = j₀ ∧ (j₀, i) = (j₀, k)) from
           fun h => hk ((Prod.mk.injEq _ _ _ _) ▸ h.2).2.symm), zero_mul]
       · intro hcon
         exact absurd (Finset.mem_univ i) hcon
     · intro m _ hm
       refine Finset.sum_eq_zero fun k _ => ?_
-      rw [if_neg (show ¬(j₀ = j₀ ∧ (j₀, i) = (m, k)) from
+      rw [ite_eq_right (show ¬(j₀ = j₀ ∧ (j₀, i) = (m, k)) from
         fun h => hm ((Prod.mk.injEq _ _ _ _) ▸ h.2).1.symm), zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ j₀) hcon
   · rw [Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ =>
-      by rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]]
+      by rw [ite_eq_right (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]]
     simp [Ket, ha]
+
+omit [DecidableEq I] in
 
 /-- A matrix embedded in the designated fiber acts on the system factor of a state supported on
 that fiber. -/
@@ -471,17 +486,19 @@ theorem fiberEmbed_mulVec_tensorState_ket (j₀ : J) (A : Matrix I I ℂ) (ψ : 
   by_cases ha : a = j₀
   · subst a
     rw [Finset.sum_eq_single j₀]
-    · rw [Finset.sum_congr rfl fun k _ => by rw [if_pos ⟨rfl, rfl⟩]]
+    · rw [Finset.sum_congr rfl fun k _ => by rw [ite_eq_left ⟨rfl, rfl⟩]]
       rw [show Ket j₀ j₀ = (1 : ℂ) from by simp [Ket]]
-      simp only [one_mul, Matrix.mulVec, dotProduct]
+      simp only [one_mul]
     · intro m _ hm
       refine Finset.sum_eq_zero fun k _ => ?_
-      rw [if_neg (show ¬(j₀ = j₀ ∧ m = j₀) from fun h => hm h.2), zero_mul]
+      rw [ite_eq_right (show ¬(j₀ = j₀ ∧ m = j₀) from fun h => hm h.2), zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ j₀) hcon
   · rw [Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ =>
-      by rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]]
+      by rw [ite_eq_right (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]]
     simp [Ket, ha]
+
+omit [Fintype J] [Fintype I] [DecidableEq I] in
 
 /-- A scalar on the system factor can be moved outside a tensor state with a fixed ancilla basis
 vector. -/

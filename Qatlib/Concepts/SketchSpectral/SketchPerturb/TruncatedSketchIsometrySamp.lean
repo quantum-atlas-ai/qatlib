@@ -26,7 +26,6 @@ transformed exact Gram matrix is the retained right singular projector [ChiaEtAl
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing

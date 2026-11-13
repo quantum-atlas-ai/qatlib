@@ -31,12 +31,9 @@ setting is described in [KitaevShenVyalyi2002].
 * [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
@@ -79,7 +76,7 @@ def generatorWords (p : CompactPresentation) : List (Vector ℤ p.generators) :=
 end CompactPresentation
 
 /-- A natural number label for each generator coordinate of the Smith data. -/
-abbrev FactorLabel {m n : ℕ} (p : NormalizedSmithData m n) := Fin m → ℕ
+abbrev FactorLabel {m n : ℕ} (_p : NormalizedSmithData m n) := Fin m → ℕ
 
 /-- The iterated gcd of an initial natural number `d` with the elements of a list. -/
 def gcdList (d : ℕ) : List ℕ → ℕ

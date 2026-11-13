@@ -17,14 +17,14 @@ Fixed paper: **arXiv:2306.12470v2**, §3.3, pp. 10–11.
   syndrome error weights in every round are bounded by `R n` and `S n` with
   `R, S` satisfying (1), then the residual reduced weight after every round is
   at most `(αR + βS)/(1−α) · n`.  Proof: the induction of p. 10, with the
-  budget implication of (1) supplied by the Frozen lemma
-  `QuantumAlgorithm.Concepts.CssGreedyDecode.SyndromeGreedy.repeatedNoise_source_budget`
+  budget implication of (1) supplied by the lemma
+  `Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.repeatedNoise_source_budget`
   and the round induction by
-  `QuantumAlgorithm.Concepts.CssGreedyDecode.SyndromeGreedy.repeatedNoise_stable`.
+  `Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.repeatedNoise_stable`.
 * `theorem_3_5_finite` is the same induction restricted to rounds `0 … M−1`;
   it is what the stochastic corollary needs, and it is proved directly here.
-* `corollary_3_6` adds the union bound over rounds, reusing the Frozen lemma
-  `QuantumAlgorithm.Concepts.CssGreedyDecode.SyndromeGreedy.correlated_round_failure_bound`
+* `corollary_3_6` adds the union bound over rounds, reusing the lemma
+  `Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.correlated_round_failure_bound`
   (no independence between rounds is assumed, exactly as in the paper).
 
 Boundary: the probability space is an arbitrary finite `Ω` with a nonnegative

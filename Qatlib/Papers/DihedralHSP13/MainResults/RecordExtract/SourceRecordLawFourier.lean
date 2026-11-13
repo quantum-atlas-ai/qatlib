@@ -47,7 +47,7 @@ a convolution operator `convMatrix g` with kernel `g j k d`, whose Fourier trans
 diagonal in the character label; injectivity of `f0` makes the `j = k` slice supported at
 `d = 0`, which gives the uniform character weight through character orthogonality.
 
-Related Frozen development: `QuantumAlgorithm.Papers.DihHSPSieve03.RecordExtract.dihedralRecordLaw`
+Related development: `Qatlib.Papers.DihHSPSieve03.RecordExtract.dihedralRecordLaw`
 proves the concrete record law of the dihedral sieve circuit (fiber weights `1/2^n` and
 the one-query register decomposition).  That is the concrete dihedral instance of the
 state produced here, not the same proposition; it is referenced as partial support for

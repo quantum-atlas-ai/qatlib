@@ -36,7 +36,6 @@ supplies a purification identity for mixed inputs. The fractional-query estimate
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Concepts.ConversionCore.WitnessCompile Matrix

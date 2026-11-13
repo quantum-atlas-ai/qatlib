@@ -35,7 +35,6 @@ The formulation is retained for comparison with the corrected graph construction
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QueryComplexity.Reflections

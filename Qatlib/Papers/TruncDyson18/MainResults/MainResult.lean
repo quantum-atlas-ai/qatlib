@@ -128,7 +128,7 @@ theorem logScale_div_log_two_le_clog (p : SourceParameters) (h : p.Regime) :
 /-! ## Eq. (35): the truncation-order rate -/
 
 /-- Eq. (35) of arXiv:1805.00582v1 (p. 10): `K = Θ(log(λT/ε)/loglog(λT/ε))`,
-in the concrete form `K ≤ C·L/log L`, `L = log(dHmaxT/ε)`. The frozen native
+in the concrete form `K ≤ C·L/log L`, `L = log(dHmaxT/ε)`. The native
 factorial cutoff satisfies `K·⌈log₂(k+2)⌉ ≤ C₀(k+2)`
 (`effectiveDysonCutoff_clog_rate`, itself from `factorial_taylor_native_cutoff_and_rate`);
 `k + 2 ≤ 8L` (`segmentPrecision_le_eight`), `L ≤ k` and `log₂ L ≤ ⌈log₂(k+2)⌉`
@@ -148,7 +148,7 @@ theorem truncationOrder_rate :
     have hlogpos : 0 < Real.log p.logScale := logLog_pos p h
     have hge1 := one_le_logScale_div_log p h
     by_cases hbig : m0 ≤ p.segmentPrecision
-    · -- large-precision case: convert the frozen integer rate
+    · -- large-precision case: convert the integer rate
       have hnat := hrate₀ p.segmentPrecision hbig
       have hreal : (p.truncationOrder : ℝ) * (Nat.clog 2 (p.segmentPrecision + 2) : ℝ)
           ≤ (C₀ : ℝ) * ((p.segmentPrecision : ℝ) + 2) := by
@@ -243,11 +243,11 @@ contraction (`‖W j‖ ≤ 1`) and approximates the exact segment propagator `U
 `δ` (`‖W j - U j‖ ≤ δ`), with the exact segment also a contraction, then the
 composed macro is within `rδ` of the full evolution. The proof is the telescoping
 identity `P_W·W - P_U·U = P_W(W-U) + (P_W-P_U)U` and the submultiplicativity of the
-L2 operator norm; it is the matrix-macro core of the frozen Low--Wiebe statement
-`QuantumAlgorithm.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeError`
+L2 operator norm; it is the matrix-macro core of the Low--Wiebe statement
+`Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeError`
 specialized to the paper's time-ordered setting. The truncated Dyson word is not
 literally a contraction (its norm is `≤ 1 + δ`), so the paper's `1 + O(δ)`
-variant is a separate strengthening not covered by the frozen layer. -/
+variant is a separate strengthening not covered by the underlying layer. -/
 theorem composite_error {I : Type} [Fintype I] [DecidableEq I]
     (W U : ℕ → Matrix I I ℂ) (r : ℕ) (δ : ℝ) (hδ : 0 ≤ δ)
     (hW : ∀ j, ‖W j‖ ≤ 1) (hU : ∀ j, ‖U j‖ ≤ 1)

@@ -26,8 +26,6 @@ with fewer members than group elements. For background, see [Kitaev1995].
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.QuditTeleport.TeleportCore
 

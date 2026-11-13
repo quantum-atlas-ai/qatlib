@@ -27,8 +27,6 @@ follows [IvanyosSanselmeSantha2007].
 * [Ivanyos et al., 2007][IvanyosSanselmeSantha2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open scoped BigOperators

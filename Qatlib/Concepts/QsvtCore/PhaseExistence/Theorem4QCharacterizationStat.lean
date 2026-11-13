@@ -23,8 +23,6 @@ on `[-1, 1]`, and an additional imaginary-axis condition for odd length. See
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.PhaseGeometry.Phase
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

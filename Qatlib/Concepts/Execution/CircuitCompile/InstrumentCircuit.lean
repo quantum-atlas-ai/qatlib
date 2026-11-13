@@ -29,7 +29,6 @@ expresses linear terminal statistics recursively.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AdaptiveCP.BranchTrace

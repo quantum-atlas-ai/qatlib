@@ -31,7 +31,6 @@ zero-physical-dimension cases.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.DyadicOverlap.OverlapContract
 open Qatlib.Concepts.DyadicProgram.DyadicContract
 

@@ -23,8 +23,6 @@ query lower bounds [BealsEtAl2001].
 * [Beals et al., 2001][BealsEtAl2001]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 /-- Hamming-layer averages of a real multivariate polynomial are represented by a univariate

@@ -33,7 +33,6 @@ channel. These statements formalize the preentangled resource approach of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
 

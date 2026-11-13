@@ -33,7 +33,6 @@ required for the range and dimension statements here.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

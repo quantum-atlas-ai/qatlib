@@ -27,8 +27,6 @@ propagation couplings built from entrywise nonnegative matrices. See [BravyiEtAl
 * [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

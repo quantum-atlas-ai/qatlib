@@ -27,11 +27,10 @@ through `averageFrame F`. The query and gate ledger is the actual counted word
 `hermitianResponseWord F d base zs` (both `U` and `U†` count as one query). The
 polynomial target is `aeval (α⁻¹ • A) (p.map ofRealHom)`, i.e. `P(A/α)`.
 
-The construction is the Frozen same-word QSVT consumer
-`QuantumAlgorithm.Concepts.SignalPrimitive.HermitianQSVT.hermitian_same_word_actual_qsvt_frobenius_stability`;
+The construction uses the shared same-word QSVT result
+`Qatlib.Concepts.SignalPrimitive.HermitianQSVT.hermitian_same_word_actual_qsvt_frobenius_stability`;
 we discharge its explicit Lipschitz hypothesis with the Markov-brothers derivative
-bound (`markov_brothers_deriv_le`, constant `2 d²`), so no Lipschitz assumption
-leaks into the paper statement.
+bound (`markov_brothers_deriv_le`, constant `2 d²`), so the paper statement carries no additional Lipschitz hypothesis.
 -/
 
 set_option autoImplicit false

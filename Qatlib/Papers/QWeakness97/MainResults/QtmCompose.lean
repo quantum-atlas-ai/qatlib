@@ -39,10 +39,7 @@ finite-window convention that moves beyond the boundary contribute zero.
 * [Bennett et al., 1997][BennettEtAl1997]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Qatlib.Papers.QWeakness97.MainResults

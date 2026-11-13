@@ -26,7 +26,6 @@ streaming implementation to the pair-statistic backend used for nonlinear estima
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

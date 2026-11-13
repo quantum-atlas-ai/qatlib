@@ -37,7 +37,6 @@ positive target precision. See [AnChildsLin2026] for the mathematical setting.
 * [An, Childs, and Lin, 2026][AnChildsLin2026]
 -/
 
-
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.LchsSimulation.Kernel
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
@@ -51,7 +50,6 @@ namespace Qatlib.Concepts.LchsSimulation.Quadrature
 
 open Polynomial Set Metric
 open scoped Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- For derivative orders `q ≤ 1`, the parameter-dependent ordered evolution has derivative norm
 at most `(T * q * Λ)^q` under the stated continuity, Hermitian, and generator-bound

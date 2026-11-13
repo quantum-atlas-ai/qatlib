@@ -32,7 +32,6 @@ with `n ≤ 4 * |t * α| + 8 * log (8 / ε) + 8` for `0 < ε < 1`.
 -/
 
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
-set_option warningAsError false
 
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Concepts.SignalPrimitive.MainResults

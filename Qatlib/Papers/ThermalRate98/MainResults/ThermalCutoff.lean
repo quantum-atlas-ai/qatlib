@@ -31,11 +31,9 @@ contributions.
 * [Lidar and Wang, 1999][LidarWang1999]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 noncomputable section
 namespace Qatlib.Papers.ThermalRate98.MainResults
 open scoped BigOperators
@@ -51,6 +49,8 @@ def eq16Summand (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) (n m : I) 
   Complex.exp (-(β * (E n + E m)) / 2) *
     Complex.exp (Complex.I * ((E m - E n) * t / ħ)) *
     (((E n - E m : ℝ) : ℂ) ^ 2) * (Complex.normSq (S n m) : ℂ)
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The norm of a spectral correlation summand is its real thermal weight times the squared
 energy gap and squared overlap norm. -/
@@ -76,11 +76,15 @@ theorem eq16Summand_norm (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) (
   rw [hthermal, hphase, hgap, hov]
   ring
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The pairwise thermal weight is symmetric in its two indices. -/
 theorem boltzmannPair_comm (β : ℝ) (E : I → ℝ) (n m : I) :
     boltzmannPair β E n m = boltzmannPair β E m n := by
   unfold boltzmannPair
   rw [add_comm]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- For positive inverse temperature and nonnegative energies, a pair whose first energy is at
 least `E_c` has thermal weight at most `exp (-β * E_c / 2)`. -/

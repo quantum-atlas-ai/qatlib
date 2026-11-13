@@ -27,8 +27,6 @@ constructions such as those in [ChiaEtAl2022].
 * [Chia et al., 2022][ChiaEtAl2022]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
 /-- For an injective finite field encoding, the average partition deviation of matrix hashes is

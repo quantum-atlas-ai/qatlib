@@ -24,8 +24,6 @@ successful supported output to be marked, in the setting of [BrassardHoyerTapp19
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 

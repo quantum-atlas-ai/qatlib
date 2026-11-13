@@ -38,7 +38,6 @@ coordinates; see [Schollwock2011] for MPS canonical forms and truncation.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib.Concepts.RandCompile.ChannelBudget

@@ -28,17 +28,14 @@ repeated circuit construction used for amplification in [BennettEtAl1997].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.QueryComplexity.Amplification
 
 open Matrix
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
@@ -56,22 +53,32 @@ noncomputable def FactorCircuit (j : ι) : Circuit I → Circuit (ι → I)
   | Step.gate U :: C => Step.gate (FactorGate j U) :: FactorCircuit j C
   | Step.query :: C => Step.query :: FactorCircuit j C
 
+omit [Fintype I] in
+
 /-- Lifting an empty circuit to one tensor factor gives the empty circuit. -/
 @[simp] theorem factorCircuit_nil (j : ι) : FactorCircuit j ([] : Circuit I) = [] := rfl
+
+omit [Fintype I] in
 
 /-- Lifting a leading gate uses `FactorGate` on that gate and lifts the remaining circuit. -/
 @[simp] theorem factorCircuit_gate (j : ι) (U : Matrix I I ℂ) (C : Circuit I) :
     FactorCircuit j (Step.gate U :: C) =
       Step.gate (FactorGate j U) :: FactorCircuit j C := rfl
 
+omit [Fintype I] in
+
 /-- Lifting a leading query retains the query and lifts the remaining circuit. -/
 @[simp] theorem factorCircuit_query (j : ι) (C : Circuit I) :
     FactorCircuit j (Step.query :: C) = Step.query :: FactorCircuit j C := rfl
+
+omit [Fintype I] in
 
 /-- A factor gate has entry `U (f j) (g j)` when the two indices agree away from `j`, and zero
 otherwise. -/
 private theorem factorGate_apply (j : ι) (U : Matrix I I ℂ) (f g : ι → I) :
     FactorGate j U f g = if (∀ l, l ≠ j → f l = g l) then U (f j) (g j) else 0 := rfl
+
+omit [Fintype I] in
 
 /-- Lifting the identity matrix to a tensor factor gives the identity matrix. -/
 private theorem factorGate_one (j : ι) : FactorGate j (1 : Matrix I I ℂ) = 1 := by
@@ -80,9 +87,9 @@ private theorem factorGate_one (j : ι) : FactorGate j (1 : Matrix I I ℂ) = 1 
   by_cases hfg : f = g
   · subst hfg
     simp
-  · rw [if_neg hfg]
+  · rw [ite_eq_right hfg]
     by_cases hfj : f j = g j
-    · refine if_neg ?_
+    · refine ite_eq_right ?_
       intro hcond
       apply hfg
       funext l
@@ -90,17 +97,19 @@ private theorem factorGate_one (j : ι) : FactorGate j (1 : Matrix I I ℂ) = 1 
       · subst hl
         exact hfj
       · exact hcond l hl
-    · rw [if_neg hfj, ite_self]
+    · rw [ite_eq_right hfj, ite_self]
+
+omit [Fintype I] in
 
 /-- Lifting a matrix to a tensor factor commutes with conjugate transposition. -/
 private theorem factorGate_conjTranspose (j : ι) (U : Matrix I I ℂ) :
     (FactorGate j U)ᴴ = FactorGate j Uᴴ := by
   ext f g
   by_cases h : ∀ l, l ≠ j → g l = f l
-  · simp only [factorGate_apply, Matrix.conjTranspose_apply, if_pos h]
-    rw [if_pos fun l hl => (h l hl).symm]
-  · simp only [factorGate_apply, Matrix.conjTranspose_apply, if_neg h, star_zero]
-    rw [if_neg fun hc => h fun l hl => (hc l hl).symm]
+  · simp only [factorGate_apply, Matrix.conjTranspose_apply, ite_eq_left h]
+    rw [ite_eq_left fun l hl => (h l hl).symm]
+  · simp only [factorGate_apply, Matrix.conjTranspose_apply, ite_eq_right h, star_zero]
+    rw [ite_eq_right fun hc => h fun l hl => (hc l hl).symm]
 
 /-- Summing over functions agreeing with `f` away from `j` reduces to summing over updates of
 `f` at `j`. -/
@@ -115,7 +124,7 @@ private theorem sum_factor (j : ι) (f : ι → I) (F : (ι → I) → ℂ) :
       g ∉ Finset.univ.image (fun a => Function.update f j a) →
       (if (∀ l, l ≠ j → f l = g l) then F g else 0) = 0 := by
     intro g _ hg
-    refine if_neg (fun hcond => hg ?_)
+    refine ite_eq_right (fun hcond => hg ?_)
     have hupd : Function.update f j (g j) = g := by
       funext l
       by_cases hl : l = j
@@ -128,7 +137,7 @@ private theorem sum_factor (j : ι) (f : ι → I) (F : (ι → I) → ℂ) :
   rw [← Finset.sum_subset (Finset.subset_univ _) hzero,
     Finset.sum_image (fun a _ b _ hab => hinj a b hab)]
   exact Finset.sum_congr rfl fun a _ =>
-    if_pos fun l hl => (Function.update_of_ne hl a f).symm
+    ite_eq_left fun l hl => (Function.update_of_ne hl a f).symm
 
 /-- Lifting matrices to a tensor factor preserves multiplication. -/
 private theorem factorGate_mul (j : ι) (U V : Matrix I I ℂ) :
@@ -136,28 +145,28 @@ private theorem factorGate_mul (j : ι) (U V : Matrix I I ℂ) :
   ext f g
   simp only [factorGate_apply, Matrix.mul_apply]
   by_cases h : ∀ l, l ≠ j → f l = g l
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hterm : ∀ g' : ι → I,
         (if (∀ l, l ≠ j → f l = g' l) then U (f j) (g' j) else 0)
             * (if (∀ l, l ≠ j → g' l = g l) then V (g' j) (g j) else 0)
         = if (∀ l, l ≠ j → f l = g' l) then U (f j) (g' j) * V (g' j) (g j) else 0 := by
       intro g'
       by_cases h₁ : ∀ l, l ≠ j → f l = g' l
-      · simp only [if_pos h₁, if_pos fun l hl => (h₁ l hl).symm.trans (h l hl)]
-      · simp only [if_neg h₁, zero_mul]
+      · simp only [ite_eq_left h₁, ite_eq_left fun l hl => (h₁ l hl).symm.trans (h l hl)]
+      · simp only [ite_eq_right h₁, zero_mul]
     rw [Finset.sum_congr rfl fun g' _ => hterm g',
       sum_factor j f fun g' => U (f j) (g' j) * V (g' j) (g j)]
     exact Finset.sum_congr rfl fun a _ => by rw [Function.update_self]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hterm : ∀ g' : ι → I,
         (if (∀ l, l ≠ j → f l = g' l) then U (f j) (g' j) else 0)
             * (if (∀ l, l ≠ j → g' l = g l) then V (g' j) (g j) else 0) = 0 := by
       intro g'
       by_cases h₁ : ∀ l, l ≠ j → f l = g' l
-      · rw [if_pos h₁, if_neg ?_, mul_zero]
+      · rw [ite_eq_left h₁, ite_eq_right ?_, mul_zero]
         intro hc
         exact h fun l hl => (h₁ l hl).trans (hc l hl)
-      · rw [if_neg h₁, zero_mul]
+      · rw [ite_eq_right h₁, zero_mul]
     simp [hterm]
 
 /-- Lifting a unitary matrix to one tensor factor gives a unitary matrix. -/
@@ -169,6 +178,8 @@ theorem factorGate_unitary (j : ι) {U : Matrix I I ℂ} (hU : U ∈ Matrix.unit
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, factorGate_conjTranspose,
     factorGate_mul, hU', factorGate_one]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- A product evaluated after updating coordinate `j` splits into the updated factor and the
 product over all remaining coordinates. -/
 private theorem prod_update_split_left (j : ι) (ψ : ι → QState I) (ω : ι → I) (a : I) :
@@ -176,10 +187,11 @@ private theorem prod_update_split_left (j : ι) (ψ : ι → QState I) (ω : ι 
   have h := Finset.mul_prod_erase (Finset.univ : Finset ι)
     (fun k => ψ k (Function.update ω j a k)) (Finset.mem_univ j)
   rw [← h]
-  try simp only []
   rw [Function.update_self]
   refine congrArg _ (Finset.prod_congr rfl fun k hk => ?_)
   rw [Function.update_of_ne (Finset.mem_erase.mp hk).1 a ω]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Updating state factor `j` splits its tensor amplitude into the new factor amplitude and the
 product over the other factors. -/
@@ -188,7 +200,6 @@ private theorem prod_update_split_right (j : ι) (ψ : ι → QState I) (χ : QS
   have h := Finset.mul_prod_erase (Finset.univ : Finset ι)
     (fun k => Function.update ψ j χ k (ω k)) (Finset.mem_univ j)
   rw [← h]
-  try simp only []
   rw [Function.update_self]
   refine congrArg _ (Finset.prod_congr rfl fun k hk => ?_)
   rw [Function.update_of_ne (Finset.mem_erase.mp hk).1 χ ψ]
@@ -230,12 +241,16 @@ theorem isUnitaryCircuit_factorCircuit (j : ι) {C : Circuit I} (hC : IsUnitaryC
       rw [factorCircuit_query, isUnitaryCircuit_query]
       exact ih ((isUnitaryCircuit_query C).mp hC)
 
+omit [Fintype I] in
+
 /-- Lifting a circuit to a tensor factor preserves its gate count. -/
 theorem gateCount_factorCircuit (j : ι) (C : Circuit I) :
     GateCount (FactorCircuit j C) = GateCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
+
+omit [Fintype I] in
 
 /-- Lifting a circuit to a tensor factor preserves its query count. -/
 theorem queryCount_factorCircuit (j : ι) (C : Circuit I) :
@@ -336,8 +351,8 @@ private theorem run_flatMap_factorCircuit (C : Circuit I) (hC0 : QueryCount C = 
       simp [hj₀]
     · rw [Function.update_of_ne hj (Run 1 C (ψ j₀)) ψ]
       by_cases hjL : j ∈ L
-      · rw [if_pos hjL, if_pos (List.mem_cons_of_mem _ hjL)]
-      · rw [if_neg hjL, if_neg ?_]
+      · rw [ite_eq_left hjL, ite_eq_left (List.mem_cons_of_mem _ hjL)]
+      · rw [ite_eq_right hjL, ite_eq_right ?_]
         intro hc
         rcases List.mem_cons.mp hc with h | h
         · exact hj h

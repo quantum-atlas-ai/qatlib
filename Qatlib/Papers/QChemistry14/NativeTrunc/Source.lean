@@ -29,7 +29,6 @@ coefficient mass. See [McCleanEtAl2014].
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

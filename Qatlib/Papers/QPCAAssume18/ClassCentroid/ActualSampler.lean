@@ -31,8 +31,6 @@ V`, and the real part of their inner product is the desired squared centroid dis
   speedup because of its state preparation assumptions*, Theorem 4 and Algorithm 4.
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators

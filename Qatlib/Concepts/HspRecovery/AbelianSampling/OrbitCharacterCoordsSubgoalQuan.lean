@@ -24,8 +24,6 @@ readout. [Kitaev1995]
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout

@@ -31,7 +31,6 @@ of the classical nearest-centroid guarantee in [Tang2021].
   speedup because of its state preparation assumptions*, Theorem 4 and Algorithm 4.
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

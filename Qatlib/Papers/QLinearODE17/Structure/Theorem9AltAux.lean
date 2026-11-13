@@ -31,9 +31,7 @@ in the readout setting of [BerryEtAl2017ODE].
 * [Berry et al., 2017][BerryEtAl2017ODE]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Qatlib.Concepts.BlockEncoding.Postselection

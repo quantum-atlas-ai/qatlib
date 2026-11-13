@@ -37,7 +37,6 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.RiskEstimation.CDFEstimation
 open Matrix
 open scoped Classical BigOperators
-set_option warningAsError false
 set_option autoImplicit false
 
 /-- Basis kets are independent of the chosen `DecidableEq` instance. -/

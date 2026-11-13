@@ -32,16 +32,11 @@ families (T0 fully direct; T1 with a direct first and second basis but an indire
 basis splitting into the `|0_y⟩`-sector `{|J_y⟩}` and the `|1_y⟩`-sector `{|J_w⟩}`) and the
 covering of every MU product triple up to `ProductEquiv`.
 
-**Status.**  The statement is registered as a `Prop`-valued definition; the proof is not
-formalised.  A full proof needs (i) an exhaustive computer-algebraic
-enumeration of product triples in `C² ⊗ C³`, and (ii) a formal equivalence-reduction
-argument.  The available Frozen development
-`Mub6Maximum.ThreeBasis.bases_isFamily` only certifies a
-single explicit T0-type family (`covered_by`, restricted).  Candidate reuse: the concrete
-Hadamard/qutrit tables in
-`Mub6Maximum.ThreeBasis.MUBProductBases`.  Suggested route
-for a successor: formalise the `C²⊗C³` product-basis normal form, enumerate the 48
-pair-completions of [14], and dispatch T0/T1 by `fin_cases` + exact Gram computations.
+**Status.**  The statement is registered as a `Prop`-valued specification; the proof is not
+formalised in Qatlib.  A full proof requires (i) an exhaustive computer-algebraic
+enumeration of product triples in `ℂ² ⊗ ℂ³`, and (ii) a formal equivalence-reduction
+argument; see `Mub6Maximum.ThreeBasis.bases_isFamily` and
+`Mub6Maximum.ThreeBasis.MUBProductBases` for the explicit `T0`-type family.
 -/
 set_option autoImplicit false
 noncomputable section
@@ -53,13 +48,13 @@ namespace Qatlib.Papers.MUBProduct12.TripleClassify.Lemma1Classification
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.MUBProduct12.TripleClassify.ProductModel
 
-/-- **Lemma 1** (arXiv:1203.6887v2, p. 3, Eq. (1)).  There exist two MU product triples
-`T0` and `T1` of `C² ⊗ C³`: `T0` consists of three direct product bases (`|j_z,J_z⟩`,
-`|j_x,J_x⟩`, `|j_y,J_y⟩`), while `T1` has direct first and second bases and an indirect third
-basis splitting the `|0_y⟩` and `|1_y⟩` sectors between the qutrit bases `{|J_y⟩}` and
-`{|J_w⟩}`.  Every MU product triple is equivalent (`ProductEquiv`) to `T0` or to `T1`.
-Registered as a `Prop`-valued definition; the proof is not formalised. -/
-def lemma1_classification : Prop :=
+/-- **Statement only — not proved in Qatlib.** **Lemma 1** (arXiv:1203.6887v2, p. 3, Eq. (1)).
+There exist two MU product triples `T0` and `T1` of `ℂ² ⊗ ℂ³`: `T0` consists of three direct
+product bases (`|j_z,J_z⟩`, `|j_x,J_x⟩`, `|j_y,J_y⟩`), while `T1` has direct first and second
+bases and an indirect third basis splitting the `|0_y⟩` and `|1_y⟩` sectors between the qutrit
+bases `{|J_y⟩}` and `{|J_w⟩}`.  Every MU product triple is equivalent (`ProductEquiv`) to `T0`
+or to `T1`. -/
+def lemma1_classification_statement : Prop :=
   ∃ (T0 T1 : Fin 3 → Fin 6 → QState (Fin 2 × Fin 3)),
     IsMuProductTriple T0 ∧ IsMuProductTriple T1 ∧
     (∀ r, IsDirectProductBasis (T0 r)) ∧
@@ -67,5 +62,9 @@ def lemma1_classification : Prop :=
     IsIndirectBasis (T1 2) ∧
     (∀ (T : Fin 3 → Fin 6 → QState (Fin 2 × Fin 3)),
       IsMuProductTriple T → ProductEquiv T T0 ∨ ProductEquiv T T1)
+
+/-- Deprecated alias for `lemma1_classification_statement` retained for downstream compatibility. -/
+@[deprecated lemma1_classification_statement (since := "2026-11-13")]
+abbrev lemma1_classification : Prop := lemma1_classification_statement
 
 end Qatlib.Papers.MUBProduct12.TripleClassify.Lemma1Classification

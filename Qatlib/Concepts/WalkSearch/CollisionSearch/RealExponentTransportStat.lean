@@ -25,7 +25,6 @@ mathematical background.
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 namespace Qatlib.Concepts.WalkSearch.CollisionSearch

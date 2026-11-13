@@ -27,13 +27,14 @@ The paper notes immediately after Definition 9 that `Δᵢ^(r) f (x) ≥ 0` for 
 `finDiffLaplaceCoord_nonneg` here, and `finDiffLaplace_nonneg` / `finDiffLaplaceCoord_le_sum`
 record the single-coordinate bound against the full Laplace sum that Lemma 17 consumes.
 
-`centralDiffApply_one_eq` is the representation bridge to the already built Frozen stencil
-`QuantumAlgorithm.Concepts.GradientOracle.CentralDiff.centralDiffApply`: the paper's two-point
+`centralDiffApply_one_eq` is the representation bridge to the library stencil
+`Qatlib.Concepts.GradientOracle.CentralDiff.centralDiffApply`: the paper's two-point
 difference is the `m = 1` member of that degree-`2m` family, and
 `finDiffGradCoord_eq_centralDiff` transports the paper's coordinate to it.
 
-Boundary: only the finite-difference definitions and their pointwise algebra; no query
-algorithm, no expectation over the hypercube and no oracle model lives here.
+Scope note: this file formalizes the finite-difference definitions and their pointwise
+algebra; query algorithms, expectations over the hypercube and oracle models are
+outside its scope.
 -/
 
 set_option autoImplicit false

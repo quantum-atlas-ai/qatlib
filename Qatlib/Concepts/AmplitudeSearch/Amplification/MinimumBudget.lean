@@ -26,7 +26,6 @@ finite-budget version of quantum minimum finding [DurrHoyer1996].
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeSearch.Amplification.Experiment

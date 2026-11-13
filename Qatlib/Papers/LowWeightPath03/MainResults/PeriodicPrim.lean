@@ -30,7 +30,6 @@ also bounds the finite search and update sums and compares the optimum with n².
 * [Heiligman, 2003][Heiligman2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

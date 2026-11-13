@@ -28,8 +28,6 @@ estimate. This is the vanishing boundary term in the sampling argument of [WangE
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false

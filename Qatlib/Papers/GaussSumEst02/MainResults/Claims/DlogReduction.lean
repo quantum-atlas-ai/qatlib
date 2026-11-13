@@ -30,8 +30,6 @@ and a conditional estimation-cost bound using `PhaseAccessModel`. See [VanDamSer
 * [van Dam and Seroussi, 2002][VanDamSeroussi2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -33,8 +33,6 @@ initial complementary projector, supplying ingredients for [ZhouAnLiu2026].
 * [Zhou et al., 2026][ZhouAnLiu2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

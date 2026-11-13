@@ -27,12 +27,10 @@ the actual overlap computation. Transfer contraction of matrix product states is
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.DyadicOverlap.OverlapContract
 open Qatlib.Concepts.DyadicProgram.DyadicContract
 
 set_option autoImplicit false
-set_option linter.unnecessarySeqFocus false
 
 namespace Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapProgram
 

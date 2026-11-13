@@ -32,7 +32,6 @@ corresponding finite sums. The classical comparison uses `classicalDijkstraWork`
 * [Heiligman, 2003][Heiligman2003]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

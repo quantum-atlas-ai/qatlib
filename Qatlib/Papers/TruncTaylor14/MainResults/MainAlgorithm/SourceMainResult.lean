@@ -26,8 +26,8 @@ The `O(log(T/ε)/loglog(T/ε))` order of `K` is Eq. (18)
 (`...FactorialTaylor.LogLogCutoff.source_equation18`); here the second theorem
 records the resulting query-count rate.
 
-Frozen FQNs reused:
-* `QuantumAlgorithm.Papers.TruncTaylor14.FactorialTaylor.factorial_taylor_actual_simulation_and_paid_inverse`
+Library definitions and theorems:
+* `Qatlib.Concepts.CoherentSim.FactorialTaylor.factorial_taylor_actual_simulation_and_paid_inverse`
   (well-formedness, exact query/gate counts, and the coherent workspace error);
 * `factorialTaylorCutoff`, `factorialTaylorPrecision`, `factorialTaylorWord`,
   `taylorSegments`, `taylorFrame`, `taylorQuery`,
@@ -73,7 +73,7 @@ theorem source_main_result
         (1 / 2 : ℝ) ^ k * ‖toEuclidean_fromVec ψ‖) :=
   factorial_taylor_actual_simulation_and_paid_inverse J I h U j₀ t Λ T k hU hΛ hT
 
-/-- The frozen native-cutoff rate in divided form (cf. Eq. (18)). -/
+/-- The native-cutoff rate in divided form (cf. Eq. (18)). -/
 private theorem cutoff_rate :
     ∃ C m₀ : ℕ, 0 < C ∧ 2 ≤ m₀ ∧ ∀ m ≥ m₀,
       (factorialTaylorCutoff m : ℝ) ≤

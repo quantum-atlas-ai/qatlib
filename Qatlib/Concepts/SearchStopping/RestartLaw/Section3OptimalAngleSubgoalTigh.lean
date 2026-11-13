@@ -45,8 +45,6 @@ and certifying opposite endpoint signs. The result isolates a unique solution of
 * [Boyer et al., 1998][BoyerEtAl1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.SearchStopping.RestartLaw
 
 open Finset Filter

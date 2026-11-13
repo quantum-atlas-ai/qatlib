@@ -27,8 +27,6 @@ bound. See [CotlerGongKannan2025] for the surrounding analysis.
 * [Cotler et al., 2025][CotlerGongKannan2025]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

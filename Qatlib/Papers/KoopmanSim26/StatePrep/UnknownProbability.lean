@@ -48,7 +48,6 @@ open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Papers.KoopmanSim26.StatePrep.Observables
 open Qatlib.Papers.KoopmanSim26.StatePrep.LowerSchedule
 open scoped Classical ENNReal
-set_option warningAsError false
 namespace Qatlib.Papers.KoopmanSim26.StatePrep.UnknownSchedule
 
 /-- The extended nonnegative real number `1 / 8` is the image of its real counterpart under

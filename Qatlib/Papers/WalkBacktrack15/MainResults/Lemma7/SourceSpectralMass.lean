@@ -33,8 +33,8 @@ basis vectors this gives `‖|ξ⟩‖² = ∑_x |α_x|² ≤ T·n/2`.  The effe
 lemma (Lemma 3) then yields `‖P_ε|φ^⊥⟩‖ ≤ ε‖|ξ⟩‖ ≤ ε√(T n)` (absorbing `1/√2`).
 
 This file formalises exactly that reduction, with the constant `1`.  The underlying
-effective spectral gap argument is the already-proved Frozen theorem
-`QuantumAlgorithm.Concepts.ConversionCore.WitnessCompile.effectiveSpectralGap`
+effective spectral gap argument is the library theorem
+`Qatlib.Concepts.ConversionCore.WitnessCompile.effectiveSpectralGap`
 (Lee et al. Lemma 4.2, reusing `sourcePhaseProjector`); we only add the tree walk's
 coefficient/norm bookkeeping and the resulting `ε√(T n)` bound.
 -/
@@ -109,7 +109,7 @@ theorem source_lemma7
     (hξ : ‖toEuclidean_fromVec ξ‖ ≤ Real.sqrt ((T : ℝ) * ((n : ℝ) / 2))) :
     ‖toEuclidean_fromVec (sourcePhaseProjector V angles ε *ᵥ (P *ᵥ ξ))‖ ≤
       ε * Real.sqrt ((T : ℝ) * (n : ℝ)) := by
-  -- Effective spectral gap lemma (Frozen, Lee et al. Lemma 4.2).
+  -- Effective spectral gap lemma (Lee et al. Lemma 4.2).
   have hgap := effectiveSpectralGap H P L V angles ε ξ hP hL hV hangles hU hε hLξ
   -- `√(T·(n/2)) = √(T·n)/√2 ≤ √(T·n)`.
   have hTn : (0 : ℝ) ≤ (T : ℝ) * (n : ℝ) := by positivity

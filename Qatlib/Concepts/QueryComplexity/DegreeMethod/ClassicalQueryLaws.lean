@@ -28,7 +28,6 @@ These laws formalize the classical query model used for comparison in [BealsEtAl
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib

@@ -53,7 +53,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-set_option warningAsError false
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 

@@ -27,7 +27,6 @@ Its one-half success clause formalizes a budgeted minimum-finding guarantee in t
 * [Dürr and Høyer, 1996][DurrHoyer1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath

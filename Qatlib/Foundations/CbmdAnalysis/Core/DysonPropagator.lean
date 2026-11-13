@@ -31,7 +31,6 @@ evolution when both fields are Hermitian, providing analytic families for [WangE
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 

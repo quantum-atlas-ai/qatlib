@@ -43,7 +43,6 @@ namespace Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesExt
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces MeasureTheory
 open scoped BigOperators Classical
-set_option warningAsError false
 
 variable {R Y : Type} [Fintype R] [DecidableEq R] [Fintype Y] [DecidableEq Y]
 

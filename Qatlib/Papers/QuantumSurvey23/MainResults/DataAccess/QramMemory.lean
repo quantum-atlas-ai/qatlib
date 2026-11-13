@@ -28,10 +28,9 @@ The load-bearing facts are `data_qubits_le_linear` (`log₂ N + 1 ≤ N`) and
 hardware is exponential in the number of data qubits.  Together they express
 "`O(N)` qubits versus `O(log N)` data qubits" without inventing a gate model.
 
-Reusable dependency (Dev bind `EffectiveAccess.AccessImpl`,
-`TableAccess.LookupCompile`): `QuantumAlgorithm.Concepts.EffectiveAccess.AccessImpl`
+`Qatlib.Concepts.EffectiveAccess.AccessImpl`
 models the address/register split; the bucket-brigade QRAM compilation is
-`QuantumAlgorithm.Concepts.TableAccess.LookupCompile`.  This module records the
+`Qatlib.Concepts.TableAccess.LookupCompile`.  This module records the
 qubit-count assessment only.
 -/
 

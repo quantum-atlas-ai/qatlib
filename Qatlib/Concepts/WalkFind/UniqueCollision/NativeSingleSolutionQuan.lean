@@ -34,9 +34,7 @@ bound; inputs with no collision have zero marked measurement probability.
 * [Ambainis, 2007][Ambainis2007ElementDistinctness]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.WalkFind.SearchAlgorithm

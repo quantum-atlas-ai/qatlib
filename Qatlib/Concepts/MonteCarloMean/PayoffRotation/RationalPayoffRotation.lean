@@ -33,7 +33,6 @@ encoding for the bounded-mean construction of [Montanaro2015].
 -/
 
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian

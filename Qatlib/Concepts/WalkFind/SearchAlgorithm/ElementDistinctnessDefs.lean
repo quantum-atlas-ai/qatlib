@@ -40,7 +40,6 @@ obligations. In particular, `CoreNearPrimePowerWindow` uses the explicit bound `
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 open Qatlib.Concepts.WalkFind.UniqueCollision
@@ -52,7 +51,6 @@ open Qatlib
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- The specification that verified `k`-collision search has a correct randomized query

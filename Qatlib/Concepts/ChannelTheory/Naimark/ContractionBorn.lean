@@ -27,8 +27,6 @@ The mathematical background is described in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
 noncomputable section

@@ -23,8 +23,6 @@ both exponents are bounded below by a positive `aMin` and the nonnegative separa
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.SparseLocality

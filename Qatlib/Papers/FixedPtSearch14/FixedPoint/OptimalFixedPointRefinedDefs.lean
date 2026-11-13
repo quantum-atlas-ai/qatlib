@@ -26,7 +26,6 @@ that access list. Its resource counts depend on the iterate and bit parameters.
 * [Yoder et al., 2014][YoderLowChuang2014]
 -/
 
-set_option warningAsError false
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 
 set_option autoImplicit false

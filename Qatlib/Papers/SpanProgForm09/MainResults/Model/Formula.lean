@@ -17,7 +17,7 @@ bound `Adv±(φ)` of the Boolean function a (sub)formula computes, of the balanc
 `β` of Definition 1.8, and of the path quantity `σ₋` of Definition 1.10.
 
 The adversary bound is *not* re-axiomatized: `advPlus` is the library's general
-adversary bound `QuantumAlgorithm.Concepts.GramQueryCore.LowerBoundTools.sourceAdversary`
+adversary bound `Qatlib.Concepts.GramQueryCore.LowerBoundTools.sourceAdversary`
 evaluated on the truth table of the formula, i.e. exactly Eq. (2.1) of the paper with
 uniform unit costs, read off the concrete function `φ.eval : (I → Bool) → Bool`.
 

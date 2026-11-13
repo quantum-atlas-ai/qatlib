@@ -48,7 +48,6 @@ local instance : ContinuousENorm (Matrix ι ι ℂ) :=
 
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
-set_option warningAsError false
 
 /-- The mesh budget `2M / (exp (2πβ) - 1)` that selects unit mesh step. -/
 def unitBudget (β M : ℝ) : ℝ := 2 * M / (Real.exp (2 * Real.pi * β) - 1)

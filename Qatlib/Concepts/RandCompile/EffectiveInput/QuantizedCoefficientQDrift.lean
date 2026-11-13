@@ -32,9 +32,7 @@ together with sampled-path resource counts.
 * [Campbell, 2019][Campbell2019]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.TrotterFormula.LieStrang
 open Qatlib.Concepts.RandCompile.ChannelBudget
@@ -48,7 +46,6 @@ namespace Qatlib.Concepts.RandCompile.EffectiveInput
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
 /-- The signed precision-`b` dyadic digit obtained by taking the floor of `2^b * a + 1/2`. -/

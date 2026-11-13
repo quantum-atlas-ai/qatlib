@@ -32,18 +32,6 @@ computing `f`, and `rectangleDecompositionSize` minimizes the cardinality over
 The inequality is recorded as the closed `Prop` contract
 `theorem7FormulaSizeSpec`; it is **not** proved in this repository.  Fixed
 version: quant-ph/0611054v2.  Source: Theorem 7 on p. 10 (proof on pp. 10–11).
-Residual Lean gap: the library has the Boolean-formula syntax and leaf count
-(`BoolFormula`, `BoolFormula.eval`, `BoolFormula.size`) but no
-Karchmer–Wigderson relation/communication-complexity layer, no
-protocol-to-rectangle-decomposition construction (paper's Theorem 6 with
-[KarchmerWigderson1988]), and no Laplante–Lee–Szegedy rectangle subadditivity of the spectral
-norm (paper's Lemma 8).  Candidate dependencies: `BoolFormula.size`,
-`advPmValue`, `genAdvFilter`, and the spectral-norm comparison `‖A‖ ≤ ‖B‖` for
-submatrices from `QuantumInfo.ForMathlib.MatrixNorm.TraceNorm`.  Suggested
-continuation: prove Lemma 8 by induction over the rectangle partition using the
-operator-norm triangle inequality on the block decomposition of `A`, then push
-the monochromatic submatrix bound through `advPmValue` as in the final display
-of the printed proof.
 -/
 
 open Matrix
@@ -99,8 +87,7 @@ identity input map, `C^D(Rf)` is `rectangleDecompositionSize f`, and `L(f)` is
 This is quant-ph/0611054v2 Theorem 7 (p. 10), recorded as a closed `Prop`; it is
 not proved here.  See the module docstring for the fixed version, the proof
 route (Lemma 8 rectangle subadditivity of the spectral norm, then the final
-display of the printed proof), the current Lean gap, the candidate dependencies,
-and the suggested continuation. -/
+display of the printed proof). -/
 def theorem7FormulaSizeSpec : Prop :=
   ∀ {n : ℕ} (f : Reg n → Bool),
     (advPmValue (fun x : Reg n => x) f) ^ 2 ≤

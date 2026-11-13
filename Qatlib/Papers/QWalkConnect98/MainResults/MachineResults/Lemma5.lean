@@ -32,8 +32,6 @@ discharge the spectral-gap hypothesis using regularity. The formalization follow
 * [Watrous, 1998][Watrous1998]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
 
 open Finset

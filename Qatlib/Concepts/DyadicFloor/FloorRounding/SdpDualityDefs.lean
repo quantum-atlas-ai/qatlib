@@ -49,7 +49,6 @@ algorithms such as [BrandaoSvore2017].
 * [Brandao and Svore, 2017][BrandaoSvore2017]
 -/
 
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
@@ -766,7 +765,7 @@ def diamondDyadicFromBits (D E b : ℕ) (bs : List Bool) : Option (DiamondDyadic
 /-- The quadratic algebra of Gaussian rationals with defining relation `i ^ 2 = -1`. -/
 abbrev GaussianRational := QuadraticAlgebra ℚ (-1) 0
 
-instance gaussianRationalNoRoot : Fact (∀ r : ℚ, r^2 ≠ (-1 : ℚ) + 0*r) :=
+scoped instance gaussianRationalNoRoot : Fact (∀ r : ℚ, r^2 ≠ (-1 : ℚ) + 0*r) :=
   ⟨by intro r h; nlinarith [sq_nonneg r]⟩
 
 /-- The ring homomorphism embedding Gaussian rationals into the complex numbers. -/

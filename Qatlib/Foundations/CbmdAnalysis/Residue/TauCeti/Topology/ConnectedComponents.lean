@@ -2,6 +2,8 @@
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Qatlib Contributors
+
+Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
@@ -43,7 +45,6 @@ with [WangEtAl2026].
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -132,7 +133,7 @@ theorem connectedComponentIn_inter_eq_sUnion {s U : Set X} {𝒞 : Set (Set X)}
 
 /-- Only finitely many connected components of `s` meet the union of a finite family of
 preconnected subsets of `s`. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Set.Finite.image_connectedComponentIn_sUnion {s : Set X} {𝒞 : Set (Set X)}
+theorem _root_.Set.Finite.image_connectedComponentIn_sUnion {s : Set X} {𝒞 : Set (Set X)}
     (h𝒞 : 𝒞.Finite) (hc : ∀ t ∈ 𝒞, IsPreconnected t) (hsub : ⋃₀ 𝒞 ⊆ s) :
     (connectedComponentIn s '' ⋃₀ 𝒞).Finite := by
   rw [sUnion_eq_biUnion, image_iUnion₂]
@@ -156,7 +157,7 @@ theorem frontier_connectedComponentIn_subset_compl [LocallyConnectedSpace X] {F 
 
 /-- A preconnected set lies in the component of an open set containing `x` if its intersection
 with that component's closure stays inside the open set. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.subset_connectedComponentIn_of_inter_closure_subset
+theorem _root_.IsPreconnected.subset_connectedComponentIn_of_inter_closure_subset
     [LocallyConnectedSpace X] {A U : Set X} {x : X} (hA : IsPreconnected A)
     (hU : IsOpen U) (hxA : x ∈ A) (hxU : x ∈ U)
     (h : A ∩ closure (_root_.connectedComponentIn U x) ⊆ U) :
@@ -170,7 +171,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.subset_con
 
 /-- If a preconnected set has a point outside a specified component after removing `S`, then the
 closure of that component meets `S` within the original set. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.exists_mem_inter_closure_connectedComponentIn_sdiff
+theorem _root_.IsPreconnected.exists_mem_inter_closure_connectedComponentIn_sdiff
     [LocallyConnectedSpace X] {U S : Set X} {z u : X} (hU : IsPreconnected U)
     (hUS : IsOpen (U \ S)) (hz : z ∈ U \ S) (hu : u ∈ U)
     (huz : u ∉ _root_.connectedComponentIn (U \ S) z) :
@@ -180,7 +181,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.exists_mem
     (fun p hp => ⟨hp.1, fun hpS => h p ⟨hpS, hp.1⟩ hp.2⟩) hu)
 
 /-- A connected component within a closed set is closed. -/
-protected theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.connectedComponentIn {F : Set X} {x : X} (hF : IsClosed F) :
+protected theorem _root_.IsClosed.connectedComponentIn {F : Set X} {x : X} (hF : IsClosed F) :
     IsClosed (connectedComponentIn F x) := by
   refine closure_subset_iff_isClosed.mp fun y hy => ?_
   by_cases hx : x ∈ F
@@ -192,7 +193,7 @@ protected theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.connec
 
 /-- A compact connected component of a closed set in a locally compact Hausdorff space has an
 open neighborhood with compact closure whose frontier avoids the closed set. -/
-theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsClosed.exists_isOpen_isCompact_closure_disjoint_frontier [T2Space X]
+theorem _root_.IsClosed.exists_isOpen_isCompact_closure_disjoint_frontier [T2Space X]
     [LocallyCompactSpace X] {F : Set X} (hF : IsClosed F) {x : X}
     (hx : IsCompact (connectedComponentIn F x)) :
     ∃ V, IsOpen V ∧ connectedComponentIn F x ⊆ V ∧ IsCompact (closure V) ∧
@@ -369,7 +370,7 @@ theorem isPreconnected_compl_of_isDiscrete [PreconnectedSpace X] {s : Set X} (hs
   · exact Or.inl fun y hy ↦ ((h (mem_univ y)).resolve_right fun h' ↦ hy h'.1).1
   · exact Or.inr fun y hy ↦ ((h (mem_univ y)).resolve_right fun h' ↦ hy h'.1).1
 
-instance instT1SpaceConnectedComponents : T1Space (ConnectedComponents X) :=
+scoped instance instT1SpaceConnectedComponents : T1Space (ConnectedComponents X) :=
   ⟨fun c => by
     obtain ⟨x, rfl⟩ := ConnectedComponents.surjective_coe c
     rw [← ConnectedComponents.isQuotientMap_coe.isClosed_preimage,

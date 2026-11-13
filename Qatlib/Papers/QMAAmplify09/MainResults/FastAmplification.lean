@@ -31,8 +31,6 @@ quantities.
 * [Nagaj et al., 2009][NagajWocjanZhang2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 noncomputable section

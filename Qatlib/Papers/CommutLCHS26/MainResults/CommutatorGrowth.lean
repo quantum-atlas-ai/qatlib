@@ -36,7 +36,6 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator
 open BCHDynkin BCHCommBudget BCHMatrixBudget BCHCommMass
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 /-- The norm of a right-nested bracket is at most 2 to the list length times the product of the
 entry norms. -/

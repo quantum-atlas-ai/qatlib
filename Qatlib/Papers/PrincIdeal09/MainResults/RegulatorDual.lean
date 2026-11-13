@@ -31,10 +31,7 @@ separate ratio estimates give the accuracy used for continued-fraction reconstru
 * [Schmidt, 2009][Schmidt2009]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 open Classical
 

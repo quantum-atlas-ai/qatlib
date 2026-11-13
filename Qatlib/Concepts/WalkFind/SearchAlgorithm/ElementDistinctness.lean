@@ -31,7 +31,6 @@ result imported from the walk-spectrum development, and a prime-square existence
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 open Qatlib.Concepts.WalkFind.UniqueCollision
 open Qatlib.Concepts.WalkFind.WalkSpectrum
@@ -42,7 +41,6 @@ open Qatlib
 open scoped Classical BigOperators
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
 /-- For `k ≥ 2` and positive input and value-domain sizes, there exists a correct

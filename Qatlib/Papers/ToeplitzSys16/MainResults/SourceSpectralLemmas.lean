@@ -49,17 +49,17 @@ theorem lemma1_frobenius_entrywise (n : ℕ) (A : Matrix (Fin n) (Fin n) ℂ) :
   rfl
 
 /-- Lemma 1, trace equality of (A1) (p.7): `‖A‖_F = [tr(A* A)]^{1/2}`.
-Bridged from the Frozen `spectralFrobenius_sq_trace`
-(`QuantumAlgorithm.Concepts.SpectralSketch.SpectrumPerturb.spectralFrobenius_sq_trace`). -/
+Bridged from `spectralFrobenius_sq_trace`
+(`Qatlib.Concepts.SpectralSketch.SpectrumPerturb.spectralFrobenius_sq_trace`). -/
 theorem lemma1_frobenius_trace (n : ℕ) (A : Matrix (Fin n) (Fin n) ℂ) :
     spectralFrobenius A = Real.sqrt ((Matrix.trace (Aᴴ * A)).re) := by
   rw [← spectralFrobenius_sq_trace]
   exact (Real.sqrt_sq (spectralFrobenius_nonneg A)).symm
 
 /-- Lemma 1, spectral equality of (A1) (p.7): `‖A‖_F = [∑ₖ λₖ(A* A)]^{1/2}`, the `λₖ(A* A)`
-realised as the squared singular values of `A`.  Bridged from the Frozen
+realised as the squared singular values of `A`.  Bridged from
 `spectralFrobenius_sq_singular`
-(`QuantumAlgorithm.Concepts.SpectralSketch.SpectrumPerturb.spectralFrobenius_sq_singular`). -/
+(`Qatlib.Concepts.SpectralSketch.SpectrumPerturb.spectralFrobenius_sq_singular`). -/
 theorem lemma1_frobenius_singular (n : ℕ) (A : Matrix (Fin n) (Fin n) ℂ) :
     spectralFrobenius A
       = Real.sqrt (∑ i : Fin (Fintype.card (Fin n)),

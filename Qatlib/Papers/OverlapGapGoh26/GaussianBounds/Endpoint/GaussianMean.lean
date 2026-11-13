@@ -24,7 +24,6 @@ spin vector for odd interaction degree, yielding the zero-mean statements used i
 * [Goh and Müller, 2026][GohMuller2026]
 -/
 
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section

@@ -37,7 +37,6 @@ background.
 * [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -57,8 +56,6 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {X : Type} [Fintype X] {D : ℕ}
 

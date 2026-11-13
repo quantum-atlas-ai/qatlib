@@ -31,7 +31,6 @@ completeness, soundness, and threshold separation in the reduction framework of
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.QmaCompleteness.HistoryHam

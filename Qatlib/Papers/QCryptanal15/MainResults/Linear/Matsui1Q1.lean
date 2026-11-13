@@ -26,8 +26,6 @@ search and its explicit amplification budget. The mathematical context is [Kapla
 * [Kaplan et al., 2015][KaplanEtAl2015]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section

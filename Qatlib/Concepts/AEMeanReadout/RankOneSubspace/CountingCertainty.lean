@@ -32,8 +32,6 @@ stopping-angle examples.
 * [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
 -/
 
-set_option warningAsError false
-
 open scoped BigOperators Classical ENNReal
 
 open Qatlib.Foundations.PureStateMath
@@ -50,7 +48,6 @@ open Matrix
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- The marked squared norm of the first column of `A` for Boolean mask `g`. -/
 noncomputable def nextGoodMass {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)

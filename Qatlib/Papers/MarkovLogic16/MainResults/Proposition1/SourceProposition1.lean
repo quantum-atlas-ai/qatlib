@@ -54,8 +54,8 @@ Chowdhury–Somma guarantee from the paper's assumptions (constant maximum suppo
 `O(n^α)` cliques, linear time-evolution cost).
 
 The numerical upper bound itself comes from [29] Chowdhury–Somma, whose
-thermal-state-preparation gate-complexity theorem is *not* formalized in Frozen
-v2.0.2 or Dev (searched `QuantumAlgorithm.*` and `QuantumAlgorithmDev`).  It is
+thermal-state-preparation gate-complexity theorem is *not* formalized in the
+package or Dev (searched `Qatlib.*` and `QuantumAlgorithmDev`).  It is
 carried as the explicit, documented hypothesis `ChowdhurySommaGuarantee`; the
 elementary scale algebra (positivity, square identity, geometric step in `n`) is
 proved outright below.  Completing the unconditional proposition would require
@@ -212,7 +212,7 @@ cliques (`O(n^α)`), and time evolution under local terms costs at most linear i
 `n` (footnote [32]).  Substituting these into [29]'s bound yields
 `O(√(d^n β/Z) polylog(√(d^n β/Z)/ε))`.
 
-Current Lean gap: `GibbsSampling` (Frozen v2.0.2)
+`GibbsSampling`
 contains only Gibbs *lower*-bound contracts (e.g. `GibbsPreparationTimeLowerBound`
 for CKBG 2023 Prop G.5); there is no formalization of the Chowdhury–Somma
 gate-complexity *upper* bound.  The MLN side (cliques, maximum support, number of
@@ -225,12 +225,7 @@ Candidate reusable dependencies: `Mathlib.Analysis.Asymptotics.*` (`IsBigO`,
 Chowdhury–Somma arXiv:1603.02940 Theorem 1 (gate complexity of approximate thermal
 state preparation).
 
-Suggested next tactics: (1) formalize the [29] circuit and bound
-`T ≤ C · √(d^n β/Z) · (log(√(d^n β/Z)/ε))^k` as a theorem, replacing the
-`ChowdhurySommaGuarantee` hypothesis; (2) connect `GroundedMLN.cliques` to an
-actual MLN grounding (formulas, domains, ground substitutions) and derive
-`evolutionCost` from a gate-level decomposition; (3) conclude via
-`source_prop1_gibbs_complexity`.  Until then, the conditional theorem above
-records the exact statement and the paper's MLN-specific reduction. -/
+The conditional theorem above records the exact statement and the paper's
+MLN-specific reduction. -/
 
 end Qatlib.Papers.MarkovLogic16.MainResults.Proposition1

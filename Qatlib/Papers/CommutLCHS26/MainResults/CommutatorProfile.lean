@@ -39,7 +39,6 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 open Qatlib.Concepts.TrotterFormula.LieStrang
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

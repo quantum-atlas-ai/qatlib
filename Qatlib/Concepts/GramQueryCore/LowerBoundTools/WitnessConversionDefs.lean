@@ -30,11 +30,9 @@ repetition dependence used in the state conversion construction of [LeeEtAl2011]
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 open Qatlib.Foundations.PureStateMath
-
 
 namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Qatlib

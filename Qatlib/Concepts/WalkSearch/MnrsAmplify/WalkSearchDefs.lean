@@ -29,11 +29,9 @@ conclusions used in quantum walk search [MagniezNayakRolandSantha2011].
 * [Magniez et al., 2011][MagniezNayakRolandSantha2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 open Qatlib.Concepts.WalkSearch.FrameSpectral
 

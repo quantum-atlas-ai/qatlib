@@ -34,8 +34,6 @@ Gram change by `(1+π²)*T`, in the continuous-query setting of [LeeEtAl2011].
 * [Lee et al., 2011][LeeEtAl2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.ConversionCore.WitnessCompile Matrix
 open Qatlib.Concepts.BitWordCompiler.WordComposition

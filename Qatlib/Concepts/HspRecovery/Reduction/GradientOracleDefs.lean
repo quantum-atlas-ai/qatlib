@@ -160,7 +160,6 @@ def phasePrecision (ε : ℚ) : ℕ := Nat.clog 2 (max 1 ⌈ε⁻¹⌉₊)
 end Qatlib.Concepts.HspRecovery.ReductionCore
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
 

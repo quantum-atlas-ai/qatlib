@@ -26,7 +26,6 @@ zero-target coordinates in the water-fill setting of [OzolsRoettelerRoland2013].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WaterLevel.WaterPrecision
 
 set_option autoImplicit false

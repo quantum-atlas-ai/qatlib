@@ -83,7 +83,6 @@ end Qatlib.Concepts.HspRecovery.JointDlog
 namespace Qatlib.Concepts.HspRecovery.JointDlog
 open Qatlib.Concepts.HspRecovery.BackendAudit Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
-set_option warningAsError false
 
 /-- If `0 < a < n`, then twice the remainder of `n` modulo `a` is strictly less than `n`. -/
 private theorem joint_euclid_two_step (n a : ℕ) (_hn : 0 < n) (ha : 0 < a) (han : a < n) :

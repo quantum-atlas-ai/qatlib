@@ -31,7 +31,6 @@ These conversion lemmas supply the probability interface for the randomized sear
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw

@@ -25,7 +25,6 @@ quantum-walk framework of [Szegedy2004].
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.GraphStationary.StationaryLaw
 
 set_option autoImplicit false

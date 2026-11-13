@@ -36,7 +36,6 @@ normalization and a singleton search success bound. See [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Qatlib.Foundations.QueryWordCore.Circuit

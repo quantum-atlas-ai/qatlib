@@ -34,7 +34,6 @@ The total time `simplexTotalTime` is asymptotically comparable to `M * sqrt M` a
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

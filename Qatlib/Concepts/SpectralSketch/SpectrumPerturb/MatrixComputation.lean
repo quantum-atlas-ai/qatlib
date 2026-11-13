@@ -28,7 +28,6 @@ counts, ancilla counts, time costs, and budget equivalence.
 * [Bhatia, 1997][Bhatia1997]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation
 open Qatlib.Concepts.PhaseGeometry.Phase

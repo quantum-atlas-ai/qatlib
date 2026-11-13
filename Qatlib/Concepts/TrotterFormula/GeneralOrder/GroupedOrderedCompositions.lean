@@ -34,7 +34,6 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 open Qatlib
 open scoped Classical BigOperators
-set_option warningAsError false
 
 /-- The sum of the list `sourceParts s r` equals the sum of the multiplicities `r i`. -/
 theorem sourceParts_sum (s : ℕ) (r : Fin s → ℕ) : (sourceParts s r).sum=∑ i,r i := by

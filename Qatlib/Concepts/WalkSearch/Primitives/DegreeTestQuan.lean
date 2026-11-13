@@ -23,7 +23,6 @@ reductions, whose search background includes [Grover1996].
 * [Grover, 1996][Grover1996]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.WalkSearch.Primitives
 

@@ -30,8 +30,6 @@ and sketch-access bridges to support the analysis in [Tang2021].
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

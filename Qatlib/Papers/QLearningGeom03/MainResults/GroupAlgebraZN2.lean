@@ -31,10 +31,7 @@ of Proposition 5.1 in [HunzikerEtAl2003].
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -180,11 +177,11 @@ lemma hadamard_mul_shift {n : ℕ} (g : Bits n) :
   rw [Finset.sum_eq_single (z + g)]
   · rw [Matrix.diagonal_mul]
     unfold hadamard shift
-    rw [if_pos rfl, mul_one, chi_add_right]
+    rw [ite_eq_left rfl, mul_one, chi_add_right]
     ring
   · intro w _ hw
     unfold hadamard shift
-    rw [if_neg hw, mul_zero]
+    rw [ite_eq_right hw, mul_zero]
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
@@ -206,12 +203,12 @@ lemma hadamard_mul_self {n : ℕ} : hadamard n * hadamard n = 1 := by
   have hsum : (∑ x : Bits n, chi (y + z) x)
       = if y + z = 0 then ((2 ^ n : ℕ) : ℂ) else 0 := by
     by_cases h : y + z = 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hone : ∀ x : Bits n, chi (y + z) x = 1 := fun x => by rw [h]; exact chi_zero_left x
       rw [Finset.sum_congr rfl (fun x _ => hone x), Finset.sum_const, Finset.card_univ,
         card_bits]
       simp
-    · rw [if_neg h, chi_sum_eq_zero h]
+    · rw [ite_eq_right h, chi_sum_eq_zero h]
   rw [hsum]
   by_cases h : y + z = 0
   · have hyz : y = z := by
@@ -223,7 +220,7 @@ lemma hadamard_mul_self {n : ℕ} : hadamard n * hadamard n = 1 := by
       calc y i = y i + (z i + z i) := by rw [h2, add_zero]
         _ = y i + z i + z i := by rw [add_assoc]
         _ = z i := by rw [hi, zero_add]
-    rw [if_pos h, if_pos hyz, sqrt_inv_pow_mul_self]
+    rw [ite_eq_left h, ite_eq_left hyz, sqrt_inv_pow_mul_self]
   · have hyz : y ≠ z := by
       intro hcontra
       apply h
@@ -232,7 +229,7 @@ lemma hadamard_mul_self {n : ℕ} : hadamard n * hadamard n = 1 := by
       have hh : (2 : ZMod 2) = 0 := by decide
       show z i + z i = 0
       rw [← two_mul, hh, zero_mul]
-    rw [if_neg h, if_neg hyz, mul_zero]
+    rw [ite_eq_right h, ite_eq_right hyz, mul_zero]
 
 /-- Every binary string added to itself is zero. -/
 lemma bits_add_self {n : ℕ} (g : Bits n) : g + g = 0 := by
@@ -247,8 +244,8 @@ lemma shift_transpose {n : ℕ} (g : Bits n) : (shift g)ᵀ = shift g := by
   rw [Matrix.transpose_apply]
   unfold shift
   by_cases h : y = z + g
-  · rw [if_pos h, if_pos (show z = y + g by rw [h, add_assoc, bits_add_self, add_zero])]
-  · rw [if_neg h, if_neg]
+  · rw [ite_eq_left h, ite_eq_left (show z = y + g by rw [h, add_assoc, bits_add_self, add_zero])]
+  · rw [ite_eq_right h, ite_eq_right]
     intro hcon
     exact h (by rw [hcon, add_assoc, bits_add_self, add_zero])
 
@@ -282,12 +279,12 @@ theorem hadamard_conj_groupAlgebraElem {n : ℕ} (v : Bits n → ℂ) :
     ext y z
     rw [Matrix.sum_apply, Matrix.diagonal_apply]
     by_cases hyz : y = z
-    · rw [if_pos hyz]
+    · rw [ite_eq_left hyz]
       rw [Finset.sum_congr rfl (fun x _ => by
-        rw [Matrix.smul_apply, Matrix.diagonal_apply, if_pos hyz, smul_eq_mul])]
-    · rw [if_neg hyz]
+        rw [Matrix.smul_apply, Matrix.diagonal_apply, ite_eq_left hyz, smul_eq_mul])]
+    · rw [ite_eq_right hyz]
       refine Finset.sum_eq_zero fun x _ => ?_
-      rw [Matrix.smul_apply, Matrix.diagonal_apply, if_neg hyz, smul_zero]
+      rw [Matrix.smul_apply, Matrix.diagonal_apply, ite_eq_right hyz, smul_zero]
   refine Eq.trans ?_ hdiag
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [Matrix.mul_smul, Matrix.smul_mul, hadamard_mul_shift, Matrix.mul_assoc,

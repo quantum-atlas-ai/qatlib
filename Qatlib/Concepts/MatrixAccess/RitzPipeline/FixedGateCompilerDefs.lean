@@ -34,13 +34,10 @@ appears in [NielsenChuang2010].
 * [Nielsen and Chuang, 2010][NielsenChuang2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
-set_option linter.unusedVariables false
-set_option linter.unusedTactic false
 
 noncomputable section
 
@@ -66,7 +63,7 @@ theorem sin_two_mul (x : ℝ) : Real.sin (2 * x) = 2 * Real.sin x * Real.cos x :
   ring
 
 /-- Express `π / 2^e` as twice the next dyadic angle for a positive natural exponent. -/
-theorem pi_div_two_pow_succ (e : ℕ) (he : 1 ≤ e) :
+theorem pi_div_two_pow_succ (e : ℕ) (_he : 1 ≤ e) :
     Real.pi / (2 : ℝ) ^ e = 2 * (Real.pi / (2 : ℝ) ^ (e + 1)) := by
   have h2 : (2 : ℝ) ^ (e + 1) = (2 : ℝ) ^ e * 2 := pow_succ _ _
   rw [h2]
@@ -156,7 +153,7 @@ theorem tolerance_le_two_pow_one_sub_e {e k : ℕ} (hk : e ≤ k + 1) :
 
 /-- The constant-false register used to probe the unphased diagonal entry of a controlled-phase
 gate. -/
-def probeLow {w : ℕ} (a c : Fin w) : Reg w := fun _ => false
+def probeLow {w : ℕ} (_a _c : Fin w) : Reg w := fun _ => false
 
 /-- The register that is true exactly on the two selected wires, used to probe the phased
 diagonal entry of a controlled-phase gate. -/
@@ -237,7 +234,7 @@ theorem emptyWord_error_lower {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (φ
           rw [norm_sub_rev]
       _ = ‖Complex.exp (Complex.I * (dyadicPhaseAngle e neg : ℝ)) - 1‖ := by
           rw [show (dyadicPhaseAngle e neg : ℂ) * Complex.I
-              = Complex.I * (dyadicPhaseAngle e neg : ℝ) by push_cast; ring]
+              = Complex.I * (dyadicPhaseAngle e neg : ℝ) by ring]
       _ = 2 * |Real.sin (dyadicPhaseAngle e neg / 2)| := by
           rw [Complex.norm_exp_I_mul_ofReal_sub_one (dyadicPhaseAngle e neg)]
           simp
@@ -276,7 +273,7 @@ theorem emptyWord_error_lower {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (φ
 
 /-- For a positive exponent, the absolute value of half a signed dyadic phase angle is `π /
 2^e`. -/
-theorem abs_half_dyadicPhaseAngle {e : ℕ} (neg : Bool) (he : 1 ≤ e) :
+theorem abs_half_dyadicPhaseAngle {e : ℕ} (neg : Bool) (_he : 1 ≤ e) :
     |dyadicPhaseAngle e neg / 2| = Real.pi / (2 : ℝ) ^ e := by
   rw [abs_div_two]
   exact abs_dyadicPhaseAngle_div_two e neg
@@ -284,7 +281,7 @@ theorem abs_half_dyadicPhaseAngle {e : ℕ} (neg : Bool) (he : 1 ≤ e) :
 /-- If `4 ≤ e ≤ k + 1` and `k ≥ 1`, the empty word's error for the controlled-phase gate exceeds
 `tolerance k` for every global phase. -/
 theorem middleWindow_empty_far {w : ℕ} {a c : Fin w} (e k : ℕ) (neg : Bool)
-    (he : 4 ≤ e) (hk : e ≤ k + 1) (hkk : 1 ≤ k) (φ : ℝ) :
+    (he : 4 ≤ e) (hk : e ≤ k + 1) (_hkk : 1 ≤ k) (φ : ℝ) :
     tolerance k < ‖(1 : Matrix (Reg w) (Reg w) ℂ) -
         (Complex.exp (φ * Complex.I)) • localGateMatrix (.cp a c e neg)‖ := by
   have hlower := emptyWord_error_lower a c e neg φ

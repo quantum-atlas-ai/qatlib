@@ -42,7 +42,6 @@ circuit with an ideal multicontrolled unitary in operator norm. The natural-numb
 * [Barenco et al., 1995][BarencoEtAl1995]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

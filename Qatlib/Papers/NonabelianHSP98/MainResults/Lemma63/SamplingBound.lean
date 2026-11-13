@@ -108,10 +108,7 @@ hypotheses `card (maxSubs G) ≤ 2 ^ d` and `3 * d ≤ j`. This development acco
 * [Roetteler and Beth, 1998][RoettelerBeth1998]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.NonabelianHSP98.MainResults.Lemma63
 
@@ -135,6 +132,8 @@ noncomputable def genSet (G : Type) [Fintype G] [Group G] (i : ℕ) : Finset (Fi
 noncomputable def failSet (G : Type) [Fintype G] [Group G] (i : ℕ) : Finset (Fin i → G) := by
   classical
   exact Finset.univ.filter (fun S : Fin i → G => Subgroup.closure (Set.range S) ≠ ⊤)
+
+omit [Fintype G] in
 
 /-- A subgroup is a coatom in the subgroup lattice if and only if it is maximal among proper
 subgroups. -/
@@ -211,7 +210,7 @@ def memFunEquiv (K : Subgroup G) (i : ℕ) :
 theorem card_box (K : Subgroup G) (i : ℕ) :
     (box K i).card = (Nat.card K) ^ i := by
   classical
-  haveI : Fintype K := Fintype.ofFinite K
+  have : Fintype K := Fintype.ofFinite K
   rw [box]
   rw [← Fintype.card_subtype (fun S : Fin i → G => ∀ j, S j ∈ K)]
   rw [Fintype.card_congr (memFunEquiv K i)]
@@ -268,6 +267,8 @@ theorem card_fail_le (i : ℕ) :
     _ ≤ ∑ _K ∈ maxSubs G, (((Fintype.card G : ℝ) / 2) ^ i) := hsum
     _ = ((maxSubs G).card : ℝ) * (((Fintype.card G : ℝ) / 2) ^ i) := by
         simp [Finset.sum_const, nsmul_eq_mul]
+
+omit [Group G] in
 
 /-- The number of length-`i` tuples in `G` is `Fintype.card G ^ i`. -/
 theorem card_univ_fun (i : ℕ) : Fintype.card (Fin i → G) = (Fintype.card G) ^ i := by
@@ -361,6 +362,8 @@ theorem genProb_ge_corrected (d j : ℕ)
           exact le_trans hM' h2d
       _ = (1 / 2 : ℝ) ^ j := harith
   linarith
+
+omit [Fintype G] in
 
 /-- The corrected generation probability bound applies to a finite subgroup `U` when its number
 of maximal proper subgroups is at most `2 ^ d` and `3 * d ≤ j`. See [RoettelerBeth1998]. -/

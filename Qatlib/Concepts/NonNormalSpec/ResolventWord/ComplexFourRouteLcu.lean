@@ -46,7 +46,6 @@ explicit fixed-gate counts and additive hardware and numerical error bounds.
 * [Childs and Wiebe, 2012][ChildsWiebe2012]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib.Concepts.BlockEncoding

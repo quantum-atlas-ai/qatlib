@@ -31,7 +31,6 @@ setting of [KitaevShenVyalyi2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 

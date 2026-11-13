@@ -25,10 +25,10 @@ subroutine `SUB` at cost `O(√D)` (`SUB` is MIN twice plus a Grover search over
 the `3D`-vertex window of Proposition 1), and run Grover search over the chunks.
 The total is `O(√(n/D) · √D) = O(√n)`.
 
-The query-count arithmetic is proved below; the composed algorithm (Grover over
-`SUB`-instances) is the residual gap, exactly as for Theorem 1.  The final
-statement is recorded as a `Prop`-valued definition; its proof is not
-formalised.
+Scope note: the query-count arithmetic is proved below; the composed algorithm
+(Grover over `SUB`-instances) is outside the scope of this file, as for
+Theorem 1.  The final statement is a `Prop`-valued definition whose proof is
+not formalised.
 -/
 
 set_option autoImplicit false
@@ -129,14 +129,12 @@ collision on `CI(n,a,b)` admits a bounded-error quantum algorithm with
 Proof route: `⌈n/(b−a)⌉` chunks, `SUB` on each at cost `O(√(b−a))` (MIN twice,
 then Grover over the window of Proposition 1), Grover over the chunks.
 
-Formal gap: the composed algorithm is not constructed in the fixed-space model;
-`SUB` itself is a composition of MIN (frozen library: `Concepts.QueryComplexity`
-has no MIN query theorem ported) with a Grover search, and the chunk-level
-Grover search needs the Proposition 1 reduction.  Candidate follow-up: prove
-the corrected Proposition 1 of `ChunkCollision`, build the quantified MIN upper
-bound (`MinimumFinding` in `QuantumAlgorithm.Foundations`? — not present in this
-pin), then instantiate the Grover composition template as in Theorem 1.  The
-arithmetic part is fully proved as `circulantQueryBudget_le`. -/
+Scope note: the arithmetic bound is proved as `circulantQueryBudget_le`.
+The composed algorithm in the fixed-space model is outside the scope of this
+file.  Its `SUB` routine combines two MIN calls with Grover search; the
+chunk-level search also requires the corrected Proposition 1 reduction of
+`ChunkCollision` and a query bound for MIN, followed by Grover composition as
+in Theorem 1. -/
 def theorem5_circulant_algorithm (n a b : ℕ) (hn : 0 < n) (ha : 0 < a) (hab : a < b)
     (hb : b ≤ n / 2) (adj : Fin n → Fin n → Bool) (hCI : adjGraph adj = CI n a b) : Prop :=
   ∃ q : ℕ, GraphCollisionQueryUpperBound adj q ∧

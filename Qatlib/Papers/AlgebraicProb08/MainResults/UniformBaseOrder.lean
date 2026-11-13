@@ -5,7 +5,7 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
+import Mathlib.Algebra.Order.GroupWithZero.Basic
 import Mathlib.Data.Nat.PrimeFin
 
 /-!
@@ -27,11 +27,9 @@ one half, where `k` counts distinct prime factors. See [ChildsVanDam2010].
 * [Childs and van Dam, 2010][ChildsVanDam2010]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.AlgebraicProb08.MainResults
 

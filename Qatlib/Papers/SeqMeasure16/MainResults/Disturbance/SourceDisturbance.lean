@@ -13,10 +13,12 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Disturbance-Test Acceptance Bounds (Theorem 16)
 
-This module formalizes Theorem 16 (Section 4, p. 16) of Harrow, Lin, and
-Montanaro on sequential-measurement disturbance testing for `n ≥ 1` orthogonal
+This module proves a weakened scalar analogue of Theorem 16 (Section 4, p. 16)
+of Harrow, Lin, and Montanaro for `n ≥ 1` orthogonal
 projectors on `ℂ^D`, relating nearby-state disturbance `n^{-1} ∑_j ⟨φ|Λ_j|φ⟩ ≥ η / n`
 at trace distance at most `η` to per-projector acceptance `Re tr(Λ_j ρ) ≤ ζ`.
+Here the constant may depend on `n`, making the lower bound nonpositive.
+No disturbance-testing implementation or copy/query bound follows.
 
 ## Main definitions
 
@@ -25,7 +27,7 @@ at trace distance at most `η` to per-projector acceptance `Re tr(Λ_j ρ) ≤ �
 
 ## Main statements
 
-* `source_theorem16`: Theorem 16, existence of `C > 0` and acceptance function
+* `source_theorem16`: Weakened scalar analogue, existence of `C > 0` and function
   `test Λ ρ η ζ` satisfying both disturbance lower bound `η^2 / 7 - C / n` and
   low-acceptance upper bound `2 ⌈5 n / η + 5 / η^2⌉ ζ`.
 
@@ -56,8 +58,9 @@ noncomputable def bornExpectation {I : Type*} [Fintype I]
     (Λ : Matrix I I ℂ) (φ : QState I) : ℝ :=
   (star φ ⬝ᵥ (Λ *ᵥ φ)).re
 
-/-- **Theorem 16** (arXiv:1607.03236v3, page 16).  For `n ≥ 1` and dimension
-`D` there are a universal constant `C > 0` and a test `test Λ ρ η ζ` such that
+/-- Weakened scalar inequalities inspired by Theorem 16
+(arXiv:1607.03236v3, page 16). For each `n ≥ 1` and dimension
+`D` there are a constant `C > 0` depending on `n` and a function `test Λ ρ η ζ` such that
 for every family of orthogonal projectors `Λ : Fin n → Operator D`, every pure
 state `ρ = |ψ⟩⟨ψ|`, every `η > 0` and `ζ ≥ 0`:
 

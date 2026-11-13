@@ -26,7 +26,6 @@ half-difference angles. See [ShendeBullockMarkov2006] for the paper's setting.
 * [Shende et al., 2006][ShendeBullockMarkov2006]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open scoped Matrix

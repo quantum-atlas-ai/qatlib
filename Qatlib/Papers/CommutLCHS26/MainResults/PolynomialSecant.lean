@@ -27,8 +27,6 @@ operator analysis associated with [AftabAnTrivisa2026].
 * [Aftab et al., 2026][AftabAnTrivisa2026]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

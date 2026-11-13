@@ -22,7 +22,6 @@ supplies the unitary construction used by the finite-window circuit simulation. 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

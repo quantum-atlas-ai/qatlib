@@ -29,7 +29,6 @@ universal quantization requirements.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
@@ -57,7 +56,6 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Concepts.HhlAlgorithms.SinEnvFilter
 open Matrix Qatlib.Concepts.HhlAlgorithms.SinEnvFilter

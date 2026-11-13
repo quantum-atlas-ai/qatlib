@@ -35,7 +35,6 @@ constraints produces a matrix annihilated by every constraint projector.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 noncomputable section
 

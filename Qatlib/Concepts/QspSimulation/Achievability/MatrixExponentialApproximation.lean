@@ -27,8 +27,6 @@ supplies the matrix approximation step used in truncated Taylor simulation
 * [Berry et al., 2015][BerryEtAl2015Taylor]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.BlockEncoding
 
 namespace Qatlib.Concepts.QspSimulation.Achievability

@@ -78,7 +78,6 @@ open scoped Classical BigOperators Interval Matrix.Norms.L2Operator
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 open PaidHistoryPreparation
-set_option warningAsError false
 
 noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=

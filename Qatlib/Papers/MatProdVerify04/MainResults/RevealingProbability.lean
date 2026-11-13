@@ -34,7 +34,6 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
-set_option warningAsError false
 
 variable {K : Type*} [Field K] [Fintype K] [DecidableEq K]
 

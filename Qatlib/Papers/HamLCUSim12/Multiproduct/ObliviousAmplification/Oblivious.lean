@@ -21,7 +21,7 @@ is therefore no source obligation to prove here.
 The paper-layer entry re-exports the frozen declaration so the paper block has a
 named anchor for the claim, and records that it is not a Childs-Wiebe result.
 Reuses frozen
-`QuantumAlgorithm.Papers.HamLCUSim12.Multiproduct.obliviousAmplificationSubgoal`.
+`Qatlib.Papers.HamLCUSim12.Multiproduct.obliviousAmplificationSubgoal`.
 -/
 
 set_option autoImplicit false

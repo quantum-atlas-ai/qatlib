@@ -29,8 +29,6 @@ factors. These estimates form part of the partition-function scheme in [WocjanEt
 * [Wocjan et al., 2009][WocjanEtAl2009a]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

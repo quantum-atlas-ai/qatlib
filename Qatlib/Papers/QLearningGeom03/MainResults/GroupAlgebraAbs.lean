@@ -36,10 +36,7 @@ results implement the cyclic case of Proposition 5.4 in [HunzikerEtAl2003].
 * [Hunziker et al., 2003][HunzikerEtAl2003]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
 
 namespace Qatlib.Papers.QLearningGeom03.MainResults
 
@@ -81,11 +78,11 @@ lemma eigen_invFourierVec (g : ZMod N → ℂ) (j : ZMod N) :
       = g j' * (∑ x, chiN (j - j') x) := fun j' => by rw [Finset.mul_sum]
   rw [Finset.sum_congr rfl (fun j' _ => h3 j')]
   rw [Finset.sum_eq_single j]
-  · rw [chiN_sum_left, if_pos (sub_self j)]
+  · rw [chiN_sum_left, ite_eq_left (sub_self j)]
     have hNc : ((N : ℂ)) ≠ 0 := by exact_mod_cast NeZero.ne N
     field_simp
   · intro j' _ hne
-    rw [chiN_sum_left, if_neg]
+    rw [chiN_sum_left, ite_eq_right]
     · ring
     · intro h0
       exact hne (sub_eq_zero.mp h0).symm
@@ -132,9 +129,9 @@ lemma fourier_conjTranspose_mul (hN : 0 < N) : (fourier N)ᴴ * fourier N = 1 :=
     rw [chiN_sum, ZMod.card]]
   by_cases hjk : k - j = 0
   · have hjk' : j = k := (sub_eq_zero.mp hjk).symm
-    rw [if_pos hjk, if_pos hjk', sqrt_inv_mul_self hN]
+    rw [ite_eq_left hjk, ite_eq_left hjk', sqrt_inv_mul_self hN]
   · have hjk' : j ≠ k := fun h => hjk (by rw [h]; abel)
-    rw [if_neg hjk, if_neg hjk']
+    rw [ite_eq_right hjk, ite_eq_right hjk']
     simp
 
 /-- The Fourier eigenvalue of the cyclic group-algebra matrix with coefficient vector `v` at

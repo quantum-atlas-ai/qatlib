@@ -26,8 +26,6 @@ to `M⁵ * log M / ε^(3/2)` and `M⁶ / ε²` for the displayed cost expression
 * [McClean et al., 2014][McCleanEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.MainResult

@@ -31,8 +31,6 @@ generated-submonoid containment, and additive entrywise distance for block diago
 * [Aharonov et al., 2007][AharonovEtAl2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

@@ -26,7 +26,6 @@ to `lcQspTilde`. Background and related constructions are discussed in [LowChuan
 -/
 
 open Qatlib.Concepts.PhaseGeometry.Phase
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -37,7 +36,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
-set_option linter.unusedSimpArgs false
 
 open Matrix
 

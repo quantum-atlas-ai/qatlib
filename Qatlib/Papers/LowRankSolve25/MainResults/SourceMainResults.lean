@@ -31,19 +31,19 @@ This single paper module covers all ten active claims (c001-c010):
 * c009 — Lemma 2.5, p.10/11 (`lemma25_alpha_squared_bound`);
 * c010 — Lemma A.1, p.16 (`lemmaA1_sample_mean_second_moment`).
 
-Reused Frozen vocabulary (FQNs):
-`QuantumAlgorithm.Concepts.SketchArith.SketchBuild.sketchRowSquared`,
+Reused library vocabulary (fully qualified names):
+`Qatlib.Concepts.SketchArith.SketchBuild.sketchRowSquared`,
 `sketchSquared`, `sketchProduct`, `sketchMeanMatrix`, `sketchSampleMatrix`,
 `sketchProduct_unbiased_mean`, `sketchMean_eq_product`,
 `sketchRowSquared_eq_zero_entry`, `sketch_frobenius_norm_sq`;
-probability backbone `QuantumAlgorithm.Concepts.MonteCarloMean.FinDistBounds.FinDist`
+probability backbone `Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist`
 (`prob`, `nonneg`, `sum_one`, `expect`, `probOf`, `avg`, `variance`, `expect_avg`,
 `expect_avg_sub_sq`, `sum_probOf`, `chebyshev_avg`, `union_bound`).
 
 Modelling note: the paper works with real `A`, `b`; the library sketch layer is complex,
 so objects are stated for complex matrices and every paper statement is recovered by
 specializing `star = id` on real data (then `Aᴴ` is the transpose).  Squared Frobenius
-norms are written as Frozen `sketchSquared` (equal to `‖·‖_F²` by
+norms are written as `sketchSquared` (equal to `‖·‖_F²` by
 `sketch_frobenius_norm_sq`); squared spectral norms use the scoped `L2Operator` norm
 (`opNormSq`).
 -/
@@ -67,7 +67,7 @@ def eNormSq {ι : Type*} [Fintype ι] (v : ι → ℂ) : ℝ := ∑ i, Complex.n
 /-- Euclidean norm of a complex vector. -/
 def eNorm {ι : Type*} [Fintype ι] (v : ι → ℂ) : ℝ := Real.sqrt (eNormSq v)
 
-/-- Squared column norm `‖A e_c‖²` (the column analogue of Frozen `sketchRowSquared`). -/
+/-- Squared column norm `‖A e_c‖²` (the column analogue of `sketchRowSquared`). -/
 def sketchColSquared (A : Matrix (Fin n) (Fin d) ℂ) (c : Fin d) : ℝ :=
   ∑ r, Complex.normSq (A r c)
 
@@ -138,7 +138,7 @@ def matrixSampleMean {X : Type*} [Fintype X] (Z : X → Matrix (Fin n) (Fin d) �
   fun i j => cAvg (fun x => Z x i j) ω
 
 /-- The row-sketch matrix `M_k` of (2.1): the importance-weighted empirical mean of
-rank-one records `Aᴴ e_r e_rᵀ A`.  It is Frozen's `sketchProduct p R A A ω`. -/
+rank-one records `Aᴴ e_r e_rᵀ A`.  It is the library's `sketchProduct p R A A ω`. -/
 def sourceM (A : Matrix (Fin n) (Fin d) ℂ) (p : FinDist (Fin n))
     (R : ℕ) (rows : Fin R → Fin n) : Matrix (Fin d) (Fin d) ℂ :=
   sketchProduct p R A A rows
@@ -372,11 +372,12 @@ Paper proof (pp.8-9): using Lemmas 2.1-2.5 and `α = 1/‖A‖²`, the paper pro
 one-step contraction (their equation (2.3))
 `E‖x* - x_{k+1}‖² ≤ (1 - 1/κ²) E‖x* - x_k‖² + 10κ⁴/‖A‖⁴ ‖x*‖²`;
 unrolling `K` steps and using `(1 - 1/κ²)^K ≤ exp(-K/κ²) ≤ ε⁴` with
-`K = 4κ² log(1/ε)` gives the `2ε²` bound.  Lean gap: the contraction recursion from
-the exact moments plus the geometric-series unrolling.  Suggested tactics:
-`geom_sum`/`Real.exp` bounds, `nlinarith`, `Finset.sum_le_sum`, using
-`lemma21_second_moment`, `lemma22_conditional_second_moment`,
-`lemma25_alpha_squared_bound`. -/
+`K = 4κ² log(1/ε)` gives the `2ε²` bound.  The contraction uses the exact moments
+in `lemma21_second_moment`, `lemma22_conditional_second_moment` and
+`lemma25_alpha_squared_bound`, followed by a geometric-series estimate.
+
+Scope note: this declaration defines the expected-error proposition; the
+contraction recursion and its iteration are not proved in this file. -/
 def theorem16_expected_error (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
     (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
     (pinvNorm : ℝ) (xstar : Fin d → ℂ) (K R C : ℕ) (hK : 0 < K) (hR : 0 < R)
@@ -400,11 +401,12 @@ There is a positive numerical constant `const` such that, with probability at le
 
 Paper proof (p.11): `φ(y)` is controlled by the mass of `y` relative to `‖Aᵀ y‖²`;
 Theorem 1.6-style second-moment bounds give `E[φ(y)] ≤ const·κ_F²κ⁶log³(1/ε)`, and
-Markov's inequality (Frozen `chebyshev_avg`/`union_bound` analogues) turns the mean
-bound into probability `9/10` after the constants are inflated.  Lean gap: the exact
-first-moment computation of `φ` and the Markov step over the finite run law.  Suggested
-tactics: `Finset.sum_le_sum`, `mul_le_mul_of_nonneg_left`, `nlinarith`, with
-Frozen `union_bound`. -/
+Markov's inequality turns the mean bound into probability `9/10` after the constants
+are inflated; `chebyshev_avg` and `union_bound` provide related finite-law estimates.
+
+Scope note: this declaration defines the probability-bound proposition; the exact
+first-moment computation of `φ` and the Markov step over the finite run law are
+outside the scope of this file. -/
 def theorem17_phi_bound (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
     (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
     (pinvNorm : ℝ) (K R C : ℕ) (hK : 0 < K) (hR : 0 < R) (hC : 0 < C)
@@ -427,7 +429,7 @@ i.e. `E[M_k] = Aᵀ A` in the paper's real notation.
 
 Proof route (paper p.16): expand the weighted empirical mean and use that the row
 law is proportional to the squared row norms, so `∑_r p_r (1/p_r) Aᴴ e_r e_rᵀ A = AᵀA`.
-In Lean this is Frozen's `sketchProduct_unbiased_mean` followed by
+In Lean this is the library's `sketchProduct_unbiased_mean` followed by
 `sketchMean_eq_product`, with `rowDist_zero_row` discharging the zero-mass rows. -/
 theorem lemma21_first_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
     (R : ℕ) (hR : 0 < R) (i : Fin d) (j : Fin d) :
@@ -447,13 +449,15 @@ For every entry `(i,j)`,
 `E[(M_k M_k) i j] = (1/R)‖A‖_F² (AᵀA) i j + (1 - 1/R)((AᵀA)²) i j`,
 which is the paper's `E[M_k²] = (1/R)‖A‖_F² AᵀA + (1 - 1/R)(AᵀA)²`.
 
-Remaining Lean gap (statement accepted, proof not yet formalized): the paper expands
+Paper proof: the paper expands
 `M_k M_k` into the `R²` pairs `(r, r')` of independent row draws, computes the
 diagonal contribution `∑_r p_r⁻² (Aᴴ e_r e_rᵀ A)²` and the off-diagonal contribution
 `((R² - R)/R²)(AᵀA)²`, and uses `p_r = ‖e_rᵀ A‖²/‖A‖_F²` to turn the diagonal into
-`(1/R)‖A‖_F² AᵀA`.  Suggested tactics: `Finset.sum_mul_sum`, `Finset.sum_comm`,
-entrywise splitting of the product law, `ring_nf`, plus Frozen
-`sketchProduct_entry_parts`. -/
+`(1/R)‖A‖_F² AᵀA`.  This is an entrywise decomposition of the product law,
+as in `sketchProduct_entry_parts`.
+
+Scope note: this declaration defines the second-moment identity as a proposition;
+the independent-draw expansion is not proved in this file. -/
 def lemma21_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
     (R : ℕ) (hR : 0 < R) (i : Fin d) (j : Fin d) : Prop :=
     (∑ ω : Fin R → Fin n, (((rowDist A hA).probOf ω : ℝ) : ℂ) *
@@ -469,11 +473,13 @@ independent row and column draws vanishes: `E[M_k x_k - z_k | M_k, x_k] = 0`.
 
 Paper proof (p.16): condition on the rows; each sampled row applies the column
 importance sketch to the same row, and the column law `q_c = ‖A e_c‖²/‖A‖_F²` makes
-that sketch an unbiased estimator of `e_rᵀ A x_k`.  Lean gap: reorganize the finite
-double sum as an iterated expectation and evaluate each inner sum with
+that sketch an unbiased estimator of `e_rᵀ A x_k`.  Reorganizing the finite
+double sum as an iterated expectation evaluates each inner sum with
 `∑_c q_c (1/q_c) A_{r c} x_c = (A x_k)_r` (zero-mass columns via
-`sketchColSquared = 0 ⇒ A · c = 0`).  Suggested tactics: `Finset.sum_comm`,
-`Finset.sum_mul_sum`, `Finset.sum_eq_zero`, `if_pos/if_neg`, `mul_inv_cancel₀`. -/
+`sketchColSquared = 0 ⇒ A · c = 0`).
+
+Scope note: this declaration defines the unbiasedness proposition; the iterated
+expectation calculation is not proved in this file. -/
 def lemma22_conditional_unbiased (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
     (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) (i : Fin d) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
@@ -487,10 +493,12 @@ def lemma22_conditional_unbiased (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSq
 Paper proof (p.17): the row-sketch variance contributes `‖A‖_F⁴/(RC)‖x‖²` via Lemma A.1
 applied entrywise, and the column sketch contributes `‖A‖_F²‖A‖²/C‖x‖²` via the
 importance-sampling bound `E‖Â x - Ax‖² ≤ (‖A‖_F²/C)‖x‖²` plus `‖A x‖² ≤ ‖A‖²‖x‖²`.
-Lean gap: the entrywise variance formula for the importance-weighted column mean and the
+The argument uses the entrywise variance formula for the importance-weighted column mean and the
 operator-norm inequality `eNormSq (A.mulVec x) ≤ opNormSq A * eNormSq x` (from
-`Matrix.l2_opNorm_mulVec` and the `EuclideanSpace` bridge).  Suggested tactics:
-`Finset.sum_le_sum`, `mul_le_mul_of_nonneg_left`, `nlinarith`. -/
+`Matrix.l2_opNorm_mulVec` and the `EuclideanSpace` bridge).
+
+Scope note: this declaration defines the second-moment bound as a proposition;
+the variance and operator-norm estimates are not assembled here. -/
 def lemma22_conditional_second_moment (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : sketchSquared A ≠ 0) (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
@@ -508,10 +516,12 @@ Paper proof (pp.17-18): condition on `x_k` and on the row draws; the inner colum
 sketch of each sampled row has second moment at most `(‖A‖_F²/C)‖x‖²` (importance
 sampling), while the row sampling of `D u_k` has second moment at most `‖A‖_F²/R`
 times the unsketched row-space norm; finally the exact term is bounded by `‖A‖²` times
-the row energy.  Lean gap: the column-sketch variance bound and the row-energy identity,
-together with `eNormSq (A.mulVec x) ≤ opNormSq A * eNormSq x`.  Suggested tactics:
-`Finset.sum_le_sum`, `mul_le_mul_of_nonneg_left`, `nlinarith`,
-`Matrix.l2_opNorm_mulVec`. -/
+the row energy.  The argument combines the column-sketch variance bound and the
+row-energy identity with `eNormSq (A.mulVec x) ≤ opNormSq A * eNormSq x`, the
+operator-norm estimate supplied by `Matrix.l2_opNorm_mulVec`.
+
+Scope note: this declaration defines the second-moment bound as a proposition;
+the combination of these estimates is not proved in this file. -/
 def lemma23_Du_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
     (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
@@ -527,11 +537,13 @@ def lemma23_Du_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquare
 (`sketchSquared A = ‖A‖_F²`, `opNormSq A = ‖A‖²`, `eNormSq b = ‖b‖²`).
 
 Sharpening over the paper: the bound is stated for every `R > 0` and does not need the
-conditioning, because `v_k` does not depend on `x_k`.  Lean gap: the iid second moment
-of the weighted empirical mean of `b` and the row-energy substitution
+conditioning, because `v_k` does not depend on `x_k`.  The argument uses the iid
+second moment of the weighted empirical mean of `b` and the row-energy substitution
 `p_i = sketchRowSquared A i / sketchSquared A` (zero-mass rows via `rowDist_zero_row`).
-Suggested tactics: `Finset.sum_le_sum`, `Finset.sum_mul`, `mul_inv_cancel₀`,
-`nlinarith`, cf. Frozen `expect_avg`/`expect_prod`. -/
+Related expectation identities are `expect_avg` and `expect_prod`.
+
+Scope note: this declaration defines the second-moment bound as a proposition;
+the weighted-mean calculation is not proved in this file. -/
 def lemma24_Dv_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
     (hA : sketchSquared A ≠ 0) (R : ℕ) (hR : 0 < R) : Prop :=
     (∑ rows : Fin R → Fin n, (rowDist A hA).probOf rows *
@@ -549,11 +561,13 @@ least-squares solution `x*` with `‖b‖ ≤ ‖A‖ ‖x*‖`,
 `kappaF A pinvNorm = κ_F`; `hb` is the paper's `‖b‖ = ‖A x*‖ ≤ ‖A‖‖x*‖` for the
 consistent/minimum-norm solution.
 
-Lean gap: assemble `lemma23_Du_second_moment` and `lemma24_Dv_second_moment` under the
-pointwise bound `eNormSq (u - v) ≤ 2 (eNormSq u + eNormSq v)`, substitute the parameter
-inequalities, and finish the arithmetic with `paramAlpha A = 1 / opNormSq A` plus
-`kappaF^2 / kappa^2 = sketchSquared A / opNormSq A`.  Suggested tactics:
-`mul_le_mul_of_nonneg_left`, `Finset.sum_le_sum`, `nlinarith`, `field_simp`, `ring`. -/
+The argument combines `lemma23_Du_second_moment` and `lemma24_Dv_second_moment`
+under the pointwise bound `eNormSq (u - v) ≤ 2 (eNormSq u + eNormSq v)` and the
+parameter inequalities, using `paramAlpha A = 1 / opNormSq A` and
+`kappaF^2 / kappa^2 = sketchSquared A / opNormSq A`.
+
+Scope note: this declaration defines the variance-bound proposition; the
+combination of the component estimates is not proved in this file. -/
 def lemma25_alpha_squared_bound (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
     (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
     (pinvNorm : ℝ) (xstar : Fin d → ℂ) (R C : ℕ) (hR : 0 < R) (hC : 0 < C)
@@ -688,14 +702,12 @@ expectations taken over the iid product law.
 Paper proof: expand the squared Frobenius norm into entries, split the double sum over
 draw indices into diagonal (`i = j`) and off-diagonal (`i ≠ j`) parts; independence
 factors the off-diagonal expectation into `E[Z]ᵀE[Z]`, and the diagonal part is
-`(1/m) E[ZᵀZ]`; combine.  Lean gap: the scalar core is the real identity
+`(1/m) E[ZᵀZ]`; combine.  The scalar core is the real identity
 `∑_ω p.probOf ω * avg(f ω)^2 = (1/m) E[f²] + (1 - 1/m)(E f)²`, which follows from
-Frozen `expect_avg_sub_sq` (+ `variance_eq_expect_sq_sub`, `expect_avg`,
+`expect_avg_sub_sq` (+ `variance_eq_expect_sq_sub`, `expect_avg`,
 `sum_probOf`) by expanding the square; the complex version is obtained from the real
 identity applied to the real and imaginary parts (`avg` is `ℝ`-linear and
-`Complex.normSq z = z.re² + z.im²`).  Suggested tactics: `Complex.ext`,
-`Complex.normSq_apply`, `Finset.sum_congr`, `Finset.sum_add_distrib`,
-`Finset.sum_comm`, `ring`. -/
+`Complex.normSq z = z.re² + z.im²`). -/
 theorem lemmaA1_sample_mean_second_moment {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (Z : X → Matrix (Fin n) (Fin d) ℂ) (m : ℕ) (hm : 0 < m) :
     (∑ ω : Fin m → X, p.probOf ω * sketchSquared (matrixSampleMean Z m ω))
@@ -758,10 +770,12 @@ compressed representation `y_K` such that
    `E‖x* - x‖² ≤ 2ε²‖x*‖²`.
 
 The entry-query bound `Õ(κ_F²)` follows from (1) (a query scans the representation) and
-the sampling bound `Õ(κ_F⁴κ⁶)` is Theorem 1.7 (claim c004).  Lean gap: the assembly of
-the expected-error conjunct from `theorem16_expected_error` and the tail-to-expectation
-passage; suggested tactics: `exact`/`linarith` after instantiating the component
-theorems. -/
+the sampling bound `Õ(κ_F⁴κ⁶)` is Theorem 1.7 (claim c004).  The expected-error
+conjunct is expressed by `theorem16_expected_error`; the paper's analysis also
+uses a tail-to-expectation passage.
+
+Scope note: this declaration defines the combined main-result proposition;
+the expected-error analysis and tail-to-expectation passage are not proved here. -/
 def main_result (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
     (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (hε4 : ε < 1 / 4)
     (pinvNorm : ℝ) (hκ : kappa A pinvNorm ≠ 0) (xstar : Fin d → ℂ)

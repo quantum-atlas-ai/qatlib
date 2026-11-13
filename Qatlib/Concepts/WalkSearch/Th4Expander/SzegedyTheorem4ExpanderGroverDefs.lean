@@ -26,7 +26,6 @@ The square-root size-to-gap scale is the one used in the walk-detection framewor
 * [Szegedy, 2004][Szegedy2004]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

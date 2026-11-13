@@ -29,7 +29,6 @@ programs, run ledgers, and gate and space budgets for the randomized simulation 
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.RandCompile.EffectiveInput

@@ -115,11 +115,11 @@ theorem appendix_d_audit :
      but do not certify the continuous semantics of the interval program nor the
      complete cover for every `H ∈ U`.
 
-     Lean gap: the concrete pair/edge tables live in the Frozen modules
+     The concrete pair/edge tables live in the Frozen modules
      `MUB6A119Data`/`MUB6A119Certificate` and are checked there by `decide`.
      This theorem records the audit result as a certificate; it does not re-run
      the machine arithmetic.
-     Suggested next tactic: `exact ⟨⟨"...", 1128, 36, rfl, rfl⟩, rfl⟩`. -/
+     -/
   exact ⟨⟨"407c9a89ab2b4ddd8d7000bdc1b895814a8a806ee56edadce6c29aba4b885f06",
     1128, 36, rfl, rfl⟩, rfl⟩
 

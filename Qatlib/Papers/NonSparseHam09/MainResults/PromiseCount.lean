@@ -28,11 +28,7 @@ levels, yielding an exact formula for `probOf` on the parity-adjusted promise se
 * [Childs and Kothari, 2010][ChildsKothari2010]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 noncomputable section
 
 open Matrix Finset Filter
@@ -51,7 +47,8 @@ lemma signSum_eq (M : ℕ) (b : Fin M → Bool) :
       = 2 * ((Finset.univ.filter (fun i => b i)).card : ℝ) - (M : ℝ) := by
   have hpt : ∀ i : Fin M, signVec b i = 2 * (if b i then (1 : ℝ) else 0) - 1 := by
     intro i
-    cases hbi : b i <;> simp [signVec, signOf, hbi] <;> norm_num
+    cases hbi : b i <;> simp [signVec, signOf, hbi]
+    norm_num
   have hcount : (∑ i : Fin M, (if b i then (1 : ℝ) else 0))
       = ((Finset.univ.filter (fun i => b i)).card : ℝ) := by
     rw [← Finset.sum_filter]
@@ -73,7 +70,7 @@ lemma two_dvd_add_of_mod_two_eq {M B : ℕ} (hpar : B % 2 = M % 2) : 2 ∣ M + B
 
 /-- For `B ≤ M` of the same parity as `M`, sign sum `B` is equivalent to having exactly `(M + B)
 / 2` true bits [ChildsKothari2010]. -/
-lemma signSum_eq_iff (M B : ℕ) (hBM : B ≤ M) (hpar : B % 2 = M % 2) (b : Fin M → Bool) :
+lemma signSum_eq_iff (M B : ℕ) (_hBM : B ≤ M) (hpar : B % 2 = M % 2) (b : Fin M → Bool) :
     (∑ i, signVec b i = (B : ℝ)) ↔
       (Finset.univ.filter (fun i => b i)).card = (M + B) / 2 := by
   have hdvd : 2 ∣ M + B := two_dvd_add_of_mod_two_eq hpar

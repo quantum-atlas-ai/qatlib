@@ -27,7 +27,6 @@ classical outcomes and acceptance. The construction uses the matrix composition 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

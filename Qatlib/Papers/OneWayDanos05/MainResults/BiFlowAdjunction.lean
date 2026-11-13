@@ -28,7 +28,6 @@ cardinalities. The module also records the square-isometry implication and defin
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

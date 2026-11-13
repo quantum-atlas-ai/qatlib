@@ -78,8 +78,6 @@ open Qatlib
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
@@ -97,7 +95,6 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Filter
 open scoped Topology
-set_option warningAsError false
 
 /-- For positive marked mass `a`, each of the two expected query counters of both search loops
 is at most `400 / √a`, uniformly in the finite horizon `T`. -/

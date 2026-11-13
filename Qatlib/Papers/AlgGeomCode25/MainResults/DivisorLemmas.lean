@@ -25,7 +25,7 @@ set_option backward.isDefEq.respectTransparency false
   available in Mathlib); the divisor group and its degree are the
   concrete `Finsupp` ones.
 
-No axiom, no `admit`, no `native_decide`. -/
+-/
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AlgGeomCode25.MainResults.DivisorLemmas

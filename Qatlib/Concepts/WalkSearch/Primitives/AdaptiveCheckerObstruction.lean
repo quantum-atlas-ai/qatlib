@@ -28,7 +28,6 @@ the examples clarify composition requirements in the bounded-error search settin
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 set_option autoImplicit false

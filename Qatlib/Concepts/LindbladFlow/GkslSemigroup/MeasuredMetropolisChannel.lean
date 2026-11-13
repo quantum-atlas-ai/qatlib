@@ -37,7 +37,6 @@ estimate that also retains an arbitrary reference register.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -57,11 +56,6 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 open Matrix
 
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
-set_option linter.unusedTactic false
 
 /-- The acceptance or rejection weight for a proposed transition, divided by the dimension. -/
 noncomputable def thermalKrausWeight (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)

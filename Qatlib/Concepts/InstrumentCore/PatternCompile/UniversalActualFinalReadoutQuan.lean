@@ -31,7 +31,6 @@ event probabilities in the measurement scheme of [RaussendorfBriegel2000].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath

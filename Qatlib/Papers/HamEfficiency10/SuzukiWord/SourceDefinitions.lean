@@ -16,14 +16,12 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed paper version: arXiv:1005.1318 (2010),
 "On the Efficiency of Quantum Algorithms for Hamiltonian Simulation".
-Plain text: `prove/assets/1005.1318.txt`;
-PDF: `prove/assets/1005.1318.pdf`.
 
 The paper studies Suzuki's recursive splitting `S_{2k}` for
 `exp(-i(H_1 + ... + H_m)Δt)` and its exponential cost.  This file gives the
 paper-layer model.  Hamiltonians are honest finite-dimensional Hermitian
 matrices and the evolution is the actual Banach-algebra exponential
-`QuantumAlgorithm.Papers.HamSimQSP17.Achievability.hamiltonianEvolution`
+`Qatlib.Papers.HamSimQSP17.Achievability.hamiltonianEvolution`
 (L2 operator norm), so no numerical sampling or abstract operator algebra is
 introduced.
 

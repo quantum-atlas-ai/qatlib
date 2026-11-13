@@ -38,7 +38,6 @@ open Qatlib.Papers.LowRankMatrix19.SQFramework.ConstructionStageB.StageBSQCLOSUR
 open Qatlib.Concepts.SketchSpectral.SketchAnalysis.ConstructionStageB.StageBSQSKETCHARITHMETIC
 
 set_option autoImplicit false
-set_option warningAsError false
 
 namespace Qatlib.Papers.LowRankMatrix19.SQFramework
 namespace ConstructionStageB

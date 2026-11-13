@@ -48,7 +48,6 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator NNReal ENNReal
 open BCHFormal SubdivisionPolynomial
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
-set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _

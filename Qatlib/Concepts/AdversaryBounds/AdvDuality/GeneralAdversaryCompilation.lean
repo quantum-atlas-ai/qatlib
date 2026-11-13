@@ -51,7 +51,6 @@ computation and `512` for error at most `1 / 16`.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -75,8 +74,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -145,8 +142,6 @@ theorem phasePaddingInput_normalized {n q : ℕ} [NeZero q] {W H : Type}
   simp only [hs]
   simpa only [Normalized, Fintype.sum_prod_type] using! hv
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -473,8 +468,6 @@ theorem phaseHistory_initial_normalized (R : ℕ) (ψ : QState ((Fin n × Fin q)
   simp only [branchMass,MeasureProb,BornProb,Fintype.sum_prod_type,hs]
   simpa only [Normalized,Fintype.sum_prod_type] using! hψ
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -551,8 +544,6 @@ theorem phase_observed_binary_query_lower_bound
     input f Gamma C ψ' out eps hG hz hrun (by decide)
   simpa only [hq] using! hb
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -1197,8 +1188,6 @@ theorem phase_instrument_mixed_value_bound
   exact adversary_value_of_multiplicative_bound input f _ _ (fun Gamma hG hz =>
     phase_instrument_mixed_query_lower_bound e input f Gamma P hP decode rho hrho eps he0 he1 hG hz hsuccess)
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

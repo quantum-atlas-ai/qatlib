@@ -28,8 +28,6 @@ state. These calculations formalize the pair-state construction in [PaparoEtAl20
 * [Paparo et al., 2014][PaparoEtAl2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.MatrixGeometry.FlagProjection

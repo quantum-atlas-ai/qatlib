@@ -34,7 +34,6 @@ selected designs, supporting the concise data-fitting task of [WiebeBraunLloyd20
 * [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QsvtLinearSolve.RangeDataFit

@@ -30,7 +30,6 @@ paper's setting.
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.Postselection
 
@@ -38,7 +37,6 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
 open scoped Matrix.Norms.L2Operator
-set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 

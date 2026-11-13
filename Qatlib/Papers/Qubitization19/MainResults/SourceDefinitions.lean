@@ -105,7 +105,7 @@ def EncodableInStandardForm {I : Type u} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) : Prop :=
   Nonempty (StandardFormWitness I H)
 
-/-- Fixed arXiv:1610.06546v3, Definition 2 (PDF p.5): the quantum signal
+/-- **Statement only — not proved in Qatlib.** Fixed arXiv:1610.06546v3, Definition 2 (PDF p.5): the quantum signal
 processor problem. Given a Hermitian `H` with `‖H‖ ≤ 1` and a standard-form
 encoding of `H`, and given a unit-disc function `f` on `[−1,1]`, produce a
 standard-form encoding of the operator `f[H]`. The resources listed in the

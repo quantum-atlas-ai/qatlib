@@ -27,7 +27,6 @@ vectors. See [McCleanEtAl2014] for related background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

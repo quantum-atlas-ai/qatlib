@@ -57,7 +57,6 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 open scoped ComplexConjugate
-set_option warningAsError false
 
 /-- The positive ceiling-based segment count obtained from the fourth-order norm error bound and
 tolerance `ε`. -/

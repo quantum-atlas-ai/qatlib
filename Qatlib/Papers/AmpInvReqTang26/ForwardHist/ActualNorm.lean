@@ -32,7 +32,6 @@ open scoped BigOperators
 open Matrix
 namespace Qatlib.Papers.AmpInvReqTang26.ForwardHist
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
-set_option warningAsError false
 
 /-- A matrix satisfying `Mᴴ * M = 1` preserves the sum of squared coordinate norms under
 matrix-vector multiplication. -/

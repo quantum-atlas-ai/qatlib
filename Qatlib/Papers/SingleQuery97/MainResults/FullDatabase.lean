@@ -27,7 +27,6 @@ query and defines an exact fallback decoder on an injective candidate family. Th
 * [Terhal and Smolin, 1998][TerhalSmolin1998]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

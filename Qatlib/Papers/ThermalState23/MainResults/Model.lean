@@ -23,23 +23,21 @@ set_option backward.isDefEq.respectTransparency false
 Chen–Kastoryano–Brandão–Gilyén, arXiv:2303.18224v2.
 
 This module fixes the paper-level vocabulary shared by all claim files of
-`ThermalState23`.  It is deliberately thin: it reuses the frozen GKSL
+`ThermalState23`.  It reuses the shared GKSL
 vocabulary (`GKSLData`, `gkslMap`, `evolveAt`, `gkslStationary`,
 `thermalMixingTime`, `gibbsDensity`, `SchattenOne`, `boxFilteredFixedPoint`,
 `WeakBathDetailedBalance`, `GaussianMetropolisBath`,
 `purifiedProxyDiscriminant`, `purifiedGibbsVector`, `ProxySpectralGap`,
 `BlockUnitaryLindbladian`) from
-`QuantumAlgorithm.Concepts.GkslBridge.GkslBridge` and adds only the paper's
+`Qatlib.Concepts.GkslBridge.GkslBridge` and adds only the paper's
 own constructions: the discriminant superoperator, the operator Fourier
 transforms, the two-sided DFT, block encodings and the filtered averages for
 the Gaussian window.
 
-Boundary: the frozen contracts `ThermalThI1Spec`, `ThermalThI3Spec` and
-`ThermalThI4Spec` are known to be refuted in the frozen question layer (see
-`open-problem/GibbsSampling/SamplingCost/QuantumMixingSourceBounds`).  They
-are therefore *not* restated here as true theorems; instead the paper's
-statements are formalized with the missing side conditions (positive mixing
-time, existence of a filtered approximate fixed point) made explicit.
+Scope note: the contracts `ThermalThI1Spec`, `ThermalThI3Spec` and
+`ThermalThI4Spec` admit counterexamples without additional side conditions.
+The paper's statements are formalized here with positive mixing time and
+the existence of a filtered approximate fixed point made explicit.
 -/
 
 set_option autoImplicit false

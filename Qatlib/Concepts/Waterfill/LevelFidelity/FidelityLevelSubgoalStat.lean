@@ -25,7 +25,6 @@ underlying quantum rejection sampling [OzolsRoettelerRoland2013].
 * [Ozols et al., 2013][OzolsRoettelerRoland2013]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity

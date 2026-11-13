@@ -30,8 +30,6 @@ degree `k` and coordinate mismatch degree at most one, yielding the query lower 
 * [Ambainis, 2002][Ambainis2002]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

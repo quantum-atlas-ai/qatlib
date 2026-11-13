@@ -27,7 +27,6 @@ estimate of Lemma 1 in [BerryEtAl2007Sparse] for finite Hermitian matrix lists s
 * [Berry et al., 2007][BerryEtAl2007Sparse]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false

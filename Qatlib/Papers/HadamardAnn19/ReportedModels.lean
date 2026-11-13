@@ -33,8 +33,6 @@ configuration.
 * [Suksmono and Minato, 2019][SuksmonoMinato2019]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open scoped BigOperators
 namespace Qatlib.Papers.HadamardAnn19.ReportedModels

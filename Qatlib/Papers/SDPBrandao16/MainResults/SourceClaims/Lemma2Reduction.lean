@@ -18,8 +18,8 @@ The reduction has three independent algebraic parts:
 
 1. **coefficient lift** (Appendix A, below Eq. (98)): given `b_i ≥ 1` and
    `R ≥ 0`, the lifted cost vector `(b_1,…,b_m, R+1)` has every entry `≥ 1`.
-   Reused frozen theorem:
-   `QuantumAlgorithm.Concepts.SdpMmwSolver.OracleError.sdpAlphaRescaleLemma2`
+   The theorem used here is:
+   `Qatlib.Concepts.SdpMmwSolver.OracleError.sdpAlphaRescaleLemma2`
    (coverage `partial_support`, `OracleError/SdpAlphaRescaleLemma2Quan`);
 2. **sampling conversion** (Eqs. (102)–(108)): if `(y_1,…,y_{m+1})` is a
    δ-optimal solution of the lifted SDP (98), and the lifted
@@ -42,7 +42,7 @@ namespace Qatlib.Papers.SDPBrandao16.MainResults.SourceClaims
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped BigOperators
 
-/-! ## §1 Coefficient lift (reuse of the frozen α-rescale contract) -/
+/-! ## §1 Coefficient lift (reuse of the α-rescale contract) -/
 
 /-- **Source Lemma 2 / Lemma 18, coefficient-lift clause (Appendix A, after
 Eq. (98)).**
@@ -53,8 +53,8 @@ cost vector `liftedB : Fin (m+1) → ℝ` with `liftedB i ≥ 1` for every `i`,
 nonnegative `bsol` whose scaled objective `∑ bsol_i (b_i/α) ≤ 1 + δ` has
 original objective `∑ bsol_i b_i ≤ (1+δ) α`.
 
-Reused frozen theorem (FQN):
-`QuantumAlgorithm.Concepts.SdpMmwSolver.OracleError.sdpAlphaRescaleLemma2`. -/
+The theorem used here is:
+`Qatlib.Concepts.SdpMmwSolver.OracleError.sdpAlphaRescaleLemma2`. -/
 theorem lemma2_alphaRescale (n m : ℕ) (b : Fin m → ℝ) (R r α δ : ℝ)
     (hn : 0 < n) (hm : 0 < m) (hR : 0 < R) (hr : 0 < r) (hα : 0 < α) (hδ : 0 < δ)
     (hb : ∀ i, 1 ≤ b i) (hαR : α ≤ R) (hrαR : r * α ≤ R) :

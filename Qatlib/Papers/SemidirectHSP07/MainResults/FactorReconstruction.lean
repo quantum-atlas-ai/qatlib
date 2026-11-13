@@ -31,10 +31,7 @@ algebraic factor reduction used in [CosmePortugal2007].
 * [Cosme and Portugal, 2007][CosmePortugal2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
-set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
@@ -115,9 +112,9 @@ theorem source_hsp_reduction (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime)
       (∀ H' : Subgroup (Cyc (q ^ s) × SDG p r ψ),
         H'.map (MonoidHom.fst _ _) = H.map (MonoidHom.fst _ _) →
         H'.map (MonoidHom.snd _ _) = H.map (MonoidHom.snd _ _) → H' = H) := by
-  haveI : NeZero (q ^ s) := ⟨pow_ne_zero s hq.ne_zero⟩
-  haveI : Finite (Cyc (q ^ s)) := Finite.of_fintype _
-  haveI : Finite (SDG p r ψ) :=
+  have : NeZero (q ^ s) := ⟨pow_ne_zero s hq.ne_zero⟩
+  have : Finite (Cyc (q ^ s)) := Finite.of_fintype _
+  have : Finite (SDG p r ψ) :=
     Nat.finite_of_card_ne_zero (by
       rw [card_SDG_prime_pow p r hp ψ]
       exact pow_ne_zero _ hp.ne_zero)

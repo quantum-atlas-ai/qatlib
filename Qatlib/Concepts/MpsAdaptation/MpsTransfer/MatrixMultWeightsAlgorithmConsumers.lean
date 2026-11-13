@@ -44,7 +44,6 @@ open Qatlib.Concepts.MatrixWeights.WeightsCore
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The pair of two-level constraint matrices consisting of Pauli Z at index 0 and the identity
 at index 1. -/

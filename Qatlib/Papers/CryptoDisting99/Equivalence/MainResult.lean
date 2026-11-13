@@ -36,7 +36,6 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open scoped Matrix ComplexOrder
 open MatrixOrder
 open Matrix
-set_option warningAsError false
 
 /-- Defines the two-dimensional encoding operator with diagonal entries `cos α ^ 2` and `sin α ^
 2` and off-diagonal sign determined by `z`. -/

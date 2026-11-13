@@ -32,8 +32,6 @@ It also identifies `SchattenOne` with Physlib's matrix trace norm.
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 

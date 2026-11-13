@@ -24,8 +24,6 @@ probability ingredient associated with Theorem 6 of [BaconChildsVanDam2005].
 * [Bacon et al., 2005][BaconChildsVanDam2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

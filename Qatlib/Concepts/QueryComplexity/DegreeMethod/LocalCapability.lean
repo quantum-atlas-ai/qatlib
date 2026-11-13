@@ -43,7 +43,6 @@ developed in [BealsEtAl2001].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -51,13 +50,10 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath.BornBridge
 
-
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Matrix
 open scoped ComplexOrder
-
-set_option linter.unusedSectionVars false
 
 variable {I J K : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   [Fintype K] [DecidableEq K]
@@ -70,6 +66,8 @@ between distinct values of the first register vanish. -/
 noncomputable def BlockDiag {C : Type*} [Fintype C] [DecidableEq C]
     (W : C → Matrix I I ℂ) : Matrix (C × I) (C × I) ℂ :=
   Matrix.of fun p q => if p.1 = q.1 then W q.1 p.2 q.2 else 0
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Evaluates a `BlockDiag W` entry as the corresponding block entry when the control indices
 agree, and as zero otherwise. -/
@@ -102,10 +100,10 @@ theorem blockDiag_unitary {C : Type*} [Fintype C] [DecidableEq C] (W : C → Mat
       intro x hx
       rw [Finset.sum_eq_zero fun b (_ : b ∈ Finset.univ) => by simp [hx]]
     rw [Fintype.sum_eq_single a hterm]
-    simp only [if_true]
+    simp only [ite_true]
     rw [hent, hunit]
     by_cases hii : i = i' <;> simp [Matrix.one_apply, hii]
-  · rw [if_neg (fun e => h (congrArg Prod.fst e))]
+  · rw [ite_eq_right (fun e => h (congrArg Prod.fst e))]
     apply Finset.sum_eq_zero
     intro x _
     apply Finset.sum_eq_zero
@@ -138,6 +136,8 @@ structure HasControlled (U : Matrix I I ℂ) where
   controlled_unitary : controlled ∈ Matrix.unitaryGroup (Bool × I) ℂ
 
   is_controlled : IsControlledGate controlled U
+
+omit [Fintype I] in
 
 /-- The canonical block diagonal matrix `ControlledGate U` satisfies `IsControlledGate` for
 every matrix `U`. -/
@@ -189,6 +189,7 @@ theorem HasControlled.unitary {U : Matrix I I ℂ} (h : HasControlled U) : HasUn
     _ = (1 : Matrix (Bool × I) (Bool × I) ℂ) (true, i) (true, j) := by rw [hmul]
     _ = (1 : Matrix I I ℂ) i j := by simp [Matrix.one_apply]
 
+omit [Fintype I] in
 /-- If `U` is not the identity, `TensorGate 1 U` fails the controlled gate specification for
 `U`. Its `false` control block still applies `U`, whereas the specification requires the
 identity there. -/
@@ -379,9 +380,13 @@ noncomputable def LiftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] :
   | Step.gate U :: C => Step.gate (TensorGate U (1 : Matrix J J ℂ)) :: LiftCircuitTo J C
   | Step.query :: C => Step.query :: LiftCircuitTo J C
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting the empty circuit to an additional register gives the empty circuit. -/
 @[simp] theorem liftCircuitTo_nil (J : Type*) [Fintype J] [DecidableEq J] :
     LiftCircuitTo J ([] : Circuit I) = [] := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a circuit headed by a local gate tensors that gate with the identity on `J` and
 recursively lifts the remaining circuit. -/
@@ -390,11 +395,15 @@ recursively lifts the remaining circuit. -/
     LiftCircuitTo J (Step.gate U :: C)
       = Step.gate (TensorGate U (1 : Matrix J J ℂ)) :: LiftCircuitTo J C := rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting a circuit headed by a query preserves that query and recursively lifts the remaining
 circuit. -/
 @[simp] theorem liftCircuitTo_query (J : Type*) [Fintype J] [DecidableEq J]
     (C : Circuit I) :
     LiftCircuitTo J (Step.query :: C) = Step.query :: LiftCircuitTo J C := rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The general register lift `LiftCircuitTo Bool` agrees with the existing Boolean register
 lift `LiftCircuit`. -/
@@ -422,12 +431,16 @@ theorem isUnitaryCircuit_liftCircuitTo {C : Circuit I} (hC : IsUnitaryCircuit C)
       rw [liftCircuitTo_query, isUnitaryCircuit_query]
       exact ih ((isUnitaryCircuit_query C).mp h)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting a circuit to an additional register preserves its query count. -/
 theorem queryCount_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Circuit I) :
     QueryCount (LiftCircuitTo J C) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a circuit to an additional register preserves its local gate count. -/
 theorem gateCount_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Circuit I) :
@@ -436,6 +449,8 @@ theorem gateCount_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Cir
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting a circuit to an additional register preserves its total circuit size. -/
 theorem size_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Circuit I) :
     Size (LiftCircuitTo J C) = Size C := by
@@ -443,6 +458,7 @@ theorem size_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Circuit 
   | nil => rfl
   | cons s C ih => cases s <;> simp [ih]
 
+omit [DecidableEq I] in
 /-- Running a lifted circuit with oracle `W ⊗ 1` on a product input equals the original run with
 `W`, tensored with the untouched second state. -/
 theorem run_liftCircuitTo_liftedOracle (J : Type*) [Fintype J] [DecidableEq J]
@@ -586,6 +602,7 @@ theorem measureProb_actsOnLeft_right {U : Matrix I I ℂ} (hU : HasUnitary U)
   rw [applyGate_tensorGate, applyGate_one,
     measureProb_tensorState_right (normalized_applyGate hU hψ)]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [Fintype K] in
 /-- Reassociating two successive identity-register extensions of `U` gives the single extension
 `U ⊗ 1` on the combined ancillary register. -/
 theorem actsOnLeft_lift (U : Matrix I I ℂ) :

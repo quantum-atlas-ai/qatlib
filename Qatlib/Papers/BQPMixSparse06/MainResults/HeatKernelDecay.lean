@@ -32,8 +32,6 @@ Lipschitz bound `C * T`, providing quantitative control of spectral estimation e
 * [Janzing and Wocjan, 2006][JanzingWocjan2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

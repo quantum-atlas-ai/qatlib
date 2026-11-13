@@ -38,7 +38,6 @@ setting is quantum resource estimation for elliptic-curve discrete logarithms
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 

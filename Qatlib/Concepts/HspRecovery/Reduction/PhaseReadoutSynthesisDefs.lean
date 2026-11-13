@@ -39,9 +39,6 @@ distinguishing finite program descriptions from arbitrary real phase data.
 * [Low and Chuang, 2017][LowChuang2017]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LocalMachine.LocalTransport
@@ -57,7 +54,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 

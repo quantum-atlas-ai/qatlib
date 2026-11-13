@@ -43,8 +43,8 @@ with the `d_i` fixed by the instance (Eq. 5).  The key observation is:
   probability bounded away from `0`.
 
 The first bullet is pure algebra (second-order truncation of equations (3), (4))
-and is proved here; the second is recorded as a finite-probability statement with
-documented `sorry`; the third is an elementary Bernoulli-product bound, proved.
+and is proved here; the second is recorded as a finite-probability statement; the
+third is an elementary Bernoulli-product bound, proved.
 -/
 
 set_option autoImplicit false

@@ -38,7 +38,6 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Papers.DistTesting09.MainResults.Defs
-set_option warningAsError false
 
 namespace Qatlib.Papers.DistTesting09.MainResults.LowerBounds
 

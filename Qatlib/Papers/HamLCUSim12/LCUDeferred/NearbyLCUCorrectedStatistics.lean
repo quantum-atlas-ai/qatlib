@@ -30,7 +30,6 @@ component norms and the norm of their sum.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 500000
 noncomputable section

@@ -25,7 +25,6 @@ squared-amplitude formula used in communication protocol estimates. See [Yao1993
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Papers.QCircuitYao93.QuantumComm.GramAcceptance

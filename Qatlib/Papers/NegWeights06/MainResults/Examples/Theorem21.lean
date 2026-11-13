@@ -23,7 +23,7 @@ twenty-by-twenty negative-weight adversary matrix of weights
 
 The paper-layer theorem is a reference/bridge to the frozen realized witness
 (Theorem21RealizedWitnessNega) and its source-value consumer
-`QuantumAlgorithm.Concepts.AdversaryBounds.AdvDuality.advPmValue_kushilevitz_ge`,
+`Qatlib.Concepts.AdversaryBounds.AdvDuality.advPmValue_kushilevitz_ge`,
 which proves `ENNReal.ofReal (2 + 3√5/5) ≤ advPmValue kushilevitzInputW
 kushilevitzFunW`.  Every entry of the witness is exact algebraic data; no
 floating point or certificate hypothesis is used.

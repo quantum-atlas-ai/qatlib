@@ -28,8 +28,6 @@ maximal variance realized by independent balanced two point laws. See
 * [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

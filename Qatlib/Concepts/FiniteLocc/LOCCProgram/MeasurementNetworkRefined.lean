@@ -34,7 +34,6 @@ redundancy, while `frozenRedundantWords` supplies a variable-length counterexamp
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
@@ -52,7 +51,6 @@ open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedVariables false
 
 /-- A complete record-conditioned Kraus family defines completely positive instrument branches
 whose sum preserves trace. -/

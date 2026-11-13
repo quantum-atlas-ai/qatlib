@@ -26,8 +26,6 @@ coordinate ratios recover the original real input. The mathematical context is [
 * [Gao et al., 2021][GaoEtAl2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section

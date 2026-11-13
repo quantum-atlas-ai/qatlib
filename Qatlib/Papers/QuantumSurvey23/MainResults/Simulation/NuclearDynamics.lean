@@ -28,9 +28,8 @@ The polynomial bound is parameterized by an assumed bound `hPoly`, so the
 statement is the survey's assessment "quantum is polynomial in `N` and `1/ε`"
 with the concrete instantiation made explicit rather than assumed invisible.
 
-Reusable dependency (Dev bind `TrotterFormula.TimeOrdered`):
-`QuantumAlgorithm.Concepts.TrotterFormula.TimeOrdered` provides the
-Trotter/time-ordered simulation error and gate-count bounds.
+The Trotter/time-ordered simulation error and gate-count bounds are provided by
+`Qatlib.Concepts.TrotterFormula.TimeOrdered`.
 -/
 
 set_option autoImplicit false

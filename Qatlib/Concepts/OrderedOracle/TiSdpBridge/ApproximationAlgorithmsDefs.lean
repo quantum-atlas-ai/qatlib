@@ -35,8 +35,6 @@ while the spectral and matrix norm vocabulary follows [HiaiPetz2014].
 * [Hiai and Petz, 2014][HiaiPetz2014]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath

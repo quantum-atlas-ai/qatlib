@@ -25,7 +25,6 @@ initial distance by `η ^ m`, as used in quantum Metropolis mixing estimates [Te
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 

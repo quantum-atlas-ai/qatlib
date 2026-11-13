@@ -25,7 +25,6 @@ uniformly weighted instrument branches, finite-reference output, and exact leaf 
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.InstrumentCore.PatternCompile
 open Qatlib.Concepts.AdversaryBounds.AdvDuality

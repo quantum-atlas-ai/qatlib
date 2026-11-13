@@ -30,8 +30,6 @@ the limits of finite-execution expectations. See [TemmeEtAl2011] for background.
 * [Temme et al., 2011][TemmeEtAl2011]
 -/
 
-set_option warningAsError false
-
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline

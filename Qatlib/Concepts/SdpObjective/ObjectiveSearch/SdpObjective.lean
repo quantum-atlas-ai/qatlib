@@ -29,7 +29,6 @@ For the mathematical background, see [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget

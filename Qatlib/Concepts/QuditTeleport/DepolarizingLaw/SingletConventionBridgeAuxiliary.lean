@@ -28,7 +28,6 @@ and phase used in `singletCorrection`. The singlet convention follows the qubit 
 * [Bennett et al., 1993][BennettEtAl1993Teleportation]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Matrix

@@ -26,6 +26,13 @@
 
 项目旨在用统一的数学定义与算子代数接口，对量子计算中的基础数学结构、核心算法原语以及代表性学术文献中的定理与复杂度分析进行形式化。
 
+### <a id="status-provenance"></a>项目现状、覆盖边界与来源说明（Status & Provenance）
+
+- **内核健全性保证**：本仓所有合入模块均通过 Lean 4 内核级环境审计（[`lake test`](./scripts/test.lean)），确保传递公理闭包严格落于三条标准公理 `{propext, Classical.choice, Quot.sound}` 之内（零 `sorryAx`、零 `native_decide`、零自定义公理），并配合静态语义与卫生门禁（[`scripts/check_fidelity.py`](./scripts/check_fidelity.py)）。
+- **文献形式化粒度说明**：`Qatlib/Papers/` 各文献子目录反映不同的形式化深度——部分目录已完成核心定理与资源上下界的端到端证明，部分目录侧重于局部关键引理、条件归约定理、参数算术或原文漏前提修正与反例（详见各模块顶部 `/-! ... -/` 范围说明及研发主仓的结构化 Claim 元数据）。如发现陈述与原文献存在偏差，欢迎使用 [**Statement Fidelity Report**](./.github/ISSUE_TEMPLATE/statement_fidelity.md) 提交反馈。
+- **AI 辅助构建披露**：本库大规模采用 AI 智能体辅助形式化撰写与重构，由 Lean 4 内核类型检查器、自动化静态/语义门禁与人工抽检共同把关（参见 [`Physlib`](https://github.com/leanprover-community/physlib) 与 [`formal-conjectures`](https://github.com/google-deepmind/formal-conjectures) 的社区披露实践）。
+- **第三方开源致谢**：部分复分析与逼近论基础组件改编自 [TauCeti](https://github.com/TauCetiProject/TauCeti) 与 [CausalSmith / Causalean](https://github.com/Jiyuan-Tan/CausalSmith)（均为 Apache-2.0），完整归属与上游版本记录见根目录 [`NOTICE`](./NOTICE)。
+
 ## <a id="installation"></a>安装与使用
 
 如尚未安装 Lean 4 与 `elan`，请先参考 [Lean 4 官方安装指南](https://lean-lang.org/lean4/doc/quickstart.html) 或 [mathlib4 安装说明](https://leanprover-community.github.io/get_started.html)。
@@ -38,7 +45,7 @@
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "main" # 跟踪最新合入定理（推荐）；若需固定在工具链发布基线可填 "v4.35.0"
+rev = "main" # 跟踪最新合入定理（推荐）；或在 lake-manifest.json 中锁定具体 Commit SHA（注：v4.35.0 tag 仅对应首发工具链基线快照，不含后续新增模块）
 ```
 
 首次引入（或后续需要同步上游最新合入定理时），依次运行以下两条命令以更新源码锁文件（`lake-manifest.json`）并拉取三层预编译缓存（`Mathlib` + `Physlib` + `Qatlib`），无需在本地从头编译 `Qatlib`：

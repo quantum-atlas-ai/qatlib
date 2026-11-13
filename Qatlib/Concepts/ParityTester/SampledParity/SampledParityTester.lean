@@ -34,7 +34,6 @@ Parity-check and syndrome background is discussed in [NielsenChuang2010].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters
 open Qatlib.Concepts.SparseSyndrome.RowScan
 

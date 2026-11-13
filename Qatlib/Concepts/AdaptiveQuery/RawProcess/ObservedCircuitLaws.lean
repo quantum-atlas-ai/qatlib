@@ -30,7 +30,6 @@ normalized inputs therefore give probability and expected-query bounds. For back
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Foundations.PureStateMath

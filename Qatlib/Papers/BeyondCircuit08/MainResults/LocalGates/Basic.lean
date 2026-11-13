@@ -96,7 +96,7 @@ theorem Mdiag5_mem_unitaryGroup (α : ℝ) :
     simp_all [Complex.mul_conj, Complex.normSq, Complex.exp_re, Complex.exp_im,
       Complex.cos_sq_add_sin_sq, ← pow_two, Real.exp_zero, eq_comm]
 
-/-- The proposition that every two-dimensional special unitary is the final block of a local
+/-- **Statement only — not proved in Qatlib.** The proposition that every two-dimensional special unitary is the final block of a local
 gate word of uniformly bounded length, with unit scalar phases on the remaining coordinates
 [Jordan2008, Lemma 3][Jordan2008]. -/
 def lemma3_local_gate_decomposition_statement : Prop :=

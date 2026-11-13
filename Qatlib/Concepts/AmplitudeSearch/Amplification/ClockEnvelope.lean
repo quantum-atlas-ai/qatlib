@@ -30,7 +30,6 @@ initialization, giving a mean-clock bound for initial runs in the setting of [Bo
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.AmplitudeSearch.Amplification.RankedCallLaw
 

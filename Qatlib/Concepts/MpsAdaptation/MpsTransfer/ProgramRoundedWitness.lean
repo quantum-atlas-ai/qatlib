@@ -32,7 +32,6 @@ the semidefinite-programming framework, see [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 set_option synthInstance.maxHeartbeats 400000
 set_option maxHeartbeats 2000000
 open Qatlib.Concepts.SdpDuality.StrongDuality

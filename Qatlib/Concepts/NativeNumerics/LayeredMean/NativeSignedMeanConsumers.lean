@@ -231,7 +231,6 @@ theorem native_signed_centered_same_program_consumer
   linarith
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
-set_option warningAsError false
 
 /-- If a single estimate exceeds error `ε ≥ 0` with probability at most `11/24`, the sorted
 median of `2*r+1` independent estimates fails with probability at most `(143/144)^r`. -/

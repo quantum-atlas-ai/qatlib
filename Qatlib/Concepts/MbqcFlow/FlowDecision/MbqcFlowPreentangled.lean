@@ -33,7 +33,6 @@ measurement-based setting of [RaussendorfBriegel2001].
 
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib
 open Qatlib
@@ -41,7 +40,6 @@ open Matrix
 open scoped Classical ComplexOrder
 
 set_option autoImplicit false
-set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath

@@ -59,7 +59,7 @@ is precisely the part of `W|0^m>|ψ>` outside the `j₀` corner, i.e. it has no
 component on `|0^m>` by construction of the fibre projection.
 
 Reuses the frozen `lcu_corner_apply` (full FQN
-`QuantumAlgorithm.Papers.QWalkAmbainis03.QRAMModel.lcu_corner_apply`) with the
+`Qatlib.Papers.QWalkAmbainis03.QRAMModel.lcu_corner_apply`) with the
 normalised weights `w_j = α_j/α`. -/
 theorem lemma6_lcu_corner (U : J → Matrix I I ℂ) (α : J → ℝ) (hα : ∀ j, 0 < α j)
     (P : Matrix J J ℂ) (j₀ : J)

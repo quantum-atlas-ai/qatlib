@@ -45,7 +45,6 @@ developed in [GilyenSuLowWiebe2019].
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
-set_option linter.unnecessarySimpa false
 
 open scoped BigOperators
 
@@ -674,7 +673,6 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Qatlib.Concepts.SpectralSketch.SketchSpectral
 open Qatlib
 open Qatlib
-set_option warningAsError false
 
 /-- Eigenvector columns whose matrix satisfies `W * Wᴴ = 1` express Hermitian functional
 calculus by conjugating the diagonal response values. -/

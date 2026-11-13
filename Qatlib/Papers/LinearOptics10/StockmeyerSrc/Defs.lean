@@ -31,7 +31,7 @@ complexity-class claims c001, c002, c016, c026, c027, c030 and the hardness
 claims of §9.
 
 `FockOccupation` itself is the frozen concept
-`QuantumAlgorithm.Concepts.BosonFock.BosonOperators.FockOccupation`; the
+`Qatlib.Concepts.BosonFock.BosonOperators.FockOccupation`; the
 occupation weights and the permanent model are also frozen
 (`bosonWeight`, `loIsometryDist` and relatives), so this file only adds the
 polynomial-layer notation the paper's §3.2–3.3 statements need.
@@ -114,11 +114,11 @@ noncomputable def oneMonomialCoeff {m n : ℕ} (hnm : n ≤ m) : FockCoeff m n :
 
 The library's counting-complexity model (`InSharpP`, `InFBPPNP`, `InPHLevel`,
 `InP`, `InBPP`) is the frozen concept
-`QuantumAlgorithm.Concepts.CountingClasses.ClassTransport`.  The two
+`Qatlib.Concepts.CountingClasses.ClassTransport`.  The two
 predicates below record the *operational* content of the paper's class
 statements that is expressible in that model. -/
 
-/-- `PH` collapses to the third level: every level of the polynomial
+/-- **Open conjecture / complexity hypothesis — not proved in Qatlib.** `PH` collapses to the third level: every level of the polynomial
 hierarchy is contained in the third level (`InPHLevel 3`). -/
 def PHCollapsesToThree : Prop :=
   ∀ (lev : ℕ) (L : List Bool → Prop), InPHLevel lev L → InPHLevel 3 L
@@ -138,7 +138,7 @@ def SharpPEstimatedByBPPNP (g : ℕ → ℝ) : Prop :=
       ∀ x : List Bool, ∃ k : ℕ, F x = encodeNat k ∧
         |(k : ℝ) - (f x : ℝ)| ≤ (g x.length - 1) * (f x : ℝ)
 
-/-- `P^#P ⊆ BPP^NP`: there is a polynomial multiplicative-factor function `g`
+/-- **Open conjecture / complexity hypothesis — not proved in Qatlib.** `P^#P ⊆ BPP^NP`: there is a polynomial multiplicative-factor function `g`
 such that every `#P` function is `FBPP^NP`-estimable to factor `g`.  (The paper's
 Theorem 26 produces the estimator for every `g ≥ 1 + 1/poly`; this predicate
 records the existence form used downstream.) -/

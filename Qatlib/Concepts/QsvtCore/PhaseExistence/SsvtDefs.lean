@@ -31,9 +31,6 @@ additivity and swap identities for their resource counts. See [GilyenSuLowWiebe2
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.QsvtCore.QsVtMain
 
 set_option autoImplicit false

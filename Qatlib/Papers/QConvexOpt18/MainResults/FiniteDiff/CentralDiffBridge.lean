@@ -16,12 +16,12 @@ set_option backward.isDefEq.respectTransparency false
 van Apeldoorn--Gilyén--Gribling--de Wolf, fixed arXiv:1809.00643v4
 (accepted in Quantum 2019-12-03), Definition 8.
 
-The Frozen block `QuantumAlgorithm.Concepts.GradientOracle.CentralDiff` carries the degree-`2m`
+The module `Qatlib.Concepts.GradientOracle.CentralDiff` carries the degree-`2m`
 central-difference stencil `centralDiffApply m` of arXiv:1711.00465v3 Definition 7, which the paper
-under review cites as `[GAW19]`. At `m = 1` that stencil is exactly the paper's two-point
-difference, so Definition 8 is not new mathematics:
+cites as `[GAW19]`. At `m = 1` that stencil is exactly the paper's two-point
+difference of Definition 8:
 
-* `centralDiffApply_one_eq` evaluates the Frozen stencil at `m = 1` as `(F y - F (-y)) / 2`;
+* `centralDiffApply_one_eq` evaluates the stencil at `m = 1` as `(F y - F (-y)) / 2`;
 * `finDiffGradCoord_eq_centralDiff` transports the paper's coordinate `∇ᵢ^(r) f (z)` into it across
   the linear isometry `EuclideanSpace.equiv (Fin n) ℝ : EuclideanSpace ℝ (Fin n) ≃L[ℝ] (Fin n → ℝ)`,
   recovering `∇ᵢ^(r) f (z) = centralDiffApply 1 F (r • eᵢ) / r`.
@@ -29,8 +29,8 @@ difference, so Definition 8 is not new mathematics:
 This is the representation bridge that lets this Paper block consume the already built stencil
 instead of restating it.
 
-Boundary: only the identification of the two definitions. It adds no bound on the stencil and no
-statement about the higher-`m` members, which belong to `QGradient17`.
+Scope note: this file identifies the two definitions. Bounds on the stencil and statements
+about the higher-`m` members belong to `QGradient17` and are outside the scope of this file.
 -/
 
 set_option autoImplicit false
@@ -40,7 +40,7 @@ namespace Qatlib.Papers.QConvexOpt18.MainResults
 
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
-/-- The degree-`2m` central-difference stencil `centralDiffApply` of the Frozen
+/-- The degree-`2m` central-difference stencil `centralDiffApply` of the
 `GradientOracle.CentralDiff` block at `m = 1` is the paper's two-point difference
 `(F y - F (-y)) / 2`. -/
 theorem centralDiffApply_one_eq {d : ℕ} (F : EuclideanSpace ℝ (Fin d) → ℝ)
@@ -51,7 +51,7 @@ theorem centralDiffApply_one_eq {d : ℕ} (F : EuclideanSpace ℝ (Fin d) → �
   norm_num [centralDiffCoeff]
   ring
 
-/-- Definition 8 of arXiv:1809.00643v4 in a general direction `y`: the Frozen degree-`2m`
+/-- Definition 8 of arXiv:1809.00643v4 in a general direction `y`: the degree-`2m`
 central-difference stencil at `m = 1`, divided by `r`, is the paper's two-point finite difference
 `(F (w + r y) - F (w - r y)) / (2 r)`. Taking `y = eᵢ` recovers `∇ᵢ^(r) f (w)`. -/
 theorem centralDiff_stencil_div_eq_finDiff {d : ℕ} (F : EuclideanSpace ℝ (Fin d) → ℝ)

@@ -29,8 +29,6 @@ parameter bounds.
 * [Ben-Or and Hassidim, Lemma 2.1][BenOrHassidim2007]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 

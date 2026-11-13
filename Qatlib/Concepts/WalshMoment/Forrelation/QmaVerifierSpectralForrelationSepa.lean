@@ -33,7 +33,6 @@ described in [Watrous2018].
 * [Watrous, 2018][Watrous2018]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -48,8 +47,6 @@ open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithACl
 namespace Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationSepa
 
 set_option autoImplicit false
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 open Matrix
 
@@ -69,7 +66,7 @@ private theorem applyGate_perm {I : Type} [Fintype I] [DecidableEq I]
   · simp
   · intro q _ hq
     have : e p ≠ q := fun hc => hq (hc ▸ rfl)
-    rw [if_neg this]
+    rw [ite_eq_right this]
     ring
   · intro hc
     exact absurd (Finset.mem_univ (e p)) hc
@@ -89,7 +86,7 @@ private theorem perm_unitary {I : Type} [Fintype I] [DecidableEq I] (e : I ≃ I
     · intro r _ hr
       have h1 : e r ≠ p := fun hc =>
         hr (e.symm_apply_apply r ▸ by rw [hc])
-      rw [if_neg h1]
+      rw [ite_eq_right h1]
       ring
     · intro hc
       exact absurd (Finset.mem_univ (e.symm p)) hc
@@ -107,16 +104,16 @@ register while preserving the other registers and all Boolean flags. -/
 private def swapXW (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Reg n × Bool) where
   toFun p := ((p.2.2.1, p.1.2), (p.2.1.1, p.2.1.2), (p.1.1, p.2.2.2))
   invFun p := ((p.2.2.1, p.1.2), (p.2.1.1, p.2.1.2), (p.1.1, p.2.2.2))
-  left_inv p := rfl
-  right_inv p := rfl
+  left_inv _p := rfl
+  right_inv _p := rfl
 
 /-- The involutive basis permutation exchanging the first and second data registers while
 preserving their Boolean flags and the workspace. -/
 private def swapXY (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Reg n × Bool) where
   toFun p := ((p.2.1.1, p.1.2), (p.1.1, p.2.1.2), p.2.2)
   invFun p := ((p.2.1.1, p.1.2), (p.1.1, p.2.1.2), p.2.2)
-  left_inv p := rfl
-  right_inv p := rfl
+  left_inv _p := rfl
+  right_inv _p := rfl
 
 /-- The involutive basis permutation toggling the final Boolean bit by the conjunction of the
 two oracle-answer bits. -/

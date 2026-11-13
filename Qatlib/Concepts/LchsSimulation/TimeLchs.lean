@@ -42,7 +42,6 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.LchsSimulation.TimeLchs
 open Matrix Set MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- Each parameterized Dyson term is a finite polynomial in `z` whose matrix-valued coefficients
 depend continuously on time. -/

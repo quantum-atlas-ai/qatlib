@@ -37,7 +37,6 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
@@ -51,7 +50,6 @@ open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBrid
 open Qatlib.Concepts.CopyEvolution.Discriminate
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 

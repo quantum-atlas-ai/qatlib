@@ -42,7 +42,6 @@ adversary method of [HoyerLeeSpalek2007].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 
@@ -62,7 +61,6 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
-set_option linter.unusedVariables false in
 noncomputable section
 
 /-- The magnitude of `Inner u (A *ᵥ v)` is at most the operator norm of `A` times the Euclidean
@@ -77,8 +75,6 @@ theorem inner_mulVec_bound {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] 
       mul_le_mul_of_nonneg_left (l2_norm_mulVec_fromVec_le A v) (norm_nonneg _)
     _ = _ := by ring
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 noncomputable section
@@ -268,8 +264,6 @@ theorem phaseSlice_query {W : Type} [Fintype W] [DecidableEq W] {n q : ℕ} [NeZ
   simp [phaseFactor]
   ring
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
@@ -420,8 +414,6 @@ theorem progress_run_of_step {X H : Type} [Fintype X] [DecidableEq X]
         _ ≤ (QueryCount C : ℝ) * B + B := add_le_add hh hstep
         _ = _ := by simp only [QueryCount, Nat.cast_add, Nat.cast_one]; ring
 end
-set_option linter.unusedVariables false in
-set_option linter.unusedSectionVars false
 variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in

@@ -23,8 +23,6 @@ these facts in `orbitFourierBasisSubgoal` for abelian stabilizer sampling. [Kita
 * [Kitaev, 1995][Kitaev1995]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath

@@ -22,8 +22,6 @@ graph subset-search reductions [ChildsEisenberg2003].
 * [Childs and Eisenberg, 2003][ChildsEisenberg2003]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Concepts.WalkSearch.Primitives
 
 /-- The proposition `lemma3Sampling`, exposed as the vertex-sampling contract. -/

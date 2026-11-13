@@ -30,12 +30,10 @@ estimates for the scalar inverse. See [BerryEtAl2017ODE] for the paper's setting
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
-
 set_option autoImplicit false
 namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Qatlib
 open scoped BigOperators Matrix.Norms.L2Operator
-set_option warningAsError false
 
 /-- For offsets `b, d ≤ k`, equality of labels `a*(k+1)+b` and `c*(k+1)+d` is equivalent to
 equality of both block indices and offsets. -/

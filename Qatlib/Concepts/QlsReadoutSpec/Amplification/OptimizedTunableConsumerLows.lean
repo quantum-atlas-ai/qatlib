@@ -54,7 +54,6 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
-set_option warningAsError false
 
 /-- The extended clock agrees with the finite clock at every index at most `m`. -/
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m+1) → Matrix H H ℂ)

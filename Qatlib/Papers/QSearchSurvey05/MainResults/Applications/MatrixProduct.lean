@@ -33,8 +33,6 @@ lower bound (k/n)² and the algebraic cost identity n^(2/3)n = n^(5/3).
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 

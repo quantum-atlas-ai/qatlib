@@ -19,7 +19,6 @@ This is auxiliary sampling algebra for the QAOA setting of [FarhiHarrow2016]
 and [Farhi, Goldstone & Gutmann, QAOA][FarhiGoldstoneGutmann2014QAOA]. It does
 not establish efficient classical sampling of arbitrary QAOA circuits.
 -/
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 400000

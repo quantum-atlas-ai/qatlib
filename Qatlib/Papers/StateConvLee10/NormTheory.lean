@@ -33,7 +33,6 @@ filter closure rules, and direct-sum and tensor-product formulas in the framewor
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section

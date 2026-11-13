@@ -30,7 +30,6 @@ These constructions support the treatment in [HuangKuengPreskill2020].
 
 set_option backward.isDefEq.respectTransparency false
 
-
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout
 open Qatlib.Foundations.BornMetrics.EventProbability
@@ -57,7 +56,6 @@ open Qatlib
 open Qatlib.Concepts.RiskEstimation.VaRQuantile
 open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open scoped Classical
-set_option warningAsError false
 
 /-- Collects correctness and resource bounds for counted quadratic-shadow and risk medians,
 order statistics, and measurement ledgers, including quadratic comparison bounds and

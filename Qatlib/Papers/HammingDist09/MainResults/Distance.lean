@@ -34,8 +34,6 @@ has Hadamard columns.
 * [Meyer and Pommersheim, 2009][MeyerPommersheim2009]
 -/
 
-set_option warningAsError false
-
 set_option maxHeartbeats 1000000
 
 open Matrix

@@ -21,6 +21,9 @@ identities.
 `UniformSampler` records a finite probability distribution with a multiplicative uniformity
 bound and a separate success parameter. `PolyBoundedTwo` and `PolyBoundedThree` express uniform
 polynomial cost bounds, and the algorithm structures store outputs, costs, and success fields.
+These legacy structures are specifications only: their success scalars are not
+probabilities of correct execution and their cost fields are not certified runtimes.
+Algorithm existence headlines are statement-only declarations in the result modules.
 
 ## Main statements
 
@@ -156,22 +159,20 @@ structure CurveDescriptor where
   d : ℕ
   logq : ℕ
 
-/-- An algorithm record assigning an integer polynomial output, a natural cost, and a real
-success field to each curve descriptor. -/
+/-- Legacy specification of polynomial output and independent cost/success labels;
+this record alone carries no algorithm correctness or execution guarantee. -/
 structure ZetaNumeratorAlgorithm where
   output : CurveDescriptor → Polynomial ℤ
   cost : CurveDescriptor → ℕ
   successProb : CurveDescriptor → ℝ
 
-/-- An algorithm record assigning a natural output, a natural cost, and a real success field to
-each curve descriptor and natural extension-degree parameter. -/
+/-- Legacy natural-output specification with independent cost/success labels. -/
 structure ClassNumberAlgorithm where
   output : CurveDescriptor → ℕ → ℕ
   cost : CurveDescriptor → ℕ → ℕ
   successProb : CurveDescriptor → ℕ → ℝ
 
-/-- An algorithm record storing a finite subset of an additive commutative group, a
-natural-parameter cost function, and a real success field. -/
+/-- Legacy finite-subset specification with independent cost/success labels. -/
 structure ClassGroupGeneratorAlgorithm (G : Type) [AddCommGroup G] where
   output : Finset G
   cost : ℕ → ℕ

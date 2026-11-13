@@ -49,7 +49,6 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 namespace Qatlib.Papers.HamGrover03.MainResults
 
 open Qatlib.Foundations.PureStateMath
-set_option warningAsError false
 
 /-- The computational basis state at the marked index `m`, defined as `Ket m`. -/
 abbrev marked {I : Type} [DecidableEq I] (m : I) : QState I :=

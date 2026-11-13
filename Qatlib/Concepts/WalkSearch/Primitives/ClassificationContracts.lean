@@ -25,9 +25,7 @@ setting is surveyed in [Ambainis2005].
 * [Ambainis, 2005][Ambainis2005]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.WalkSearch.MainResults
 set_option autoImplicit false

@@ -27,7 +27,6 @@ linear algebra used in amplitude amplification [BrassardEtAl2002].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 
@@ -85,9 +84,13 @@ theorem diffusion_eq_reflectionAbout :
 noncomputable def outerProduct (ψ : QState I) : Matrix I I ℂ :=
   Matrix.of fun i j => ψ i * (starRingEnd ℂ) (ψ j)
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The `(i, j)` entry of `outerProduct ψ` is `ψ i` times the complex conjugate of `ψ j`. -/
 theorem outerProduct_apply (ψ : QState I) (i j : I) :
     outerProduct ψ i j = ψ i * (starRingEnd ℂ) (ψ j) := rfl
+
+omit [DecidableEq I] in
 
 /-- The outer product of `ψ` sends `φ` to `Inner ψ φ` times `ψ`. -/
 theorem outerProduct_mulVec (ψ φ : QState I) :
@@ -135,9 +138,6 @@ theorem outerProduct_reflection_unitary {ψ : QState I} (hψ : Normalized ψ) :
   reflectionAbout_unitary (isOrthogonalProjector_outerProduct hψ)
 
 end Qatlib.Foundations.PureStateMath.Reflection
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 open Matrix
 

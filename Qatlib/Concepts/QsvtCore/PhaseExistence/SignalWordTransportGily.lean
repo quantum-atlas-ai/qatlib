@@ -22,7 +22,6 @@ from `eq3Pair` and its coefficientwise conjugates. The off-diagonal entries carr
 * [Gilyén et al., 2019][GilyenSuLowWiebe2019]
 -/
 
-set_option warningAsError false
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence

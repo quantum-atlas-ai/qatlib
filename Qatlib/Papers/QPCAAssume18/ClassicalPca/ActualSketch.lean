@@ -26,8 +26,6 @@ the resulting small matrix. The concrete sample count `pcaGramSamples` and toler
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 noncomputable section
 open scoped Classical BigOperators Matrix.Norms.L2Operator

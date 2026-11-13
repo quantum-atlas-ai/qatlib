@@ -29,7 +29,6 @@ The computational background is described in [KitaevShenVyalyi2002].
 * [Kitaev et al., 2002][KitaevShenVyalyi2002]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.ClassicalTape.TapeCompilation

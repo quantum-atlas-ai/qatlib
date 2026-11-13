@@ -51,12 +51,9 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeAdaptiveLaw
 open Qatlib
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open scoped BigOperators Classical Topology
-set_option warningAsError false
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
-set_option linter.unusedSectionVars false
-set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 

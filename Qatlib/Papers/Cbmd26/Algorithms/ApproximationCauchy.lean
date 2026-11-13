@@ -34,7 +34,6 @@ The coefficient budget is an analytic ingredient for the constructions associate
 -/
 
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 
 namespace Qatlib.Papers.Cbmd26.Algorithms
 

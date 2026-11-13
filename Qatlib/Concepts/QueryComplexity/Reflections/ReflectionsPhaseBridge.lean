@@ -37,8 +37,6 @@ interfaces for the random-power and phase arguments of [Reichardt2011].
 * [Reichardt, 2011][Reichardt2011]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option backward.isDefEq.respectTransparency false

@@ -29,7 +29,6 @@ retaining exact gate counts for the program and its adjoint.
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 set_option backward.isDefEq.respectTransparency false
-set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 

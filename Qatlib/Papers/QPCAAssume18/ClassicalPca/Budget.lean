@@ -26,8 +26,6 @@ the preprocessing dependence stated for the classical PCA sketch in [Tang2021].
 * [Tang, 2021][Tang2021]
 -/
 
-set_option warningAsError false
-
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section

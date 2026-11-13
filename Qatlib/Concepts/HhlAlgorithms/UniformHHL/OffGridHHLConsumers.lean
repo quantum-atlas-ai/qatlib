@@ -32,9 +32,7 @@ probability.
 * [Harrow et al., 2009][HarrowHassidimLloyd2009]
 -/
 
-set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
-
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.HhlAlgorithms.GridExactHHL
@@ -56,7 +54,6 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.HhlAlgorithms.UniformHHL
 
@@ -236,7 +233,7 @@ theorem uniformHHLFirstSuccess_expected_succ (trial : PMF Bool) (R : ℕ) :
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
   rw [uniformHHLFirstSuccess, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind,
       uniformHHL_expectation_bool]
-  simp only [Bool.false_eq_true, if_false, if_true,
+  simp only [Bool.false_eq_true, ite_false, ite_true,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, Nat.cast_one]
   rw [hmap]
   have ht := uniformHHL_trial_total trial
@@ -268,7 +265,7 @@ theorem uniformHHLFirstSuccess_failure (trial : PMF Bool) (R : ℕ) :
   | succ R ih =>
     rw [uniformHHLFirstSuccess, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind,
       uniformHHL_expectation_bool]
-    simp only [Bool.false_eq_true, if_false, if_true, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
+    simp only [Bool.false_eq_true, ite_false, ite_true, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map, Bool.true_eq_false, mul_zero, zero_add]
     change trial false * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (uniformHHLFirstSuccess trial R)
       (fun z => z.1 = false) = _
@@ -500,7 +497,7 @@ theorem uniformHHLRetrySelectedState_success {I : Type*} [Fintype I] [DecidableE
     (ψ : QState I) (S : Finset I) (result : Bool × ℕ)
     (hs : result.1 = true) (hp : 0 < MeasureProb ψ S) :
     uniformHHLRetrySelectedState ψ S result = some (PostMeasure ψ S) := by
-  rw [uniformHHLRetrySelectedState, hs, if_pos rfl, ProjectiveConditionalState,
+  rw [uniformHHLRetrySelectedState, hs, ite_eq_left rfl, ProjectiveConditionalState,
     projectiveBranch_projector]
   exact conditionalState_collapse hp
 

@@ -31,9 +31,6 @@ universal simulation and preparation claims for these encoded maps.
 * [Kim, 2026][Kim2026]
 -/
 
-set_option warningAsError false
-
-
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 open Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzDefs
 open Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzDefs.LocalTermDesc
@@ -43,7 +40,6 @@ open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
-set_option warningAsError false
 set_option maxHeartbeats 2000000
 namespace Qatlib.Papers.SpinChainMix26.RapidMixing
 open Matrix

@@ -27,8 +27,6 @@ Airy targets. These explicit choices quantify the sampling constructions in [Wan
 * [Wang et al., 2026][WangEtAl2026]
 -/
 
-set_option warningAsError false
-
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
