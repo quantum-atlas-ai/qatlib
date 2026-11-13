@@ -636,12 +636,22 @@ def process_markdown_guide(
     title = "Qatlib" if is_root_readme else md_path.stem
     cleaned_lines: list[str] = []
     h1_stripped = False
+    fence_char: str | None = None
 
     for line in lines:
         # Remove repo language-switch blockquote banner (> 🌐 [English version](...))
         if re.match(r"^>\s*🌐\s*\[", line.strip()):
             continue
-        if strip_h1 and not h1_stripped and line.startswith("# "):
+        fence_m = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if fence_m:
+            marker_char = fence_m.group(1)[0]
+            if fence_char is None:
+                fence_char = marker_char
+            elif fence_char == marker_char:
+                fence_char = None
+            cleaned_lines.append(line)
+            continue
+        if strip_h1 and not h1_stripped and fence_char is None and line.startswith("# "):
             title = line[2:].strip()
             h1_stripped = True
             continue
