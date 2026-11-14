@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnergySpec09.MainResults.WaterPESNumerics
+module
+
+public import Qatlib.Papers.EnergySpec09.MainResults.WaterPESNumerics
+
+@[expose] public section
 
 /-!
 # Truncation to a few configuration state functions
@@ -45,6 +49,7 @@ namespace Qatlib.Papers.EnergySpec09.MainResults
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The overlap of a finite truncated expansion is the coefficient-weighted sum of the retained
 overlaps. This finite-sum identity supports the few-configuration-state-function analysis in
 [WangEtAl2008]. -/
@@ -67,6 +72,7 @@ theorem inner_finset_smul_sum {Idx : Type*} [Fintype Idx]
   rw [inner_apply, Finset.mul_sum]
   exact Finset.sum_congr rfl fun j _ => by ring
 
+omit [DecidableEq I] in
 /-- The squared overlap of the retained configuration-state-function expansion equals the
 squared norm of its coefficient-weighted overlap sum. This is the algebraic truncation
 identity used for the discussion in [WangEtAl2008]. -/

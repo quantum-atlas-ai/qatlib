@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.ParametricIntegral
-import Mathlib.Analysis.Calculus.Gradient.Basic
+module
+
+public import Mathlib.Analysis.Calculus.ParametricIntegral
+public import Mathlib.Analysis.Calculus.Gradient.Basic
+
+@[expose] public section
 
 /-!
 # Population derivatives for linear decoders
@@ -89,6 +93,7 @@ theorem populationLoss_hasFDerivAt
   exact ⟨Integrable.mono' (integrable_const (C * N))
     ((hcont w).comp_aestronglyMeasurable hh) (Filter.Eventually.of_forall (hbound w)),hresult⟩
 
+omit [CompleteSpace E] [NormedSpace ℝ H] in
 /-- If `b` is a common right inverse for the decoders, the population derivative composed with
 `b` is the mean output-space derivative, under the stated differentiation-under-the-integral
 hypotheses. -/
@@ -146,6 +151,7 @@ theorem meanDerivative_lower_bound
     (fderiv ℝ L theta)
   linarith
 
+omit [CompleteSpace E] [NormedSpace ℝ H] in
 /-- Under the stated regularity and concentration hypotheses, a common bias right inverse of
 norm at most one gives a bias derivative norm at least `g - Lambda * gamma` and at most the
 full population derivative norm. -/

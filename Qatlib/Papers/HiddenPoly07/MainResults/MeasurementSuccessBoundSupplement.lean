@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Finset.Max
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Qatlib.Papers.HiddenPoly07.MainResults.MeasurementSuccessBound
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Qatlib.Papers.HiddenPoly07.MainResults.MeasurementSuccessBound
+
+@[expose] public section
 
 /-!
 # HiddenPoly07.MainResults — success probability of the approximate measurement (Lemma 3.1)

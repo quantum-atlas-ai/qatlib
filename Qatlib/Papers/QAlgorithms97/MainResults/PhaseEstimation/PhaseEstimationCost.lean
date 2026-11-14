@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.QuantumGibbs
-import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradient
-import Mathlib.Data.Nat.Basic
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.QuantumGibbs
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradient
+public import Mathlib.Data.Nat.Basic
+
+@[expose] public section
 
 /-!
 # Phase-estimation resource counts

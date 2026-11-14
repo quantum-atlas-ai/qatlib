@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleCopyProgram
+module
+
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleCopyProgram
+
+@[expose] public section
 
 /-!
 # Sequential copies for a standard bit oracle

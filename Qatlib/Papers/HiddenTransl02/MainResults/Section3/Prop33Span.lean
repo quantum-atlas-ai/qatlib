@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.RingTheory.MvPolynomial.Homogeneous
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.LinearAlgebra.Span.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Finsupp.Weight
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.RingTheory.MvPolynomial.Homogeneous
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.LinearAlgebra.Span.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Finsupp.Weight
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Powers of linear forms span homogeneous polynomials
@@ -160,7 +164,7 @@ theorem monomial_mem_span_succ (hp : p.Prime) {m : ℕ}
       = MvPolynomial.monomial (Finsupp.single i (1 : ℕ)) 1 := rfl
   have hsplit : (MvPolynomial.monomial d (1 : ZMod p) : MvPolynomial (Fin n) (ZMod p))
       = (MvPolynomial.X i) * MvPolynomial.monomial g (1 : ZMod p) := by
-    rw [hXi, MvPolynomial.monomial_mul, hdec, mul_one]
+    rw [hXi, MvPolynomial.monomial_mul_monomial, hdec, mul_one]
   rw [hsplit]
   exact Xi_mul_span_le hp hmp i _ hg_mem
 

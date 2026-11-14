@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySearchDriver
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySearchDriver
+
+@[expose] public section
 
 /-!
 # Ambiguity-band certificates across water-filling breakpoints
@@ -341,8 +345,7 @@ theorem crossBreak_band_depth :
   interval_cases j <;>
     norm_num [g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, thresholdGoal, clause11, clause12, hB] at hband <;>
     first
-    | exact hband.elim
-    | decide
+    | omega
 
 /-- The example satisfies `bandRate` with bit parameter fifteen, threshold `crossBreakFidelity`,
 rate `crossBreakRate`, and depth thirteen. -/

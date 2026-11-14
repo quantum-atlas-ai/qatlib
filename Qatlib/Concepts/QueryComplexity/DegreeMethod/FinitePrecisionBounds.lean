@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Stack simulation and binary multiplication bounds
@@ -99,9 +103,9 @@ theorem stepAux_length_le (q : TM2.Stmt (fun _ : K => Bool) Λ σ)
   | branch p a b iha ihb =>
     intro j
     cases hp : p v
-    · simp only [TM2.stepAux,hp,cond_false]
+    · simp only [TM2.stepAux,hp,Bool.cond_false]
       exact (ihb v S H hS j).trans (Nat.add_le_add_left (Nat.le_max_right _ _) H)
-    · simp only [TM2.stepAux,hp,cond_true]
+    · simp only [TM2.stepAux,hp,Bool.cond_true]
       exact (iha v S H hS j).trans (Nat.add_le_add_left (Nat.le_max_left _ _) H)
   | goto f => simpa only [TM2.stepAux,stackNodes,Nat.add_zero] using! hS
   | halt => simpa only [TM2.stepAux,stackNodes,Nat.add_zero] using! hS

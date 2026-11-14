@@ -4,34 +4,39 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.ProbabilityMassFunction.Monad
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Lean.Elab.Tactic.Omega
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Quan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Quan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicQuan
-import Qatlib.Concepts.SearchStopping.RestartLaw.RestartProfile
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoalTigh
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoalTigh
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumFairBitProducer
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+module
+
+public import Mathlib.Probability.ProbabilityMassFunction.Monad
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Lean.Elab.Tactic.Omega
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Quan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Quan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicQuan
+public import Qatlib.Concepts.SearchStopping.RestartLaw.RestartProfile
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoal
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoal
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumFairBitProducer
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Definitions for counting and search stopping consumers
@@ -146,7 +151,7 @@ theorem restartIntegerOptimum_exists (θ : ℝ) (M : ℕ) (h : 0 < M) :
   obtain ⟨j, hj, heq⟩ := Finset.mem_image.mp (Finset.min'_mem _ hne)
   have hj' := Finset.mem_Icc.mp hj
   refine ⟨j, hj'.1, hj'.2, ?_⟩
-  rw [restartOptimalValue, dif_pos h]
+  rw [restartOptimalValue, dite_eq_left h]
   exact heq
 
 /-- The least integer depth attaining the minimum in a positive restart window, with value zero

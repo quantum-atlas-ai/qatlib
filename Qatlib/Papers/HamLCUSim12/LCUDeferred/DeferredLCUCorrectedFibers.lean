@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedStatistics
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedStatistics
+
+@[expose] public section
 
 /-!
 # Zero ancilla fibers of corrected LCU levels
@@ -72,7 +76,7 @@ theorem ctrlGateCorrected_split {k : ℕ} (i : Fin k)
     (if (e p).1=(e q).1 then splitLCUBranch i Cx Cy (e q).1 (e p).2 (e q).2 else 0)
   have he : (e p).1=(e q).1 ↔ p.1 i=q.1 i := boolEquivFin2.injective.eq_iff
   by_cases h : p.1 i=q.1 i
-  · rw [if_pos h,if_pos (he.mpr h)]
+  · rw [ite_eq_left h,ite_eq_left (he.mpr h)]
     rw [← he.mpr h]
     change (if p.1 i then Cy else Cx) p q =
       (if (e p).1=0 then Cx else Cy) (e.symm ((e p).1,(e p).2)) (e.symm ((e p).1,(e q).2))
@@ -81,7 +85,7 @@ theorem ctrlGateCorrected_split {k : ℕ} (i : Fin k)
     rw [hp,hq]
     change (if p.1 i then Cy else Cx) p q=(if boolEquivFin2 (p.1 i)=0 then Cx else Cy) p q
     cases hb : p.1 i <;> simp [boolEquivFin2]
-  · rw [if_neg h,if_neg (fun hh=>h (he.mp hh))]
+  · rw [ite_eq_right h,ite_eq_right (fun hh=>h (he.mp hh))]
 
 /-- A corrected LCU level equals the relabeled Figure 3 circuit with the restricted branches,
 preparation matrix `V`, and final matrix `Vᴴ`, in the notation of [ChildsWiebe2012]. -/
@@ -216,7 +220,7 @@ theorem lcuLevelGateCorrected_zero_corner {k : ℕ} (i : Fin k) (κ : ℝ) (hκ 
       ((1:ℂ)/(κ+1))*(Cy*ᵥTensorState (Ket (fun _ : Fin k=>false)) ψ) (fun _=>false,x) := by
   rw [lcuLevelGateCorrected_zero_branches,Fin.sum_univ_two,vKappaSource_zero_coeff κ hκ,
     vKappaSource_one_coeff κ hκ,splitLCUBranch_corner,splitLCUBranch_corner]
-  simp only [show (1 : Fin 2)≠0 by decide,if_true,if_false,splitLCUBit_zero_inv,splitLCUBit_one_inv]
+  simp only [show (1 : Fin 2)≠0 by decide,ite_true,ite_false,splitLCUBit_zero_inv,splitLCUBit_one_inv]
   have hs : (∑ y : I,Cy (flipLCUBit i ((fun _ : Fin k=>false),x))
       (flipLCUBit i ((fun _ : Fin k=>false),y))*ψ y)=
       ∑ y : I,Cy ((fun _ : Fin k=>false),x) ((fun _ : Fin k=>false),y)*ψ y := by

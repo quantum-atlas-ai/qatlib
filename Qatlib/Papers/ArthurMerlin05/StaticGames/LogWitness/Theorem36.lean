@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+
+@[expose] public section
 
 /-!
 # Theorem 3.6 — `QMAlog = BQP`

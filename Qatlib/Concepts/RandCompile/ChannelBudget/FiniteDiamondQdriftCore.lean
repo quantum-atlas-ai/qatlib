@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+
+@[expose] public section
 
 /-!
 # Finite diamond-distance bounds for qDRIFT
@@ -83,12 +87,12 @@ theorem exact_qdrift_actual_finite_diamond_budget : ∀ (L D : ℕ) (d : FinDist
         intro r X
         rw [exactQdriftMap, tensorLeft_mixturePowerMap, tensorLeft_conjBranch]
         exact qdrift_fresh_reference_global_error L D r d K lam t n hlam hn hK X)
-    convert h using 1 <;> congr 1 <;> ring
+    convert h using 1; congr 1; ring
   · intro eps heps
     (try dsimp only)
     have hb := qdrift_derived_precision_budget L D 0 d K lam t (2*eps) hlam (by positivity) hK
     refine ⟨hb.1, ?_, ?_⟩
-    · convert hb.2.1 using 1 <;> ring
+    · convert hb.2.1 using 1; ring
     · have h := finiteDiamondDistance_le_of_uniform
         (exactQdriftMap d K lam t (qdriftSteps lam t (2*eps)))
         (conjBranch (HamiltonianEvolution (qdriftHamiltonian d K lam) t))
@@ -113,7 +117,7 @@ theorem fairQdriftActualMap_zero {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
   have hU : HamiltonianEvolution (0 : Operator D) t = 1 := by simp [HamiltonianEvolution]
   rw [hU]
   ext X
-  simp [conjBranch_apply]
+  simp
 
 /-- Extending the actual fair-bit qDRIFT map by an identity reference gives
 `fairQdriftReferenceOutput`. -/
@@ -123,7 +127,7 @@ theorem fairQdriftActualMap_reference {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin 
     tensorLeft (fairQdriftActualMap w j0 n R K t) X = fairQdriftReferenceOutput w j0 n R K t r X := by
   by_cases hW : weightTotal w=0
   · simp [fairQdriftActualMap, fairQdriftReferenceOutput, hW]
-  · rw [fairQdriftActualMap, if_neg hW, tensorLeft_mixturePowerMap]
+  · rw [fairQdriftActualMap, ite_eq_right hW, tensorLeft_mixturePowerMap]
     exact (fair_bit_qdrift_actual_fresh_channel_bridge L D n R r w j0 K t X
       (Nat.pos_of_ne_zero hW)).symm
 
@@ -154,7 +158,7 @@ theorem fair_qdrift_actual_finite_diamond_output : ∀ (L D n R : ℕ) (w : Fin 
           rw [fairQdriftActualMap_reference, tensorLeft_conjBranch]
           exact fair_bit_qdrift_derived_sampling_and_analytic_error L D n R r w j0 K t X
             (Nat.pos_of_ne_zero hW) hn hK)
-      convert h using 1 <;> congr 1 <;> ring
+      convert h using 1; congr 1; ring
   · intro hW
     obtain ⟨hA,hB⟩ := fairQdriftActualMap_zero w j0 n R K t hW
     simp [hA,hB,finiteDiamondDistance]

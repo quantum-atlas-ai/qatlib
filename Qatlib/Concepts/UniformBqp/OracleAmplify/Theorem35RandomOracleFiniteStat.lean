@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteDefs
+
+@[expose] public section
 
 /-!
 # Finite random-oracle lower-bound specification

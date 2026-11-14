@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.KrausRefinement
-import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+module
+
+public import Qatlib.Concepts.Execution.KrausRefinement
+public import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+
+@[expose] public section
 
 /-!
 # Circuits with finite quantum instruments

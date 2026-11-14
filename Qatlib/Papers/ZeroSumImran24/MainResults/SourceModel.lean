@@ -21,8 +21,12 @@ is modelled by an explicit witness map / existence predicate; the paper's
 functions of Propositions 4/5 and by the number of subroutine applications.
 No Turing-machine cost model is claimed here.
 -/
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.JaggedPath.Basic
-import Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence.SqrtGateOperator
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.JaggedPath.Basic
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence.SqrtGateOperator
+
+@[expose] public section
 
 /-!
 # Norm and gap estimates for linear interpolation

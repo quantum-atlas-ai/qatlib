@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogSampling
-import Qatlib.Concepts.HspRecovery.CfOrder.PrimeOrderDlogDecoder
-import Mathlib.Data.Int.GCD
-import Mathlib.Data.Nat.Totient
+module
+
+public import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogSampling
+public import Qatlib.Concepts.HspRecovery.CfOrder.PrimeOrderDlogDecoder
+public import Mathlib.Data.Int.GCD
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Verified discrete logarithm decoding for composite orders
@@ -170,7 +174,7 @@ theorem cyclicDlogDecode_some {r : ℕ} [NeZero r] (d : ZMod r)
         _ = d * (((cyclicDlogEuclid z.1.val 1 0 r 0 1).1.2.1 : ZMod r)*z.1) := by ring
         _ = d := by rw [euclid_inverse r z.1 hz, mul_one]
     · have hg : Nat.gcd z.1.val r ≠ 1 := hz
-      simp only [cyclicDlogDecode, euclid_gcd, if_neg hg]
+      simp only [cyclicDlogDecode, euclid_gcd, ite_eq_right hg]
       apply ih
       · intro w hw; exact hon w (List.mem_cons_of_mem z hw)
       · obtain ⟨w,hw,hunit⟩ := hex
@@ -247,8 +251,8 @@ private theorem cyclicDlog_nonunit_mass (r : ℕ) [NeZero r] (C : Type)
     apply Finset.sum_congr rfl
     intro x _
     by_cases hx : Nat.Coprime x.1.val r
-    · rw [if_neg (not_not.mpr hx), if_pos hx]; ring
-    · rw [if_pos hx, if_neg hx]; ring
+    · rw [ite_eq_right (not_not.mpr hx), ite_eq_left hx]; ring
+    · rw [ite_eq_left hx, ite_eq_right hx]; ring
   rw [hs, (cyclicDlogRecordDist r g h).sum_one, hw]
 
 /-- The product of the indicators that all first coordinates are not coprime to `r` is the
@@ -259,7 +263,7 @@ private theorem prod_nonunit {r m : ℕ} [NeZero r] (ω : Fin m → ZMod r × ZM
   by_cases hall : ∀ i, ¬Nat.Coprime (ω i).1.val r
   · simp [hall]
   · obtain ⟨i,hi⟩ := not_forall.mp hall
-    rw [if_neg hall]
+    rw [ite_eq_right hall]
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [hi]
 
@@ -366,7 +370,7 @@ theorem composite_dlog_fresh_verified_success (r : ℕ) [NeZero r] (C : Type)
         change (cyclicDlogRecordDist r g h).prob (ω i) = 0
         change (cyclicDlogRecordDist r g h).prob ((ω i).1,(ω i).2) = 0
         rw [composite_dlog_actual_line_law r C g h d _ _ hr hp hinj hh,
-          if_neg hi]
+          ite_eq_right hi]
       have hpz : P.probOf ω = 0 := Finset.prod_eq_zero (Finset.mem_univ i) hz
       simp [hpz]
   change P.probEvent E = _

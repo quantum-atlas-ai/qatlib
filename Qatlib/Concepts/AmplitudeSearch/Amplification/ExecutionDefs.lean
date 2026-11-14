@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
+
+@[expose] public section
 
 /-!
 # Execution and resource specifications

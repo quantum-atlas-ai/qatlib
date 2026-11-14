@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalTail
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+module
+
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalTail
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+
+@[expose] public section
 
 /-!
 # Weighted leakage estimates for physical product words

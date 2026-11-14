@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.MergedEstimator.Lemma18TransportContracts
-import Qatlib.Concepts.AmplitudeSearch.NativeMean
+module
+
+public import Qatlib.Concepts.EstimatorLaws.MergedEstimator.Lemma18TransportContracts
+public import Qatlib.Concepts.AmplitudeSearch.NativeMean
+
+@[expose] public section
 
 /-!
 # Restricted signed-estimator transport contract
@@ -45,7 +49,7 @@ distance at most `2 * γ`, and variance at most `σ²` under the second preparat
 def MontanaroLemma18RestrictedSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A₁ A₂ : Matrix I I ℂ) (j : I)
     (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ),
-    ∀ (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ),
+    ∀ (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (_hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ),
     4 ≤ k → 0 < σ → 0 ≤ γ → payoffValueL1Dist A₁ A₂ j f ≤ 2 * γ →
     let μ₂ := ∑ i, BornProb (ApplyGate A₂ (Ket j)) i * (f i : ℝ);
     (∑ i, BornProb (ApplyGate A₂ (Ket j)) i * ((f i : ℝ) - μ₂) ^ 2) ≤ (σ : ℝ) ^ 2 →

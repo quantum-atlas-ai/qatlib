@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeDefs
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeDefs
+
+@[expose] public section
 
 /-!
 # Coherent variable-time evolution and cost bounds
@@ -993,7 +997,7 @@ def adaptiveMeanSquareBound (B : ℝ) (Tav p : ℝ) : ℝ :=
 maxStopTime m` yields the adaptive rescaled second-moment bound. -/
 theorem adaptive_stopSecondMoment_le {m : ℕ} (q : Fin m → ℝ)
     (hq : ∀ j, 0 ≤ q j) (hsum : (∑ j : Fin m, q j) ≤ 1) (p : ℝ) (hp : 0 < p)
-    (c qhat : ℝ) (hacc : estimateAccurate c p qhat) (B : ℝ) (hB : maxStopTime m ≤ B) :
+    (c qhat : ℝ) (_hacc : estimateAccurate c p qhat) (B : ℝ) (hB : maxStopTime m ≤ B) :
     stopSecondMoment m q / p ≤ adaptiveMeanSquareBound B (averageStopTime m q) p := by
   have hbase := stopSecondMoment_le_max_mul_average q hq hsum
   have h1 : stopSecondMoment m q / p ≤ (B * averageStopTime m q) / p := by
@@ -1015,7 +1019,7 @@ theorem meanSquareBound_le_adaptiveBound (m : ℕ) (Tav p B : ℝ)
   exact div_le_div_of_nonneg_right h1 (le_of_lt hp)
 
 /-- For `0 < p ≤ 1`, the iterated logarithmic factor is at least one. -/
-theorem iteratedLogFactor_ge_one {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
+theorem iteratedLogFactor_ge_one {p : ℝ} (_hp : 0 < p) (hp1 : p ≤ 1) :
     1 ≤ iteratedLogFactor p := by
   have hmax : max p (1 / 2) ≤ 1 := by
     rw [max_def]
@@ -1035,7 +1039,7 @@ theorem iteratedLogFactor_ge_one {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
 /-- The adaptive estimation budget is nonnegative for nonnegative budget parameters and a
 success parameter in `(0, 1]`. -/
 theorem adaptiveEstimateBudget_nonneg {k p q : ℝ} (hk : 0 ≤ k) (hp : 0 < p)
-    (hp1 : p ≤ 1) (hq : 0 ≤ q) : 0 ≤ adaptiveEstimateBudget k p q := by
+    (hp1 : p ≤ 1) (_hq : 0 ≤ q) : 0 ≤ adaptiveEstimateBudget k p q := by
   unfold adaptiveEstimateBudget
   have hmax : 0 < max q p := lt_of_lt_of_le hp (le_max_right q p)
   have hsqrt : 0 < Real.sqrt (max q p) := Real.sqrt_pos.2 hmax
@@ -1112,13 +1116,13 @@ theorem averageStopTime_nonneg {m : ℕ} (q : Fin m → ℝ) :
 
 /-- The source logarithmic factor at the maximum stopping time equals `1 + log (max 1
 (maxStopTime m))`. -/
-theorem sourceLogFactor (f : CoherentVtFrame H m) :
+theorem sourceLogFactor (_f : CoherentVtFrame H m) :
     tightLogFactor (maxStopTime m) = 1 + Real.log (max 1 (maxStopTime m)) := rfl
 
 /-- Expands `tightAccessCost` into its maximum-time and average-time terms with the logarithmic
 factors used in [Ambainis, Theorem 1][Ambainis2012]. -/
 theorem sourceAccessConstant (f : CoherentVtFrame H m) (ψ : QState H) (p : ℝ)
-    (hp : 0 < p) :
+    (_hp : 0 < p) :
     tightAccessCost (maxStopTime m) (averageStopTime m (fun j => f.freshStopMass ψ j)) p
       = maxStopTime m * Real.sqrt (tightLogFactor (maxStopTime m))
         + averageStopTime m (fun j => f.freshStopMass ψ j)
@@ -1168,7 +1172,7 @@ theorem chargedAccessTime_eq_sum_at (rounds : Fin m → ℕ) :
   apply Finset.sum_congr rfl
   intro j _
   have hlt : j.val < m := j.isLt
-  rw [chargedAccessTimeAt, dif_pos hlt]
+  rw [chargedAccessTimeAt, dite_eq_left hlt]
 
 /-- When the finite schedule agrees with the source recurrence schedule, charged access time is
 bounded by the final source cumulative time. -/
@@ -1775,7 +1779,7 @@ theorem stagePaidWord_cost_sqrt (f : CoherentVtFrame H m) (j : Fin m) (m : ℕ) 
 
 /-- For a positive round count `m`, reaching `aaTarget` from positive base success implies
 `tightAASuccess ≥ 1 / (9 * m)`. -/
-theorem aaSuccess_ge_source_floor {p : ℝ} (hp : 0 < p) {m : ℕ}
+theorem aaSuccess_ge_source_floor {p : ℝ} (_hp : 0 < p) {m : ℕ}
     (htarget : aaTarget ≤ tightAASuccess p m) (hm : 0 < m) :
     1 / (9 * (m : ℝ)) ≤ tightAASuccess p m := by
   have hm' : (1 : ℝ) ≤ m := by exact_mod_cast hm
@@ -2146,7 +2150,7 @@ theorem sourceStage_lemma2_window (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ :
 
 /-- For normalized input and a base success in `(0, 1)`, the rotation window and the stated
 corrected-gain floor imply amplified success at least `1 / (9 * m)`. -/
-theorem sourceStage_success_floor (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
+theorem sourceStage_success_floor (f : CoherentVtFrame H m) (_hm : 1 ≤ m) {ψ : QState H}
     (hψ : Normalized ψ) (j : Fin m) (k : ℕ)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
     (hrot : ((2 * (k : ℝ) + 1)) * Real.arcsin (Real.sqrt (f.sourceBaseSuccess ψ j))
@@ -2225,8 +2229,8 @@ theorem sourceStage_success_floor_sharp (f : CoherentVtFrame H m) (hm : 1 ≤ m)
 /-- For normalized input and positive base success, zero amplification rounds preserve base
 success and satisfy the corrected ideal-gain lower bound when `m ≥ 1`. -/
 theorem sourceStage_lemma2_window_unamplified (f : CoherentVtFrame H m) (hm : 1 ≤ m)
-    {ψ : QState H} (hψ : Normalized ψ) (j : Fin m)
-    (hδ0 : 0 < f.sourceBaseSuccess ψ j) :
+    {ψ : QState H} (_hψ : Normalized ψ) (j : Fin m)
+    (_hδ0 : 0 < f.sourceBaseSuccess ψ j) :
     f.sourceAmpSuccess ψ j 0 = f.sourceBaseSuccess ψ j ∧
       (1 - 1 / (3 * (m : ℝ))) * sourceIdealGain 0 (f.sourceBaseSuccess ψ j)
         ≤ f.sourceAmpSuccess ψ j 0 := by
@@ -2314,7 +2318,7 @@ theorem clause1_mass_accounting (f : CoherentVtFrame H m) (ψ : QState H) :
 identity, unitarity, stopped-history preservation, mass bounds, and policy window and
 access-time formulas. -/
 theorem clause1_endpoint_vtEvolution (f : CoherentVtFrame H m) (ψ : QState H)
-    (a : ℝ) (ha : a = successAmplitude f ψ) (ha0 : 0 < a)
+    (a : ℝ) (_ha : a = successAmplitude f ψ) (ha0 : 0 < a)
     (pol : StagePolicy) (measured : Fin m → ℝ) (hmeas : ∀ j, 0 < measured j) :
     f.totalOp = f.vtEvolution ∧
     f.totalOp ∈ Matrix.unitaryGroup H ℂ ∧
@@ -2445,9 +2449,10 @@ theorem chargedFlagCost_pos (hm : 0 < m) (rounds : Fin m → ℕ) :
       omega
     exact_mod_cast h
   have hcount : 0 < (flagReflectionCount rounds : ℝ) := by
-    letI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+    have hne : (Finset.univ : Finset (Fin m)).Nonempty := by
+      exact ⟨⟨0, hm⟩, Finset.mem_univ _⟩
     have h : 0 < ∑ i : Fin m, (stageFlagCount (rounds i) : ℝ) :=
-      Finset.sum_pos (fun i _ => h1 i) Finset.univ_nonempty
+      Finset.sum_pos (fun i _ => h1 i) hne
     unfold flagReflectionCount
     rw [Nat.cast_sum]
     exact h

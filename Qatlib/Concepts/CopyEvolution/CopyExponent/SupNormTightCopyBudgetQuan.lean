@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionQuan
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+module
+
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionQuan
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+@[expose] public section
 
 /-!
 # Explicit copy budget for trace-norm precision

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedPeriodDefs
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedPeriodDefs
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
+
+@[expose] public section
 
 /-!
 # Completion results for amplified period recovery

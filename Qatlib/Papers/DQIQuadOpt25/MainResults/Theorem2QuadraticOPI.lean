@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DQIQuadOpt25.MainResults.Theorem1StatePrep
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DQIQuadOpt25.MainResults.Theorem1StatePrep
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -147,9 +151,9 @@ is acknowledged to be flawed; the embedding and objective identity below are
 proved unconditionally. -/
 theorem theorem2_quadraticOPI
     {p n : ℕ} [Fact p.Prime] (inst : QuadraticOPI p n)
-    (hdec : HasEfficientDecoder (m := p - 1) (n := n) (ℓ := (n + 1) / 2)
+    (_hdec : HasEfficientDecoder (m := p - 1) (n := n) (ℓ := (n + 1) / 2)
       (diagVector (quadraticOPIAsQUADSAT inst)))
-    (P : Polynomial ℂ) (hdeg : P.natDegree ≤ (n + 1) / 2)
+    (P : Polynomial ℂ) (_hdeg : P.natDegree ≤ (n + 1) / 2)
     (hprep : ∃ c : ℕ, PreparesIn (dqiAmplitude (quadraticOPIAsQUADSAT inst) P)
       (((p - 1) + n + p) ^ c + 1)) :
     IsDiagonalInstance (quadraticOPIAsQUADSAT inst) ∧

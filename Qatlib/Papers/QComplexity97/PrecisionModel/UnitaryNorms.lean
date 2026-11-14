@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Unitary norms and perturbation estimates
@@ -132,8 +136,8 @@ theorem norm_mul_sub_le {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
     ‖U₁' * U₂' - U₁ * U₂‖ ≤ ‖U₁' - U₁‖ + ‖U₂' - U₂‖ := by
   have hfac : U₁' * U₂' - U₁ * U₂ = U₁' * (U₂' - U₂) + (U₁' - U₁) * U₂ := by
     ext x
-    simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.sub_apply, map_sub]
+    simp only [_root_.mul_apply_eq_comp, _root_.add_apply,
+      _root_.sub_apply, map_sub]
     abel
   have hnorm₁ : ‖U₁'‖ ≤ 1 :=
     ContinuousLinearMap.opNorm_le_bound _ zero_le_one (fun x => by

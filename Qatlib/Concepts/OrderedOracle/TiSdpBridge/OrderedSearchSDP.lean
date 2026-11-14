@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Polynomial and semidefinite ordered search conditions

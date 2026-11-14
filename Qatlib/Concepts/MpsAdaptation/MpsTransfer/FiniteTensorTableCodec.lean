@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+
+@[expose] public section
 
 /-!
 # Gaussian-rational tensor tables
@@ -546,7 +550,7 @@ theorem bellTable_num_zero (v : Fin (bellNet).nv) (hv : (v : ℕ) = 0)
       (if a ⟨(⟨0, by omega⟩ : Fin 4), bell_site_zero v hv⟩
           = a ⟨(⟨1, by omega⟩ : Fin 4), bell_site_one v hv⟩ then (1, 0) else (0, 0)) := by
   show dite ((v : ℕ) = 0) _ _ = _
-  rw [dif_pos hv]
+  rw [dite_eq_left hv]
 
 /-- At Bell-network vertex 1, the table entry is 1 when the bits on half-edges 2 and 3 agree,
 and is 0 otherwise. -/
@@ -559,7 +563,7 @@ theorem bellTable_num_one (v : Fin (bellNet).nv) (hv : ¬(v : ℕ) = 0)
             bell_site_three v (by have hn : (bellNet).nv = 2 := rfl; have := v.isLt; omega)⟩ then
         (1, 0) else (0, 0)) := by
   show dite ((v : ℕ) = 0) _ _ = _
-  rw [dif_neg hv]
+  rw [dite_eq_right hv]
 
 /-- The Bell-network open assignment placing `p` at half-edge 0 and `q` at half-edge 3. -/
 def bellAssign (p q : Fin 2) : OpenAssign bellNet := fun o =>
@@ -767,13 +771,13 @@ def chainEdgeEquiv :
     funext i
     rcases chain_internal_val i with h | h
     · (try dsimp only)
-      rw [if_pos h]
+      rw [ite_eq_left h]
       congr 1
       apply Subtype.ext
       apply Fin.ext
       exact h.symm
     · (try dsimp only)
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
       congr 1
       apply Subtype.ext
       apply Fin.ext
@@ -846,7 +850,7 @@ theorem chainTable_num_zero (v : Fin (chainNet).nv) (hv : (v : ℕ) = 0)
           then (1, 0) else (0, 0))
       else (1, 0)) := by
   show dite ((v : ℕ) = 0) _ _ = _
-  rw [dif_pos hv]
+  rw [dite_eq_left hv]
 
 /-- At chain vertex 1, the entry is 1 exactly when the bit on half-edge 2 is zero and the bits
 on half-edges 3 and 4 agree. -/
@@ -863,7 +867,7 @@ theorem chainTable_num_one (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1)
             chain_site_four v hv⟩ : ℕ)
         then (1, 0) else (0, 0)) := by
   show dite ((v : ℕ) = 0) _ _ = _
-  rw [dif_neg (by omega), dif_pos hv]
+  rw [dite_eq_right (by omega), dite_eq_left hv]
 
 /-- At chain vertex 2, external bit 0 selects bond bit 1 with value 1, while external bit 1
 gives value 1 for either bond bit; all remaining entries are zero. -/
@@ -878,7 +882,7 @@ theorem chainTable_num_two (v : Fin (chainNet).nv) (hv0 : ¬(v : ℕ) = 0) (hv1 
               = 1 then (1, 0) else (0, 0))
       else (1, 0)) := by
   show dite ((v : ℕ) = 0) _ _ = _
-  rw [dif_neg hv0, dif_neg hv1]
+  rw [dite_eq_right hv0, dite_eq_right hv1]
 
 /-- The open chain assignment placing the three bits of `y` on half-edges 0, 2, and 6. -/
 def chainExt (y : Fin 3 → Fin 2) : OpenAssign chainNet := fun o =>

@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
+module
+
 /-!
 # Corollary 4.1 — BQP-hardness of the additive tensor-network approximation
 
@@ -24,6 +26,9 @@ BQP-hard) taken as hypotheses.  The logical skeleton is proved; the complexity-t
 content is not formalised.
 -/
 
+
+
+@[expose] public section
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Cor41

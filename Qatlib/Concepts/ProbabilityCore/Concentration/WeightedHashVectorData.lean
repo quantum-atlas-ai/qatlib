@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 /-!
 # Vector masses and centered hash deviations

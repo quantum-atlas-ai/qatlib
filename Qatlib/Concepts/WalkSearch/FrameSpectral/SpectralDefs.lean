@@ -4,24 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandPhaseFilter
-import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandFilterConsumers
-import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
+module
+
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandPhaseFilter
+public import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandFilterConsumers
+public import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Spectral filtering and absorbing walk specifications
@@ -157,7 +162,7 @@ theorem absorbingKernel_isTransitionMatrix {I : Type} [Fintype I] [DecidableEq I
       rw [Finset.sum_eq_single x]
       · simp
       · intro y _ hy
-        rw [if_neg (show ¬ (y = x) from hy)]
+        rw [ite_eq_right (show ¬ (y = x) from hy)]
       · intro hcon
         exact absurd (Finset.mem_univ x) hcon
     · simp only [hx, ite_false]
@@ -187,7 +192,7 @@ theorem detectionUnmarkedInitial_trapComplement {I : Type} [Fintype I] [Decidabl
   simp only [detectionUnmarkedInitial, collapse_apply]
   have hnot : ¬ ((i, i) ∈ Finset.univ.filter (fun xy : I × I => xy.1 ∉ S)) := by
     simp [hi]
-  rw [if_neg hnot]
+  rw [ite_eq_right hnot]
 
 /-- The natural ceiling of `1000 / sqrt (δ * ε)`, used as the sampling length for the threshold
 estimate. -/

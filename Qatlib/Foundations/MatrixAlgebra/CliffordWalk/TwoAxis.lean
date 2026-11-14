@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.Euler
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.Euler
+
+@[expose] public section
 
 /-!
 # Two-axis Clifford walks and fixed vectors
@@ -73,7 +77,7 @@ theorem cos_product_of_fixed (A B : Matrix I I ℂ) (hA : Aᴴ = A) (hB : Bᴴ =
       _ = v := by rw [hu, Matrix.one_mulVec]
   have hh := congrArg (fun M : Matrix I I ℂ => M *ᵥ v)
     (walk_add_adjoint A B hA hB hA2 hB2 hAB θ η)
-  try dsimp only at hh
+
   rw [Matrix.add_mulVec, hfix, hs, Matrix.smul_mulVec, Matrix.one_mulVec] at hh
   obtain ⟨i, hi⟩ := Function.ne_iff.mp hv
   have hx := congrFun hh i

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.OfFn
-import Mathlib.Data.Rat.Lemmas
-import Lean.Elab.Tactic.Omega
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Mathlib.Algebra.Polynomial.OfFn
+public import Mathlib.Data.Rat.Lemmas
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,7 +35,7 @@ open Polynomial
 open scoped BigOperators
 
 /-- Construction for even Index in the native source complement square model. -/
-private def evenIndex {d : ℕ} (i : Fin (d+1)) : Fin (d+d+1) := ⟨2*i.val,by omega⟩
+def evenIndex {d : ℕ} (i : Fin (d+1)) : Fin (d+d+1) := ⟨2*i.val,by omega⟩
 
 /-- The finite construction in `NativeSourceComplementSquare` satisfies `even_sum` under the displayed hypotheses. -/
 private theorem even_sum {d : ℕ} (f : Fin (d+d+1) → ℚ)

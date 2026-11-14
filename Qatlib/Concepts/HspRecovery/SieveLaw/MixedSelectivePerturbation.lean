@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # Selective instrument perturbation bounds
@@ -224,10 +228,10 @@ theorem positive_selected_output_mass_and_normalization_stability :
     have hτ0 : 0 < (Matrix.trace τ).re := lt_of_le_of_lt hη hp
     have hns : normalizedPositiveBranch σ
         = (((Matrix.trace σ).re)⁻¹ : ℂ) • σ := by
-      rw [normalizedPositiveBranch, if_pos hs0]
+      rw [normalizedPositiveBranch, ite_eq_left hs0]
     have hnt : normalizedPositiveBranch τ
         = (((Matrix.trace τ).re)⁻¹ : ℂ) • τ := by
-      rw [normalizedPositiveBranch, if_pos hτ0]
+      rw [normalizedPositiveBranch, ite_eq_left hτ0]
     have hcoe : (((((Matrix.trace σ).re)⁻¹ - ((Matrix.trace τ).re)⁻¹ : ℝ) : ℂ)) • σ
         = (((Matrix.trace σ).re)⁻¹ : ℂ) • σ - (((Matrix.trace τ).re)⁻¹ : ℂ) • σ := by
       rw [Complex.ofReal_sub, Complex.ofReal_inv, Complex.ofReal_inv, sub_smul]

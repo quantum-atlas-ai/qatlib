@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.Basic
-import Qatlib.Papers.HermitianMap26.Construction.PostProcessing
-import Qatlib.Concepts.KrausCompile.BornMoments.BornReadout
-import Qatlib.Concepts.KrausCompile.BornMoments.IndependentShots
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.Basic
+public import Qatlib.Papers.HermitianMap26.Construction.PostProcessing
+public import Qatlib.Concepts.KrausCompile.BornMoments.BornReadout
+public import Qatlib.Concepts.KrausCompile.BornMoments.IndependentShots
+
+@[expose] public section
 
 /-!
 # Born-law means and variances for signed compilation

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Dynamics.PeriodicPts.Lemmas
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.GroupTheory.GroupAction.Period
-import Mathlib.Algebra.Group.Action.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Dynamics.PeriodicPts.Lemmas
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.GroupTheory.GroupAction.Period
+public import Mathlib.Algebra.Group.Action.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

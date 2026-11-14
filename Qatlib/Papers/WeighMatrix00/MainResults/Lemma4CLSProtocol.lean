@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
-import Qatlib.Papers.WeighMatrix00.MainResults.Lemma3SLSLowerBound
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
+public import Qatlib.Papers.WeighMatrix00.MainResults.Lemma3SLSLowerBound
+
+@[expose] public section
 
 /-!
 # A classical protocol for shifted Legendre sequences
@@ -141,7 +145,7 @@ theorem sum_wVec_sq (hF : ringChar F ≠ 2) (S : Finset F) :
       by_cases h : j = k
       · subst h; simp; ring
       · simp [h]
-    rw [hstep, Finset.sum_add_distrib, Finset.sum_const, Finset.sum_ite_eq, if_pos hj,
+    rw [hstep, Finset.sum_add_distrib, Finset.sum_const, Finset.sum_ite_eq, ite_eq_left hj,
       nsmul_eq_mul]
     ring
   simp_rw [hexp]
@@ -164,7 +168,7 @@ theorem exists_shrinking_index (hF : ringChar F ≠ 2) (S : Finset F) (hS : 4 �
     ∃ i : F, 4 * (sPlus S i).card < 3 * S.card ∧
       4 * (sMinus S i).card < 3 * S.card ∧
       4 * (sZero S i).card < 3 * S.card := by
-  haveI : Nonempty F := ⟨0⟩
+  have : Nonempty F := ⟨0⟩
   have hq : (0 : ℤ) < (Fintype.card F : ℤ) := by
     exact_mod_cast Fintype.card_pos
   have hSpos : (0 : ℤ) < (S.card : ℤ) := by
@@ -173,7 +177,7 @@ theorem exists_shrinking_index (hF : ringChar F ≠ 2) (S : Finset F) (hS : 4 �
 
   have hex : ∃ i : F, 4 * (wVec S i) ^ 2 < (S.card : ℤ) ^ 2 := by
     by_contra h
-    push_neg at h
+    push Not at h
     have hle : ∑ i : F, (S.card : ℤ) ^ 2 ≤ ∑ i : F, 4 * (wVec S i) ^ 2 :=
       Finset.sum_le_sum (fun i _ => h i)
     rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] at hle
@@ -264,7 +268,7 @@ theorem shrinkIndex'_spec (hF : ringChar F ≠ 2) (S : Finset F) (h : 4 ≤ S.ca
       4 * (sMinus S (shrinkIndex' hF S)).card < 3 * S.card ∧
       4 * (sZero S (shrinkIndex' hF S)).card < 3 * S.card := by
   unfold shrinkIndex'
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact (exists_shrinking_index hF S h).choose_spec
 
 /-- A strict three-quarter shrink preserves the stated power bound with the fuel exponent
@@ -312,7 +316,7 @@ theorem bruteFuel_solves :
     · have hdef : bruteFuel (k + 1) S =
           SLSTree.node (-hne.choose) (bruteFuel k (sMinus S (-hne.choose)))
             (bruteFuel k (sPlus S (-hne.choose))) := by
-        simp only [bruteFuel, dif_pos hne]
+        simp only [bruteFuel, dite_eq_left hne]
       have hmem : hne.choose ∈ S := hne.choose_spec
       intro s hs
       rw [hdef]
@@ -373,13 +377,13 @@ theorem bruteFuel_depth : ∀ (k : ℕ) (S : Finset F), (bruteFuel k S).depth �
     · have hdef : bruteFuel (k + 1) S =
           SLSTree.node (-hne.choose) (bruteFuel k (sMinus S (-hne.choose)))
             (bruteFuel k (sPlus S (-hne.choose))) := by
-        simp only [bruteFuel, dif_pos hne]
+        simp only [bruteFuel, dite_eq_left hne]
       rw [hdef, SLSTree.depth]
       have h1 := ih (sMinus S (-hne.choose))
       have h2 := ih (sPlus S (-hne.choose))
       omega
     · have hdef : bruteFuel (k + 1) S = SLSTree.leaf 0 := by
-        simp only [bruteFuel, dif_neg hne]
+        simp only [bruteFuel, dite_eq_right hne]
       rw [hdef, SLSTree.depth]
       omega
 
@@ -387,7 +391,7 @@ theorem bruteFuel_depth : ∀ (k : ℕ) (S : Finset F), (bruteFuel k S).depth �
 def buildFuel (hF : ringChar F ≠ 2) : ℕ → Finset F → SLSTree F
   | 0, S => bruteFuel 4 S
   | k + 1, S =>
-      if h4 : S.card ≤ 4 then bruteFuel 4 S
+      if _h4 : S.card ≤ 4 then bruteFuel 4 S
       else
         SLSTree.node (shrinkIndex' hF S) (buildFuel hF k (sMinus S (shrinkIndex' hF S)))
           (buildFuel hF k (sPlus S (shrinkIndex' hF S)))
@@ -405,11 +409,11 @@ theorem buildFuel_solves (hF : ringChar F ≠ 2) :
   | succ k ih =>
     intro S hcard
     by_cases h4 : S.card ≤ 4
-    · simpa [buildFuel, dif_pos h4] using bruteFuel_solves 4 S (by omega)
+    · simpa [buildFuel, dite_eq_left h4] using bruteFuel_solves 4 S (by omega)
     · have hdef : buildFuel hF (k + 1) S =
           SLSTree.node (shrinkIndex' hF S) (buildFuel hF k (sMinus S (shrinkIndex' hF S)))
             (buildFuel hF k (sPlus S (shrinkIndex' hF S))) := by
-        simp only [buildFuel, dif_neg h4]
+        simp only [buildFuel, dite_eq_right h4]
       have hspec := shrinkIndex'_spec hF S (by omega)
       intro s hs
       rw [hdef]
@@ -446,14 +450,14 @@ theorem buildFuel_depth (hF : ringChar F ≠ 2) :
     intro S hcard
     by_cases h4 : S.card ≤ 4
     · have hdef : buildFuel hF (k + 1) S = bruteFuel 4 S := by
-        simp only [buildFuel, dif_pos h4]
+        simp only [buildFuel, dite_eq_left h4]
       rw [hdef]
       have := bruteFuel_depth 4 S
       omega
     · have hdef : buildFuel hF (k + 1) S =
           SLSTree.node (shrinkIndex' hF S) (buildFuel hF k (sMinus S (shrinkIndex' hF S)))
             (buildFuel hF k (sPlus S (shrinkIndex' hF S))) := by
-        simp only [buildFuel, dif_neg h4]
+        simp only [buildFuel, dite_eq_right h4]
       have hspec := shrinkIndex'_spec hF S (by omega)
       rw [hdef, SLSTree.depth]
       have h1 := ih (sMinus S (shrinkIndex' hF S)) (shrink_card_bound hspec.2.1 hcard)
@@ -465,7 +469,7 @@ at most `log (card F) / log (4 / 3) + 3`. See [VanDam2002]. -/
 theorem source_lemma4_slsProtocol (hF : ringChar F ≠ 2) :
     ∃ t : SLSTree F, t.Solves ∧
       (t.depth : ℝ) ≤ Real.log (Fintype.card F : ℝ) / Real.log (4 / 3) + 3 := by
-  haveI : Nonempty F := ⟨0⟩
+  have : Nonempty F := ⟨0⟩
   have hlog43 : 0 < Real.log (4 / 3 : ℝ) := Real.log_pos (by norm_num)
   by_cases hq4 : Fintype.card F ≤ 4
   · refine ⟨bruteFuel 4 (Finset.univ : Finset F),
@@ -481,7 +485,7 @@ theorem source_lemma4_slsProtocol (hF : ringChar F ≠ 2) :
       rw [le_div_iff₀ hlog43]
       linarith [Real.log_le_log (by norm_num : (0:ℝ) < 4/3) hq2]
     linarith
-  · push_neg at hq4
+  · push Not at hq4
     set q : ℕ := Fintype.card F with hqdef
     have hq5 : 5 ≤ q := hq4
     have hqpos : (0 : ℝ) < (q : ℝ) := by exact_mod_cast (by omega : 0 < q)
@@ -509,7 +513,7 @@ theorem source_lemma4_slsProtocol (hF : ringChar F ≠ 2) :
       rw [← Real.log_le_log_iff hpos1 hpos2,
         Real.log_mul (ne_of_gt hqpos) (by positivity), Real.log_pow, Real.log_pow]
       push_cast
-      convert hlogkey using 2 <;> ring
+      convert hlogkey using 2
     have hpowN : q * 3 ^ k ≤ 4 ^ (k + 1) := by exact_mod_cast hpow
     refine ⟨buildFuel hF k (Finset.univ : Finset F),
       fun s => buildFuel_solves hF k (Finset.univ : Finset F) (by simpa using hpowN) s (Finset.mem_univ s), ?_⟩

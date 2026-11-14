@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Analysis.Normed.Ring.Finite
+module
+
+public import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Analysis.Normed.Ring.Finite
+
+@[expose] public section
 
 /-!
 # Fourier sampling of a translated pair
@@ -69,6 +73,7 @@ lemma norm_pairAmplitude (e : G ≃ AddChar G ℂ) (u y : G) (c : Bool) (x : G) 
       ‖(2 * (Fintype.card G : ℂ))⁻¹‖ * ‖1 + signOfBit c * (e y) u‖ := by
   rw [pairAmplitude, norm_mul, norm_mul, AddChar.norm_apply, one_mul]
 
+omit [AddCommGroup G] in
 /-- The complex norm of the inverse of twice the group cardinality equals the corresponding
 nonnegative real inverse. -/
 lemma norm_inv_two_card :
@@ -96,7 +101,7 @@ probabilities. -/
 theorem pairProb_one_depends_only_on_character (e : G ≃ AddChar G ℂ) (u y y' : G)
     (h : (e y) u = (e y') u) :
     pairProb e u y true = pairProb e u y' true := by
-  simp only [pairProb_eq, signOfBit, if_true, h]
+  simp only [pairProb_eq, signOfBit, ite_true, h]
 
 /-- The true-bit pair probability vanishes exactly when the indexed character evaluates to one
 at `u` ([Lemma 3.1][FriedlEtAl2014]). -/
@@ -118,7 +123,7 @@ theorem pairProb_one_eq_zero_iff (e : G ≃ AddChar G ℂ) (u y : G) :
     have h1 : 1 + signOfBit true * (e y) u = 0 := norm_eq_zero.mp hn
     have h1' : (1 : ℂ) - (e y) u = 0 := by
       have hh := h1
-      simp only [signOfBit, if_true] at hh
+      simp only [signOfBit, ite_true] at hh
       linear_combination hh
     exact (sub_eq_zero.mp h1').symm
   · intro h
@@ -154,13 +159,13 @@ theorem fourierSampling_outputs_one_prob (e : G ≃ AddChar G ℂ) (u : G) (hu :
       rw [Complex.normSq_apply, hnorm] at h
       norm_num at h
       nlinarith [h]
-    simp only [signOfBit, if_true, Complex.sub_re, Complex.sub_im, Complex.add_re,
+    simp only [signOfBit, ite_true, Complex.add_re,
       Complex.add_im, Complex.neg_re, Complex.neg_im, Complex.one_re, Complex.one_im,
-      Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
+      Complex.mul_re, Complex.mul_im]
     nlinarith [hchi]
   have hsumre : (∑ y : G, ((e y) u).re) = 0 := by
     have hc0 : (∑ y : G, (e y) u) = 0 := by
-      rw [sum_character_eval e u, if_neg hu]
+      rw [sum_character_eval e u, ite_eq_right hu]
     have := congrArg (fun z : ℂ => z.re) hc0
     simpa [Complex.re_sum] using this
   simp_rw [pairProb_eq, hexpand]

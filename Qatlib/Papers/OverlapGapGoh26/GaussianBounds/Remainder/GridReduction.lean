@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.FixedTail
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.FixedTail
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
+
+@[expose] public section
 
 /-!
 # Finite grid reduction for repeated index energies
@@ -145,7 +149,7 @@ theorem remainder_grid_inclusion {r N m:ℕ} (hm:0 < m) (η:ℝ)
       {A|∃k,(N:ℝ)≤|A k|}∪
       {A|∃v:Fin N→Fin (m+1),η*(N:ℝ)/2≤|tensorEnergy (repeated A) (cubeState m v)|} := by
   intro A hA
-  simp only [Set.mem_union,Set.mem_setOf_eq] at hA ⊢
+  simp only [Set.mem_union,Set.mem_ofPred_eq] at hA ⊢
   by_contra! hbad
   have hbox:∀k,|A k|≤N := fun k=>(hbad.1 k).le
   obtain ⟨u,hu,hRu⟩:=hA

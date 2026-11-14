@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircApprox95.MainResults.ExactRepresentation
-import Qatlib.Papers.QCircApprox95.MainResults.GramExtension
-import Mathlib.Data.Matrix.ColumnRowPartitioned
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Papers.QCircApprox95.MainResults.ExactRepresentation
+public import Qatlib.Papers.QCircApprox95.MainResults.GramExtension
+public import Mathlib.Data.Matrix.ColumnRowPartitioned
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Unitary completion with a fixed subspace
@@ -74,16 +78,16 @@ theorem exists_complement_rows (k m : ℕ) (_hk : k ≤ m)
     have he : equiv i = (⟨emb i, Set.mem_range_self i⟩ : Set.range emb) :=
       Equiv.ofInjective_apply emb hemb i
     show (if h : emb i ∈ Set.range emb then w (equiv.symm ⟨emb i, h⟩) else 0) = w i
-    rw [dif_pos (Set.mem_range_self i)]
+    rw [dite_eq_left (Set.mem_range_self i)]
     have h2 : (⟨emb i, _⟩ : Set.range emb) = equiv i := he.symm
     rw [h2]
     exact congrArg w (equiv.symm_apply_apply i)
-  have hv : Orthonormal ℂ ((Set.range emb).restrict v) := by
-    have hre : (Set.range emb).restrict v = w ∘ equiv.symm := by
+  have hv : Orthonormal ℂ ((Set.range emb).domRestrict v) := by
+    have hre : (Set.range emb).domRestrict v = w ∘ equiv.symm := by
       funext x
       show (if x.val ∈ Set.range emb then w (equiv.symm ⟨x.val, x.property⟩) else 0)
         = w (equiv.symm x)
-      exact dif_pos x.property
+      exact dite_eq_left x.property
     rw [hre]
     exact hw.comp equiv.symm (Equiv.injective equiv.symm)
   obtain ⟨b, hb⟩ := Orthonormal.exists_orthonormalBasis_extension_of_card_eq
@@ -193,7 +197,7 @@ theorem exists_kernel_isometry (k m : ℕ) (hk : k ≤ m)
     change (T * X) p s = 0
     have hkz : Matrix.toEuclideanLin T
         (b (e s) : EuclideanSpace ℂ (Fin k ⊕ Fin (m - k))) = 0 := by
-      simpa using (b (e s)).2
+      simp
     have hof := congrArg WithLp.ofLp hkz
     rw [Matrix.ofLp_toLpLin, Matrix.toLin'_apply] at hof
     have hcol : (T * X) p s =

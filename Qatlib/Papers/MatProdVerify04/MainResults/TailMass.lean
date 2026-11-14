@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Tail bounds for revealing samples
@@ -184,9 +188,9 @@ theorem lemma7_zeta_average {P J : Type*} [Fintype P] [DecidableEq P]
       ≤ ∑ j, lawJ.prob j * eventMass lawP (fun v => reveal v j) := by
     refine Finset.sum_le_sum (fun j _ => ?_)
     by_cases h : marked j
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact mul_le_mul_of_nonneg_left (hpair j h) (lawJ.nonneg j)
-    · rw [if_neg h, mul_zero]
+    · rw [ite_eq_right h, mul_zero]
       exact mul_nonneg (lawJ.nonneg j) (hnonneg j)
   have hleft : (1 / 4 : ℝ) * eventMass lawJ marked
       = ∑ j, lawJ.prob j * (if marked j then (1 / 4 : ℝ) else 0) := by
@@ -220,8 +224,8 @@ theorem lemma7_full {P J : Type*} [Fintype P] [DecidableEq P]
       refine Finset.sum_le_sum (fun j _ => ?_)
       have hpt : (if reveal v j then (1 : ℝ) else 0) ≤ (if marked j then (1 : ℝ) else 0) := by
         by_cases hr : reveal v j
-        · rw [if_pos hr, if_pos (hrevmark v j hr)]
-        · rw [if_neg hr]
+        · rw [ite_eq_left hr, ite_eq_left (hrevmark v j hr)]
+        · rw [ite_eq_right hr]
           by_cases hm : marked j <;> simp [hm]
       exact mul_le_mul_of_nonneg_left hpt (lawJ.nonneg j)
     have heq : ∑ j, lawJ.prob j * (if marked j then (1 : ℝ) else 0)

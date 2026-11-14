@@ -5,8 +5,12 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@47acf19
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Tensor
-import Mathlib.MeasureTheory.Measure.Haar.Unique
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Tensor
+public import Mathlib.MeasureTheory.Measure.Haar.Unique
+
+@[expose] public section
 
 /-!
 # Polynomial extraction from tensor convolution
@@ -51,7 +55,7 @@ private theorem integral_periodBox_succ {d : ℕ}
   have he : e ⁻¹' periodBox (d + 1) =
       Set.Icc (-Real.pi) Real.pi ×ˢ periodBox d := by
     ext z
-    simp only [Set.mem_preimage, periodBox, Set.mem_setOf_eq, Set.mem_prod]
+    simp only [Set.mem_preimage, periodBox, Set.mem_ofPred_eq, Set.mem_prod]
     constructor
     · intro h
       exact ⟨h 0, fun i => h i.succ⟩
@@ -95,7 +99,7 @@ private theorem periodBox_reflect_coord {d : ℕ}
     · simpa [e, hji] using MeasurePreserving.id (volume : Measure ℝ)
   have he_box : e ⁻¹' periodBox d = periodBox d := by
     ext u
-    simp only [Set.mem_preimage, periodBox, Set.mem_setOf_eq, he_apply]
+    simp only [Set.mem_preimage, periodBox, Set.mem_ofPred_eq, he_apply]
     constructor <;> intro h j
     · by_cases hji : j = i
       · subst j
@@ -222,7 +226,7 @@ private lemma toMvPolynomial_degreeOf_le {σ : Type*} [DecidableEq σ]
   rw [MvPolynomial.degreeOf_C]
   by_cases hji : j = i
   · subst j
-    simp only [if_true, zero_add, MvPolynomial.degreeOf_X_self_pow]
+    simp only [ite_true, zero_add, MvPolynomial.degreeOf_X_self_pow]
     exact Nat.le_of_lt_succ (Finset.mem_range.mp hk)
   · rw [MvPolynomial.degreeOf_X_pow_of_ne k hji]
     simp
@@ -557,9 +561,9 @@ private theorem exists_mvPolynomial_of_coord_even_trig {d n : ℕ}
           have hnot : (0 : Fin (d + 1)) ∉ Set.range Fin.succ := by
             rintro ⟨k, hk⟩
             exact Fin.ne_of_gt (Fin.succ_pos k) hk
-          rw [Finsupp.mapDomain_notin_range m' 0 hnot]
+          rw [Finsupp.mapDomain_of_notMem_range m' 0 hnot]
           simp
-        · simp only [Fin.succ_ne_zero, if_false]
+        · simp only [Fin.succ_ne_zero, ite_false]
           rw [MvPolynomial.degreeOf_rename_of_injective (Fin.succ_injective d)]
           exact MvPolynomial.degreeOf_le_iff.mpr
             (fun m hm => (hptail j).2.1 m hm k)

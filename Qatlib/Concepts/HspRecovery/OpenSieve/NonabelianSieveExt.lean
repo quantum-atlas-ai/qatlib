@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveDefs
-import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuationDefs
-import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuation
-import Qatlib.Concepts.HspRecovery.OpenSieve.SubgroupEndpointCounterex
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.List.Nodup
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveDefs
+public import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuationDefs
+public import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuation
+public import Qatlib.Concepts.HspRecovery.OpenSieve.SubgroupEndpointCounterex
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.List.Nodup
+
+@[expose] public section
 
 /-!
 # Collision recovery and radix sieve estimates
@@ -124,7 +128,7 @@ private theorem mem_generalCollisionReflections {N : ℕ} [NeZero N] (m j : ℕ)
 lists contain a rotation and a reflection with equal oracle values and difference `s`. -/
 theorem clause14_collision_value_collision {N : ℕ} [NeZero N] {S : Type}
     [DecidableEq S] [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
-    (hf : DihedralReflectionHides N f s) (m : ℕ) (hm : 0 < m) (hN : N ≤ m * m) :
+    (hf : DihedralReflectionHides N f s) (m : ℕ) (hm : 0 < m) (_hN : N ≤ m * m) :
     ∃ (a b : ZMod N),
       a ∈ generalCollisionRotations N m ∧
         b ∈ generalCollisionReflections N m ∧
@@ -299,7 +303,7 @@ theorem clause14_collision_query_bound (N m : ℕ) (hm : 0 < m) (hN : N ≤ m * 
   omega
 
 /-- For positive `N`, `generalCollisionWidth N` is positive and its square is at least `N`. -/
-theorem clause14_collision_width_spec (N : ℕ) (hN : 0 < N) :
+theorem clause14_collision_width_spec (N : ℕ) (_hN : 0 < N) :
     0 < generalCollisionWidth N ∧ N ≤ generalCollisionWidth N * generalCollisionWidth N := by
   refine ⟨by simp [generalCollisionWidth], ?_⟩
   have h := Nat.succ_le_succ_sqrt N
@@ -439,9 +443,9 @@ private theorem fin_bitListValue (bs : List Bool) :
       intro i
       rw [List.getD_cons_succ, pow_succ]
       by_cases h : bs.getD i.val false = true
-      · rw [if_pos h, if_pos h]
+      · rw [ite_eq_left h, ite_eq_left h]
         ring
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_right h, ite_eq_right h]
     simp only [List.length_cons]
     rw [Fin.sum_univ_succ]
     simp only [List.getD_cons_zero, pow_zero, Fin.val_zero, Fin.val_succ]
@@ -804,7 +808,7 @@ def walkGoal_abelian_endpoint_obligation (A : Type) [AddCommGroup A] [Fintype A]
   AbelianShiftEndpoint A
 
 /-- For every recovery ledger, `SubgroupRecoveryEndpoint 4` fails. -/
-def walkGoal_subgroup_endpoint_is_refuted :
+theorem walkGoal_subgroup_endpoint_is_refuted :
     ∀ (lg : RecoveryLedger), ¬ SubgroupRecoveryEndpoint 4 lg := by
   intro lg
   exact not_subgroup_endpoint lg
@@ -1061,7 +1065,7 @@ theorem walkGoal_reflectionPartnerOf_some {N : ℕ} [NeZero N] {S : Type} [Finty
       omega
     · exact hbf
   refine ⟨reflectionPartnerMinWith dec f, ?_, hmin_lt, hmin_fib, ?_⟩
-  · simp only [reflectionPartnerOfWith, if_neg (Nat.ne_of_lt hmin_lt)]
+  · simp only [reflectionPartnerOfWith, ite_eq_right (Nat.ne_of_lt hmin_lt)]
   · exact walkGoal_reflection_fibre_mod f H hf s hs _ hmin_lt hmin_fib
 
 /-- The oracle-based subgroup reduction answer equals `reduceSubgroupData H` for an oracle
@@ -1323,7 +1327,7 @@ higher power with exponent at most `k` does. -/
 theorem radixAlpha_eq_iff (r k a : ℕ) (hr : 2 ≤ r) (hk : 0 < k) :
     radixAlpha r k = a ↔
       r ^ a ∣ k ∧ ∀ n, a < n → n ≤ k → ¬ (r ^ n ∣ k) := by
-  simp only [radixAlpha, if_neg (Nat.ne_of_gt hk)]
+  simp only [radixAlpha, ite_eq_right (Nat.ne_of_gt hk)]
   rw [Nat.findGreatest_eq_iff]
   constructor
   · rintro ⟨ha, hP, hmax⟩
@@ -1369,7 +1373,7 @@ theorem radixAlpha_cancellation (r k ℓ a : ℕ) (hr : 2 ≤ r) (hlt : ℓ < k)
   have hP : (fun j => r ^ j ∣ k - ℓ) (a + 1) := h
   have hfg : a + 1 ≤ Nat.findGreatest (fun j => r ^ j ∣ k - ℓ) (k - ℓ) :=
     Nat.le_findGreatest hbound hP
-  simp only [radixAlpha, if_neg (Nat.ne_of_gt hpos)]
+  simp only [radixAlpha, ite_eq_right (Nat.ne_of_gt hpos)]
   exact hfg
 
 /-- A label below `r ^ n` divisible by `r ^ (n - 1)` is a multiple `b * r ^ (n - 1)` with `b <
@@ -1479,11 +1483,11 @@ theorem clause14_radix_digit_count_pow (r N : ℕ) (hr : 2 ≤ r) (hN : 1 ≤ N)
     have hlog : Nat.log r 0 = 0 := by
       rw [Nat.log_eq_zero_iff]
       omega
-    rw [radixDigitCount, if_neg (by omega), hlog, pow_one]
+    rw [radixDigitCount, ite_eq_right (by omega), hlog, pow_one]
     omega
   · have hN2 : 2 ≤ N := by omega
     have hcount : radixDigitCount r N = Nat.log r (N - 1) + 1 := by
-      rw [radixDigitCount, if_neg (by omega)]
+      rw [radixDigitCount, ite_eq_right (by omega)]
     rw [hcount]
     have h1 : Nat.log r (N - 1) < Nat.log r (N - 1) + 1 := by omega
     have h2 := (Nat.log_lt_iff_lt_pow (b := r) (x := Nat.log r (N - 1) + 1)
@@ -1745,7 +1749,7 @@ theorem walkGoal_endpoint (N : ℕ) [NeZero N] :
 /-- For positive collision width, the ledger records the query and sample counts, covers
 comparison and sorting bit-operation costs, uses `labelBits N` integer bits, and has
 positive workspace. -/
-theorem clause16_endpoint (N : ℕ) (m : ℕ) (hm : 0 < m) :
+theorem clause16_endpoint (N : ℕ) (m : ℕ) (_hm : 0 < m) :
     (generalCollisionLedger N m).samples = generalCollisionQueryCount N m ∧
       (generalCollisionLedger N m).queries = generalCollisionQueryCount N m ∧
       generalCollisionCompareCount N m ≤ (generalCollisionLedger N m).comparisons ∧
@@ -1784,7 +1788,7 @@ private theorem mem_zmodBasisRefl {n : ℕ} [NeZero n] {m j : ℕ} (hj : j ≤ n
 
 /-- For positive `m` with `n ≤ m * m`, every element of `ZMod n` is a difference of two elements
 of `zmodBasis m`. -/
-theorem walkGoal_zmod_basis_covers {n : ℕ} [NeZero n] (m : ℕ) (hm : 0 < m) (hN : n ≤ m * m)
+theorem walkGoal_zmod_basis_covers {n : ℕ} [NeZero n] (m : ℕ) (hm : 0 < m) (_hN : n ≤ m * m)
     (x : ZMod n) :
     ∃ a ∈ zmodBasis m, ∃ b ∈ zmodBasis m, b - a = x := by
   classical
@@ -2092,7 +2096,7 @@ theorem walkGoal_difference_basis_card_lower (m : ℕ) (D : Finset (ZMod (4 ^ m)
 basis of `ZMod (4 ^ m)` exceeds `2 ^ (C * Real.sqrt (labelBits (Fintype.card (ZMod (4 ^
 m)))))`. This gives a query-budget obstruction for the difference-basis construction in the
 setting of [Kuperberg2005]. -/
-theorem walkGoal_classical_budget_obstruction (C : ℝ) (hC : 0 < C) (m : ℕ)
+theorem walkGoal_classical_budget_obstruction (C : ℝ) (_hC : 0 < C) (m : ℕ)
     (hm : C * Real.sqrt (2 * (m : ℝ) + 1) < (m + 1 : ℝ))
     (D : Finset (ZMod (4 ^ m))) (hD : AbelianDifferenceBasis D) :
     (2 * D.card : ℝ) > 2 ^ (C * Real.sqrt (labelBits (Fintype.card (ZMod (4 ^ m))))) := by
@@ -2165,7 +2169,7 @@ private theorem radix_dvd_mod_of_dvd {d x N : ℕ} (h1 : d ∣ x) (h2 : d ∣ N)
       have := Nat.mod_add_div N d
       omega
     rw [heq]
-    simpa [mul_assoc] using! Nat.dvd_mul_right d ((N / d) * (x / N))
+    simp [mul_assoc]
   have h4 : x % N = x - N * (x / N) := by
     have := Nat.mod_add_div x N
     omega
@@ -2235,7 +2239,7 @@ private theorem radix_add_child_pos (k ℓ N : ℕ) (hk : k < N) (hℓ : ℓ < N
   omega
 
 /-- For `r > 1` and `a ≤ n`, the power `r ^ a` divides `r ^ n`. -/
-private theorem radix_pow_dvd_pow (r a n : ℕ) (hr : 1 < r) (h : a ≤ n) :
+private theorem radix_pow_dvd_pow (r a n : ℕ) (_hr : 1 < r) (h : a ≤ n) :
     r ^ a ∣ r ^ n := by
   have hle : n = a + (n - a) := (Nat.add_sub_of_le h).symm
   rw [hle, pow_add]
@@ -2442,15 +2446,15 @@ theorem radixSharedTrits_le_beta (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
   obtain ⟨hshare, _⟩ := radixSharedTrits_spec r k ℓ hradix
   have hdiff : 0 < radixDiff k ℓ := by
     by_cases h : k ≥ ℓ
-    · rw [radixDiff, if_pos h]
+    · rw [radixDiff, ite_eq_left h]
       omega
-    · rw [radixDiff, if_neg h]
+    · rw [radixDiff, ite_eq_right h]
       omega
   have hdifflt : radixDiff k ℓ < r ^ n := by
     by_cases h : k ≥ ℓ
-    · rw [radixDiff, if_pos h]
+    · rw [radixDiff, ite_eq_left h]
       omega
-    · rw [radixDiff, if_neg h]
+    · rw [radixDiff, ite_eq_right h]
       omega
   have hle : r ^ (radixAlpha r k + radixSharedTrits r k ℓ) ≤ radixDiff k ℓ :=
     Nat.le_of_dvd hdiff hshare
@@ -2467,7 +2471,7 @@ theorem radixSharedTrits_le_beta (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
 
 /-- If `β ≥ 1`, `0 ≤ m ≤ β`, and `m > Real.sqrt (2 * β) - 1 / 2`, then `Real.sqrt (2 * β) -
 Real.sqrt (2 * (β - m)) > 1`. -/
-private theorem radix_sqrt_gap (β m : ℝ) (hβ : 1 ≤ β) (hm : 0 ≤ m) (hmβ : m ≤ β)
+private theorem radix_sqrt_gap (β m : ℝ) (hβ : 1 ≤ β) (_hm : 0 ≤ m) (hmβ : m ≤ β)
     (h : Real.sqrt (2 * β) - 1 / 2 < m) :
     Real.sqrt (2 * β) - Real.sqrt (2 * (β - m)) > 1 := by
   set u : ℝ := Real.sqrt (2 * β) with hu
@@ -2523,7 +2527,7 @@ theorem radixChild_alpha_gain (r n k ℓ m : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
     · have hsub' : k + (r ^ n) - ℓ = (k - ℓ) + (r ^ n) := by omega
       rw [hsub']
       have hdiff : r ^ (radixAlpha r k + m) ∣ k - ℓ := by
-        rw [radixDiff, if_pos hge] at hm
+        rw [radixDiff, ite_eq_left hge] at hm
         exact hm
       exact Nat.dvd_add hdiff hrN
     · have hsub' : k + (r ^ n) - ℓ = (r ^ n) - (ℓ - k) := by
@@ -2531,7 +2535,7 @@ theorem radixChild_alpha_gain (r n k ℓ m : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
         omega
       rw [hsub']
       have hdiff : r ^ (radixAlpha r k + m) ∣ ℓ - k := by
-        rw [radixDiff, if_neg hge] at hm
+        rw [radixDiff, ite_eq_right hge] at hm
         exact hm
       exact Nat.dvd_sub hrN hdiff
   have hrem : r ^ (radixAlpha r k + m) ∣ (k + (r ^ n) - ℓ) % (r ^ n) :=
@@ -2769,7 +2773,7 @@ theorem radixBudgetLedger_bitOps (r n : ℕ) :
   rfl
 
 /-- The radix budget ledger has positive workspace when `n ≥ 1`. -/
-theorem radixBudgetLedger_workspace (r n : ℕ) (hn : 1 ≤ n) :
+theorem radixBudgetLedger_workspace (r n : ℕ) (_hn : 1 ≤ n) :
     0 < (radixBudgetLedger r n).workspaceBits := by
   have h1 : 0 < radixFreshRecords n := by
     unfold radixFreshRecords
@@ -2834,7 +2838,7 @@ private theorem radix_digit_data (r a k m : ℕ) (hr : 2 ≤ r) :
 
 /-- Two radix blocks with nonzero first digits and the same sign-normalized digit pattern are
 equal or have sum `r ^ (m + 1)`. -/
-private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
+private theorem radix_pattern_core {r m : ℕ} (_hr : 2 ≤ r)
     (u v d w d' w' : ℕ)
     (hu : u = d + r * w) (hv : v = d' + r * w')
     (hd : d < r) (hd1 : 1 ≤ d) (hd' : d' < r) (hd1' : 1 ≤ d')
@@ -2844,7 +2848,7 @@ private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
     u = v ∨ u + v = r ^ (m + 1) := by
   by_cases h1 : d ≤ r - d
   · by_cases h2 : d' ≤ r - d'
-    · simp only [h1, h2, if_true] at hpat
+    · simp only [h1, h2, ite_true] at hpat
       have hd'' : d = d' := by
         have h := congrArg Prod.fst hpat
         simp at h
@@ -2852,7 +2856,7 @@ private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
       have hw'' : w = w' := by simpa using! congrArg Prod.snd hpat
       left
       rw [hu, hv, hd'', hw'']
-    · simp only [h1, h2, if_false] at hpat
+    · simp only [h1, h2, ite_false] at hpat
       have hd'' : d - 1 = r - d' - 1 := by simpa using! congrArg Prod.fst hpat
       have hw'' : w = r ^ m - 1 - w' := by simpa using! congrArg Prod.snd hpat
       have hds : d + d' = r := by omega
@@ -2865,7 +2869,7 @@ private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
         _ = r * r ^ m := by rw [hws]
         _ = r ^ (m + 1) := by rw [pow_succ]; ring
   · by_cases h2 : d' ≤ r - d'
-    · simp only [h1, h2, if_false] at hpat
+    · simp only [h1, h2, ite_false] at hpat
       have hd'' : r - d - 1 = d' - 1 := by simpa using! congrArg Prod.fst hpat
       have hw'' : r ^ m - 1 - w = w' := by simpa using! congrArg Prod.snd hpat
       have hds : d + d' = r := by omega
@@ -2877,7 +2881,7 @@ private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
         _ = r * (w + w' + 1) := by ring
         _ = r * r ^ m := by rw [hws]
         _ = r ^ (m + 1) := by rw [pow_succ]; ring
-    · simp only [h1, h2, if_false] at hpat
+    · simp only [h1, h2, ite_false] at hpat
       have hd'' : r - d - 1 = r - d' - 1 := by simpa using! congrArg Prod.fst hpat
       have hw'' : r ^ m - 1 - w = r ^ m - 1 - w' := by simpa using! congrArg Prod.snd hpat
       have hd''' : d = d' := by
@@ -2892,7 +2896,7 @@ private theorem radix_pattern_core {r m : ℕ} (hr : 2 ≤ r)
       rw [hu, hv, hd''', hw''']
 
 /-- If `M > 0`, `B ≤ A`, and `A` and `B` have the same remainder modulo `M`, then `M ∣ A - B`. -/
-private theorem radix_dvd_sub_of_mod_eq {A B M : ℕ} (hM : 0 < M)
+private theorem radix_dvd_sub_of_mod_eq {A B M : ℕ} (_hM : 0 < M)
     (h : A % M = B % M) (hle : B ≤ A) : M ∣ A - B := by
   have hmod : B ≡ A [MOD M] := by
     show B % M = A % M
@@ -2900,7 +2904,7 @@ private theorem radix_dvd_sub_of_mod_eq {A B M : ℕ} (hM : 0 < M)
   exact (Nat.modEq_iff_dvd' hle).mp hmod
 
 /-- If `M > 0` and the remainders of `A` and `B` modulo `M` sum to `M`, then `M ∣ A + B`. -/
-private theorem radix_dvd_add_of_mod_sum {A B M : ℕ} (hM : 0 < M)
+private theorem radix_dvd_add_of_mod_sum {A B M : ℕ} (_hM : 0 < M)
     (h : A % M + B % M = M) : M ∣ A + B := by
   have hmod : (A + B) % M = 0 := by
     rw [Nat.add_mod, h, Nat.mod_self]
@@ -2908,7 +2912,7 @@ private theorem radix_dvd_add_of_mod_sum {A B M : ℕ} (hM : 0 < M)
 
 /-- For `r ≥ 2`, if `r ^ a` divides `k` but `r ^ (a + 1)` does not, the first digit at level `a`
 is at least one. -/
-private theorem radixFirstDigit_pos {r a k m : ℕ} (hr : 2 ≤ r)
+private theorem radixFirstDigit_pos {r a k m : ℕ} (_hr : 2 ≤ r)
     (hk : r ^ a ∣ k) (hk1 : ¬ (r ^ (a + 1) ∣ k)) :
     1 ≤ radixFirstDigit r a k m := by
   have hmod : radixQuotient r a k m % r = (k / r ^ a) % r := by
@@ -2987,7 +2991,7 @@ theorem radixPatternIndex_agrees {r a k ℓ m : ℕ} (hr : 2 ≤ r)
         rw [hk1, hl1] at h3
         exact h3
       refine Or.inr ?_
-      rw [radixDiff, if_pos hkℓ, ← hid]
+      rw [radixDiff, ite_eq_left hkℓ, ← hid]
       exact hmul
     · have hlt : ℓ / r ^ a > k / r ^ a := by omega
       have hle : k / r ^ a ≤ ℓ / r ^ a := by omega
@@ -3009,7 +3013,7 @@ theorem radixPatternIndex_agrees {r a k ℓ m : ℕ} (hr : 2 ≤ r)
         rw [hk1, hl1] at h3
         exact h3
       refine Or.inr ?_
-      rw [radixDiff, if_neg (by omega), ← hid]
+      rw [radixDiff, ite_eq_right (by omega), ← hid]
       exact hmul
   · have hres : (k / r ^ a) % r ^ (m + 1) + (ℓ / r ^ a) % r ^ (m + 1) = r ^ (m + 1) := by
       simpa [radixQuotient] using! hsum
@@ -3032,8 +3036,8 @@ theorem radixPatternIndex_agrees {r a k ℓ m : ℕ} (hr : 2 ≤ r)
 valuation `a` and pairwise failing `radixSignAgree` modulo `r ^ (a + m + 1)`, has length at
 most `(r / 2) * r ^ m`. -/
 theorem radixPigeonhole {r n a m : ℕ} {L : List ℕ}
-    (hr : 3 ≤ r) (hn : 1 ≤ n)
-    (hbound : ∀ k ∈ L, k < r ^ n)
+    (hr : 3 ≤ r) (_hn : 1 ≤ n)
+    (_hbound : ∀ k ∈ L, k < r ^ n)
     (halpha : ∀ k ∈ L, radixAlpha r k = a)
     (hnonzero : ∀ k ∈ L, k ≠ 0)
     (hnodup : L.Nodup)
@@ -3098,13 +3102,13 @@ theorem radixPigeonhole {r n a m : ℕ} {L : List ℕ}
       have h3 : 2 * min d (r - d) ≤ d + (r - d) := by omega
       omega
     by_cases h : d ≤ r - d
-    · simp only [h, if_true, Finset.coe_product, Set.mem_prod, Finset.mem_coe, Finset.mem_range]
+    · simp only [h, ite_true, Finset.coe_product, Set.mem_prod, Finset.mem_coe, Finset.mem_range]
       refine ⟨?_, hwl⟩
       have h4 : min d (r - d) = d := by
         apply Nat.min_eq_left
         omega
       omega
-    · simp only [h, if_false, Finset.coe_product, Set.mem_prod, Finset.mem_coe, Finset.mem_range]
+    · simp only [h, ite_false, Finset.coe_product, Set.mem_prod, Finset.mem_coe, Finset.mem_range]
       refine ⟨?_, ?_⟩
       have h4 : min d (r - d) = r - d := by
         apply Nat.min_eq_right
@@ -3185,9 +3189,9 @@ theorem radixGreedyValue_ge_pair {r N : ℕ} {L : List ℕ} {k ℓ : ℕ}
 
 /-- For distinct bounded labels of valuation `a` whose sum is not `r ^ n`, a pair value at most
 `a + m` rules out `radixSignAgree` modulo `r ^ (a + m + 1)`, provided `a + m + 1 ≤ n`. -/
-theorem radixPairValue_le_separates {r n a m k ℓ : ℕ} (hr : 2 ≤ r) (hn : 1 ≤ n)
+theorem radixPairValue_le_separates {r n a m k ℓ : ℕ} (hr : 2 ≤ r) (_hn : 1 ≤ n)
     (hk : k < r ^ n) (hℓ : ℓ < r ^ n) (hne : k ≠ ℓ)
-    (hα : radixAlpha r k = a) (hαℓ : radixAlpha r ℓ = a)
+    (_hα : radixAlpha r k = a) (hαℓ : radixAlpha r ℓ = a)
     (hsum : k + ℓ ≠ r ^ n)
     (ham : a + m + 1 ≤ n)
     (hpv : radixPairValue r (r ^ n) k ℓ ≤ a + m) :
@@ -3210,7 +3214,7 @@ theorem radixPairValue_le_separates {r n a m k ℓ : ℕ} (hr : 2 ≤ r) (hn : 1
       · have hsub' : k + (r ^ n) - ℓ = (k - ℓ) + (r ^ n) := by omega
         rw [hsub']
         have hdiff : r ^ (a + m + 1) ∣ k - ℓ := by
-          rw [radixDiff, if_pos hge] at hdiff'
+          rw [radixDiff, ite_eq_left hge] at hdiff'
           exact hdiff'
         exact Nat.dvd_add hdiff hrN
       · have hsub' : k + (r ^ n) - ℓ = (r ^ n) - (ℓ - k) := by
@@ -3218,7 +3222,7 @@ theorem radixPairValue_le_separates {r n a m k ℓ : ℕ} (hr : 2 ≤ r) (hn : 1
           omega
         rw [hsub']
         have hdiff : r ^ (a + m + 1) ∣ ℓ - k := by
-          rw [radixDiff, if_neg hge] at hdiff'
+          rw [radixDiff, ite_eq_right hge] at hdiff'
           exact hdiff'
         exact Nat.dvd_sub hrN hdiff
     have hrem : r ^ (a + m + 1) ∣ (k + (r ^ n) - ℓ) % (r ^ n) :=
@@ -3621,10 +3625,10 @@ theorem radixGreedyChild_alpha (r N : ℕ) (k ℓ : ℕ) :
   unfold radixGreedyChild radixPairValue
   by_cases h : radixAlpha r ((k + ℓ) % N) < radixAlpha r ((k + N - ℓ) % N)
   · have h2 : radixAlpha r ((k + ℓ) % N) ≤ radixAlpha r ((k + N - ℓ) % N) := by omega
-    simp only [if_pos h]
+    simp only [ite_eq_left h]
     rw [max_eq_right h2]
   · have h' : radixAlpha r ((k + N - ℓ) % N) ≤ radixAlpha r ((k + ℓ) % N) := by omega
-    simp only [if_neg h]
+    simp only [ite_eq_right h]
     rw [max_eq_left h']
 
 /-- One deterministic radix period step decreases the total weight by at most the period
@@ -3766,7 +3770,7 @@ theorem radixSieveRun_ne_nil (n p : ℕ) {L : List ℕ}
 
 /-- For `n ≥ 1`, if all earlier ternary stages satisfy `RadixPeriodConditions`, the minimum
 valuation after `p` periods is at least its initial value plus `p`. -/
-theorem radixSieveRun_minAlpha (n p : ℕ) {L : List ℕ} (hn : 1 ≤ n)
+theorem radixSieveRun_minAlpha (n p : ℕ) {L : List ℕ} (_hn : 1 ≤ n)
     (hp : ∀ q, q < p → RadixPeriodConditions n (radixSieveRun 3 (3 ^ n) q L)) :
     radixMinAlpha 3 (radixSieveRun 3 (3 ^ n) p L) ≥ radixMinAlpha 3 L + p := by
   induction p with
@@ -4972,7 +4976,7 @@ theorem dihedralQubitState_phaseRatio (N : ℕ) [NeZero N] (s k : ZMod N) (u : �
     have hz : u * ((1 : ℂ) / Real.sqrt 2 * 1) = 0 := by simpa using! h
     rcases mul_eq_zero.mp hz with h | h
     · exact hu0 h
-    · exact hsqrt (by simpa using! h)
+    · exact hsqrt (by simp at h)
   rw [div_eq_iff (by exact hden)]
   simp only [Pi.smul_apply, smul_eq_mul, dihedralQubitState, Bool.cond_true, Bool.cond_false]
   ring
@@ -4986,7 +4990,7 @@ private theorem radixListValue_append (r n : ℕ) (L₁ L₂ : List ℕ) :
 /-- For bounded labels with `r ≥ 2` and `n ≥ 1`, the greedy child's radix weight is the maximum
 of the modular sum-child and difference-child weights. -/
 theorem radixGreedyChild_value_max (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
-    (hk : k < r ^ n) (hℓ : ℓ < r ^ n) :
+    (hk : k < r ^ n) (_hℓ : ℓ < r ^ n) :
     radixValue r n (radixGreedyChild r (r ^ n) k ℓ)
       = max (radixValue r n ((k + ℓ) % (r ^ n)))
         (radixValue r n ((k + (r ^ n) - ℓ) % (r ^ n))) := by
@@ -5136,8 +5140,8 @@ extraction law is uniform on `Bool`. -/
 theorem radixQuantumExtract_sign {N : ℕ} [NeZero N] (s k ℓ : ZMod N)
     (u u' : ℂ) (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) :
     (dihedralExtraction (u • dihedralQubitState N s k) (u' • dihedralQubitState N s ℓ)
-        (radix_unit_norm hu (normalized_dihedralQubitState N s k))
-        (radix_unit_norm hu' (normalized_dihedralQubitState N s ℓ))).map Prod.fst
+        (by exact radix_unit_norm hu (normalized_dihedralQubitState N s k))
+        (by exact radix_unit_norm hu' (normalized_dihedralQubitState N s ℓ))).map Prod.fst
       = PMF.uniformOfFintype' Bool :=
   dihedralExtraction_fair N s k ℓ u u' hu hu'
 
@@ -5173,7 +5177,7 @@ theorem radixQuantumExtract_outcome {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b :
   · have hcond : (b = false ∧ ξ = xiPlus) ∨ (b = true ∧ ξ = xiMinus) := by
       by_cases h : (b = false ∧ ξ = xiPlus) ∨ (b = true ∧ ξ = xiMinus)
       · exact h
-      · rw [if_neg h] at hlaw'
+      · rw [ite_eq_right h] at hlaw'
         exact absurd hlaw' hmass
     rcases hcond with ⟨hb', hξ'⟩ | ⟨hb', hξ'⟩
     · exact Or.inl ⟨hb, uPlus, hup, by rw [← hxp, hξ']⟩
@@ -5181,7 +5185,7 @@ theorem radixQuantumExtract_outcome {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b :
   · have hcond : (b = false ∧ ξ = xiPlus) ∨ (b = true ∧ ξ = xiMinus) := by
       by_cases h : (b = false ∧ ξ = xiPlus) ∨ (b = true ∧ ξ = xiMinus)
       · exact h
-      · rw [if_neg h] at hlaw'
+      · rw [ite_eq_right h] at hlaw'
         exact absurd hlaw' hmass
     rcases hcond with ⟨hb', hξ'⟩ | ⟨hb', hξ'⟩
     · exact absurd hb' hb
@@ -5190,7 +5194,7 @@ theorem radixQuantumExtract_outcome {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b :
 /-- A child state with the specified sum-label or difference-label form has branch phase equal
 to the corresponding dihedral qubit phase. -/
 theorem radixQuantumExtract_phase {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b : Bool)
-    (ξ : QState Bool) (hξ : Normalized ξ)
+    (ξ : QState Bool) (_hξ : Normalized ξ)
     (hchild : (b = false ∧ ∃ u : ℂ, ‖u‖ = 1 ∧ ξ = u • dihedralQubitState N s (k + ℓ)) ∨
               (b = true ∧ ∃ u : ℂ, ‖u‖ = 1 ∧ ξ = u • dihedralQubitState N s (k - ℓ))) :
     radixBranchPhase ξ = some (dihedralQubitPhase N s (if b then k - ℓ else k + ℓ)) := by
@@ -5213,7 +5217,7 @@ theorem radixQuantumExtract_phase {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b : B
           rcases div_eq_zero_iff.mp h with h1 | h1
           · norm_num at h1
           · exact h2 h1
-        exact hsqrt (by simpa using! h)
+        exact hsqrt (by simp at h)
     have hphase : radixBranchPhase ξ = some (ξ true / ξ false) := by
       simp only [radixBranchPhase]
       split_ifs with h
@@ -5241,7 +5245,7 @@ theorem radixQuantumExtract_phase {N : ℕ} [NeZero N] (s k ℓ : ZMod N) (b : B
           rcases div_eq_zero_iff.mp h with h1 | h1
           · norm_num at h1
           · exact h2 h1
-        exact hsqrt (by simpa using! h)
+        exact hsqrt (by simp at h)
     have hphase : radixBranchPhase ξ = some (ξ true / ξ false) := by
       simp only [radixBranchPhase]
       split_ifs with h
@@ -5294,12 +5298,12 @@ theorem radix_diff_child_val (N : ℕ) [NeZero N] (k ℓ : ZMod N) :
 
 /-- For bounded labels, the mean radix weight of the sum and difference in `ZMod (r ^ n)` equals
 `radixExpectedChildValue r n k ℓ`. -/
-theorem radixExpectedChildValue_quantum (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
+theorem radixExpectedChildValue_quantum (r n k ℓ : ℕ) (hr : 2 ≤ r) (_hn : 1 ≤ n)
     (hk : k < r ^ n) (hℓ : ℓ < r ^ n) :
     (radixValue r n ((↑k + ↑ℓ : ZMod (r ^ n)).val)
       + radixValue r n ((↑k - ↑ℓ : ZMod (r ^ n)).val)) / 2
       = radixExpectedChildValue r n k ℓ := by
-  letI : NeZero r := ⟨by omega⟩
+  let : NeZero r := ⟨by omega⟩
   unfold radixExpectedChildValue
   have hkval : (↑k : ZMod (r ^ n)).val = k := by
     rw [ZMod.val_natCast]
@@ -5316,7 +5320,7 @@ theorem radixExpectedChildValue_quantum (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1
 /-- For bounded labels with `r ≥ 2` and `n ≥ 1`, the expected child weight is at most the greedy
 child's weight. -/
 theorem radixGreedyChild_value_ge_expected (r n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 1 ≤ n)
-    (hk : k < r ^ n) (hℓ : ℓ < r ^ n) :
+    (hk : k < r ^ n) (_hℓ : ℓ < r ^ n) :
     radixExpectedChildValue r n k ℓ ≤ radixValue r n (radixGreedyChild r (r ^ n) k ℓ) := by
   have hgα : radixAlpha r (radixGreedyChild r (r ^ n) k ℓ) = radixPairValue r (r ^ n) k ℓ :=
     radixGreedyChild_alpha r (r ^ n) k ℓ
@@ -5362,7 +5366,7 @@ multiple of the vector with false component one and true component `dihedralQubi
 k`. -/
 theorem radixRecordPhaseRatio (N : ℕ) [NeZero N] {S : Type} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
-    (hf : DihedralReflectionHides N f s) (k : ZMod N) (t : Bool) (z : S) :
+    (hf : DihedralReflectionHides N f s) (k : ZMod N) (_t : Bool) (z : S) :
     (fun b => dihedralRecordJoint N f ((k,b),z)) = 0 ∨
       ∃ c : ℂ, c ≠ 0 ∧
         (fun b => dihedralRecordJoint N f ((k,b),z)) = c • (fun b => cond b (dihedralQubitPhase N s k) 1) := by
@@ -5385,7 +5389,7 @@ theorem radixRecordPhaseRatio (N : ℕ) [NeZero N] {S : Type} [Fintype S] [Decid
     · intro h
       rcases mul_eq_zero.mp h with h | h
       · exact hc h
-      · exact hsqrt (by simpa using! h)
+      · exact hsqrt (by simp at h)
     · funext b
       rw [hfactor b z]
       simp only [dihedralQubitState, Pi.smul_apply, smul_eq_mul]
@@ -5509,7 +5513,7 @@ noncomputable def radixRecoveryReadout {N : ℕ} [NeZero N] {S : Type} [Fintype 
   match radixTomographyIndex r (fun b => dihedralRecordJoint N f ((k,b),z)) with
   | none => none
   | some t =>
-    if h : IsUnit (radixFinalIndex r n k.val : ZMod r) then
+    if _h : IsUnit (radixFinalIndex r n k.val : ZMod r) then
       some (radixReadout r (radixFinalIndex r n k.val) t.val)
     else none
 
@@ -5597,11 +5601,11 @@ theorem radixRecoveryReadout_value (r n : ℕ) [NeZero r] (hr : 2 ≤ r) (hn : 1
         ZMod.val_natCast_of_lt (Nat.mod_lt _ (by omega))
       unfold radixRecoveryReadout
       simp only [hidx]
-      rw [dif_pos hu, hidxval, hval, hout]
+      rw [dite_eq_left hu, hidxval, hval, hout]
       exact Or.inr rfl
     · unfold radixRecoveryReadout
       simp only [hidx]
-      rw [dif_neg hu]
+      rw [dite_eq_right hu]
       exact Or.inl rfl
 
 /-- For a reflection-hiding oracle with modulus `r ^ n`, the recovery decision returns either
@@ -5700,7 +5704,7 @@ t.val + b`. -/
 theorem radixLift_val (r N : ℕ) (hr : r ∣ N) (hN : 0 < N) (b : ℕ) (hb : b < r)
     (t : ZMod (N / r)) :
     (radixLift r N b t).val = r * t.val + b := by
-  haveI : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
+  have : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
   have ht := ZMod.val_lt t
   have hmul := radix_mul_div r N hr
   have hle := radix_le r N hr hN
@@ -5716,7 +5720,7 @@ theorem radixLift_val (r N : ℕ) (hr : r ∣ N) (hN : 0 < N) (b : ℕ) (hb : b 
 /-- If `r ∣ N`, `N > 0`, and `b < r`, the radix subgroup embedding is injective. -/
 theorem radixEmbedding_injective (r N : ℕ) (hr : r ∣ N) (hN : 0 < N) (b : ℕ) (hb : b < r) :
     Function.Injective (radixSubgroupEmbedding r N b) := by
-  haveI : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
+  have : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
   have hmul := radix_mul_div r N hr
   have hle := radix_le r N hr hN
   rintro ⟨a, ta⟩ ⟨c, tc⟩ he
@@ -5769,8 +5773,8 @@ agrees in `ZMod N` with scaling and adding the representatives separately. -/
 private theorem radix_mul_add_val (r N : ℕ) (hr : r ∣ N) (hN : 0 < N)
     (a t : ZMod (N / r)) :
     ((r * (a + t).val : ℕ) : ZMod N) = ((r * a.val + r * t.val : ℕ) : ZMod N) := by
-  haveI : NeZero N := ⟨Nat.ne_of_gt hN⟩
-  haveI : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
+  have : NeZero N := ⟨Nat.ne_of_gt hN⟩
+  have : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
   have hadd : (a + t).val = (a.val + t.val) % (N / r) := ZMod.val_add a t
   have hmul := radix_mul_div r N hr
   have hdv : (a.val + t.val) / (N / r) * (N / r) + (a.val + t.val) % (N / r)
@@ -5856,8 +5860,8 @@ theorem radixRestriction_hides_div (r N : ℕ) (hr : r ∣ N) (hN : 0 < N)
     (hf : DihedralReflectionHides N f s) :
     DihedralReflectionHides (N / r)
       (radixRestrictedOracle r N (s.val % r) f) (s.val / r : ZMod (N / r)) := by
-  haveI : NeZero N := ⟨Nat.ne_of_gt hN⟩
-  haveI : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
+  have : NeZero N := ⟨Nat.ne_of_gt hN⟩
+  have : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
   have hs := ZMod.val_lt s
   have hmul := radix_mul_div r N hr
   have hle := radix_le r N hr hN
@@ -5890,8 +5894,8 @@ theorem radixEmbedding_hidden_mem (r N : ℕ) (hr : r ∣ N) (hN : 0 < N)
     (b : ℕ) (hb : b < r) (s : ZMod N) :
     (∃ a : ZMod (N / r), radixSubgroupEmbedding r N b (a, true) = ((s.val : ZMod N), true))
       ↔ s.val % r = b := by
-  haveI : NeZero N := ⟨Nat.ne_of_gt hN⟩
-  haveI : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
+  have : NeZero N := ⟨Nat.ne_of_gt hN⟩
+  have : NeZero (N / r) := ⟨Nat.ne_of_gt (radix_div_pos r N hr hN)⟩
   have hs := ZMod.val_lt s
   have hmul := radix_mul_div r N hr
   have hle := radix_le r N hr hN
@@ -5953,7 +5957,7 @@ theorem radixEmbedding_hidden_mem (r N : ℕ) (hr : r ∣ N) (hN : 0 < N)
 
 /-- For positive `r`, the natural representative of the level digit is the level slope modulo
 `r`. -/
-theorem radixLevelDigit_spec (r : ℕ) (hr : 0 < r) : ∀ (s j : ℕ),
+theorem radixLevelDigit_spec (r : ℕ) (_hr : 0 < r) : ∀ (s j : ℕ),
     (radixLevelDigit r s j).val = radixLevelSlope r s j % r := by
   intro s j
   induction j generalizing s with
@@ -5980,9 +5984,9 @@ the sum of the scaled natural representatives. -/
 private theorem radixStep_mul_add_val (r n : ℕ) (hr : 0 < r) (a t : ZMod (r ^ n)) :
     ((r * (a + t).val : ℕ) : ZMod (r ^ (n + 1)))
       = ((r * a.val + r * t.val : ℕ) : ZMod (r ^ (n + 1))) := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   have hadd : (a + t).val = (a.val + t.val) % r ^ n := ZMod.val_add a t
   rw [hadd]
   apply ZMod.val_injective (r ^ (n + 1))
@@ -6011,9 +6015,9 @@ private theorem radixStep_mul_add_val (r n : ℕ) (hr : 0 < r) (a t : ZMod (r ^ 
 /-- For positive `r` and `b < r`, the one-level radix embedding is injective. -/
 theorem radixStepEmbedding_injective (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r) :
     Function.Injective (radixStepEmbedding r n b) := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   rintro ⟨a, ta⟩ ⟨c, tc⟩ he
   cases ta with
   | false =>
@@ -6059,7 +6063,7 @@ theorem radixStepEmbedding_injective (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b 
 
 /-- For positive `r` and `b < r`, the one-level radix embedding intertwines reflection at `t`
 with reflection at `radixStepLift r n b t`. -/
-theorem radixStepEmbedding_reflect (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r)
+theorem radixStepEmbedding_reflect (r n : ℕ) (hr : 0 < r) (b : ℕ) (_hb : b < r)
     (t : ZMod (r ^ n)) (p : DihedralReg (r ^ n)) :
     radixStepEmbedding r n b (dihedralReflect (r ^ n) t p)
       = dihedralReflect (r ^ (n + 1)) (radixStepLift r n b t) (radixStepEmbedding r n b p) := by
@@ -6104,9 +6108,9 @@ theorem radixStepEmbedding_reflect (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < 
 t.val + b`. -/
 theorem radixStepLift_val (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r) (t : ZMod (r ^ n)) :
     (radixStepLift r n b t).val = r * t.val + b := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   have ht : t.val < r ^ n := ZMod.val_lt t
   simp only [radixStepLift, ZMod.val_natCast]
   refine Nat.mod_eq_of_lt ?_
@@ -6120,8 +6124,8 @@ theorem radixStepLift_val (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r) (t : Z
 theorem radixStepLift_eq (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r) (t : ZMod (r ^ n))
     (s : ZMod (r ^ (n + 1))) (hs : s.val = r * t.val + b) :
     radixStepLift r n b t = s := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   apply ZMod.val_injective (r ^ (n + 1))
   rw [radixStepLift_val r n hr b hb t]
   exact hs.symm
@@ -6156,7 +6160,7 @@ noncomputable def radixRecursionLevel {S : Type} [Fintype S] [DecidableEq S] [Ad
 /-- The distribution for recursive radix recovery using `radixRecursionLevel` on successively
 restricted oracles, with deterministic output `some 0` at level zero. -/
 noncomputable def radixRecursionRun {S : Type} [Fintype S] [DecidableEq S] [AddCommGroup S]
-    (r : ℕ) [NeZero r] : ∀ (n m p : ℕ) (f : DihedralReg (r ^ n) → S),
+    (r : ℕ) [NeZero r] : ∀ (n _m _p : ℕ) (_f : DihedralReg (r ^ n) → S),
       PMF (Option (ZMod (r ^ n)))
   | 0, _m, _p, _f => pure (some 0)
   | (n + 1), m, p, f =>
@@ -6187,9 +6191,9 @@ provided the quotient is below `r ^ n`. -/
 private theorem radixStepLift_quot (r n : ℕ) (hr : 0 < r) (s : ZMod (r ^ (n + 1)))
     (hq : s.val / r < r ^ n) :
     radixStepLift r n (s.val % r) ((s.val / r : ℕ) : ZMod (r ^ n)) = s := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   have ht : ((s.val / r : ℕ) : ZMod (r ^ n)).val = s.val / r :=
     ZMod.val_natCast_of_lt hq
   apply radixStepLift_eq r n hr (s.val % r) (Nat.mod_lt s.val (by omega)) _ _
@@ -6200,9 +6204,9 @@ private theorem radixStepLift_quot (r n : ℕ) (hr : 0 < r) (s : ZMod (r ^ (n + 
 slopes. -/
 private theorem radixStepLift_inj (r n : ℕ) (hr : 0 < r) (b : ℕ) (hb : b < r)
     (s' t : ZMod (r ^ n)) (h : radixStepLift r n b s' = radixStepLift r n b t) : s' = t := by
-  haveI : NeZero r := ⟨Nat.ne_of_gt hr⟩
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero r := ⟨Nat.ne_of_gt hr⟩
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   apply ZMod.val_injective (r ^ n)
   have hv : (radixStepLift r n b s').val = (radixStepLift r n b t).val := congrArg ZMod.val h
   rw [radixStepLift_val r n hr b hb s', radixStepLift_val r n hr b hb t] at hv
@@ -6219,8 +6223,8 @@ theorem radixRecursionLevel_wrong_zero (r : ℕ) [NeZero r] (hr : 2 ≤ r) {S : 
       (cont (s.val % r)) (some t) = 0)
     (u : ZMod (r ^ (n + 1))) (hu : u ≠ s) :
     (radixRecursionLevel r n m p f cont) (some u) = 0 := by
-  haveI : NeZero (r ^ n) := NeZero.pow
-  haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+  have : NeZero (r ^ n) := NeZero.pow
+  have : NeZero (r ^ (n + 1)) := NeZero.pow
   have hs := ZMod.val_lt s
   have hq : s.val / r < r ^ n := by
     refine Nat.div_lt_of_lt_mul ?_
@@ -6236,7 +6240,7 @@ theorem radixRecursionLevel_wrong_zero (r : ℕ) [NeZero r] (hr : 2 ≤ r) {S : 
       exact PMF.pure_apply_of_ne none (some u) (fun h => by cases h)
     simp [hz]
   | some b =>
-    simp only [show (match some b with | none => pure none | some b => _) = _ from rfl]
+    dsimp only
     have hval : b.val = s.val % r := by
       rcases radixRecoveryDecide_value r (n + 1) hr (by omega) f s hf p L with h | h
       · exact absurd (hd.symm.trans h) (by simp)
@@ -6256,7 +6260,7 @@ theorem radixRecursionLevel_wrong_zero (r : ℕ) [NeZero r] (hr : 2 ≤ r) {S : 
           exact PMF.pure_apply_of_ne none (some u) (fun h => by cases h)
         simp [hz]
       | some s' =>
-        simp only [show (match some s' with | none => pure none | some s' => _) = _ from rfl]
+        dsimp only
         by_cases heq : s' = ((s.val / r : ℕ) : ZMod (r ^ n))
         · have hlift : radixStepLift r n (s.val % r) s' = s := by
             rw [heq]
@@ -6278,13 +6282,13 @@ candidate different from `s`. -/
 theorem radixRecursionRun_wrong_zero (r : ℕ) [NeZero r] (hr : 2 ≤ r) {S : Type} [Fintype S]
     [DecidableEq S] [AddCommGroup S] :
     ∀ (n : ℕ) (f : DihedralReg (r ^ n) → S) (s : ZMod (r ^ n))
-      (hf : DihedralReflectionHides (r ^ n) f s) (m p : ℕ) (u : ZMod (r ^ n)) (hu : u ≠ s),
+      (_hf : DihedralReflectionHides (r ^ n) f s) (m p : ℕ) (u : ZMod (r ^ n)) (_hu : u ≠ s),
       (radixRecursionRun r n m p f) (some u) = 0 := by
   intro n
   induction n with
   | zero =>
     intro f s hf m p u hu
-    haveI : NeZero (r ^ 0) := NeZero.pow
+    have : NeZero (r ^ 0) := NeZero.pow
     exfalso
     have hval : u.val = s.val := by
       have h1 := ZMod.val_lt u
@@ -6296,8 +6300,8 @@ theorem radixRecursionRun_wrong_zero (r : ℕ) [NeZero r] (hr : 2 ≤ r) {S : Ty
     exact hu (ZMod.val_injective _ hval)
   | succ n ih =>
     intro f s hf m p u hu
-    haveI : NeZero (r ^ n) := NeZero.pow
-    haveI : NeZero (r ^ (n + 1)) := NeZero.pow
+    have : NeZero (r ^ n) := NeZero.pow
+    have : NeZero (r ^ (n + 1)) := NeZero.pow
     have hs := ZMod.val_lt s
     have hq : s.val / r < r ^ n := by
       refine Nat.div_lt_of_lt_mul ?_
@@ -6350,12 +6354,12 @@ private theorem radix_foldl_mem (r N : ℕ) :
       | some q' =>
         by_cases hc : radixPairValue r N q.1 q.2 > radixPairValue r N q'.1 q'.2
         · have hfold' : (some q : Option (ℕ × ℕ)) = some p := by
-            simpa only [radix_greedyStep, hc, if_true] using! hfold
+            simpa only [radix_greedyStep, hc, ite_true] using! hfold
           have hqp : q = p := Option.some.inj hfold'
           subst hqp
           exact Or.inr (by simp)
         · have hfold' : (some q' : Option (ℕ × ℕ)) = some p := by
-            simpa only [radix_greedyStep, hc, if_false] using! hfold
+            simpa only [radix_greedyStep, hc, ite_false] using! hfold
           exact Or.inl hfold'
     · exact Or.inr (by simp [hfold])
 
@@ -6919,9 +6923,9 @@ theorem radixGreedyChild_final (r N n k ℓ : ℕ) (hr : 2 ≤ r) (hn : 2 ≤ n)
     (radixFinalState_alpha r n ((k + N - ℓ) % N) hr hn hchild2lt).mp hchild2
   unfold radixGreedyChild
   by_cases h : radixAlpha r ((k + ℓ) % N) < radixAlpha r ((k + N - ℓ) % N)
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     exact hchild2
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     have hα1 : radixAlpha r ((k + ℓ) % N) = n - 1 := by omega
     exact (radixFinalState_alpha r n ((k + ℓ) % N) hr hn hchild1lt).mpr hα1
 
@@ -7107,7 +7111,7 @@ theorem radixRecoveryReadout_reads (r n : ℕ) [NeZero r] (hr : 2 ≤ r) (hn : 1
       ZMod.val_natCast_of_lt (Nat.mod_lt _ (by omega))
     unfold radixRecoveryReadout
     simp only [hidx]
-    rw [dif_pos hu, hidxval, hval, hout]
+    rw [dite_eq_left hu, hidxval, hval, hout]
     rfl
 
 /-- For prime `r ≥ 2` and `n ≥ 1`, the recovery decision for an oracle hiding `s` returns `some

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+
+@[expose] public section
 
 /-!
 # Accumulation of dyadic phase errors

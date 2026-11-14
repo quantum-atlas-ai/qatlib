@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseDefs
+
+@[expose] public section
 
 /-!
 # Matrix signal-response bounds and machine costs
@@ -54,6 +58,7 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponse
 
 set_option autoImplicit false
+set_option linter.unusedVariables false
 
 open Matrix
 open Qatlib

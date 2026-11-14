@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
-import Mathlib.Analysis.InnerProductSpace.JointEigenspace
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Discriminant spectra of bipartite reflection walks
@@ -344,7 +348,7 @@ private theorem bipartite_unitary_projector_frame {H : Type} [Fintype H] [Decida
   have hmc : ∀ i j,M i*M j=M j*M i := by
     intro i j
     fin_cases i <;> fin_cases j <;> dsimp [M]
-    all_goals first | rfl | exact hLR | exact hLR.symm | exact hLS | exact hLS.symm | exact hRS | exact hRS.symm
+    all_goals first | exact hLR | exact hLR.symm | exact hLS | exact hLS.symm | exact hRS | exact hRS.symm
   have htc : Pairwise (fun i j => Commute (T i) (T j)) := by
     intro i j _
     change (T i).comp (T j)=(T j).comp (T i)
@@ -390,7 +394,6 @@ private theorem bipartite_unitary_projector_frame {H : Type} [Fintype H] [Decida
     exact b.orthonormal.ne_zero i hb
   have hlbin (i : Fin (Fintype.card H)) : chi i 0=0 ∨ chi i 0=1 := by
     have h := congrArg (fun X : Matrix H H ℂ => X*ᵥ(fun h => U h i)) hL.1
-    (try dsimp only at h)
     rw [← Matrix.mulVec_mulVec,show L*ᵥ(fun h => U h i)=chi i 0•(fun h => U h i) from he i 0,
       Matrix.mulVec_smul,show L*ᵥ(fun h => U h i)=chi i 0•(fun h => U h i) from he i 0,smul_smul] at h
     have hs := (smul_left_injective ℂ (hne i)) h
@@ -423,63 +426,66 @@ private theorem bipartite_unitary_projector_frame {H : Type} [Fintype H] [Decida
     simp only [Pi.add_apply,Pi.smul_apply,smul_eq_mul]
     ring
   let K := {i : Fin (Fintype.card H) // chi i 0=1}
-  letI : Fintype K := inferInstance
-  letI : DecidableEq K := inferInstance
-  let F : Matrix H K ℂ := U.submatrix id Subtype.val
-  have hF : IsIsometry F := by
-    ext i j
-    have h := congrFun (congrFun hU1 i.1) j.1
-    simpa only [F,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply,Matrix.submatrix_apply,id_eq,Subtype.val_inj] using! h
-  have hFF : F*Fᴴ=L := by
-    have hs : L=U*diagonal (fun i=>chi i 0)*Uᴴ := by
-      rw [← hLU,Matrix.mul_assoc,hU2,Matrix.mul_one]
-    rw [hs]
-    ext h k
-    change (bipartiteMatMul F Fᴴ) h k =
-        (bipartiteMatMul (bipartiteMatMul U (diagonal (fun i=>chi i 0))) Uᴴ) h k
-    simp only [bipartiteMatMul]
-    rw [Matrix.mul_apply (M:=F) (N:=Fᴴ),Matrix.mul_apply (M:=U*diagonal (fun i=>chi i 0)) (N:=Uᴴ)]
-    simp only [Matrix.mul_diagonal,Matrix.conjTranspose_apply,F,Matrix.submatrix_apply,id_eq]
-    have hsub := Finset.sum_subtype (F:=inferInstance) (p:=fun i : Fin (Fintype.card H)=>chi i 0=1)
-      (Finset.univ.filter (fun i=>chi i 0=1)) (by intro i; simp)
-      (fun i=>U h i*star (U k i))
-    rw [← hsub,Finset.sum_filter]
-    apply Finset.sum_congr rfl
-    intro i _
-    rcases hlbin i with h0 | h1
-    · simp [h0]
-    · simp [h1]
-  have hWF : W*F=F*diagonal (fun i=>chi i.1 1+Complex.I*chi i.1 2) := by
-    ext h i
-    have hh := congrFun (congrFun hWU h) i.1
-    change (bipartiteMatMul W F) h i =
-        (bipartiteMatMul F (diagonal (fun i=>chi i.1 1+Complex.I*chi i.1 2))) h i
-    rw [Matrix.mul_diagonal] at hh
-    dsimp only [bipartiteMatMul]
-    unfold Matrix.diagonal
-    simp only [Matrix.mul_apply,Matrix.of_apply,mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
-    simpa only [F,Matrix.mul_apply,Matrix.submatrix_apply,id_eq] using! hh
-  have hcard : Fintype.card K=L.rank := by
-    rw [← hFF,Matrix.rank_self_mul_conjTranspose,← Matrix.rank_conjTranspose_mul_self F,
-      show Fᴴ*F=1 from hF,Matrix.rank_one]
-  let e := (Fintype.equivFin K).symm
-  let V : Matrix H (Fin (Fintype.card K)) ℂ := F.submatrix id e
-  refine ⟨Fintype.card K,V,fun i=>chi (e i).1 1+Complex.I*chi (e i).1 2,?_,?_,?_,hcard⟩
-  · ext i j
-    have h := congrFun (congrFun (show Fᴴ*F=1 from hF) (e i)) (e j)
-    simpa [V,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply,e.injective.eq_iff] using! h
-  · have h := Matrix.submatrix_mul F Fᴴ id e id e.bijective
-    simp [V,Matrix.conjTranspose_submatrix,hFF]
-  · ext h i
-    have hh := congrFun (congrFun hWF h) (e i)
-    change (bipartiteMatMul W V) h i =
-        (bipartiteMatMul V (diagonal (fun i=>chi (e i).1 1+Complex.I*chi (e i).1 2))) h i
-    change (∑ j,W h j*F j (e i))=(∑ j : K,F h j*(if j=e i then chi j.1 1+Complex.I*chi j.1 2 else 0)) at hh
-    simp only [mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true] at hh
-    dsimp only [bipartiteMatMul]
-    unfold Matrix.diagonal
-    simp only [Matrix.mul_apply,Matrix.of_apply,mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
-    simpa only [V,Matrix.mul_apply,Matrix.submatrix_apply,id_eq] using! hh
+  let build : ∀ [Fintype K] [DecidableEq K],
+      ∃ (m : ℕ) (F : Matrix H (Fin m) ℂ) (z : Fin m→ℂ),
+        IsIsometry F ∧ F*Fᴴ=L ∧ W*F=F*diagonal z ∧ m=L.rank := by
+    intro _ _
+    let F : Matrix H K ℂ := U.submatrix id Subtype.val
+    have hF : IsIsometry F := by
+      ext i j
+      have h := congrFun (congrFun hU1 i.1) j.1
+      simpa only [F,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply,Matrix.submatrix_apply,id_eq,Subtype.val_inj] using! h
+    have hFF : F*Fᴴ=L := by
+      have hs : L=U*diagonal (fun i=>chi i 0)*Uᴴ := by
+        rw [← hLU,Matrix.mul_assoc,hU2,Matrix.mul_one]
+      rw [hs]
+      ext h k
+      change (bipartiteMatMul F Fᴴ) h k =
+          (bipartiteMatMul (bipartiteMatMul U (diagonal (fun i=>chi i 0))) Uᴴ) h k
+      simp only [bipartiteMatMul]
+      rw [Matrix.mul_apply (M:=F) (N:=Fᴴ),Matrix.mul_apply (M:=U*diagonal (fun i=>chi i 0)) (N:=Uᴴ)]
+      simp only [Matrix.mul_diagonal,Matrix.conjTranspose_apply,F,Matrix.submatrix_apply,id_eq]
+      have hsub := Finset.sum_subtype (F:=inferInstance) (p:=fun i : Fin (Fintype.card H)=>chi i 0=1)
+        (Finset.univ.filter (fun i=>chi i 0=1)) (by intro i; simp)
+        (fun i=>U h i*star (U k i))
+      rw [← hsub,Finset.sum_filter]
+      apply Finset.sum_congr rfl
+      intro i _
+      rcases hlbin i with h0 | h1
+      · simp [h0]
+      · simp [h1]
+    have hWF : W*F=F*diagonal (fun i=>chi i.1 1+Complex.I*chi i.1 2) := by
+      ext h i
+      have hh := congrFun (congrFun hWU h) i.1
+      change (bipartiteMatMul W F) h i =
+          (bipartiteMatMul F (diagonal (fun i=>chi i.1 1+Complex.I*chi i.1 2))) h i
+      rw [Matrix.mul_diagonal] at hh
+      dsimp only [bipartiteMatMul]
+      unfold Matrix.diagonal
+      simp only [Matrix.mul_apply,Matrix.of_apply,mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
+      simpa only [F,Matrix.mul_apply,Matrix.submatrix_apply,id_eq] using! hh
+    have hcard : Fintype.card K=L.rank := by
+      rw [← hFF,Matrix.rank_self_mul_conjTranspose,← Matrix.rank_conjTranspose_mul_self F,
+        show Fᴴ*F=1 from hF,Matrix.rank_one]
+    let e := (Fintype.equivFin K).symm
+    let V : Matrix H (Fin (Fintype.card K)) ℂ := F.submatrix id e
+    refine ⟨Fintype.card K,V,fun i=>chi (e i).1 1+Complex.I*chi (e i).1 2,?_,?_,?_,hcard⟩
+    · ext i j
+      have h := congrFun (congrFun (show Fᴴ*F=1 from hF) (e i)) (e j)
+      simpa [V,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply,e.injective.eq_iff] using! h
+    · have h := Matrix.submatrix_mul F Fᴴ id e id e.bijective
+      simp [V,Matrix.conjTranspose_submatrix,hFF]
+    · ext h i
+      have hh := congrFun (congrFun hWF h) (e i)
+      change (bipartiteMatMul W V) h i =
+          (bipartiteMatMul V (diagonal (fun i=>chi (e i).1 1+Complex.I*chi (e i).1 2))) h i
+      change (∑ j,W h j*F j (e i))=(∑ j : K,F h j*(if j=e i then chi j.1 1+Complex.I*chi j.1 2 else 0)) at hh
+      simp only [mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true] at hh
+      dsimp only [bipartiteMatMul]
+      unfold Matrix.diagonal
+      simp only [Matrix.mul_apply,Matrix.of_apply,mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
+      simpa only [V,Matrix.mul_apply,Matrix.submatrix_apply,id_eq] using! hh
+  exact @build (Fintype.ofFinite K) (Classical.decEq K)
 
 /-- The orthogonal projector onto the concatenated frame's range commutes with the bipartite
 walk and has rank equal to that frame's rank. -/
@@ -565,7 +571,7 @@ private theorem bipartite_unit_phase_classification (z : ℂ) (hz : star z*z=1) 
         Complex.ofReal_re,Complex.mul_re,Complex.I_re,Complex.I_im,
         Complex.ofReal_im,mul_zero,zero_mul,sub_zero]
       nlinarith only [hl2]
-    · simpa only [bipartitePhase,if_pos rfl,ite_true,Complex.sub_im,Complex.ofReal_im,
+    · simpa only [bipartitePhase,ite_eq_left rfl,ite_true,Complex.sub_im,Complex.ofReal_im,
         Complex.mul_im,Complex.I_re,Complex.I_im,Complex.ofReal_re,mul_zero,mul_one,one_mul,
         zero_mul,zero_add,zero_sub,r] using! hie
   · right

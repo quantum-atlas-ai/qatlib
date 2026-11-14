@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBudget
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicZeroTimeBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBudget
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicZeroTimeBridge
+
+@[expose] public section
 
 /-!
 # Dynamic CBMD with output-norm query bounds

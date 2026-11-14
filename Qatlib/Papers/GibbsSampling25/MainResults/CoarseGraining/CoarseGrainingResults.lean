@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,8 +50,8 @@ The `CoarseGraining` structure records exactly these four properties (plus the
 core/shell data of Appendix B.2). The explicit construction of Appendix B.2
 (nested cubes of side `ℓ`, `2(D-a)(k+c)`-shrunk cores, and shells of width `k`)
 is not formalised; this is the unproved placeholder below. -/
-def coarse_graining_exists {D L k c ℓ r : ℕ} (hrk : r ≤ k)
-    (hℓ : 2 * D * (k + c) < ℓ) (hℓL : ℓ ≤ 2 * L + 1)  : Prop :=
+def coarse_graining_exists {D L k c ℓ r : ℕ} (_hrk : r ≤ k)
+    (_hℓ : 2 * D * (k + c) < ℓ) (_hℓL : ℓ ≤ 2 * L + 1)  : Prop :=
     Nonempty (CoarseGraining D L k c ℓ)
   -- Source: arXiv:2412.01732v1, Lemma 2.6 (p.6) and Appendix B.2
   -- ("Construction of the coarse-graining", pp.29–31).

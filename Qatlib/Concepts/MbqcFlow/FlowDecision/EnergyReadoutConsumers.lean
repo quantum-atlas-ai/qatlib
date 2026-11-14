@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.CountedEnergyReadout
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.CountedEnergyReadout
+
+@[expose] public section
 
 /-!
 # Degenerate energy readout on a coherent input
@@ -132,9 +136,9 @@ theorem energy_degenerate_coherence_actual_consumer :
       simp only [Matrix.sum_apply, projectiveInstrument, conjBranch_projector_apply,
         Matrix.diagonal_apply]
       exact Finset.sum_eq_zero fun c _ => by
-        rw [if_neg (show (0:Fin 3) ≠ 1 by decide)]
+        rw [ite_eq_right (show (0:Fin 3) ≠ 1 by decide)]
     rw [hcontra, hentry 0 1] at h01
-    rw [if_neg (by decide), if_neg (by decide),
+    rw [ite_eq_right (by decide), ite_eq_right (by decide),
       Complex.conj_inv, Complex.conj_ofReal, ← mul_inv, ← Complex.ofReal_mul,
       Real.mul_self_sqrt (show (0:ℝ) ≤ 2 by norm_num)] at h01
     norm_num at h01
@@ -263,7 +267,7 @@ theorem energy_degenerate_actual_outcome_prob
 /-- Each consumer energy leaf is accepted and records zero queries, three gates, one
 measurement, and the single outcome `(2, a.val)`. -/
 theorem energy_degenerate_actual_leaf_ledger
-    (hV : (1:Operator 3) ∈ Matrix.unitaryGroup (Fin 3) ℂ) :
+    (_hV : (1:Operator 3) ∈ Matrix.unitaryGroup (Fin 3) ℂ) :
     ∀ a : Fin 2,
       (energyActualLeaf degenerateLabel (1:Operator 3) a).accepted = true ∧
       (energyActualLeaf degenerateLabel (1:Operator 3) a).queries = 0 ∧

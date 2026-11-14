@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Coefficientwise orthogonal purification errors
@@ -115,8 +119,8 @@ theorem lemma32_orthogonal_errors {r q : ℕ} (_hr : 0 < r)
     rw [Finset.sum_congr rfl (fun p _ => hpt p), ← Finset.mul_sum, hconj i j]
     by_cases h : i = j
     · subst h
-      rw [if_pos rfl, if_pos rfl, mul_one, hcast (o i)]
-    · rw [if_neg h, mul_zero, if_neg h]
+      rw [ite_eq_left rfl, ite_eq_left rfl, mul_one, hcast (o i)]
+    · rw [ite_eq_right h, mul_zero, ite_eq_right h]
 
   have hN : ∀ i j : Fin r,
       (∑ p : Fin q, (o i * (α i * φ i p + err i p))
@@ -137,10 +141,10 @@ theorem lemma32_orthogonal_errors {r q : ℕ} (_hr : 0 < r)
       rw [← Finset.mul_sum, hconj i j]
       by_cases h : i = j
       · subst h
-        rw [if_pos rfl, if_pos rfl, mul_one, hcast (o i), hcast (α i)]
+        rw [ite_eq_left rfl, ite_eq_left rfl, mul_one, hcast (o i), hcast (α i)]
         push_cast
         ring
-      · rw [if_neg h, mul_zero, if_neg h]
+      · rw [ite_eq_right h, mul_zero, ite_eq_right h]
     have hz2 : ∑ p : Fin q, α i * (φ i p * star (err j p)) = 0 := by
       have h : α i * ∑ p : Fin q, φ i p * star (err j p) = 0 := by
         rw [herr2 i j, mul_zero]
@@ -184,7 +188,7 @@ theorem lemma32_orthogonal_errors {r q : ℕ} (_hr : 0 < r)
     · subst h
       simp [Matrix.sub_apply]
       ring
-    · simp only [Matrix.sub_apply, Matrix.diagonal_apply, if_neg h, zero_add]
+    · simp only [Matrix.sub_apply, Matrix.diagonal_apply, ite_eq_right h, zero_add]
 
   have hc : ∀ i : Fin r, 0 ≤ (‖o i‖ ^ 2 * (1 - ‖α i‖ ^ 2) : ℝ) := fun i =>
     mul_nonneg (sq_nonneg (‖o i‖)) (by linarith [hαle i])

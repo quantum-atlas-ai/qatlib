@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.ErrorMetrics.CoherenceCounterexample
+module
+
+public import Qatlib.Papers.KoopmanSim26.ErrorMetrics.CoherenceCounterexample
+
+@[expose] public section
 
 /-!
 # Cauchy mixtures and coherent output probabilities

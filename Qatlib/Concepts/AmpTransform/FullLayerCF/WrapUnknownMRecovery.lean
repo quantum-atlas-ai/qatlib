@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
-import Mathlib.Analysis.Real.Pi.Irrational
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
+public import Mathlib.Analysis.Real.Pi.Irrational
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+@[expose] public section
 
 /-!
 # Cyclic verification and density readout
@@ -70,7 +74,7 @@ no candidate. -/
 theorem wrapping_progression_retry_none (h : Fin 128 → Bool) (B k : ℕ)
     (xs : List (Fin 128)) : (aqRetry h 127 2 B k xs).1 = none := by
   have hv (q : ℕ) : (aqVerify h 127 2 q).1 = false := by
-    rw [aqVerify, dif_neg (by omega)]
+    rw [aqVerify, dite_eq_right (by omega)]
   have ha (y : Fin 128) : (aqAttempt h 127 2 B y).1 = none := by
     unfold aqAttempt
     (try dsimp only)

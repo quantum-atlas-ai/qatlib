@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterCZInstrument
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterWire
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterCZInstrument
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterWire
+
+@[expose] public section
 
 /-!
 # Counted cluster CZ execution
@@ -217,9 +221,9 @@ theorem clusterCZXbB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   obtain ⟨⟨a0, d0⟩, ⟨b0, c0⟩⟩ := p
   rw [applyGate_firstFactor]
   cases a
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     rw [congrFun (applyGate_one _) b0, Bool.xor_false]
-  · simp only [if_true]
+  · simp only [ite_true]
     exact (applyGate_permMatrix Bool.not_not _ _).trans (by rw [Bool.xor_true])
 
 /-- The optional Z correction on `b` multiplies an amplitude by minus one exactly when its
@@ -234,10 +238,10 @@ theorem clusterCZZbB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   obtain ⟨⟨a0, d0⟩, ⟨b0, c0⟩⟩ := p
   rw [applyGate_firstFactor]
   cases d
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     rw [congrFun (applyGate_one _) b0]
     simp
-  · simp only [if_true]
+  · simp only [ite_true]
     have hz : ApplyGate PauliZ (fun i => ψ ((a0, d0), (i, c0))) b0
         = (if b0 then (-1 : ℂ) else 1) * ψ ((a0, d0), (b0, c0)) := by
       simp only [ApplyGate, Matrix.mulVec, dotProduct, PauliZ, Matrix.diagonal_apply]
@@ -255,9 +259,9 @@ theorem clusterCZXcB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   obtain ⟨⟨a0, d0⟩, ⟨b0, c0⟩⟩ := p
   rw [applyGate_secondFactor]
   cases d
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     rw [congrFun (applyGate_one _) c0, Bool.xor_false]
-  · simp only [if_true]
+  · simp only [ite_true]
     exact (applyGate_permMatrix Bool.not_not _ _).trans (by rw [Bool.xor_true])
 
 /-- The optional Z correction on `c` multiplies an amplitude by minus one exactly when its
@@ -272,10 +276,10 @@ theorem clusterCZZcB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   obtain ⟨⟨a0, d0⟩, ⟨b0, c0⟩⟩ := p
   rw [applyGate_secondFactor]
   cases a
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     rw [congrFun (applyGate_one _) c0]
     simp
-  · simp only [if_true]
+  · simp only [ite_true]
     have hz : ApplyGate PauliZ (fun j => ψ ((a0, d0), (b0, j))) c0
         = (if c0 then (-1 : ℂ) else 1) * ψ ((a0, d0), (b0, c0)) := by
       simp only [ApplyGate, Matrix.mulVec, dotProduct, PauliZ, Matrix.diagonal_apply]
@@ -397,14 +401,14 @@ theorem clusterCZMatUnit_decomp (ρ : Operator 4) :
     by_cases h1 : c = p.1 <;> by_cases h2 : c' = p.2 <;> simp [h1, h2]
   rw [Matrix.sum_apply, Finset.sum_congr rfl (fun p _ => hentry p),
     Fintype.sum_eq_single (c, c')]
-  · rw [if_pos ⟨rfl, rfl⟩]
+  · rw [ite_eq_left ⟨rfl, rfl⟩]
   · intro p hp
     have hnc : ¬ (c = p.1 ∧ c' = p.2) := by
       intro hc
       apply hp
       rw [Prod.mk.injEq]
       exact ⟨hc.1.symm, hc.2.symm⟩
-    rw [if_neg hnc]
+    rw [ite_eq_right hnc]
 
 /-- Embedding a matrix unit by the CZ input frame gives the outer product of the corresponding
 frame columns. -/
@@ -419,10 +423,10 @@ theorem clusterCZFrame_matUnit (i j : Fin 4) :
     intro k
     rw [Fintype.sum_eq_single i]
     · by_cases haj : k = j
-      · rw [if_pos ⟨rfl, haj⟩, mul_one, if_pos haj]
-      · rw [if_neg (fun hc => haj hc.2), mul_zero, if_neg haj]
+      · rw [ite_eq_left ⟨rfl, haj⟩, mul_one, ite_eq_left haj]
+      · rw [ite_eq_right (fun hc => haj hc.2), mul_zero, ite_eq_right haj]
     · intro b hb
-      rw [if_neg (fun hc => hb hc.1), mul_zero]
+      rw [ite_eq_right (fun hc => hb hc.1), mul_zero]
   have houter : ∀ k : Fin 4,
       ((∑ b : Fin 4, clusterCZInitialFrame r b * (if b = i ∧ k = j then (1 : ℂ) else 0))
           * (starRingEnd ℂ) (clusterCZInitialFrame r' k))
@@ -432,9 +436,9 @@ theorem clusterCZFrame_matUnit (i j : Fin 4) :
   simp only [Matrix.mul_apply, conjTranspose_apply, clusterCZMatUnit, Matrix.of_apply,
     matOuter, RCLike.star_def]
   rw [Finset.sum_congr rfl fun k _ => houter k, Fintype.sum_eq_single j]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro k hk
-    rw [if_neg hk, zero_mul]
+    rw [ite_eq_right hk, zero_mul]
 
 /-- Conjugating a matrix unit by `M` gives the outer product of `M` applied to its two basis
 vectors. -/
@@ -511,7 +515,7 @@ theorem clusterCZActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     simp only [relabelState, Function.comp_apply, Equiv.symm_symm, Pi.smul_apply,
       smul_eq_mul, Matrix.mulVec, dotProduct, ket_apply]
     rw [Fintype.sum_eq_single (teleportOutcomeEquiv m) (fun k hk => by
-      rw [if_neg hk, mul_zero]), if_pos rfl, mul_one]
+      rw [ite_eq_right hk, mul_zero]), ite_eq_left rfl, mul_one]
   unfold clusterCZActualBranchCore
   rw [clusterCZFrame_matUnit, hcolI, hcolJ, matOuter_sandwich,
     clusterCZLeafColumn a d x y, clusterCZLeafColumn a d x' y',
@@ -618,7 +622,8 @@ theorem cluster_cz_actual_program_and_feedback_cost :
             (j.cast (rfl : observedLeafCount clusterCZProgram = 4))).1
           (teleportOutcomeEquiv.symm
             (j.cast (rfl : observedLeafCount clusterCZProgram = 4))).2).val = j.val := by
-        fin_cases j <;> simp [clusterCZLeaf] <;> rfl
+        fin_cases j <;> simp [clusterCZLeaf]
+        all_goals rfl
       exact Fin.eq_of_val_eq hval
   · intro a d
     cases a <;> cases d <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩

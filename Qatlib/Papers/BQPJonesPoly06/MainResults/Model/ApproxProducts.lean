@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Basic
+
+@[expose] public section
 
 /-!
 # Error accumulation in products of isometries
@@ -28,19 +32,25 @@ set_option autoImplicit false
 
 namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model
 
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+variable {E : Type*} [instNormedAddCommGroupE : NormedAddCommGroup E] [instInnerProductSpaceComplexE : InnerProductSpace ℂ E]
 
 /-- The functions `f` and `g` differ at each `x` by norm at most `ε * ‖x‖`. -/
 def FunDistLE (f g : E → E) (ε : ℝ) : Prop := ∀ x, ‖f x - g x‖ ≤ ε * ‖x‖
 
+omit instInnerProductSpaceComplexE in
 /-- A uniform relative error bound remains valid when its tolerance increases. -/
-theorem FunDistLE.mono {f g : E → E} {ε ε' : ℝ} (h : FunDistLE f g ε) (hle : ε ≤ ε') :
+theorem FunDistLE.mono {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E] {f g : E → E} {ε ε' : ℝ} (h : FunDistLE f g ε) (hle : ε ≤ ε') :
     FunDistLE f g ε' := by
   intro x
   exact (h x).trans (mul_le_mul_of_nonneg_right hle (norm_nonneg x))
 
+omit instInnerProductSpaceComplexE in
 /-- Uniform relative error bounds add along an intermediate function. -/
-theorem FunDistLE.add {f g h : E → E} {ε₁ ε₂ : ℝ}
+theorem FunDistLE.add {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E] {f g h : E → E} {ε₁ ε₂ : ℝ}
     (h₁ : FunDistLE f g ε₁) (h₂ : FunDistLE g h ε₂) : FunDistLE f h (ε₁ + ε₂) := by
   intro x
   calc
@@ -53,14 +63,20 @@ theorem FunDistLE.add {f g h : E → E} {ε₁ ε₂ : ℝ}
 def evalWord {ι : Type*} (ρ : ι → E → E) (w : List ι) (x : E) : E :=
   w.foldr (fun i acc => ρ i acc) x
 
+omit instNormedAddCommGroupE instInnerProductSpaceComplexE in
 /-- The empty word acts as the identity. -/
 @[simp]
-theorem evalWord_nil {ι : Type*} (ρ : ι → E → E) (x : E) :
+theorem evalWord_nil {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E] {ι : Type*} (ρ : ι → E → E) (x : E) :
     evalWord ρ ([] : List ι) x = x := rfl
 
+omit instNormedAddCommGroupE instInnerProductSpaceComplexE in
 /-- Evaluation of a nonempty word applies its head generator to the evaluation of its tail. -/
 @[simp]
-theorem evalWord_cons {ι : Type*} (ρ : ι → E → E) (i : ι) (w : List ι) (x : E) :
+theorem evalWord_cons {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E] {ι : Type*} (ρ : ι → E → E) (i : ι) (w : List ι) (x : E) :
     evalWord ρ (i :: w) x = ρ i (evalWord ρ w x) := rfl
 
 /-- A word in complex linear isometric equivalences preserves the norm of every vector. -/
@@ -75,7 +91,7 @@ theorem norm_evalWord {ι : Type*} (ρ : ι → E ≃ₗᵢ[ℂ] E) (w : List ι
 /-- If corresponding isometric generators differ within nonnegative relative error `η`, the word
 evaluations differ within relative error `w.length * η`. See [Aharonov and Arad, Lemma
 5.1][AharonovArad2011]. -/
-theorem evalWord_approx {ι : Type*} (ρ ρ' : ι → E ≃ₗᵢ[ℂ] E) (η : ℝ) (hη : 0 ≤ η)
+theorem evalWord_approx {ι : Type*} (ρ ρ' : ι → E ≃ₗᵢ[ℂ] E) (η : ℝ) (_hη : 0 ≤ η)
     (h : ∀ i, FunDistLE (ρ i) (ρ' i) η) (w : List ι) :
     FunDistLE (evalWord (fun i => (ρ i : E → E)) w)
       (evalWord (fun i => (ρ' i : E → E)) w) (w.length * η) := by

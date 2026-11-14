@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometryStat
-import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometryStat
+public import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+
+@[expose] public section
 
 /-!
 # Near-isometry of a thresholded second sketch

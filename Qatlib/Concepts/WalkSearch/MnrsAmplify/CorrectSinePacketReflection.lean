@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralFilterWord
-import Mathlib.Algebra.BigOperators.Module
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralFilterWord
+public import Mathlib.Algebra.BigOperators.Module
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Aligned sine packet phase reflections
@@ -171,7 +175,7 @@ theorem aligned_forward_eigenstate (M : ℕ) (hM : 2 ≤ M) (U : Matrix I I ℂ)
     hprep,
     phaseThresholdLoop_action, hp, phaseFlagEmbed_phaseGate,
     applyGate_tensorGate, applyGate_one]
-  simp only [alignedKernel, dif_pos hM]
+  simp only [alignedKernel, dite_eq_left hM]
 
 /-- Relabeling a matrix commutes with taking its conjugate transpose. -/
 private theorem aligned_relabel_adjoint {H K : Type} (e : H ≃ K)
@@ -211,7 +215,7 @@ private theorem alignedTailGate_mul (M k : ℕ)
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
 /-- The tail register gate lift commutes with conjugate transpose. -/
-private theorem alignedTailGate_adjoint (M k : ℕ)
+private theorem alignedTailGate_adjoint {I : Type} (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate (I := I) M k Uᴴ = (phaseTailGate (I := I) M k U)ᴴ := by
   rw [phaseTailGate, phaseTailGate, aligned_relabel_adjoint,
@@ -231,7 +235,7 @@ private theorem alignedHeadGate_mul (M k : ℕ)
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
 /-- The head register gate lift commutes with conjugate transpose. -/
-private theorem alignedHeadGate_adjoint (M k : ℕ)
+private theorem alignedHeadGate_adjoint {I : Type} (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate (I := I) M k Uᴴ = (phaseHeadGate (I := I) M k U)ᴴ := by
   rw [phaseHeadGate, phaseHeadGate, aligned_relabel_adjoint,
@@ -400,7 +404,7 @@ private theorem aligned_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I)
   by_cases hh : x 0 = (⟨0, hM⟩ : Fin M) <;>
     by_cases ht : (fun j : Fin k => x j.succ) = (fun _ => (⟨0, hM⟩ : Fin M)) <;>
     simp [hx, hh, ht] <;> first
-    | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
+    | rw [ite_eq_left (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
 /-- On an embedded eigenvector of `W`, the lifted head forward word replaces the zero head label
@@ -916,7 +920,6 @@ theorem overlapSum_difference_bound (M : ℕ) (hM : 2 ≤ M) (φ : ℝ) :
   have hd0 := sineWeight_diff_zero M hM
   have hd1 := sineWeight_diff_last M hM
   have hnon : 0 ≤ Real.pi^2/(M:ℝ)^2 := by positivity
-  (try dsimp only at h)
   simp only [mul_div_assoc] at hb hd0 hd1 hsum hsmall ⊢
   linarith
 
@@ -972,7 +975,7 @@ theorem aligned_zero_label_overlap (M : ℕ) (hM : 2≤M) (φ : ℝ) :
     _ = Qatlib.Foundations.PureStateMath.Inner (Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M))
         ((sinEnvelopePrep M hM)ᴴ *ᵥ f) := by
       rw [inner_ket_read]
-      simp only [alignedKernel,dif_pos hM]
+      simp only [alignedKernel,dite_eq_left hM]
       rfl
     _ = Qatlib.Foundations.PureStateMath.Inner ((sinEnvelopePrep M hM)*ᵥ Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M)) f :=
       (inner_mulVec_left_rect _ _ _).symm
@@ -998,7 +1001,7 @@ theorem aligned_zero_label_overlap (M : ℕ) (hM : 2≤M) (φ : ℝ) :
 /-- For `2 ≤ M`, the aligned kernel at phase zero is the zero basis ket. -/
 theorem alignedKernel_zero (M : ℕ) (hM : 2≤M) :
     alignedKernel M 0 = Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M) := by
-  simp only [alignedKernel,dif_pos hM,Complex.ofReal_zero,mul_zero,Complex.exp_zero,one_mul]
+  simp only [alignedKernel,dite_eq_left hM,Complex.ofReal_zero,mul_zero,Complex.exp_zero,one_mul]
   rw [← (sin_envelope_state_normalized_and_prep M hM).2.2]
   change (sinEnvelopePrep M hM)ᴴ *ᵥ
     ((sinEnvelopePrep M hM)*ᵥ Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M)) = _
@@ -1017,7 +1020,7 @@ theorem alignedKernel_zero_distance (M : ℕ) (hM : 2≤M) (φ : ℝ)
   have he : φ=((⌊φ+1/2⌋:ℤ):ℝ) := by linarith
   have hp : phaseUnit φ=1 := by rw [phaseUnit,he,exp_two_pi_I_int]
   have hk : alignedKernel M φ=alignedKernel M 0 := by
-    simp only [alignedKernel,dif_pos hM]
+    simp only [alignedKernel,dite_eq_left hM]
     congr 1
     funext τ
     rw [← phaseUnit_pow,hp]
@@ -1161,7 +1164,6 @@ theorem frontier1
       (fun j => (alignedKernel M (φ j) (⟨0,hM0⟩:Fin M))^k) T 1
       ((Real.pi^2/((M:ℝ)^2*η^2))^k) hv (by positivity)
       (fun j hj => by
-        (try dsimp only)
         rw [alignedKernel_zero_distance M hM (φ j) (ht j hj)]
         simp [Qatlib.Foundations.PureStateMath.Ket])
       (fun j hj => by

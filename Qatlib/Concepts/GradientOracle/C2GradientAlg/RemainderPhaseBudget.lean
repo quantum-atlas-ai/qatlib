@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
+module
+
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
+
+@[expose] public section
 
 /-!
 # Taylor remainders and gradient phase budgets
@@ -70,7 +74,7 @@ lemma within_deriv_eq (f : ℝ → ℝ) (n : ℕ) (x y : ℝ) (hxy : x ≠ y)
 /-- Remainder and value-error bounds `R` and `E` give scaled phase error at most `2 * Real.pi *
 N * (R + E) / (m * l)` under the stated sign assumptions. [Jordan2005Gradient] -/
 theorem phase_error_bound (N m l R E r e : ℝ) (hN : 0 ≤ N) (hm : 0 < m) (hl : 0 < l)
-    (hR : 0 ≤ R) (hE : 0 ≤ E) (hr : |r| ≤ R) (he : |e| ≤ E) :
+    (_hR : 0 ≤ R) (_hE : 0 ≤ E) (hr : |r| ≤ R) (he : |e| ≤ E) :
     |(2 * Real.pi * N / (m * l)) * (r + e)| ≤ 2 * Real.pi * N * (R + E) / (m * l) := by
   have hc : 0 < 2 * Real.pi := by positivity
   have hml : 0 < m * l := mul_pos hm hl
@@ -115,7 +119,7 @@ theorem quadratic_remainder_bound (f : ℝ → ℝ) (x h B : ℝ)
 
 /-- For a vector in the cube of side length `l ≥ 0`, the sum of squared coordinates is at most
 `d * l ^ 2 / 4`. [Jordan2005Gradient] -/
-theorem cube_sum_sq_le {d : ℕ} (h : Fin d → ℝ) (l : ℝ) (hl : 0 ≤ l)
+theorem cube_sum_sq_le {d : ℕ} (h : Fin d → ℝ) (l : ℝ) (_hl : 0 ≤ l)
     (hb : ∀ i, |h i| ≤ l / 2) :
     ∑ i, (h i) ^ 2 ≤ d * l ^ 2 / 4 := by
   have hb2 : ∀ i, (h i) ^ 2 ≤ l ^ 2 / 4 := by

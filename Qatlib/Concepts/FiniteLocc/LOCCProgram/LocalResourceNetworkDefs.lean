@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+@[expose] public section
 
 /-!
 # EPR resources and local interaction definitions
@@ -60,7 +64,7 @@ noncomputable def invSqrtTwo : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 theorem invSqrtTwo_sq : invSqrtTwo ^ 2 = (2 : ℂ)⁻¹ := by
   have h : ((Real.sqrt 2 : ℝ) : ℂ) ^ 2 = 2 := by
     norm_cast
-    simpa using Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
+    simp
   rw [invSqrtTwo, inv_pow, h]
 
 /-- Complex conjugation fixes `invSqrtTwo`. -/
@@ -98,8 +102,7 @@ theorem eprFactor_canonical :
   rcases j with ⟨j1, j2⟩
   fin_cases i1 <;> fin_cases i2 <;> fin_cases j1 <;> fin_cases j2 <;>
     simp [eprFactor, outerProduct_apply, bellVector, Matrix.smul_apply, invSqrtTwo_star,
-      invSqrtTwo_mul] <;>
-    ring
+      invSqrtTwo_mul];
 
 /-- The tensor product of `m` EPR factors, indexed by assignments of two-bit basis labels to
 slots. -/
@@ -148,7 +151,7 @@ theorem slotAction_adjoint (m : ℕ) (j : Fin m)
   by_cases hj : j' = j
   · subst hj
     simp
-  · rw [if_neg hj, if_neg hj]
+  · rw [ite_eq_right hj, ite_eq_right hj]
     rw [Matrix.conjTranspose_one]
 
 /-- Conjugating an EPR inventory by a slot action replaces only that factor with `A * eprFactor
@@ -179,9 +182,9 @@ theorem two_slot_consumption (m : ℕ) (j₁ j₂ : Fin m) (hne : j₁ ≠ j₂)
   intro j' x y
   by_cases h1 : j' = j₁
   · have h2 : j' ≠ j₂ := fun h2 => hne (h1.symm.trans h2)
-    simp [h1, h2, hne, Ne.symm hne]
+    simp [h1,  hne]
   · by_cases h2 : j' = j₂
-    · simp [h1, h2, hne, Ne.symm hne]
+    · simp [ h2, Ne.symm hne]
     · simp [h1, h2]
 
 /-- A natural-number identifier for a local party. -/
@@ -266,7 +269,7 @@ theorem eprFactoryUnitary_e00 : eprFactoryUnitary *ᵥ e00 = bellVector := by
   rcases i with ⟨i1, i2⟩
   fin_cases i1 <;> fin_cases i2 <;>
     simp [Matrix.mulVec, dotProduct, e00, eprFactoryUnitary, hadamard2, bellVector,
-      xorFin2, Fintype.sum_prod_type, Fin.sum_univ_two]
+      xorFin2]
 
 /-- The projector onto the factory output from `e00` is the EPR factor. -/
 theorem eprFactoryOutput_eq : outerProduct (eprFactoryUnitary *ᵥ e00) = eprFactor := by
@@ -284,7 +287,7 @@ def localBlock {D R : ℕ} (ρ : LocalJoint D R) (r r' : Fin R) : Operator D :=
 /-- The trace of a local block is the corresponding entry of the reference marginal. -/
 theorem localBlock_trace {D R : ℕ} (ρ : LocalJoint D R) (r r' : Fin R) :
     Matrix.trace (localBlock ρ r r') = partialTraceFirst ρ r r' := by
-  simp only [localBlock, Matrix.trace, partialTraceFirst, Matrix.traceLeft, Matrix.of_apply]
+  simp only [ Matrix.trace, partialTraceFirst, Matrix.traceLeft, Matrix.of_apply]
   rfl
 
 /-- Conjugate the local subsystem by `A`, acting trivially on the reference. -/
@@ -519,7 +522,7 @@ theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
         · have hjval : j.val = (⟨k + 1, hk⟩ : Fin rounds).val := by omega
           have hjfin : j = ⟨k + 1, hk⟩ := Fin.ext hjval
           subst hjfin
-          rw [ha_eq, Function.update, dif_pos rfl]
+          rw [ha_eq, Function.update, dite_eq_left rfl]
           rw [hb_eq, before_update r.2 ⟨k + 1, hk⟩ _ ⟨k + 1, hk⟩ (by rfl)]
         · have hjne : j ≠ ⟨k + 1, hk⟩ := by
             intro hc
@@ -527,7 +530,7 @@ theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
             simp only at h
             omega
           have hja : a j = r.1 j := by
-            rw [ha_eq, Function.update, dif_neg hjne]
+            rw [ha_eq, Function.update, dite_eq_right hjne]
           have hjb : before b j = before r.2 j := by
             rw [hb_eq, before_update r.2 ⟨k + 1, hk⟩ _ j (by
               show j.val ≤ k + 1
@@ -539,7 +542,7 @@ theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
         · have hjval : j.val = (⟨k + 1, hk⟩ : Fin rounds).val := by omega
           have hjfin : j = ⟨k + 1, hk⟩ := Fin.ext hjval
           subst hjfin
-          rw [hb_eq, Function.update, dif_pos rfl]
+          rw [hb_eq, Function.update, dite_eq_left rfl]
           rw [ha_eq, before_update r.1 ⟨k + 1, hk⟩ _ ⟨k + 1, hk⟩ (by rfl)]
         · have hjne : j ≠ ⟨k + 1, hk⟩ := by
             intro hc
@@ -547,7 +550,7 @@ theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
             simp only at h
             omega
           have hjb : b j = r.2 j := by
-            rw [hb_eq, Function.update, dif_neg hjne]
+            rw [hb_eq, Function.update, dite_eq_right hjne]
           have hja : before a j = before r.1 j := by
             rw [ha_eq, before_update r.1 ⟨k + 1, hk⟩ _ j (by
               show j.val ≤ k + 1

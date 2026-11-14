@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Corollary 13 break norm query specialization
@@ -52,7 +56,7 @@ theorem corollary13_eq_theorem9 {N : ℕ} {Υ δ : ℝ} :
 
 /-- If `0 < δ ≤ 1` and `Real.pi / 2 < δ * N`, then `sqrt δ ≤ δ * N`. See [Berry and Childs,
 Corollary 13][BerryChilds2012]. -/
-theorem corollary13_sqrt_delta_le {N : ℕ} {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1)
+theorem corollary13_sqrt_delta_le {N : ℕ} {δ : ℝ} (_hδ0 : 0 < δ) (hδ1 : δ ≤ 1)
     (hcond : Real.pi / 2 < δ * (N : ℝ)) :
     Real.sqrt δ ≤ δ * (N : ℝ) := by
   have hs1 : Real.sqrt δ ≤ 1 := by
@@ -79,7 +83,7 @@ theorem corollary13_query_pos {N : ℕ} {Υ δ : ℝ} (hN : 0 < N) (hΥpos : 0 <
 the specialized Theorem 9 expression, transfer its witness to the corresponding Corollary 13
 budget. See [Berry and Childs, Corollary 13][BerryChilds2012]. -/
 theorem corollary13_query_transfer {N : ℕ} [Inhabited (Fin N)] {L : ℕ}
-    {Υ δ c q : ℝ} (hc : 0 < c) (BB : BlackBox (Bool × Fin N) N L)
+    {Υ δ c q : ℝ} (_hc : 0 < c) (BB : BlackBox (Bool × Fin N) N L)
     (hsim : SimulableWithin BB (Real.pi / 2) δ q)
     (hq : q ≤ c * theorem9QueryExpr 1 Υ N (Real.pi / 2) δ) :
     SimulableWithin BB (Real.pi / 2) δ
@@ -94,13 +98,13 @@ theorem corollary13_query_transfer {N : ℕ} [Inhabited (Fin N)] {L : ℕ}
 N` and query expression positivity with a budget transfer for the supplied simulation
 witness. The resulting budget has the Corollary 13 form from [BerryChilds2012]. -/
 theorem corollary13_unitary_implementation
-    {N : ℕ} (U : Matrix (Fin N) (Fin N) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ)
+    {N : ℕ} (U : Matrix (Fin N) (Fin N) ℂ) (_hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ)
     (hN : 0 < N) [Inhabited (Fin N)] {Υ δ : ℝ}
-    (hΥN : Υ ≤ (N : ℝ)) (hΥpos : 0 < Υ)
+    (_hΥN : Υ ≤ (N : ℝ)) (hΥpos : 0 < Υ)
     (hδ0 : 0 < δ) (hδ1 : δ ≤ 1)
     (hcond : Real.pi / 2 < δ * (N : ℝ))
     {c q : ℝ} (hc : 0 < c) {L : ℕ} (BB : BlackBox (Bool × Fin N) N L)
-    (henc : BlockEncodes BB U) (hbreak : breakNorm BB.H ≤ Υ)
+    (_henc : BlockEncodes BB U) (_hbreak : breakNorm BB.H ≤ Υ)
     (hsim : SimulableWithin BB (Real.pi / 2) δ q)
     (hq : q ≤ c * theorem9QueryExpr 1 Υ N (Real.pi / 2) δ) :
     Real.sqrt δ ≤ δ * (N : ℝ) ∧ 0 < corollary13QueryExpr N Υ δ ∧

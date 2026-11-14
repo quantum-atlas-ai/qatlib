@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.WildcardSrch12.MainResults.Model.SourceModel
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Fintype.BigOperators
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.WildcardSrch12.MainResults.Model.SourceModel
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Fintype.BigOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,12 +51,12 @@ the correct restriction equals the uniform normalization `C(n,k)^{-1/2}`. -/
 theorem psiAmp_eq_of_pos {n k : ℕ} (x : BitStr n) (p : StateIdx n)
     (h : p.1.card = k ∧ p.2 = embedOn x p.1) :
     psiAmp k x p = ((Real.sqrt ((Nat.choose n k : ℝ)⁻¹) : ℝ) : ℂ) := by
-  simp [psiAmp, if_pos h]
+  simp [psiAmp, ite_eq_left h]
 
 /-- Off the support of `|ψ_x^k⟩` the amplitude vanishes. -/
 theorem psiAmp_eq_zero_of_neg {n k : ℕ} (x : BitStr n) (p : StateIdx n)
     (h : ¬ (p.1.card = k ∧ p.2 = embedOn x p.1)) : psiAmp k x p = 0 := by
-  simp [psiAmp, if_neg h]
+  simp [psiAmp, ite_eq_right h]
 
 /-- The squared module of a single normalized amplitude: the constant
 `C(n,k)^{-1}`. -/
@@ -73,11 +77,11 @@ theorem conj_psiAmp_mul {n k : ℕ} (x y : BitStr n) (p : StateIdx n) :
   by_cases hx : p.1.card = k ∧ p.2 = embedOn x p.1
   · by_cases hy : p.1.card = k ∧ p.2 = embedOn y p.1
     · rw [psiAmp_eq_of_pos y p hy, psiAmp_eq_of_pos x p hx, conj_amp_mul_self,
-        if_pos ⟨hx.1, hx.2, hy.2⟩]
+        ite_eq_left ⟨hx.1, hx.2, hy.2⟩]
     · rw [psiAmp_eq_zero_of_neg y p hy, psiAmp_eq_of_pos x p hx, map_zero, zero_mul,
-        if_neg (fun h => hy ⟨h.1, h.2.2⟩)]
+        ite_eq_right (fun h => hy ⟨h.1, h.2.2⟩)]
   · rw [psiAmp_eq_zero_of_neg x p hx, mul_zero,
-      if_neg (fun h => hx ⟨h.1, h.2.1⟩)]
+      ite_eq_right (fun h => hx ⟨h.1, h.2.1⟩)]
 
 /-- Inner sum over the value register: for a fixed subset `S` at most one value
 of the `|x_S⟩` register carries amplitude, so the fibre sum is a single term. -/
@@ -88,21 +92,21 @@ theorem sum_fibre_psiAmp {n k : ℕ} (x y : BitStr n) (S : Finset (Fin n)) :
   by_cases hk : S.card = k
   · by_cases hsub : S ⊆ agreeSet x y
     · have he : embedOn x S = embedOn y S := (embedOn_eq_iff x y S).mpr hsub
-      rw [if_pos ⟨hk, hsub⟩, Finset.sum_eq_single (embedOn x S)]
-      · rw [if_pos ⟨hk, rfl, he⟩]
+      rw [ite_eq_left ⟨hk, hsub⟩, Finset.sum_eq_single (embedOn x S)]
+      · rw [ite_eq_left ⟨hk, rfl, he⟩]
       · intro b _ hb
-        rw [if_neg (fun h => hb h.2.1)]
+        rw [ite_eq_right (fun h => hb h.2.1)]
       · intro h
         exact absurd (Finset.mem_univ _) h
     · have he : embedOn x S ≠ embedOn y S := fun h => hsub ((embedOn_eq_iff x y S).mp h)
-      rw [if_neg (fun h => hsub h.2)]
+      rw [ite_eq_right (fun h => hsub h.2)]
       refine Finset.sum_eq_zero (fun b _ => ?_)
-      rw [if_neg]
+      rw [ite_eq_right]
       rintro ⟨_, h1, h2⟩
       exact he (h1.symm.trans h2)
-  · rw [if_neg (fun h => hk h.1)]
+  · rw [ite_eq_right (fun h => hk h.1)]
     refine Finset.sum_eq_zero (fun b _ => ?_)
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro ⟨h, _, _⟩
     exact hk h
 

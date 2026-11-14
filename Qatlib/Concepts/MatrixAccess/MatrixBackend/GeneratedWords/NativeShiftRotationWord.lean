@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeShiftPreparation
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeShiftPreparation
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

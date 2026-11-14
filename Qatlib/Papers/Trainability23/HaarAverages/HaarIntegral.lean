@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
+
+@[expose] public section
 
 /-!
 # Conjugation identities for matrix units
@@ -43,22 +47,22 @@ theorem conj_single_apply {n : Type*} [Fintype n] [DecidableEq n]
     by_cases hk : b = k
     · subst hk
       rw [Finset.sum_eq_single a]
-      · rw [hsingle a b, if_pos ⟨rfl, rfl⟩, mul_one, if_pos rfl]
+      · rw [hsingle a b, ite_eq_left ⟨rfl, rfl⟩, mul_one, ite_eq_left rfl]
       · intro l _ hl
-        rw [hsingle l b, if_neg (fun h => hl h.1.symm), mul_zero]
+        rw [hsingle l b, ite_eq_right (fun h => hl h.1.symm), mul_zero]
       · intro ha
         exact absurd (Finset.mem_univ a) ha
     · have hz : (∑ l, U i l * Matrix.single a b (1 : ℂ) l k) = 0 :=
         Finset.sum_eq_zero fun l _ => by
-          rw [hsingle l k, if_neg (fun h => hk h.2), mul_zero]
-      rw [hz, if_neg hk]
+          rw [hsingle l k, ite_eq_right (fun h => hk h.2), mul_zero]
+      rw [hz, ite_eq_right hk]
   simp only [Matrix.mul_apply]
   rw [Finset.sum_congr rfl fun k _ => by rw [hinner k]]
   rw [Finset.sum_eq_single b]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     simp [Matrix.star_apply]
   · intro k _ hk
-    rw [if_neg (fun h => hk h.symm), zero_mul]
+    rw [ite_eq_right (fun h => hk h.symm), zero_mul]
   · intro hb
     exact absurd (Finset.mem_univ b) hb
 

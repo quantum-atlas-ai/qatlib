@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.TransposeAccess.SketchTransposeAccess
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+module
+
+public import Qatlib.Concepts.SketchArith.TransposeAccess.SketchTransposeAccess
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+
+@[expose] public section
 
 /-!
 # Mixture sampling consumers for compact sketches
@@ -100,7 +104,7 @@ private theorem compact_fresh_fiber {X K : Type} [Fintype X] [DecidableEq X]
       simp [hh,Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf]
     · obtain ⟨t,ht⟩ := Function.ne_iff.mp h
       have hz : (∏ t : Fin r,if f (ω t)=v t then (1 : ℝ) else 0)=0 :=
-        Finset.prod_eq_zero (Finset.mem_univ t) (if_neg ht)
+        Finset.prod_eq_zero (Finset.mem_univ t) (ite_eq_right ht)
       simp [h,hz]
   simp only [Finset.sum_filter,hrecord]
   rw [q.expect_prod (fun t x=>if f x=v t then 1 else 0)]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -180,7 +184,7 @@ theorem rayleighQuotient_le {N : ℕ} {s : ℝ} (A : Matrix (Fin N) (Fin N) ℂ)
   have hTx : (LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin A) x).ofLp =
       A *ᵥ x.ofLp := by
     have := Matrix.ofLp_toLpLin (p := 2) (q := 2) A x
-    simpa [Matrix.toEuclideanLin, Matrix.toLin'_apply] using this
+    simp [Matrix.toEuclideanLin, Matrix.toLin'_apply]
   have hinner : (inner ℂ (LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin A) x) x).re =
       (∑ i, star (x.ofLp i) * (A *ᵥ x.ofLp) i).re := by
     have hsym' : (inner ℂ (LinearMap.toContinuousLinearMap (Matrix.toEuclideanLin A) x) x).re =

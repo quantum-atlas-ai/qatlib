@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AndersonLoc09.MainResults.MinimalGap
+module
+
+public import Qatlib.Papers.AndersonLoc09.MainResults.MinimalGap
+
+@[expose] public section
 
 /-!
 # Eventual gap and inverse-square bounds
@@ -58,7 +62,7 @@ theorem gap_ultra_small (N0 v : ℝ) (hN0 : 0 < N0) (hv : 0 < v) :
 
 /-- For positive `N0`, `v`, and `N`, a gap-formula bound by `exp (-N)` implies that its
 reciprocal square is at least `exp N`. -/
-theorem aqo_runtime_exceeds_exp (N0 v N : ℝ) (hN0 : 0 < N0) (hv : 0 < v) (hN : 0 < N)
+theorem aqo_runtime_exceeds_exp (N0 v N : ℝ) (_hN0 : 0 < N0) (_hv : 0 < v) (hN : 0 < N)
     (hgap : gapFormula (v * N) N N0 ≤ Real.exp (-N)) :
     Real.exp N ≤ 1 / (gapFormula (v * N) N N0) ^ 2 := by
   have hgp : 0 < gapFormula (v * N) N N0 := by

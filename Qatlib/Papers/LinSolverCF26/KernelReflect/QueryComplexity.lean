@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,7 +45,7 @@ def degreeBound (κ η : ℝ) : ℝ := (κ / 2) * Real.log (2 / η)
 /-- Known norm, `η_KR = ε/√2`: the degree cost is `2l = κ ln(2√2/ε)`, i.e. the
 query complexity is `κ log(2√2/ε)` with constant factor exactly one
 (the `(1+O(ε))` statement of Section III A). -/
-theorem two_degreeBound_known_norm {κ ε : ℝ} (hκ : 0 < κ) (hε : 0 < ε) :
+theorem two_degreeBound_known_norm {κ ε : ℝ} (_hκ : 0 < κ) (_hε : 0 < ε) :
     2 * degreeBound κ (ε / Real.sqrt 2) =
       κ * Real.log (2 * Real.sqrt 2 / ε) := by
   unfold degreeBound

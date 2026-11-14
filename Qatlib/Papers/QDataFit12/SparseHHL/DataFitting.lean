@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDataFit12.SparseHHL.DataFittingDefs
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+module
+
+public import Qatlib.Papers.QDataFit12.SparseHHL.DataFittingDefs
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+@[expose] public section
 
 /-!
 # Resource bounds for sparse quantum data fitting

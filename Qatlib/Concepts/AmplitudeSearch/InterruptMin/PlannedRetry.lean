@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
-import Mathlib.Data.PNat.Basic
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+public import Mathlib.Data.PNat.Basic
+
+@[expose] public section
 
 /-!
 # Budgeted retries with sampled plans
@@ -83,7 +87,7 @@ theorem run_remaining (K : PlannedRetry State Output) (budget : ℕ) (s : State)
     rw [run] at hx
     obtain ⟨p, _, hp⟩ := (PMF.mem_support_bind_iff _ _ x).mp hx
     by_cases hc : (K.cost s p : ℕ) ≤ budget
-    · rw [dif_pos hc] at hp
+    · rw [dite_eq_left hc] at hp
       obtain ⟨o, _, ho⟩ := (PMF.mem_support_bind_iff _ _ x).mp hp
       have hlt : budget - (K.cost s p : ℕ) < budget :=
         Nat.sub_lt (lt_of_lt_of_le (K.cost s p).pos hc) (K.cost s p).pos
@@ -94,7 +98,7 @@ theorem run_remaining (K : PlannedRetry State Output) (budget : ℕ) (s : State)
           have heq := (PMF.mem_support_pure_iff _ _).mp ho
           simp only [heq, le_refl]
       exact ⟨hr.trans hlt.le, fun _ => hr.trans_lt hlt⟩
-    · rw [dif_neg hc] at hp
+    · rw [dite_eq_right hc] at hp
       have heq := (PMF.mem_support_pure_iff _ _).mp hp
       simp [heq]
 
@@ -200,8 +204,8 @@ theorem eval_eq_joint_sum (budget : ℕ) (s : State)
   apply Finset.sum_congr rfl
   intro p _
   by_cases hc : (K.cost s p : ℕ) ≤ budget
-  · simp only [dif_pos hc, Finset.mul_sum, mul_assoc]
-  · simp only [dif_neg hc]
+  · simp only [dite_eq_left hc, Finset.mul_sum, mul_assoc]
+  · simp only [dite_eq_right hc]
     have hsum : (∑ o : Option Output, (K.perform s p o).toReal) = 1 := by
       rw [← ENNReal.toReal_sum (fun o _ => (K.perform s p).apply_ne_top o)]
       have hn : (∑ o : Option Output, K.perform s p o) = 1 := by
@@ -237,7 +241,7 @@ theorem run_expectation (budget : ℕ) (s : State)
             | none => K.eval (budget - K.cost s p) (K.retry s p) onSuccess onTimeout)
           else onTimeout budget) := by
       by_cases hc : (K.cost s p : ℕ) ≤ budget
-      · simp only [dif_pos hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
+      · simp only [dite_eq_left hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
         have he (o : Option Output) :
             Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
               (match o with
@@ -256,7 +260,7 @@ theorem run_expectation (budget : ℕ) (s : State)
         cases o with
         | some a => exact hs a _
         | none => exact K.eval_nonneg _ _ _ _ hs ht
-      · simp only [dif_neg hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
+      · simp only [dite_eq_right hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
           payoff]
     change Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (K.choose s)
         (fun p => _) = _
@@ -291,8 +295,8 @@ theorem run_event (budget : ℕ) (s : State) (E : Option Output × ℕ → Prop)
   convert K.run_expectation budget s
     (fun a r => if E (some a, r) then 1 else 0)
     (fun r => if E (none, r) then 1 else 0)
-    (fun _ _ => by (try dsimp only); split_ifs <;> norm_num)
-    (fun _ => by (try dsimp only); split_ifs <;> norm_num) using 1
+    (fun _ _ => by split_ifs <;> norm_num)
+    (fun _ => by split_ifs <;> norm_num) using 1
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
   congr 1
   funext x

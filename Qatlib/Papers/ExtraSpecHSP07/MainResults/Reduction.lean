@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
-import Mathlib.Algebra.Group.Pointwise.Set.Basic
-import Mathlib.Algebra.Group.Subgroup.Pointwise
+module
+
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
+public import Mathlib.Algebra.Group.Pointwise.Set.Basic
+public import Mathlib.Algebra.Group.Subgroup.Pointwise
+
+@[expose] public section
 
 /-!
 # Reduction through the abelianization
@@ -41,7 +45,7 @@ variable {G : Type*} [Group G] [Finite G]
 commutator. -/
 theorem commutator_eq_bot_or_eq_top_of_le {p : ℕ} (hE : IsExtraspecial G p)
     {K : Subgroup G} (hK : K ≤ commutator G) : K = ⊥ ∨ K = commutator G := by
-  haveI : Fact (Nat.card ↥(commutator G)).Prime :=
+  have : Fact (Nat.card ↥(commutator G)).Prime :=
     ⟨by rw [hE.commutator_card]; exact hE.prime⟩
   have h := Subgroup.eq_bot_or_eq_top_of_prime_card (G := ↥(commutator G))
     (K.subgroupOf (commutator G))
@@ -65,7 +69,7 @@ theorem inf_commutator_eq_bot_of_not_le {p : ℕ} (hE : IsExtraspecial G p) {H :
 
 /-- A subgroup with trivial intersection with the commutator of an extraspecial group is
 commutative. -/
-theorem isMulCommutative_of_inf_commutator_eq_bot {p : ℕ} (hE : IsExtraspecial G p)
+theorem isMulCommutative_of_inf_commutator_eq_bot {p : ℕ} (_hE : IsExtraspecial G p)
     {H : Subgroup G} (hdis : H ⊓ commutator G = ⊥) : IsMulCommutative ↥H := by
   refine IsMulCommutative.of_comm (fun x y => Subtype.ext ?_)
   have hmem : ⁅(x : G), (y : G)⁆ ∈ H ⊓ commutator G := by
@@ -85,8 +89,8 @@ trivial. -/
 theorem isMulCommutative_sup_commutator {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
     (hdis : H ⊓ commutator G = ⊥) : IsMulCommutative ↥(H ⊔ commutator G) := by
   have hH : IsMulCommutative ↥H := isMulCommutative_of_inf_commutator_eq_bot hE hdis
-  haveI := hH
-  haveI : (commutator G).Normal := inferInstance
+  have := hH
+  have : (commutator G).Normal := inferInstance
   refine IsMulCommutative.of_comm (fun x y => Subtype.ext ?_)
   have hx : (x : G) ∈ (H : Set G) * (commutator G : Set G) := by
     rw [← Subgroup.mul_normal H (commutator G)]
@@ -107,9 +111,11 @@ theorem isMulCommutative_sup_commutator {p : ℕ} (hE : IsExtraspecial G p) {H :
   have hab : Commute a b := (commute_iff_eq a b).mpr (setLike_mul_comm ha hb)
   exact (Commute.mul_right (Commute.mul_left hab hzb) (Commute.mul_left haw hzw)).eq
 
+omit [Finite G] in
 /-- Inside any subgroup containing `H`, the fiber of a hiding function at the identity is
 exactly `H`. -/
-theorem setOf_mem_of_hiding {H : Subgroup G} {σ : Type*} {f : G → σ}
+theorem setOf_mem_of_hiding {G : Type*} [Group G] [_finiteG : Finite G]
+    {H : Subgroup G} {σ : Type*} {f : G → σ}
     (hf : IsHidingFamily H f) {K : Subgroup G} (hK : H ≤ K) :
     {g : G | g ∈ K ∧ f g = f 1} = (H : Set G) := by
   ext g
@@ -117,7 +123,7 @@ theorem setOf_mem_of_hiding {H : Subgroup G} {σ : Type*} {f : G → σ}
 
 /-- A hidden subgroup contains the cyclic commutator exactly when its hiding function takes the
 same value at the chosen generator and at the identity. -/
-theorem commutator_le_iff_hiding_eq_one {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
+theorem commutator_le_iff_hiding_eq_one {p : ℕ} (_hE : IsExtraspecial G p) {H : Subgroup G}
     {σ : Type*} {f : G → σ} (hf : IsHidingFamily H f) {z : G}
     (hz : commutator G = Subgroup.zpowers z) :
     commutator G ≤ H ↔ f z = f 1 := by
@@ -150,9 +156,11 @@ theorem lemma1_finding_H_reduces_to_HG' {p : ℕ} (hE : IsExtraspecial G p) {H :
     rw [hK]
     exact setOf_mem_of_hiding hf le_sup_left
 
+omit [Finite G] in
 /-- The preimage of the image of `H` in the abelianization is `H ⊔ commutator G`, and adjoining
 the commutator does not change that image. -/
-theorem lemma2_abelianization_preimage (H : Subgroup G) :
+theorem lemma2_abelianization_preimage {G : Type*} [Group G] [_finiteG : Finite G]
+    (H : Subgroup G) :
     (Subgroup.map (abelianizationMap G) H).comap (abelianizationMap G) = H ⊔ commutator G ∧
       Subgroup.map (abelianizationMap G) (H ⊔ commutator G) =
         Subgroup.map (abelianizationMap G) H := by
@@ -164,9 +172,11 @@ theorem lemma2_abelianization_preimage (H : Subgroup G) :
     simpa [abelianizationMap, QuotientGroup.ker_mk'] using hx
   rw [Subgroup.map_sup, hbot, sup_bot_eq]
 
+omit [Finite G] in
 /-- A family hiding `H ⊔ commutator G` descends to a family on the abelianization hiding the
 image of `H`. -/
-theorem lemma3_hiding_transfer {H : Subgroup G} {σ : Type*} {ψ : G → σ}
+theorem lemma3_hiding_transfer {G : Type*} [Group G] [_finiteG : Finite G]
+    {H : Subgroup G} {σ : Type*} {ψ : G → σ}
     (hψ : IsHidingFamily (H ⊔ commutator G) ψ) :
     ∃ ψbar : Abelianization G → σ,
       IsHidingFamily (Subgroup.map (abelianizationMap G) H) ψbar := by

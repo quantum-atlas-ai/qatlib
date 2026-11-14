@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RankProcess
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RankProcess
+
+@[expose] public section
 
 /-!
 # Rank-process hitting probability specification

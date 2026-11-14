@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SeedApproximation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SupportGeometry
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SeedApproximation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SupportGeometry
+
+@[expose] public section
 
 /-!
 # Original source to seeded rational physical values

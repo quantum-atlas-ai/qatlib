@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.DiophantineApproximation.Basic
+module
+
+public import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+@[expose] public section
 
 /-!
 # Specification of rounded-numerator period recovery

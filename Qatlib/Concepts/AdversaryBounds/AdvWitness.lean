@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
-import Mathlib.Algebra.Order.Chebyshev
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
+public import Mathlib.Algebra.Order.Chebyshev
+
+@[expose] public section
 
 /-!
 # Explicit adversary witnesses for search and parity
@@ -299,7 +303,7 @@ private theorem advCubeFilter_perm {n : ℕ} (i : Fin n) :
   · have hh : ¬ ((Finset.univ.filter (fun j => x j ≠ y j)).card = 1 ∧ x i ≠ y i) := by
       rintro ⟨hc, hi⟩
       exact h (adv_cube_single_diff x y i hc hi)
-    simp only [advFilter, advCubeGamma, permMatrix, Matrix.of_apply, if_neg h]
+    simp only [advFilter, advCubeGamma, permMatrix, Matrix.of_apply, ite_eq_right h]
     by_cases hi : x i = y i <;> simp_all
 
 /-- The cube adjacency matrix is the sum of its coordinate-filtered matrices. -/
@@ -308,7 +312,7 @@ private theorem advCubeGamma_sum (n : ℕ) :
   ext x y
   simp only [Matrix.sum_apply, advFilter, advCubeGamma]
   by_cases hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     rw [← Finset.sum_filter]
     simp [hc]
   · simp [hc]
@@ -387,7 +391,7 @@ private theorem advParity_separates_edge {n : ℕ} (x y : Fin n → Bool)
       (show (decide ((∑ i, if x i then (1 : ℕ) else 0) % 2 = 1) = true) ↔
         (decide ((∑ i, if y i then (1 : ℕ) else 0) % 2 = 1) = true) from by rw [he])
   cases hxi : x i <;> cases hyi : y i <;>
-    simp only [hxi, hyi, Bool.false_eq_true, if_true, if_false] at hx hy hdiff
+    simp only [hxi, hyi, Bool.false_eq_true, ite_true, ite_false] at hx hy hdiff
   all_goals first | exact hdiff rfl | omega
 
 /-- For positive `n`, the cube matrix is a Hermitian parity witness with norm `n` and filter
@@ -413,7 +417,7 @@ theorem negative_adversary_cube_actual_parity_witness (n : ℕ) (hn : 0 < n) :
   have hz : ∀ x y : Fin n → Bool, advParity x = advParity y → advCubeGamma n x y = 0 := by
     intro x y h
     unfold advCubeGamma
-    rw [if_neg]
+    rw [ite_eq_right]
     exact fun hc => advParity_separates_edge x y hc h
   have hnorm := advCubeGamma_norm n
   have hfilter :=

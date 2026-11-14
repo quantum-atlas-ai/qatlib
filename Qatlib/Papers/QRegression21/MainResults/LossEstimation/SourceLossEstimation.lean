@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -98,8 +102,8 @@ theorem theorem_3_2_curvature (X : Fin N → Fin d → ℝ)
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def theorem_3_4_gradient_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
-    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ)
+def theorem_3_4_gradient_unitary_statement (_X : Fin N → Fin d → ℝ) (_y : Fin N → ℝ)
+    (θ : Fin d → ℝ) (_hθ : l1Ball θ) (β δ : ℝ) (_hβ : 0 < β) (_hδ : 0 < δ)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
@@ -110,8 +114,8 @@ def theorem_3_4_gradient_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fi
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def theorem_3_5_loss_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ)
-    (θ : Fin d → ℝ) (hθ : l1Ball θ) (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ)
+def theorem_3_5_loss_unitary_statement (_X : Fin N → Fin d → ℝ) (_y : Fin N → ℝ)
+    (θ : Fin d → ℝ) (_hθ : l1Ball θ) (β δ : ℝ) (_hβ : 0 < β) (_hδ : 0 < δ)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
@@ -122,9 +126,9 @@ def theorem_3_5_loss_unitary_statement (X : Fin N → Fin d → ℝ) (y : Fin N 
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def corollary_3_6_uniform_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) {m : ℕ}
-    (θs : Fin m → Fin d → ℝ) (hθ : ∀ h, l1Ball (θs h)) (β δ : ℝ)
-    (hβ : 0 < β) (hδ : 0 < δ)
+def corollary_3_6_uniform_statement (_X : Fin N → Fin d → ℝ) (_y : Fin N → ℝ) {m : ℕ}
+    (θs : Fin m → Fin d → ℝ) (_hθ : ∀ h, l1Ball (θs h)) (β δ : ℝ)
+    (_hβ : 0 < β) (_hδ : 0 < δ)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.log (1 / δ) / β ∧
@@ -135,8 +139,8 @@ def corollary_3_6_uniform_statement (X : Fin N → Fin d → ℝ) (y : Fin N →
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def theorem_3_7_sample_set_statement (X : Fin N → Fin d → ℝ) (y : Fin N → ℝ) (ε : ℝ)
-    (hε0 : 0 < ε) (hε1 : ε < 1 / 2)
+def theorem_3_7_sample_set_statement (_X : Fin N → Fin d → ℝ) (_y : Fin N → ℝ) (ε : ℝ)
+    (_hε0 : 0 < ε) (_hε1 : ε < 1 / 2)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
@@ -149,8 +153,8 @@ def theorem_3_7_sample_set_statement (X : Fin N → Fin d → ℝ) (y : Fin N �
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def corollary_3_8_distribution_statement (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
+def corollary_3_8_distribution_statement (N d : ℕ) (ε : ℝ) (_hε : 0 < ε)
+    (_hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 2 ∧
@@ -163,8 +167,8 @@ def corollary_3_8_distribution_statement (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def corollary_3_9_classical_bits_statement (N d : ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
+def corollary_3_9_classical_bits_statement (N d : ℕ) (ε : ℝ) (_hε : 0 < ε)
+    (_hN : (N : ℝ) ≤ 64 * Real.log (d : ℝ) / ε ^ 2)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ 64 * Real.sqrt (d : ℝ) / ε ^ 3 ∧

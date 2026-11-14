@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3Defs
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3Defs
+
+@[expose] public section
 
 /-!
 # Binary encodings of QTM window states

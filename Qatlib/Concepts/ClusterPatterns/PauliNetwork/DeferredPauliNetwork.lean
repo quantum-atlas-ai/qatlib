@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.CountedClusterNetwork
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.ClusterNetworkConsumers
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.CountedClusterNetwork
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.ClusterNetworkConsumers
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # Deferred Pauli corrections in cluster networks
@@ -203,12 +207,12 @@ noncomputable def rawNetworkStepBranch {n : ℕ} (g : ClusterNetworkGate n) (o :
       obtain ⟨i, ζ⟩ := p
       by_cases ho : o.2
       · simp [rawNetworkStepCore, ho]
-      · simp only [rawNetworkStepCore, if_neg ho, Matrix.mul_add, Matrix.add_mul,
+      · simp only [rawNetworkStepCore, ite_eq_right ho, Matrix.mul_add, Matrix.add_mul,
           relabelGate_add', traceLeft_add]
     | inr p =>
       obtain ⟨i, j⟩ := p
       by_cases hv : (i : ℕ) ≠ (j : ℕ)
-      · simp only [rawNetworkStepCore, dif_pos hv, Matrix.mul_add, Matrix.add_mul,
+      · simp only [rawNetworkStepCore, dite_eq_left hv, Matrix.mul_add, Matrix.add_mul,
           relabelGate_add', traceLeft_add]
       · simp [rawNetworkStepCore, hv]
   map_smul' := by
@@ -218,12 +222,12 @@ noncomputable def rawNetworkStepBranch {n : ℕ} (g : ClusterNetworkGate n) (o :
       obtain ⟨i, ζ⟩ := p
       by_cases ho : o.2
       · simp [rawNetworkStepCore, ho]
-      · simp only [rawNetworkStepCore, if_neg ho, Matrix.mul_smul, Matrix.smul_mul,
+      · simp only [rawNetworkStepCore, ite_eq_right ho, Matrix.mul_smul, Matrix.smul_mul,
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
     | inr p =>
       obtain ⟨i, j⟩ := p
       by_cases hv : (i : ℕ) ≠ (j : ℕ)
-      · simp only [rawNetworkStepCore, dif_pos hv, Matrix.mul_smul, Matrix.smul_mul,
+      · simp only [rawNetworkStepCore, dite_eq_left hv, Matrix.mul_smul, Matrix.smul_mul,
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
       · simp [rawNetworkStepCore, hv]
 
@@ -257,7 +261,7 @@ theorem frameCorrectionBlock_matrix {n : ℕ} (F : PauliFrame n) (i : Fin n) :
       wireGate n i ((if F.2 i then PauliZ else 1) *
         (if F.1 i then PauliX else 1)) := by
   cases hx : F.1 i <;> cases hz : F.2 i <;>
-    simp [reflectionProgramMatrix, reflectionGateMatrix, hx, hz,
+    simp [reflectionProgramMatrix, reflectionGateMatrix,
       wireGate_one, wireGate_mul]
 
 /-- Every terminal frame correction list satisfies `reflectionLegal`. -/
@@ -274,9 +278,8 @@ theorem frameCorrectionSteps_legal {n : ℕ} (F : PauliFrame n) :
 /-- The number of gates in `frameCorrectionSteps` equals `frameCorrectionCost`. -/
 theorem frameCorrectionSteps_length {n : ℕ} (F : PauliFrame n) :
     (frameCorrectionSteps F).length = frameCorrectionCost F := by
-  simp only [frameCorrectionSteps, List.length_flatten, List.map_ofFn,
-    List.length_append]
-  simp only [List.sum_ofFn, frameCorrectionCost, List.length_append]
+  simp only [frameCorrectionSteps, List.length_flatten, List.map_ofFn]
+  simp only [List.sum_ofFn, frameCorrectionCost]
   apply Finset.sum_congr rfl
   intro i _
   cases hx : F.1 i <;> cases hz : F.2 i <;> simp [hx, hz]
@@ -288,7 +291,7 @@ theorem frameCorrectionCost_le {n : ℕ} (F : PauliFrame n) :
     frameCorrectionCost F ≤ ∑ _i : Fin n, 2 := by
       apply Finset.sum_le_sum
       intro i _
-      cases hx : F.1 i <;> cases hz : F.2 i <;> simp [hx, hz]
+      cases hx : F.1 i <;> cases hz : F.2 i <;> simp []
     _ = 2 * n := by simp [Nat.mul_comm]
 
 /-- For a list of distinct wires, the product of their correction blocks equals the reindexed
@@ -325,14 +328,14 @@ theorem frameCorrectionSteps_matrix {n : ℕ} (F : PauliFrame n) :
     (List.nodup_ofFn.mpr Function.injective_id)
   simp only [frameCorrectionSteps, List.flatMap, List.map_ofFn, Function.comp_def] at *
   rw [hm]
-  simp only [List.mem_ofFn, exists_apply_eq_apply, if_true]
+  simp only [List.mem_ofFn, exists_apply_eq_apply, ite_true]
   unfold tensorPauliProduct pauliFrameGate
   rw [teleportRelabelGate_conjTranspose, pauliProductDensity_conjTranspose]
   congr 3
   funext i
   rw [teleportRelabelGate_conjTranspose, Matrix.conjTranspose_mul]
   cases hx : F.1 i <;> cases hz : F.2 i <;>
-    simp [hx, hz, pauliX_conjTranspose, pauliZ_conjTranspose]
+    simp [ pauliX_conjTranspose, pauliZ_conjTranspose]
 
 /-- The terminal correction list is legal, has length `frameCorrectionCost F ≤ 2 * n`, and its
 compiled circuit acts by the reindexed conjugate transpose of the frame operator on every
@@ -363,7 +366,7 @@ and two message bits. -/
 theorem rawNetworkCZCost (n : ℕ) (i j : Fin n) (h : i ≠ j) (a d : Bool) :
     rawNetworkStepCost (.inr (i, j)) (a, d) = (0, 9, 2, 2) := by
   have hv : (i : ℕ) ≠ (j : ℕ) := fun hv => h (Fin.ext hv)
-  simp only [rawNetworkStepCost, dif_pos hv]
+  simp only [rawNetworkStepCost, dite_eq_left hv]
   cases a <;> cases d <;> rfl
 
 /-- For a legal network and valid history, the raw path cost is `(0, 4 * u + 9 * c, u + 2 * c, u
@@ -482,14 +485,14 @@ theorem rawNetworkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (w
         = if w j = v j then (1 : ℂ) else 0 := by
     intro j hj
     have hji : j ≠ i := (Finset.mem_erase.mp hj).1
-    rw [if_neg hji, Matrix.one_apply]
+    rw [ite_eq_right hji, Matrix.one_apply]
     by_cases hw : w j = v j
-    · rw [if_pos (congrArg boolEquivFin2 hw), if_pos hw]
-    · rw [if_neg (fun h => hw (boolEquivFin2.injective h)), if_neg hw]
+    · rw [ite_eq_left (congrArg boolEquivFin2 hw), ite_eq_left hw]
+    · rw [ite_eq_right (fun h => hw (boolEquivFin2.injective h)), ite_eq_right hw]
   have h1 : (if (i : Fin n) = i then (pauliXChoice a * clusterJ ζ) else (1 : Operator 2))
         (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
       = (pauliXChoice a * clusterJ ζ) (boolEquivFin2 (w i)) (boolEquivFin2 (v i)) := by
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   show (∏ j : Fin n, (if j = i then (pauliXChoice a * clusterJ ζ) else (1 : Operator 2)) (boolEquivFin2 (w j))
         (boolEquivFin2 (v j))) = _
   exact ((Finset.mul_prod_erase (Finset.univ : Finset (Fin n))
@@ -505,8 +508,8 @@ theorem rawNetworkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Boo
         * (if (fun k => if k = i then false else w k)
             = (fun k => if k = i then false else v k) then (1 : ℂ) else 0) := by
   simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
-  rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
-    if_pos rfl, mul_one, rawNetworkWireGateB_apply, networkIndicator_prod_erase]
+  rw [Fintype.sum_eq_single v (fun u hu => by rw [ite_eq_right hu, mul_zero]),
+    ite_eq_left rfl, mul_one, rawNetworkWireGateB_apply, networkIndicator_prod_erase]
 
 /-- Applying a lifted raw wire leaf to a column of `networkFrame` gives the routed tensor
 product of its measured local output and the unchanged spectator basis state, with amplitude
@@ -582,12 +585,12 @@ theorem rawNetworkWireLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Boo
                   ((bitVecEquiv n).symm q.2))
           else 0)
   by_cases hq : q.1 = teleportOutcomeEquiv (a, false)
-  · rw [if_pos hq]
+  · rw [ite_eq_left hq]
     have hsym : teleportOutcomeEquiv.symm q.1 = (a, false) := by
       rw [hq, Equiv.symm_apply_apply]
-    rw [hsym, rawNetworkWireGateB_mulVec_ket, if_pos rfl]
+    rw [hsym, rawNetworkWireGateB_mulVec_ket, ite_eq_left rfl]
     exact mul_assoc _ _ _
-  · rw [if_neg hq]
+  · rw [ite_eq_right hq]
     by_cases h1 : (teleportOutcomeEquiv.symm q.1).1 = a
     · have h2 : (fun k : Fin n => if k = i then (teleportOutcomeEquiv.symm q.1).2
               else ((bitVecEquiv n).symm q.2) k)
@@ -595,10 +598,10 @@ theorem rawNetworkWireLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Boo
         intro hf
         have hi := congrFun hf i
         simp only [] at hi
-        simp only [if_true] at hi
+        simp only [ite_true] at hi
         exact hq ((Equiv.symm_apply_eq teleportOutcomeEquiv).mp (Prod.ext h1 hi))
-      rw [if_pos h1, if_neg h2, mul_zero]
-    · rw [if_neg h1, zero_mul]
+      rw [ite_eq_left h1, ite_eq_right h2, mul_zero]
+    · rw [ite_eq_right h1, zero_mul]
 
 /-- On a matrix unit, the raw wire step is one half of conjugation by `rawNetworkWireGate`. -/
 theorem rawNetworkWireBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
@@ -617,8 +620,8 @@ theorem rawNetworkWireBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
           • (if q.1 = teleportOutcomeEquiv (a, false) then V q.2 else 0) := by
     intro V q
     by_cases hq : q.1 = teleportOutcomeEquiv (a, false)
-    · rw [if_pos hq, if_pos hq, smul_eq_mul]
-    · rw [if_neg hq, if_neg hq, smul_eq_mul, mul_zero]
+    · rw [ite_eq_left hq, ite_eq_left hq, smul_eq_mul]
+    · rw [ite_eq_right hq, ite_eq_right hq, smul_eq_mul, mul_zero]
   have hsmul : ∀ V : QState (Fin (2 ^ n)),
       (fun q : Fin 4 × Fin (2 ^ n) =>
           if q.1 = teleportOutcomeEquiv (a, false)
@@ -651,7 +654,7 @@ theorem rawNetworkWireBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     rw [applyGate_relabelGate]
     rfl
   simp only [rawNetworkStepCore]
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   rw [networkFrame_matUnit, matOuter_sandwich, relabelGate_matOuter_fwd,
     hAx x, hAx y,
     rawNetworkWireLeaf_firstFactor, rawNetworkWireLeaf_firstFactor,
@@ -732,12 +735,12 @@ theorem wireFrameTransport_network (n : ℕ) (i : Fin n) (ζ : ℂ) (hζ : ‖ζ
   by_cases hj : j = i
   · subst j
     simpa [c, frameUpdate] using wireFrameTransport ζ hζ (F.1 i) (F.2 i) a
-  · simp [c, frameUpdate, Function.update_of_ne hj, hj]
+  · simp [c, frameUpdate,  hj]
 
 /-- The wire frame transport scalar has norm one whenever `ζ` has norm one. -/
 theorem wireFramePhase_norm (ζ : ℂ) (hζ : ‖ζ‖ = 1) (x z : Bool) :
     ‖wireFramePhase ζ x z‖ = 1 := by
-  cases x <;> cases z <;> simp [wireFramePhase, norm_mul, hζ]
+  cases x <;> cases z <;> simp [wireFramePhase,  hζ]
 
 /-- Multiplying a conjugating operator by a unit-norm scalar leaves its conjugation map
 unchanged. -/
@@ -765,7 +768,7 @@ theorem deferred_wire_actual_frame_transport (n : ℕ) (i : Fin n) (ζ : ℂ)
   have hm : ∀ (A B : Operator (2 ^ n)), conjBranch A (conjBranch B ρ) =
       conjBranch (A * B) ρ := by
     intro A B
-    simp [conjBranch_apply, Matrix.conjTranspose_mul, Matrix.mul_assoc]
+    simp [ Matrix.conjTranspose_mul, Matrix.mul_assoc]
   rw [hm, wireFrameTransport_network n i ζ hζ F a,
     deferred_conj_phase _ (wireFramePhase_norm ζ hζ (F.1 i) (F.2 i))]
 
@@ -872,7 +875,7 @@ theorem frameLocal_entry (x z w v : Bool) :
       (if w = (v ^^ x) then (1 : ℂ) else 0) * frameBitSign z v := by
   cases x <;> cases z <;> cases w <;> cases v <;>
     simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply,
-      Matrix.mul_apply, Fintype.sum_bool, PauliX, PauliZ, permMatrix, boolEquivFin2, frameBitSign]
+      Matrix.mul_apply,  PauliX, PauliZ, permMatrix, boolEquivFin2, frameBitSign]
 
 /-- A Boolean-register frame matrix entry is `frameSign F v` when the output is `frameShift F
 v`, and zero otherwise. -/
@@ -887,15 +890,15 @@ theorem pauliFrameGateB_entry {n : ℕ} (F : PauliFrame n) (w v : Reg n) :
       if w = frameShift F v then 1 else 0 := by
     by_cases hw : w = frameShift F v
     · have hb : ∀ i, w i = (v i ^^ F.1 i) := fun i => congrFun hw i
-      simp [hb, hw, frameShift]
+      simp [ hw, frameShift]
     · have hb : ∃ i, w i ≠ (v i ^^ F.1 i) := by
         by_contra h
         push Not at h
         exact hw (funext h)
       obtain ⟨i, hb⟩ := hb
-      rw [if_neg hw]
+      rw [ite_eq_right hw]
       apply Finset.prod_eq_zero (Finset.mem_univ i)
-      exact if_neg hb
+      exact ite_eq_right hb
   rw [hi]
   by_cases hw : w = frameShift F v <;> simp [hw, frameSign]
 
@@ -925,8 +928,8 @@ theorem rawNetworkCZGateB_mulVec_ket {n : ℕ} (lo hi : Fin n) (a d : Bool) (w v
     (rawNetworkCZGateB lo hi a d *ᵥ Qatlib.Foundations.PureStateMath.Ket v) w =
       if w = rawCZShift lo hi a d v then (if w lo && w hi then (-1 : ℂ) else 1) else 0 := by
   simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
-  rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
-    if_pos rfl, mul_one, rawNetworkCZGateB_entry]
+  rw [Fintype.sum_eq_single v (fun u hu => by rw [ite_eq_right hu, mul_zero]),
+    ite_eq_left rfl, mul_one, rawNetworkCZGateB_entry]
 
 /-- For ordered distinct endpoints, the raw CZ bit shift preserves every spectator coordinate
 enumerated by `networkCzSpec`. -/
@@ -1078,10 +1081,10 @@ theorem rawNetworkCZLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) 
                 ((bitVecEquiv n).symm q.2))
           else 0)
   by_cases hq : q.1 = teleportOutcomeEquiv (a, d)
-  · rw [if_pos hq]
+  · rw [ite_eq_left hq]
     have hsym : teleportOutcomeEquiv.symm q.1 = (a, d) := by
       rw [hq, Equiv.symm_apply_apply]
-    rw [hsym, if_pos rfl, rawCZEntry, rawNetworkCZGateB_mulVec_ket]
+    rw [hsym, ite_eq_left rfl, rawCZEntry, rawNetworkCZGateB_mulVec_ket]
     by_cases hc1 : (((bitVecEquiv n).symm q.2) lo, ((bitVecEquiv n).symm q.2) hi)
         = (((bitVecEquiv n).symm x) lo ^^ a, ((bitVecEquiv n).symm x) hi ^^ d)
     · by_cases hc2 : (fun k : Fin (n - 2) =>
@@ -1090,18 +1093,18 @@ theorem rawNetworkCZLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) 
         = (fun k : Fin (n - 2) =>
           ((bitVecEquiv n).symm x) ⟨networkCzSpec (lo : ℕ) (hi : ℕ) (k : ℕ),
             networkCzSpec_lt n (lo : ℕ) (hi : ℕ) (k : ℕ) h1 hi.isLt k.isLt⟩)
-      · rw [if_pos hc1, if_pos hc2, mul_one]
-        rw [if_pos ((rawCZSupport_split lo hi h1 a d _ _).mpr ⟨hc1, hc2⟩)]
-      · rw [if_pos hc1, if_neg hc2, mul_zero]
-        rw [if_neg (fun hw => hc2 ((rawCZSupport_split lo hi h1 a d _ _).mp hw).2), mul_zero]
-    · rw [if_neg hc1, mul_zero, zero_mul,
-        if_neg (fun hw => hc1 ((rawCZSupport_split lo hi h1 a d _ _).mp hw).1), mul_zero]
+      · rw [ite_eq_left hc1, ite_eq_left hc2, mul_one]
+        rw [ite_eq_left ((rawCZSupport_split lo hi h1 a d _ _).mpr ⟨hc1, hc2⟩)]
+      · rw [ite_eq_left hc1, ite_eq_right hc2, mul_zero]
+        rw [ite_eq_right (fun hw => hc2 ((rawCZSupport_split lo hi h1 a d _ _).mp hw).2), mul_zero]
+    · rw [ite_eq_right hc1, mul_zero, zero_mul,
+        ite_eq_right (fun hw => hc1 ((rawCZSupport_split lo hi h1 a d _ _).mp hw).1), mul_zero]
   · have hpairne : ¬(((teleportOutcomeEquiv.symm q.1).1, (teleportOutcomeEquiv.symm q.1).2)
         = (a, d)) := by
       intro hp
       exact hq ((Equiv.symm_apply_eq teleportOutcomeEquiv).mp
         (Prod.ext (congrArg Prod.fst hp) (congrArg Prod.snd hp)))
-    rw [if_neg hpairne, zero_mul, if_neg hq]
+    rw [ite_eq_right hpairne, zero_mul, ite_eq_right hq]
 
 /-- For distinct CZ endpoints, the raw step on a matrix unit equals one quarter of conjugation
 by the raw CZ operator with canonically ordered endpoints. -/
@@ -1125,8 +1128,8 @@ theorem rawNetworkCZBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j
           • (if q.1 = teleportOutcomeEquiv (a, d) then V q.2 else 0) := by
     intro V q
     by_cases hq : q.1 = teleportOutcomeEquiv (a, d)
-    · rw [if_pos hq, if_pos hq, smul_eq_mul]
-    · rw [if_neg hq, if_neg hq, smul_eq_mul, mul_zero]
+    · rw [ite_eq_left hq, ite_eq_left hq, smul_eq_mul]
+    · rw [ite_eq_right hq, ite_eq_right hq, smul_eq_mul, mul_zero]
   have hsmul : ∀ V : QState (Fin (2 ^ n)),
       (fun q : Fin 4 × Fin (2 ^ n) =>
           if q.1 = teleportOutcomeEquiv (a, d)
@@ -1170,7 +1173,7 @@ theorem rawNetworkCZBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j
     rw [applyGate_relabelGate]
     rfl
   simp only [rawNetworkStepCore]
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   rw [networkFrame_matUnit, matOuter_sandwich, relabelGate_matOuter_fwd,
     hAx x, hAx y,
     rawNetworkCZLeaf_firstFactor, rawNetworkCZLeaf_firstFactor,
@@ -1219,10 +1222,10 @@ theorem czFrameResult_shift {n : ℕ} (F : PauliFrame n) (lo hi : Fin n)
   funext k
   by_cases hl : k = lo
   · subst k
-    simp [frameShift, czFrameResult, rawCZShift, Bool.xor_assoc]
+    simp [frameShift, czFrameResult, rawCZShift]
   · by_cases hh : k = hi
     · subst k
-      simp [frameShift, czFrameResult, rawCZShift, hl, Bool.xor_assoc]
+      simp [frameShift, czFrameResult, rawCZShift, hl]
     · simp [frameShift, czFrameResult, rawCZShift, hl, hh]
 
 /-- For distinct endpoints, the updated frame sign equals the input frame sign times the two
@@ -1240,10 +1243,10 @@ theorem czFrameResult_sign {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo
     intro k
     by_cases hk : k = lo
     · subst k
-      simp [czFrameResult, hn, ← frameBitSign_xor, Bool.xor_assoc]
+      simp [czFrameResult, hn, ← frameBitSign_xor]
     · by_cases hh : k = hi
       · subst k
-        simp [czFrameResult, hk, ← frameBitSign_xor, Bool.xor_assoc]
+        simp [czFrameResult, hk, ← frameBitSign_xor]
       · simp [czFrameResult, hk, hh]
   unfold frameSign
   simp_rw [hl]
@@ -1262,13 +1265,13 @@ theorem czFrameTransportB {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo 
   have hv : ∀ u : Reg n, u ≠ frameShift F v →
       rawNetworkCZGateB lo hi a d w u * pauliFrameGateB F u v = 0 := by
     intro u hu
-    rw [pauliFrameGateB_entry, if_neg hu, mul_zero]
+    rw [pauliFrameGateB_entry, ite_eq_right hu, mul_zero]
   rw [Matrix.mul_apply, Fintype.sum_eq_single (frameShift F v) hv,
-    pauliFrameGateB_entry, if_pos rfl, rawNetworkCZGateB_entry]
+    pauliFrameGateB_entry, ite_eq_left rfl, rawNetworkCZGateB_entry]
   simp only [Matrix.smul_apply, smul_eq_mul, networkCzGateB, Matrix.mul_diagonal]
   rw [pauliFrameGateB_entry, czFrameResult_shift, czFrameResult_sign F lo hi hn]
   by_cases hw : w = rawCZShift lo hi a d (frameShift F v)
-  · rw [if_pos hw, if_pos hw]
+  · rw [ite_eq_left hw, ite_eq_left hw]
     have hlo : w lo = ((v lo ^^ F.1 lo) ^^ a) := by
       rw [hw]
       simp [rawCZShift, frameShift]
@@ -1278,8 +1281,8 @@ theorem czFrameTransportB {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo 
     rw [hlo, hhi]
     cases hx : F.1 lo <;> cases hz : F.1 hi <;> cases a <;> cases d <;>
       cases vl : v lo <;> cases vh : v hi <;>
-      simp [frameBitSign, hx, hz, vl, vh] <;> ring
-  · rw [if_neg hw, if_neg hw]
+      simp [frameBitSign]
+  · rw [ite_eq_right hw, ite_eq_right hw]
     simp
 
 /-- For distinct endpoints, a raw CZ step on a framed input equals one quarter of conjugation by
@@ -1391,7 +1394,7 @@ theorem deferred_pauli_actual_history_linear_branch :
       simp only [deferredHistoryBranch, LinearMap.comp_apply]
       rw [hstep]
       by_cases hV1 : networkBranchValid [g] (fun _ => hist 0)
-      · rw [if_pos hV1, map_smul]
+      · rw [ite_eq_left hV1, map_smul]
         have hf : conjBranch (pauliFrameGate n (frameUpdate F g (hist 0)) * networkLogicalMatrix [g]) ρ =
             conjBranch (pauliFrameGate n (frameUpdate F g (hist 0)))
               (conjBranch (networkLogicalMatrix [g]) ρ) :=
@@ -1402,15 +1405,15 @@ theorem deferred_pauli_actual_history_linear_branch :
             rw [conjBranch_comp]
         rw [hf, (ih ((fun k => hist k.succ)) (frameUpdate F g (hist 0)) ht).2]
         by_cases hV2 : networkBranchValid gs ((fun k => hist k.succ))
-        · rw [if_pos hV2,
-            if_pos ((networkBranchValid_cons g gs hist).mpr ⟨hV1, hV2⟩),
+        · rw [ite_eq_left hV2,
+            ite_eq_left ((networkBranchValid_cons g gs hist).mpr ⟨hV1, hV2⟩),
             smul_smul, ← pow_add, networkCounts_cons g gs, networkLogicalMatrix_cons' g gs, finalPauliFrame]
           rw [deferredConj_comp_apply, Matrix.mul_assoc]
 
-        · rw [if_neg hV2, smul_zero,
-            if_neg (fun hv => hV2 ((networkBranchValid_cons g gs hist).mp hv).2)]
-      · rw [if_neg hV1, map_zero,
-          if_neg (fun hv => hV1 ((networkBranchValid_cons g gs hist).mp hv).1)]
+        · rw [ite_eq_right hV2, smul_zero,
+            ite_eq_right (fun hv => hV2 ((networkBranchValid_cons g gs hist).mp hv).2)]
+      · rw [ite_eq_right hV1, map_zero,
+          ite_eq_right (fun hv => hV1 ((networkBranchValid_cons g gs hist).mp hv).1)]
 
 /-- Every Pauli frame operator belongs to the unitary group on `Fin (2 ^ n)`. -/
 theorem pauliFrameGate_unitary (n : ℕ) (F : PauliFrame n) :
@@ -1475,8 +1478,8 @@ theorem deferredCorrectedBranch_eq {n : ℕ} (gs : List (ClusterNetworkGate n))
   intro ρ
   rw [LinearMap.comp_apply, deferredHistoryBranch_zero_formula gs hist hgs ρ]
   by_cases hv : networkBranchValid gs hist
-  · rw [if_pos hv, if_pos hv, map_smul]
-    change _ = _
+  · rw [ite_eq_left hv, ite_eq_left hv, map_smul]
+
     have hc : conjBranch Pᴴ (conjBranch (P * networkLogicalMatrix gs) ρ) =
         conjBranch (networkLogicalMatrix gs) ρ := by
       show ((conjBranch Pᴴ).comp (conjBranch (P * networkLogicalMatrix gs))) ρ = _

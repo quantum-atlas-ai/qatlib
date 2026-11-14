@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.ApproxGibbs
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpStep2SampledOracle
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfaces
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+module
+
+public import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpStep2SampledOracle
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfaces
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+@[expose] public section
 
 /-!
 # Matrix optimization rounds and compilation ledgers

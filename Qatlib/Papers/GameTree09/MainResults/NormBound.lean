@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GameTree09.MainResults.Composition
+module
+
+public import Qatlib.Papers.GameTree09.MainResults.Composition
+
+@[expose] public section
 
 /-!
 # Operator norm bound for OR composition

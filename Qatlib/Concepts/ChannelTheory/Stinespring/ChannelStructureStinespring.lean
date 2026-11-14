@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+
+@[expose] public section
 
 /-!
 # Finite Stinespring dilations and unitary completion
@@ -79,16 +83,16 @@ theorem exists_unitary_extend_cols {ι : Type} [Fintype ι] [DecidableEq ι] {d 
     have he : equiv j = (⟨emb j, Set.mem_range_self j⟩ : Set.range emb) :=
       Equiv.ofInjective_apply emb hemb j
     show (if h : emb j ∈ Set.range emb then w (equiv.symm ⟨emb j, h⟩) else 0) = w j
-    rw [dif_pos (Set.mem_range_self j)]
+    rw [dite_eq_left (Set.mem_range_self j)]
     have h2 : (⟨emb j, _⟩ : Set.range emb) = equiv j := he.symm
     rw [h2]
     exact congrArg w (equiv.symm_apply_apply j)
-  have hv : Orthonormal ℂ ((Set.range emb).restrict v) := by
-    have hre : (Set.range emb).restrict v = w ∘ equiv.symm := by
+  have hv : Orthonormal ℂ ((Set.range emb).domRestrict v) := by
+    have hre : (Set.range emb).domRestrict v = w ∘ equiv.symm := by
       funext x
       show (if x.val ∈ Set.range emb then w (equiv.symm ⟨x.val, x.property⟩) else 0)
         = w (equiv.symm x)
-      exact dif_pos x.property
+      exact dite_eq_left x.property
     rw [hre]
     exact Orthonormal.comp hw equiv.symm (Equiv.injective equiv.symm)
   obtain ⟨b, hb⟩ := Orthonormal.exists_orthonormalBasis_extension_of_card_eq
@@ -116,7 +120,7 @@ theorem sum_fin_lt {env dOut : ℕ} (henv : env ≤ dOut) {β : Type} [AddCommMo
       = ∑ k : Fin dOut, if hk : k.val < env then G k hk else 0 :=
     Finset.sum_subset (Finset.filter_subset _ _) (fun k _ hnk => by
       have : ¬ (k.val < env) := fun hp => hnk (Finset.mem_filter.mpr ⟨Finset.mem_univ k, hp⟩)
-      exact dif_neg this)
+      exact dite_eq_right this)
   rw [← hsub]
   symm
   refine Finset.sum_bij (fun k _ => (⟨k.val, lt_of_lt_of_le k.isLt henv⟩ : Fin dOut)) ?_ ?_ ?_ ?_
@@ -129,7 +133,7 @@ theorem sum_fin_lt {env dOut : ℕ} (henv : env ≤ dOut) {β : Type} [AddCommMo
     obtain ⟨_, hlt⟩ := Finset.mem_filter.mp hk
     exact ⟨⟨k.val, hlt⟩, Finset.mem_univ _, rfl⟩
   · intro k _
-    exact (dif_pos k.isLt).symm
+    exact (dite_eq_left k.isLt).symm
 
 /-- The matrix obtained by extending the environment rows of `V` by zero to dimension `dOut`. -/
 noncomputable def padV {D E env dOut : ℕ} (_henv : env ≤ dOut)
@@ -157,16 +161,16 @@ theorem padV_mulVec {D E env dOut : ℕ} (henv : env ≤ dOut)
   show (∑ j, padV henv V x j * ψ j) = envPad henv (V *ᵥ ψ) x
   by_cases hx : x.2.val < env
   · have h1 : ∀ j : Fin D, padV henv V x j = V (x.1, ⟨x.2.val, hx⟩) j := fun j => by
-      rw [padV_apply, dif_pos hx]
+      rw [padV_apply, dite_eq_left hx]
     have h2 : envPad henv (V *ᵥ ψ) x = (V *ᵥ ψ) (x.1, ⟨x.2.val, hx⟩) := by
-      rw [envPad_apply, dif_pos hx]
+      rw [envPad_apply, dite_eq_left hx]
     rw [show (∑ j, padV henv V x j * ψ j) = (∑ j, V (x.1, ⟨x.2.val, hx⟩) j * ψ j) by
       simp only [h1], h2]
     rfl
   · have h1 : ∀ j : Fin D, padV henv V x j = 0 := fun j => by
-      rw [padV_apply, dif_neg hx]
+      rw [padV_apply, dite_eq_right hx]
     have h2 : envPad henv (V *ᵥ ψ) x = 0 := by
-      rw [envPad_apply, dif_neg hx]
+      rw [envPad_apply, dite_eq_right hx]
     rw [show (∑ j, padV henv V x j * ψ j) = 0 by simp [h1], h2]
 
 /-- Padding the environment rows by zero preserves the Gram matrix `Vᴴ * V`. -/
@@ -183,8 +187,8 @@ theorem padV_conjTranspose_mul {D E env dOut : ℕ} (henv : env ≤ dOut)
     intro k
     rw [padV_apply, padV_apply]
     by_cases hk : k.val < env
-    · rw [dif_pos hk, dif_pos hk, dif_pos hk]
-    · rw [dif_neg hk, dif_neg hk, dif_neg hk, star_zero, zero_mul]
+    · rw [dite_eq_left hk, dite_eq_left hk, dite_eq_left hk]
+    · rw [dite_eq_right hk, dite_eq_right hk, dite_eq_right hk, star_zero, zero_mul]
   simp only [hterm]
   exact sum_fin_lt henv (fun k hk => star (V (a, ⟨k.val, hk⟩) i) * V (a, ⟨k.val, hk⟩) j)
 
@@ -297,7 +301,7 @@ theorem cleanEnv_pos_dim {D E env : ℕ}
         simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.zero_apply]
         exact Finset.sum_eq_zero (fun x _ => Fin.elim0 x.1)
       rw [hz] at hV
-      have h1 : (1 : Operator D) ⟨0, hD⟩ ⟨0, hD⟩ = (1 : ℂ) := by simp [Matrix.one_apply]
+      have h1 : (1 : Operator D) ⟨0, hD⟩ ⟨0, hD⟩ = (1 : ℂ) := by simp []
       have h2 : (0 : Operator D) ⟨0, hD⟩ ⟨0, hD⟩ = (0 : ℂ) := by simp
       rw [← hV] at h1
       exact absurd h1 (by norm_num)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.Risk
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.FiniteDraw
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.Risk
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.FiniteDraw
+
+@[expose] public section
 
 /-!
 # Initialized online minimum-finding runs
@@ -88,7 +92,7 @@ theorem initializedRun_failure_le_risk {L : ℕ} (cost : I → ℝ) (rank : I �
   have hraw : (initializedRun cost p oracle fuel B initialFee fallback).mean
       (physicalFailure (fun i => (rank i).val))≤
       rt.probability (fun tr => tr.oracleBad=true ∨ B < initialFee+paid tr) := by
-    rw [initializedRun,if_pos hinit,Tree.mean_map]
+    rw [initializedRun,ite_eq_left hinit,Tree.mean_map]
     change (Tree.sampleF p (fun current => run cost current (B-initialFee)
       (minimumCode oracle fuel current))).mean (physicalFailure (fun i => (rank i).val))≤_
     rw [Tree.mean_sampleF]

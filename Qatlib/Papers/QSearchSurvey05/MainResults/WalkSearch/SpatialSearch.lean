@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalAfas
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoal
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Search bounds on finite grids

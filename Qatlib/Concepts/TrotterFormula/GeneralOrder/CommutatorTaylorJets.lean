@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+
+@[expose] public section
 
 /-!
 # Taylor jets of conjugation words
@@ -66,18 +70,18 @@ theorem pfConjTrunc_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p j :
       (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤)))]
   simp_rw [pf_monomial_jet]
   by_cases hj : j<p
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     let k : Fin p := ⟨j,hj⟩
     have he (n : Fin p) : (j=n.val)↔n=k := by
       constructor
       · intro h;exact Fin.ext h.symm
       · intro h;subst n;rfl
-    simp only [he,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+    simp only [he,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
     rfl
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     apply Finset.sum_eq_zero
     intro n _
-    rw [if_neg (by have hn:=n.isLt;omega : ¬j=n.val)]
+    rw [ite_eq_right (by have hn:=n.isLt;omega : ¬j=n.val)]
 
 /-- The difference between a conjugation word and its degree-below-`p` truncation has
 `trotterOrder` at least `p`. -/
@@ -110,7 +114,7 @@ theorem pfConjWord_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (j : �
   rw [iteratedDeriv_fun_sub ((pfConjWord_contDiff xs B).contDiffAt.of_le
       (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤)))
     ((pfConjTrunc_contDiff xs B (j+1)).contDiffAt.of_le
-      (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤))),pfConjTrunc_jet,if_pos (by omega : j<j+1)] at hR
+      (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤))),pfConjTrunc_jet,ite_eq_left (by omega : j<j+1)] at hR
   exact sub_eq_zero.mp hR
 
 /-- The Taylor polynomial of the conjugation word through degrees below `p` equals `pfConjTrunc

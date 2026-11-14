@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,7 +66,7 @@ which is the source's Lemma 5.  The statement is made in the `ℓ²` norm
 (`EuclideanSpace ℂ ι`) over a finite orthonormal branch basis `ι`. -/
 theorem source_lemma5 {ι : Type} [Fintype ι]
     (ψg ψb target : EuclideanSpace ℂ ι) (m : ℕ) (ε δ : ℝ)
-    (hε : 0 ≤ ε) (hδ : 0 ≤ δ)
+    (_hε : 0 ≤ ε) (_hδ : 0 ≤ δ)
     (hgood : ‖ψg - target‖ ≤ ((2 * (m : ℝ) + 37) * ε) * ‖target‖)
     (hbad : ‖ψb‖ ≤ (30 * δ) * ‖target‖) :
     ‖(ψg + ψb) - target‖ ≤ ((2 * (m : ℝ) + 37) * ε + 30 * δ) * ‖target‖ := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveFiniteTape
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveFiniteTape
+
+@[expose] public section
 
 /-!
 # A union bound for adaptive finite tapes
@@ -77,12 +81,12 @@ theorem adaptiveTape_bad_card_bound {A X State : Type} [Fintype A] [DecidableEq 
           have hh:= (Finset.mem_filter.mp hr).2
           simp only [adaptiveTapeGood,extendCoordinate_self,not_and_or] at hh
           rcases hh with hc | ht
-          · exact Finset.mem_union_left _ (by rw [if_pos hc];exact Finset.mem_univ _)
+          · exact Finset.mem_union_left _ (by rw [ite_eq_left hc];exact Finset.mem_univ _)
           · exact Finset.mem_union_right _ (Finset.mem_filter.mpr ⟨Finset.mem_univ _,ht⟩)
         have hh:=(Finset.card_le_card hs).trans (Finset.card_union_le _ _)
         by_cases hc : ¬correct a s x
-        · simpa only [if_pos hc,Finset.card_univ] using hh
-        · simpa only [if_neg hc,Finset.card_empty] using hh
+        · simpa only [ite_eq_left hc,Finset.card_univ] using hh
+        · simpa only [ite_eq_right hc,Finset.card_empty] using hh
       apply (Finset.sum_le_sum (fun x _=>hOne x)).trans_eq
       rw [Finset.sum_add_distrib]
       simp only [← Finset.sum_filter,Finset.sum_const,nsmul_eq_mul,Nat.cast_id]

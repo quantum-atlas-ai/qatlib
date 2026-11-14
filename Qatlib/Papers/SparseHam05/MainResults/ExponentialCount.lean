@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseHam05.MainResults.SuzukiError
+module
+
+public import Qatlib.Papers.SparseHam05.MainResults.SuzukiError
+
+@[expose] public section
 
 /-!
 # Exponential counts for recursive Suzuki simulation
@@ -351,7 +355,7 @@ theorem source_theorem1_exponential_count {I : Type} [Fintype I] [DecidableEq I]
     · exfalso
       have hc : (0 : ℝ) < 2 * (hs.length : ℝ) * (5 : ℝ) ^ (k - 1) := by positivity
       nlinarith [hτ, hle, hc]
-    · push_neg at hle
+    · push Not at hle
       exact hle
   have hτ' : 1 ≤ 2 * (hs.length : ℝ) * (5 : ℝ) ^ (k - 1) * (‖hs.sum‖ * t) := by
     linarith only [hτ]

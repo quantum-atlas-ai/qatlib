@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
-import Qatlib.Papers.MonteCarloInt20.MainResults.CleanWorkspace
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
+public import Qatlib.Papers.MonteCarloInt20.MainResults.CleanWorkspace
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
+
+@[expose] public section
 
 /-!
 # Reversible storage of coordinate term codes

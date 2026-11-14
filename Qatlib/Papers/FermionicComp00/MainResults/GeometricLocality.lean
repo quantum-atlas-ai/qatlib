@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 /-!
 # Graph locality and encoded gate representations

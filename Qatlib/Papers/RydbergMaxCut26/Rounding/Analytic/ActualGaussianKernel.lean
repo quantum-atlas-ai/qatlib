@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceMomentBound
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceAffineIntegral
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceEulerChart
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.TiltedSource
-import Qatlib.Papers.RydbergMaxCut26.RatioBounds.EulerIntegral
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceMomentBound
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceAffineIntegral
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceEulerChart
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.TiltedSource
+public import Qatlib.Papers.RydbergMaxCut26.RatioBounds.EulerIntegral
+
+@[expose] public section
 
 /-!
 # From Gaussian Laplace moments to the rounding kernel

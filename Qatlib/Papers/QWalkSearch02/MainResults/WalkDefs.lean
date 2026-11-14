@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Hypercube search walk and radial definitions

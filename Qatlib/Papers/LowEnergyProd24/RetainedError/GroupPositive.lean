@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
+
+@[expose] public section
 
 /-!
 # Retained bounds under positivity of Hamiltonian groups

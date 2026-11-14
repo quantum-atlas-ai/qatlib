@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+module
+
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+
+@[expose] public section
 
 /-!
 # The stationary-weight discriminant matrix

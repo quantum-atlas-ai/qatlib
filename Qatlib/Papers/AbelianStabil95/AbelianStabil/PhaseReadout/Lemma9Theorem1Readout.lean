@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
-import Qatlib.Concepts.HspRecovery.KitaevReadout.PhaseEstimationExactSubgoalQuan
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.PhaseEstimationExactSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Eigenphase estimation and exact grid readout

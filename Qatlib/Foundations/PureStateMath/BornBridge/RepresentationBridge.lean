@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Bridges between vectors, Euclidean states, and operators
@@ -81,6 +85,7 @@ theorem toEuclidean_fromVec_toVec_fromEuclidean (x : EuclideanSpace ℂ I) :
     toEuclidean_fromVec (toVec_fromEuclidean x) = x := rfl
 
 omit [DecidableEq I] in
+
 /-- The Euclidean inner product of converted states equals their Qatlib inner product `Inner`. -/
 theorem inner_euclidean_fromVec (ψ φ : QState I) :
     inner ℂ (toEuclidean_fromVec ψ) (toEuclidean_fromVec φ) = Inner ψ φ := by
@@ -96,6 +101,8 @@ theorem norm_toEuclidean_fromVec_sq (v : QState I) :
   rw [EuclideanSpace.norm_sq_eq]
   exact Finset.sum_congr rfl fun i _ => rfl
 
+omit [DecidableEq I] in
+
 /-- The squared Euclidean norm of a converted state equals the real part of its self-inner
 product. -/
 theorem norm_toEuclidean_sq_eq_re_inner (v : QState I) :
@@ -104,6 +111,7 @@ theorem norm_toEuclidean_sq_eq_re_inner (v : QState I) :
   simp only [Complex.ofReal_re]
 
 omit [DecidableEq I] in
+
 /-- A state is normalized exactly when its Euclidean representation has norm one. -/
 theorem normalized_iff_norm_toEuclidean_fromVec (v : QState I) :
     Normalized v ↔ ‖toEuclidean_fromVec v‖ = 1 := by
@@ -252,6 +260,7 @@ theorem applyGate_relabelGate (e : I ≃ J) (U : Matrix I I ℂ) (v : QState I) 
   exact e.symm.sum_comp fun k => U (e.symm i) k * v k
 
 omit [DecidableEq I] [DecidableEq J] in
+
 /-- Relabeling both states by the same basis equivalence preserves their Qatlib inner product. -/
 theorem inner_relabelState (e : I ≃ J) (v w : QState I) :
     Inner (relabelState e v) (relabelState e w) = Inner v w := by
@@ -259,6 +268,7 @@ theorem inner_relabelState (e : I ≃ J) (v w : QState I) :
   exact e.symm.sum_comp fun k => (starRingEnd ℂ) (v k) * w k
 
 omit [DecidableEq I] in
+
 /-- The Qatlib inner product is conjugate symmetric. -/
 theorem inner_conj_symm (ψ φ : QState I) :
     Inner ψ φ = (starRingEnd ℂ) (Inner φ ψ) := by
@@ -270,6 +280,8 @@ theorem inner_conj_symm (ψ φ : QState I) :
         have h : (starRingEnd ℂ) ((starRingEnd ℂ) (φ i)) = φ i := star_star (φ i)
         rw [map_mul, h]
         ring]
+
+omit [DecidableEq I] [DecidableEq J] in
 
 /-- Relabeling the basis of a normalized state preserves normalization. -/
 theorem normalized_relabelState (e : I ≃ J) {v : QState I} (h : Normalized v) :
@@ -295,6 +307,8 @@ theorem measureProb_relabelState (e : I ≃ J) (v : QState I) (S : Finset I) :
   refine Finset.sum_congr rfl fun i _ => ?_
   show BornProb v (e.symm (e i)) = BornProb v i
   rw [Equiv.symm_apply_apply]
+
+omit [DecidableEq I] [DecidableEq J] in
 
 /-- The Born distribution of a relabeled normalized state is the pushforward of the original
 Born distribution along the basis equivalence. -/
@@ -391,6 +405,7 @@ theorem relabelGate_prodComm (U : Matrix I I ℂ) (V : Matrix J J ℂ) :
   ring
 
 omit [DecidableEq I] [DecidableEq J] [DecidableEq K] in
+
 /-- After reassociating indices, applying three tensor-product gates to three tensor-product
 states equals the tensor product of the three separate gate actions. -/
 theorem applyGate_tensorGate_prodAssoc (U : Matrix I I ℂ) (V : Matrix J J ℂ)
@@ -401,6 +416,7 @@ theorem applyGate_tensorGate_prodAssoc (U : Matrix I I ℂ) (V : Matrix J J ℂ)
   rw [applyGate_tensorGate, applyGate_tensorGate, relabelState_prodAssoc]
 
 omit [DecidableEq I] [DecidableEq J] in
+
 /-- After swapping indices, applying a two-factor tensor gate to a tensor state equals the
 tensor product of the two separate gate actions in reversed order. -/
 theorem applyGate_tensorGate_prodComm (U : Matrix I I ℂ) (V : Matrix J J ℂ)
@@ -424,6 +440,7 @@ theorem outerProduct_isHermitian (ψ : QState I) : (outerProduct ψ).IsHermitian
 open scoped ComplexOrder in
 
 omit [DecidableEq I] in
+
 /-- The outer product of any finite state vector is positive semidefinite. -/
 theorem outerProduct_posSemidef (ψ : QState I) : (outerProduct ψ).PosSemidef := by
   refine ⟨outerProduct_isHermitian ψ, ?_⟩
@@ -482,6 +499,8 @@ theorem trace_outerProduct (ψ : QState I) :
   exact hterm i
 
 open scoped ComplexOrder in
+
+omit [DecidableEq I] in
 
 /-- The outer product of a normalized state is positive semidefinite and has trace one. -/
 theorem outerProduct_density {ψ : QState I} (hψ : Normalized ψ) :

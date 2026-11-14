@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphCollis13.QueryBound.Model.GraphCollisionModel
-import Qatlib.Papers.GraphCollis13.TreeDecomp.SourceTreewidthDecomposition
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GraphCollis13.QueryBound.Model.GraphCollisionModel
+public import Qatlib.Papers.GraphCollis13.TreeDecomp.SourceTreewidthDecomposition
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -235,9 +239,9 @@ with the standard Grover iterate and the Belovs subroutine, proving
 `QueryCount C ≤ treewidthQueryBudget n t` and the `1/3` success bound by
 amplification.  The arithmetic part is fully proved as
 `treewidthQueryBudget_le`. -/
-def theorem1_treewidth_algorithm (n t : ℕ) (ht : 0 < t) (htn : t < n)
-    (adj : Fin n → Fin n → Bool) (hsymm : ∀ u v : Fin n, adj u v = adj v u)
-    (htw : HasTreewidthAtMost (adjGraph adj) t) : Prop :=
+def theorem1_treewidth_algorithm (n t : ℕ) (_ht : 0 < t) (_htn : t < n)
+    (adj : Fin n → Fin n → Bool) (_hsymm : ∀ u v : Fin n, adj u v = adj v u)
+    (_htw : HasTreewidthAtMost (adjGraph adj) t) : Prop :=
     ∃ q : ℕ, GraphCollisionQueryUpperBound adj q ∧
       (q : ℝ) ≤ 24 * Real.sqrt (n : ℝ) * (t : ℝ) ^ ((1 : ℝ) / 6)
 

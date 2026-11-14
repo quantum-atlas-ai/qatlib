@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.BitVec
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.BitVec
+
+@[expose] public section
 
 /-!
 # LCU coefficients and sparse lookup addresses

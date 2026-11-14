@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+
+@[expose] public section
 
 /-!
 # Phase words for near optimal inversion

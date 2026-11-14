@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
+
+@[expose] public section
 
 /-!
 # Statement of amplified reset-and-discard segmentation

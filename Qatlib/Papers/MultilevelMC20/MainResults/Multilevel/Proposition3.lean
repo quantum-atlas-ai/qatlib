@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,12 +65,12 @@ theorem proposition3_general {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ} {q s : 
   · intro hr1
     have hexp : classicalMLMCExponent r r 1 = 2 := by
       unfold classicalMLMCExponent
-      rw [if_pos hr1]
+      rw [ite_eq_left hr1]
     rwa [hexp] at h
   · intro hr1
     have hexp : classicalMLMCExponent r r 1 = 1 + 1 / r := by
       unfold classicalMLMCExponent
-      rw [if_neg (not_lt.mpr hr1)]
+      rw [ite_eq_right (not_lt.mpr hr1)]
       field_simp
       ring
     rw [hexp] at h
@@ -83,12 +87,12 @@ theorem proposition3_lipschitz {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ} {q s 
   · intro hr1
     have hexp : classicalMLMCExponent r (2 * r) 1 = 2 := by
       unfold classicalMLMCExponent
-      rw [if_pos (by linarith)]
+      rw [ite_eq_left (by linarith)]
     rwa [hexp] at h
   · intro hr1
     have hexp : classicalMLMCExponent r (2 * r) 1 = 1 / r := by
       unfold classicalMLMCExponent
-      rw [if_neg (not_lt.mpr (by linarith))]
+      rw [ite_eq_right (not_lt.mpr (by linarith))]
       field_simp
       ring
     rw [hexp] at h

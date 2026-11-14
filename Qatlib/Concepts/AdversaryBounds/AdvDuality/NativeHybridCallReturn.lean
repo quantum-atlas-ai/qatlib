@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeHybridCallReturnDefs
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeHybridCallReturnDefs
+
+@[expose] public section
 
 /-!
 # Native call-return execution laws
@@ -116,7 +120,7 @@ private theorem map_prepend_apply {p : PMF (NativeTape.Result Γ Λ)} (e : Nativ
             intro heq
             exact ht (prepend_injective e (heq.symm.trans h))
           simp [hne]
-    _ = p s := if_pos h
+    _ = p s := ite_eq_left h
 
 omit [Inhabited Λ] in
 
@@ -382,11 +386,8 @@ private theorem mem_cursorTrace_origin {M : NativeTape.Program Γ Λ} :
     ∀ (es : List (NativeTape.Tick Γ Λ)), 0 ∈ (NativeTape.cursorTrace M 0 es).eraseDups := by
   intro es
   rw [List.mem_eraseDups]
-  induction es with
-  | nil =>
-    simp [NativeTape.cursorTrace, List.scanl]
-  | cons e es ih =>
-    simp [NativeTape.cursorTrace, List.scanl]
+  cases es <;>
+    simp [NativeTape.cursorTrace]
 
 /-- Native CPU time equals the step count plus the sum of the absolute cursor displacements of
 the recorded ticks. -/
@@ -556,7 +557,7 @@ private theorem map_inj_apply {α β : Type} {p : PMF α} {f : α → β} (hf : 
       intro a ha
       have hne : f y ≠ f a := fun h => ha (hf h.symm)
       simp [hne]
-    _ = p y := if_pos rfl
+    _ = p y := ite_eq_left rfl
 
 /-- The joint law's nontermination outcome has exactly the mass of the native terminal law's
 nontermination outcome. -/

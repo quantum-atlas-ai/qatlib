@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
+module
+
+public import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
+
+@[expose] public section
 
 open Qatlib
 open Qatlib.Foundations.PureStateMath
@@ -79,7 +83,7 @@ lemma membership_aux {n : ℕ} (hn : 0 < n) (i s : Fin n) :
     have his : i = s := by
       have hval : i.val = s.val := by omega
       exact Fin.ext hval
-    rw [if_pos his]
+    rw [ite_eq_left his]
     omega
   · have hne : i ≠ s := by
       intro hsub
@@ -87,7 +91,7 @@ lemma membership_aux {n : ℕ} (hn : 0 < n) (i s : Fin n) :
       have hU' : U = n := by rw [hU, hsub]; omega
       rw [hA', hU', Nat.mod_self] at hn'
       omega
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     have h1 := Nat.mod_lt A hn
     have h2 := Nat.mod_lt U hn
     omega
@@ -105,8 +109,8 @@ lemma blockOffset_apply {n : ℕ} (hn : 0 < n) (i s : Fin n) :
   have := membership_aux hn s i
   rw [this]
   by_cases h : s = i
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun h' => h h'.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h h'.symm)]
 
 /-- The offset map is injective: distinct block starts have distinct clockwise
 offsets from `i`. -/
@@ -139,7 +143,7 @@ lemma notMem_cyclicBlock_iff {n ℓ : ℕ} (hn : 0 < n) (hℓ : 0 < ℓ) (i s : 
   have hoff := blockOffset_apply hn i s
   have hBlt : (i.val + n - s.val) % n < n := Nat.mod_lt _ hn
   by_cases h : i = s
-  · have hoff0 : blockOffset i s = 0 := by rw [hoff, if_pos h]
+  · have hoff0 : blockOffset i s = 0 := by rw [hoff, ite_eq_left h]
     have hA : i.val + n - s.val = n := by omega
     rw [hoff0, hmem, hA, Nat.mod_self]
     constructor
@@ -155,7 +159,7 @@ lemma notMem_cyclicBlock_iff {n ℓ : ℕ} (hn : 0 < n) (hℓ : 0 < ℓ) (i s : 
       · omega
       · omega
     have hoff' : blockOffset i s = n - (i.val + n - s.val) % n := by
-      rw [hoff, if_neg h]
+      rw [hoff, ite_eq_right h]
     rw [hoff', hmem]
     constructor
     · intro hnot
@@ -195,8 +199,8 @@ lemma card_blocks_containing {n ℓ : ℕ} (hn : 0 < n) (_hℓ : 0 < ℓ) (hle :
       have hmem : i ∈ cyclicBlock n ℓ a.val ↔ (i.val + n - a.val) % n < ℓ := by
         simp [cyclicBlock]
       by_cases hc : (i.val + n - a.val) % n < ℓ
-      · rw [if_pos (hmem.mpr hc), if_pos hc]
-      · rw [if_neg (fun h => hc (hmem.mp h)), if_neg hc]
+      · rw [ite_eq_left (hmem.mpr hc), ite_eq_left hc]
+      · rw [ite_eq_right (fun h => hc (hmem.mp h)), ite_eq_right hc]
   have hcount : (∑ u : Fin n, if u.val < ℓ then (1 : ℕ) else 0) = ℓ := by
     rw [Finset.sum_boole]
     have himg : (Finset.univ.filter (fun u : Fin n => u.val < ℓ))

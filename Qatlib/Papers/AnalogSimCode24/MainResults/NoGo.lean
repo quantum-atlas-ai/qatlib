@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ namespace Qatlib.Papers.AnalogSimCode24.MainResults.NoGo
 
 open scoped InnerProductSpace
 
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [FiniteDimensional ℂ H]
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [instFiniteDimensionalComplexH : FiniteDimensional ℂ H]
 
 /-- A linear operator `V` is a *detectable error* for the code space `S` if it acts as a scalar on
 `S` (the Knill--Laflamme condition `P_S V P_S = c P_S`, used in [36, 62] and in the proof of
@@ -66,12 +70,16 @@ def DistanceGreaterThan (LocalWeightLe : (H →L[ℂ] H) → ℕ → Prop) (S : 
     Prop :=
   ∀ V, LocalWeightLe V k → Detectable S V
 
+omit instFiniteDimensionalComplexH in
 /-- The final step of the proof of Theorem C.1 (used in both Case 1 and Case 2): an operator
 which is `+1` on a unit vector `ψ ∈ S` and `-1` on an orthogonal unit vector `φ ∈ S` is not a
 detectable error for `S`.  Indeed a detecting scalar `c` would have to equal both
 `⟨ψ|V|ψ⟩ = 1` and `⟨φ|V|φ⟩ = -1`. -/
-theorem not_detectable_of_plus_minus_eigenvectors (S : Submodule ℂ H) (V : H →L[ℂ] H) (ψ φ : H)
-    (hψS : ψ ∈ S) (hφS : φ ∈ S) (hψ : ‖ψ‖ = 1) (hφ : ‖φ‖ = 1) (horth : ⟪ψ, φ⟫_ℂ = 0)
+theorem not_detectable_of_plus_minus_eigenvectors {H : Type*}
+    [_instNormedAddCommGroupH : NormedAddCommGroup H]
+    [_instInnerProductSpaceComplexH : InnerProductSpace ℂ H]
+    [_instFiniteDimensionalComplexH : FiniteDimensional ℂ H] (S : Submodule ℂ H) (V : H →L[ℂ] H) (ψ φ : H)
+    (hψS : ψ ∈ S) (hφS : φ ∈ S) (hψ : ‖ψ‖ = 1) (hφ : ‖φ‖ = 1) (_horth : ⟪ψ, φ⟫_ℂ = 0)
     (hVψ : V ψ = ψ) (hVφ : V φ = -φ) :
     ¬ Detectable S V := by
   rintro ⟨c, hc⟩

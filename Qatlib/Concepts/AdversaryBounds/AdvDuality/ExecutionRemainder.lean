@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedFeedbackConsumer
-import Mathlib.Tactic.FinCases
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderFairFeedback
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderHybrid
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedFeedbackConsumer
+public import Mathlib.Tactic.FinCases
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderFairFeedback
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderHybrid
+
+@[expose] public section
 
 /-!
 # Execution laws for fair feedback and hybrid programs
@@ -115,7 +119,6 @@ theorem paths_weight_sum (p : CoinCode α) :
     (∑ c : Fin p.paths.length, wordWeight (p.paths.get c).2) = 1 := by
   have he := congrArg (fun L : List (α × List Bool) =>
     (L.map (fun z => wordWeight z.2)).sum) (List.ofFn_get p.paths)
-  (try dsimp only at he)
   rw [List.map_ofFn, List.sum_ofFn] at he
   dsimp only [Function.comp_def] at he
   rw [he]
@@ -219,7 +222,6 @@ theorem paths_probability_sum (p : CoinCode α) :
     simpa using (paths_expectation p (fun _ => 1)).symm
   have he := congrArg (fun L : List (α × List Bool) =>
     (L.map (fun z => (1/2 : ℝ≥0∞)^z.2.length)).sum) (List.ofFn_get p.paths)
-  (try dsimp only at he)
   rw [List.map_ofFn,List.sum_ofFn] at he
   exact he.trans hl
 
@@ -242,7 +244,7 @@ theorem pathLaw_map (p : CoinCode α) :
   have h := paths_expectation p (fun y => if z = y then 1 else 0)
   simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation,mul_ite,mul_one,mul_zero] at h
   have hz : (∑' a : α × ℕ, if z = a then p.law a else 0) = p.law z := by
-    rw [tsum_eq_single z (fun a ha => if_neg (Ne.symm ha))]
+    rw [tsum_eq_single z (fun a ha => ite_eq_right (Ne.symm ha))]
     simp
   rw [hz] at h
   rw [← List.ofFn_get p.paths,List.map_ofFn,List.sum_ofFn] at h
@@ -771,7 +773,6 @@ theorem paths_real_expectation (p : CoinCode A) (F : A × ℕ → ℝ) (hF : ∀
   have he := congrArg (fun L : List (A × List Bool) =>
     (L.map (fun z => (1 / 2 : ℝ≥0∞) ^ z.2.length * ENNReal.ofReal (F (z.1, z.2.length)))).sum)
     (List.ofFn_get p.paths)
-  (try dsimp only at he)
   rw [List.map_ofFn, List.sum_ofFn] at he
   dsimp only [Function.comp_def] at he
   rw [← he, ENNReal.ofReal_sum_of_nonneg (fun c _ =>
@@ -848,7 +849,7 @@ theorem classical_event (M : FairFeedback D A) (O : Operator D)
   simpa only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event, apply_ite ENNReal.ofReal, ENNReal.ofReal_one,
     ENNReal.ofReal_zero] using
     M.classical_expectation_toReal O hO hM ρ
-      (fun i x => if E i x then 1 else 0) (by intros; (try dsimp); split_ifs <;> norm_num)
+      (fun i x => if E i x then 1 else 0) (by intros; split_ifs <;> norm_num)
 
 end FairFeedback
 
@@ -888,7 +889,7 @@ theorem paths_event_toReal (p : CoinCode A) (E : A × ℕ → Prop) :
       ∑ c : Fin p.paths.length, wordWeight (p.paths.get c).2 *
         (if E ((p.paths.get c).1, (p.paths.get c).2.length) then 1 else 0) := by
   have h := p.paths_real_expectation (fun x => if E x then (1 : ℝ) else 0)
-    (by intro x; (try dsimp); split_ifs <;> norm_num)
+    (by intro x; split_ifs <;> norm_num)
   have hn : 0 ≤ ∑ c : Fin p.paths.length, wordWeight (p.paths.get c).2 *
       (if E ((p.paths.get c).1, (p.paths.get c).2.length) then (1 : ℝ) else 0) :=
     Finset.sum_nonneg (fun c _ => mul_nonneg (wordWeight_nonneg _)
@@ -1565,7 +1566,7 @@ theorem record_sequence (O : Operator D) {p : HybridProgram D A} (h : HybridProg
     (h.sequence k next).record O = (h.record O).join (next.record O) := by
   induction h with
   | ret a => simp [sequence,record,HybridLeaf.join]
-  | step s h ih => cases s <;> simp only [sequence,record,ih,HybridLeaf.join_quantum] <;> rfl
+  | step s h ih => cases s <;> simp only [sequence,record,ih,HybridLeaf.join_quantum]
   | bitFalse h ih => simp only [sequence,record,ih,HybridLeaf.join_coin]
   | bitTrue h ih => simp only [sequence,record,ih,HybridLeaf.join_coin]
   | measure i h ih => simp only [sequence,record,ih,HybridLeaf.join_quantum]

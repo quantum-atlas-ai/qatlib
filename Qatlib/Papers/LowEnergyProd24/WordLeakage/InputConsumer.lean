@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.CenterChoice
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalConsumer
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalPositive
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.PhysicalCalculus
+module
+
+public import Qatlib.Papers.LowEnergyProd24.CenterChoice
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalConsumer
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalPositive
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.PhysicalCalculus
+
+@[expose] public section
 
 /-!
 # Low-energy estimates from local Hamiltonian data

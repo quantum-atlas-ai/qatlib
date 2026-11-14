@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.GroverInterp.UnitarySpectrumAux
-import Mathlib.Analysis.Normed.Module.Normalize
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.WalkFind.GroverInterp.UnitarySpectrumAux
+public import Mathlib.Analysis.Normed.Module.Normalize
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Geometric estimates for Grover amplitudes

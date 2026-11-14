@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
+module
+
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
+
+@[expose] public section
 
 /-!
 # Resource counts and Bell-state graph consumers
@@ -69,12 +73,12 @@ theorem preentangled_graph_actual_leaf_and_message_resources :
   rw [hc] at hg hm
   refine ⟨graphProgram_leafCount true gs, ?_, ?_, ?_, ?_, graphMessage_length gs h,
     graphMessage_injective gs, by simp [graphFreshGates], by simp [graphEdgeGates]⟩
-  · simpa only [graphProgramLeaf_eq, if_true, graphPrependLeaf_accepted] using! ha
-  · simpa only [graphProgramLeaf_eq, if_true, graphPrependLeaf_queries] using! hq
-  · simp only [graphProgramLeaf_eq, if_true, graphPrependLeaf_gates, hg,
+  · simpa only [graphProgramLeaf_eq, ite_true, graphPrependLeaf_accepted] using! ha
+  · simpa only [graphProgramLeaf_eq, ite_true, graphPrependLeaf_queries] using! hq
+  · simp only [graphProgramLeaf_eq, ite_true, graphPrependLeaf_gates, hg,
       graphFreshGates, graphEdgeGates, List.length_ofFn, graphFinalFrame]
     omega
-  · simpa only [graphProgramLeaf_eq, if_true, graphPrependLeaf_measurements] using! hm
+  · simpa only [graphProgramLeaf_eq, ite_true, graphPrependLeaf_measurements] using! hm
 
 /-- The Bell graph has the stated two-bit message and gate count equal to ten plus its two
 outcome-dependent correction costs. -/

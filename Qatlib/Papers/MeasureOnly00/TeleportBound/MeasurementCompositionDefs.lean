@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+
+@[expose] public section
 
 /-!
 # Resource counts and message budget definitions

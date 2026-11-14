@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly05.MainResults.PlatAlgorithm
+module
+
+public import Qatlib.Papers.JonesPoly05.MainResults.PlatAlgorithm
+
+@[expose] public section
 
 /-!
 # Conditional Jones trace and plat approximation

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -172,8 +176,8 @@ Legacy pointwise specification for the precision schedule of Lemma 56.
 schedule or bound on the work of its subroutine calls is proved here. -/
 def lemma56_log_precision_cost_statement {n m s : ℕ} (P : SdpData n m)
     (S : PrecisionSolver) (R r ε : ℝ)
-    (hR : 1 ≤ R) (hr : 1 ≤ r) (hε : 0 < ε) (hε1 : ε ≤ 1)
-    (hRbound : P.traceBound R) (hrbound : P.dualL1Bound r) : Prop :=
+    (_hR : 1 ≤ R) (_hr : 1 ≤ r) (_hε : 0 < ε) (_hε1 : ε ≤ 1)
+    (_hRbound : P.traceBound R) (_hrbound : P.dualL1Bound r) : Prop :=
     ∃ y : Fin m → ℝ, P.dualEpsOptimal y ε ∧
       ∃ totalCost : ℝ, totalCost ≤
         ∑ k ∈ Finset.Icc 1 (Nat.ceil (Real.log (1 / ε))),

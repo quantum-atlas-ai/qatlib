@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Padding instruments along isometric embeddings
@@ -99,8 +103,11 @@ total map preserves trace. -/
 noncomputable def isometryPad (I : Instrument O D E)
     (Ein : Matrix (Fin N) (Fin D) ℂ) (hi : IsIsometry Ein)
     (Eout : Matrix (Fin N) (Fin E) ℂ) (ho : IsIsometry Eout) : Instrument (Option O) N N :=
-  .ofBranches (paddedBranches Ein Eout I) (paddedBranches_cp Ein Eout I)
-    (paddedBranches_total Ein hi Eout ho I)
+  .ofBranches (fun
+      | none => conjBranch (1 - rangeProjector Ein)
+      | some o => conjBranch Eout ∘ₗ I.branch o ∘ₗ conjBranch Ein.conjTranspose)
+    (by exact paddedBranches_cp Ein Eout I)
+    (by exact paddedBranches_total Ein hi Eout ho I)
 
 /-- An original padded outcome compresses the input, applies the corresponding instrument
 branch, and embeds its output. -/

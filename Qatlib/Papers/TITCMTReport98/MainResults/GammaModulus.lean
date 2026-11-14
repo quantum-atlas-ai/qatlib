@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TITCMTReport98.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+module
+
+public import Qatlib.Papers.TITCMTReport98.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+
+@[expose] public section
 
 /-!
 # Gamma-function modulus for the inverse schedule

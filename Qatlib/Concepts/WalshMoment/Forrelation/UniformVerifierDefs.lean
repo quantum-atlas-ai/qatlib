@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
-import Qatlib.Concepts.WalshMoment.Forrelation.SpectralLanguage
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+public import Qatlib.Concepts.WalshMoment.Forrelation.SpectralLanguage
+
+@[expose] public section
 
 /-!
 # Uniform oracle verifier programs and generators
@@ -61,25 +65,25 @@ structure UniformVerifierProgram where
 
 /-- Parses a run of true bits terminated by a false bit as a natural number, returning the
 unconsumed suffix. It fails if the terminating false bit is absent. -/
-private def parseUnaryField : List Bool → Option (ℕ × List Bool)
+def parseUnaryField : List Bool → Option (ℕ × List Bool)
   | [] => none
   | false :: rest => some (0, rest)
   | true :: rest => (parseUnaryField rest).map fun (k, tail) => (k + 1, tail)
 
 /-- Parses a natural number using the unary field encoding of `parseUnaryField`. -/
-private def parseNatField (bits : List Bool) : Option (ℕ × List Bool) :=
+def parseNatField (bits : List Bool) : Option (ℕ × List Bool) :=
   parseUnaryField bits
 
 /-- Parses two consecutive unary natural number fields and returns both values with the
 remaining bits. -/
-private def parseTwoNatFields (bits : List Bool) : Option (ℕ × ℕ × List Bool) := do
+def parseTwoNatFields (bits : List Bool) : Option (ℕ × ℕ × List Bool) := do
   let (a, rest) ← parseNatField bits
   let (b, tail) ← parseNatField rest
   pure (a, b, tail)
 
 /-- Parses the specified number of consecutive natural number fields, returning their values in
 order and the remaining bits. -/
-private def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool)
+def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool)
   | 0, bits => some ([], bits)
   | count + 1, bits => do
       let (head, rest) ← parseNatField bits
@@ -89,7 +93,7 @@ private def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List 
 /-- Decodes the fields of an instruction from its tag: zero through four encode H, X, T, inverse
 T, and controlled X, while five and six encode oracle queries. Unrecognized tags or
 incomplete fields produce failure. -/
-private def parseInstructionFields (tag : ℕ) (bits : List Bool) :
+def parseInstructionFields (tag : ℕ) (bits : List Bool) :
     Option (UniformVerifierInstruction × List Bool) := do
   if tag = 0 then
     let (w, rest) ← parseNatField bits
@@ -121,7 +125,7 @@ private def parseInstructionFields (tag : ℕ) (bits : List Bool) :
 
 /-- Parses an instruction list with at most the supplied number of instructions, requiring the
 input to be exhausted when the fuel runs out. -/
-private def parseInstructionListFuel : ℕ → List Bool → Option (List UniformVerifierInstruction)
+def parseInstructionListFuel : ℕ → List Bool → Option (List UniformVerifierInstruction)
   | 0, [] => some []
   | 0, _ :: _ => none
   | _ + 1, [] => some []
@@ -155,7 +159,7 @@ private theorem decodeUnaryZeroProgram (n : ℕ) :
 
 /-- A query description is legal when all wires are in range, the target is absent from the
 address list, and the address list has no duplicates. -/
-private def queryDescriptionLegal (q : ℕ) (addresses : List ℕ) (target : ℕ) : Prop :=
+public def queryDescriptionLegal (q : ℕ) (addresses : List ℕ) (target : ℕ) : Prop :=
   target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup
 
 /-- A program is legal when its witness fits in its register, its output wire is in range, and
@@ -170,7 +174,7 @@ def uniformProgramLegal (p : UniformVerifierProgram) : Prop :=
 
 /-- Extracts the register bits at the listed address wires in list order, using the supplied
 range proofs. -/
-private def readQueryAddress {q : ℕ} (x : Reg q) (addresses : List ℕ)
+def readQueryAddress {q : ℕ} (x : Reg q) (addresses : List ℕ)
     (haddr : ∀ a ∈ addresses, a < q) : Reg addresses.length :=
   fun i => x ⟨addresses.get i, haddr _ (List.get_mem addresses i)⟩
 
@@ -198,7 +202,7 @@ private theorem readQueryAddress_update {q : ℕ} (x : Reg q) (addresses : List 
 
 /-- Updates the target bit by exclusive-or with the oracle value on the extracted address,
 leaving all other register bits unchanged. -/
-private def queryAddressUpdate {q : ℕ} (oracle : ∀ ell, Reg ell → Bool)
+def queryAddressUpdate {q : ℕ} (oracle : ∀ ell, Reg ell → Bool)
     (addresses : List ℕ) (target : ℕ) (htarget : target < q)
     (haddr : ∀ a ∈ addresses, a < q) :
     Reg q → Reg q := fun x =>
@@ -224,7 +228,7 @@ private theorem queryAddressUpdate_involutive {q : ℕ}
 
 /-- The matrix `permMatrix` associated with the oracle target update on registers, assuming the
 address and target wires are in range. -/
-private noncomputable def validQueryMatrix {q : ℕ} (oracle : ∀ ell, Reg ell → Bool)
+noncomputable def validQueryMatrix {q : ℕ} (oracle : ∀ ell, Reg ell → Bool)
     (addresses : List ℕ) (target : ℕ) (htarget : target < q)
     (haddr : ∀ a ∈ addresses, a < q) :
     Matrix (Reg q) (Reg q) ℂ :=
@@ -242,7 +246,7 @@ private theorem validQueryMatrix_unitary {q : ℕ} (oracle : ∀ ell, Reg ell �
 
 /-- The oracle query matrix for a legal query description, with the identity matrix used for an
 illegal description. -/
-private noncomputable def uniformQueryMatrix (q : ℕ) (oracle : ∀ ell, Reg ell → Bool)
+noncomputable def uniformQueryMatrix (q : ℕ) (oracle : ∀ ell, Reg ell → Bool)
     (addresses : List ℕ) (target : ℕ) : Matrix (Reg q) (Reg q) ℂ := by
   classical
   exact if h : queryDescriptionLegal q addresses target then
@@ -254,12 +258,12 @@ private theorem uniformQueryMatrix_unitary (q : ℕ) (oracle : ∀ ell, Reg ell 
     (addresses : List ℕ) (target : ℕ) (h : queryDescriptionLegal q addresses target) :
     uniformQueryMatrix q oracle addresses target ∈ Matrix.unitaryGroup (Reg q) ℂ := by
   classical
-  simp only [uniformQueryMatrix, dif_pos h]
+  simp only [uniformQueryMatrix, dite_eq_left h]
   exact validQueryMatrix_unitary oracle addresses target h.1 h.2.1 h.2.2.1
 
 /-- Interprets a verifier instruction as its fixed gate matrix or as the query matrix for oracle
 `S` or `U`. -/
-private noncomputable def uniformInstructionMatrix (q : ℕ)
+public noncomputable def uniformInstructionMatrix (q : ℕ)
     (S U : ∀ ell, Reg ell → Bool) : UniformVerifierInstruction →
       Matrix (Reg q) (Reg q) ℂ
   | .fixed gate => finiteCodeMatrix q gate
@@ -283,7 +287,7 @@ private theorem uniformInstructionMatrix_unitary (q : ℕ)
 /-- Runs a Turing machine from a configuration for at most the supplied number of transitions,
 returning the halted configuration if one is reached. It also checks for halting when the
 fuel is zero. -/
-private def runUntilHaltWithin {k : ℕ}
+public def runUntilHaltWithin {k : ℕ}
     (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) :
     ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) →
       Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1)))
@@ -295,7 +299,7 @@ private def runUntilHaltWithin {k : ℕ}
 
 /-- Reads Boolean symbols from a tape until the first blank, returning failure if more symbols
 remain after the supplied fuel is exhausted. -/
-private def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
+public def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
   | 0, tape => if tape.nth 0 = none then some [] else none
   | fuel + 1, tape =>
       match tape.nth 0 with
@@ -313,23 +317,23 @@ structure UniformVerifierGenerator where
   programDegree : ℕ
 
 /-- The Turing machine input consisting of `n` copies of the nonblank true symbol. -/
-private def unaryInput (n : ℕ) : List (Option Bool) :=
+public def unaryInput (n : ℕ) : List (Option Bool) :=
   List.replicate n (some true)
 
 /-- The natural number polynomial resource bound `c * (n + 1) ^ d`. -/
 def uniformPolynomialBound (c d n : ℕ) : ℕ := c * (n + 1) ^ d
 
 /-- The generator's polynomial time allowance at input length `n`. -/
-private def generatorFuel (g : UniformVerifierGenerator) (n : ℕ) : ℕ :=
+public def generatorFuel (g : UniformVerifierGenerator) (n : ℕ) : ℕ :=
   uniformPolynomialBound g.timeCoefficient g.timeDegree n
 
 /-- The generator's polynomial bound on qubit count and instruction count at input length `n`. -/
-private def generatorProgramBound (g : UniformVerifierGenerator) (n : ℕ) : ℕ :=
+def generatorProgramBound (g : UniformVerifierGenerator) (n : ℕ) : ℕ :=
   uniformPolynomialBound g.programCoefficient g.programDegree n
 
 /-- The generator's machine halts on unary input `n` at some time no greater than its time
 allowance. -/
-private def generatorHaltsInFuel (g : UniformVerifierGenerator) (n : ℕ) : Prop :=
+def generatorHaltsInFuel (g : UniformVerifierGenerator) (n : ℕ) : Prop :=
   ∃ t : ℕ, t ≤ generatorFuel g n ∧
     BitMachineHaltsAt g.machine (unaryInput n) t
 
@@ -355,18 +359,18 @@ def uniformGeneratorValid (g : UniformVerifierGenerator) : Prop :=
 
 /-- Embeds the available witness bits into the initial wires of a register and sets every later
 wire to false. -/
-private def zeroPaddedClassicalWitness (q witnessBits : ℕ)
+def zeroPaddedClassicalWitness (q witnessBits : ℕ)
     (w : Fin witnessBits → Bool) : Reg q := fun i =>
   if h : i.val < witnessBits then w ⟨i.val, h⟩ else false
 
 /-- A state has zero amplitude on every basis register containing a true bit outside the witness
 wires. -/
-private def auxiliaryZeroSupported (q witnessBits : ℕ) (ψ : QState (Reg q)) : Prop :=
+def auxiliaryZeroSupported (q witnessBits : ℕ) (ψ : QState (Reg q)) : Prop :=
   ∀ x : Reg q,
     (∃ i : Fin q, witnessBits ≤ i.val ∧ x i = true) → ψ x = 0
 
 /-- The finite event of basis registers whose designated in-range output wire is true. -/
-private def outputTrueEvent (q outputWire : ℕ) (hout : outputWire < q) :
+def outputTrueEvent (q outputWire : ℕ) (hout : outputWire < q) :
     Finset (Reg q) :=
   Finset.univ.filter fun x => x ⟨outputWire, hout⟩ = true
 
@@ -378,7 +382,7 @@ def uniformProgramOutputEvent (p : UniformVerifierProgram) : Finset (Reg p.qubit
   else ∅
 
 /-- Applies the interpreted instruction matrices to a state in list order. -/
-private noncomputable def runUniformInstructions (S U : ∀ ell, Reg ell → Bool)
+public noncomputable def runUniformInstructions (S U : ∀ ell, Reg ell → Bool)
     (q : ℕ) : List UniformVerifierInstruction → QState (Reg q) → QState (Reg q)
   | [], ψ => ψ
   | instruction :: rest, ψ =>
@@ -461,7 +465,7 @@ def OutUniformQCMASpectral (S U : ∀ ell, Reg ell → Bool) : Prop :=
               (uniformProgramOutputEvent p)))
 
 /-- The one-control-state Turing machine that halts immediately for every scanned symbol. -/
-private def immediateHaltMachine :
+def immediateHaltMachine :
     Turing.TM0.Machine (Option Bool) (Fin 1) := fun _ _ => none
 
 /-- The immediately halting generator with zero time allowance and program bound `n + 1`, whose
@@ -519,7 +523,7 @@ theorem zeroInstructionGenerator_program (n : ℕ) :
       (readOutputUntilBlank (n + 1) cfg.Tape.right₀).bind
         decodeUniformVerifierProgram) = some ⟨n + 1, 0, 0, []⟩
   simp only [runUntilHaltWithin, Turing.TM0.step, immediateHaltMachine,
-    Option.map_none, if_true]
+    Option.map_none, ite_true]
   simp only [Option.bind_some]
   change (readOutputUntilBlank (n + 1)
     (Turing.TM0.init (Γ := Option Bool) (Λ := Fin 1) (unaryInput n)).Tape.right₀).bind

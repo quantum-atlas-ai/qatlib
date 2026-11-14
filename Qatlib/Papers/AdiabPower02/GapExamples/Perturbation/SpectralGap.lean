@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Spectrum
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # Spectral gap bounds from finite-dimensional perturbations
@@ -60,7 +64,7 @@ def ray (T : Vec n →L[ℝ] Vec n) (x : Vec n) : ℝ := qform T x / ‖x‖ ^ 2
 difference. -/
 lemma qform_sub (A B : Vec n →L[ℝ] Vec n) (x : Vec n) :
     qform A x - qform B x = qform (A - B) x := by
-  simp [qform, ContinuousLinearMap.sub_apply, inner_sub_left]
+  simp [qform, _root_.sub_apply, inner_sub_left]
 
 /-- The absolute quadratic form is at most the operator norm times the squared vector norm. -/
 lemma qform_abs_le (C : Vec n →L[ℝ] Vec n) (x : Vec n) :
@@ -352,8 +356,8 @@ terms. -/
 lemma erase_apply (A : Vec n →L[ℝ] Vec n) (e x : Vec n) :
     erase A e x = A x - ⟪e, x⟫ • A e - ⟪e, A x⟫ • e
       + (2 * ⟪e, A e⟫) • (⟪e, x⟫ • e) := by
-  simp only [erase, ContinuousLinearMap.sub_apply, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.comp_apply, ContinuousLinearMap.smul_apply, proj_apply,
+  simp only [erase, _root_.sub_apply, _root_.add_apply,
+    ContinuousLinearMap.comp_apply, _root_.smul_apply, proj_apply,
     ContinuousLinearMap.map_smul]
 
 /-- For a unit vector `e`, the erased operator sends `e` to `⟪e, A e⟫ • e`. -/
@@ -374,7 +378,7 @@ lemma sub_erase_apply (A : Vec n →L[ℝ] Vec n)
     (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric) (e x : Vec n) :
     (A - erase A e) x
       = ⟪e, x⟫ • (A e - ⟪e, A e⟫ • e) + ⟪A e - ⟪e, A e⟫ • e, x⟫ • e := by
-  rw [ContinuousLinearMap.sub_apply, erase_apply, (hA.apply_clm e x).symm,
+  rw [_root_.sub_apply, erase_apply, (hA.apply_clm e x).symm,
     inner_sub_left, real_inner_smul_left]
   module
 
@@ -499,7 +503,7 @@ theorem norm_sub_erase_le_amp
     simpa using hD.sub ((proj_symm v).smul (c := α) (by simp))
   have hbound := norm_sub_erase_le (D - α • proj v) hA e he
   have hAe : (D - α • proj v) e = (-(α * ⟪v, e⟫)) • v := by
-    rw [ContinuousLinearMap.sub_apply, ContinuousLinearMap.smul_apply, hDe, proj_apply]
+    rw [_root_.sub_apply, _root_.smul_apply, hDe, proj_apply]
     module
   have hc : ⟪e, (D - α • proj v) e⟫ = -(α * ⟪v, e⟫ ^ 2) := by
     rw [hAe, real_inner_smul_right, real_inner_comm e v]
@@ -530,7 +534,7 @@ theorem norm_sub_erase_le_pert (D P : Vec n →L[ℝ] Vec n)
     ‖(D + P) - erase (D + P) e‖ ≤ ‖P e‖ := by
   refine le_trans (norm_sub_erase_le (D + P) hA e he) ?_
   have hAe : (D + P) e = P e := by
-    rw [ContinuousLinearMap.add_apply, hDe, zero_add]
+    rw [_root_.add_apply, hDe, zero_add]
   rw [hAe]
   exact norm_sub_inner_smul_le e (P e) he
 
@@ -562,7 +566,7 @@ theorem gap_erase_le_sqrt_two (D P : Vec n →L[ℝ] Vec n)
       ≤ 2 * (Real.sqrt 2 * ‖P e‖) := by
   have h2 : ‖(D + P) e - ⟪e, (D + P) e⟫ • e‖ ≤ ‖P e‖ := by
     have hAe : (D + P) e = P e := by
-      rw [ContinuousLinearMap.add_apply, hDe, zero_add]
+      rw [_root_.add_apply, hDe, zero_add]
     rw [hAe]
     exact norm_sub_inner_smul_le e (P e) he
   have h1 : ‖(D + P) - erase (D + P) e‖ ≤ Real.sqrt 2 * ‖P e‖ := by

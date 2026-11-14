@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlRefinedDefs
+module
+
+public import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlRefinedDefs
+
+@[expose] public section
 
 /-!
 # Refined HHL preparation and error bounds
@@ -283,7 +287,7 @@ theorem clause12_prep_l2_error (M k : ℕ) (hM : 0 < M) :
       ≤ (∑ _τ : Fin M, 2 * (Real.pi / 2 ^ k) ^ 2) / (M : ℝ) := by
         exact div_le_div_of_nonneg_right hsq (by positivity)
     _ = 2 * (Real.pi / 2 ^ k) ^ 2 := by
-        simp [Finset.sum_const, nsmul_eq_mul]
+        simp [Finset.sum_const]
         field_simp
     _ ≤ (2 * Real.pi / 2 ^ k) ^ 2 := by
         have hnonneg : 0 ≤ (Real.pi / 2 ^ k) ^ 2 := sq_nonneg _
@@ -441,7 +445,7 @@ theorem clause14_zero_overlap_direction {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O)
     (h : leastSquaresVector A b = 0) : leastSquaresDirection A b = none := by
   unfold leastSquaresDirection
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- When the least-squares overlap is zero, the residual norm equals the norm of the right-hand
 side. -/
@@ -538,7 +542,7 @@ theorem clause16_signed_flag_mass_eq_unsigned (d θ : ℝ) :
   have hg : canonicalSignedFilter.filterG d θ = sinEnvelopeFilterG d |θ| := by
     simp [canonicalSignedFilter]
   rw [hf, hg]
-  by_cases hθ : θ < 0 <;> simp [hθ] <;> ring
+  by_cases hθ : θ < 0 <;> simp [hθ]
 
 /-- The squared flag mass of the canonical signed filter is even in the spectral parameter. -/
 theorem clause16_signed_kernel_even (d θ : ℝ) :
@@ -554,13 +558,13 @@ theorem clause16_signed_kernel_even (d θ : ℝ) :
   rw [hf, hg, hf, hg, abs_neg]
   by_cases hθ : θ < 0
   · by_cases hneg : -θ < 0
-    · rw [if_pos hθ, if_pos hneg]
-    · rw [if_pos hθ, if_neg hneg]
+    · rw [ite_eq_left hθ, ite_eq_left hneg]
+    · rw [ite_eq_left hθ, ite_eq_right hneg]
       ring
   · by_cases hneg : -θ < 0
-    · rw [if_neg hθ, if_pos hneg]
+    · rw [ite_eq_right hθ, ite_eq_left hneg]
       ring
-    · rw [if_neg hθ, if_neg hneg]
+    · rw [ite_eq_right hθ, ite_eq_right hneg]
 
 /-- Each diagonal entry of the signed well-phase matrix has complex norm one. -/
 theorem clause16_sign_phase_columns (θ : ℝ) (i : Fin 3) : ‖signedWellPhase θ i i‖ = 1 := by

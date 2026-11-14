@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.LinearAlgebra.Span.Basic
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.HiddenTransl02.MainResults.LineLemma
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.LinearAlgebra.Span.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.HiddenTransl02.MainResults.LineLemma
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # The line lemma for multivariate polynomials
@@ -88,7 +92,7 @@ theorem lineLemma_poly_span (hp : p.Prime) {k l : ℕ}
     lin z ^ l * lin y ^ (k - l) ∈
       Submodule.span (ZMod p)
         (Set.range (fun a : Fin (k + 1) => (lin (z + (a.val : ZMod p) • y)) ^ k)) := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hklt : k < p := by omega
   obtain ⟨c0, hc0⟩ :=
     exists_coeffs (K := ZMod p) k l hl
@@ -103,10 +107,10 @@ theorem lineLemma_poly_span (hp : p.Prime) {k l : ℕ}
     intro i
     have h0 := hc0 i
     by_cases hil : i.val = l
-    · rw [if_pos hil] at h0
+    · rw [ite_eq_left hil] at h0
       have hC := congrArg (MvPolynomial.C (σ := Fin n)) h0
       simpa [hil] using hC
-    · rw [if_neg hil] at h0
+    · rw [ite_eq_right hil] at h0
       have hC := congrArg (MvPolynomial.C (σ := Fin n)) h0
       simpa [hil] using hC
   have hcomb :=
@@ -177,7 +181,7 @@ gives one. -/
 theorem eval₂_lin_pow_card_sub_one (hp : p.Prime) {y u : Fin n → ZMod p}
     (h : ∑ i, y i * u i ≠ 0) :
     MvPolynomial.eval₂Hom (RingHom.id (ZMod p)) y (lin u ^ (p - 1)) = 1 := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   rw [eval₂_lin_pow]
   exact ZMod.pow_card_sub_one_eq_one h
 
@@ -202,7 +206,7 @@ power of its associated linear polynomial. -/
 theorem lin_smul_pow_card_sub_one (hp : p.Prime) (c : ZMod p) (hc : c ≠ 0)
     (y : Fin n → ZMod p) :
     lin (c • y) ^ (p - 1) = lin y ^ (p - 1) := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hC : (MvPolynomial.C c : MvPolynomial (Fin n) (ZMod p)) ^ (p - 1) = 1 := by
     rw [← map_pow, ZMod.pow_card_sub_one_eq_one hc, map_one]
   rw [lin_smul, mul_pow, hC, one_mul]

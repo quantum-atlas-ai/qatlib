@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+
+@[expose] public section
 
 /-!
 # Correctness of the three-qubit cluster wire
@@ -101,7 +105,7 @@ and two. -/
 theorem wire_frame (x : Reg 3) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix wireE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x),
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x),
     Fin.prod_univ_three]
   have h0 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd wireE 0 = false := by decide
   have h1 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd wireE 1 = true := by decide
@@ -114,7 +118,7 @@ adjacent-bit conjunctions. -/
 theorem wire_cz (x : Reg 3) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix wireE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x)]
   rw [wireE, Finset.prod_pair (by decide : ((0, 1) : Fin 3 × Fin 3) ≠ (1, 2))]
   simp only [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
@@ -130,22 +134,22 @@ and zero otherwise. -/
 theorem wire_load (d : Reg 3) (y : Reg 1) :
     mpLoadMatrix mpWirePattern (Uniform (Reg 2)) d y
       = if d 0 = y 0 then (1 / 2 : ℂ) else 0 := by
-  simp only [mpLoadMatrix, mpWirePattern, Matrix.of_apply]
+  simp only [mpLoadMatrix, Matrix.of_apply]
   by_cases h : ∀ i : Fin 1, d (Fin.castLE (by omega : (1:ℕ) ≤ 2 + 1) i) = y i
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h0 : d 0 = y 0 := h ⟨0, by omega⟩
-    rw [if_pos h0]
+    rw [ite_eq_left h0]
     have hres : Uniform (Reg 2)
         (fun k : Fin 2 => d (Fin.cast (by omega) (Fin.natAdd 1 k))) = (1 / 2 : ℂ) := uniform2 _
     rw [hres]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h0 : ¬ d 0 = y 0 := by
       intro hh
       apply h
       intro i
       fin_cases i
       exact hh
-    rw [if_neg h0]
+    rw [ite_eq_right h0]
 
 /-- The wire entangler is diagonal, with each diagonal entry equal to the product of its frame
 signs and its two adjacent-bit controlled-Z signs. -/
@@ -159,22 +163,22 @@ theorem wire_ent_diag (x y : Reg 3) :
   rw [wire_entangler]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     rw [Matrix.mul_apply, Finset.sum_eq_single x]
     · rw [wire_frame, wire_cz]
     · intro k _ hk
       rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-          if_neg (Ne.symm hk), zero_mul]
+          ite_eq_right (Ne.symm hk), zero_mul]
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rw [Matrix.mul_apply]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hk : k = x
     · subst hk
-      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_neg h, mul_zero]
+      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_right h, mul_zero]
     · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-        if_neg (Ne.symm hk), zero_mul]
+        ite_eq_right (Ne.symm hk), zero_mul]
 
 /-- The entangler-load product has the wire's diagonal phase multiplied by one half when the
 input bit matches coordinate zero, and is zero otherwise. -/
@@ -187,14 +191,14 @@ theorem wire_EL (d : Reg 3) (y : Reg 1) :
         else 0 := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single d]
-  · rw [wire_ent_diag, if_pos rfl, wire_load]
+  · rw [wire_ent_diag, ite_eq_left rfl, wire_load]
     by_cases h : d 0 = y 0
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   · intro d' _ hdne
-    rw [wire_ent_diag, if_neg (Ne.symm hdne), zero_mul]
+    rw [wire_ent_diag, ite_eq_right (Ne.symm hdne), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 end Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 namespace Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire1a
@@ -327,8 +331,8 @@ theorem wire_sum_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
           intro hh
           apply h2
           simpa using (delta_iff s xp x).mp hh
-        rw [if_neg h2, mul_zero, zero_mul]
-    · rw [if_neg h0, mul_zero]
+        rw [ite_eq_right h2, mul_zero, zero_mul]
+    · rw [ite_eq_right h0, mul_zero]
 
 /-- The real square root of two multiplied by itself is two. -/
 theorem hsq : (Real.sqrt 2) * (Real.sqrt 2) = 2 := Real.mul_self_sqrt (by norm_num)
@@ -359,7 +363,7 @@ theorem wire_summand_pin3_false (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
       = star (mpSVector 0 (s 0) (y 0)) * star (mpSVector 0 (s 1) false)
           * ((1 / 2 : ℂ) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (mpOutBit mpWirePattern s xp 0)) := by
   rw [wire_summand_eq, prod_star_sv]
-  simp only [pin3_0, pin3_1, pin3_2, if_true, and_false, false_and]
+  simp only [pin3_0, pin3_1, pin3_2, ite_true]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
 /-- Evaluates the wire summand with middle bit true as two conjugate measurement coordinates
@@ -373,7 +377,7 @@ theorem wire_summand_pin3_true (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
                   * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase
                       (true && mpOutBit mpWirePattern s xp 0)))) := by
   rw [wire_summand_eq, prod_star_sv]
-  simp only [pin3_0, pin3_1, pin3_2, if_true, and_true, true_and]
+  simp only [pin3_0, pin3_1, pin3_2, ite_true]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
 /-- The wire core entry is the history-dependent Boolean sign divided by two when the input
@@ -398,8 +402,7 @@ theorem wire_corePre (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
   all_goals simp only [hs0, hs1, hy0, hbx]
   all_goals
     simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase, Bool.xor, Bool.not, sv_zero,
-      Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg, Complex.ofReal_ofNat,
-      Complex.conj_ofReal, div_eq_mul_inv, hcinv, mul_comm, mul_left_comm, mul_assoc,
+      Complex.ofReal_neg, Complex.conj_ofReal, div_eq_mul_inv, hcinv, mul_comm,
       mul_neg, neg_mul, neg_neg, one_mul, mul_one]
   all_goals norm_num
 
@@ -413,8 +416,8 @@ theorem wire_core (s : Fin 2 → Bool) :
   rw [wire_corePre, Equiv.apply_symm_apply]
   by_cases h : xp = yp
   · subst h
-    rw [if_pos rfl, if_pos rfl, mul_one]
-  · rw [if_neg (Ne.symm h), if_neg h, mul_zero]
+    rw [ite_eq_left rfl, ite_eq_left rfl, mul_one]
+  · rw [ite_eq_right (Ne.symm h), ite_eq_right h, mul_zero]
 
 /-- Conjugating any two-dimensional operator by the corrected wire core multiplies it by one
 quarter. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TimeEvolution.DysonError.HistorySolver
-import Qatlib.Papers.DysonSeries22.TimeSteps
-import Qatlib.Papers.DysonSeries22.HistoryReadout
+module
+
+public import Qatlib.Foundations.TimeEvolution.DysonError.HistorySolver
+public import Qatlib.Papers.DysonSeries22.TimeSteps
+public import Qatlib.Papers.DysonSeries22.HistoryReadout
+
+@[expose] public section
 
 /-!
 # Padded Dyson history systems
@@ -85,7 +89,7 @@ theorem paddedTrajectory_before (A : ℝ → Matrix I I ℂ) (b : ℝ → QState
         paddedDriving A b t K r m =
         (Matrix.toEuclideanCLM (𝕜:=ℂ) (n:=I)) (truncatedEvolution A (t m) (t (m+1)) K)
           (TimeSteps.finiteMarch A b t K x₀ m) + truncatedSource A b (t m) (t (m+1)) K
-      rw [paddedStep,paddedDriving,if_pos hmr,if_pos hmr,ih (by omega)]
+      rw [paddedStep,paddedDriving,ite_eq_left hmr,ite_eq_left hmr,ih (by omega)]
   exact h n hn
 
 /-- The history system right hand side consisting of the initial vector followed by the padded

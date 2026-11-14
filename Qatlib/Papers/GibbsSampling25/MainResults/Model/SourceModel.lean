@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Dist
-import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+module
+
+public import Mathlib.Data.Nat.Dist
+public import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,8 +76,10 @@ theorem relEnt_self (ρ : Density I) : relEnt ρ ρ = 0 := by
     ((relative_entropy_density_bridge.1 I ρ ρ).2.2.2).mpr rfl
   simp [relEnt, h]
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- Reindexing a square matrix along an equivalence does not change its trace. -/
-theorem trace_submatrix_equiv {R : Type*} [AddCommMonoid R] (e : I ≃ J)
+theorem trace_submatrix_equiv {I J : Type} [Fintype I] [_instDecidableEqI : DecidableEq I]
+    [Fintype J] [_instDecidableEqJ : DecidableEq J] {R : Type*} [AddCommMonoid R] (e : I ≃ J)
     (M : Matrix I I R) : (M.submatrix e.symm e.symm).trace = M.trace := by
   simp only [Matrix.trace, Matrix.submatrix]
   exact Equiv.sum_comp e.symm (fun i => M i i)

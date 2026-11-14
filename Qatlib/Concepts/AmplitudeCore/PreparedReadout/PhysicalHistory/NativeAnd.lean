@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # A native three-bit controlled conjunction

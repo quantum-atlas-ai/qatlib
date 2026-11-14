@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormHami
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormHami
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

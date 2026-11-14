@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.MultiControl.Section7.GrayParity
+module
+
+public import Qatlib.Papers.ElemGates95.MultiControl.Section7.GrayParity
+
+@[expose] public section
 
 /-!
 # Reflected Gray order and controlled-gate exponents

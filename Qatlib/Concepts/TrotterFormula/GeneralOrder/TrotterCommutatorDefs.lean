@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+module
+
+public import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+
+@[expose] public section
 
 /-!
 # Compiled Strang words and ferromagnetic gate models

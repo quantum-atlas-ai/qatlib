@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
-import Qatlib.Papers.QAOAScaling23.SearchFees.AngleSplit
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
+public import Qatlib.Papers.QAOAScaling23.SearchFees.AngleSplit
+
+@[expose] public section
 
 /-!
 # Resource bounds for small marked mass

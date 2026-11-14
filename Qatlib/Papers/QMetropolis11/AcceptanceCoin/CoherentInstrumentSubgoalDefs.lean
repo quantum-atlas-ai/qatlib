@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Coherent Metropolis coin definitions

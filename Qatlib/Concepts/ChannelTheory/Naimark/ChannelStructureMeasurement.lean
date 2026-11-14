@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Pure-state measurement updates and instrument statistics
@@ -151,7 +155,7 @@ theorem krausDrop_complete : KrausComplete (n := 2) kDrop := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [kDrop, matrixUnit, Matrix.single, Matrix.mul_apply, Matrix.conjTranspose_apply,
-      Fin.sum_univ_two, ite_and, mul_ite]
+       ite_and, mul_ite]
 
 /-- The reset Kraus sum sends an operator `A` to its trace times the projector onto basis state
 zero. -/
@@ -193,7 +197,7 @@ theorem instrument_pair_same_stats :
     have h : conjBranch (kDrop 0) A + conjBranch (kDrop 1) A
         = ∑ k : Fin 2, kDrop k * A * (kDrop k).conjTranspose := by
       rw [Fin.sum_univ_two]
-      simp [conjBranch_apply]
+      simp []
     rw [h, krausDrop_apply]
     simp [matrixUnit, Matrix.single, Matrix.trace, Fin.sum_univ_two]
   refine ⟨Instrument.ofBranches B₁ hCP₁ hTP₁, Instrument.ofBranches B₂ hCP₂ hTP₂,
@@ -207,7 +211,7 @@ theorem instrument_pair_same_stats :
       have h : conjBranch (kDrop 0) ρ' + conjBranch (kDrop 1) ρ'
           = ∑ k : Fin 2, kDrop k * ρ' * (kDrop k).conjTranspose := by
         rw [Fin.sum_univ_two]
-        simp [conjBranch_apply]
+        simp []
       rw [h, krausDrop_apply]
       simp [matrixUnit, Matrix.single, Matrix.trace, Fin.sum_univ_two]
     rw [h1, h2]
@@ -221,9 +225,9 @@ theorem instrument_pair_same_stats :
       have h : conjBranch (kDrop 0) (1 : Operator 2) + conjBranch (kDrop 1) 1
           = ∑ k : Fin 2, kDrop k * (1 : Operator 2) * (kDrop k).conjTranspose := by
         rw [Fin.sum_univ_two]
-        simp [conjBranch_apply]
+        simp []
       rw [h, krausDrop_apply]
-      simp [matrixUnit, Matrix.single, Matrix.trace, Fin.sum_univ_two]
+      simp [matrixUnit, Matrix.single, Matrix.trace]
     rw [h1, h2] at hEq
     have hne : (1 : Operator 2) ≠ (2 : ℂ) • matrixUnit 0 0 := by
       intro h

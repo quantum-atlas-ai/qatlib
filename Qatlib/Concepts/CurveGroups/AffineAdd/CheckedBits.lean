@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CurveGroups.AffineAdd.FiniteCurve
+module
+
+public import Qatlib.Concepts.CurveGroups.AffineAdd.FiniteCurve
+
+@[expose] public section
 
 /-!
 # Checked elliptic curve execution on bit registers

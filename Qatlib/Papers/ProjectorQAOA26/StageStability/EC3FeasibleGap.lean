@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
-import Qatlib.Papers.ProjectorQAOA26.StageStability.RankOneOpNorm
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.RankOneOpNorm
+
+@[expose] public section
 
 /-!
 # EC3 feasible counting and inverse-cost moments

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Local Pauli code and shot values

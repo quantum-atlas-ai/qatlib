@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.OrthogonalResidual
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.PairGaussianLaw
-import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.OrthogonalResidual
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.PairGaussianLaw
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+
+@[expose] public section
 
 /-!
 # Joint transport of Gaussian projections

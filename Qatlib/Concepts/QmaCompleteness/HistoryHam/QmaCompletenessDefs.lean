@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # QMA verifiers and history Hamiltonians

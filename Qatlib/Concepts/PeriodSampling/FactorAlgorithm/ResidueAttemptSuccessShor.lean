@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+
+@[expose] public section
 
 /-!
 # Success of residue-based factoring attempts
@@ -39,7 +43,7 @@ open Qatlib
 open scoped Classical
 
 /-- The number of units modulo nonzero `N` is at most `N`. -/
-private theorem residue_units_card_le (N : ℕ) [NeZero N] : Fintype.card (ZMod N)ˣ ≤ N := by
+theorem residue_units_card_le (N : ℕ) [NeZero N] : Fintype.card (ZMod N)ˣ ≤ N := by
   rw [← residue_coprime_card N]
   exact (Finset.card_filter_le _ _).trans_eq (ZMod.card N)
 

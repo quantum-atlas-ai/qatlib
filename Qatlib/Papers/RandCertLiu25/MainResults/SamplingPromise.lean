@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ with the error assembly: on the complement of the union of the estimation-error
 events (mass at least `1 - η`), the sampling process returns the correct answer
 on both promise cases. -/
 theorem lemma16_promise_solved (eta delta t yhat_yes yhat_no : ℝ)
-    (hdelta : 0 < delta) (heta : 0 ≤ eta)
+    (hdelta : 0 < delta) (_heta : 0 ≤ eta)
     (hyes : t + 3 * delta / 8 ≤ yhat_yes)
     (hno : yhat_no ≤ t + delta / 8) :
     (t + delta / 4 ≤ yhat_yes) ∧ (yhat_no < t + delta / 4) :=

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BooleanEnergy.HadamardGram.Carrier
+module
+
+public import Qatlib.Foundations.BooleanEnergy.HadamardGram.Carrier
+
+@[expose] public section
 
 /-!
 # Gram energy of Boolean sign matrices

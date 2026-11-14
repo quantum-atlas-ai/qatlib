@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Data.List.Indexes
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Polynomial.FieldDivision
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Data.List.Indexes
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
+
+@[expose] public section
 
 /-!
 # Source conventions for alternating phase words
@@ -339,7 +343,7 @@ theorem source_constant_minimal_length (c : ℝ) (hc : |c| ≤ 1) :
     exact ⟨⟨[], rfl, by simp [sourcePhaseResponse]⟩, fun _ _ => Nat.zero_le _⟩
   by_cases hc0 : c=0
   · subst c
-    simp only [sourceConstantMinimalLength, show (0 : ℝ) ≠ 1 by norm_num, if_false]
+    simp only [sourceConstantMinimalLength, show (0 : ℝ) ≠ 1 by norm_num, ite_false]
     constructor
     · refine ⟨[Real.pi/2], rfl, ?_⟩
       intro x
@@ -349,7 +353,7 @@ theorem source_constant_minimal_length (c : ℝ) (hc : |c| ≤ 1) :
       cases Ψ with
       | nil => have h := hΨ 0; simp [sourcePhaseResponse] at h
       | cons φ Φ => simp
-  · simp only [sourceConstantMinimalLength, hc1, hc0, if_false]
+  · simp only [sourceConstantMinimalLength, hc1, hc0, ite_false]
     constructor
     · obtain ⟨Φ, hlen, hre⟩ := source_length_real_phase_existence (C c) 2 (by norm_num)
         (degree_C_le.trans (by norm_num)) (by simp [HasRealParity])

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Value
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Value
+
+@[expose] public section
 
 /-!
 # Plain finite-tail programs

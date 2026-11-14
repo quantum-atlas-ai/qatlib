@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotation
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotation
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+
+@[expose] public section
 
 /-!
 # Figure 2 angle expansion and register layout

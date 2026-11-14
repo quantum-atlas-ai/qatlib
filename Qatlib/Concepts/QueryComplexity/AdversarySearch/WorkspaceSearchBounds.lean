@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Workspace Grover search circuits and costs
@@ -96,6 +100,7 @@ theorem workspaceLiftCircuit_query (C : Circuit (I × Bool)) :
     workspaceLiftCircuit ((Step.query : Step (I × Bool)) :: C)
       = (Step.query : Step ((I × Bool) × W)) :: workspaceLiftCircuit C := rfl
 
+omit [Fintype I] [DecidableEq I] [Fintype W] in
 /-- Lifting a circuit to an auxiliary workspace preserves its query count. -/
 theorem queryCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     QueryCount (workspaceLiftCircuit (W := W) C) = QueryCount C := by
@@ -106,6 +111,7 @@ theorem queryCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     | gate U => rw [workspaceLiftCircuit_gate, queryCount_gate, queryCount_gate, ih]
     | query => rw [workspaceLiftCircuit_query, queryCount_query, queryCount_query, ih]
 
+omit [Fintype I] [DecidableEq I] [Fintype W] in
 /-- Lifting a circuit to an auxiliary workspace preserves its gate count. -/
 theorem gateCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     GateCount (workspaceLiftCircuit (W := W) C) = GateCount C := by
@@ -131,6 +137,7 @@ theorem isUnitaryCircuit_workspaceLiftCircuit {C : Circuit (I × Bool)}
       rw [workspaceLiftCircuit_query, isUnitaryCircuit_query]
       exact ih ((isUnitaryCircuit_query C).mp hC)
 
+omit [DecidableEq I] in
 /-- On a tensor state, running the lifted circuit with the lifted oracle equals tensoring the
 original execution with the workspace state. -/
 theorem run_workspaceLiftCircuit (O : Matrix (I × Bool) (I × Bool) ℂ) (C : Circuit (I × Bool))

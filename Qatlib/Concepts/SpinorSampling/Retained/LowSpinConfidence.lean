@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.LowSpinProbability
-import Qatlib.Concepts.SpinorSampling.Retained.LowSpinComposition
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.LowSpinProbability
+public import Qatlib.Concepts.SpinorSampling.Retained.LowSpinComposition
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Adjugate
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.LinearAlgebra.Matrix.Notation
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Adjugate
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.LinearAlgebra.Matrix.Notation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

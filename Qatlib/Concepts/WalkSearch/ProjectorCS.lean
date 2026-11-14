@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.CStarAlgebra.CStarMatrix
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.CStarAlgebra.CStarMatrix
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Unmarked principal matrices and walk gaps
@@ -113,7 +117,7 @@ theorem unmarkedRowFrame_swap_gram {I : Type} [Fintype I] [DecidableEq I]
   have hc : principalMul (principalMul (unmarkedRowFrame P S)ᴴ (SwapGate : Matrix (I×I) (I×I) ℂ)) (unmarkedRowFrame P S) i j =
       ((SzegedyIsometry P)ᴴ*SzegedyIsometryB P) i.1 j.1 := by
     rw [principalMul_assoc]
-    simp only [principalMul,SzegedyIsometryB,Matrix.mul_apply,CStarMatrix.mul_apply,Matrix.conjTranspose_apply,unmarkedRowFrame]
+    simp only [principalMul,SzegedyIsometryB,Matrix.mul_apply,Matrix.conjTranspose_apply,unmarkedRowFrame]
   rw [hc,he]
   simp only [unmarkedPrincipal,SzegedyDiscriminant,Matrix.map_apply,Matrix.of_apply]
   rw [← hs i.1 j.1,← pow_two,Real.sqrt_sq (hP.1 i.1 j.1)]
@@ -193,7 +197,7 @@ private theorem principalZeroExtend_sum {I : Type} [Fintype I] [DecidableEq I]
   have hs := Finset.sum_subtype (F:=inferInstance) (p:=fun i : I=>i∉S)
     (Finset.univ.filter (fun i=>i∉S)) (by intro i; simp) (principalZeroExtend S f)
   have ht : (∑ i : Unmarked I S,principalZeroExtend S f i.1)=∑ i : Unmarked I S,f i := by
-    apply Finset.sum_congr rfl; intro i _; simp only [principalZeroExtend,dif_pos i.2]
+    apply Finset.sum_congr rfl; intro i _; simp only [principalZeroExtend,dite_eq_left i.2]
   rw [← ht,← hs]
   symm
   apply Finset.sum_subset (Finset.filter_subset _ _)

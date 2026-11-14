@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Thm3DenseLowerBound
-import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Thm3DenseLowerBound
+public import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+
+@[expose] public section
 
 /-!
 # Spectral norm of the all-ones matrix

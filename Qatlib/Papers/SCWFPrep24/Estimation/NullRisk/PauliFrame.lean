@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Mathlib.Tactic.Linarith
-import QuantumInfo.ForMathlib.HermitianMat.Inner
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Mathlib.Tactic.Linarith
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+
+@[expose] public section
 
 /-!
 # Generator cardinality bounds for binary submodules

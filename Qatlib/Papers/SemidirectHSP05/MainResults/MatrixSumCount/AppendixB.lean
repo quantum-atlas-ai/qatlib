@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.Lemma5
+module
+
+public import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.Lemma5
+
+@[expose] public section
 
 /-!
 # Second moments for matrix sum solution counts
@@ -36,7 +40,7 @@ variable (p r : ℕ)
 /-- Each diagonal entry of `matEntry p r b` equals `b`. -/
 lemma matEntry_diag [NeZero p] (b : ZMod p) (i : Fin r) : matEntry p r b i i = b := by
   unfold matEntry binomMod
-  rw [if_pos (le_refl _)]
+  rw [ite_eq_left (le_refl _)]
   have h : (i : ℕ) - (i : ℕ) + 1 = 1 := by omega
   rw [h, Nat.choose_one_right, ZMod.natCast_zmod_val]
 
@@ -45,7 +49,7 @@ lemma matEntry_eq_zero_of_lt (b : ZMod p) (i j : Fin r) (h : j < i) :
     matEntry p r b i j = 0 := by
   have hj : (j : ℕ) < (i : ℕ) := h
   unfold matEntry
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
 
 /-- The difference of two matrices `matEntry p r b` and `matEntry p r c` is block triangular
 with respect to the identity ordering. -/
@@ -66,7 +70,7 @@ lemma matEntry_sub_diag [NeZero p] (b c : ZMod p) (i : Fin r) :
 lemma matEntry_sub_det [NeZero p] (b c : ZMod p) :
     Matrix.det (matEntry p r b - matEntry p r c : Matrix (Fin r) (Fin r) (ZMod p))
       = (b - c) ^ r := by
-  rw [Matrix.det_of_upperTriangular (matEntry_sub_blockTriangular p r b c)]
+  rw [Matrix.det_of_isUpperTriangular (matEntry_sub_blockTriangular p r b c)]
   simp only [matEntry_sub_diag p r b c, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
 /-- The matrix sum with fixed coefficient vector `b`, viewed as a linear map in the input array
@@ -151,7 +155,7 @@ theorem card_fiber [Fact p.Prime] {b c : Fin r → ZMod p} (hbc : b ≠ c) :
     Fintype.card {x : Fin r → Fin r → ZMod p // matSum p r x b = matSum p r x c}
       = p ^ (r * r - r) := by
   classical
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   set L : (Fin r → Fin r → ZMod p) →ₗ[ZMod p] (Fin r → ZMod p) :=
     matSumLin p r b - matSumLin p r c with hL
   have hiff : ∀ x : Fin r → Fin r → ZMod p,
@@ -184,7 +188,7 @@ lemma sum_indicator_mul {α : Type*} [Fintype α] [DecidableEq α] (a a' : α) :
       = if a = a' then (1 : ℝ) else 0 := by
   by_cases h : a = a'
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hpt : ∀ w : α, (if a = w then (1 : ℝ) else 0) * (if a = w then (1 : ℝ) else 0)
         = (if a = w then (1 : ℝ) else 0) := by
       intro w
@@ -193,12 +197,12 @@ lemma sum_indicator_mul {α : Type*} [Fintype α] [DecidableEq α] (a a' : α) :
         = ∑ w : α, (if a = w then (1 : ℝ) else 0) := by
           apply Finset.sum_congr rfl; intro w _; exact hpt w
       _ = 1 := Fintype.sum_ite_eq a (fun _ => (1 : ℝ))
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro w _
     by_cases hw : a = w
-    · rw [if_pos hw, if_neg (fun hh => h (hw.trans hh.symm)), mul_zero]
-    · rw [if_neg hw, zero_mul]
+    · rw [ite_eq_left hw, ite_eq_right (fun hh => h (hw.trans hh.symm)), mul_zero]
+    · rw [ite_eq_right hw, zero_mul]
 
 /-- The sum of squared solution counts over targets equals the number of ordered coefficient
 pairs with equal matrix sums. -/
@@ -245,16 +249,16 @@ lemma sum_ind_over_x [Fact p.Prime] (b c : Fin r → ZMod p) :
       = if b = c then (Fintype.card (Fin r → Fin r → ZMod p) : ℝ)
         else (p : ℝ) ^ (r * r - r) := by
   classical
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   by_cases h : b = c
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hpt : ∀ x : Fin r → Fin r → ZMod p,
         (if matSum p r x b = matSum p r x b then (1 : ℝ) else 0) = 1 :=
-      fun _ => if_pos rfl
+      fun _ => ite_eq_left rfl
     rw [Finset.sum_congr rfl (fun x _ => hpt x)]
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hfilter : (∑ x : Fin r → Fin r → ZMod p,
         (if matSum p r x b = matSum p r x c then (1 : ℝ) else 0))
         = ((Finset.univ.filter (fun x : Fin r → Fin r → ZMod p =>
@@ -276,7 +280,7 @@ theorem second_moment [Fact p.Prime] :
       ≤ (2 - ((p : ℝ) ^ r)⁻¹) *
           (Fintype.card ((Fin r → Fin r → ZMod p) × (Fin r → ZMod p)) : ℝ) := by
   classical
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
 
   have hMnat : Fintype.card (Fin r → ZMod p) = p ^ r := by
     rw [Fintype.card_fun, Fintype.card_fin, ZMod.card]
@@ -312,8 +316,8 @@ theorem second_moment [Fact p.Prime] :
             else 0) + (p : ℝ) ^ (r * r - r) := by
       intro c
       by_cases h : b = c
-      · rw [if_pos h, if_pos h]; ring
-      · rw [if_neg h, if_neg h, zero_add]
+      · rw [ite_eq_left h, ite_eq_left h]; ring
+      · rw [ite_eq_right h, ite_eq_right h, zero_add]
     calc (∑ c : Fin r → ZMod p,
           (if b = c then (Fintype.card (Fin r → Fin r → ZMod p) : ℝ)
             else (p : ℝ) ^ (r * r - r)))
@@ -400,7 +404,7 @@ theorem lemma5 [Fact p.Prime] :
     4 * ((Finset.univ.filter (fun xw : (Fin r → Fin r → ZMod p) × (Fin r → ZMod p) =>
         (solutions p r xw.1 xw.2).card = 1 ∨ (solutions p r xw.1 xw.2).card = 2)).card : ℝ)
       ≥ (Fintype.card ((Fin r → Fin r → ZMod p) × (Fin r → ZMod p)) : ℝ) := by
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   have hp0 : (0 : ℝ) < (p : ℝ) := by exact_mod_cast (Fact.out : p.Prime).pos
   have hp1 : (1 : ℝ) ≤ (p : ℝ) := by
     have := (Fact.out : p.Prime).two_le

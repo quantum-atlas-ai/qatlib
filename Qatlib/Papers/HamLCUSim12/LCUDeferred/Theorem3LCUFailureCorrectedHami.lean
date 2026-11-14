@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedFailureMass
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFailureCorrectedStat
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedFailureMass
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFailureCorrectedStat
+
+@[expose] public section
 
 /-!
 # Failure bound for the corrected signed LCU protocol

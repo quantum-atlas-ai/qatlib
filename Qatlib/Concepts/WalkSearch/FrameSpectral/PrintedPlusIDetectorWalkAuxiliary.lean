@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+@[expose] public section
 
 /-!
 # Branch actions of the printed plus-I detector walk
@@ -153,11 +157,11 @@ private theorem select_uncontrolled {D : Type} [Fintype D] [DecidableEq D]
     · have hbe : ¬ ((false, d).1 = (b, e).1) := by
         intro h
         exact hb h.symm
-      simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, if_neg hbe,
-          if_neg hb]
+      simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, ite_eq_right hbe,
+          ite_eq_right hb]
   simp only [Matrix.mulVec, dotProduct]
   rw [Fintype.sum_eq_single (false, d)]
-  · rw [hpoint false d, if_pos rfl, if_pos rfl]
+  · rw [hpoint false d, ite_eq_left rfl, ite_eq_left rfl]
     exact one_mul _
   · intro q hq
     rcases q with ⟨b, e⟩
@@ -340,7 +344,7 @@ private theorem phase_uncontrolled {I : Type} [Fintype I] [DecidableEq I] (j : I
     rw [Fintype.sum_eq_single p]
     · simp only [Matrix.diagonal_apply, reduceIte]
     · intro q hq
-      simp only [Matrix.diagonal_apply, if_neg (Ne.symm hq), zero_mul]
+      simp only [Matrix.diagonal_apply, ite_eq_right (Ne.symm hq), zero_mul]
   rw [hdiag]
   simp
 
@@ -575,7 +579,7 @@ theorem rowAccess_reverse_matrix {I : Type} [Fintype I] [DecidableEq I]
             (N := (1 : Matrix (Bool × (I × I)) (Bool × (I × I)) ℂ)) (i := d) (k := d')
           rw [Matrix.one_mul] at h
           exact h.symm
-        simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, if_true, hf0,
+        simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, ite_true, hf0,
             hg0]
         rw [hsum, Matrix.one_apply]
         simp
@@ -587,14 +591,14 @@ theorem rowAccess_reverse_matrix {I : Type} [Fintype I] [DecidableEq I]
             (M := ((1 : Matrix Bool Bool ℂ)⊗ₖU))
             (N := ((1 : Matrix Bool Bool ℂ)⊗ₖUᴴ)) (i := d) (k := d')
           exact h.symm
-        simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, if_true]
+        simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, ite_true]
         rw [hsum, hkron, Matrix.one_apply]
         simp
-    · simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, if_neg hbb]
+    · simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply, ite_eq_right hbb]
       simp [hbb]
   · intro b'' hb''
     simp only [Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply,
-        if_neg (Ne.symm hb'')]
+        ite_eq_right (Ne.symm hb'')]
     simp
 
 /-- The Kronecker product of an identity matrix with `M` acts by `M` on each fixed
@@ -868,10 +872,10 @@ private theorem plusIWalkWord_operator {I : Type} [Fintype I] [DecidableEq I]
   rcases p with ⟨b, c, xy⟩
   cases b with
   | false =>
-      simp only [if_pos]
+      simp only [ite_eq_left]
       exact plusIWalkWord_uncontrolled_identity S U j z c xy
   | true =>
-      simp only [if_neg (by simp : (true : Bool) ≠ false)]
+      simp only [ite_eq_right (by simp : (true : Bool) ≠ false)]
       exact plusIWalkWord_flagShear S U j hU z c xy
 
 /-- Under row preserving access, applying the printed plus-I walk twice returns the original
@@ -887,17 +891,17 @@ theorem plusIWalkWord_involutive {I : Type} [Fintype I] [DecidableEq I]
   have hop := plusIWalkWord_operator S U j hU
   rw [hop (detectionEvaluate U S (plusIWalkWord j) *ᵥ y)]
   by_cases hb : p.1 = false
-  · simp only [if_pos hb]
+  · simp only [ite_eq_left hb]
     rw [hop y]
-    simp only [if_pos hb]
-  · simp only [if_neg hb]
+    simp only [ite_eq_left hb]
+  · simp only [ite_eq_right hb]
     rw [hop y]
     have hsb : (printedFlagShear S p).1 = p.1 := printedFlagShear_preserves_label S p
     have hnb : (printedFlagShear S p).1 ≠ false := by
       intro hc
       rw [hsb] at hc
       exact hb hc
-    simp only [if_neg hnb]
+    simp only [ite_eq_right hnb]
     congr 1
     exact printedFlagShear_involutive S p
 set_option maxHeartbeats 400000 in
@@ -928,7 +932,7 @@ theorem printedWalkBlock_period_two {I : Type} [Fintype I] [DecidableEq I]
     induction K generalizing z with
     | zero =>
         have h0 : (0 : ℕ) % 2 = 0 := by omega
-        rw [if_pos h0]
+        rw [ite_eq_left h0]
         simp [detectionEvaluate, Matrix.one_mulVec]
     | succ K ih =>
         have hrep : List.replicate (K + 1) (plusIWalkWord j)
@@ -937,12 +941,12 @@ theorem printedWalkBlock_period_two {I : Type} [Fintype I] [DecidableEq I]
         rw [hrep, hcons]
         rw [ih z]
         by_cases hK : K % 2 = 0
-        · rw [if_pos hK]
+        · rw [ite_eq_left hK]
           have h1 : (K + 1) % 2 ≠ 0 := by omega
-          rw [if_neg h1]
-        · rw [if_neg hK]
+          rw [ite_eq_right h1]
+        · rw [ite_eq_right hK]
           have h1 : (K + 1) % 2 = 0 := by omega
-          rw [if_pos h1]
+          rw [ite_eq_left h1]
           exact plusIWalkWord_involutive S U j hU z
   intro K v
   exact hgen K v

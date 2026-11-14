@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapWindowSuccessAndBudgetStat
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapWindowSuccessAndBudgetStat
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+
+@[expose] public section
 
 /-!
 # Success and access bounds for forced LCHS windows

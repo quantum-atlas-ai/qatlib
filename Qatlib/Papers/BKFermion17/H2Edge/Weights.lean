@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BKFermion17.H2Edge.Defs
+module
+
+public import Qatlib.Papers.BKFermion17.H2Edge.Defs
+
+@[expose] public section
 
 /-!
 # Pauli weights of hydrogen edge generators

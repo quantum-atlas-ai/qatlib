@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.MarkedFraction
-import Qatlib.Papers.MatProdVerify04.MainResults.RevealingProbability
-import Qatlib.Papers.MatProdVerify04.MainResults.TailMass
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Prod
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.MarkedFraction
+public import Qatlib.Papers.MatProdVerify04.MainResults.RevealingProbability
+public import Qatlib.Papers.MatProdVerify04.MainResults.TailMass
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Prod
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Uniform marked subsets and windows
@@ -47,8 +51,8 @@ def uniformOn {α : Type*} [Fintype α] [DecidableEq α] (S : Finset α)
   prob a := if a ∈ S then ((S.card : ℝ))⁻¹ else 0
   nonneg a := by
     by_cases h : a ∈ S
-    · rw [if_pos h]; positivity
-    · rw [if_neg h]
+    · rw [ite_eq_left h]; positivity
+    · rw [ite_eq_right h]
   sum_one := by
     classical
     have hcard : (0 : ℝ) < (S.card : ℝ) := by
@@ -91,7 +95,7 @@ theorem uniformOn_prob_notMem {α : Type*} [Fintype α] [DecidableEq α]
     (S : Finset α) (hS : S.Nonempty) {a : α} (ha : a ∉ S) :
     (uniformOn S hS).prob a = 0 := by
   simp only [uniformOn]
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
 
 /-- The uniform distribution on all `t`-element subsets of the finite type `V`. -/
 def uniformSubset {V : Type*} [Fintype V] [DecidableEq V] (t : ℕ)

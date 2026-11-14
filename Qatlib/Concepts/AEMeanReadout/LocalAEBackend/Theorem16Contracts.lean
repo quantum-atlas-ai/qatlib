@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryBlockTransport
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAStat
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryBlockTransport
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAStat
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 /-!
 # Contracts for exact promise search

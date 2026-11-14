@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAChoice
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAChoice
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
+
+@[expose] public section
 
 /-!
 # Padding encodings to the amplification amplitude

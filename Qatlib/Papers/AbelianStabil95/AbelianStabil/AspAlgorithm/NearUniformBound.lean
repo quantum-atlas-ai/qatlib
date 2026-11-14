@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Real.Basic
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm.SamplingParameters
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Real.Basic
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm.SamplingParameters
+
+@[expose] public section
 
 /-!
 # Subset masses under nearly correct measurement
@@ -49,17 +53,17 @@ def measuredSubsetMass (M : H → H → ℝ) (L : Finset H) : ℝ :=
 /-- For a nonnegative column-normalized matrix with diagonal entries at least `1 - η`, the
 measured mass of `L` is at least its uniform mass times `1 - η`. See [Kitaev1995]. -/
 theorem near_uniform_subset_lower (M : H → H → ℝ) (η : ℝ) (L : Finset H)
-    (hMsum : ∀ h, ∑ h', M h' h = 1)
+    (_hMsum : ∀ h, ∑ h', M h' h = 1)
     (hMnonneg : ∀ h h', 0 ≤ M h h')
     (hMcorrect : ∀ h, 1 - η ≤ M h h) :
     (Fintype.card H : ℝ)⁻¹ * (L.card : ℝ) * (1 - η) ≤ measuredSubsetMass M L := by
   have hpoint : ∀ h, (if h ∈ L then (1 : ℝ) else 0) * (1 - η) ≤ ∑ h' ∈ L, M h' h := by
     intro h
     by_cases hh : h ∈ L
-    · rw [if_pos hh, one_mul]
+    · rw [ite_eq_left hh, one_mul]
       exact (hMcorrect h).trans
         (Finset.single_le_sum (f := fun h' => M h' h) (fun h' _ => hMnonneg h' h) hh)
-    · rw [if_neg hh, zero_mul]
+    · rw [ite_eq_right hh, zero_mul]
       exact Finset.sum_nonneg fun h' _ => hMnonneg h' h
   have hsum : (∑ h : H, (if h ∈ L then (1 : ℝ) else 0) * (1 - η))
       ≤ ∑ h : H, ∑ h' ∈ L, M h' h :=
@@ -87,13 +91,13 @@ theorem near_uniform_subset_upper (M : H → H → ℝ) (η : ℝ) (L : Finset H
   have hpoint : ∀ h, (∑ h' ∈ L, M h' h) ≤ (if h ∈ L then (1 : ℝ) else 0) + η := by
     intro h
     by_cases hh : h ∈ L
-    · rw [if_pos hh]
+    · rw [ite_eq_left hh]
       have hle : ∑ h' ∈ L, M h' h ≤ ∑ h', M h' h :=
         Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ L)
           (fun x _ _ => hMnonneg x h)
       rw [hMsum h] at hle
       linarith
-    · rw [if_neg hh, zero_add]
+    · rw [ite_eq_right hh, zero_add]
       have hsub : ∑ h' ∈ L, M h' h ≤ ∑ h' ∈ Finset.univ.erase h, M h' h := by
         apply Finset.sum_le_sum_of_subset_of_nonneg
         · intro x hx

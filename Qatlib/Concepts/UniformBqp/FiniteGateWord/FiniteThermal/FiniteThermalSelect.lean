@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativeInverse
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativeInverse
+
+@[expose] public section
 
 /-!
 # Finite flag phases and signed selection words
@@ -92,7 +96,7 @@ private theorem cx_basis {n : ℕ} (flag signal : Fin n) (hfs : flag≠signal) (
       (Qatlib.Foundations.PureStateMath.Ket x)=Qatlib.Foundations.PureStateMath.Ket (Function.update x signal (x signal ^^ x flag)) := by
   have hv : flag.val≠signal.val := fun h => hfs (Fin.ext h)
   simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_cons,List.map_nil,Qatlib.Foundations.QueryWordCore.Circuit.run_gate,Qatlib.Foundations.QueryWordCore.Circuit.run_nil,
-    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dif_pos (show flag.val<n ∧ signal.val<n ∧ flag.val≠signal.val from
+    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dite_eq_left (show flag.val<n ∧ signal.val<n ∧ flag.val≠signal.val from
       ⟨flag.isLt,signal.isLt,hv⟩)]
   exact Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_cnotGate_ket n flag signal hfs x
 
@@ -218,7 +222,7 @@ theorem thermalSelectY_public {n : ℕ} (flag signal : Fin n) (hfs : flag≠sign
   unfold Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun
   have hl : Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal n (thermalSelectYWord flag signal)=true :=
     thermalNative_program_legal _ (thermalSelectY_legal flag signal hfs)
-  rw [hl,if_pos rfl]
+  rw [hl,ite_eq_left rfl]
   exact congrArg some (thermalSelectY_coherent flag signal hfs psi)
 
 /-- The selection program has native cost four, lowered gate count seven, and zero queries. -/
@@ -245,7 +249,7 @@ private theorem x_basis {n : ℕ} (w : Fin n) (x : Qatlib.Foundations.PureStateM
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n [.x w.val])
       (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x w (!x w)) := by
   simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_cons,List.map_nil,Qatlib.Foundations.QueryWordCore.Circuit.run_gate,Qatlib.Foundations.QueryWordCore.Circuit.run_nil,
-    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dif_pos w.isLt]
+    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dite_eq_left w.isLt]
   rw [Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_wireGate_ket]
   cases hx :
       x w <;> simp

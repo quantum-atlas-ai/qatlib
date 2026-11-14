@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
-import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
-import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticConsumer
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticConsumer
+
+@[expose] public section
 
 /-!
 # Compiling dynamic samples to original oracles

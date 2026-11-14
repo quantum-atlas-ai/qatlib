@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Commutators
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Commutators
+
+@[expose] public section
 
 /-!
 # Compressed nested commutators of positive local Hamiltonians

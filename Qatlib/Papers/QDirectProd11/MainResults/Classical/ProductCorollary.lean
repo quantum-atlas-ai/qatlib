@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDirectProd11.MainResults.Classical.ProductMoment
+module
+
+public import Qatlib.Papers.QDirectProd11.MainResults.Classical.ProductMoment
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,7 +73,7 @@ and the product distribution `p^k`, bound `E_{p^k}[(Π_l A_l)^{-1}]` by
 `(E_p[A^{-1}])^k`, and use Claim 3.12 for the single-coordinate inverse moment. -/
 theorem corollary_3_13 {ι : Type} [Fintype ι]
     (p A : ι → ℝ) (a0 a1 ā δ : ℝ) (k : ℕ)
-    (hk : 0 < k)
+    (_hk : 0 < k)
     (hp0 : ∀ i, 0 ≤ p i) (hp1 : ∑ i, p i = 1)
     (ha0 : 0 < a0) (h01 : a0 ≤ a1) (hā : ā ≤ a1)
     (hA : ∀ i, a0 ≤ A i ∧ A i ≤ a1)

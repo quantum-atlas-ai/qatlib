@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionLB26.QueryModel.ActualWord
-import Qatlib.Concepts.AdversaryBounds.LabelProgress.RelabelGram
-import Qatlib.Concepts.AdversaryBounds.LabelProgress.SupportRange
+module
+
+public import Qatlib.Papers.CollisionLB26.QueryModel.ActualWord
+public import Qatlib.Concepts.AdversaryBounds.LabelProgress.RelabelGram
+public import Qatlib.Concepts.AdversaryBounds.LabelProgress.SupportRange
+
+@[expose] public section
 
 /-!
 # Space bounds for label-permutation orbits

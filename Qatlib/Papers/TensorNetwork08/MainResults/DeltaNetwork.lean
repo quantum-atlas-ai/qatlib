@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Consistent difference labels and delta-network sums
@@ -76,13 +80,13 @@ theorem extend_consistent (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge 
   have hval : extend q isTree cycleCoeff δtr e
       = -∑ f : TreeEdge isTree, (cycleCoeff e f.val : ZMod q) * δtr f := by
     unfold extend
-    rw [dif_neg he]
+    rw [dite_eq_right he]
   have hsum : (∑ f : TreeEdge isTree,
         (cycleCoeff e f.val : ZMod q) * extend q isTree cycleCoeff δtr f)
       = ∑ f : TreeEdge isTree, (cycleCoeff e f.val : ZMod q) * δtr f := by
     apply Finset.sum_congr rfl
     intro f _
-    rw [extend, dif_pos f.property]
+    rw [extend, dite_eq_left f.property]
   rw [hval, hsum]
   exact neg_add_cancel _
 
@@ -92,7 +96,7 @@ theorem extend_injective (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge �
   intro a b hab
   funext f
   have h := congrFun hab f.val
-  simp only [extend, dif_pos f.property] at h
+  simp only [extend, dite_eq_left f.property] at h
   simpa using h
 
 /-- Restricting a consistent labeling to tree edges and extending it recovers the original
@@ -104,13 +108,13 @@ theorem eq_extend_restrict (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge
   funext e
   by_cases he : isTree e = true
   · unfold extend
-    rw [dif_pos he]
+    rw [dite_eq_left he]
   · have hcon := hδ e he
     rw [add_comm] at hcon
     have hsum : (∑ f : TreeEdge isTree, (cycleCoeff e f.val : ZMod q) * δ f.val)
         = -δ e := eq_neg_of_add_eq_zero_left hcon
     unfold extend
-    rw [dif_neg he, hsum, neg_neg]
+    rw [dite_eq_right he, hsum, neg_neg]
 
 /-- The equivalence between all-edge labelings satisfying the cycle equations and arbitrary
 tree-edge labelings. See [AradLandau2010]. -/
@@ -126,7 +130,7 @@ def consistentEquiv (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Ed
     funext f
     show extend q isTree cycleCoeff δtr f.val = δtr f
     unfold extend
-    rw [dif_pos f.property]
+    rw [dite_eq_left f.property]
 
 /-- Reindexes the weighted sum over consistent full labelings as the weighted sum over their
 tree-label extensions. -/
@@ -141,7 +145,7 @@ theorem sum_consistent_eq_sum_tree (q : ℕ) [NeZero q] (isTree : Edge → Bool)
   have hsplit := Equiv.sum_comp ev.symm
     (fun δ : {δ : Edge → ZMod q // IsConsistent q isTree cycleCoeff δ} =>
       ∏ e, w e (δ.val e))
-  try simp only at hsplit
+
   rw [← hsplit]
   apply Finset.sum_congr rfl
   intro δtr _
@@ -190,13 +194,13 @@ theorem deltaNetworkValue_eq_treeSum (q : ℕ) [NeZero q] (isTree : Edge → Boo
   intro δtr _
   rw [Finset.sum_eq_single (fun e : CycleEdge isTree =>
         extend q isTree cycleCoeff δtr e.val)]
-  · rw [if_pos (fun _ => rfl), one_mul]
+  · rw [ite_eq_left (fun _ => rfl), one_mul]
     have htree : (∏ f : TreeEdge isTree, w f.val (δtr f))
         = ∏ f : TreeEdge isTree,
             w f.val (extend q isTree cycleCoeff δtr f.val) := by
       apply Finset.prod_congr rfl
       intro f _
-      rw [extend, dif_pos f.property]
+      rw [extend, dite_eq_left f.property]
     rw [htree, prod_tree_mul_cycle q isTree
       (fun e => extend q isTree cycleCoeff δtr e) w]
   · intro b _ hb
@@ -204,7 +208,7 @@ theorem deltaNetworkValue_eq_treeSum (q : ℕ) [NeZero q] (isTree : Edge → Boo
         b e = extend q isTree cycleCoeff δtr e.val := by
       intro h
       exact hb (funext h)
-    rw [if_neg hcond, zero_mul]
+    rw [ite_eq_right hcond, zero_mul]
   · intro hg
     exact absurd (Finset.mem_univ (fun e : CycleEdge isTree =>
       extend q isTree cycleCoeff δtr e.val)) hg

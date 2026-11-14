@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Schatten and diamond norm interfaces

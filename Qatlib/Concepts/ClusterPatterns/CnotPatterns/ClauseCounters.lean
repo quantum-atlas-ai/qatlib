@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Euler
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Euler
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Counterexamples for Euler-pattern clauses
@@ -279,10 +284,10 @@ theorem euler_corePre_real (θ : Fin 5 → ℝ) (s : Fin 5 → Bool) (xp : Fin 2
   · apply isRealC_prod
     intro k _
     by_cases h : (mpEulerPattern θ).zCorr k s && mpOutBit (mpEulerPattern θ) s xp k
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       show IsRealC (-1 : ℂ)
       exact isRealC_neg isRealC_one
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact isRealC_one
   · apply isRealC_sum
     intro c _
@@ -293,18 +298,18 @@ theorem euler_corePre_real (θ : Fin 5 → ℝ) (s : Fin 5 → Bool) (xp : Fin 2
         exact isRealC_star_sv _ _ _
       · by_cases h : ∀ v : Fin 1,
             c (Fin.natAdd 5 v) = mpOutBit (mpEulerPattern θ) s xp v
-        · rw [if_pos h]
+        · rw [ite_eq_left h]
           exact isRealC_one
-        · rw [if_neg h]
+        · rw [ite_eq_right h]
           exact isRealC_zero
     · rw [euler_EL_gen θ c y]
       by_cases h : c 0 = y 0
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         apply isRealC_mul
         · exact eulerPhase_real c
         · show IsRealC (((Real.sqrt 32 : ℝ) : ℂ)⁻¹)
           exact isRealC_inv (isRealC_ofReal _)
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         exact isRealC_zero
 
 /-- Every entry of the Euler pattern's integer-indexed core satisfies `IsRealC`. -/
@@ -394,7 +399,7 @@ theorem mpFin1Gate_t_apply (i j : Fin 2) :
       = tGate ((bitVecEquiv 1).symm i 0) ((bitVecEquiv 1).symm j 0) := by
   have h1 : finiteCodeMatrix 1 (FiniteGateCode.t 0) = wireGate 1 ⟨0, by omega⟩ tGate := rfl
   simp only [mpFin1Gate, Matrix.reindex_apply, Matrix.submatrix_apply, h1, wireGate_apply]
-  rw [if_pos (by intro k hk; fin_cases k; exact absurd rfl hk)]
+  rw [ite_eq_left (by intro k hk; fin_cases k; exact absurd rfl hk)]
   simp only [Fin.fin_one_eq_zero]
 
 /-- The `(0, 0)` entry of the encoded T gate is one. -/

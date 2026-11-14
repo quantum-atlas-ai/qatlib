@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinModels08.MainResults.VertexModel.Basic
+module
+
+public import Qatlib.Papers.SpinModels08.MainResults.VertexModel.Basic
+
+@[expose] public section
 
 /-!
 # Vertex support conditions and evaluator identities
@@ -75,7 +79,7 @@ theorem sixVertexGate_supported (w : QWeight 2) (h : IsSixVertexShape w)
 corresponding circuit matrix element [VanDenNestEtAl2009]. -/
 theorem evaluator_identity_transfer {q N : ℕ}
     (w : ∀ M : ℕ, Fin M → Fin N → QWeight q)
-    (Zval : ∀ M : ℕ, Config q N → Config q N → ℂ)
+    (Zval : ∀ _M : ℕ, Config q N → Config q N → ℂ)
     (hZ : ∀ (M : ℕ) (L R : Config q N), Zval M L R = vmPartition M (w M) L R) :
     ∀ (M : ℕ) (L R : Config q N), Zval M L R = matElem (vmCircuit M (w M)) L R := by
   intro M L R
@@ -87,7 +91,7 @@ theorem eightVertex_evaluator_identity {N : ℕ}
     (w : ∀ M : ℕ, Fin M → Fin N → QWeight 2)
     (_hshape : ∀ (M : ℕ) (c : Fin M) (r : Fin N), IsEightVertexShape (w M c r))
     (_hff : ∀ (M : ℕ) (c : Fin M) (r : Fin N), FreeFermionCond (w M c r))
-    (Zval : ∀ M : ℕ, Config 2 N → Config 2 N → ℂ)
+    (Zval : ∀ _M : ℕ, Config 2 N → Config 2 N → ℂ)
     (hZ : ∀ (M : ℕ) (L R : Config 2 N), Zval M L R = vmPartition M (w M) L R) :
     ∀ (M : ℕ) (L R : Config 2 N), Zval M L R = matElem (vmCircuit M (w M)) L R :=
   evaluator_identity_transfer w Zval hZ

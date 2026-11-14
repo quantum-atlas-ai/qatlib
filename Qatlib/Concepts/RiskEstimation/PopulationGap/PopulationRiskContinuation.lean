@@ -4,16 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskContinuationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ExactVaRProgramDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitAccessDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitLedgerDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketProgramResourcesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantumReadDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskCVaRDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.RiskEmitterDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskContinuationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ExactVaRProgramDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitAccessDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitLedgerDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketProgramResourcesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantumReadDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskCVaRDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.RiskEmitterDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Population risk guarantees and implementation interfaces

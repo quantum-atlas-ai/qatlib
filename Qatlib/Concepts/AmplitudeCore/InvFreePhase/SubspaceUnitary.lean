@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Extending operators from an isometric frame
@@ -45,6 +49,7 @@ theorem frameUnitary_frame (E : Matrix H I ℂ) (hE : IsIsometry E) (T : Matrix 
   have h : E.conjTranspose*E=1 := hE
   simp [frameUnitary, Matrix.add_mul, Matrix.sub_mul, rangeProjector, Matrix.mul_assoc, h]
 
+omit [Fintype H] [DecidableEq I] in
 /-- Taking the conjugate transpose of a frame extension replaces `T` by its conjugate transpose. -/
 theorem frameUnitary_adjoint (E : Matrix H I ℂ) (T : Matrix I I ℂ) :
     (frameUnitary E T).conjTranspose = frameUnitary E T.conjTranspose := by
@@ -71,6 +76,7 @@ theorem frameUnitary_mul (E : Matrix H I ℂ) (hE : IsIsometry E)
     simp only [Matrix.mul_assoc, ← Matrix.mul_assoc E.conjTranspose E, h, Matrix.one_mul]
   rw [hcross1, hcross2, hlast, add_zero, zero_add]
 
+omit [Fintype H] in
 /-- Extending the identity matrix gives the ambient identity matrix. -/
 @[simp] theorem frameUnitary_one (E : Matrix H I ℂ) : frameUnitary E 1 = 1 := by
   simp [frameUnitary, rangeProjector]

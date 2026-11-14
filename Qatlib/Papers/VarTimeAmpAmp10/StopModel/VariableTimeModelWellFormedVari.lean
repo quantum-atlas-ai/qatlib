@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedStat
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedContracts
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedStat
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedContracts
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Well-formedness of stopping models
@@ -80,7 +84,7 @@ theorem vt_stage_collapse {U : Matrix (VtSpace C) (VtSpace C) ℂ}
   funext p
   rw [collapse_apply, collapse_apply]
   by_cases hp : p ∈ stoppedSet C
-  · simp only [if_pos hp]
+  · simp only [ite_eq_left hp]
     exact vt_stage_stopped_apply hU ψ p (by simpa [stoppedSet] using hp)
   · simp [hp]
 

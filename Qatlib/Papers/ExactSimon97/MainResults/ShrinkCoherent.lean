@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.FourierCoset
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.FourierCoset
+
+@[expose] public section
 
 /-!
 # Coherent shrinking of binary subspace states
@@ -100,10 +104,10 @@ theorem half_one_add_char (z : ZMod 2) :
     (1 + ZMod.stdAddChar z) / 2 = if z = 0 then 1 else 0 := by
   fin_cases z
   · change (1 + ZMod.stdAddChar (0 : ZMod 2)) / 2 = if (0 : ZMod 2) = 0 then 1 else 0
-    rw [if_pos rfl, AddChar.map_zero_eq_one]
+    rw [ite_eq_left rfl, AddChar.map_zero_eq_one]
     norm_num
   · change (1 + ZMod.stdAddChar (1 : ZMod 2)) / 2 = if (1 : ZMod 2) = 0 then 1 else 0
-    rw [stdAddChar_one_zmod2, if_neg (by norm_num : ¬((1 : ZMod 2) = 0))]
+    rw [stdAddChar_one_zmod2, ite_eq_right (by norm_num : ¬((1 : ZMod 2) = 0))]
     norm_num
 
 /-- The expression `(1 + bitChar b 1 * ZMod.stdAddChar t) / 2` is the indicator that `b = t`. -/
@@ -249,19 +253,19 @@ theorem lemma6_coherent_word {n : ℕ} (H : Submodule (ZMod 2) (BoolVec n)) (y :
     have hstep : bitNorm * (∑ b' : ZMod 2, bitChar b b' *
           (if x ∈ sliceSub H j then normFactor H * charFun g (x + b' • y) else 0)) =
         phiTag (sliceSub H j) g y (x, b) := by
-      simp only [if_pos hxK]
+      simp only [ite_eq_left hxK]
       rw [hsum2, hfac]
       simp only [phiTag]
       by_cases hb : b = dot g y
-      · rw [if_pos hb, if_pos hxK]
+      · rw [ite_eq_left hb, ite_eq_left hxK]
         rw [hbase]
         rw [show charFun g y = ZMod.stdAddChar (dot g y) from rfl, ← hb,
           half_one_add_bitChar]
         simp
-      · rw [if_neg hb]
+      · rw [ite_eq_right hb]
         rw [hbase]
         rw [show charFun g y = ZMod.stdAddChar (dot g y) from rfl,
-          half_one_add_bitChar, if_neg hb]
+          half_one_add_bitChar, ite_eq_right hb]
         simp
     simpa only [hadamardBit] using hstep
   · have hzero : (∑ b' : ZMod 2, bitChar b b' *

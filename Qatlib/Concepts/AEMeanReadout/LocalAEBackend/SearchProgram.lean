@@ -4,43 +4,48 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Bound
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Data.NNReal.Defs
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Bound
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Basic.NNReal.Defs
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Source and shifted quantum-search rounds
@@ -136,13 +141,13 @@ theorem sum_sourceDepth_eq (p : ℕ → ℝ) (M : ℕ) :
     rw [Finset.sum_fin_eq_sum_range]
     refine Finset.sum_congr rfl fun k hk => ?_
     have hk' : k < M := Finset.mem_range.mp hk
-    simp only [dif_pos hk']
+    simp only [dite_eq_left hk']
     rfl
   have hR : (∑ i : Fin M, p i.val) = ∑ k ∈ Finset.range M, p k := by
     rw [Finset.sum_fin_eq_sum_range]
     refine Finset.sum_congr rfl fun k hk => ?_
     have hk' : k < M := Finset.mem_range.mp hk
-    simp only [dif_pos hk']
+    simp only [dite_eq_left hk']
   have hs : (∑ k ∈ Finset.range M, p (k + 1)) = ∑ k ∈ Finset.range (M + 1), p k - p 0 := by
     have h := Finset.sum_range_succ' p M
     linarith
@@ -158,13 +163,13 @@ theorem sum_source_eq_sum_shifted_succ (p : ℕ → ℝ) (M : ℕ) :
     rw [Finset.sum_fin_eq_sum_range]
     refine Finset.sum_congr rfl fun k hk => ?_
     have hk' : k < M := Finset.mem_range.mp hk
-    simp only [dif_pos hk']
+    simp only [dite_eq_left hk']
     rfl
   have hR : (∑ i : Fin (M + 1), p i.val) = ∑ k ∈ Finset.range (M + 1), p k := by
     rw [Finset.sum_fin_eq_sum_range]
     refine Finset.sum_congr rfl fun k hk => ?_
     have hk' : k < M + 1 := Finset.mem_range.mp hk
-    simp only [dif_pos hk']
+    simp only [dite_eq_left hk']
   have hss := Finset.sum_range_succ' p M
   linarith
 
@@ -348,7 +353,7 @@ theorem directABranch_compl (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
 private theorem uniform_apply_univ' {m : ℕ} (hm : 0 < m)
     (hs : (Finset.univ : Finset (Fin m)).Nonempty) (j : Fin m) :
     PMF.uniformOfFinset (Finset.univ : Finset (Fin m)) hs j = ((m : ℕ) : ℝ≥0∞)⁻¹ := by
-  rw [PMF.uniformOfFinset_apply, if_pos (Finset.mem_univ j), Finset.card_univ, Fintype.card_fin]
+  rw [PMF.uniformOfFinset_apply, ite_eq_left (Finset.mem_univ j), Finset.card_univ, Fintype.card_fin]
 
 /-- If each trial's marked-event mass equals its specified depth-success mass, averaging over
 the uniform window gives the sum of these masses divided by the window size. -/
@@ -428,9 +433,9 @@ theorem windowRound_success_mass {I : Type} [Fintype I] [DecidableEq I]
             (depthSuccessMass A j₀ S (depth j))) := by
     intro st
     by_cases hS : st.1.1 ∈ S
-    · rw [if_pos hS, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
-      rw [if_pos ⟨st.1.1, rfl⟩, if_pos hS]
-    · rw [if_neg hS]
+    · rw [ite_eq_left hS, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+      rw [ite_eq_left ⟨st.1.1, rfl⟩, ite_eq_left hS]
+    · rw [ite_eq_right hS]
       have inner : ∀ j : Fin M,
           Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
               (PMF.bind (trial j) fun st2 =>
@@ -448,7 +453,7 @@ theorem windowRound_success_mass {I : Type} [Fintype I] [DecidableEq I]
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind,
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr (fun j => (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq _ _).symm),
         Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr inner,
-        uniform_trial_event A hA j₀ S M hM trial depth htrial, if_neg hS]
+        uniform_trial_event A hA j₀ S M hM trial depth htrial, ite_eq_right hS]
   rw [houter, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit]
   have hfun : ∀ st : (I × ℕ) × ℕ,
       (if st.1.1 ∈ S then (1:ℝ≥0∞)

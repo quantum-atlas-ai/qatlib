@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
+module
+
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
+
+@[expose] public section
 
 /-!
 # Computed Phase Matrix Transforms

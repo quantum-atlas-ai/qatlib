@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+
+@[expose] public section
 
 /-!
 # Numerical dyadic phase circuits
@@ -530,28 +534,19 @@ theorem numericalDyadicTermCount_eq {n : ℕ} (k : ℕ) :
       | h a =>
           have hunf : numericalDyadicTermCount k (LocalQFTGate.h a :: gs)
               = numericalDyadicTermCount k gs := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.h a :: gs)
-              = List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := rfl
-          rw [hunf, ih, hc]
+          rw [hunf, ih]
+          simp
       | cp a c e neg =>
           have hunf : numericalDyadicTermCount k (LocalQFTGate.cp a c e neg :: gs)
               = numericalDyadicTermCount k gs + 2 * numericalPhaseSquarings k := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.cp a c e neg :: gs)
-              = 1 + List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := by
-              rw [List.countP_cons]
-              simp
-              omega
-          rw [hunf, ih, hc, numericalPhaseSquarings_eq]
+          rw [hunf, ih, numericalPhaseSquarings_eq]
+          simp
           ring
       | swap a c =>
           have hunf : numericalDyadicTermCount k (LocalQFTGate.swap a c :: gs)
               = numericalDyadicTermCount k gs := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.swap a c :: gs)
-              = List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := rfl
-          rw [hunf, ih, hc]
+          rw [hunf, ih]
+          simp
 
 /-- The numerical squaring counter is `k + 7` times the number of controlled-phase gates. -/
 theorem numericalDyadicSquaringCount_eq {n : ℕ} (k : ℕ) :
@@ -566,27 +561,18 @@ theorem numericalDyadicSquaringCount_eq {n : ℕ} (k : ℕ) :
       | h a =>
           have hunf : numericalDyadicSquaringCount k (LocalQFTGate.h a :: gs)
               = numericalDyadicSquaringCount k gs := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.h a :: gs)
-              = List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := rfl
-          rw [hunf, ih, hc]
+          rw [hunf, ih]
+          simp
       | cp a c e neg =>
           have hunf : numericalDyadicSquaringCount k (LocalQFTGate.cp a c e neg :: gs)
               = numericalDyadicSquaringCount k gs + numericalPhaseSquarings k := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.cp a c e neg :: gs)
-              = 1 + List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := by
-              rw [List.countP_cons]
-              simp
-              omega
-          rw [hunf, ih, hc, numericalPhaseSquarings_eq]
+          rw [hunf, ih, numericalPhaseSquarings_eq]
+          simp
           ring
       | swap a c =>
           have hunf : numericalDyadicSquaringCount k (LocalQFTGate.swap a c :: gs)
               = numericalDyadicSquaringCount k gs := rfl
-          have hc : List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
-              (LocalQFTGate.swap a c :: gs)
-              = List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := rfl
-          rw [hunf, ih, hc]
+          rw [hunf, ih]
+          simp
 
 end Qatlib.Concepts.LocalMachine.LocalTransport

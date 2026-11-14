@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatistics
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatistics
+
+@[expose] public section
 
 /-!
 # Higher moments of finite U-statistics
@@ -69,6 +73,7 @@ noncomputable def overlapMomentK (p : FinDist O) {n k r : ℕ} (h : (Fin k → O
   ∑ ω : Fin n → O, p.probOf ω
     * ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h)
 
+omit [DecidableEq O] in
 /-- Pointwise equal tuple families have equal centered overlap moments. -/
 theorem overlapMomentK_congr (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (T S : Fin r → Fin k → Fin n) (hTS : ∀ a, T a = S a) :
@@ -297,7 +302,7 @@ theorem familyAppend_natAdd {n k r r' : ℕ} (T : Fin r → Fin k → Fin n)
 families use disjoint records. -/
 theorem overlapMoment_append_disjoint (p : FinDist O) {n k r r' : ℕ}
     (h : (Fin k → O) → ℝ) (T : Fin r → Fin k → Fin n) (S : Fin r' → Fin k → Fin n)
-    (hT : familyInjective T) (hS : familyInjective S)
+    (_hT : familyInjective T) (_hS : familyInjective S)
     (hdis : ∀ (a : Fin r) (b : Fin r') (i j : Fin k), T a i ≠ S b j) :
     overlapMomentK p h (familyAppend T S)
       = overlapMomentK p h T * overlapMomentK p h S := by
@@ -435,6 +440,7 @@ theorem overlapMoment_coincidenceFree_zero (p : FinDist O) {n k r : ℕ}
   rw [overlapMoment_snoc p h T hT hcross,
     overlapMoment_single_zero p (T (Fin.natAdd r' 0)) hlast h, mul_zero]
 
+omit [DecidableEq O] in
 /-- A common permutation of the record indices preserves the centered overlap moment. -/
 theorem overlapMomentK_transport (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (σ : Fin n ≃ Fin n) (T T' : Fin r → Fin k → Fin n)
@@ -517,6 +523,7 @@ theorem familyInjective_type_sum {n k r : ℕ} (F : (Fin r → Fin k → Fin n) 
   by_cases h1 : overlapLabel T = c <;>
     by_cases h2 : familyInjective T <;> simp [h1, h2]
 
+omit [DecidableEq O] in
 /-- When the distinct-tuple count is nonzero, the centered U-statistic is the normalized sum of
 centered kernel values over injective tuples. -/
 theorem uStatistic_centered_eq_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
@@ -552,6 +559,7 @@ theorem uStatistic_centered_eq_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O
             h (fun i => ω (t i)) - kernelMeanK p h else 0))
         / ((distinctTupleCount n k : ℕ) : ℝ) := by rw [hkey]
 
+omit [DecidableEq O] in
 /-- When the distinct-tuple count is nonzero, the centered U-statistic moment is the normalized
 sum of overlap moments over families of injective tuples. -/
 theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
@@ -606,7 +614,7 @@ theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → 
             (if familyInjective T then
               ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) else 0) :=
           Finset.sum_congr rfl fun T hT =>
-            ((if_pos (fun a =>
+            ((ite_eq_left (fun a =>
               (Finset.mem_filter.1 (Fintype.mem_piFinset.1 hT a)).2) :
               (if familyInjective T then
                 ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) else 0)
@@ -614,7 +622,7 @@ theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → 
       _ = ∑ T : Fin r → Fin k → Fin n, (if familyInjective T then
             ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) else 0) :=
           Finset.sum_subset (Finset.subset_univ _)
-            (fun T _ hnot => if_neg (fun hTinj => hnot
+            (fun T _ hnot => ite_eq_right (fun hTinj => hnot
               (Fintype.mem_piFinset.2 fun a =>
                 Finset.mem_filter.2 ⟨Finset.mem_univ _, hTinj a⟩)))
 
@@ -630,17 +638,17 @@ theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → 
           = p.probOf ω
               * ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) :=
         fun ω => congrArg (fun X => p.probOf ω * X)
-          (if_pos hT : (if familyInjective T then
+          (ite_eq_left hT : (if familyInjective T then
               ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) else 0)
             = _)
-      rw [Finset.sum_congr rfl fun ω (_ : ω ∈ Finset.univ) => hE ω, if_pos hT]
+      rw [Finset.sum_congr rfl fun ω (_ : ω ∈ Finset.univ) => hE ω, ite_eq_left hT]
       rfl
     · have hE : ∀ ω : Fin n → O,
           (p.probOf ω * (if familyInjective T then
             ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h) else 0)) = 0 :=
-        fun ω => by rw [if_neg hT, mul_zero]
+        fun ω => by rw [ite_eq_right hT, mul_zero]
       rw [Finset.sum_congr rfl fun ω (_ : ω ∈ Finset.univ) => hE ω,
-        Finset.sum_eq_zero fun ω _ => rfl, if_neg hT]
+        Finset.sum_eq_zero fun ω _ => rfl, ite_eq_right hT]
 
   have hstep' : ∀ ω : Fin n → O,
       p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ r
@@ -689,6 +697,7 @@ theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → 
                 Finset.sum_comm
         rw [hswap, Finset.sum_congr rfl fun T (_ : T ∈ Finset.univ) => hinner T]
 
+omit [DecidableEq O] in
 /-- The centered U-statistic moment decomposes by overlap labels, with normalization by the
 distinct-tuple count raised to the moment order. -/
 theorem uStatistic_moment_overlap_type (p : FinDist O) {n k r : ℕ}
@@ -741,6 +750,7 @@ theorem read_abs_moment (p : FinDist O) {n k : ℕ} (t : Fin k → Fin n)
       = centeredAbsMomentK p h m :=
   povm_joint_expect p t ht (fun y => |h y - kernelMeanK p h| ^ m)
 
+omit [DecidableEq O] in
 /-- Every absolute centered kernel moment is nonnegative. -/
 theorem centeredAbsMomentK_nonneg (p : FinDist O) {k : ℕ} (h : (Fin k → O) → ℝ)
     (m : ℕ) : 0 ≤ centeredAbsMomentK p h m := by
@@ -866,26 +876,26 @@ def familyEquiv {n k r : ℕ} : (Fin r → Fin k → Fin n) ≃ (Fin r × Fin k 
 /-- Functions taking equal values at two distinct positions correspond to arbitrary functions on
 all positions except the first. -/
 def posFiberEquiv {n k r : ℕ} (α β : Fin r × Fin k) (hβ : β ≠ α) :
-    {g : Fin r × Fin k → Fin n // g α = g β} ≃ (∀ x : {x : Fin r × Fin k // x ≠ α}, Fin n) where
+    {g : Fin r × Fin k → Fin n // g α = g β} ≃ (∀ _x : {y : Fin r × Fin k // y ≠ α}, Fin n) where
   toFun hg x := hg.1 x.1
   invFun w := ⟨fun x => dite (x = α) (fun _ => w ⟨β, hβ⟩) (fun hx => w ⟨x, hx⟩), by
     show dite (α = α) (fun _ => w ⟨β, hβ⟩) (fun hx => w ⟨α, hx⟩)
         = dite (β = α) (fun _ => w ⟨β, hβ⟩) (fun hx => w ⟨β, hx⟩)
-    rw [dif_pos rfl, dif_neg hβ]⟩
+    rw [dite_eq_left rfl, dite_eq_right hβ]⟩
   left_inv hg := by
     refine Subtype.ext (funext fun x => ?_)
     show dite (x = α) (fun _ => hg.1 β) (fun hx => hg.1 x) = hg.1 x
     by_cases hx : x = α
-    · rw [dif_pos hx, hx]
+    · rw [dite_eq_left hx, hx]
       exact hg.2.symm
-    · rw [dif_neg hx]
+    · rw [dite_eq_right hx]
   right_inv w := by
     funext x
     by_cases hx : (x : Fin r × Fin k) = α
     · exact absurd hx x.2
     · show dite ((x : Fin r × Fin k) = α) (fun _ => w ⟨β, hβ⟩)
           (fun hx' => w ⟨x, hx'⟩) = w x
-      rw [dif_neg hx]
+      rw [dite_eq_right hx]
 
 /-- The number of record assignments identifying two distinct positions is `n` raised to the
 number of remaining positions. -/
@@ -1005,15 +1015,15 @@ theorem uStatistic_moment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
     intro T
     by_cases hT : familyInjective T
     · by_cases hc : ∃ α β : Fin r × Fin k, α ≠ β ∧ posRead T α = posRead T β
-      · rw [if_pos hT, if_pos ⟨hT, hc⟩]
+      · rw [ite_eq_left hT, ite_eq_left ⟨hT, hc⟩]
         exact overlapMoment_abs_le p hr h T hT
-      · rw [if_pos hT, if_neg (fun hc' => hc hc'.2)]
+      · rw [ite_eq_left hT, ite_eq_right (fun hc' => hc hc'.2)]
         have hfree : coincidenceFree T := by
           intro α β hαβ hco
           exact hc ⟨α, β, hαβ, hco⟩
         rw [overlapMoment_coincidenceFree_zero p h hr T hT hfree]
         simp
-    · rw [if_neg hT, if_neg (fun hc' => hT hc'.1)]
+    · rw [ite_eq_right hT, ite_eq_right (fun hc' => hT hc'.1)]
       simp
   have hsumabs : |(∑ T : Fin r → Fin k → Fin n,
       (if familyInjective T then overlapMomentK p h T else 0))|
@@ -1064,7 +1074,7 @@ theorem uStatistic_moment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
 /-- The probability of a deviation strictly exceeding a positive threshold is bounded by a
 positive even centered moment divided by the corresponding threshold power. -/
 theorem probEvent_le_even_moment {X : Type} [Fintype X] {n : ℕ} (p : FinDist X)
-    (f : (Fin n → X) → ℝ) (μ : ℝ) (hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
+    (f : (Fin n → X) → ℝ) (μ : ℝ) (_hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
     {s : ℕ} (hs : 0 < s) (ε : ℝ) (hε : 0 < ε) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := n) p (fun ω : Fin n → X => ε < |f ω - μ|)
       ≤ (∑ ω : Fin n → X, p.probOf ω * (f ω - μ) ^ (2 * s)) / ε ^ (2 * s) := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.SingularValueTransformation
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.SingularValueTransformation
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Specification of a cubic singular value transformation

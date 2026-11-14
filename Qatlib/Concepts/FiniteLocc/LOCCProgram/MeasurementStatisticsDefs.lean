@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
-import Qatlib.Concepts.ShadowModels.ShadowChannel.StatisticalConfidenceDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.StatisticalConfidenceDefs
+
+@[expose] public section
 
 /-!
 # Finite measurement record laws and moments
@@ -72,8 +76,10 @@ noncomputable def recordAbsoluteMean (p : FinDist O) (h : O → ℝ) : ℝ :=
 noncomputable def centredValue (p : FinDist O) (h : O → ℝ) (x : O) : ℝ :=
   h x - p.expect h
 
+omit [Fintype O] [DecidableEq O] in
 /-- A statistic centered by its finite-distribution mean has expectation zero. -/
-theorem centred_mean_zero (p : FinDist O) (h : O → ℝ) :
+theorem centred_mean_zero {O : Type} [Fintype O] [_decidableEqO : DecidableEq O]
+    (p : FinDist O) (h : O → ℝ) :
     p.expect (centredValue p h) = 0 := by
   have h1 : p.expect (centredValue p h) = p.expect (fun x => h x - p.expect h) := rfl
   rw [h1]
@@ -427,19 +433,19 @@ noncomputable def ensembleVariance {m : ℕ} (E : Fin m → FinitePOVM O D)
 
 /-- The expectation of a record statistic for the POVM at a specified setting. -/
 noncomputable def settingMean {m : ℕ} (E : Fin m → FinitePOVM O D)
-    (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
+    (_q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
     (s : Fin m) : ℝ :=
   (povmRecordLaw (E s) ρ hρ).expect h
 
 /-- The variance of a record statistic for the POVM at a specified setting. -/
 noncomputable def settingVariance {m : ℕ} (E : Fin m → FinitePOVM O D)
-    (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
+    (_q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
     (s : Fin m) : ℝ :=
   (povmRecordLaw (E s) ρ hρ).variance h
 
 /-- The second moment of a record statistic for the POVM at a specified setting. -/
 noncomputable def settingSecondMoment {m : ℕ} (E : Fin m → FinitePOVM O D)
-    (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
+    (_q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ)
     (s : Fin m) : ℝ :=
   (povmRecordLaw (E s) ρ hρ).expect (fun x => (h x) ^ 2)
 
@@ -453,7 +459,7 @@ noncomputable def ensembleSampleLaw {m : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     {n : ℕ} : FinDist (Fin n → O) where
   prob ω := (ensembleOutcomeLaw E q ρ hρ).probOf ω
-  nonneg ω := Finset.prod_nonneg fun i _ => (ensembleOutcomeLaw E q ρ hρ).nonneg _
+  nonneg _ω := Finset.prod_nonneg fun _i _ => (ensembleOutcomeLaw E q ρ hρ).nonneg _
   sum_one := (ensembleOutcomeLaw E q ρ hρ).sum_probOf n
 
 /-- The expectation of the kernel sum over injective index tuples, divided by the number of
@@ -502,9 +508,9 @@ noncomputable def coincidingRecordLaw {m : ℕ} (p : FinDist O) :
   prob ω := if ∀ i, ω i = ω 0 then p.prob (ω 0) else 0
   nonneg ω := by
     by_cases h : ∀ i, ω i = ω 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact p.nonneg (ω 0)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
   sum_one := by
     classical
     have h1 := Finset.sum_filter (s := (Finset.univ : Finset (Fin (m+1) → O)))

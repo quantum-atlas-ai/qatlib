@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.FairBitRecords.FairBitPauliRecords
+module
+
+public import Qatlib.Concepts.ShadowModels.FairBitRecords.FairBitPauliRecords
+
+@[expose] public section
 
 /-!
 # Transport of Pauli statistics under fair-bit sampling

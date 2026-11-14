@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,8 +45,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def lemma9_negative_powers_statement
     (α : ℝ) (a : ℕ) (T_U κ c ε δ : ℝ)
-    (hκ : 2 ≤ κ) (hc : 0 < c) (hε : 0 < ε)
-    (hδ : δ < ε / (kappaPow κ c * (1 + c) *
+    (_hκ : 2 ≤ κ) (_hc : 0 < c) (_hε : 0 < ε)
+    (_hδ : δ < ε / (kappaPow κ c * (1 + c) *
       (Real.log (kappaPow κ c / ε)) ^ 3))
     (Realizes : PowerCircuitCost → Prop) : Prop :=
     ∃ (C : ℝ) (c' : PowerCircuitCost), Realizes c' ∧ 0 < C ∧ c'.error ≤ ε ∧
@@ -55,8 +59,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def lemma10_positive_powers_statement
     (α : ℝ) (a : ℕ) (T_U κ c ε δ : ℝ)
-    (hκ : 2 ≤ κ) (hc0 : 0 < c) (hc1 : c ≤ 1) (hε : 0 < ε)
-    (hδ : δ < ε / (κ * (Real.log (κ / ε)) ^ 3))
+    (_hκ : 2 ≤ κ) (_hc0 : 0 < c) (_hc1 : c ≤ 1) (_hε : 0 < ε)
+    (_hδ : δ < ε / (κ * (Real.log (κ / ε)) ^ 3))
     (Realizes : PowerCircuitCost → Prop) : Prop :=
     ∃ (C : ℝ) (c' : PowerCircuitCost), Realizes c' ∧ 0 < C ∧ c'.error ≤ ε ∧
       c'.cost ≤ C * (α * κ * ((a : ℝ) + T_U) * (Real.log (κ / ε)) ^ 2)
@@ -66,7 +70,7 @@ def lemma10_positive_powers_statement
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def cor54_negative_powers_via_controlled_simulation_statement
-    (κ c ε : ℝ) (a : ℕ) (hκ : 2 ≤ κ) (hc : 0 < c) (hε : 0 < ε)
+    (κ c ε : ℝ) (_a : ℕ) (_hκ : 2 ≤ κ) (_hc : 0 < c) (_hε : 0 < ε)
     (Realizes : PowerCircuitCost → Prop) : Prop :=
     ∃ (C : ℝ) (c' : PowerCircuitCost), Realizes c' ∧ 0 < C ∧ c'.error ≤ ε ∧
       c'.cost ≤ C * (κ * max 1 c * (Real.log (kappaPow κ c / ε)) ^ 2)
@@ -76,7 +80,7 @@ def cor54_negative_powers_via_controlled_simulation_statement
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def cor55_positive_powers_via_controlled_simulation_statement
-    (κ c ε : ℝ) (a : ℕ) (hκ : 2 ≤ κ) (hc0 : 0 < c) (hc1 : c ≤ 1) (hε : 0 < ε)
+    (κ c ε : ℝ) (_a : ℕ) (_hκ : 2 ≤ κ) (_hc0 : 0 < c) (_hc1 : c ≤ 1) (_hε : 0 < ε)
     (Realizes : PowerCircuitCost → Prop) : Prop :=
     ∃ (C : ℝ) (c' : PowerCircuitCost), Realizes c' ∧ 0 < C ∧ c'.error ≤ ε ∧
       c'.cost ≤ C * (κ * Real.log (κ / ε) * Real.log (1 / ε))

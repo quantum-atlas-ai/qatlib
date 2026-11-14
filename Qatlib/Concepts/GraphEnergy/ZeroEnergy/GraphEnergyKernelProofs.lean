@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelDefs
-import Qatlib.Concepts.DirichletForm.EnergyIdentity
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+module
+
+public import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelDefs
+public import Qatlib.Concepts.DirichletForm.EnergyIdentity
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+
+@[expose] public section
 
 /-!
 # Positivity and the kernel of graph energy
@@ -50,7 +54,7 @@ theorem degree_pos_of_adj {x y : V} (h : G.Adj x y) : 0 < degree G x := by
     intro z _
     split_ifs <;> norm_num
   have hle := Finset.single_le_sum hpos (Finset.mem_univ y)
-  rw [if_pos h] at hle
+  rw [ite_eq_left h] at hle
   unfold degree
   linarith
 
@@ -94,7 +98,7 @@ theorem term_eq_of_volume_pos (hv : 0 < volume G) (f : V → ℝ) (x y : V) :
       if G.Adj x y then (f x - f y) ^ 2 / (2 * volume G) else 0 := by
   by_cases hdeg : degree G x = 0
   · have hna : ¬ G.Adj x y := not_adj_of_degree_eq_zero G hdeg y
-    rw [if_neg hna]
+    rw [ite_eq_right hna]
     by_cases hxy : x = y
     · subst hxy
       simp [sub_self]
@@ -109,9 +113,9 @@ theorem term_eq_of_volume_pos (hv : 0 < volume G) (f : V → ℝ) (x y : V) :
     · have hxy : x ≠ y := G.ne_of_adj hadj
       have hk : kernel G x y = 1 / (2 * degree G x) := by
         simp [kernel, hdeg0, hadj, hxy]
-      rw [hstat, hk, if_pos hadj]
+      rw [hstat, hk, ite_eq_left hadj]
       field_simp
-    · rw [if_neg hadj]
+    · rw [ite_eq_right hadj]
       by_cases hxy : x = y
       · subst hxy
         simp [sub_self]

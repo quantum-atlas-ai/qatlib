@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+
+@[expose] public section
 
 /-!
 # Parity factorization of QSP response polynomials
@@ -78,10 +82,10 @@ theorem response_factorization (base : ℂ) (zs : List ℂ) :
     · have hnew : (z :: zs).length % 2 ≠ 0 := by
         simp only [List.length_cons]
         omega
-      rw [if_pos heven] at ih
-      rw [if_neg hnew]
+      rw [ite_eq_left heven] at ih
+      rw [ite_eq_right hnew]
       simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
-      simp only [responseFactors, if_pos heven]
+      simp only [responseFactors, ite_eq_left heven]
       simp only [evenSingularPolynomial, oddSingularPolynomial,
         Polynomial.mul_comp, Polynomial.add_comp, Polynomial.sub_comp,
         Polynomial.C_comp, Polynomial.X_comp, Polynomial.one_comp]
@@ -89,10 +93,10 @@ theorem response_factorization (base : ℂ) (zs : List ℂ) :
     · have hnew : (z :: zs).length % 2 = 0 := by
         simp only [List.length_cons]
         omega
-      rw [if_neg heven] at ih
-      rw [if_pos hnew]
+      rw [ite_eq_right heven] at ih
+      rw [ite_eq_left hnew]
       simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
-      simp only [responseFactors, if_neg heven]
+      simp only [responseFactors, ite_eq_right heven]
       simp only [evenSingularPolynomial, oddSingularPolynomial,
         Polynomial.mul_comp, Polynomial.add_comp, Polynomial.sub_comp,
         Polynomial.C_comp, Polynomial.X_comp, Polynomial.one_comp]
@@ -104,7 +108,7 @@ theorem responseP_factor_even (base : ℂ) (zs : List ℂ)
     (heven : zs.length % 2 = 0) :
     responseP base zs = evenSingularPolynomial (responseFactors base zs).1 := by
   have h := response_factorization base zs
-  rw [if_pos heven] at h
+  rw [ite_eq_left heven] at h
   exact h.1
 
 /-- For odd phase-list length, the first response is the odd singular polynomial built from the
@@ -113,7 +117,7 @@ theorem responseP_factor_odd (base : ℂ) (zs : List ℂ)
     (hodd : zs.length % 2 = 1) :
     responseP base zs = oddSingularPolynomial (responseFactors base zs).1 := by
   have h := response_factorization base zs
-  rw [if_neg (by omega : zs.length % 2 ≠ 0)] at h
+  rw [ite_eq_right (by omega : zs.length % 2 ≠ 0)] at h
   exact h.1
 
 /-- For even phase-list length, the second response is the odd singular polynomial built from
@@ -122,7 +126,7 @@ theorem responseQ_factor_even (base : ℂ) (zs : List ℂ)
     (heven : zs.length % 2 = 0) :
     responseQ base zs = oddSingularPolynomial (responseFactors base zs).2 := by
   have h := response_factorization base zs
-  rw [if_pos heven] at h
+  rw [ite_eq_left heven] at h
   exact h.2
 
 /-- For odd phase-list length, the second response is the even singular polynomial built from
@@ -131,7 +135,7 @@ theorem responseQ_factor_odd (base : ℂ) (zs : List ℂ)
     (hodd : zs.length % 2 = 1) :
     responseQ base zs = evenSingularPolynomial (responseFactors base zs).2 := by
   have h := response_factorization base zs
-  rw [if_neg (by omega : zs.length % 2 ≠ 0)] at h
+  rw [ite_eq_right (by omega : zs.length % 2 ≠ 0)] at h
   exact h.2
 
 section WholeMatrix

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth.GridInterpolation
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.DampingBound
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth.GridInterpolation
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.DampingBound
+
+@[expose] public section
 
 /-!
 # Algebraic damping from integer-grid bounds

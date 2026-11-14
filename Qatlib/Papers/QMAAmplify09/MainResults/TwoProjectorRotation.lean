@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.JordanTwoProjectorsStat
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.JordanTwoProjectorsStat
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+
+@[expose] public section
 
 /-!
 # Rotation blocks for two projection reflections
@@ -62,7 +66,7 @@ def involutionBlock : Matrix (Fin 2) (Fin 2) ℂ := !![1, 0; 0, -1]
 /-- Multiplying `reflectionBlock c s` by `involutionBlock` gives `rotationBlock c s`. -/
 theorem reflectionBlock_mul_involution (c s : ℝ) :
     reflectionBlock c s * involutionBlock = rotationBlock c s := by
-  ext i j <;> fin_cases i <;> fin_cases j <;>
+  ext i j; fin_cases i <;> fin_cases j <;>
     simp [reflectionBlock, involutionBlock, rotationBlock]
 
 /-- The determinant of the rotation block is `c ^ 2 + s ^ 2`, viewed in the complex numbers. -/
@@ -80,9 +84,9 @@ theorem rotationBlock_mulVec_eigen_plus {c s θ : ℝ} (hc : c = Real.cos θ)
     rotationBlock c s *ᵥ ![1, -Complex.I] = Complex.exp (θ * Complex.I) • ![1, -Complex.I] := by
   subst hc hs
   rw [Complex.exp_ofReal_mul_I]
-  ext i <;> fin_cases i <;>
-    simp [rotationBlock, Matrix.mulVec, dotProduct] <;>
-    ring_nf <;> (try rw [Complex.I_sq]) <;> (try rw [Complex.I_mul_I]) <;> ring
+  ext i; fin_cases i <;>
+    simp [rotationBlock, Matrix.mulVec, dotProduct];
+    ring_nf; (try rw [Complex.I_sq]); ring
 
 /-- When `c = cos θ` and `s = sin θ`, the vector `(1, i)` scales by `exp(-iθ)` under the
 rotation block. -/
@@ -96,9 +100,9 @@ theorem rotationBlock_mulVec_eigen_minus {c s θ : ℝ} (hc : c = Real.cos θ)
     push_cast
     ring
   rw [hexp, Complex.exp_ofReal_mul_I]
-  ext i <;> fin_cases i <;>
-    simp [rotationBlock, Matrix.mulVec, dotProduct] <;>
-    ring_nf <;> (try rw [Complex.I_sq]) <;> (try rw [Complex.I_mul_I]) <;> ring
+  ext i; fin_cases i <;>
+    simp [rotationBlock, Matrix.mulVec, dotProduct];
+    ring_nf; (try rw [Complex.I_sq]); ring
 
 /-- Under the stated orthogonality and operator-action hypotheses, the reflection product acts
 on each paired span by coefficients `2 * d i - 1` and `2 * √(d i * (1 - d i))`. See
@@ -122,7 +126,7 @@ theorem block_rotation_action {D : ℕ} (P Q : Operator D)
     · rw [horth_u i i]
       simp
     · intro j _ hji
-      rw [horth_u j i, if_neg hji]
+      rw [horth_u j i, ite_eq_right hji]
       simp
     · intro hi
       exact absurd (Finset.mem_univ i) hi

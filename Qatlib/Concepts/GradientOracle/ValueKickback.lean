@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+module
+
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+
+@[expose] public section
 
 /-!
 # Value-oracle phase kickback for gradients

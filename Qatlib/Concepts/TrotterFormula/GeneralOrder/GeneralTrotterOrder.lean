@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Deriv
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Asymptotics.Lemmas
+module
+
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+
+@[expose] public section
 
 /-!
 # Smooth order conditions for product formulas
@@ -245,7 +249,7 @@ theorem general_trotter_four_order_conditions :
       (O (fun t => S t - NormedSpace.exp (t • H)) (p+1) ↔ O T p) ∧
       (O T p ↔ O E p) ∧ (O E p ↔ O M (p+1)) := by
   intro I _ _ H S p hS hS0
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+  let _ : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
   let P := fun t : ℝ => NormedSpace.exp (t • H)
   let A := fun t : ℝ => S t-P t
   let D := fun t : ℝ => deriv S t-H*S t

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticPath02.MainResults.PathDefs
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Papers.AdiabaticPath02.MainResults.PathDefs
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Symmetric Hamiltonians and scheduled evolution

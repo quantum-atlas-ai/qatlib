@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.KrausCompile.BinaryTree.AdaptiveCompiler
+module
+
+public import Qatlib.Concepts.KrausCompile.BinaryTree.AdaptiveCompiler
+
+@[expose] public section
 
 /-!
 # Single-qubit realizations of compiled Kraus programs

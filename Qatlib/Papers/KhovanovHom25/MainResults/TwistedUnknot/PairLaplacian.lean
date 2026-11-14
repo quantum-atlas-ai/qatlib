@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KhovanovHom25.MainResults.Model
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Finset.Powerset
-import Mathlib.LinearAlgebra.Pi
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.KhovanovHom25.MainResults.Model
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.LinearAlgebra.Pi
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -100,7 +104,7 @@ theorem prop19Lap_apply (n : ℕ) (x : PairIdx n → ℂ) (q : PairIdx n) :
       (if h : q.1.1 + 1 < q.1.2 then x (prop19DownB q h) else 0) +
       (if h : q.1.2 + 1 ≤ n + 1 then x (prop19UpB q h) else 0) := by
   simp only [prop19Lap, LinearMap.pi_apply, LinearMap.add_apply, LinearMap.smul_apply,
-    LinearMap.proj_apply, LinearMap.zero_apply, smul_eq_mul]
+    LinearMap.proj_apply, smul_eq_mul]
   split_ifs <;> simp [LinearMap.proj_apply]
 
 /-- Value-level equality of pair indices: from `q = p` extract coordinate
@@ -140,14 +144,14 @@ private theorem row_downA_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
       apply pair_eq_of_val
       show a + 1 = q.1.1 ∧ b = q.1.2
       omega
-    rw [dif_pos hguard, dif_pos hguardP, hDA, hUA]
+    rw [dite_eq_left hguard, dite_eq_left hguardP, hDA, hUA]
     simp
   · have hL : (if hq2 : 2 ≤ q.1.1 then
         (if prop19DownA q hq2 = (⟨(a, b), hh⟩ : PairIdx n) then (1 : ℂ) else 0)
         else 0) = 0 := by
       split
       · rename_i hq2
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 - 1 = a ∧ q.1.2 = b := pair_val_eq hne
@@ -158,7 +162,7 @@ private theorem row_downA_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
         else 0) = 0 := by
       split
       · rename_i h
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a + 1 ∧ q.1.2 = b := pair_val_eq hne
@@ -191,14 +195,14 @@ private theorem row_upA_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
       apply pair_eq_of_val
       show a - 1 = q.1.1 ∧ b = q.1.2
       omega
-    rw [dif_pos hguard, dif_pos hguardP, hUA, hDA]
+    rw [dite_eq_left hguard, dite_eq_left hguardP, hUA, hDA]
     simp
   · have hL : (if hq2 : q.1.1 + 1 < q.1.2 then
         (if prop19UpA q hq2 = (⟨(a, b), hh⟩ : PairIdx n) then (1 : ℂ) else 0)
         else 0) = 0 := by
       split
       · rename_i hq2
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 + 1 = a ∧ q.1.2 = b := pair_val_eq hne
@@ -209,7 +213,7 @@ private theorem row_upA_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
         else 0) = 0 := by
       split
       · rename_i h
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a - 1 ∧ q.1.2 = b := pair_val_eq hne
@@ -242,14 +246,14 @@ private theorem row_downB_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
       apply pair_eq_of_val
       show a = q.1.1 ∧ b + 1 = q.1.2
       omega
-    rw [dif_pos hguard, dif_pos hguardP, hDB, hUB]
+    rw [dite_eq_left hguard, dite_eq_left hguardP, hDB, hUB]
     simp
   · have hL : (if hq2 : q.1.1 + 1 < q.1.2 then
         (if prop19DownB q hq2 = (⟨(a, b), hh⟩ : PairIdx n) then (1 : ℂ) else 0)
         else 0) = 0 := by
       split
       · rename_i hq2
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a ∧ q.1.2 - 1 = b := pair_val_eq hne
@@ -260,7 +264,7 @@ private theorem row_downB_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
         else 0) = 0 := by
       split
       · rename_i h
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a ∧ q.1.2 = b + 1 := pair_val_eq hne
@@ -293,14 +297,14 @@ private theorem row_upB_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
       apply pair_eq_of_val
       show a = q.1.1 ∧ b - 1 = q.1.2
       omega
-    rw [dif_pos hguard, dif_pos hguardP, hUB, hDB]
+    rw [dite_eq_left hguard, dite_eq_left hguardP, hUB, hDB]
     simp
   · have hL : (if hq2 : q.1.2 + 1 ≤ n + 1 then
         (if prop19UpB q hq2 = (⟨(a, b), hh⟩ : PairIdx n) then (1 : ℂ) else 0)
         else 0) = 0 := by
       split
       · rename_i hq2
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a ∧ q.1.2 + 1 = b := pair_val_eq hne
@@ -311,7 +315,7 @@ private theorem row_upB_eq {n : ℕ} (q : PairIdx n) (a b : ℕ)
         else 0) = 0 := by
       split
       · rename_i h
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hne
         apply hq
         have hval : q.1.1 = a ∧ q.1.2 = b - 1 := pair_val_eq hne
@@ -353,8 +357,7 @@ theorem proposition19 (n a b : ℕ) (h : 1 ≤ a ∧ a < b ∧ b ≤ n + 1) :
       intro hg hne
       have hval : (⟨(a, b), h⟩ : PairIdx n).1.1 - 1 = a ∧
         (⟨(a, b), h⟩ : PairIdx n).1.2 = b := pair_val_eq hne
-      simp only [show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [] at hval
       omega
     have hneUA : ∀ hg : (⟨(a, b), h⟩ : PairIdx n).1.1 + 1 <
         (⟨(a, b), h⟩ : PairIdx n).1.2,
@@ -363,8 +366,7 @@ theorem proposition19 (n a b : ℕ) (h : 1 ≤ a ∧ a < b ∧ b ≤ n + 1) :
       intro hg hne
       have hval : (⟨(a, b), h⟩ : PairIdx n).1.1 + 1 = a ∧
         (⟨(a, b), h⟩ : PairIdx n).1.2 = b := pair_val_eq hne
-      simp only [show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [] at hval
       omega
     have hneDB : ∀ hg : (⟨(a, b), h⟩ : PairIdx n).1.1 + 1 <
         (⟨(a, b), h⟩ : PairIdx n).1.2,
@@ -373,8 +375,7 @@ theorem proposition19 (n a b : ℕ) (h : 1 ≤ a ∧ a < b ∧ b ≤ n + 1) :
       intro hg hne
       have hval : (⟨(a, b), h⟩ : PairIdx n).1.1 = a ∧
         (⟨(a, b), h⟩ : PairIdx n).1.2 - 1 = b := pair_val_eq hne
-      simp only [show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [] at hval
       omega
     have hneUB : ∀ hg : (⟨(a, b), h⟩ : PairIdx n).1.2 + 1 ≤ n + 1,
         prop19UpB (⟨(a, b), h⟩ : PairIdx n) hg ≠
@@ -382,68 +383,63 @@ theorem proposition19 (n a b : ℕ) (h : 1 ≤ a ∧ a < b ∧ b ≤ n + 1) :
       intro hg hne
       have hval : (⟨(a, b), h⟩ : PairIdx n).1.1 = a ∧
         (⟨(a, b), h⟩ : PairIdx n).1.2 + 1 = b := pair_val_eq hne
-      simp only [show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [] at hval
       omega
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hneDA : ∀ hg : 2 ≤ a, (⟨(a, b), h⟩ : PairIdx n) ≠
         prop19DownA (⟨(a, b), h⟩ : PairIdx n) hg := by
       intro hg hne
       have hval := pair_val_eq hne
-      simp only [prop19DownA, show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [prop19DownA] at hval
       omega
     have hneUA : ∀ hg : a + 1 < b, (⟨(a, b), h⟩ : PairIdx n) ≠
         prop19UpA (⟨(a, b), h⟩ : PairIdx n) hg := by
       intro hg hne
       have hval := pair_val_eq hne
-      simp only [prop19UpA, show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [prop19UpA] at hval
       omega
     have hneDB : ∀ hg : a + 1 < b, (⟨(a, b), h⟩ : PairIdx n) ≠
         prop19DownB (⟨(a, b), h⟩ : PairIdx n) hg := by
       intro hg hne
       have hval := pair_val_eq hne
-      simp only [prop19DownB, show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [prop19DownB] at hval
       omega
     have hneUB : ∀ hg : b + 1 ≤ n + 1, (⟨(a, b), h⟩ : PairIdx n) ≠
         prop19UpB (⟨(a, b), h⟩ : PairIdx n) hg := by
       intro hg hne
       have hval := pair_val_eq hne
-      simp only [prop19UpB, show ((⟨(a, b), h⟩ : PairIdx n).val).1 = a from rfl,
-        show ((⟨(a, b), h⟩ : PairIdx n).val).2 = b from rfl] at hval
+      simp only [prop19UpB] at hval
       omega
     have z1 : (if h2 : a + 1 < b then
         (if (⟨(a, b), h⟩ : PairIdx n) = prop19UpA (⟨(a, b), h⟩ : PairIdx n) h2
           then (1 : ℂ) else 0) else 0) = 0 := by
       split
       · rename_i h2
-        rw [if_neg (hneUA h2)]
+        rw [ite_eq_right (hneUA h2)]
       · rfl
     have z2 : (if h2 : 2 ≤ a then
         (if (⟨(a, b), h⟩ : PairIdx n) = prop19DownA (⟨(a, b), h⟩ : PairIdx n) h2
           then (1 : ℂ) else 0) else 0) = 0 := by
       split
       · rename_i h2
-        rw [if_neg (hneDA h2)]
+        rw [ite_eq_right (hneDA h2)]
       · rfl
     have z3 : (if h2 : b + 1 ≤ n + 1 then
         (if (⟨(a, b), h⟩ : PairIdx n) = prop19UpB (⟨(a, b), h⟩ : PairIdx n) h2
           then (1 : ℂ) else 0) else 0) = 0 := by
       split
       · rename_i h2
-        rw [if_neg (hneUB h2)]
+        rw [ite_eq_right (hneUB h2)]
       · rfl
     have z4 : (if h2 : a + 1 < b then
         (if (⟨(a, b), h⟩ : PairIdx n) = prop19DownB (⟨(a, b), h⟩ : PairIdx n) h2
           then (1 : ℂ) else 0) else 0) = 0 := by
       split
       · rename_i h2
-        rw [if_neg (hneDB h2)]
+        rw [ite_eq_right (hneDB h2)]
       · rfl
     rw [z1, z2, z3, z4]
-  · rw [if_neg hq, mul_zero, mul_zero]
+  · rw [ite_eq_right hq, mul_zero, mul_zero]
     ring
 
 /-- **Proposition 19, dimension count.**  The number of pairs `{a, b}` with

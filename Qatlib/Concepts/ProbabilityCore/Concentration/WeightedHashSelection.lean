@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVectorData
-import Mathlib.Analysis.Normed.Group.Basic
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVectorData
+public import Mathlib.Analysis.Normed.Group.Basic
+
+@[expose] public section
 
 /-!
 # Selections of weighted hash deviations

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -102,7 +106,7 @@ theorem source_sample_average_concentration (P : Ω → ℝ) (hP0 : ∀ ω, 0 �
     intro ω
     refine mul_le_mul_of_nonneg_left ?_ (hP0 ω)
     by_cases h : ε ≤ |EnsembleMean g ω - μ|
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hsq : ε ^ 2 ≤ (EnsembleMean g ω - μ) ^ 2 := by
         have hs : ε ^ 2 ≤ |EnsembleMean g ω - μ| ^ 2 :=
           pow_le_pow_left₀ (le_of_lt hε) h 2
@@ -111,7 +115,7 @@ theorem source_sample_average_concentration (P : Ω → ℝ) (hP0 : ∀ ω, 0 �
         rw [div_pow, one_le_div (by positivity)]
         exact hsq
       simpa using hone
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       simpa using (sq_nonneg ((EnsembleMean g ω - μ) / ε) :
         (0 : ℝ) ≤ ((EnsembleMean g ω - μ) / ε) ^ 2)
   calc ∑ ω, P ω * (if ε ≤ |EnsembleMean g ω - μ| then 1 else 0)

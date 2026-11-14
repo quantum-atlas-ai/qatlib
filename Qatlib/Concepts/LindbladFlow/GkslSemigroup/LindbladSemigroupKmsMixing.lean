@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import QuantumInfo.Channels.Unbundled
-import Mathlib.Topology.Algebra.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.ODE.Gronwall
-import QuantumInfo.ForMathlib.HermitianMat.Inner
-import QuantumInfo.Entropy.DPI
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import QuantumInfo.Channels.Unbundled
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.ODE.Gronwall
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+public import QuantumInfo.Entropy.DPI
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+
+@[expose] public section
 
 /-!
 # KMS adjoints and spectral-gap mixing
@@ -84,14 +88,14 @@ adjoint. -/
 theorem hsAdjoint_trace {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (X : Operator D) (Y : Operator E) :
     Matrix.trace (Xᴴ * hsAdjoint T Y) = Matrix.trace ((T X)ᴴ * Y) := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.toMatrixNormedAddCommGroup 1 Matrix.PosDef.one
-  letI : NormedAddCommGroup (Operator E) := Matrix.toMatrixNormedAddCommGroup 1 Matrix.PosDef.one
-  letI : SeminormedAddCommGroup (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.toMatrixNormedAddCommGroup 1 Matrix.PosDef.one
+  let : NormedAddCommGroup (Operator E) := Matrix.toMatrixNormedAddCommGroup 1 Matrix.PosDef.one
+  let : SeminormedAddCommGroup (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toSeminormedAddCommGroup
-  letI : SeminormedAddCommGroup (Operator E) :=
+  let : SeminormedAddCommGroup (Operator E) :=
     (inferInstance : NormedAddCommGroup (Operator E)).toSeminormedAddCommGroup
-  letI : InnerProductSpace ℂ (Operator D) := Matrix.toMatrixInnerProductSpace (1 : Operator D) Matrix.PosSemidef.one
-  letI : InnerProductSpace ℂ (Operator E) := Matrix.toMatrixInnerProductSpace (1 : Operator E) Matrix.PosSemidef.one
+  let : InnerProductSpace ℂ (Operator D) := Matrix.toMatrixInnerProductSpace (1 : Operator D) Matrix.PosSemidef.one
+  let : InnerProductSpace ℂ (Operator E) := Matrix.toMatrixInnerProductSpace (1 : Operator E) Matrix.PosSemidef.one
   have h := LinearMap.adjoint_inner_right T X Y
   change Matrix.trace (hsAdjoint T Y * 1 * Xᴴ) = Matrix.trace (Y * 1 * (T X)ᴴ) at h
   simp only [Matrix.mul_one] at h
@@ -170,11 +174,11 @@ time `t`. -/
 theorem hasDerivAt_lindbladSemigroup {D : ℕ} (G : GKSL D) (σ : Operator D) (t : ℝ) :
     HasDerivAt (fun u : ℝ => lindbladSemigroup G u σ)
       (lindbladApply G (lindbladSemigroup G t σ)) t := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
-  letI : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
-  letI : TopologicalSpace (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
+  let : TopologicalSpace (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toUniformSpace.toTopologicalSpace
-  letI : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
+  let : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
   let L : Operator D →L[ℂ] Operator D := LinearMap.toContinuousLinearMap (lindbladMap G)
   have heq (u : ℝ) : lindbladSemigroup G u σ = (NormedSpace.exp ((u : ℂ) • L)) σ := by
     have hh := (ContinuousLinearMap.apply ℂ (Operator D) σ).hasSum
@@ -184,17 +188,17 @@ theorem hasDerivAt_lindbladSemigroup {D : ℕ} (G : GKSL D) (σ : Operator D) (t
             (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) =
           ((u : ℂ) ^ k / k.factorial) • ((lindbladMap G)^[k]) σ := by
       change (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) σ = _
-      rw [ContinuousLinearMap.smul_apply]
+      rw [_root_.smul_apply]
       have hpow (k : ℕ) : ((u : ℂ) • L) ^ k = (u : ℂ) ^ k • L ^ k := by
         induction k with
         | zero => simp only [pow_zero, one_smul]
         | succ k ih =>
           rw [pow_succ, ih]
           ext τ
-          simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply,
+          simp only [_root_.mul_apply_eq_comp, _root_.smul_apply,
             map_smul, smul_smul, pow_succ, mul_comm]
-      rw [hpow k, ContinuousLinearMap.smul_apply, smul_smul,
-        ContinuousLinearMap.coe_pow']
+      rw [hpow k, _root_.smul_apply, smul_smul,
+        FunLike.coe_pow_eq_iterate]
       change ((k.factorial : ℂ)⁻¹ * (u : ℂ) ^ k) • ((lindbladMap G)^[k]) σ = _
       rw [div_eq_mul_inv, mul_comm]
     simp only [ht] at hh
@@ -262,7 +266,7 @@ theorem traceNorm_kms_sandwich_le {D : ℕ} {ρ : Operator D}
   · subst D
     have hx : X = 0 := Subsingleton.elim _ _
     simp [hx, kmsNorm, kmsInner, Matrix.traceNorm_zero]
-  letI : NeZero D := ⟨hD⟩
+  let : NeZero D := ⟨hD⟩
   obtain ⟨U,hU⟩ := (Matrix.traceNorm_eq_max_re_tr_U (CFC.sqrt ρ * X * CFC.sqrt ρ)).1
   have hu : ‖(U.val)ᴴ‖ = 1 := by
     rw [Matrix.l2_opNorm_conjTranspose]

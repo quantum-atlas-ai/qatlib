@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

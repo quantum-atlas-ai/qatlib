@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.HomOverlap.TensorCircuit
+module
+
+public import Qatlib.Papers.HHLManyBody22.HomOverlap.TensorCircuit
+
+@[expose] public section
 
 /-!
 # Born probability readout of the HOM overlap circuit
@@ -54,7 +58,7 @@ theorem homTensor_parity_operator (n : ℕ) :
   ext x y
   simp only [mul_apply,conjTranspose_apply,homTensor,Complex.star_def,
     Complex.conj_ofReal,diagonal_apply]
-  simp only [mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   simpa only [← Complex.ofReal_mul,← Complex.ofReal_sum,apply_ite,Complex.ofReal_one,
     Complex.ofReal_zero] using congrArg Complex.ofReal (homTensorReal_parity_swap n x y)
 

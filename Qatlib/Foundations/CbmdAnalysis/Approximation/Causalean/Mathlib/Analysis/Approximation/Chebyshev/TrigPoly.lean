@@ -5,16 +5,20 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@e298f64
 -/
 
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Topology.Algebra.Module.ModuleTopology
+module
+
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.Polynomial.FieldDivision
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+
+@[expose] public section
 
 /-!
 # Degree bounds and zeros of trigonometric polynomials

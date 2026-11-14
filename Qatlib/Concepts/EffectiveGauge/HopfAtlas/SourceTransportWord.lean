@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransportWordBound
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransportWordBound
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,8 +63,8 @@ theorem sourceFrameBoundRun_transport_correct (v : SpatialPoint → SpatialPoint
     · have h := hcoeff ⟨n,hn⟩ (List.replicate n 0) (by simp) 0
         (fun _ => ⟨le_rfl,zero_le_one⟩)
       have hz := (norm_nonneg _).trans h
-      exact Rat.cast_nonneg.mp (by simpa only [sourceFrameCoefficientNat,dif_pos hn] using hz)
-    · simp only [sourceFrameCoefficientNat,dif_neg hn,le_refl]
+      exact Rat.cast_nonneg.mp (by simpa only [sourceFrameCoefficientNat,dite_eq_left hn] using hz)
+    · simp only [sourceFrameCoefficientNat,dite_eq_right hn,le_refl]
   refine ⟨packet,labels,hrun,hlen,hlabels,?_⟩
   intro q₀ h₀ r w hw u hucube
   let q := fun y => sourceLiftSpatialExtension v hv q₀ h₀ (physicalPeriod • y)
@@ -73,7 +77,7 @@ theorem sourceFrameBoundRun_transport_correct (v : SpatialPoint → SpatialPoint
       ‖spatialWordPartial K z y‖ ≤ (sourceFrameCoefficientNat packet z.length : ℝ) := by
     intro z hz y hy
     have hlt : z.length<9 := by omega
-    simpa only [sourceFrameCoefficientNat,dif_pos hlt] using
+    simpa only [sourceFrameCoefficientNat,dite_eq_left hlt] using
       hcoeff ⟨z.length,hlt⟩ z rfl y hy
   simpa only [q,hw,sourceFrameTransportMajorant] using transportWordBound_on_cube q K hq hK
     (fun y _ => sourceLiftSpatialExtension_unit v hv q₀ h₀ (physicalPeriod • y))

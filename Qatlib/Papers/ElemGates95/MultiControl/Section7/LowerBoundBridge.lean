@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.MultiControl.Section7.LowerBound
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Papers.ElemGates95.MultiControl.Section7.LowerBound
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # CNOT lower bound for fully controlled gates
@@ -75,13 +79,13 @@ theorem cutSplit_symm_apply {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : Reg
 /-- Recombining partial registers recovers the first partial register on every wire in `A`. -/
 @[simp] theorem cutSplit_symm_fst {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : RegB A)
     (i : {i : Fin n // i ∈ A}) : (cutSplit A).symm (a, b) i.1 = a i := by
-  rw [cutSplit_symm_apply, dif_pos i.2]
+  rw [cutSplit_symm_apply, dite_eq_left i.2]
 
 /-- Recombining partial registers recovers the second partial register on every wire outside
 `A`. -/
 @[simp] theorem cutSplit_symm_snd {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : RegB A)
     (i : {i : Fin n // i ∉ A}) : (cutSplit A).symm (a, b) i.1 = b i := by
-  rw [cutSplit_symm_apply, dif_neg i.2]
+  rw [cutSplit_symm_apply, dite_eq_right i.2]
 
 /-- The tensor product of matrices on the two sides of a wire partition, expressed in
 full-register coordinates through `cutSplit`. -/
@@ -166,21 +170,21 @@ theorem wireGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w 
         (fun j : {j : Fin n // j ∉ A} => y j.1) := by
       funext j
       exact h j.1 (fun hwj => j.2 (hwj ▸ hw))
-    rw [if_pos h, if_pos hA, if_pos hB, mul_one]
+    rw [ite_eq_left h, ite_eq_left hA, ite_eq_left hB, mul_one]
   · have hR : ¬ (∀ k : Fin n, k ≠ w → x k = y k) := h
-    rw [if_neg hR]
+    rw [ite_eq_right hR]
     push Not at h
     obtain ⟨k, hkw, hkxy⟩ := h
     by_cases hkA : k ∈ A
     · have hne : ¬ (∀ i : {i : Fin n // i ∈ A}, i.1 ≠ w → x i.1 = y i.1) := by
         intro hall
         exact hkxy (hall ⟨k, hkA⟩ hkw)
-      rw [if_neg hne, zero_mul]
+      rw [ite_eq_right hne, zero_mul]
     · have hBne : (fun j : {j : Fin n // j ∉ A} => x j.1) ≠
           (fun j : {j : Fin n // j ∉ A} => y j.1) := by
         intro he
         exact hkxy (congrFun he ⟨k, hkA⟩)
-      rw [if_neg hBne, mul_zero]
+      rw [ite_eq_right hBne, mul_zero]
 
 /-- The matrix applying `U` to a specified wire in the partial register outside `A` while
 preserving its other wires. -/
@@ -206,9 +210,9 @@ theorem wireGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw 
       exact h i.1 (fun hwi => hw (hwi ▸ i.2))
     have hB : ∀ j : {j : Fin n // j ∉ A}, j.1 ≠ w → x j.1 = y j.1 :=
       fun j hj => h j.1 hj
-    rw [if_pos h, if_pos hA, if_pos hB, one_mul]
+    rw [ite_eq_left h, ite_eq_left hA, ite_eq_left hB, one_mul]
   · have hR : ¬ (∀ k : Fin n, k ≠ w → x k = y k) := h
-    rw [if_neg hR]
+    rw [ite_eq_right hR]
     push Not at h
     obtain ⟨k, hkw, hkxy⟩ := h
     by_cases hkA : k ∈ A
@@ -216,11 +220,11 @@ theorem wireGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw 
           (fun i : {i : Fin n // i ∈ A} => y i.1) := by
         intro he
         exact hkxy (congrFun he ⟨k, hkA⟩)
-      rw [if_neg hAne, zero_mul]
+      rw [ite_eq_right hAne, zero_mul]
     · have hne : ¬ (∀ j : {j : Fin n // j ∉ A}, j.1 ≠ w → x j.1 = y j.1) := by
         intro hall
         exact hkxy (hall ⟨k, hkA⟩ hkw)
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
 
 /-- Updating a full register at a wire in `A` is equivalent to updating its restriction to `A`
 and leaving its complementary restriction unchanged. -/
@@ -238,11 +242,11 @@ theorem update_split_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ 
       rw [hx i.1, Function.update_apply, Function.update_apply]
       by_cases hit : i.1 = t
       · have hi : i = ⟨t, ht⟩ := Subtype.ext hit
-        rw [if_pos hit, if_pos hi]
+        rw [ite_eq_left hit, ite_eq_left hi]
       · have hi : ¬ (i = ⟨t, ht⟩) := fun h => hit (congrArg Subtype.val h)
-        rw [if_neg hit, if_neg hi]
+        rw [ite_eq_right hit, ite_eq_right hi]
     · rw [funext_iff]; intro j
-      rw [hx j.1, Function.update_apply, if_neg]
+      rw [hx j.1, Function.update_apply, ite_eq_right]
       intro hjt
       exact j.2 (by rw [hjt]; exact ht)
   · rintro ⟨hA, hB⟩
@@ -253,17 +257,17 @@ theorem update_split_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ 
       rw [Function.update_apply] at hkA
       by_cases hkt : k = t
       · subst hkt
-        rw [if_pos (Subtype.ext rfl)] at hkA
-        rw [if_pos rfl]
+        rw [ite_eq_left (Subtype.ext rfl)] at hkA
+        rw [ite_eq_left rfl]
         exact hkA
       · have hne : ¬ ((⟨k, hk⟩ : {i : Fin n // i ∈ A}) = ⟨t, ht⟩) :=
           fun h => hkt (congrArg Subtype.val h)
-        rw [if_neg hne] at hkA
-        rw [if_neg hkt]
+        rw [ite_eq_right hne] at hkA
+        rw [ite_eq_right hkt]
         exact hkA
     · have hkB := congrFun hB ⟨k, hk⟩
       have hkt : k ≠ t := fun h => hk (by rw [h]; exact ht)
-      rw [if_neg hkt]
+      rw [ite_eq_right hkt]
       exact hkB
 
 /-- Updating a full register at a wire outside `A` is equivalent to leaving its restriction to
@@ -279,35 +283,35 @@ theorem update_split_not_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t 
   · intro hx
     refine ⟨?_, ?_⟩
     · rw [funext_iff]; intro i
-      rw [hx i.1, Function.update_apply, if_neg]
+      rw [hx i.1, Function.update_apply, ite_eq_right]
       intro hit
       exact ht (hit ▸ i.2)
     · rw [funext_iff]; intro j
       rw [hx j.1, Function.update_apply, Function.update_apply]
       by_cases hjt : j.1 = t
       · have hj : j = ⟨t, ht⟩ := Subtype.ext hjt
-        rw [if_pos hjt, if_pos hj]
+        rw [ite_eq_left hjt, ite_eq_left hj]
       · have hj : ¬ (j = ⟨t, ht⟩) := fun h => hjt (congrArg Subtype.val h)
-        rw [if_neg hjt, if_neg hj]
+        rw [ite_eq_right hjt, ite_eq_right hj]
   · rintro ⟨hA, hB⟩
     intro k
     rw [Function.update_apply]
     by_cases hk : k ∈ A
     · have hkA := congrFun hA ⟨k, hk⟩
       have hkt : k ≠ t := fun h => ht (h ▸ hk)
-      rw [if_neg hkt]
+      rw [ite_eq_right hkt]
       exact hkA
     · have hkB := congrFun hB ⟨k, hk⟩
       rw [Function.update_apply] at hkB
       by_cases hkt : k = t
       · subst hkt
-        rw [if_pos (Subtype.ext rfl)] at hkB
-        rw [if_pos rfl]
+        rw [ite_eq_left (Subtype.ext rfl)] at hkB
+        rw [ite_eq_left rfl]
         exact hkB
       · have hne : ¬ ((⟨k, hk⟩ : {j : Fin n // j ∉ A}) = ⟨t, ht⟩) :=
           fun h => hkt (congrArg Subtype.val h)
-        rw [if_neg hne] at hkB
-        rw [if_neg hkt]
+        rw [ite_eq_right hne] at hkB
+        rw [ite_eq_right hkt]
         exact hkB
 
 /-- The target-XOR-control matrix on the partial register over `A`, with both designated wires
@@ -327,8 +331,8 @@ theorem cnotGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
   simp only [cutSplit_apply_fst, cutSplit_apply_snd, cnotGateA, permMatrix, Matrix.of_apply]
   have key := update_split_mem A t ht x y (y t ^^ y c)
   by_cases hx : x = Function.update y t (y t ^^ y c)
-  · rw [if_pos hx, if_pos (key.mp hx).1, if_pos (key.mp hx).2, mul_one]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, ite_eq_left (key.mp hx).1, ite_eq_left (key.mp hx).2, mul_one]
+  · rw [ite_eq_right hx]
     rcases Classical.em ((fun i : {i : Fin n // i ∈ A} => x i.1) =
         Function.update (fun i : {i : Fin n // i ∈ A} => y i.1) ⟨t, ht⟩
           ((fun i : {i : Fin n // i ∈ A} => y i.1) ⟨t, ht⟩ ^^
@@ -336,8 +340,8 @@ theorem cnotGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
     · rcases Classical.em ((fun j : {j : Fin n // j ∉ A} => x j.1) =
           (fun j : {j : Fin n // j ∉ A} => y j.1)) with hB | hB
       · exact absurd (key.mpr ⟨hA, hB⟩) hx
-      · rw [if_pos hA, if_neg hB, mul_zero]
-    · rw [if_neg hA, zero_mul]
+      · rw [ite_eq_left hA, ite_eq_right hB, mul_zero]
+    · rw [ite_eq_right hA, zero_mul]
 
 /-- The target-XOR-control matrix on the partial register outside `A`, with both designated
 wires outside `A`. -/
@@ -356,8 +360,8 @@ theorem cnotGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
   simp only [cutSplit_apply_fst, cutSplit_apply_snd, cnotGateB, permMatrix, Matrix.of_apply]
   have key := update_split_not_mem A t ht x y (y t ^^ y c)
   by_cases hx : x = Function.update y t (y t ^^ y c)
-  · rw [if_pos hx, if_pos (key.mp hx).1, if_pos (key.mp hx).2, one_mul]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, ite_eq_left (key.mp hx).1, ite_eq_left (key.mp hx).2, one_mul]
+  · rw [ite_eq_right hx]
     rcases Classical.em (((fun i : {i : Fin n // i ∈ A} => x i.1) =
         (fun i : {i : Fin n // i ∈ A} => y i.1))) with hA | hA
     · rcases Classical.em ((fun j : {j : Fin n // j ∉ A} => x j.1) =
@@ -365,8 +369,8 @@ theorem cnotGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
             ((fun j : {j : Fin n // j ∉ A} => y j.1) ⟨t, ht⟩ ^^
               (fun j : {j : Fin n // j ∉ A} => y j.1) ⟨c, hc⟩)) with hB | hB
       · exact absurd (key.mpr ⟨hA, hB⟩) hx
-      · rw [if_pos hA, if_neg hB, mul_zero]
-    · rw [if_neg hA, zero_mul]
+      · rw [ite_eq_left hA, ite_eq_right hB, mul_zero]
+    · rw [ite_eq_right hA, zero_mul]
 
 /-- The matrix of a reflection-vocabulary gate factors across `A` whenever every wire used by
 the gate belongs to `A`. -/
@@ -451,7 +455,7 @@ theorem multiCtrlGate_apply_ctrl {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ
     {x y : Reg n} (hxy : ∀ k : Fin n, k ≠ t → x k = y k)
     (hx : ∀ k : Fin n, k ≠ t → x k = true) :
     multiCtrlGate t U x y = U (x t) (y t) := by
-  rw [multiCtrlGate_apply, if_pos hxy, if_pos hx]
+  rw [multiCtrlGate_apply, ite_eq_left hxy, ite_eq_left hx]
 
 /-- When the two register indices agree off the target but some control is false, the matrix
 entry is the corresponding entry of the target identity matrix. -/
@@ -459,7 +463,7 @@ theorem multiCtrlGate_apply_id {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     {x y : Reg n} (hxy : ∀ k : Fin n, k ≠ t → x k = y k)
     (hx : ¬ ∀ k : Fin n, k ≠ t → x k = true) :
     multiCtrlGate t U x y = (1 : Matrix Bool Bool ℂ) (x t) (y t) := by
-  rw [multiCtrlGate_apply, if_pos hxy, if_neg hx]
+  rw [multiCtrlGate_apply, ite_eq_left hxy, ite_eq_right hx]
 
 /-- The partial register on `A` with every wire true. -/
 def allTrueA {n : ℕ} (A : Finset (Fin n)) : RegA A := fun _ => true
@@ -492,7 +496,7 @@ target in `A`. -/
 theorem symm_ctrlA_allTrueB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, allTrueB A) t = b := by
-  rw [cutSplit_symm_apply, dif_pos ht]
+  rw [cutSplit_symm_apply, dite_eq_left ht]
   show (if t = t then b else true) = b
   simp
 
@@ -503,10 +507,10 @@ theorem symm_ctrlA_allTrueB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht
     (cutSplit A).symm (ctrlA A t ht b, allTrueB A) k = true := by
   rw [cutSplit_symm_apply]
   by_cases hkA : k ∈ A
-  · rw [dif_pos hkA]
+  · rw [dite_eq_left hkA]
     show (if k = t then b else true) = true
     simp [hk]
-  · rw [dif_neg hkA]
+  · rw [dite_eq_right hkA]
     rfl
 
 /-- Combining `ctrlA` with a complementary register having one false control preserves value `b`
@@ -514,7 +518,7 @@ at the target in `A`. -/
 theorem symm_ctrlA_toggleB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (c : Fin n) (hc : c ∉ A) (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) t = b := by
-  rw [cutSplit_symm_apply, dif_pos ht]
+  rw [cutSplit_symm_apply, dite_eq_left ht]
   show (if t = t then b else true) = b
   simp
 
@@ -522,7 +526,7 @@ theorem symm_ctrlA_toggleB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t
 theorem symm_ctrlA_toggleB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (c : Fin n) (hc : c ∉ A) (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) c = false := by
-  rw [cutSplit_symm_apply, dif_neg hc]
+  rw [cutSplit_symm_apply, dite_eq_right hc]
   show (if c = c then false else true) = false
   simp
 
@@ -533,10 +537,10 @@ theorem symm_ctrlA_toggleB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht 
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) k = true := by
   rw [cutSplit_symm_apply]
   by_cases hkA : k ∈ A
-  · rw [dif_pos hkA]
+  · rw [dite_eq_left hkA]
     show (if k = t then b else true) = true
     simp [hk]
-  · rw [dif_neg hkA]
+  · rw [dite_eq_right hkA]
     show (if k = c then false else true) = true
     simp [hkc]
 
@@ -545,7 +549,7 @@ outside `A`. -/
 theorem symm_allTrueA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (b : Bool) :
     (cutSplit A).symm (allTrueA A, ctrlB A t ht b) t = b := by
-  rw [cutSplit_symm_apply, dif_neg ht]
+  rw [cutSplit_symm_apply, dite_eq_right ht]
   show (if t = t then b else true) = b
   simp
 
@@ -556,9 +560,9 @@ theorem symm_allTrueA_ctrlB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht
     (cutSplit A).symm (allTrueA A, ctrlB A t ht b) k = true := by
   rw [cutSplit_symm_apply]
   by_cases hkA : k ∈ A
-  · rw [dif_pos hkA]
+  · rw [dite_eq_left hkA]
     rfl
-  · rw [dif_neg hkA]
+  · rw [dite_eq_right hkA]
     show (if k = t then b else true) = true
     simp [hk]
 
@@ -566,7 +570,7 @@ theorem symm_allTrueA_ctrlB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht
 theorem symm_toggleA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (c : Fin n) (hc : c ∈ A) (b : Bool) :
     (cutSplit A).symm (toggleA A c hc, ctrlB A t ht b) t = b := by
-  rw [cutSplit_symm_apply, dif_neg ht]
+  rw [cutSplit_symm_apply, dite_eq_right ht]
   show (if t = t then b else true) = b
   simp
 
@@ -574,7 +578,7 @@ theorem symm_toggleA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t
 theorem symm_toggleA_ctrlB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (c : Fin n) (hc : c ∈ A) (b : Bool) :
     (cutSplit A).symm (toggleA A c hc, ctrlB A t ht b) c = false := by
-  rw [cutSplit_symm_apply, dif_pos hc]
+  rw [cutSplit_symm_apply, dite_eq_left hc]
   show (if c = c then false else true) = false
   simp
 
@@ -710,7 +714,7 @@ theorem multiCtrlGate_not_factors {n : ℕ} (t : Fin n) (U : Matrix Bool Bool �
         ((cutSplit A).symm (toggleA A c hc, ctrlB A t ht b)) k = true := by
       intro b hall
       have h := hall c hct
-      rw [cutSplit_symm_apply, dif_pos hc] at h
+      rw [cutSplit_symm_apply, dite_eq_left hc] at h
       simp [toggleA] at h
     have hxyr : ∀ k : Fin n, k ≠ t →
         ((cutSplit A).symm (toggleA A c hc, ctrlB A t ht false)) k =
@@ -718,8 +722,8 @@ theorem multiCtrlGate_not_factors {n : ℕ} (t : Fin n) (U : Matrix Bool Bool �
       intro k hk
       rw [cutSplit_symm_apply, cutSplit_symm_apply]
       by_cases hkA : k ∈ A
-      · rw [dif_pos hkA, dif_pos hkA]
-      · rw [dif_neg hkA, dif_neg hkA]
+      · rw [dite_eq_left hkA, dite_eq_left hkA]
+      · rw [dite_eq_right hkA, dite_eq_right hkA]
         show (if k = t then false else true) = (if k = t then true else true)
         simp [hk]
     have e_αP : U false false =
@@ -827,7 +831,7 @@ theorem card_edgeSet_cnotGraph_le {n : ℕ} (gs : List (ReflectionGate n)) :
   have hsub : (cnotGraph gs).edgeSet ⊆
       (↑(cnotPairs gs).toFinset : Set (Sym2 (Fin n))) := by
     rw [cnotGraph, cnotEdges, SimpleGraph.edgeSet_fromEdgeSet]
-    exact Set.diff_subset
+    exact Set.sdiff_subset
   calc (cnotGraph gs).edgeSet.ncard
       ≤ (↑(cnotPairs gs).toFinset : Set (Sym2 (Fin n))).ncard :=
         Set.ncard_le_ncard hsub

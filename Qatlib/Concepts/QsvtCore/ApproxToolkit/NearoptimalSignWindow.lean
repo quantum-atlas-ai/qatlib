@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
+
+@[expose] public section
 
 /-!
 # Constructive sign and rectangle approximation
@@ -373,7 +377,7 @@ theorem nearOptimalSign_allThresholdRectangle {C δ ε t : ℝ} {S : Polynomial 
   by_cases ht : t < 0
   · exact sourceRectangle_neg_t hε.le hδ ht
   · have ht0 : 0 ≤ t := le_of_not_gt ht
-    rw [sourceRectanglePolynomial,if_neg ht]
+    rw [sourceRectanglePolynomial,ite_eq_right ht]
     exact twoTranslateRectangleBands_allThresholds hδ (by linarith) (by linarith) rfl
       (by nlinarith [sq_nonneg ε]) (by nlinarith [sq_nonneg ε]) ht0 ht1
       (nearOptimalSign_approximation hS)
@@ -460,7 +464,7 @@ theorem nativeRectangleCoefficients_semantics (δ ε t : ℚ) (hε : 0 < ε) (h�
   · have htr : (t:ℝ)<0 := by exact_mod_cast ht
     simp [nativeRectangleCoefficients,ht,sourceRectanglePolynomial,htr]
   · have htr : (0:ℝ)≤(t:ℝ) := by exact_mod_cast le_of_not_gt ht
-    rw [nativeRectangleCoefficients,if_neg ht,realTarget_add,realTarget_scale,
+    rw [nativeRectangleCoefficients,ite_eq_right ht,realTarget_add,realTarget_scale,
       realTarget_add,rationalPolynomialCompose_semantics,rationalPolynomialCompose_semantics]
     apply Polynomial.funext
     intro x

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Setup
-import Qatlib.Papers.ModularFunct00.MainResults.Approximation.Theorem21
-import Qatlib.Papers.ModularFunct00.MainResults.Representation.EquivUpToPhase
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Setup
+public import Qatlib.Papers.ModularFunct00.MainResults.Approximation.Theorem21
+public import Qatlib.Papers.ModularFunct00.MainResults.Representation.EquivUpToPhase
+
+@[expose] public section
 
 /-!
 # Unitary products and a simulation error bound

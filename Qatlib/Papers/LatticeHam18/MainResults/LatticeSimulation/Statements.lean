@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatticeHam18.MainResults.Model.LatticeModel
+module
+
+public import Qatlib.Papers.LatticeHam18.MainResults.Model.LatticeModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Tactic
-import Qatlib.Concepts.ImaginaryFlow.GroundLimit.SpectralDamping
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Tactic
+public import Qatlib.Concepts.ImaginaryFlow.GroundLimit.SpectralDamping
+
+@[expose] public section
 
 /-!
 # Finite transcorrelated matrix evolution
@@ -200,7 +204,7 @@ theorem actual_right_column_eigen {d : ℕ} (H g : Op d) (hH : H.IsHermitian) (i
       hH.eigenvalues i • (exp (-g) * eigenU hH)ᵀ i := by
   ext j
   have h := congrArg (fun M : Op d => M j i) (actual_right_basis H g hH)
-  try dsimp only at h
+
   rw [Matrix.mul_diagonal] at h
   simpa only [Matrix.mul_apply, Matrix.mulVec, dotProduct,
     Matrix.transpose_apply, Pi.smul_apply, Complex.real_smul, mul_comm] using h

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+
+@[expose] public section
 
 /-!
 # From probability oracles to phase oracles
@@ -257,7 +261,7 @@ theorem controlled_sandwich {H : Type*} [Fintype H] [DecidableEq H]
   congr 1
   funext b
   cases b
-  · simpa only [Bool.false_eq_true, if_false, Matrix.mul_one] using!
+  · simpa only [Bool.false_eq_true, ite_false, Matrix.mul_one] using!
       (Matrix.mem_unitaryGroup_iff'.mp hU)
   · simp
 

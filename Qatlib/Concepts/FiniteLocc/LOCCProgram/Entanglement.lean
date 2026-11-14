@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingTele
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingTele
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+@[expose] public section
 
 /-!
 # Finite bipartite entanglement and local protocols
@@ -505,7 +509,7 @@ private noncomputable def gramUnitary (ψ : QState (Fin D × Fin E)) : Matrix (F
 /-- The coordinates of a chosen Schmidt eigenvector form the corresponding column of
 `gramUnitary`. -/
 theorem schmidtU_eq_gramUnitary (ψ : QState (Fin D × Fin E)) (i j : Fin D) :
-    schmidtU ψ j i = gramUnitary ψ i j := by
+    schmidtU ψ j i = (gramMatrix_isHermitian ψ).eigenvectorUnitary i j := by
   rfl
 
 /-- Multiplying `gramUnitary` on the left by its conjugate transpose gives the identity. -/

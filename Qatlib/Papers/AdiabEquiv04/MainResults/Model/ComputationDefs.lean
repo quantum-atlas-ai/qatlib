@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryConstruction
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryConstruction
+
+@[expose] public section
 
 /-!
 # Computation and locality predicates

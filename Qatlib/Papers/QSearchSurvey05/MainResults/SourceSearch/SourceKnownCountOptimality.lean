@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchSurvey05.MainResults.Search.KnownCountOptimality
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountDefs
-import Qatlib.Concepts.SearchStopping.PaidRestart.Section31ExactSuccessTigh
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Search.KnownCountOptimality
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountDefs
+public import Qatlib.Concepts.SearchStopping.PaidRestart.Section31ExactSuccess
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

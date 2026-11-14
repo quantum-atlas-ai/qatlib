@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Error bounds for centered finite differences

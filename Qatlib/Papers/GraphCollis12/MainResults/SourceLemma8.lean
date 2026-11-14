@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphCollis12.MainResults.SourceBasicLemmas
+module
+
+public import Qatlib.Papers.GraphCollis12.MainResults.SourceBasicLemmas
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -83,8 +87,8 @@ Proof route (paper p.7):
 **Status: statement registered as a `Prop`-valued definition; the proof is a
 substantive gap** (the paper's union bound, size split, Chernoff step and
 binomial estimates are not yet mechanised). -/
-def lemma8 (n : ℕ) (hn : 1 ≤ n) (p : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1)
-    (t : ℝ) (ht : 40 * (n : ℝ) * Real.log (n : ℝ) ≤ t) : Prop :=
+def lemma8 (n : ℕ) (_hn : 1 ≤ n) (p : ℝ) (_hp0 : 0 < p) (_hp1 : p ≤ 1)
+    (t : ℝ) (_ht : 40 * (n : ℝ) * Real.log (n : ℝ) ≤ t) : Prop :=
   muPr p (fun (G : SimpleGraph (Fin n)) => t ≤ (alphaStar G : ℝ)) ≤
     (n : ℝ) ^ (-(14 * (n : ℝ))) + 2 * Real.exp (-(t ^ 2) / (200 * (n : ℝ) ^ 2 * p))
 

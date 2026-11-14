@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.Complex.Trigonometric
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.Complex.Trigonometric
+
+@[expose] public section
 
 /-!
 # Momentum-state inner-product estimates

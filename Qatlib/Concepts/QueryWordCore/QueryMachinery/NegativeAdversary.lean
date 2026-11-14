@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # Negative-weight adversary bounds for query circuits
@@ -341,7 +345,7 @@ private theorem advFlip_inner {X W : Type} [Fintype W] (f : X → Bool)
       Qatlib.Foundations.PureStateMath.Inner (fun h => v (x, h)) (fun h => v (y, h)) := by
   simp only [inner_apply, Fintype.sum_prod_type, Fintype.sum_bool, advFlip, hxy]
   cases f y <;> simp only [Bool.xor_false, Bool.xor_true, Bool.not_false, Bool.not_true]
-  all_goals first | rfl | exact add_comm _ _
+  all_goals exact add_comm _ _
 
 /-- Input-dependent answer-bit relabeling preserves the Euclidean norm of the stacked vector. -/
 private theorem advFlip_norm {X W : Type} [Fintype X] [Fintype W]
@@ -352,7 +356,7 @@ private theorem advFlip_norm {X W : Type} [Fintype X] [Fintype W]
   apply Finset.sum_congr rfl
   intro x _
   cases f x <;> simp only [Bool.xor_false, Bool.xor_true, Bool.not_false, Bool.not_true]
-  all_goals first | rfl | exact add_comm _ _
+  all_goals exact add_comm _ _
 
 /-- The quadratic-form change under answer-bit relabeling depends only on adversary entries
 between inputs with different flip values. -/
@@ -368,7 +372,7 @@ private theorem advFlip_filter_difference {X W : Type} [Fintype X] [DecidableEq 
   apply Finset.sum_congr rfl
   intro y _
   by_cases hf : f x = f y
-  · simp only [hf, ne_eq, not_true_eq_false, if_false, zero_mul,
+  · simp only [hf, ne_eq, not_true_eq_false, ite_false, zero_mul,
       advFlip_inner f v x y hf, sub_self]
   · simp [hf]
 

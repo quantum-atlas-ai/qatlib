@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenerativeAdv25.MainResults.Model.FiniteLaws
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.GroupTheory.Perm.Support
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GenerativeAdv25.MainResults.Model.FiniteLaws
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.GroupTheory.Perm.Support
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -87,7 +91,7 @@ theorem permMat_one {X : Type*} [Fintype X] [DecidableEq X] :
   simp only [permMat, Matrix.one_apply, Equiv.Perm.coe_one, id_eq]
   by_cases h : j = i
   · subst h; simp
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
 
 /-- Product of permutation matrices is the permutation matrix of the product. -/
 theorem permMat_listProd {X ι : Type*} [Fintype X] [DecidableEq X]
@@ -129,7 +133,7 @@ theorem swapPerm_mul {n : ℕ} (e₁ e₂ : Equiv.Perm (Fin n)) :
     Equiv.arrowCongr e₁ (Equiv.refl Bool) * Equiv.arrowCongr e₂ (Equiv.refl Bool)
       = Equiv.arrowCongr (e₁ * e₂) (Equiv.refl Bool) := by
   ext b k
-  simp [Equiv.arrowCongr, Equiv.Perm.mul_def, Equiv.symm_trans_apply]
+  simp [Equiv.arrowCongr, Equiv.Perm.mul_def]
 
 /-- **Eqs. (S.1.5)–(S.1.6):** five nearest-neighbour SWAPs compose to the long-range SWAP
 `a ↔ d`, for four distinct indices. -/

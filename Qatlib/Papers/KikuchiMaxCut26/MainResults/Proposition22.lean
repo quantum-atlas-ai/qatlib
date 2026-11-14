@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KikuchiMaxCut26.MainResults.SpectralOrder
-import Mathlib.Combinatorics.SimpleGraph.IncMatrix
+module
+
+public import Qatlib.Papers.KikuchiMaxCut26.MainResults.SpectralOrder
+public import Mathlib.Combinatorics.SimpleGraph.IncMatrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ theorem proposition_2_2 (A L Q : Matrix ι ι ℝ)
       lamMax A hA ≤ (1 / 2) * lamMax Q hQ := by
   classical
   rcases isEmpty_or_nonempty ι with hι | hι
-  · haveI := hι
+  · have := hι
     simp [lamMax, lamMin]
   · have hcard : Fintype.card ι ≠ 0 := Fintype.card_ne_zero
     -- `Q - L = 2 • A` reads `xᵀQx - xᵀLx = 2 xᵀAx`

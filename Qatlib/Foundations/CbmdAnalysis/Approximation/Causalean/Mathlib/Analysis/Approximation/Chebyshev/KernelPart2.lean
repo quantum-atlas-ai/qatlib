@@ -5,12 +5,16 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@e298f64
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Szego
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Tactic.NormNum.Parity
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.KernelPart1
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Szego
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Tactic.NormNum.Parity
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.KernelPart1
+
+@[expose] public section
 
 /-!
 # Jackson kernel normalization and moment bounds

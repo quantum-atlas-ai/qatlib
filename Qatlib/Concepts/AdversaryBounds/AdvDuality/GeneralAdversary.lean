@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessNega
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessNegative
+
+@[expose] public section
+set_option linter.style.haveILetI false
 
 /-!
 # General adversary bounds and Boolean examples
@@ -470,7 +475,7 @@ lemma sixBitF_weight {w : Fin 6 → Bool} {b : Bool} (h : sixBitF w = some b) :
   by_contra hc
   have hnone : sixBitF w = none := by
     unfold sixBitF
-    simp only [hc, if_false]
+    simp only [hc, ite_false]
   rw [hnone] at h
   simp at h
 
@@ -516,7 +521,7 @@ lemma sixBitF_hamming_iInf :
 /-- The relative Hamming distance of `sixBitF` equals one third. -/
 theorem relativeHamming_sixBitF : relativeHamming sixBitF = 1/3 := by
   unfold relativeHamming
-  simp only [if_neg (by norm_num : ¬(6:ℕ) = 0)]
+  simp only [ite_eq_right (by norm_num : ¬(6:ℕ) = 0)]
   rw [sixBitF_hamming_iInf]
   norm_num
 

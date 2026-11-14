@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.LinearAlgebra.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.LinearAlgebra.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # Binary symmetric decompositions for stabilizer canonical forms
@@ -168,7 +172,7 @@ theorem exists_unit_lower_decomposition :
                   simp [Λ, hd]
                 · have hne : i'.succ ≠ j'.succ := fun hs => h (Fin.succ_injective _ hs)
                   rw [show Λ i'.succ j'.succ = 0 from Matrix.diagonal_apply_ne d hne,
-                    if_neg h]
+                    ite_eq_right h]
               have hsum : (∑ k : Fin (n + 1), M i'.succ k * Mᵀ k j'.succ)
                   = v i' * v j' + ∑ k : Fin n, N i' k * N j' k := by
                 rw [Fin.sum_univ_succ]
@@ -195,7 +199,7 @@ theorem exists_unit_lower_decomposition :
 theorem det_one_of_unit_lower {n : ℕ} (M : Matrix (Fin n) (Fin n) (ZMod 2))
     (htri : M.BlockTriangular OrderDual.toDual) (hdiag : ∀ i : Fin n, M i i = 1) :
     M.det = 1 := by
-  rw [Matrix.det_of_lowerTriangular M htri]
+  rw [Matrix.det_of_isLowerTriangular M htri]
   simp [hdiag]
 
 /-- For every symmetric binary matrix `A`, there exist a diagonal matrix `Λ` and an invertible

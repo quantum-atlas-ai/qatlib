@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CipherCircuits.ChainingTags
+module
+
+public import Qatlib.Concepts.CipherCircuits.ChainingTags
+
+@[expose] public section
 
 /-!
 # CBC suffix identities for the Simon attack

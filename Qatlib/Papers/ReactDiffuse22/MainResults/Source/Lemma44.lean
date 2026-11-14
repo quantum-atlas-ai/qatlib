@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReactDiffuse22.MainResults.Model.SourceModel
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Batteries.Tactic.Lint
+module
+
+public import Qatlib.Papers.ReactDiffuse22.MainResults.Model.SourceModel
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Batteries.Tactic.Lint
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

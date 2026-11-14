@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionStat
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionStat
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+
+@[expose] public section
 
 /-!
 # Prepared solutions from a unified LCHS family
@@ -73,7 +77,7 @@ theorem inh_coeff_source (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
       (inhStep Mt s t : ℂ)*staticLchsCoeff K N p.1*
         (‖toEuclidean_fromVec (b (inhNode Mt s t p.2))‖ : ℂ) := by
   unfold inhUnifiedCoeff
-  rw [dif_neg (by simp only [Fin.val_natAdd]; omega)]
+  rw [dite_eq_right (by simp only [Fin.val_natAdd]; omega)]
   simp only [Fin.val_natAdd, Nat.add_sub_cancel_left, Fin.eta, Equiv.symm_apply_apply]
 
 omit [DecidableEq I] in
@@ -146,7 +150,7 @@ theorem inh_unitary_source (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : 
     inhUnifiedUnitary L H s t K N Mt B P (Fin.natAdd N (finProdFinEquiv p)) =
       inhSourceKUnitary L H s t K N Mt p.1 p.2*(P p.2*Bᴴ) := by
   unfold inhUnifiedUnitary
-  rw [dif_neg (by simp only [Fin.val_natAdd]; omega)]
+  rw [dite_eq_right (by simp only [Fin.val_natAdd]; omega)]
   simp only [Fin.val_natAdd, Nat.add_sub_cancel_left, Fin.eta, Equiv.symm_apply_apply]
 
 /-- When `B` is unitary and `P` prepares the normalized nonzero source samples, the unified

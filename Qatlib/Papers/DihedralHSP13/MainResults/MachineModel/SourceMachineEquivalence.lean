@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Matrix
 
-variable {I : Type*} [Fintype I] [DecidableEq I]
+variable {I : Type*} [Fintype I] [instDecidableEqI : DecidableEq I]
 
 /-! ## §1. Instruction-level machine semantics on the quantum data register -/
 
@@ -102,9 +106,12 @@ theorem length_compileCircuit (oracle : Matrix I I ℂ) (C : Circuit I) :
     (compileCircuit oracle C).length = C.length := by
   simp [compileCircuit]
 
+omit instDecidableEqI in
 /-- **Proposition 2.1, simulation half (exact).**  Executing the compiled program is
 *identical* to executing the circuit under `Run`: same amplitude function, no error term. -/
-theorem prop21_compiled_program_runs (oracle : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
+theorem prop21_compiled_program_runs {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (oracle : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
     runProgram (compileCircuit oracle C) ψ = Run oracle C ψ := by
   induction C generalizing ψ with
   | nil => rfl

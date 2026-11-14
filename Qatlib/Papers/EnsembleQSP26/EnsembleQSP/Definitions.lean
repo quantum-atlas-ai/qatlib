@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.SourceModel
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.SourceModel
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,6 +56,8 @@ section ProbFacts
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+omit [DecidableEq X] in
+
 /-- The expectation of `f + c` is the expectation of `f` shifted by `c`. -/
 theorem expect_add_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
     p.expect (fun x => f x + c) = p.expect f + c := by
@@ -60,6 +66,8 @@ theorem expect_add_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
   rw [Finset.sum_add_distrib]
   congr 1
   rw [← Finset.sum_mul, p.sum_one, one_mul]
+
+omit [Fintype X] [DecidableEq X] in
 
 /-- The empirical average of `f + c` is the empirical average of `f` shifted by `c`
 (the sample size is positive). -/
@@ -71,6 +79,8 @@ theorem avg_add_const {L : ℕ} (hL : 0 < L) (f : X → ℝ) (c : ℝ) (ω : Fin
   congr 1
   have hL' : (L : ℝ) ≠ 0 := by exact_mod_cast hL.ne'
   exact mul_div_cancel_left₀ c hL'
+
+omit [DecidableEq X] in
 
 /-- Monotonicity of the event probability in the event. -/
 theorem probEvent_mono {L : ℕ} (p : FinDist X) {E E' : (Fin L → X) → Prop}

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.PendingFeedback
+module
+
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.PendingFeedback
+
+@[expose] public section
 
 /-!
 # Raw feedback request transactions

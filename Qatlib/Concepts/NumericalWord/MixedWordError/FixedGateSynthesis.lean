@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
-import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
-import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+module
+
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+
+@[expose] public section
 
 /-!
 # Partial fixed gate synthesis and compilation bounds
@@ -62,7 +66,7 @@ theorem padClean_self (w : ℕ) : padClean w w = 1 := by
   simp only [padClean, Matrix.one_apply]
   have hkey : (fun i : Fin w => if h : i.val < w then t ⟨i.val, h⟩ else false) = t := by
     funext i
-    rw [dif_pos i.isLt]
+    rw [dite_eq_left i.isLt]
   rw [hkey]
 
 /-- Any two registers of width zero are equal. -/
@@ -84,7 +88,7 @@ theorem cleanAncillaRestored_trivial {w width : ℕ} (h : width = w)
   have hfun : (fun z : Reg w =>
       if auxBits w z = ZeroStr (w - w) then (0:ℂ) else (M *ᵥ ψ) z) = 0 := by
     funext z
-    rw [hz z, if_pos rfl]
+    rw [hz z, ite_eq_left rfl]
     simp
   have hzero : toEuclidean_fromVec (0 : QState (Reg w)) = 0 := rfl
   rw [hfun, hzero, norm_zero]
@@ -227,13 +231,13 @@ theorem emptyWord_approx_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : 
     rw [hnorm, pi_norm_le_iff_of_nonneg (by positivity)]
     intro x
     by_cases hx : x a && x c
-    · rw [if_pos hx, exp_half_mul_exp]
+    · rw [ite_eq_left hx, exp_half_mul_exp]
       refine le_trans (one_sub_exp_mul_I_norm _) ?_
       have hθ : |dyadicPhaseAngle e neg / 2| = |dyadicPhaseAngle e neg| / 2 :=
         abs_div_two _
       rw [hθ]
       exact smallAngle_tol_le e k neg he
-    · rw [if_neg hx, mul_one]
+    · rw [ite_eq_right hx, mul_one]
       refine le_trans (one_sub_exp_mul_I_norm _) ?_
       have hθ : |(-(dyadicPhaseAngle e neg) / 2 : ℝ)| = |dyadicPhaseAngle e neg| / 2 := by
         rw [abs_div_two, abs_neg]
@@ -272,14 +276,14 @@ theorem partialCompiler_emit_primitive {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
   | cp a c e neg =>
     have he : e ≤ 3 := hg
     show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = [LocalQFTGate.cp a c e neg]
-    rw [if_pos he]
+    rw [ite_eq_left he]
 
 /-- For a controlled phase exponent greater than three, the partial compiler emits the empty
 word. -/
 theorem partialCompiler_emit_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 3 < e) : partialCompiler.emit w (.cp a c e neg) k = [] := by
   show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = []
-  rw [if_neg (Nat.not_le.mpr he)]
+  rw [ite_eq_right (Nat.not_le.mpr he)]
 
 /-- Every word emitted by the partial compiler has length at most one. -/
 theorem partialCompiler_emit_length (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
@@ -401,7 +405,7 @@ theorem callCount_cons_known {n w : ℕ} {S : Type} (g : LocalQFTGate n) (m : �
     (rest : List (MixedStep n w S)) :
     callCount (MixedStep.known g m :: rest) = callCount rest := by
   show List.countP _ _ = _
-  rw [List.countP_cons, if_neg (by simp), add_zero]
+  rw [List.countP_cons, ite_eq_right (by simp), add_zero]
   exact rfl
 
 /-- A list consisting only of known gates has zero oracle calls. -/
@@ -423,7 +427,7 @@ theorem callCount_cons_call {n w : ℕ} {S : Type} (slot : S) (adj : Bool)
     (ctrl : Option (Fin n × Bool)) (rest : List (MixedStep n w S)) :
     callCount (MixedStep.call slot adj ctrl :: rest) = callCount rest + 1 := by
   show List.countP _ _ = _
-  rw [List.countP_cons, if_pos (by simp)]
+  rw [List.countP_cons, ite_eq_left (by simp)]
   exact rfl
 
 /-- Replacing known gates by supplied segments preserves the total oracle call count. -/
@@ -464,7 +468,7 @@ theorem accessCount_cons {n w : ℕ} {S : Type} (s : MixedStep n w S)
   cases s with
   | known g m =>
     show List.countP _ (MixedStep.known g m :: rest) = _
-    rw [List.countP_cons, if_neg (by simp [MixedStep.form]), add_zero]
+    rw [List.countP_cons, ite_eq_right (by simp [MixedStep.form]), add_zero]
     exact rfl
   | call slot adj ctrl =>
     show List.countP _ (MixedStep.call slot adj ctrl :: rest) = _
@@ -663,9 +667,9 @@ theorem angleRatT_error (e : ℕ) (neg : Bool) (bits : ℕ) :
           / (2 ^ e : ℝ) := by
     rw [angleRatT]
     by_cases hn : neg
-    · rw [if_pos hn, if_pos hn]
+    · rw [ite_eq_left hn, ite_eq_left hn]
       push_cast; ring
-    · rw [if_neg hn, if_neg hn]
+    · rw [ite_eq_right hn, ite_eq_right hn]
       push_cast; ring
   have hθ : dyadicPhaseAngle e neg
       = (if neg then (-1:ℝ) else 1) * (2 * Real.pi / (2 ^ e : ℝ)) := by
@@ -675,13 +679,13 @@ theorem angleRatT_error (e : ℕ) (neg : Bool) (bits : ℕ) :
       = 2 * |((piRatApprox (bits + e + 2) : ℚ) : ℝ) - Real.pi| / (2:ℝ) ^ e := by
     rw [hcast]
     by_cases hn : neg
-    · rw [if_pos hn]
+    · rw [ite_eq_left hn]
       have hz : (-1:ℝ) * 2 * ((piRatApprox (bits + e + 2) : ℚ) : ℝ) / (2 ^ e : ℝ)
           - (-1) * (2 * Real.pi / (2 ^ e : ℝ))
           = -((2:ℝ) * (((piRatApprox (bits + e + 2) : ℚ) : ℝ) - Real.pi) / (2:ℝ) ^ e) := by
         field_simp; ring
       rw [hz, abs_neg, abs_div, abs_mul, abs_of_pos h2e, abs_of_nonneg (by norm_num)]
-    · rw [if_neg hn]
+    · rw [ite_eq_right hn]
       have hz : (1:ℝ) * 2 * ((piRatApprox (bits + e + 2) : ℚ) : ℝ) / (2 ^ e : ℝ)
           - 1 * (2 * Real.pi / (2 ^ e : ℝ))
           = (2:ℝ) * (((piRatApprox (bits + e + 2) : ℚ) : ℝ) - Real.pi) / (2:ℝ) ^ e := by

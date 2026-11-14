@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Guarded positive-interval repair

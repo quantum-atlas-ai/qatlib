@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
+module
+
+public import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ definition; the proof is not formalised. -/
 def theorem2_no_complete_set
     (C : Constellation554)
     (M : Fin 7 → Fin 6 → QState (Fin 2 × Fin 3))
-    (hM : IsCompleteMuSet M) : Prop :=
+    (_hM : IsCompleteMuSet M) : Prop :=
   ¬ ContainsConstellationInSet M C
 
 end Qatlib.Papers.MUBProduct12.TripleClassify.Theorem2NoCompleteSet

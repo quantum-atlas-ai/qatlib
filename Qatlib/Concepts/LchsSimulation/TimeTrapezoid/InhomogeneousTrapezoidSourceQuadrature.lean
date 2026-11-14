@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
+
+@[expose] public section
 
 /-!
 # Trapezoidal time quadrature for the LCHS source

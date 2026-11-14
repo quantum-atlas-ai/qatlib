@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalControlledCopy
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalControlledCopy
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
+
+@[expose] public section
 
 /-!
 # Numerical fresh-copy phase estimation
@@ -246,12 +250,12 @@ theorem numeric_conj_difference_norm {I : Type} [Fintype I] [DecidableEq I]
     (MatrixMap.conj U A-MatrixMap.conj U B).traceNorm = (A-B).traceNorm := by
   rw [← (MatrixMap.conj U).map_sub]
   have hh : Uᴴ*U = 1 := by simpa only [Matrix.star_eq_conjTranspose] using! hU.1
-  letI : DecidableEq I := Classical.decEq I
+  let : DecidableEq I := Classical.decEq I
   have hu : U.Isometry := by
     change Uᴴ*U = 1
-    convert! hh using 1; first
-      | exact Subsingleton.elim _ _
-      | (ext i j; simp [Matrix.one_apply])
+    convert! hh using 1
+    ext i j
+    simp [Matrix.one_apply]
   change (U*(A-B)*Uᴴ).traceNorm = (A-B).traceNorm
   rw [Matrix.traceNorm_isometry_right hu,Matrix.traceNorm_isometry_left hu]
 

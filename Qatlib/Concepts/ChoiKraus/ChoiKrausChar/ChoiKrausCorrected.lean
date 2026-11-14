@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructure
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
-import Qatlib.Concepts.ChannelTheory.TwirlChannel
+module
+
+public import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructureContext
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+public import Qatlib.Concepts.ChannelTheory.TwirlChannel
+
+@[expose] public section
 
 /-!
 # Finite-dimensional Choi-Kraus characterization

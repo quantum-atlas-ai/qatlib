@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+@[expose] public section
 
 /-!
 # Commuting projector constraints and postselection

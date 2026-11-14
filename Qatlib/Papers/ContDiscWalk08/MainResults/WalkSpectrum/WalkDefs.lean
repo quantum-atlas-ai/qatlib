@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+module
+
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+@[expose] public section
 
 /-!
 # Swap embeddings and walk operators
@@ -37,6 +41,7 @@ namespace Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [Fintype I] in
 /-- The swap matrix equals its conjugate transpose. -/
 theorem swap_conjTranspose :
     (SwapGate : Matrix (I × I) (I × I) ℂ)ᴴ = SwapGate := by

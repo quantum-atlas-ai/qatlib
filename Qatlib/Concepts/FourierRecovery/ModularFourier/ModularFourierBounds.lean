@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.ReductionDefs
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.ReductionDefs
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Bounds for modular Fourier records
@@ -158,7 +162,7 @@ theorem phaseDistance_tri (x y z : ℝ) :
 
 /-- Labels within `1 / M` and `1 / N` of a common phase are consistent when both register sizes
 are positive. -/
-theorem recordConsistent_of_windows (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
+theorem recordConsistent_of_windows (M N : ℕ) (_hM : 0 < M) (_hN : 0 < N)
     (x : Fin M) (y : Fin N) (φ : ℝ)
     (hx : phaseDistance φ (labelPosition M x) ≤ 1 / (M : ℝ))
     (hy : phaseDistance φ (labelPosition N y) ≤ 1 / (N : ℝ)) :
@@ -196,6 +200,7 @@ theorem recordDecode_failure_certifies (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   rw [hfail] at this
   cases this
 
+omit [DecidableEq I] in
 /-- For positive register sizes, a record whose two labels lie in the prescribed phase windows
 belongs to the decode event. -/
 theorem recordWindowEvent_subset_decodeEvent (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
@@ -230,6 +235,7 @@ theorem normalized_qpeKernel (M : ℕ) (hM : 0 < M) (φ : ℝ) : Normalized (qpe
   exact normalized_applyGate (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM))
     (offgrid_phase_kernel_formula M φ ⟨0, hM⟩ hM).2.2
 
+omit [DecidableEq I] in
 /-- The measurement mass of a rectangular record event is the sum of the masses for its
 individual label pairs. -/
 theorem measureProb_recordEvent_sum {M N : ℕ} (ψ : QState (RecordSpace M N I))
@@ -396,7 +402,7 @@ theorem recordEffective_radius (ε δ : ℝ) : recordEffectiveRadius ε δ = min
 /-- For positive register sizes, the effective record uses at least `N - 1` queries and has
 confidence at most `8 / Real.pi^2`; the counted phase circuit of size `N` uses exactly `N -
 1` queries. -/
-theorem recordEffective_dominated_by_fine_record (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
+theorem recordEffective_dominated_by_fine_record (M N : ℕ) (_hM : 0 < M) (hN : 0 < N) :
     (N - 1) ≤ recordEffectiveQueries M N ∧
       recordEffectiveConfidence ≤ 8 / Real.pi^2 ∧
       QueryCount (countedPhaseCircuit (I := Fin N × I) N) = N - 1 := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 /-!
 # Permutation counts and antisymmetrization budgets
@@ -58,7 +62,7 @@ theorem perm_range_bijective (n : ℕ) :
     Set.range (fun σ : Equiv.Perm (Fin n) => (σ : Fin n → Fin n))
       = {f : Fin n → Fin n | Function.Bijective f} := by
   ext f
-  simp only [Set.mem_range, Set.mem_setOf_eq]
+  simp only [Set.mem_range, Set.mem_ofPred_eq]
   constructor
   · rintro ⟨σ, rfl⟩
     exact σ.bijective

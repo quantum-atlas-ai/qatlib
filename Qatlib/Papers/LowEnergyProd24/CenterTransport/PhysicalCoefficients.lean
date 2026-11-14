@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWeights
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Centering
+module
+
+public import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWeights
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Centering
+
+@[expose] public section
 
 /-!
 # Centered bounds for physical generator coefficients
@@ -50,7 +54,7 @@ theorem physical_positive_coefficient (h : PhysicalHamiltonian N R M k d J)
   have hs :=
       generatorCoefficient_central_shift (stagePairs h stages) (stagePairs_central h stages) n
   rw [stagePairs_physical] at hs
-  simp only [if_neg hn.ne', add_zero, stagePairs, List.map_map, Function.comp_def] at hs
+  simp only [ite_eq_right hn.ne', add_zero, stagePairs, List.map_map, Function.comp_def] at hs
   rw [ProductError.computedCoefficient_eq_actual]
   exact hs
 

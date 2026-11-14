@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ def minEntropyLowerBound (epsS : ℝ) (n Qmin : ℝ) : ℝ :=
 collision-entropy identity `Hmin ≥ Q(n-1) - log(1/εs)` for `Q ≥ Qmin` quantum
 samples, the smooth min-entropy obeys the displayed bound (III.30). -/
 theorem theorem3_smooth_min_entropy (epsS n Q Qmin Hmin : ℝ)
-    (heps : 0 < epsS) (hn : 1 ≤ n) (hQmin : Qmin ≤ Q) (hQmin0 : 0 ≤ Qmin)
+    (_heps : 0 < epsS) (hn : 1 ≤ n) (hQmin : Qmin ≤ Q) (_hQmin0 : 0 ≤ Qmin)
     (hEntropy : Q * (n - 1) - Real.log (1 / epsS) ≤ Hmin) :
     minEntropyLowerBound epsS n Qmin ≤ Hmin := by
   unfold minEntropyLowerBound
@@ -69,10 +73,10 @@ abort with the required probability (`Pr[Ω] ≥ 4εs`, i.e. the abort probabili
 does not exceed `1 - 4εs`), then the smooth min-entropy bound holds.  This is
 the logical form of "either aborts with probability `> 1 - 4εs` or (III.30)". -/
 theorem theorem3_protocol_dichotomy (epsS n Q Qmin Hmin PrAbort : ℝ)
-    (heps : 0 < epsS) (heps4 : epsS < 1 / 4) (hn : 1 ≤ n)
+    (heps : 0 < epsS) (_heps4 : epsS < 1 / 4) (hn : 1 ≤ n)
     (hQmin : Qmin ≤ Q) (hQmin0 : 0 ≤ Qmin)
     (hEntropy : Q * (n - 1) - Real.log (1 / epsS) ≤ Hmin)
-    (hNoAbort : PrAbort ≤ 1 - 4 * epsS) :
+    (_hNoAbort : PrAbort ≤ 1 - 4 * epsS) :
     minEntropyLowerBound epsS n Qmin ≤ Hmin :=
   theorem3_smooth_min_entropy epsS n Q Qmin Hmin heps hn hQmin hQmin0 hEntropy
 

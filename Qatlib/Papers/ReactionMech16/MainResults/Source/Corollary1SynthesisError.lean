@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReactionMech16.MainResults.Source.Theorem1TrotterEnergyError
+module
+
+public import Qatlib.Papers.ReactionMech16.MainResults.Source.Theorem1TrotterEnergyError
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ rotation, the ground-state energy error of the Trotter-Suzuki simulation of
 theorem corollary1_synthesis_ground_energy
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I] {M : ℕ} (hM : 1 ≤ M)
     (hcoeff : Fin M → ℝ) (P : Fin M → Matrix I I ℂ)
-    (hPherm : ∀ j, (P j).IsHermitian) (hPinvol : ∀ j, P j * P j = 1)
+    (hPherm : ∀ j, (P j).IsHermitian) (_hPinvol : ∀ j, P j * P j = 1)
     (Ks : Fin M → Matrix I I ℂ) (hKherm : ∀ j, (Ks j).IsHermitian)
     (K : Matrix I I ℂ) (hK : K.IsHermitian)
     (t Δ Δsynth : ℝ) (ht : 0 < t) (hΔ : 0 ≤ Δ) (hΔs : 0 ≤ Δsynth)

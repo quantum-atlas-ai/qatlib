@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.TopK
-import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.TopK
+public import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+@[expose] public section
 
 /-!
 # T-transform chains and binary communication costs
@@ -57,13 +61,13 @@ theorem tTransformSpectrum_eq_swap {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (
   · unfold tTransformSpectrum
     by_cases hjk : j = k
     · subst hjk
-      rw [if_pos rfl, if_neg hkl, Equiv.swap_apply_left]
+      rw [ite_eq_left rfl, ite_eq_right hkl, Equiv.swap_apply_left]
       ring
     · by_cases hjl : j = l
       · subst hjl
-        rw [if_neg hjk, if_pos rfl, Equiv.swap_apply_right]
+        rw [ite_eq_right hjk, ite_eq_left rfl, Equiv.swap_apply_right]
         ring
-      · rw [if_neg hjk, if_neg hjl, Equiv.swap_apply_of_ne_of_ne hjk hjl]
+      · rw [ite_eq_right hjk, ite_eq_right hjl, Equiv.swap_apply_of_ne_of_ne hjk hjl]
         ring
 
 /-- A finite real vector majorizes its T-transform whenever the mixing parameter lies in `[0,

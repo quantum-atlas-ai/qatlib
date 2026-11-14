@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Data.Finset.Max
+module
+
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Local minima on the Boolean cube

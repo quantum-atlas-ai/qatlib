@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+
+@[expose] public section
 
 /-!
 # Mixed-state correctness of Kraus circuit compilation
@@ -145,7 +149,7 @@ theorem kraus_compiled_mixed_traces {d s n : ℕ}
             Function.comp_def, embedKrausMixedTrace]
   | instrument K next ih =>
       simp only [compileKrausCircuit, relabelObserved, observedMixedTraces,
-        Function.comp_apply, mixedCompiler_instrument, ih, krausCircuitMixedTraces,
+         mixedCompiler_instrument, ih, krausCircuitMixedTraces,
         List.map_flatten, List.map_ofFn, List.map_map, Function.comp_def,
         embedKrausMixedTrace, Nat.add_assoc]
 

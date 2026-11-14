@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Tactic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,9 +100,9 @@ gives `2^{j-1} < log(1/ε)/log 2`, and `log 2 > 1/2` turns this into
 Eq. (B31) with `C = max (C₁ + 2) 2`. -/
 theorem theorem5_total_complexity
     (N M : ℕ) (hM : 0 < M) (hMN : M ≤ N)
-    (δ c ρ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1 / 2)
+    (δ c ρ : ℝ) (_hδ0 : 0 < δ) (_hδ1 : δ ≤ 1 / 2)
     (hc0 : 0 < c) (hc1 : c ≤ 1 / 8)
-    (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (_hρ0 : 0 < ρ) (_hρ1 : ρ < 1)
     (e : ℕ → ℝ) (K : ℕ) (C₁ : ℝ) (hC₁ : 0 < C₁)
     (hK : (K : ℝ) ≤ C₁ * Real.sqrt ((N : ℝ) / M))
     (he0 : ∀ j, 0 ≤ e (K + j)) (heK : e K ≤ 1 / 2)

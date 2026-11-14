@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.ProductIsomorphism
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.ProductIsomorphism
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Splitting subgroups of products of coprime order

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
-import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
-import Qatlib.Papers.UnitaryDigraph.MainResults.Permutation
+module
+
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Permutation
+
+@[expose] public section
 
 /-!
 # Paths cannot support unitary matrices

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite Gutzwiller conjugation of Hubbard hopping
@@ -126,7 +130,7 @@ theorem hop_doubleCount {N : ℕ} (i j : Fin N) (hij : i ≠ j) (σ : Bool)
   rw [doubleCount_update, doubleCount_update]
   simp only [Function.update_of_ne (mode_site_ne hij σ σ),
     Function.update_of_ne (mode_site_ne hij (!σ) σ), hxa, hxb, occ,
-    Bool.false_eq_true, if_false, if_true, zero_sub, sub_zero]
+    Bool.false_eq_true, ite_false, ite_true, zero_sub, sub_zero]
   ring
 
 /-- The fermion number operator is diagonal in the occupation basis, with entries given by

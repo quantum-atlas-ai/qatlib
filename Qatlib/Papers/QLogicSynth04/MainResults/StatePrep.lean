@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+module
+
+public import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+
+@[expose] public section
 
 /-!
 # Disentangling a qubit with rotation multiplexors
@@ -108,16 +112,16 @@ lemma twoGate_block (a b : ℂ) :
       have hinv : paperRz β * paperRz (-β) = 1 := by
         rw [paperRz_mul, show β + -β = 0 from by ring, paperRz_zero]
       have h := congrArg (fun w => paperRz β *ᵥ w) hPbeta
-      (try dsimp only at h)
+
       rw [Matrix.mulVec_mulVec, hinv, Matrix.one_mulVec] at h
       exact h
     have hvec : (fun i : Bool => if i then b else a)
         = n • (fun i : Bool => if i then b' else a') := by
       ext i
       rcases i with _ | _
-      · simp only [ha'def, Pi.smul_apply, Complex.real_smul, Bool.false_eq_true, if_false]
+      · simp only [ha'def, Pi.smul_apply, Complex.real_smul, Bool.false_eq_true, ite_false]
         field_simp
-      · simp only [hb'def, Pi.smul_apply, Complex.real_smul, if_true]
+      · simp only [hb'def, Pi.smul_apply, Complex.real_smul, ite_true]
         field_simp
     refine ⟨-α, -θ, (n : ℂ) * Complex.exp (((-(β/2) : ℝ) : ℂ) * Complex.I), ?_⟩
     rw [hvec, Matrix.mulVec_smul, hV, paperRz_mulVec_ket0]

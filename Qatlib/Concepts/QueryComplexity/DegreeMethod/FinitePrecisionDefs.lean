@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmetic
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
-import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Nat.Bits
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmetic
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
+public import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Nat.Bits
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Definitions for finite-precision arithmetic and accounting

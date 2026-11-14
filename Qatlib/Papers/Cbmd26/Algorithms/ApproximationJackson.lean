@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.TensorExtraction
-import Mathlib.Algebra.MvPolynomial.Equiv
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.TensorExtraction
+public import Mathlib.Algebra.MvPolynomial.Equiv
+
+@[expose] public section
 
 /-!
 # Bounded Jackson polynomial approximation

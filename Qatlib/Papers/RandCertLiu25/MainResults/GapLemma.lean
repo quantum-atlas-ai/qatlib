@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Probability.Independence.Basic
-import Mathlib.MeasureTheory.Integral.Prod
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Probability.Independence.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,7 +84,7 @@ theorem integral_eq_surv [IsProbabilityMeasure μ] {X : Ω → ℝ} (hm : Measur
     (hr : ∀ ω, X ω ∈ Set.Icc (0:ℝ) 1) :
     ∫ ω, X ω ∂μ = ∫ t in Set.Icc (0:ℝ) 1, surv μ X t := by
   classical
-  haveI hfin : IsFiniteMeasure (volume.restrict (Set.Icc (0:ℝ) 1)) :=
+  have hfin : IsFiniteMeasure (volume.restrict (Set.Icc (0:ℝ) 1)) :=
     isFiniteMeasure_restrict.2 (by simp [Real.volume_Icc])
   have hset : MeasurableSet {q : ℝ × Ω | q.1 < X q.2} :=
     measurableSet_lt measurable_fst (hm.comp measurable_snd)
@@ -94,7 +98,7 @@ theorem integral_eq_surv [IsProbabilityMeasure μ] {X : Ω → ℝ} (hm : Measur
     have hpt : ∀ ω : Ω, Set.indicator {q : ℝ × Ω | q.1 < X q.2} (fun _ => (1:ℝ)) (t, ω)
         = Set.indicator {ω : Ω | t < X ω} (fun _ => (1:ℝ)) ω := by
       intro ω
-      simp only [Set.indicator_apply, Set.mem_setOf_eq]
+      simp only [Set.indicator_apply, Set.mem_ofPred_eq]
     rw [integral_congr_ae (Filter.Eventually.of_forall hpt), integral_indicator hA,
       setIntegral_const]
     simp [surv, Measure.real_def]
@@ -106,7 +110,7 @@ theorem integral_eq_surv [IsProbabilityMeasure μ] {X : Ω → ℝ} (hm : Measur
     have hpt : ∀ t ∈ Set.Icc (0:ℝ) 1, Set.indicator {q : ℝ × Ω | q.1 < X q.2} (fun _ => (1:ℝ)) (t, ω)
         = Set.indicator (Set.Iio (X ω)) (fun _ => (1:ℝ)) t := by
       intro t _
-      simp only [Set.indicator_apply, Set.mem_setOf_eq, Set.mem_Iio]
+      simp only [Set.indicator_apply, Set.mem_ofPred_eq, Set.mem_Iio]
     have hIio : MeasurableSet (Set.Iio (X ω)) := measurableSet_Iio
     have hseteq : Set.Icc (0:ℝ) 1 ∩ Set.Iio (X ω) = Set.Ico (0:ℝ) (X ω) := by
       ext t
@@ -156,7 +160,7 @@ theorem surv_le_one [IsProbabilityMeasure μ] (X : Ω → ℝ) (t : ℝ) : surv 
 theorem integrableOn_surv [IsProbabilityMeasure μ] (X : Ω → ℝ) (s : Set ℝ)
     (_hs : MeasurableSet s) (hvol : volume s ≠ ⊤) :
     IntegrableOn (surv μ X) s volume := by
-  haveI hfin : IsFiniteMeasure (volume.restrict s) := isFiniteMeasure_restrict.2 hvol
+  have hfin : IsFiniteMeasure (volume.restrict s) := isFiniteMeasure_restrict.2 hvol
   have hmeas : Measurable (surv μ X) := (surv_antitone (μ := μ) X).measurable
   refine Integrable.mono (integrable_const (1:ℝ)) hmeas.aestronglyMeasurable ?_
   refine Filter.Eventually.of_forall (fun t => ?_)
@@ -198,7 +202,7 @@ theorem cell_le (s : ℝ → ℝ) (hs : Antitone s) (u v : ℝ) (huv : u ≤ v)
     (hint : IntegrableOn s (Set.Ioc u v) volume) :
     (∫ t in Set.Ioc u v, s t ∂volume) ≤ (v - u) * s u := by
   have hc : IntegrableOn (fun _ => s u) (Set.Ioc u v) volume := by
-    haveI : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
+    have : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
       isFiniteMeasure_restrict.2 (by rw [Real.volume_Ioc]; exact ENNReal.ofReal_ne_top)
     exact integrable_const _
   have hv : volume.real (Set.Ioc u v) = v - u := by
@@ -216,7 +220,7 @@ theorem cell_ge (s : ℝ → ℝ) (hs : Antitone s) (c : ℝ) (u v : ℝ) (huv :
     (hint : IntegrableOn (fun t => s t + c) (Set.Ioc u v) volume) :
     (v - u) * (s v + c) ≤ ∫ t in Set.Ioc u v, (s t + c) ∂volume := by
   have hc : IntegrableOn (fun _ => s v + c) (Set.Ioc u v) volume := by
-    haveI : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
+    have : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
       isFiniteMeasure_restrict.2 (by rw [Real.volume_Ioc]; exact ENNReal.ofReal_ne_top)
     exact integrable_const _
   have hv : volume.real (Set.Ioc u v) = v - u := by
@@ -282,7 +286,7 @@ theorem integral_eq_decomp [IsProbabilityMeasure μ] {X : Ω → ℝ} (hm : Meas
       have h0t : (0:ℝ) ≤ t := ht.1
       have hset : {ω : Ω | t < X ω} = {ω : Ω | a ≤ X ω} := by
         ext ω
-        simp only [Set.mem_setOf_eq]
+        simp only [Set.mem_ofPred_eq]
         constructor
         · intro h
           rcases lt_or_ge (X ω) a with hxa | hxa
@@ -337,7 +341,7 @@ theorem caseA_conclusion [IsProbabilityMeasure μ] (ε δ a0 : ℝ)
   have hmono : survBar (μ := μ) X1 (a0 + δ) ≤ surv (μ := μ) X1 (a0 + δ/2) := by
     have hsub : {ω : Ω | a0 + δ ≤ X1 ω} ⊆ {ω : Ω | a0 + δ/2 < X1 ω} := by
       intro ω hω
-      simp only [Set.mem_setOf_eq] at hω ⊢
+      simp only [Set.mem_ofPred_eq] at hω ⊢
       linarith
     have hne1 : μ {ω : Ω | a0 + δ ≤ X1 ω} ≠ ⊤ := by
       have h1 : μ {ω : Ω | a0 + δ ≤ X1 ω} ≤ μ Set.univ := measure_mono (Set.subset_univ _)
@@ -366,7 +370,7 @@ theorem caseA_conclusion [IsProbabilityMeasure μ] (ε δ a0 : ℝ)
         mul_le_mul_of_nonneg_right hkey1 hPnn
       exact le_trans h1 hsA
     by_contra hlt
-    push_neg at hlt
+    push Not at hlt
     have hmul : (a0 + δ) * survBar (μ := μ) X1 (a0 + δ)
         < (a0 + δ) * ((1 + ε/4) * (survBar (μ := μ) X0 a0 + c)) :=
       mul_lt_mul_of_pos_left hlt hafac2
@@ -413,7 +417,7 @@ theorem exists_threshold_gap [IsProbabilityMeasure μ]
     intro X t
     have hsub : {ω : Ω | t < X ω} ⊆ {ω : Ω | t ≤ X ω} := by
       intro ω hω
-      simp only [Set.mem_setOf_eq] at hω ⊢
+      simp only [Set.mem_ofPred_eq] at hω ⊢
       exact le_of_lt hω
     exact ENNReal.toReal_le_toReal
       (ne_of_lt (lt_of_le_of_lt (by
@@ -458,7 +462,7 @@ theorem exists_threshold_gap [IsProbabilityMeasure μ]
         (by rw [Real.volume_Ioc]; exact ENNReal.ofReal_ne_top)
     have hint2 : ∀ u v : ℝ, IntegrableOn (fun t => surv (μ := μ) X0 t + c) (Set.Ioc u v) volume :=
       fun u v => (hint0 u v).add (by
-        haveI : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
+        have : IsFiniteMeasure (volume.restrict (Set.Ioc u v)) :=
           isFiniteMeasure_restrict.2 (by rw [Real.volume_Ioc]; exact ENNReal.ofReal_ne_top)
         exact integrable_const c)
     -- nonnegativity of tail integrals
@@ -541,7 +545,7 @@ theorem exists_threshold_gap [IsProbabilityMeasure μ]
         exact sum_setIntegral_Ioc (fun t => surv (μ := μ) X0 t + c) hint2 a0 (δ/2) huvt (M-2)
       have hconstA : IntegrableOn (fun _ => (c:ℝ))
           (Set.Ioc a0 (a0 + ((M-2:ℕ):ℝ)*(δ/2))) volume := by
-        haveI : IsFiniteMeasure (volume.restrict (Set.Ioc a0 (a0 + ((M-2:ℕ):ℝ)*(δ/2)))) :=
+        have : IsFiniteMeasure (volume.restrict (Set.Ioc a0 (a0 + ((M-2:ℕ):ℝ)*(δ/2)))) :=
           isFiniteMeasure_restrict.2 (by rw [Real.volume_Ioc]; exact ENNReal.ofReal_ne_top)
         exact integrable_const c
       have hA1 : (∫ t in Set.Ioc a0 (a0 + ((M-2:ℕ):ℝ)*(δ/2)),
@@ -616,7 +620,7 @@ theorem exists_threshold_gap [IsProbabilityMeasure μ]
                   (fun s => surv (μ := μ) X0 s + c) s ∂volume) := by
             intro k hk
             by_contra hnk
-            push_neg at hnk
+            push Not at hnk
             exact hcon ⟨k, hk, hnk⟩
           have h1' : (∑ k ∈ Finset.range (M-2), ∫ s in Set.Ioc ((a0+δ) + (k:ℝ)*(δ/2))
                   ((a0+δ) + ((k+1:ℕ):ℝ)*(δ/2)), surv (μ := μ) X1 s ∂volume)
@@ -741,7 +745,7 @@ theorem exists_threshold_gap [IsProbabilityMeasure μ]
       have h0 : μ {ω : Ω | a0 + δ/2 < X1 ω} = 0 := by
         have hsub : {ω : Ω | a0 + δ/2 < X1 ω} ⊆ (∅ : Set Ω) := by
           intro ω hω
-          have h : a0 + δ/2 < X1 ω := Set.mem_setOf.mp hω
+          have h : a0 + δ/2 < X1 ω := Set.mem_ofPred.mp hω
           have hpos : (0:ℝ) < X1 ω := by
             rcases hr1 ω with ⟨h0, _⟩
             linarith

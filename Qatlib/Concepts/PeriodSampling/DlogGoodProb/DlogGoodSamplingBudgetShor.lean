@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityShor
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityShor
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+
+@[expose] public section
 
 /-!
 # Sampling budgets for good discrete-logarithm outcomes
@@ -138,9 +142,9 @@ theorem dlog_fresh_good_count_budget {X : Type} [Fintype X] [DecidableEq X]
     apply Finset.sum_le_sum
     intro ω _
     by_cases h : ¬((t : ℝ) ≤ ∑ j, f (ω j))
-    · simp only [if_pos h,if_pos (hbad ω h)]
+    · simp only [ite_eq_left h,ite_eq_left (hbad ω h)]
       exact le_refl _
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       split_ifs
       · exact Finset.prod_nonneg (fun i _ => law.nonneg (ω i))
       · exact le_refl _

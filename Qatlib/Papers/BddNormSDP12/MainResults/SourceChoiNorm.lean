@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+@[expose] public section
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 
@@ -40,7 +44,7 @@ open scoped ENNReal
 namespace Qatlib.Papers.BddNormSDP12.MainResults.SourceChoiNorm
 
 open Qatlib.Concepts.SdpDuality.StrongDuality
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdaptiveCP.BranchTrace.CompletelyPositive
 open Qatlib.Foundations.PureStateMath

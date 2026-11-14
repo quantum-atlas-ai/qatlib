@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree
-import Mathlib.Data.Finset.Sort
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree
+public import Mathlib.Data.Finset.Sort
+
+@[expose] public section
 
 /-!
 # Ordered cost classes and their probability laws
@@ -98,8 +102,8 @@ theorem costClassLaw_fiber (cost : I → ℝ) (p : PMF I) (j : Fin (costLevels c
   congr 1
   funext i
   by_cases h : costRank cost i=j
-  · rw [if_pos h,if_pos h.symm]
-  · rw [if_neg h,if_neg (Ne.symm h)]
+  · rw [ite_eq_left h,ite_eq_left h.symm]
+  · rw [ite_eq_right h,ite_eq_right (Ne.symm h)]
 
 /-- The real mass of a cost class is the sum of the real candidate masses in its rank fiber. -/
 theorem costClassLaw_real_fiber (cost : I → ℝ) (p : PMF I) (j : Fin (costLevels cost).card) :

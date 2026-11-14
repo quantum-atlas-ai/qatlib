@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
+
+@[expose] public section
 
 /-!
 # Adaptive laws for prepared relative amplitude estimation
@@ -70,7 +74,7 @@ theorem gridCorrection_nonneg {M : ℕ} (hM : 0 < M) : 0 ≤ gridCorrection M :=
 
 /-- For nonnegative `a`, adding `nextWindowBound M a` completes the square `(√a + gridCorrection
 M)²`. -/
-private theorem windowBound_add_eq_square {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a) :
+private theorem windowBound_add_eq_square {M : ℕ} (_hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a) :
     a + nextWindowBound M a = (Real.sqrt a + gridCorrection M) ^ 2 := by
   have hsq : (Real.sqrt a) ^ 2 = a := Real.sq_sqrt ha0
   have h1 : (Real.sqrt a) ^ 2 + nextWindowBound M a
@@ -82,7 +86,7 @@ private theorem windowBound_add_eq_square {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 
     _ = (Real.sqrt a + gridCorrection M) ^ 2 := h1
 
 /-- Express `nextWindowBound` as `2√a` times the grid correction plus the squared correction. -/
-private theorem windowBound_eq_grid_form {M : ℕ} (hM : 0 < M) (a : ℝ) :
+private theorem windowBound_eq_grid_form {M : ℕ} (_hM : 0 < M) (a : ℝ) :
     nextWindowBound M a
       = 2 * Real.sqrt a * (gridCorrection M) + (gridCorrection M) ^ 2 := by
   unfold nextWindowBound gridCorrection
@@ -153,7 +157,7 @@ theorem record_le_certifiedUpperBound {M : ℕ} (hM : 0 < M) (z : Fin M) :
 /-- If the recorded estimate lies in the AE success window, its certified lower endpoint is at
 most the prepared marked probability. -/
 theorem certifiedLowerBound_le_amplitude {M : ℕ} (hM : 0 < M)
-    (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
+    (A : Matrix I I ℂ) (j : I) (S : Finset I) (_hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (hw : |recordEstimate M z - MeasureProb (preparedAAState A j) S|
         ≤ nextAeWindow M (MeasureProb (preparedAAState A j) S)) :
@@ -197,7 +201,7 @@ theorem certifiedLowerBound_le_amplitude {M : ℕ} (hM : 0 < M)
 /-- If the recorded estimate lies in the AE success window, its certified upper endpoint is at
 least the prepared marked probability. -/
 theorem certifiedUpperBound_ge_amplitude {M : ℕ} (hM : 0 < M)
-    (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
+    (A : Matrix I I ℂ) (j : I) (S : Finset I) (_hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (hw : |recordEstimate M z - MeasureProb (preparedAAState A j) S|
         ≤ nextAeWindow M (MeasureProb (preparedAAState A j) S)) :
@@ -357,7 +361,7 @@ theorem certifiedStop_relative_band_at_stage {k w : ℕ} (eps : ℝ) (heps : 0 <
   exact certifiedStop_relative_band hM A j S hA (adaptiveLabel k w) eps heps ha1 hw hready
 
 /-- If `8π ≤ M√a` and `a ≥ 0`, the grid correction is at most `√a / 8`. -/
-theorem gridCorrection_le_eighth {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a)
+theorem gridCorrection_le_eighth {M : ℕ} (hM : 0 < M) (a : ℝ) (_ha0 : 0 ≤ a)
     (hscale : 8 * Real.pi ≤ (M : ℝ) * Real.sqrt a) :
     gridCorrection M ≤ Real.sqrt a / 8 := by
   have hM' : (0:ℝ) < (M : ℝ) := by exact_mod_cast hM
@@ -374,7 +378,7 @@ theorem gridCorrection_le_eighth {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a
 /-- An accurate AE-window sample with grid correction at most `√a / 8` has certified lower
 endpoint at least `a / 4`. -/
 theorem certifiedLowerBound_ge_quarter {M : ℕ} (hM : 0 < M)
-    (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
+    (A : Matrix I I ℂ) (j : I) (S : Finset I) (_hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (hscale : gridCorrection M ≤ Real.sqrt (MeasureProb (preparedAAState A j) S) / 8)
     (hw : |recordEstimate M z - MeasureProb (preparedAAState A j) S|
@@ -1499,7 +1503,7 @@ theorem adaptiveLower_of_estimate_zero {k w : ℕ}
   norm_num
 
 /-- For positive `eps`, a zero adaptive estimate fails the positive relative-readiness test. -/
-theorem adaptiveNotReady_zero {k w : ℕ} (eps : ℝ) (heps : 0 < eps)
+theorem adaptiveNotReady_zero {k w : ℕ} (eps : ℝ) (_heps : 0 < eps)
     (h : adaptiveEstimate k w = 0) : ¬ adaptiveReady eps k w := by
   intro hready
   have hU : 0 < adaptiveUpper k w := adaptiveUpper_pos w
@@ -1561,7 +1565,7 @@ def adaptiveGridEmbed {N k : ℕ} (hk : k < N) (z : Fin (adaptiveGrid k)) : Fin 
 
 /-- Extend the stage-`k` probability mass to the common stage-`N` grid by assigning zero outside
 the stage grid. -/
-noncomputable def adaptiveStageProbAt (N k : ℕ) (hk : k < N)
+noncomputable def adaptiveStageProbAt (N k : ℕ) (_hk : k < N)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin (adaptiveGrid N)) : ℝ :=
   if z.val < adaptiveGrid k then
@@ -1600,8 +1604,8 @@ theorem adaptiveStageProbAt_weighted (N k : ℕ) (hk : k < N)
       apply Finset.sum_congr rfl
       intro z _
       by_cases h : z.val < adaptiveGrid k
-      · simp only [if_pos h]
-      · simp only [if_neg h, zero_mul]
+      · simp only [ite_eq_left h]
+      · simp only [ite_eq_right h, zero_mul]
     have hpart := Finset.sum_filter_add_sum_filter_not
       (Finset.univ : Finset (Fin (adaptiveGrid N)))
       (fun z => z.val < adaptiveGrid k)
@@ -1616,14 +1620,14 @@ theorem adaptiveStageProbAt_weighted (N k : ℕ) (hk : k < N)
           (adaptiveStageLaw k A j S hA).prob (adaptiveRunLabel k z) * g z := by
       apply Finset.sum_congr rfl
       intro z hz
-      simp only [if_pos (Finset.mem_filter.mp hz).2]
+      simp only [ite_eq_left (Finset.mem_filter.mp hz).2]
     have hB' : (∑ z ∈ (Finset.univ : Finset (Fin (adaptiveGrid N))).filter
           (fun z => ¬ (z.val < adaptiveGrid k)),
           (if z.val < adaptiveGrid k then
             (adaptiveStageLaw k A j S hA).prob (adaptiveRunLabel k z) * g z else 0)) = 0 := by
       rw [Finset.sum_eq_zero]
       intro z hz
-      simp only [if_neg (Finset.mem_filter.mp hz).2]
+      simp only [ite_eq_right (Finset.mem_filter.mp hz).2]
     rw [h1', hpart.symm, hA', hB', add_zero]
 
   have h2 : (∑ z ∈ (Finset.univ : Finset (Fin (adaptiveGrid N))).filter
@@ -1711,7 +1715,7 @@ theorem adaptiveJointLaw_marginal (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fi
       g (ω k) = ∏ m : Fin N, (if m = k then g (ω m) else 1)) := by
     intro ω
     rw [Finset.prod_eq_single k]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro m _ hm
       simp [hm]
     · intro hcon
@@ -1748,9 +1752,9 @@ theorem adaptiveJointLaw_marginal (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fi
         * (if m = k then g ω else 1))).symm
   rw [hFub]
   rw [Finset.prod_eq_single k]
-  · simp only [if_true]
+  · simp only [ite_true]
   · intro m _ hm
-    simp only [if_neg hm]
+    simp only [ite_eq_right hm]
     have h1 : (∑ z : Fin (adaptiveGrid N),
         adaptiveStageProbAt N m.val (m.isLt) A j S hA z * 1) = 1 := by
       have := adaptiveStageProbAt_sum_one N m.val (m.isLt) A j S hA
@@ -1772,13 +1776,13 @@ private theorem sum_indicator_eq_filter {X : Type*} [Fintype X] [DecidableEq X]
       = ∑ z ∈ (Finset.univ : Finset X).filter p, f z := by
     apply Finset.sum_congr rfl
     intro z hz
-    rw [if_pos (Finset.mem_filter.mp hz).2]
+    rw [ite_eq_left (Finset.mem_filter.mp hz).2]
     simp
   have hB' : (∑ z ∈ (Finset.univ : Finset X).filter (fun z => ¬ p z),
       f z * (if p z then 1 else 0)) = 0 := by
     rw [Finset.sum_eq_zero]
     intro z hz
-    rw [if_neg (Finset.mem_filter.mp hz).2]
+    rw [ite_eq_right (Finset.mem_filter.mp hz).2]
     simp
   rw [hA', hB', add_zero]
 

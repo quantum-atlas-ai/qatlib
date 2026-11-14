@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+@[expose] public section
 
 /-!
 # Tensor-network evaluation of a general partition function
@@ -63,14 +67,17 @@ the destination for false. -/
 def induced (src dst : E → V) (σ : V → C) : E × Bool → C :=
   fun p => if p.2 then σ (src p.1) else σ (dst p.1)
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- At the true endpoint of an edge, the induced label is the source vertex label. -/
 @[simp] theorem induced_true (src dst : E → V) (σ : V → C) (e : E) :
     induced src dst σ (e, true) = σ (src e) := by simp [induced]
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- At the false endpoint of an edge, the induced label is the destination vertex label. -/
 @[simp] theorem induced_false (src dst : E → V) (σ : V → C) (e : E) :
     induced src dst σ (e, false) = σ (dst e) := by simp [induced]
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- Local existence of a common incident color at every vertex is equivalent to a vertex
 configuration matching all edge-end labels. -/
 theorem forall_exists_iff (src dst : E → V) (l : E × Bool → C) :
@@ -115,9 +122,10 @@ theorem prod_vertexTensor_eq_indicator (src dst : E → V) (l : E × Bool → C)
     simp
   rw [hprod]
   by_cases h : ∃ σ : V → C, ∀ e : E, l (e, true) = σ (src e) ∧ l (e, false) = σ (dst e)
-  · rw [if_pos (hiff.mpr h), if_pos h]
-  · rw [if_neg (fun hc => h (hiff.mp hc)), if_neg h]
+  · rw [ite_eq_left (hiff.mpr h), ite_eq_left h]
+  · rw [ite_eq_right (fun hc => h (hiff.mp hc)), ite_eq_right h]
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- An edge-end labeling matches a vertex configuration exactly when it equals the labeling
 induced by some configuration. -/
 theorem exists_iff_exists_induced (src dst : E → V) (l : E × Bool → C) :
@@ -134,6 +142,7 @@ theorem exists_iff_exists_induced (src dst : E → V) (l : E × Bool → C) :
   · rintro ⟨σ, rfl⟩
     exact ⟨σ, fun e => ⟨by simp, by simp⟩⟩
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- If every vertex is a source or destination of some edge, then distinct vertex configurations
 induce distinct edge-end labelings. See [AradLandau2010]. -/
 theorem induced_injective (src dst : E → V)
@@ -166,11 +175,11 @@ theorem theorem5_2_network_evaluates_partition
     · have hcons : ∃ σ : V → C,
           ∀ e : E, l (e, true) = σ (src e) ∧ l (e, false) = σ (dst e) :=
         (exists_iff_exists_induced src dst l).mpr h
-      rw [if_pos hcons, if_pos h]
+      rw [ite_eq_left hcons, ite_eq_left h]
     · have hcons : ¬ ∃ σ : V → C,
           ∀ e : E, l (e, true) = σ (src e) ∧ l (e, false) = σ (dst e) :=
         fun hc => h ((exists_iff_exists_induced src dst l).mp hc)
-      rw [if_neg hcons, if_neg h]
+      rw [ite_eq_right hcons, ite_eq_right h]
   set img : Finset (E × Bool → C) := Finset.univ.image (induced src dst) with himg
   have hmem : ∀ l : E × Bool → C, l ∈ img ↔ ∃ σ : V → C, l = induced src dst σ := by
     intro l
@@ -186,8 +195,8 @@ theorem theorem5_2_network_evaluates_partition
         rw [hval]
         refine Finset.sum_congr rfl fun l _ => ?_
         by_cases h : ∃ σ : V → C, l = induced src dst σ
-        · rw [if_pos h, if_pos ((hmem l).mpr h)]
-        · rw [if_neg h, if_neg (fun hh => h ((hmem l).mp hh))]
+        · rw [ite_eq_left h, ite_eq_left ((hmem l).mpr h)]
+        · rw [ite_eq_right h, ite_eq_right (fun hh => h ((hmem l).mp hh))]
     _ = ∑ l : E × Bool → C,
           (if l ∈ img then ∏ e : E, energyTensor h β e l else 0) := by
         refine Finset.sum_congr rfl fun l _ => ?_
@@ -199,7 +208,7 @@ theorem theorem5_2_network_evaluates_partition
               (if l ∈ img then ∏ e : E, energyTensor h β e l else 0) :=
           (Finset.sum_subset (fun x _ => Finset.mem_univ x) (fun x _ hx => by simp [hx])).symm
         rw [hsub]
-        exact Finset.sum_congr rfl fun l hl => by rw [if_pos hl]
+        exact Finset.sum_congr rfl fun l hl => by rw [ite_eq_left hl]
     _ = ∑ σ : V → C, ∏ e : E, energyTensor h β e (induced src dst σ) := by
         rw [himg, Finset.sum_image (fun x _ y _ hxy => induced_injective src dst hcover hxy)]
     _ = partitionFunction src dst h β := by

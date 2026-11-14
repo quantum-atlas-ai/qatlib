@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
+
+@[expose] public section
 
 /-!
 # Function evaluation norm sandwich
@@ -114,8 +118,8 @@ theorem sourceAlphabet_masked_real_symmetrization {X E : Type} [Fintype X] [Deci
   · intro j
     have hmask (x y : X) : star (sourceAlphabetDelta input j y x)=sourceAlphabetDelta input j x y := by
       by_cases he : input x j=input y j
-      · simp only [sourceAlphabetDelta,if_pos he,if_pos he.symm,star_zero]
-      · simp only [sourceAlphabetDelta,if_neg he,if_neg (Ne.symm he),star_one]
+      · simp only [sourceAlphabetDelta,ite_eq_left he,ite_eq_left he.symm,star_zero]
+      · simp only [sourceAlphabetDelta,ite_eq_right he,ite_eq_right (Ne.symm he),star_one]
     have he : sourceAlphabetDelta input j ⊙ Q=
         (sourceAlphabetDelta input j ⊙ gramFunctionEvaluationMatrix f) ⊙ M := by
       ext x y

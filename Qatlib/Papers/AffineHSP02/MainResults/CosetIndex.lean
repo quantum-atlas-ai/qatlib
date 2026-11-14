@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Multiplicative subgroup indices in a prime field

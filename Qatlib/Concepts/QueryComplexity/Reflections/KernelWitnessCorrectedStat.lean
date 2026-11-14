@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+
+@[expose] public section
 
 /-!
 # Corrected kernel-witness contract

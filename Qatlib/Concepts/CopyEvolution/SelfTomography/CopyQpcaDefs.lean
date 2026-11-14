@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.Qpca
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramSpectralReadoutSubgoalQuan
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramStatePreparationSubgoalStat
-import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.Qpca
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramSpectralReadoutSubgoalQuan
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramStatePreparationSubgoalStat
+public import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
+
+@[expose] public section
 
 /-!
 # Gram operators and QPCA resource ledgers

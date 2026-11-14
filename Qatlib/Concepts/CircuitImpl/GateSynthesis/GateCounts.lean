@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCountsDefs
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCountsDefs
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # Gate-count bounds and live-wire semantics
@@ -359,10 +363,10 @@ theorem walkGoal_live_wire_quantum_semantics {N : ℕ} (base : ℕ) (ops : List 
               = liveRun base rest (liveStep base ⟨x, live⟩ (.alloc w)) from rfl]
           by_cases hb : base ≤ w ∧ w ∉ live
           · rw [show liveStep base ⟨x, live⟩ (.alloc w) = ⟨x, w :: live⟩ from by
-                simp only [liveStep, if_pos hb]]
+                simp only [liveStep, ite_eq_left hb]]
             exact ih x (w :: live) hgt
           · rw [show liveStep base ⟨x, live⟩ (.alloc w) = ⟨x, live⟩ from by
-                simp only [liveStep, if_neg hb]]
+                simp only [liveStep, ite_eq_right hb]]
             exact ih x live hgt
       | releaseClean w =>
           have hgt : classicalWord N (opsGates rest) := by
@@ -372,10 +376,10 @@ theorem walkGoal_live_wire_quantum_semantics {N : ℕ} (base : ℕ) (ops : List 
               = liveRun base rest (liveStep base ⟨x, live⟩ (.releaseClean w)) from rfl]
           by_cases hb : base ≤ w ∧ w ∈ live ∧ liveBit x w = some false
           · rw [show liveStep base ⟨x, live⟩ (.releaseClean w) = ⟨x, live.erase w⟩ from by
-                simp only [liveStep, if_pos hb]]
+                simp only [liveStep, ite_eq_left hb]]
             exact ih x (live.erase w) hgt
           · rw [show liveStep base ⟨x, live⟩ (.releaseClean w) = ⟨x, live⟩ from by
-                simp only [liveStep, if_neg hb]]
+                simp only [liveStep, ite_eq_right hb]]
             exact ih x live hgt
       | releaseDirty w =>
           have hgt : classicalWord N (opsGates rest) := by
@@ -385,10 +389,10 @@ theorem walkGoal_live_wire_quantum_semantics {N : ℕ} (base : ℕ) (ops : List 
               = liveRun base rest (liveStep base ⟨x, live⟩ (.releaseDirty w)) from rfl]
           by_cases hb : base ≤ w ∧ w ∈ live
           · rw [show liveStep base ⟨x, live⟩ (.releaseDirty w) = ⟨x, live.erase w⟩ from by
-                simp only [liveStep, if_pos hb]]
+                simp only [liveStep, ite_eq_left hb]]
             exact ih x (live.erase w) hgt
           · rw [show liveStep base ⟨x, live⟩ (.releaseDirty w) = ⟨x, live⟩ from by
-                simp only [liveStep, if_neg hb]]
+                simp only [liveStep, ite_eq_right hb]]
             exact ih x live hgt
       | resetWire w =>
           have hgt : classicalWord N (opsGates rest) := by

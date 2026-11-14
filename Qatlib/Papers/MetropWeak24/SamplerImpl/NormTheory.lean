@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MetropWeak24.SamplerImpl.Basic
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamond
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Order
+module
+
+public import Qatlib.Papers.MetropWeak24.SamplerImpl.Basic
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamond
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

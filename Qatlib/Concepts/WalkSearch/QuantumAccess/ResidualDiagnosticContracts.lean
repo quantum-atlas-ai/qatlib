@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.NativeCapabilityVocabulary
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.NativeCapabilityVocabulary
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+
+@[expose] public section
 
 /-!
 # Residual native and walk-search contracts

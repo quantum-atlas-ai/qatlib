@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
-import Qatlib.Papers.WeighMatrix00.MainResults.Lemma1StateConstruction
+module
+
+public import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
+public import Qatlib.Papers.WeighMatrix00.MainResults.Lemma1StateConstruction
+
+@[expose] public section
 
 /-!
 # Weighing-matrix source-state procedures
@@ -72,7 +76,7 @@ theorem sourceStates_orthogonal (hk : 0 < k) (s r : Fin n) (hsr : s ≠ r) :
   rw [← Finset.sum_div]
   have hz : ∑ i : Fin n, ((M.mat s i : ℂ) * (M.mat r i : ℂ)) = 0 := by
     have h := M.gram_apply s r
-    rw [if_neg hsr] at h
+    rw [ite_eq_right hsr] at h
     have hcast := congrArg (fun z : ℤ => (z : ℂ)) h
     push_cast at hcast
     simpa using hcast
@@ -94,7 +98,7 @@ theorem sourceStates_norm (hk : 0 < k) (s : Fin n) :
   rw [← Finset.sum_div]
   have hd : ∑ i : Fin n, ((M.mat s i : ℂ) * (M.mat s i : ℂ)) = (k : ℂ) := by
     have h := M.gram_apply s s
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     have hcast := congrArg (fun z : ℤ => (z : ℂ)) h
     push_cast at hcast
     simpa using hcast

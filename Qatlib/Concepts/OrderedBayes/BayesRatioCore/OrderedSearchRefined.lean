@@ -4,17 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchRefinedDefs
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.NoisyQuantumOracle
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchRefinedDefs
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.NoisyQuantumOracle
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Oracle semantics and information bounds for ordered search
@@ -106,10 +111,10 @@ lemma clause16_star_noiseRotation (p : ℝ) (t : Bool) (i j : Fin 2) :
     star (noiseRotation p t) i j = noiseRotation p t j i := by
   have h : star (noiseRotation p t) i j
       = starRingEnd ℂ (noiseRotation p t j i) := by
-    simp [Matrix.conjTranspose_apply]
+    simp []
   rw [h, starRingEnd_apply]
   fin_cases i <;> fin_cases j <;> cases t <;>
-    simp [noiseRotation, Complex.conj_ofReal] <;> ring
+    simp [noiseRotation, Complex.conj_ofReal]
 
 /-- For `0 ≤ p ≤ 1`, the matrix star of a noise rotation multiplied by the rotation is the
 identity. -/
@@ -118,8 +123,7 @@ theorem clause16_noise_rotation_is_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p �
     star (noiseRotation p t) * noiseRotation p t = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> cases t <;>
-    simp [Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply, noiseRotation,
-      clause16_star_noiseRotation]
+    simp [Matrix.mul_apply, Fin.sum_univ_two, noiseRotation]
   all_goals refine Complex.ext ?_ ?_
   all_goals try { simp [Complex.mul_im, Complex.add_im, Complex.neg_im] }
   all_goals simp [Complex.mul_re, Complex.add_re, Complex.neg_re]
@@ -132,15 +136,15 @@ lemma clause16_star_noisyQueryOracle {n : ℕ} (rank : Fin n) (p : ℝ) (x y : F
       if y.1 = x.1 then noiseRotation p (truthBit rank x.1) y.2 x.2 else 0 := by
   have h : star (noisyQueryOracle rank p) x y
       = starRingEnd ℂ (noisyQueryOracle rank p y x) := by
-    simp [Matrix.conjTranspose_apply]
+    simp []
   rw [h]
   by_cases hc : y.1 = x.1
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     rw [show noisyQueryOracle rank p y x = noiseRotation p (truthBit rank x.1) y.2 x.2 by
-          simp only [noisyQueryOracle, if_pos hc]]
+          simp only [noisyQueryOracle, ite_eq_left hc]]
     exact clause16_starRingEnd_noiseRotation_entry p (truthBit rank x.1) y.2 x.2
-  · rw [if_neg hc]
-    rw [show noisyQueryOracle rank p y x = 0 by simp only [noisyQueryOracle, if_neg hc]]
+  · rw [ite_eq_right hc]
+    rw [show noisyQueryOracle rank p y x = 0 by simp only [noisyQueryOracle, ite_eq_right hc]]
     simp
 
 /-- The noisy query oracle belongs to the matrix unitary group when `0 ≤ p ≤ 1`. -/
@@ -167,18 +171,18 @@ theorem clause16_noisy_query_oracle_is_unitary {n : ℕ} (rank : Fin n) (p : ℝ
       rw [clause16_star_noisyQueryOracle]
       by_cases h1 : z.1 = x.1
       · by_cases h2 : z.1 = x'.1
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           rw [show noisyQueryOracle rank p z x'
                 = noiseRotation p (truthBit rank x'.1) z.2 x'.2 by
-              simp only [noisyQueryOracle, if_pos h2]]
-          rw [if_pos (And.intro h1 h2)]
-        · rw [if_pos h1]
+              simp only [noisyQueryOracle, ite_eq_left h2]]
+          rw [ite_eq_left (And.intro h1 h2)]
+        · rw [ite_eq_left h1]
           rw [show noisyQueryOracle rank p z x' = 0 by
-              simp only [noisyQueryOracle, if_neg h2]]
-          rw [if_neg (fun h => h2 h.2)]
+              simp only [noisyQueryOracle, ite_eq_right h2]]
+          rw [ite_eq_right (fun h => h2 h.2)]
           simp
-      · rw [if_neg h1]
-        rw [if_neg (fun h => h1 h.1)]
+      · rw [ite_eq_right h1]
+        rw [ite_eq_right (fun h => h1 h.1)]
         simp
     rw [Fintype.sum_congr _ _ hmul]
     by_cases hxy : x.1 = x'.1
@@ -213,24 +217,24 @@ theorem clause16_noisy_query_oracle_is_unitary {n : ℕ} (rank : Fin n) (p : ℝ
         · simp [hy]
       rw [Fintype.sum_congr _ _ hinner]
       rw [Fintype.sum_eq_single x.1 (fun y hy => by simp [hy])]
-      simp only [Matrix.mul_apply, clause16_star_noiseRotation]
-    · rw [if_neg hxy]
+      simp only [clause16_star_noiseRotation]
+    · rw [ite_eq_right hxy]
       have hnone : ∀ z : Fin n × Fin 2, ¬ (z.1 = x.1 ∧ z.1 = x'.1) := by
         intro z hz
         exact hxy (hz.1.symm.trans hz.2)
       simp [hnone]
   rw [key]
   by_cases h : x.1 = x'.1
-  · rw [if_pos h, clause16_noise_rotation_is_unitary p hp0 hp1]
+  · rw [ite_eq_left h, clause16_noise_rotation_is_unitary p hp0 hp1]
     simp only [Matrix.one_apply]
     by_cases h2 : x.2 = x'.2
     · have hxy : x = x' := Prod.ext_iff.mpr ⟨h, h2⟩
-      simp [h2, hxy]
+      simp [hxy]
     · have hne : x ≠ x' := by
         intro he
         exact h2 (Prod.ext_iff.mp he).2
       simp [h2, hne]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp only [Matrix.one_apply]
     have hne : x ≠ x' := by
       intro he
@@ -292,23 +296,23 @@ theorem clause16_backend_matches_classical_bsc {n : ℕ} (rank : Fin n) (p : ℝ
 lemma clause16_noiseRotation_inNoiseField (p : ℝ) (t : Bool) (i j : Fin 2) :
     InNoiseField p (noiseRotation p t i j) := by
   fin_cases i <;> fin_cases j <;> cases t
-  · exact ⟨0, 1, 0, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 0, 1, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 0, -1, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 1, 0, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 0, 1, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 1, 0, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 1, 0, 0, by simp [noiseRotation] <;> ring⟩
-  · exact ⟨0, 0, -1, 0, by simp [noiseRotation] <;> ring⟩
+  · exact ⟨0, 1, 0, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 0, 1, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 0, -1, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 1, 0, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 0, 1, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 1, 0, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 1, 0, 0, by simp [noiseRotation]⟩
+  · exact ⟨0, 0, -1, 0, by simp [noiseRotation]⟩
 
 /-- Every entry of the noisy query oracle satisfies `InNoiseField`. -/
 theorem clause16_backend_entries_are_finite_bit {n : ℕ} (rank : Fin n) (p : ℝ)
     (b a : Fin n × Fin 2) :
     InNoiseField p (noisyQueryOracle rank p b a) := by
   by_cases h : b.1 = a.1
-  · rw [noisyQueryOracle, if_pos h]
+  · rw [noisyQueryOracle, ite_eq_left h]
     exact clause16_noiseRotation_inNoiseField p (truthBit rank a.1) b.2 a.2
-  · rw [noisyQueryOracle, if_neg h]
+  · rw [noisyQueryOracle, ite_eq_right h]
     exact ⟨0, 0, 0, 0, by simp⟩
 
 /-- Constructs `NoisyQueryBackend` for the given rank and any `0 ≤ p ≤ 1`. -/
@@ -339,7 +343,7 @@ halting threshold. -/
 theorem clause16_truth_step_halt_charges_zero {n : ℕ} (hn : 0 < n) (rank : Fin n)
     (p ε : ℝ) (a : Fin n → ℝ) (hhalts : ∃ i : Fin n, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (truthStepCosted hn rank p ε a) = 0 := by
-  rw [truthStepCosted, dif_pos hhalts,
+  rw [truthStepCosted, dite_eq_left hhalts,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost_ret]
 
 /-- A truth-step transition has expected query cost one when no posterior cell reaches the
@@ -347,7 +351,7 @@ halting threshold. -/
 theorem clause16_truth_step_running_charges_one {n : ℕ} (hn : 0 < n) (rank : Fin n)
     (p ε : ℝ) (a : Fin n → ℝ) (hruns : ¬ ∃ i : Fin n, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (truthStepCosted hn rank p ε a) = 1 := by
-  rw [truthStepCosted, dif_neg hruns, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost,
+  rw [truthStepCosted, dite_eq_right hruns, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
@@ -373,13 +377,13 @@ theorem clause16_query_ledger_differs_from_pending_ledger {n : ℕ} (hn : 0 < n)
 /-- Expresses `binEntropy` as Mathlib's binary entropy divided by `log 2`. -/
 theorem clause17_binEntropy_eq_mathlib (δ : ℝ) :
     binEntropy δ = Real.binEntropy δ / Real.log 2 := by
-  rw [binEntropy, Real.binEntropy]
-  simp only [Real.log_inv]
+  rw [binEntropy, Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   ring
 
 /-- Binary entropy is invariant under replacing `δ` by `1 - δ`. -/
 theorem clause17_binEntropy_symmetry (δ : ℝ) : binEntropy δ = binEntropy (1 - δ) := by
-  simp [binEntropy, add_comm, add_left_comm, add_assoc]
+  simp [binEntropy, add_comm]
 
 /-- The information per query equals one at noiseless parameter `p = 1`. -/
 theorem clause17_queryInfo_one : queryInfo (1 : ℝ) = 1 := by
@@ -401,7 +405,7 @@ theorem clause17_one_comparison_success {truth : Bool} :
   simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype,
       Fintype.sum_bool]
-  rw [PMF.bernoulli_apply _ true, PMF.bernoulli_apply _ false]
+  rw [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply _ true, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply _ false]
   norm_num
 
 /-- The one-comparison experiment has expected cost one. -/
@@ -415,8 +419,8 @@ theorem clause17_one_comparison_cost {truth : Bool} :
 /-- Expands Mathlib's binary entropy at `3 / 4` as a weighted sum of `log (4 / 3)` and `log 4`. -/
 lemma clause17_binEntropy_three_quarters :
     Real.binEntropy (3 / 4 : ℝ) = (3 / 4) * Real.log (4 / 3 : ℝ) + (1 / 4) * Real.log 4 := by
-  rw [Real.binEntropy]
-  simp only [Real.log_inv]
+  rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   have h1 : (1 : ℝ) - 3 / 4 = 1 / 4 := by norm_num
   rw [h1]
   rw [Real.log_div (by norm_num : (3 : ℝ) ≠ 0) (by norm_num : (4 : ℝ) ≠ 0),
@@ -453,7 +457,7 @@ theorem clause17_fano_bound_at_source_counterexample :
   ring
 
 /-- For `1 / 2 < p < 1`, `fanoCapacityBound 2 p p` equals one. -/
-theorem clause17_fano_bound_tight_for_two_cells {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
+theorem clause17_fano_bound_tight_for_two_cells {p : ℝ} (hp : 1 / 2 < p) (_hp1 : p < 1) :
     fanoCapacityBound 2 p p = 1 := by
   have hsym : binEntropy p = binEntropy (1 - p) := clause17_binEntropy_symmetry p
   have hI : queryInfo p = 1 - binEntropy p := rfl
@@ -517,7 +521,7 @@ theorem clause17_source_counterexample_saturates_the_corrected_bound {truth : Bo
 
 /-- For two cells and `1 / 2 < p ≤ 1`, the capacity bound at error `1 / 2` is zero. -/
 theorem clause17_fano_bound_at_error_boundary_two_cells {p : ℝ} (hp : 1 / 2 < p)
-    (hp1 : p ≤ 1) : fanoCapacityBound 2 p (1 / 2 : ℝ) = 0 := by
+    (_hp1 : p ≤ 1) : fanoCapacityBound 2 p (1 / 2 : ℝ) = 0 := by
   have hbin : binEntropy (1 / 2 : ℝ) = 1 := by
     have hhalf : (1 / 2 : ℝ) = (2 : ℝ)⁻¹ := by norm_num
     rw [clause17_binEntropy_eq_mathlib, hhalf, Real.binEntropy_two_inv]
@@ -571,7 +575,7 @@ theorem condW_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ
     ∑ j, condW d i j = 1 := by
   have hpos : 0 < margL d i := lt_of_le_of_ne
     (Finset.sum_nonneg fun j _ => hd i j) (by exact fun h => hm h.symm)
-  simp only [condW, dif_neg hm]
+  simp only [condW, dite_eq_right hm]
   rw [← Finset.sum_div]
   exact div_self hpos.ne'
 
@@ -674,7 +678,6 @@ theorem sum_mul_log_nonneg {m : ℕ} (u : Fin m → ℝ) (hu : ∀ i, 0 ≤ u i)
   have h := Real.convexOn_mul_log.map_sum_le
     (t := (Finset.univ : Finset (Fin m)))
     (w := fun _ => 1 / (m : ℝ)) (p := u) hw0 hw1 hmem
-  (try dsimp only at h)
   simp only [smul_eq_mul] at h
   have hleft : (∑ i, (1 / (m : ℝ)) * u i) = 1 := by
     rw [sum_const_mul, husum]
@@ -720,7 +723,6 @@ theorem sum_mul_log_nonneg_finset {α : Type} [Fintype α] (S : Finset α) (u : 
     intro i hi; exact (Set.mem_Ici).2 (hu i hi)
   have h := Real.convexOn_mul_log.map_sum_le
     (t := S) (w := fun _ => 1 / (S.card : ℝ)) (p := u) hw0 hw1 hmem
-  (try dsimp only at h)
   simp only [smul_eq_mul] at h
   have hleft : (∑ i ∈ S, (1 / (S.card : ℝ)) * u i) = 1 := by
     rw [finset_sum_const_mul, husum]
@@ -808,7 +810,7 @@ theorem sum_xlog2_sub {α : Type} [Fintype α] (S : Finset α) (r : α → ℝ)
   let u : α → ℝ := fun i => if i ∈ S then (S.card : ℝ) * r i / q else 0
   have hu_nonneg : ∀ i ∈ S, 0 ≤ u i := by
     intro i hi
-    simp only [u, if_pos hi]
+    simp only [u, ite_eq_left hi]
     exact div_nonneg (mul_nonneg hcardpos.le (hr i hi)) hq0.le
   have hu_sum : ∑ i ∈ S, u i = (S.card : ℝ) := by
     have hc : ∀ i ∈ S, u i = (S.card : ℝ) * r i / q := by
@@ -897,7 +899,7 @@ theorem condW_mul_margL {α β : Type} [Fintype α] [Fintype β] (d : α × β �
     have hdnonneg : 0 ≤ d (i, j) := hd i j
     have hd0 : d (i, j) = 0 := by linarith
     simp [condW, hm, hd0]
-  · simp only [condW, dif_neg hm]
+  · simp only [condW, dite_eq_right hm]
     field_simp
 
 /-- Bounds the entropy of a distribution on at least two cells by the binary entropy of the
@@ -921,7 +923,6 @@ theorem fano_pointwise {n : ℕ} (hn : 2 ≤ n) (P : Fin n → ℝ) (hP : ∀ x,
   have hq : ∑ x ∈ S, P x = 1 - P gy := by
     have h := Finset.sum_erase_add (Finset.univ : Finset (Fin n))
       (fun x => P x) (Finset.mem_univ gy)
-    (try simp only [S] at h)
     have h3 : (∑ x ∈ (Finset.univ : Finset (Fin n)), P x) = (∑ x, P x) := rfl
     rw [h3] at h
     rw [hsum] at h
@@ -931,7 +932,6 @@ theorem fano_pointwise {n : ℕ} (hn : 2 ≤ n) (P : Fin n → ℝ) (hP : ∀ x,
         + ∑ x ∈ S, P x * (Real.log (P x) / Real.log 2) := by
     have h := Finset.sum_erase_add (Finset.univ : Finset (Fin n))
       (fun x => P x * (Real.log (P x) / Real.log 2)) (Finset.mem_univ gy)
-    (try simp only [S] at h)
     have h2 : (∑ x ∈ (Finset.univ : Finset (Fin n)), P x * (Real.log (P x) / Real.log 2))
         = (∑ x, P x * (Real.log (P x) / Real.log 2)) := rfl
     rw [h2] at h
@@ -1008,7 +1008,7 @@ theorem condW_nonneg {α β : Type} [Fintype α] [Fintype β] (d : α × β → 
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (j : β) : 0 ≤ condW d i j := by
   by_cases hm : margL d i = 0
   · simp [condW, hm]
-  · simp only [condW, dif_neg hm]
+  · simp only [condW, dite_eq_right hm]
     exact div_nonneg (hd i j) (Finset.sum_nonneg fun k _ => hd i k)
 
 /-- Bounds conditional entropy by `binEntropy ε + ε * log₂ (n - 1)` for a decoder with error `ε
@@ -1018,7 +1018,7 @@ theorem fano_cond_ent {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
     (ht : ∑ y, ∑ x, d (y, x) = 1)
     (g : β → Fin n) (ε : ℝ)
     (hε : ε = ∑ y, ∑ x, d (y, x) * (if g y = x then 0 else 1))
-    (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) :
+    (_hε0 : 0 ≤ ε) (_hε1 : ε ≤ 1 / 2) :
     condEntH d ≤ binEntropy ε + ε * (Real.log ((n - 1 : ℕ) : ℝ) / Real.log 2) := by
   have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
   have hL : 0 ≤ Real.log ((n - 1 : ℕ) : ℝ) / Real.log 2 := by
@@ -1128,10 +1128,10 @@ theorem fano_cond_ent {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
     by_cases hpw : margL d y = 0
     · refine ⟨?_, ?_⟩
       · simp only [hqy]
-        rw [condW, dif_pos hpw]
+        rw [condW, dite_eq_left hpw]
         simp
       · simp only [hqy]
-        rw [condW, dif_pos hpw]
+        rw [condW, dite_eq_left hpw]
         simp
     · have hsum1 : ∑ x, condW d y x = 1 := condW_sum d hd y hpw
       have hnonneg : ∀ x, 0 ≤ condW d y x := fun x => condW_nonneg d hd y x
@@ -1153,7 +1153,6 @@ theorem fano_cond_ent {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
         (w := fun y => margL d y) (p := qy)
         (fun y _ => hpw_nonneg y) (by exact hpw_sum)
         (fun y _ => hqy_range y)
-      (try dsimp only at h)
       simp only [smul_eq_mul] at h
       rw [hqsum] at h
       exact h
@@ -1748,7 +1747,7 @@ theorem condEntH_bscJointPost {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.va
         bscJointCuts cuts p (z.1.1) (tExt z.1.2 z.2)) (x, pfx) ≠ 0 := by
       rw [hmarg x pfx]
       exact hne
-    simp only [condW, dif_neg hm]
+    simp only [condW, dite_eq_right hm]
     rw [hfac x pfx b, hmarg x pfx]
     field_simp
   have key : ∀ (x : Fin n) (pfx : Fin m → Bool),
@@ -2621,7 +2620,7 @@ theorem condEntH_cycJointPost {n m k : ℕ}
         cycJointCuts sig p (z.1.1) (tExt z.1.2 z.2)) (x, pfx) ≠ 0 := by
       rw [hmarg x pfx]
       exact hne
-    simp only [condW, dif_neg hm]
+    simp only [condW, dite_eq_right hm]
     rw [hfac x pfx b, hmarg x pfx]
     field_simp
   have key : ∀ (x : Fin n) (pfx : Fin m → Fin (k + 1)),
@@ -3371,7 +3370,7 @@ theorem clause17_fin_sum_count : ∀ (n m : ℕ), (∑ i : Fin n, (if m > i.val 
         simp
       · have hmpos : 0 < m := by omega
         have hfirst : (if m > 0 then 1 else 0) = 1 := by
-          rw [if_pos (by omega)]
+          rw [ite_eq_left (by omega)]
         rw [hfirst]
         have htail : (∑ i : Fin n, (if m > (Fin.succ i).val then 1 else 0))
             = ∑ i : Fin n, (if (m - 1) > i.val then 1 else 0) := by
@@ -3380,10 +3379,10 @@ theorem clause17_fin_sum_count : ∀ (n m : ℕ), (∑ i : Fin n, (if m > i.val 
           have hsucc : (Fin.succ i).val = i.val + 1 := rfl
           rw [hsucc]
           by_cases h : m > i.val + 1
-          · rw [if_pos h]
-            rw [if_pos (by omega)]
-          · rw [if_neg h]
-            rw [if_neg (by omega)]
+          · rw [ite_eq_left h]
+            rw [ite_eq_left (by omega)]
+          · rw [ite_eq_right h]
+            rw [ite_eq_right (by omega)]
         rw [htail]
         have hih := ih (m - 1)
         rw [hih]
@@ -3410,7 +3409,7 @@ theorem clause17_stop_alive_of_transcript {n k : ℕ} (prog : BscStopProgram n k
   have hprefixeq : ∀ (j : Fin k) (hj : j.val < i),
       y j = stopExt i (stopPrefix i hk y) j := by
     intro j hj
-    simp only [stopExt, dif_pos hj]
+    simp only [stopExt, dite_eq_left hj]
     rw [hprefix ⟨j.val, hj⟩]
   by_cases hm : (prog.stop y).val ≤ i
   · have hagree : ∀ j : Fin k, j.val < (prog.stop y).val →
@@ -3568,7 +3567,7 @@ theorem clause17_sum_ite_reindex {α β : Type} [Fintype α] [Fintype β] (f : �
 theorem clause17_stop_pad_decode_used {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool)
     (j : Fin k) (hj : j.val < (prog.stop y).val) :
     stopPadDecode (stopPad prog y) j = y j := by
-  simp only [stopPadDecode, stopPad, if_pos hj]
+  simp only [stopPadDecode, stopPad, ite_eq_left hj]
 
 /-- Padding, decoding, and padding a stopping transcript again gives the same padded transcript. -/
 theorem clause17_stop_pad_roundtrip {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool) :
@@ -3588,10 +3587,10 @@ theorem clause17_stop_pad_roundtrip {n k : ℕ} (prog : BscStopProgram n k) (y :
       then Sum.inl ((stopPadDecode (stopPad prog y)) i) else Sum.inr ())
       = (if i.val < (prog.stop y).val then Sum.inl (y i) else Sum.inr ())
   by_cases hi : i.val < (prog.stop y).val
-  · rw [if_pos hi, if_pos hi]
+  · rw [ite_eq_left hi, ite_eq_left hi]
     congr 1
     exact clause17_stop_pad_decode_used prog y i hi
-  · rw [if_neg hi, if_neg hi]
+  · rw [ite_eq_right hi, ite_eq_right hi]
 
 /-- If the guess depends only on used answers, the used-transcript decoder agrees with the
 original guess on padded transcripts. -/
@@ -3606,7 +3605,7 @@ theorem clause17_stop_used_guess_eq {n k : ℕ} (prog : BscStopProgram n k)
 /-- For `0 ≤ p ≤ 1` and `n > 0`, the joint weights of the hidden cell and padded used transcript
 sum to one. -/
 theorem clause17_stop_used_joint_total {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
+    (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ x : Fin n, ∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e) = 1 := by
   calc (∑ x : Fin n, ∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e)
       = ∑ x : Fin n, ∑ y : Fin k → Bool, bscJointCuts prog.cuts p x y := by
@@ -3623,7 +3622,7 @@ theorem clause17_stop_used_joint_total {n k : ℕ} (prog : BscStopProgram n k) {
 /-- For `0 ≤ p ≤ 1` and `n > 0`, summing the used-transcript joint weights over transcripts
 gives `1 / n` for each hidden cell. -/
 theorem clause17_stop_used_joint_margL {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) :
+    (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (_hn : 0 < n) (x : Fin n) :
     (∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e) = 1 / (n : ℝ) := by
   calc (∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e)
       = ∑ y : Fin k → Bool, bscJointCuts prog.cuts p x y := by
@@ -3864,14 +3863,14 @@ theorem sumOverPrefix_last_split {k' i : ℕ} {α : Type}
   · have h1 : ∀ b : α,
         (g (tExt pfx b) * (if tPrefix i hk (tExt pfx b) = w then 1 else 0)) = g (tExt pfx b) := by
       intro b
-      rw [hkey b, if_pos hc]
+      rw [hkey b, ite_eq_left hc]
       simp
     rw [Finset.sum_congr rfl (fun b _ => h1 b)]
     simp [hc]
   · have h1 : ∀ b : α,
         (g (tExt pfx b) * (if tPrefix i hk (tExt pfx b) = w then 1 else 0)) = 0 := by
       intro b
-      rw [hkey b, if_neg hc]
+      rw [hkey b, ite_eq_right hc]
       simp
     rw [Finset.sum_congr rfl (fun b _ => h1 b)]
     simp [hc]
@@ -3911,10 +3910,10 @@ theorem clause17_bsc_prefix_marginal {n : ℕ} (k : ℕ) :
             intro y
             by_cases hy : y = w
             · rw [hfull y]
-              rw [if_pos hy, if_pos hy.symm]
+              rw [ite_eq_left hy, ite_eq_left hy.symm]
               simp
             · rw [hfull y]
-              rw [if_neg hy, if_neg (fun hc => hy hc.symm)]
+              rw [ite_eq_right hy, ite_eq_right (fun hc => hy hc.symm)]
               simp
           rw [Finset.sum_congr rfl (fun y _ => key y)]
           simpa only [eq_comm] using!
@@ -3949,10 +3948,10 @@ theorem clause17_bsc_prefix_marginal {n : ℕ} (k : ℕ) :
                 * (if tPrefix i hki pfx = w then 1 else 0) := by
           intro pfx
           by_cases hc : tPrefix i hki pfx = w
-          · rw [if_pos hc, if_pos hc]
+          · rw [ite_eq_left hc, ite_eq_left hc]
             rw [hsum pfx]
             simp
-          · rw [if_neg hc, if_neg hc]
+          · rw [ite_eq_right hc, ite_eq_right hc]
             simp
         rw [Finset.sum_congr rfl (fun pfx _ => h2 pfx)]
         rw [← cutsPrefix_pre cuts hki hi]
@@ -4056,8 +4055,7 @@ theorem clause17_stop_pad_prefix_all_inl {n k : ℕ} (prog : BscStopProgram n k)
       obtain ⟨hlt, heq⟩ := clause17_stop_pad_inl prog y ⟨j - 1, by omega⟩ hinl
       have hlt' : (j - 1 : ℕ) < (prog.stop y).val := hlt
       omega
-  · intro hM
-    intro i
+  · intro hM i
     have hlt : i.val < (prog.stop y).val := by omega
     have h1 : stopPad prog y ⟨i.val, by omega⟩ = Sum.inl (y ⟨i.val, by omega⟩) :=
       (clause17_stop_pad_inl_iff prog y ⟨i.val, by omega⟩).mpr hlt
@@ -4127,7 +4125,7 @@ theorem clause17_stop_pad_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k
             = tPrefix j hj (stopPad prog y') ⟨i.val, by omega⟩ := by
           rw [heq]
         rw [tPrefix_take hj] at h4
-        simp only [Fin.val_mk] at h4
+        simp only [] at h4
         exact h4
       rw [h1, h2] at h3
       injection h3
@@ -4139,13 +4137,13 @@ theorem clause17_stop_pad_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k
       omega
     have hinr : stopPad prog y ⟨(prog.stop y).val, by omega⟩ = Sum.inr () := by
       have hne : ¬ (((prog.stop y).val : ℕ) < (prog.stop y).val) := Nat.lt_irrefl _
-      simp [stopPad, hne]
+      simp [stopPad]
     have hinr' : stopPad prog y' ⟨(prog.stop y).val, by omega⟩ = Sum.inr () := by
       have heqi : tPrefix j hj (stopPad prog y) ⟨(prog.stop y).val, by omega⟩
           = tPrefix j hj (stopPad prog y') ⟨(prog.stop y).val, by omega⟩ := by
         rw [heq]
       rw [tPrefix_take hj] at heqi
-      simp only [Fin.val_mk] at heqi
+      simp only [] at heqi
       rw [hinr] at heqi
       exact heqi.symm
     have hM' : (prog.stop y').val ≤ (prog.stop y).val :=
@@ -4174,11 +4172,11 @@ theorem clause17_tPrefix_snoc {k i : ℕ} (hk : i ≤ k) (hk1 : i + 1 ≤ k) {α
       = tExt (tPrefix i hk e) (e ⟨i, Nat.lt_of_lt_of_le (Nat.lt_succ_self i) hk1⟩) := by
   funext j
   by_cases hj : j.val = i
-  · simp only [tPrefix, tExt, dif_pos hj]
+  · simp only [tPrefix, tExt, dite_eq_left hj]
     congr 1
     apply Fin.ext
     rw [hj]
-  · simp only [tPrefix, tExt, dif_neg hj]
+  · simp only [tPrefix, tExt, dite_eq_right hj]
 
 /-- Equal extended transcripts have equal prefixes and equal appended values. -/
 theorem clause17_tExt_inj {m : ℕ} {α : Type} (a c : Fin m → α) (b d : α)
@@ -4188,7 +4186,7 @@ theorem clause17_tExt_inj {m : ℕ} {α : Type} (a c : Fin m → α) (b d : α)
     have hj : (⟨j.val, by omega⟩ : Fin (m + 1)).val ≠ m := by
       exact Nat.ne_of_lt j.isLt
     have h1 := congrFun h ⟨j.val, by omega⟩
-    simp only [tExt, dif_neg hj] at h1
+    simp only [tExt, dite_eq_right hj] at h1
     exact h1
   · have h1 := congrFun h ⟨m, by omega⟩
     simp only [tExt] at h1
@@ -4219,16 +4217,16 @@ theorem clause17_stop_allinl_shape {n k : ℕ} (prog : BscStopProgram n k) {i : 
       have hj := hshape ⟨i - 1, by omega⟩
       rw [hkey ⟨i - 1, by omega⟩] at hj
       by_cases hlt : (i - 1 : ℕ) < (prog.stop y).val
-      · simp only [if_pos hlt, Sum.inl.injEq] at hj
+      · simp only [ite_eq_left hlt, Sum.inl.injEq] at hj
         omega
-      · simp only [if_neg hlt] at hj
+      · simp only [ite_eq_right hlt] at hj
         simp at hj
   refine ⟨hstop, ?_⟩
   funext j
   have hj := hshape j
   rw [hkey j] at hj
   have hlt : j.val < (prog.stop y).val := by omega
-  simp only [if_pos hlt, Sum.inl.injEq] at hj
+  simp only [ite_eq_left hlt, Sum.inl.injEq] at hj
   have e1 : tPrefix i hi y j = y ⟨j.val, by omega⟩ := rfl
   rw [e1]
   exact hj
@@ -4253,7 +4251,7 @@ theorem clause17_stop_allinl_iff {n k : ℕ} (prog : BscStopProgram n k) {i : �
     funext j
     have hsh := congrFun (clause17_stop_pad_prefix_shape prog hi y) j
     have hlt : j.val < (prog.stop y).val := by omega
-    rw [if_pos hlt] at hsh
+    rw [ite_eq_left hlt] at hsh
     have h2 := congrFun hys j
 
     have e1 : tPrefix i hi y j = y ⟨j.val, by omega⟩ := rfl
@@ -4437,7 +4435,7 @@ theorem clause17_stop_used_next_slot_stopped {n k : ℕ} (prog : BscStopProgram 
       have hjlt : j.val < i := j.isLt
       have hsh := congrFun (clause17_stop_pad_prefix_shape prog hi y) j
       have hltj : j.val < (prog.stop y).val := lt_of_lt_of_le hjlt (le_of_lt hlt)
-      rw [if_pos hltj] at hsh
+      rw [ite_eq_left hltj] at hsh
       rw [hinj.1] at hsh
       exact ⟨y ⟨j.val, by omega⟩, hsh⟩
     have hiff := clause17_stop_allinl_iff prog hi pfx hall y
@@ -4618,7 +4616,7 @@ theorem clause17_stop_used_next_slot_marker {n k : ℕ} (prog : BscStopProgram n
       (clause17_stop_alive_of_transcript prog hi y).mp (by rw [hsp]; exact halive')
     have hpad : stopPad prog y ⟨i, hik⟩ = Sum.inl (y ⟨i, hik⟩) := by
       unfold stopPad
-      rw [if_pos hgt]
+      rw [ite_eq_left hgt]
     rw [hpad] at hinj
     exfalso
     exact Sum.inl_ne_inr hinj.2
@@ -4722,7 +4720,7 @@ theorem clause17_stop_used_law_zero_mutInfo {n k : ℕ} (prog : BscStopProgram n
       intro e
       by_cases hm : margL (stopUsedPrefixLaw prog p 0 (Nat.zero_le k)) x = 0
       · simp [condW, hm]
-      · rw [condW, dif_neg hm, hmass, hlaw x e]
+      · rw [condW, dite_eq_right hm, hmass, hlaw x e]
         exact Or.inr (by field_simp)
     rw [entH_zero_one (fun e => condW (stopUsedPrefixLaw prog p 0 (Nat.zero_le k)) x e) hcw]
     ring
@@ -4752,7 +4750,7 @@ theorem stopSlotChainTerm_eq {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {
     stopSlotChainTerm prog p i
       = condEntH (stopSlotMargLaw prog p hi) - condEntH (stopSlotPostLaw prog p hi) := by
   unfold stopSlotChainTerm
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
 
 /-- For `0 ≤ p ≤ 1` and `n > 0`, the mutual information in a used prefix equals the sum of its
 stopping-slot chain terms. -/
@@ -4888,7 +4886,7 @@ theorem clause17_stop_slot_marg_ent_le_one {n k : ℕ} (prog : BscStopProgram n 
       have h := condW_sum (stopSlotMargLaw prog p hi) hdnonneg pfx hm
       rw [clause17_sum_sum_bool_unit] at h
       have hz' : condW (stopSlotMargLaw prog p hi) pfx (Sum.inr ()) = 0 := by
-        rw [condW, dif_neg hm, hz]
+        rw [condW, dite_eq_right hm, hz]
         simp
       rw [hz'] at h
       rw [Fintype.sum_bool]
@@ -4907,7 +4905,7 @@ theorem clause17_stop_slot_marg_ent_le_one {n k : ℕ} (prog : BscStopProgram n 
       refine entH_padded_eq (w := fun b => condW (stopSlotMargLaw prog p hi) pfx b)
         (f := fun b : Bool => condW (stopSlotMargLaw prog p hi) pfx (Sum.inl b)) ?_ (fun b => rfl)
       show condW (stopSlotMargLaw prog p hi) pfx (Sum.inr ()) = 0
-      rw [condW, dif_neg hm, hz]
+      rw [condW, dite_eq_right hm, hz]
       simp
     rw [heq]
     exact h1
@@ -4955,10 +4953,10 @@ theorem clause17_stop_slot_marg_ent_zero {n k : ℕ} (prog : BscStopProgram n k)
     · simp [condW, hm]
     · cases b with
         | inl b' =>
-            rw [condW, dif_neg hm, hzero b']
+            rw [condW, dite_eq_right hm, hzero b']
             simp
         | inr u =>
-            rw [condW, dif_neg hm, hmarker]
+            rw [condW, dite_eq_right hm, hmarker]
             have hne : margL (stopSlotMargLaw prog p hi) pfx ≠ 0 := hm
             simp [div_self hne]
   exact entH_zero_one (fun b => condW (stopSlotMargLaw prog p hi) pfx b) hcw
@@ -4966,7 +4964,7 @@ theorem clause17_stop_slot_marg_ent_zero {n k : ℕ} (prog : BscStopProgram n k)
 /-- At an alive prefix, the hidden-cell-conditioned next-slot entropy weighted by its marginal
 equals the used-prefix joint weight times `binEntropy p`, for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_slot_post_ent {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
+    (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (_hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (halive : padAlive prog pfx) (x : Fin n) :
     margL (stopSlotPostLaw prog p hi) (x, pfx)
@@ -5003,10 +5001,10 @@ theorem clause17_stop_slot_post_ent {n k : ℕ} (prog : BscStopProgram n k) (p :
         condW (stopSlotPostLaw prog p hi) (x, pfx) (Sum.inl b)
           = bscProb p (truthBit x (prog.cuts ⟨i, hik⟩ (stopPadDecode pfx))) b := by
       intro b
-      rw [condW, dif_neg hm, hpost b, hmass]
+      rw [condW, dite_eq_right hm, hpost b, hmass]
       field_simp
     have hcwz : condW (stopSlotPostLaw prog p hi) (x, pfx) (Sum.inr ()) = 0 := by
-      rw [condW, dif_neg hm, hmarker]
+      rw [condW, dite_eq_right hm, hmarker]
       simp
     have heq : entH (fun b : Sum Bool Unit => condW (stopSlotPostLaw prog p hi) (x, pfx) b)
         = entH (fun b : Bool => bscProb p (truthBit x (prog.cuts ⟨i, hik⟩ (stopPadDecode pfx))) b) := by
@@ -5027,7 +5025,7 @@ theorem clause17_stop_slot_post_ent {n k : ℕ} (prog : BscStopProgram n k) (p :
 /-- At a prefix that is not alive, the marginal-weighted hidden-cell-conditioned next-slot
 entropy is zero for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_slot_post_ent_zero {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
+    (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (_hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (hdead : ¬ padAlive prog pfx) (x : Fin n) :
     margL (stopSlotPostLaw prog p hi) (x, pfx)
@@ -5050,10 +5048,10 @@ theorem clause17_stop_slot_post_ent_zero {n k : ℕ} (prog : BscStopProgram n k)
     · simp [condW, hm]
     · cases b with
       | inl b' =>
-          rw [condW, dif_neg hm, hzero b']
+          rw [condW, dite_eq_right hm, hzero b']
           simp
       | inr u =>
-          rw [condW, dif_neg hm, hmarker]
+          rw [condW, dite_eq_right hm, hmarker]
           have hne : margL (stopSlotPostLaw prog p hi) (x, pfx) ≠ 0 := hm
           simp [div_self hne]
   have hent : entH (fun b : Sum Bool Unit => condW (stopSlotPostLaw prog p hi) (x, pfx) b) = 0 :=
@@ -5087,10 +5085,10 @@ theorem clause17_stop_slot_marg_ent_le_live {n k : ℕ} (prog : BscStopProgram n
     · have h1 := clause17_stop_slot_marg_ent_le_one prog p hp0 hp1 hn hi hik pfx halive
       have hnonneg : 0 ≤ margL (stopSlotMargLaw prog p hi) pfx :=
         Finset.sum_nonneg fun a _ => hdnonneg pfx a
-      rw [if_pos halive]
+      rw [ite_eq_left halive]
       exact (mul_le_mul_of_nonneg_left h1 hnonneg).trans (le_of_eq (mul_one _))
     · have h1 := clause17_stop_slot_marg_ent_zero prog p hp0 hp1 hn hi hik pfx halive
-      rw [h1, if_neg halive]
+      rw [h1, ite_eq_right halive]
       simp
   have hrepl : (∑ pfx : Fin i → (Sum Bool Unit),
         (if padAlive prog pfx then
@@ -5104,7 +5102,7 @@ theorem clause17_stop_slot_marg_ent_le_live {n k : ℕ} (prog : BscStopProgram n
     intro pfx _
     by_cases halive : padAlive prog pfx
     · rw [clause17_stop_slot_marg_total prog p hi pfx]
-    · simp only [if_neg halive]
+    · simp only [ite_eq_right halive]
   calc (∑ pfx : Fin i → (Sum Bool Unit),
         margL (stopSlotMargLaw prog p hi) pfx
           * entH (fun b : Sum Bool Unit => condW (stopSlotMargLaw prog p hi) pfx b))
@@ -5156,7 +5154,7 @@ theorem clause17_stop_slot_post_ent_live {n k : ℕ} (prog : BscStopProgram n k)
           apply Finset.sum_congr rfl
           intro pfx _
           by_cases halive : padAlive prog pfx
-          · rw [if_pos halive]
+          · rw [ite_eq_left halive]
             calc (∑ x : Fin n, margL (stopSlotPostLaw prog p hi) (x, pfx)
                   * entH (fun b : Sum Bool Unit => condW (stopSlotPostLaw prog p hi) (x, pfx) b))
                 = ∑ x : Fin n, (stopUsedPrefixLaw prog p i ((clause17_stop_prefix_le hi)) (x, pfx)
@@ -5167,7 +5165,7 @@ theorem clause17_stop_slot_post_ent_live {n k : ℕ} (prog : BscStopProgram n k)
               _ = (∑ x : Fin n, stopUsedPrefixLaw prog p i ((clause17_stop_prefix_le hi)) (x, pfx))
                   * binEntropy p := by
                     rw [Finset.sum_mul]
-          · rw [if_neg halive]
+          · rw [ite_eq_right halive]
             apply Finset.sum_eq_zero
             intro x _
             exact clause17_stop_slot_post_ent_zero prog p hp0 hp1 hn hi hik pfx halive x
@@ -5177,9 +5175,9 @@ theorem clause17_stop_slot_post_ent_live {n k : ℕ} (prog : BscStopProgram n k)
   apply Finset.sum_congr rfl
   intro pfx _
   by_cases halive : padAlive prog pfx
-  · rw [if_pos halive, if_pos halive]
+  · rw [ite_eq_left halive, ite_eq_left halive]
     ring
-  · rw [if_neg halive, if_neg halive]
+  · rw [ite_eq_right halive, ite_eq_right halive]
     simp
 
 /-- The used-prefix marginal equals the full-transcript marginal mass of transcripts whose
@@ -5220,7 +5218,7 @@ theorem clause17_pad_alive_of_stop_alive {n k : ℕ} (prog : BscStopProgram n k)
     have h1 : tPrefix i hi (stopPad prog y) j = Sum.inl (y ⟨j.val, by omega⟩) := by
       show (if (⟨j.val, by omega⟩ : Fin k).val < (prog.stop y).val
         then Sum.inl (y ⟨j.val, by omega⟩) else Sum.inr ()) = _
-      rw [if_pos hjl]
+      rw [ite_eq_left hjl]
     simp only [stopPadDecode]
     rw [h1]
     rfl
@@ -5273,9 +5271,9 @@ theorem clause17_stop_live_mass_le_alive_prob {n k : ℕ} (prog : BscStopProgram
       (fun b _ hne => by
         show (if tPrefix i hi (stopPad prog y) = b then
             (if padAlive prog b then (1 : ℝ) else 0) else 0) = 0
-        rw [if_neg (Ne.symm hne)])
+        rw [ite_eq_right (Ne.symm hne)])
       (fun hmem => absurd (Finset.mem_univ (tPrefix i hi (stopPad prog y))) hmem)
-    simpa using! hsingle
+    simp
   unfold stopLiveMass stopAliveProb
   calc (∑ pfx : Fin i → (Sum Bool Unit),
         (if padAlive prog pfx then (∑ x, stopUsedPrefixLaw prog p i hi (x, pfx)) else 0))
@@ -5287,9 +5285,9 @@ theorem clause17_stop_live_mass_le_alive_prob {n k : ℕ} (prog : BscStopProgram
           apply Finset.sum_congr rfl
           intro pfx _
           by_cases h : padAlive prog pfx
-          · simp only [if_pos h]
+          · simp only [ite_eq_left h]
             rw [htrans pfx]
-          · simp only [if_neg h]
+          · simp only [ite_eq_right h]
     _ = ∑ pfx : Fin i → (Sum Bool Unit), ∑ y : Fin k → Bool,
           (if padAlive prog pfx then
               bscTransMarginal (stopToBscProg prog) p y
@@ -5323,8 +5321,8 @@ theorem clause17_stop_live_mass_le_alive_prob {n k : ℕ} (prog : BscStopProgram
             apply Finset.sum_congr rfl
             intro pfx _
             by_cases h : padAlive prog pfx
-            · simp only [if_pos h]
-            · simp only [if_neg h]
+            · simp only [ite_eq_left h]
+            · simp only [ite_eq_right h]
               ring
           rw [hshift, Finset.mul_sum]
     _ = ∑ y : Fin k → Bool, bscTransMarginal (stopToBscProg prog) p y
@@ -5371,7 +5369,7 @@ theorem clause17_stop_survival_sum {n k : ℕ} (prog : BscStopProgram n k) (p : 
       intro i _
       have hi : i.val ≤ k := by omega
       unfold g
-      rw [dif_pos hi]
+      rw [dite_eq_left hi]
       rfl
     have h2 : (∑ i ∈ Finset.range k, g i)
         = ∑ x : Fin k, stopAliveProb prog p x.val (Nat.le_of_lt x.isLt) := by
@@ -5380,14 +5378,14 @@ theorem clause17_stop_survival_sum {n k : ℕ} (prog : BscStopProgram n k) (p : 
       intro x _
       have hx : g x.val = stopAliveProb prog p x.val (Nat.le_of_lt x.isLt) := by
         unfold g
-        rw [dif_pos (by omega : x.val ≤ k)]
+        rw [dite_eq_left (by omega : x.val ≤ k)]
       rw [hx]
     rw [h1]
     rw [← Finset.sum_range (f := g)]
     rw [Finset.sum_range_succ]
     have hgk : g k = 0 := by
       have hk : k ≤ k := by omega
-      simp only [g, dif_pos hk]
+      simp only [g, dite_eq_left hk]
       exact hz
     rw [hgk, h2, add_zero]
   rw [← hmain]
@@ -5630,7 +5628,7 @@ theorem clause17_sum_ite_eq {α : Type} [Fintype α] [DecidableEq α] (c : α) (
   rw [h3] at h2
   rw [h1, zero_add] at h2
   have h2' : (if c = c then X else 0) = ∑ d : α, (if d = c then X else 0) := h2
-  rw [if_pos rfl] at h2'
+  rw [ite_eq_left rfl] at h2'
   exact h2'.symm
 
 /-- The point mass at a cut satisfies `RecQueryProb`. -/
@@ -6217,7 +6215,7 @@ theorem condEntH_eq_under_cond_indep {n : ℕ} {α β : Type} [Fintype α] [Fint
         exact hz
       have hcw : condW dPost (x, a) = condW dX x := by
         funext b
-        simp only [condW, dif_neg hnePre, dif_neg hmX]
+        simp only [condW, dite_eq_right hnePre, dite_eq_right hmX]
         rw [hmargPre x a, hPost x a b]
         have hden1 : dPre (x, a) ≠ 0 := hz
         have hden2 : margL dX x ≠ 0 := hmX

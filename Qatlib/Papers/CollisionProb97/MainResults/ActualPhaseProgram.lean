@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyTigh
-import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccess
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamily
+public import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccess
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Compiling table-membership phase queries

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.List.OfFn
-import Mathlib.Topology.MetricSpace.Pseudo.Pi
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmeticDefs
-import Qatlib.Concepts.ResourceBounds.AsymBounds.EffectiveAccessDefs
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Topology.MetricSpace.Pseudo.Pi
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmeticDefs
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.EffectiveAccessDefs
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+
+@[expose] public section
 
 /-!
 # Dyadic Encodings and Implementation Contracts

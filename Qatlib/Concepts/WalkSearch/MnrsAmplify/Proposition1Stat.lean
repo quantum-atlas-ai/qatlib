@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.LinearAlgebra.Matrix.Stochastic
-import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Vector.Defs
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition1Defs
+module
+
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.LinearAlgebra.Matrix.Stochastic
+public import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Vector.Defs
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition1Defs
+
+@[expose] public section
 
 /-!
 # Classical spectral-gap search specification

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchJoint
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchExpected
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchJoint
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchExpected
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+@[expose] public section
 
 /-!
 # Iteration-cost balance along search histories

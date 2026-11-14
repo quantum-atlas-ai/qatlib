@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+
+@[expose] public section
 
 /-!
 # Averaging bounds for branch costs
@@ -73,11 +77,11 @@ theorem averaging_conversion_inner {n : ℕ} (α : Fin n → ℂ) (s : Fin n →
     congr 1
     · refine Finset.sum_congr rfl ?_
       intro i hi
-      simp only [if_pos hi, mul_one, Complex.ofReal_re]
+      simp only [ite_eq_left hi, mul_one, Complex.ofReal_re]
     · refine Finset.sum_congr rfl ?_
       intro i hi
       have hi' : i ∉ C := Finset.mem_compl.mp hi
-      simp only [if_neg hi', Complex.re_ofReal_mul]
+      simp only [ite_eq_right hi', Complex.re_ofReal_mul]
 
   have hcompl : - (∑ i ∈ Cᶜ, ‖α i‖ ^ 2)
       ≤ ∑ i ∈ Cᶜ, ‖α i‖ ^ 2 * (⟪s i, U i (s i)⟫).re := by

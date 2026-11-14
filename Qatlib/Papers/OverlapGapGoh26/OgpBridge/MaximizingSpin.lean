@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.CostConvention
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.CostConvention
+
+@[expose] public section
 
 /-!
 # Overlap gap obstructions for maximizing spin energies

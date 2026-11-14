@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleMajorityAmpStat
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStre
+module
+
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleMajorityAmpStat
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStre
+
+@[expose] public section
 
 /-!
 # Majority amplification for a standard bit oracle

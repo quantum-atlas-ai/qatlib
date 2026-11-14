@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineMassLower
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineMassLower
+
+@[expose] public section
 
 /-!
 # Explicit cosine degree and query budgets

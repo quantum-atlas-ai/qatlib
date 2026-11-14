@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachine
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.ENNReal.BigOperators
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachine
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Basic.ENNReal.BigOperators
+
+@[expose] public section
 
 /-!
 # Finite Ensembles of Instrument Machines

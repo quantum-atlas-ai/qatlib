@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+
+@[expose] public section
 
 /-!
 # Five-dimensional local gate model
@@ -90,11 +94,9 @@ theorem Mdiag5_mem_unitaryGroup (α : ℝ) :
     Mdiag5 α ∈ Matrix.unitaryGroup (Fin 5) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
   ext i j
-  simp only [Mdiag5, Matrix.diagonal, Matrix.mul_apply, Matrix.conjTranspose_apply,
-    Matrix.of_apply, Matrix.one_apply]
+  simp only [Mdiag5, Matrix.diagonal, Matrix.mul_apply, Matrix.of_apply, Matrix.one_apply]
   by_cases hi : i = 4 <;> by_cases hij : i = j <;>
-    simp_all [Complex.mul_conj, Complex.normSq, Complex.exp_re, Complex.exp_im,
-      Complex.cos_sq_add_sin_sq, ← pow_two, Real.exp_zero, eq_comm]
+    simp_all [Complex.mul_conj, Complex.normSq, Complex.exp_re, Complex.exp_im, ← pow_two, Real.exp_zero, eq_comm]
 
 /-- **Statement only — not proved in Qatlib.** The proposition that every two-dimensional special unitary is the final block of a local
 gate word of uniformly bounded length, with unit scalar phases on the remaining coordinates

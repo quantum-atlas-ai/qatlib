@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.GaussianFFTDefs
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.GaussianFFTDefs
+
+@[expose] public section
 
 /-!
 # Binary arithmetic with explicit charges
@@ -241,24 +245,24 @@ theorem gaussian_signed_division_correct (n : ℤ) (D : ℕ) :
   have hinv : out.remainder + (D : ℤ) * out.quotient = n ∧
       0 ≤ out.remainder ∧ out.remainder < (D : ℤ) := by
     dsimp only [out, gaussianSignedDivision]
-    rw [if_neg hD]
+    rw [ite_eq_right hD]
     by_cases hn : 0 ≤ n
-    · simp only [if_pos hn]
+    · simp only [ite_eq_left hn]
       rw [Int.natCast_natAbs, abs_of_nonneg hn] at he
       exact ⟨he, by positivity, hr⟩
-    · simp only [if_neg hn]
+    · simp only [ite_eq_right hn]
       rw [Int.natCast_natAbs, abs_of_neg (lt_of_not_ge hn)] at he
       by_cases hz : r.remainder = 0
-      · simp only [show (gaussianNaturalDivision D n.natAbs).remainder = 0 from hz, if_true]
+      · simp only [show (gaussianNaturalDivision D n.natAbs).remainder = 0 from hz, ite_true]
         simp only [hz, Nat.cast_zero, zero_add] at he
         exact ⟨by nlinarith only [he], le_refl _, hdZ⟩
-      · simp only [show (gaussianNaturalDivision D n.natAbs).remainder ≠ 0 from hz, if_false]
+      · simp only [show (gaussianNaturalDivision D n.natAbs).remainder ≠ 0 from hz, ite_false]
         have hpos : (0 : ℤ) < r.remainder := by exact_mod_cast Nat.pos_of_ne_zero hz
         exact ⟨by nlinarith only [he], sub_nonneg.mpr hr.le, sub_lt_self _ hpos⟩
   have hu := (Int.ediv_emod_unique hdZ).mpr hinv
   refine ⟨hu.1.symm, hu.2.symm, ?_⟩
   dsimp only [gaussianSignedDivision]
-  simp only [if_neg hD]
+  simp only [ite_eq_right hD]
   split_ifs <;> exact hc.2.2
 
 /-- For a canonical binary constructor, charged natural division unfolds to the tail run
@@ -336,7 +340,7 @@ theorem gaussian_charged_signed_certificate (n : ℤ) (D : ℕ) :
     nlinarith
   have hvalue : (gaussianChargedSignedDivision n D).value = gaussianSignedDivision n D := by
     dsimp only [gaussianChargedSignedDivision, gaussianSignedDivision]
-    simp only [if_neg hD, gaussian_charged_natural_value]
+    simp only [ite_eq_right hD, gaussian_charged_natural_value]
   refine ⟨hvalue, ?_⟩
   let W := n.natAbs.size + D.size + 2
   have hW : 1 ≤ W := by dsimp only [W]; omega
@@ -346,7 +350,7 @@ theorem gaussian_charged_signed_certificate (n : ℤ) (D : ℕ) :
   have hcost := gaussian_charged_natural_bound D n.natAbs (Nat.pos_of_ne_zero hD)
   change (gaussianChargedSignedDivision n D).charge ≤ 64 * W ^ 2
   dsimp only [gaussianChargedSignedDivision]
-  rw [if_neg hD]
+  rw [ite_eq_right hD]
   change (gaussianChargedNaturalDivision D n.natAbs).charge + 6 * W ≤ _
   have hDsmall : D.size + 1 ≤ W := by dsimp only [W]; omega
   change (gaussianChargedNaturalDivision D n.natAbs).charge ≤ D.size + 1 + 16 * n.natAbs.size * W at hcost

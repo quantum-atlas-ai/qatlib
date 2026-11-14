@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+@[expose] public section
 
 /-!
 # Norm and singular-gap bounds after preconditioning
@@ -148,8 +152,8 @@ theorem singular_gap_of_pseudoinverse_norm (B : Matrix O I ℂ) (K : ℝ) (hK : 
   have hact : (matrixPseudoinverse B*B)*ᵥ(⇑(rightSingularBasis B i))=⇑(rightSingularBasis B i) := by
     funext j
     have he:=congrArg (fun M=>M j i) hcol
-    (try dsimp only at he)
-    rw [singularSupport,Matrix.mul_diagonal,if_neg hi.ne',mul_one] at he
+
+    rw [singularSupport,Matrix.mul_diagonal,ite_eq_right hi.ne',mul_one] at he
     exact he
   have hnorm : ‖stateVector (B*ᵥ(⇑(rightSingularBasis B i)))‖=matrixSingularValues B i := by
     have hh:=norm_apply_rightSingularBasis B i

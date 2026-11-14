@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.KnownGateApproximationData
-import Qatlib.Concepts.OperatorErrors.Robustness
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.KnownGateApproximationData
+public import Qatlib.Concepts.OperatorErrors.Robustness
+
+@[expose] public section
 
 /-!
 # Error accumulation for known-gate replacements

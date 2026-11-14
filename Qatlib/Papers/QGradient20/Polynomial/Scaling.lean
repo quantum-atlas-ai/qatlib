@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
+module
+
+public import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
+
+@[expose] public section
 
 /-!
 # Homogeneous scaling of tensor polynomial gradients

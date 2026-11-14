@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedLists
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedLists
+
+@[expose] public section
 
 /-!
 # Corrected signed LCU protocol

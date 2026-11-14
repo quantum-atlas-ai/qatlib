@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
-import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleAux
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+module
+
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleAux
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+
+@[expose] public section
 
 /-!
 # Finite random-oracle failure theorem

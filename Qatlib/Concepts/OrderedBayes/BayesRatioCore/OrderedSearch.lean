@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchDefs
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ConsistencyChecks
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchDefs
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ConsistencyChecks
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 /-!
 # Bayesian Ordered Search and Query Bounds
@@ -79,26 +83,26 @@ theorem uniform_sum {n : ℕ} (hn : 0 < n) : (∑ m : Fin n, uniformPosterior (n
 theorem bayesTrueLikelihood_pos {n : ℕ} (c m : Fin n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     0 < bayesTrueLikelihood c m p := by
   by_cases h : (c : ℕ) ≤ (m : ℕ)
-  · unfold bayesTrueLikelihood; rw [if_pos h]; linarith
-  · unfold bayesTrueLikelihood; rw [if_neg h]; linarith
+  · unfold bayesTrueLikelihood; rw [ite_eq_left h]; linarith
+  · unfold bayesTrueLikelihood; rw [ite_eq_right h]; linarith
 
 /-- Both Boolean answer likelihoods are positive when `0 < p < 1`. -/
 theorem answerLikelihood_pos {n : ℕ} (m c : Fin n) (p : ℝ) (b : Bool) (hp : 0 < p)
     (hp1 : p < 1) : 0 < answerLikelihood m c p b := by
   by_cases hb : b
-  · unfold answerLikelihood; rw [if_pos hb]
+  · unfold answerLikelihood; rw [ite_eq_left hb]
     exact bayesTrueLikelihood_pos c m p hp hp1
-  · unfold answerLikelihood; rw [if_neg hb]
+  · unfold answerLikelihood; rw [ite_eq_right hb]
     by_cases h : (c : ℕ) ≤ (m : ℕ)
-    · unfold bayesFalseLikelihood; rw [if_pos h]; linarith
-    · unfold bayesFalseLikelihood; rw [if_neg h]; linarith
+    · unfold bayesFalseLikelihood; rw [ite_eq_left h]; linarith
+    · unfold bayesFalseLikelihood; rw [ite_eq_right h]; linarith
 
 /-- The printed true-answer likelihood is positive when `0 < p < 1`. -/
 theorem printedTrueLikelihood_pos {n : ℕ} (c m : Fin n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     0 < printedTrueLikelihood c m p := by
   by_cases h : (m : ℕ) ≤ (c : ℕ)
-  · unfold printedTrueLikelihood; rw [if_pos h]; linarith
-  · unfold printedTrueLikelihood; rw [if_neg h]; linarith
+  · unfold printedTrueLikelihood; rw [ite_eq_left h]; linarith
+  · unfold printedTrueLikelihood; rw [ite_eq_right h]; linarith
 
 /-- A nonnegative weighted sum of positive values is positive if at least one weight is
 positive. -/
@@ -116,8 +120,8 @@ theorem correctPost_eq {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) (b : 
     correctPost a c p b m =
       (a m * answerLikelihood m c p b) / (∑ m', a m' * answerLikelihood m' c p b) := by
   by_cases hb : b
-  · simp only [correctPost, answerLikelihood, if_pos hb, bayesTruePost, bayesTrueNorm]
-  · simp only [correctPost, answerLikelihood, if_neg hb, bayesFalsePost, bayesFalseNorm]
+  · simp only [correctPost, answerLikelihood, ite_eq_left hb, bayesTruePost, bayesTrueNorm]
+  · simp only [correctPost, answerLikelihood, ite_eq_right hb, bayesFalsePost, bayesFalseNorm]
 
 /-- Every transported weight is positive for a nonempty search space and `0 < p < 1`. -/
 theorem transportWeights_pos {n : ℕ} (hn : 0 < n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
@@ -218,9 +222,9 @@ theorem recordPosterior_pos {n : ℕ} (hn : 0 < n) (p : ℝ) (hp : 0 < p) (hp1 :
 theorem printed_updateTrue_eq {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) (m : Fin n) :
     updateTrue a c p m = (a m * printedTrueLikelihood c m p) / normTrue a c p := by
   by_cases h1 : (m : ℕ) ≤ (c : ℕ)
-  · simp only [updateTrue, printedTrueLikelihood, if_pos h1]
+  · simp only [updateTrue, printedTrueLikelihood, ite_eq_left h1]
     ring
-  · simp only [updateTrue, printedTrueLikelihood, if_neg h1]
+  · simp only [updateTrue, printedTrueLikelihood, ite_eq_right h1]
     ring
 
 /-- The printed and Bayesian true-answer likelihoods agree away from the queried cell. -/
@@ -230,10 +234,10 @@ theorem printedTrueLikelihood_eq_bayesTrueLikelihood {n : ℕ} {c m : Fin n} (p 
   · have h2 : (m : ℕ) < (c : ℕ) := by omega
     have h3 : ¬((c : ℕ) ≤ (m : ℕ)) := by omega
     unfold printedTrueLikelihood bayesTrueLikelihood
-    simp only [if_pos h1, if_neg h3]
+    simp only [ite_eq_left h1, ite_eq_right h3]
   · have h2 : (c : ℕ) < (m : ℕ) := by omega
     unfold printedTrueLikelihood bayesTrueLikelihood
-    simp only [if_neg h1, if_pos (Nat.le_of_lt h2)]
+    simp only [ite_eq_right h1, ite_eq_left (Nat.le_of_lt h2)]
 
 /-- At the queried cell, the printed and Bayesian true-answer likelihoods differ whenever `p ≠ 1
 / 2`. -/
@@ -241,9 +245,9 @@ theorem printedTrueLikelihood_ne_bayesTrueLikelihood_at_equal {n : ℕ} (c : Fin
     (hp : p ≠ 1 / 2) :
     printedTrueLikelihood c c p ≠ bayesTrueLikelihood c c p := by
   have h1 : printedTrueLikelihood c c p = 1 - p := by
-    unfold printedTrueLikelihood; rw [if_pos le_rfl]
+    unfold printedTrueLikelihood; rw [ite_eq_left le_rfl]
   have h2 : bayesTrueLikelihood c c p = p := by
-    unfold bayesTrueLikelihood; rw [if_pos le_rfl]
+    unfold bayesTrueLikelihood; rw [ite_eq_left le_rfl]
   rw [h1, h2]
   intro h
   have hp' : p = 1 / 2 := by linarith
@@ -261,35 +265,35 @@ theorem printedLikelihood_sum {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ
     by_cases h1 : (m : ℕ) ≤ (c : ℕ)
     · have h2 : ¬((c : ℕ) < (m : ℕ)) := by omega
       unfold printedTrueLikelihood
-      simp only [if_pos h1, if_neg h2]
+      simp only [ite_eq_left h1, ite_eq_right h2]
       ring
     · have h2 : (c : ℕ) < (m : ℕ) := by omega
       unfold printedTrueLikelihood
-      simp only [if_neg h1, if_pos h2]
+      simp only [ite_eq_right h1, ite_eq_left h2]
       ring
   have hpart : ∀ m : Fin n,
       (if (m : ℕ) ≤ (c : ℕ) then a m * (1 - p) else 0)
         = (1 - p) * (if (m : ℕ) ≤ (c : ℕ) then a m else 0) := by
     intro m
     by_cases h1 : (m : ℕ) ≤ (c : ℕ)
-    · simp only [if_pos h1]; ring
-    · simp only [if_neg h1]; ring
+    · simp only [ite_eq_left h1]; ring
+    · simp only [ite_eq_right h1]; ring
   have hpart2 : ∀ m : Fin n,
       (if (c : ℕ) < (m : ℕ) then a m * p else 0)
         = p * (if (c : ℕ) < (m : ℕ) then a m else 0) := by
     intro m
     by_cases h1 : (c : ℕ) < (m : ℕ)
-    · simp only [if_pos h1]; ring
-    · simp only [if_neg h1]; ring
+    · simp only [ite_eq_left h1]; ring
+    · simp only [ite_eq_right h1]; ring
   have hcov : ∀ m : Fin n,
       (if (m : ℕ) ≤ (c : ℕ) then a m else 0)
         + (if (c : ℕ) < (m : ℕ) then a m else 0) = a m := by
     intro m
     by_cases h1 : (m : ℕ) ≤ (c : ℕ)
     · have h2 : ¬((c : ℕ) < (m : ℕ)) := by omega
-      simp only [if_pos h1, if_neg h2]; ring
+      simp only [ite_eq_left h1, ite_eq_right h2]; ring
     · have h2 : (c : ℕ) < (m : ℕ) := by omega
-      simp only [if_neg h1, if_pos h2]; ring
+      simp only [ite_eq_right h1, ite_eq_left h2]; ring
   have hS1 : (∑ m : Fin n, (if (m : ℕ) ≤ (c : ℕ) then a m else 0)) = prefixMass a c := rfl
   have hS2 : (∑ m : Fin n, (if (c : ℕ) < (m : ℕ) then a m else 0))
       = (∑ m, a m) - prefixMass a c := by
@@ -328,9 +332,9 @@ theorem printed_true_norm_difference {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (
       have ho : offCellMass a c c = 0 := by simp [offCellMass]
       rw [ho]
       have h1 : bayesTrueLikelihood c c p = p := by
-        unfold bayesTrueLikelihood; rw [if_pos le_rfl]
+        unfold bayesTrueLikelihood; rw [ite_eq_left le_rfl]
       have h2 : printedTrueLikelihood c c p = 1 - p := by
-        unfold printedTrueLikelihood; rw [if_pos le_rfl]
+        unfold printedTrueLikelihood; rw [ite_eq_left le_rfl]
       rw [h1, h2]
       ring
     · have h3 : printedTrueLikelihood c m p = bayesTrueLikelihood c m p :=
@@ -362,12 +366,12 @@ theorem offCell_likelihood_sum_pos {n : ℕ} (a : Fin n → ℝ) (c m' : Fin n) 
   apply Finset.sum_pos'
   · intro m _
     by_cases heq : m = c
-    · simp only [offCellMass, if_pos heq]
+    · simp only [offCellMass, ite_eq_left heq]
       exact mul_nonneg (by norm_num) (le_of_lt (bayesTrueLikelihood_pos c m p hp hp1))
-    · simp only [offCellMass, if_neg heq]
+    · simp only [offCellMass, ite_eq_right heq]
       exact mul_nonneg (ha0 m) (le_of_lt (bayesTrueLikelihood_pos c m p hp hp1))
   · refine ⟨m', Finset.mem_univ _, ?_⟩
-    simp only [offCellMass, if_neg hne]
+    simp only [offCellMass, ite_eq_right hne]
     exact mul_pos ha (bayesTrueLikelihood_pos c m' p hp hp1)
 
 /-- For `1 / 2 < p < 1`, a normalized nonnegative prior with positive mass both at and away from
@@ -391,9 +395,9 @@ theorem printed_updateTrue_ne_bayesTruePost_at_equal {n : ℕ} (a : Fin n → �
     rfl
   rw [h1, h2] at hcon
   have h3 : printedTrueLikelihood c c p = 1 - p := by
-    unfold printedTrueLikelihood; rw [if_pos le_rfl]
+    unfold printedTrueLikelihood; rw [ite_eq_left le_rfl]
   have h4 : bayesTrueLikelihood c c p = p := by
-    unfold bayesTrueLikelihood; rw [if_pos le_rfl]
+    unfold bayesTrueLikelihood; rw [ite_eq_left le_rfl]
   rw [h3, h4] at hcon
   field_simp [ne_of_gt hNpos, ne_of_gt hBpos] at hcon
   have hcross : (1 - p) * bayesTrueNorm a c p = p * normTrue a c p := hcon
@@ -413,8 +417,8 @@ theorem sum_eq_single_cell {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (f : Fin n 
   have e : (∑ m, a m * f m) = ∑ m, (if m = c then a m * f m else 0) := by
     refine sum_congr' (fun m => ?_)
     by_cases heq : m = c
-    · rw [if_pos heq]
-    · rw [if_neg heq, hother m heq, zero_mul]
+    · rw [ite_eq_left heq]
+    · rw [ite_eq_right heq, hother m heq, zero_mul]
   rw [e]
   rw [Finset.sum_ite_eq']
   simp
@@ -432,7 +436,7 @@ theorem printed_updateTrue_eq_bayesTruePost_at_equal_degenerate {n : ℕ} (a : F
       sum_eq_single_cell a c (printedTrueLikelihood c · p) hother
     rw [h1]
     have h2 : printedTrueLikelihood c c p = 1 - p := by
-      unfold printedTrueLikelihood; rw [if_pos le_rfl]
+      unfold printedTrueLikelihood; rw [ite_eq_left le_rfl]
     rw [h2, hac]
     norm_num
   have hB : bayesTrueNorm a c p = p := by
@@ -442,7 +446,7 @@ theorem printed_updateTrue_eq_bayesTruePost_at_equal_degenerate {n : ℕ} (a : F
       sum_eq_single_cell a c (bayesTrueLikelihood c · p) hother
     rw [h1]
     have h2 : bayesTrueLikelihood c c p = p := by
-      unfold bayesTrueLikelihood; rw [if_pos le_rfl]
+      unfold bayesTrueLikelihood; rw [ite_eq_left le_rfl]
     rw [h2, hac]
     norm_num
   have h1 : updateTrue a c p c = (a c * printedTrueLikelihood c c p) / normTrue a c p :=
@@ -450,9 +454,9 @@ theorem printed_updateTrue_eq_bayesTruePost_at_equal_degenerate {n : ℕ} (a : F
   have h2 : bayesTruePost a c p c = (a c * bayesTrueLikelihood c c p) / bayesTrueNorm a c p :=
     rfl
   have h3 : printedTrueLikelihood c c p = 1 - p := by
-    unfold printedTrueLikelihood; rw [if_pos le_rfl]
+    unfold printedTrueLikelihood; rw [ite_eq_left le_rfl]
   have h4 : bayesTrueLikelihood c c p = p := by
-    unfold bayesTrueLikelihood; rw [if_pos le_rfl]
+    unfold bayesTrueLikelihood; rw [ite_eq_left le_rfl]
   rw [h1, h2, h3, h4, hN, hB, hac]
   have hp0 : p ≠ 0 := by linarith
   have h1p : (1 : ℝ) - p ≠ 0 := by linarith
@@ -480,7 +484,7 @@ set. -/
 theorem sourceRank_side_set {n : ℕ} (j : Fin n) :
     { m : Fin n | sourceRank m ≤ sourceRank j } = { m : Fin n | sourceSide m j } := by
   ext m
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   exact sourceRank_side_iff m j
 
 /-- The source rank of the index associated with a valid one-based rank `r` is `r`. -/
@@ -566,7 +570,7 @@ theorem recordLikelihood_append {n : ℕ} (m : Fin n) (p : ℝ) (t u : Record n)
   | cons obs t ih =>
     simp only [recordLikelihood, List.foldr_cons]
     rw [List.foldr_append, foldr_recordLikelihood]
-    simp only [recordLikelihood, List.foldr_cons, List.foldr_nil]
+    simp only [recordLikelihood, List.foldr_cons]
 
 /-- Extending a record multiplies its likelihood by the likelihood of the new answer at `cutAt`. -/
 theorem recordLikelihood_extend {n : ℕ} (hn : 0 < n) (p ε : ℝ) (m : Fin n) (t : Record n)
@@ -713,8 +717,8 @@ theorem treeDiff_nonneg {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u v : Fin n) (R : �
     intro t
     simp only [treeDiff]
     by_cases h : R ≤ recordRatio t u v p
-    · rw [if_pos h]; linarith
-    · rw [if_neg h]
+    · rw [ite_eq_left h]; linarith
+    · rw [ite_eq_right h]
       have := recordRatio_nonneg p hp hp1 t u v
       linarith
   | succ m ih =>
@@ -793,17 +797,17 @@ theorem three_cell_one_step_ratio_mean {n : ℕ} (u k i c : Fin n) (p : ℝ)
   have hp1' : (0 : ℝ) < 1 - p := by linarith
   by_cases hck : (c : ℕ) ≤ (k : ℕ)
   · have hci : (c : ℕ) ≤ (i : ℕ) := by omega
-    rw [h9, h10, h11, h12, if_pos hck, if_pos hck, if_pos hci, if_pos hci]
+    rw [h9, h10, h11, h12, ite_eq_left hck, ite_eq_left hck, ite_eq_left hci, ite_eq_left hci]
     field_simp
     exact answerLikelihood_sum u c p
   · by_cases hci : (c : ℕ) ≤ (i : ℕ)
     · have hcu : ¬ ((c : ℕ) ≤ (u : ℕ)) := by omega
-      rw [h7, h8, h9, h10, h11, h12, if_neg hck, if_neg hck, if_pos hci, if_pos hci,
-        if_neg hcu, if_neg hcu]
+      rw [h7, h8, h9, h10, h11, h12, ite_eq_right hck, ite_eq_right hck, ite_eq_left hci, ite_eq_left hci,
+        ite_eq_right hcu, ite_eq_right hcu]
       field_simp
       ring
     · have hcu : ¬ ((c : ℕ) ≤ (u : ℕ)) := by omega
-      rw [h9, h10, h11, h12, if_neg hck, if_neg hck, if_neg hci, if_neg hci]
+      rw [h9, h10, h11, h12, ite_eq_right hck, ite_eq_right hck, ite_eq_right hci, ite_eq_right hci]
       field_simp
       exact answerLikelihood_sum u c p
 
@@ -857,8 +861,8 @@ theorem treeDiffOf_nonneg {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u v w : Fin n) (R
     intro t
     simp only [treeDiffOf]
     by_cases h : R ≤ recordRatio t v w p
-    · rw [if_pos h]; linarith
-    · rw [if_neg h]
+    · rw [ite_eq_left h]; linarith
+    · rw [ite_eq_right h]
       have := recordRatio_nonneg p hp hp1 t v w
       linarith
   | succ m ih =>
@@ -1032,8 +1036,8 @@ theorem treeCount_mono {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) {φ ψ : 
     intro t
     simp only [treeCount]
     by_cases h : φ t
-    · rw [if_pos h, if_pos (hφψ t h)]
-    · rw [if_neg h]; by_cases hψ : ψ t <;> simp [hψ]
+    · rw [ite_eq_left h, ite_eq_left (hφψ t h)]
+    · rw [ite_eq_right h]; by_cases hψ : ψ t <;> simp [hψ]
   | succ m ih =>
     intro t
     simp only [treeCount]
@@ -1056,14 +1060,14 @@ theorem treeCount_exists_le_finset {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin 
     intro t
     simp only [treeCount, treeCountFinset]
     by_cases h : ∃ k ∈ S, φ k t
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       obtain ⟨k, hk, hφ⟩ := h
       have h1 : (1 : ℝ) ≤ ∑ j ∈ S, (if φ j t then 1 else 0) := by
         have hsingle := Finset.single_le_sum (s := S) (f := fun j => if φ j t then (1 : ℝ) else 0)
           (fun j _ => by by_cases h : φ j t <;> simp [h]) hk
         simpa [hφ] using! hsingle
       linarith
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact Finset.sum_nonneg fun j _ => by split_ifs <;> norm_num
   | succ m ih =>
     intro t
@@ -1307,10 +1311,10 @@ theorem clause13_endpoint :
 theorem fggs_pred_val {N : ℕ} (hN : 0 < N) (x : Fin (2 * N)) :
     (fggsPred hN x).val = if 0 < x.val then x.val - 1 else 2 * N - 1 := by
   by_cases h0 : 0 < x.val
-  · rw [fggsPred, if_pos h0]
-    rw [if_pos h0]
-  · rw [fggsPred, if_neg h0]
-    rw [if_neg h0]
+  · rw [fggsPred, ite_eq_left h0]
+    rw [ite_eq_left h0]
+  · rw [fggsPred, ite_eq_right h0]
+    rw [ite_eq_right h0]
 
 /-- The cyclic successor on `Fin (2 * N)` adds one modulo `2 * N`. -/
 theorem fggs_succ_val {N : ℕ} (hN : 0 < N) (x : Fin (2 * N)) :
@@ -1325,11 +1329,11 @@ theorem fggs_pred_succ {N : ℕ} (hN : 0 < N) (x : Fin (2 * N)) :
   rw [fggs_pred_val, fggs_succ_val]
   by_cases h1 : x.val + 1 < 2 * N
   · rw [Nat.mod_eq_of_lt h1]
-    rw [if_pos (by omega : (0 : ℕ) < x.val + 1)]
+    rw [ite_eq_left (by omega : (0 : ℕ) < x.val + 1)]
     omega
   · have h2 : x.val + 1 = 2 * N := by omega
     rw [h2, Nat.mod_self]
-    rw [if_neg (by omega : ¬((0 : ℕ) < 0))]
+    rw [ite_eq_right (by omega : ¬((0 : ℕ) < 0))]
     omega
 
 /-- For `j < N`, increasing the FGGS index from `j` to `j + 1` is equivalent to evaluating at
@@ -1345,33 +1349,33 @@ theorem fggsFull_succ {N : ℕ} (hN : 0 < N) (j : ℕ) (hj : j < N) (x : Fin (2 
     have h7 : x.val < j + 1 := by omega
     have h8 : ¬((2 * N - 1 : ℕ) < N) := by omega
     have h10 : ¬((2 * N - 1) - N < j) := by omega
-    rw [fggsFull, fggsFull, hy, if_neg h5]
-    rw [if_pos h6, if_pos h7, if_neg h8, if_neg h10]
+    rw [fggsFull, fggsFull, hy, ite_eq_right h5]
+    rw [ite_eq_left h6, ite_eq_left h7, ite_eq_right h8, ite_eq_right h10]
   · rcases lt_trichotomy x.val N with hltN | heqN | hgtN
     · have h6 : x.val < N := by omega
       have h7 : x.val - 1 < N := by omega
       by_cases hA : x.val < j + 1
       · have h8 : x.val - 1 < j := by omega
-        rw [fggsFull, fggsFull, hy, if_pos hgt0]
-        rw [if_pos h6, if_pos h7, if_pos hA, if_pos h8]
+        rw [fggsFull, fggsFull, hy, ite_eq_left hgt0]
+        rw [ite_eq_left h6, ite_eq_left h7, ite_eq_left hA, ite_eq_left h8]
       · have h8 : ¬(x.val - 1 < j) := by omega
-        rw [fggsFull, fggsFull, hy, if_pos hgt0]
-        rw [if_pos h6, if_pos h7, if_neg hA, if_neg h8]
+        rw [fggsFull, fggsFull, hy, ite_eq_left hgt0]
+        rw [ite_eq_left h6, ite_eq_left h7, ite_eq_right hA, ite_eq_right h8]
     · have h6 : ¬((x.val : ℕ) < N) := by omega
       have h7 : x.val - N < j + 1 := by omega
       have h8 : x.val - 1 < N := by omega
       have h9 : ¬(x.val - 1 < j) := by omega
-      rw [fggsFull, fggsFull, hy, if_pos hgt0]
-      rw [if_neg h6, if_pos h7, if_pos h8, if_neg h9]
+      rw [fggsFull, fggsFull, hy, ite_eq_left hgt0]
+      rw [ite_eq_right h6, ite_eq_left h7, ite_eq_left h8, ite_eq_right h9]
     · have h6 : ¬((x.val : ℕ) < N) := by omega
       have h7 : ¬((x.val - 1 : ℕ) < N) := by omega
       by_cases hA : x.val - N < j + 1
       · have h8 : (x.val - 1) - N < j := by omega
-        rw [fggsFull, fggsFull, hy, if_pos hgt0]
-        rw [if_neg h6, if_neg h7, if_pos hA, if_pos h8]
+        rw [fggsFull, fggsFull, hy, ite_eq_left hgt0]
+        rw [ite_eq_right h6, ite_eq_right h7, ite_eq_left hA, ite_eq_left h8]
       · have h8 : ¬((x.val - 1) - N < j) := by omega
-        rw [fggsFull, fggsFull, hy, if_pos hgt0]
-        rw [if_neg h6, if_neg h7, if_neg hA, if_neg h8]
+        rw [fggsFull, fggsFull, hy, ite_eq_left hgt0]
+        rw [ite_eq_right h6, ite_eq_right h7, ite_eq_right hA, ite_eq_right h8]
 
 /-- The FGGS full function at `j + 1` equals its value at `j` on the cyclic predecessor when `j
 < N`. -/
@@ -1391,10 +1395,10 @@ theorem fggsFull_values (N : ℕ) (j : ℕ) (x : Fin (2 * N)) :
       else (if x.val - N < j then 1 else -1) := rfl
 
 /-- For `j < N`, the restriction of `fggsFull j` to the first half is `fggsThreshold j`. -/
-theorem fggsFull_first_half {N : ℕ} (hN : 0 < N) (j : ℕ) (hj : j < N) (x : Fin N) :
+theorem fggsFull_first_half {N : ℕ} (hN : 0 < N) (j : ℕ) (_hj : j < N) (x : Fin N) :
     fggsFull (N := N) j ⟨x.val, lt_trans x.is_lt (by omega)⟩ = fggsThreshold j x := by
   rw [fggsFull, fggsThreshold]
-  rw [if_pos x.is_lt]
+  rw [ite_eq_left x.is_lt]
 
 /-- The FGGS query count, fixed to six. -/
 def fggsQueryCount : ℕ := 6
@@ -1490,7 +1494,7 @@ summing `f`. -/
 theorem fggs_shift_sum {K : ℕ} (hK : 0 < K) (f : Fin K → ℝ) (h : Fin K) :
     (∑ iv, f (h - iv)) = ∑ j, f j := by
   classical
-  letI : NeZero K := ⟨hK.ne'⟩
+  let : NeZero K := ⟨hK.ne'⟩
   have h1 := (Equiv.subLeft h).sum_comp f
   simpa only [Equiv.subLeft_apply] using! h1
 
@@ -1499,7 +1503,7 @@ summing `f`. -/
 theorem fggs_shift_sum' {K : ℕ} (hK : 0 < K) (f : Fin K → ℝ) (h : Fin K) :
     (∑ iv, f (iv - h)) = ∑ j, f j := by
   classical
-  letI : NeZero K := ⟨hK.ne'⟩
+  let : NeZero K := ⟨hK.ne'⟩
   have h1 := (Equiv.subRight h).sum_comp f
   simpa only [Equiv.subRight_apply] using! h1
 
@@ -1541,7 +1545,7 @@ theorem fggs_mutualInfo_eq {K : ℕ} (hK : 0 < K) (a : Fin K → ℝ) (Q : Fin K
     fggsMutualInfoNat a Q
       = fggsEntropyNat (fggsReportMarginal a Q) - fggsEntropyNat Q := by
   classical
-  letI : NeZero K := ⟨hK.ne'⟩
+  let : NeZero K := ⟨hK.ne'⟩
   have hP : ∀ h, 0 < fggsReportMarginal a Q h := by
     intro h
     have hpos : 0 < ∑ iv, a iv * Q (h - iv) := by
@@ -1834,14 +1838,14 @@ noncomputable def fanoCapacity {n : ℕ} (δ p : ℝ) : ℝ :=
     - δ * (Real.log (n - 1) / Real.log 2)) / queryInfo p
 
 /-- For at least two cells and zero error, `fanoCapacity` is `log₂ n / queryInfo p`. -/
-theorem fanoCapacity_zero {n : ℕ} (hn : 2 ≤ n) (p : ℝ) :
+theorem fanoCapacity_zero {n : ℕ} (_hn : 2 ≤ n) (p : ℝ) :
     fanoCapacity (n := n) 0 p = (Real.log n / Real.log 2) / queryInfo p := by
   have hb : binEntropy 0 = 0 := by
     simp [binEntropy]
   simp [fanoCapacity, hb]
 
 /-- At `p = 1`, the Fano capacity expression equals its numerator for at least two cells. -/
-theorem fanoCapacity_p_one {n : ℕ} (hn : 2 ≤ n) (δ : ℝ) :
+theorem fanoCapacity_p_one {n : ℕ} (_hn : 2 ≤ n) (δ : ℝ) :
     fanoCapacity (n := n) δ 1 =
       Real.log n / Real.log 2 - binEntropy δ - δ * (Real.log (n - 1) / Real.log 2) := by
   have hI : queryInfo 1 = 1 := by
@@ -1858,7 +1862,7 @@ theorem fanoCapacity_two_cells (δ p : ℝ) (hI : queryInfo p ≠ 0) :
   simp only [fanoCapacity]
   rw [hlog, hlog2]
   field_simp
-  simp [hne]
+  simp []
 
 /-- At two cells, `p = 3 / 4`, and error `1 / 4`, the printed bound exceeds one. -/
 theorem printed_capacity_form_refuted :
@@ -1868,10 +1872,8 @@ theorem printed_capacity_form_refuted :
 /-- The base-two binary entropy is `Real.binEntropy p` divided by `Real.log 2`. -/
 theorem binEntropy_eq_Real_binEntropy_div (p : ℝ) :
     binEntropy p = Real.binEntropy p / Real.log 2 := by
-  rw [binEntropy, Real.binEntropy]
-  have e1 : Real.log p⁻¹ = -Real.log p := Real.log_inv p
-  have e2 : Real.log (1 - p)⁻¹ = -Real.log (1 - p) := Real.log_inv (1 - p)
-  rw [e1, e2]
+  rw [binEntropy, Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [ Real.negMulLog_def]
   field_simp
   ring
 
@@ -1882,7 +1884,7 @@ theorem binEntropy_nonneg {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) : 0 ≤ binE
     (Real.log_pos (by norm_num : (1 : ℝ) < 2)).le
 
 /-- The query information is positive when `1 / 2 < p < 1`. -/
-theorem queryInfo_pos {p : ℝ} (hp : (1 / 2 : ℝ) < p) (hp1 : p < 1) : 0 < queryInfo p := by
+theorem queryInfo_pos {p : ℝ} (hp : (1 / 2 : ℝ) < p) (_hp1 : p < 1) : 0 < queryInfo p := by
   have hb : binEntropy p < 1 := by
     rw [binEntropy_eq_Real_binEntropy_div]
     have hlt : Real.binEntropy p < Real.log 2 :=
@@ -1943,7 +1945,7 @@ theorem fanoCapacity_two_cells_half (p : ℝ) (hI : queryInfo p ≠ 0) :
   simp only [fanoCapacity]
   rw [hhalf, hlog, hlog2]
   field_simp
-  simp [hne]
+  simp []
 
 /-- For at most one cell and error in the unit interval, the Fano numerator is nonpositive. -/
 theorem fanoNumerator_le_one_cell {n : ℕ} (hn : n ≤ 1) (δ : ℝ) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) :
@@ -2014,7 +2016,7 @@ records. -/
 theorem recursiveQueries_le_pending {n : ℕ} (levels : List (Record n)) :
     recursiveQueries levels ≤ (levels.map pendingTransitions).sum := by
   induction levels with
-  | nil => simp [recursiveQueries, pendingTransitions]
+  | nil => simp [recursiveQueries]
   | cons t ts ih =>
     have h1 : recordQueries t < pendingTransitions t :=
       pendingTransitions_strictly_larger t
@@ -2349,9 +2351,9 @@ theorem walkGoal_endpoint :
       fanoCapacity (n := n) δ p =
         (Real.log n / Real.log 2 - binEntropy δ - δ * (Real.log (n - 1) / Real.log 2))
           / queryInfo p) ∧
-      (∀ {n : ℕ} (hn : 2 ≤ n) (p : ℝ),
+      (∀ {n : ℕ} (_hn : 2 ≤ n) (p : ℝ),
         fanoCapacity (n := n) 0 p = (Real.log n / Real.log 2) / queryInfo p) ∧
-      (∀ {n : ℕ} (hn : 2 ≤ n) (δ : ℝ),
+      (∀ {n : ℕ} (_hn : 2 ≤ n) (δ : ℝ),
         fanoCapacity (n := n) δ 1 =
           Real.log n / Real.log 2 - binEntropy δ - δ * (Real.log (n - 1) / Real.log 2)) ∧
       (∀ (δ p : ℝ), queryInfo p ≠ 0 →
@@ -2523,7 +2525,7 @@ theorem noiseless_counting_lower_bound {n : ℕ} (hn : 2 ≤ n)
   classical
   have hn0 : 0 < n := lt_of_lt_of_le zero_lt_two hn
   have hn0R : (0 : ℝ) < n := by exact_mod_cast hn0
-  letI : Nonempty (Fin n) := ⟨⟨0, hn0⟩⟩
+  let : Nonempty (Fin n) := ⟨⟨0, hn0⟩⟩
   have huniv : (Finset.univ : Finset (Fin n)).Nonempty := Finset.univ_nonempty
   set depths : Finset ℕ :=
     (Finset.univ : Finset (Fin n)).image (fun j => noiselessQueries j program) with hdepths
@@ -2596,7 +2598,7 @@ theorem fano_capacity_lower_bound_noiseless {n : ℕ} (hn : 2 ≤ n)
 theorem bscRotation_star (p : ℝ) (out ideal : Bool) :
     star (bscRotation p out ideal) = bscRotation p out ideal := by
   cases out <;> cases ideal <;>
-    simp [bscRotation, Complex.star_def, Complex.conj_ofReal, map_neg]
+    simp [bscRotation, Complex.conj_ofReal]
 
 /-- For `p` in the unit interval, the columns of the binary symmetric channel rotation are
 orthonormal. -/
@@ -2608,7 +2610,7 @@ theorem bscRotation_inner (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (a b : Bool)
   have hsq2 : ((Real.sqrt (1 - p) : ℝ) : ℂ) * ((Real.sqrt (1 - p) : ℝ) : ℂ) = (1 - p : ℂ) := by
     rw [← Complex.ofReal_mul]; exact_mod_cast Real.mul_self_sqrt (by linarith)
   cases a <;> cases b <;>
-    simp [bscRotation, Fintype.sum_bool, Complex.star_def, Complex.conj_ofReal, map_neg] <;>
+    simp [bscRotation, Complex.conj_ofReal, map_neg] <;>
     first
     | rw [hsq1, hsq2]; norm_num
     | ring
@@ -2623,7 +2625,7 @@ theorem bscRotationMatrix_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     rw [← Complex.ofReal_mul]; exact_mod_cast Real.mul_self_sqrt (by linarith)
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [bscRotationMatrix, Matrix.mul_apply, Matrix.conjTranspose_apply, Fin.sum_univ_two] <;>
+    simp [bscRotationMatrix, Matrix.mul_apply, Fin.sum_univ_two] <;>
     first
     | rw [hsq1, hsq2]; norm_num
     | ring
@@ -2659,12 +2661,12 @@ theorem Blockwise_conjTranspose_mul_apply {n : ℕ} (g : Fin n → Bool → Bool
   refine sum_congr' (fun z => ?_)
   have hb1 : Blockwise g (i.1, z) i = g i.1 z i.2 := by
     unfold Blockwise
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   have hb2 : Blockwise g (i.1, z) j = g i.1 z j.2 := by
     have hfst : (i.1, z).1 = j.1 := h
     have hgj : g j.1 z j.2 = g i.1 z j.2 := by rw [h]
     unfold Blockwise
-    rw [if_pos hfst, hgj]
+    rw [ite_eq_left hfst, hgj]
   rw [hb1, hb2]
 
 /-- Between different input blocks, the conjugate-transpose product of `Blockwise g` has zero
@@ -2679,7 +2681,7 @@ theorem Blockwise_conjTranspose_mul_apply_ne {n : ℕ} (g : Fin n → Bool → B
   have hz : Blockwise g (i.1, z) j = 0 := by
     have hfst : (i.1, z).1 ≠ j.1 := fun heq => h heq
     unfold Blockwise
-    rw [if_neg hfst]
+    rw [ite_eq_right hfst]
   rw [hz]; simp
 
 /-- Equality after Boolean exclusive-or with a fixed right operand implies equality of the
@@ -2721,7 +2723,6 @@ theorem bscRotation_prob (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (out ideal : 
     (bscRotation p out ideal).normSq = bscAnswerProb p ideal out := by
   cases out <;> cases ideal <;>
     simp [bscRotation, bscAnswerProb, Complex.normSq_apply, Complex.ofReal_re, Complex.ofReal_im,
-      Real.sq_sqrt hp0, Real.sq_sqrt (show (0 : ℝ) ≤ 1 - p by linarith [hp0, hp1]),
       Real.mul_self_sqrt hp0,
       Real.mul_self_sqrt (show (0 : ℝ) ≤ 1 - p by linarith [hp0, hp1])]
 
@@ -2752,14 +2753,14 @@ theorem frozenBlock_offdiag {n : ℕ} (f : Fin n → Bool) (p : ℝ) (x : Fin n)
     (∑ z : Bool, star (frozenBlock f p x z false) * frozenBlock f p x z true)
       = 2 * ((Real.sqrt p : ℝ) : ℂ) * ((Real.sqrt (1 - p) : ℝ) : ℂ) := by
   cases hff : f x <;>
-    simp [frozenBlock, Fintype.sum_bool, hff, Complex.star_def, Complex.conj_ofReal] <;>
+    simp [frozenBlock,  hff, Complex.conj_ofReal] <;>
     ring
 
 /-- For a nonempty input space and `1 / 2 < p < 1`, the printed noisy oracle is not unitary. -/
 theorem noisyOracle_not_unitary {n : ℕ} (hn : 0 < n) (f : Fin n → Bool) (p : ℝ)
     (hp : (1 / 2 : ℝ) < p) (hp1 : p < 1) :
     noisyOracle f p ∉ Matrix.unitaryGroup (Fin n × Bool) ℂ := by
-  haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
+  have : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
   have hp0 : (0 : ℝ) ≤ p := by linarith
   have hp1' : p ≤ 1 := by linarith
   intro hU
@@ -2783,27 +2784,27 @@ theorem noisyOracle_not_unitary {n : ℕ} (hn : 0 < n) (f : Fin n → Bool) (p :
       positivity
     linarith
   have hone : (1 : Matrix (Fin n × Bool) (Fin n × Bool) ℂ) (0, false) (0, true) = 0 := by
-    simp [Matrix.one_apply]
+    simp []
   rw [hone] at hentry
   exact hne hentry
 
 /-- Collects Fano boundary values, positivity of query information, noiseless output and cost
 identities, and the noiseless capacity lower bound. -/
 theorem walkGoal_boundary_endpoint :
-    (∀ {n : ℕ} (hn : 2 ≤ n),
+    (∀ {n : ℕ} (_hn : 2 ≤ n),
         Real.log n / Real.log 2 - binEntropy (1 - 1 / n)
           - (1 - 1 / n) * (Real.log (n - 1) / Real.log 2) = 0) ∧
-      (∀ {n : ℕ} (hn : 2 ≤ n) (p : ℝ), fanoCapacity (n := n) (1 - 1 / n) p = 0) ∧
-      (∀ (p : ℝ) (hI : queryInfo p ≠ 0), fanoCapacity (n := 2) (1 / 2 : ℝ) p = 0) ∧
-      (∀ {n : ℕ} (hn : n ≤ 1) (δ : ℝ) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1),
+      (∀ {n : ℕ} (_hn : 2 ≤ n) (p : ℝ), fanoCapacity (n := n) (1 - 1 / n) p = 0) ∧
+      (∀ (p : ℝ) (_hI : queryInfo p ≠ 0), fanoCapacity (n := 2) (1 / 2 : ℝ) p = 0) ∧
+      (∀ {n : ℕ} (_hn : n ≤ 1) (δ : ℝ) (_hδ0 : 0 ≤ δ) (_hδ1 : δ ≤ 1),
         Real.log n / Real.log 2 - binEntropy δ - δ * (Real.log (n - 1) / Real.log 2) ≤ 0) ∧
-      (∀ {p : ℝ} (hp : (1 / 2 : ℝ) < p) (hp1 : p < 1), 0 < queryInfo p) ∧
+      (∀ {p : ℝ} (_hp : (1 / 2 : ℝ) < p) (_hp1 : p < 1), 0 < queryInfo p) ∧
       (∀ {n : ℕ} (j : Fin n) (tree : BoolQueryTree (Fin n) (Fin n)) (o : Fin n),
         noisyOutputProb j 1 tree o = if noiselessOutput j tree = o then 1 else 0) ∧
       (∀ {n : ℕ} (j : Fin n) (tree : BoolQueryTree (Fin n) (Fin n)),
         noisyExpectedQueries j 1 tree = noiselessQueries j tree) ∧
-      (∀ {n : ℕ} (hn : 2 ≤ n) (program : BoolQueryTree (Fin n) (Fin n))
-        (hcorrect : ∀ j : Fin n, noiselessOutput j program = j),
+      (∀ {n : ℕ} (_hn : 2 ≤ n) (program : BoolQueryTree (Fin n) (Fin n))
+        (_hcorrect : ∀ j : Fin n, noiselessOutput j program = j),
         ∃ j : Fin n, fanoCapacity (n := n) 0 1 ≤ noisyExpectedQueries j 1 program) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro n hn; exact fanoNumerator_zero hn
@@ -3030,10 +3031,10 @@ theorem clause16_endpoint :
       (∀ {n : ℕ} (p : ℝ) (run : RecursiveRun n),
         recursivePathExpectedOracleApplications p run
           = recursiveExpectedOracleApplications p (run.map Level.program)) ∧
-      (∀ {n : ℕ} (run : RecursiveRun n) (h : ∀ l ∈ run, LevelExecuted l),
+      (∀ {n : ℕ} (run : RecursiveRun n) (_h : ∀ l ∈ run, LevelExecuted l),
         recursivePathOracleApplications run
           = (run.map fun l => (programRun l.program l.record).map Prod.snd |>.getD 0).sum) ∧
-      (∀ {n : ℕ} (run : RecursiveRun n) (h : ∀ l ∈ run, LevelExecuted l),
+      (∀ {n : ℕ} (run : RecursiveRun n) (_h : ∀ l ∈ run, LevelExecuted l),
         recursivePathOracleApplications run
           ≤ (run.map fun l => Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries l.program).sum) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -3277,7 +3278,7 @@ theorem corrected_expected_info_identity {n : ℕ} (a : Fin n → ℝ) (c : Fin 
 /-- The real-valued binary entropy expression is at most one. -/
 theorem binEntropy_le_one {x : ℝ} : binEntropy x ≤ 1 := by
   have hconv : binEntropy x = Real.binEntropy x / Real.log 2 := by
-    simp only [binEntropy, Real.binEntropy, Real.log_inv]
+    simp only [binEntropy, Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub, Real.negMulLog_def]
     ring
   rw [hconv]
   have h := Real.binEntropy_le_log_two (p := x)
@@ -3807,11 +3808,11 @@ theorem fano_leaf {n : ℕ} (hn : 2 ≤ n) (a : Fin n → ℝ) (o : Fin n)
     have hb_nonneg : ∀ j, 0 ≤ b j := by
       intro j
       by_cases hj : j = o
-      · have hb : b j = 0 := by rw [hbdef]; change (if j = o then 0 else a j / (1 - a o)) = 0; rw [if_pos hj]
+      · have hb : b j = 0 := by rw [hbdef]; change (if j = o then 0 else a j / (1 - a o)) = 0; rw [ite_eq_left hj]
         rw [hb]
       · have hb : b j = a j / (1 - a o) := by
           rw [hbdef]; change (if j = o then 0 else a j / (1 - a o)) = a j / (1 - a o); rw
-              [if_neg hj]
+              [ite_eq_right hj]
         rw [hb]
         exact div_nonneg (ha j) (le_of_lt hδpos)
     have hb_sum : (∑ j, b j) = 1 := by
@@ -3829,7 +3830,7 @@ theorem fano_leaf {n : ℕ} (hn : 2 ≤ n) (a : Fin n → ℝ) (o : Fin n)
               have hb : b j = a j * (1 / (1 - a o)) := by
                 rw [hbdef]
                 change (if j = o then 0 else a j / (1 - a o)) = a j * (1 / (1 - a o))
-                rw [if_neg hjo]
+                rw [ite_eq_right hjo]
                 ring
               rw [hb]
           _ = (1 / (1 - a o)) * (∑ j ∈ (Finset.univ.erase o), a j) := by
@@ -3857,7 +3858,7 @@ theorem fano_leaf {n : ℕ} (hn : 2 ≤ n) (a : Fin n → ℝ) (o : Fin n)
       have haj : a j = (1 - a o) * b j := by
         rw [hbdef]
         change a j = (1 - a o) * (if j = o then 0 else a j / (1 - a o))
-        rw [if_neg hjo]
+        rw [ite_eq_right hjo]
         field_simp
       rw [haj]
       by_cases hb0 : b j = 0
@@ -4050,7 +4051,7 @@ theorem tree_fano_numerator {n : ℕ} (p : ℝ) (tr : BoolQueryTree (Fin n) (Fin
     (a : Fin n → ℝ) (W : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : (∑ j, a j) = 1)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hW : 0 < W) (hn : 2 ≤ n) :
-    treeLeaf p (fun a o => entropy a) tr a W
+    treeLeaf p (fun a _o => entropy a) tr a W
       ≤ W * binEntropy (treeLeaf p (fun a o => 1 - a o) tr a W / W)
         + treeLeaf p (fun a o => 1 - a o) tr a W * (Real.log (n - 1) / Real.log 2) := by
   induction tr generalizing a W with
@@ -4062,7 +4063,7 @@ theorem tree_fano_numerator {n : ℕ} (p : ℝ) (tr : BoolQueryTree (Fin n) (Fin
       have hmul : W * entropy a
           ≤ W * binEntropy (1 - a o) + (W * (1 - a o)) * (Real.log (n - 1) / Real.log 2) := by
         have hx := mul_le_mul_of_nonneg_left hfa hW.le
-        convert! hx using 1 <;> ring
+        convert! hx using 1; ring
       exact hmul
   | ask c onFalse onTrue ihFalse ihTrue =>
       simp only [treeLeaf]
@@ -4148,7 +4149,7 @@ theorem entropy_uniform {n : ℕ} (hn : 0 < n) :
     rw [Real.log_div (by norm_num) hne, Real.log_one, zero_sub]
   rw [hlog]
   have hlog2ne : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'
-  field_simp <;> ring
+  field_simp
 
 /-- For a normalized nonnegative prior and `1 / 2 < p < 1`, tree information gain is leaf
 information minus initial weighted information. -/
@@ -4349,7 +4350,7 @@ theorem fano_capacity_lower_bound {n : ℕ} (p : ℝ) (tr : BoolQueryTree (Fin n
 /-- Collects the leaf Fano inequality, its uniform-tree form, and the resulting capacity lower
 bound on expected queries. -/
 theorem walkGoal_capacity_endpoint :
-    (∀ {n : ℕ} (hn : 2 ≤ n) (a : Fin n → ℝ) (o : Fin n),
+    (∀ {n : ℕ} (_hn : 2 ≤ n) (a : Fin n → ℝ) (o : Fin n),
       (∀ j, 0 ≤ a j) → (∑ j, a j = 1) →
       entropy a ≤ binEntropy (1 - a o) + (1 - a o) * (Real.log (n - 1) / Real.log 2)) ∧
     (∀ {n : ℕ} (p : ℝ) (tr : BoolQueryTree (Fin n) (Fin n)),
@@ -4596,10 +4597,10 @@ theorem noiselessDepthSumW_ask {n : ℕ} (c : Fin n) (onFalse onTrue : BoolQuery
       intro j
       by_cases h : (c : ℕ) ≤ (j : ℕ)
       · rw [noiselessQueries_ask j c onFalse onTrue h]
-        simp only [if_pos h, Nat.cast_add, Nat.cast_one]
+        simp only [ite_eq_left h, Nat.cast_add, Nat.cast_one]
         ring
       · rw [noiselessQueries_ask_neg j c onFalse onTrue h]
-        simp only [if_neg h, Nat.cast_add, Nat.cast_one]
+        simp only [ite_eq_right h, Nat.cast_add, Nat.cast_one]
         ring
     rw [sum_congr' hfinal]
     simp only [Finset.sum_add_distrib]
@@ -5072,7 +5073,7 @@ theorem bayesTrueLikelihood_one {n : ℕ} (c j : Fin n) :
 
 /-- At `p = 1`, the false-answer posterior has total mass one if its normalizer is nonzero and
 the prior is nonnegative. -/
-theorem bayesFalsePost_sum_one {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (ha : ∀ j, 0 ≤ a j)
+theorem bayesFalsePost_sum_one {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (_ha : ∀ j, 0 ≤ a j)
     (hn : bayesFalseNorm a c 1 ≠ 0) :
     (∑ j, bayesFalsePost a c 1 j) = 1 := by
   unfold bayesFalsePost
@@ -5083,7 +5084,7 @@ theorem bayesFalsePost_sum_one {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (ha : �
 
 /-- At `p = 1`, the true-answer posterior has total mass one if its normalizer is nonzero and
 the prior is nonnegative. -/
-theorem bayesTruePost_sum_one {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (ha : ∀ j, 0 ≤ a j)
+theorem bayesTruePost_sum_one {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (_ha : ∀ j, 0 ≤ a j)
     (hn : bayesTrueNorm a c 1 ≠ 0) :
     (∑ j, bayesTruePost a c 1 j) = 1 := by
   unfold bayesTruePost
@@ -5116,7 +5117,7 @@ theorem branch_contrib_ne {n : ℕ} {W : ℝ} (sub : BoolQueryTree (Fin n) (Fin 
       treeDepth 1 sub a W = W * (∑ j, a j * noiselessQueries j sub))
     (post : Fin n → ℝ) (norm : ℝ) (w : Fin n → ℝ)
     (hpost : ∀ j, 0 ≤ post j) (hpostsum : (∑ j, post j) = 1)
-    (hnorm : norm ≠ 0) (hpostmul : ∀ j, norm * post j = w j) :
+    (_hnorm : norm ≠ 0) (hpostmul : ∀ j, norm * post j = w j) :
     treeDepth 1 sub post (W * norm) = W * (∑ j, w j * noiselessQueries j sub) := by
   rw [ih post (W * norm) hpost hpostsum]
   calc W * norm * (∑ j, post j * noiselessQueries j sub)
@@ -5182,8 +5183,8 @@ theorem treeDepth_one_eq {n : ℕ} (tr : BoolQueryTree (Fin n) (Fin n)) :
           · field_simp
         rw [h1, bayesFalseLikelihood_one]
         by_cases h : (c : ℕ) ≤ (j : ℕ)
-        · simp only [if_pos h]; ring
-        · simp only [if_neg h]; ring
+        · simp only [ite_eq_left h]; ring
+        · simp only [ite_eq_right h]; ring
       have hwT : ∀ j : Fin n, bayesTrueNorm a c 1 * bayesTruePost a c 1 j
           = (if (c : ℕ) ≤ (j : ℕ) then a j else 0) := by
         intro j
@@ -5204,8 +5205,8 @@ theorem treeDepth_one_eq {n : ℕ} (tr : BoolQueryTree (Fin n) (Fin n)) :
           · field_simp
         rw [h1, bayesTrueLikelihood_one]
         by_cases h : (c : ℕ) ≤ (j : ℕ)
-        · simp only [if_pos h]; ring
-        · simp only [if_neg h]; ring
+        · simp only [ite_eq_left h]; ring
+        · simp only [ite_eq_right h]; ring
       have hdepth : (∑ j : Fin n, a j * noiselessQueries j (.ask c onFalse onTrue))
           = (∑ j : Fin n, a j)
             + (∑ j : Fin n, (if (c : ℕ) ≤ (j : ℕ) then 0 else a j) * noiselessQueries j onFalse)
@@ -5217,10 +5218,10 @@ theorem treeDepth_one_eq {n : ℕ} (tr : BoolQueryTree (Fin n) (Fin n)) :
           intro j _
           by_cases h : (c : ℕ) ≤ (j : ℕ)
           · rw [noiselessQueries_ask j c onFalse onTrue h]
-            simp only [if_pos h, Nat.cast_add, Nat.cast_one]
+            simp only [ite_eq_left h, Nat.cast_add, Nat.cast_one]
             ring
           · rw [noiselessQueries_ask_neg j c onFalse onTrue h]
-            simp only [if_neg h, Nat.cast_add, Nat.cast_one]
+            simp only [ite_eq_right h, Nat.cast_add, Nat.cast_one]
             ring
         have hsplit := Finset.sum_filter_add_sum_filter_not (Finset.univ : Finset (Fin n))
           (fun j : Fin n => (c : ℕ) ≤ (j : ℕ))
@@ -5271,14 +5272,14 @@ theorem treeDepth_one_eq {n : ℕ} (tr : BoolQueryTree (Fin n) (Fin n)) :
           · intro j
             by_cases h : (c : ℕ) ≤ (j : ℕ)
             · simp [h]
-            · simp only [if_neg h]
+            · simp only [ite_eq_right h]
               have hle : a j ≤ bayesFalseNorm a c 1 := by
                 have h1 : a j * bayesFalseLikelihood c j 1 ≤ bayesFalseNorm a c 1 := by
                   unfold bayesFalseNorm
                   exact Finset.single_le_sum (f := fun m => a m * bayesFalseLikelihood c m 1)
                     (fun m _ => mul_nonneg (ha m) (by
                       unfold bayesFalseLikelihood; split_ifs <;> norm_num)) (Finset.mem_univ j)
-                rw [bayesFalseLikelihood_one, if_neg h] at h1
+                rw [bayesFalseLikelihood_one, ite_eq_right h] at h1
                 linarith
               rw [hn] at hle
               have haj : 0 ≤ a j := ha j
@@ -5297,14 +5298,14 @@ theorem treeDepth_one_eq {n : ℕ} (tr : BoolQueryTree (Fin n) (Fin n)) :
           · exact hn
           · intro j
             by_cases h : (c : ℕ) ≤ (j : ℕ)
-            · simp only [if_pos h]
+            · simp only [ite_eq_left h]
               have hle : a j ≤ bayesTrueNorm a c 1 := by
                 have h1 : a j * bayesTrueLikelihood c j 1 ≤ bayesTrueNorm a c 1 := by
                   unfold bayesTrueNorm
                   exact Finset.single_le_sum (f := fun m => a m * bayesTrueLikelihood c m 1)
                     (fun m _ => mul_nonneg (ha m) (by
                       unfold bayesTrueLikelihood; split_ifs <;> norm_num)) (Finset.mem_univ j)
-                rw [bayesTrueLikelihood_one, if_pos h] at h1
+                rw [bayesTrueLikelihood_one, ite_eq_left h] at h1
                 linarith
               rw [hn] at hle
               have haj : 0 ≤ a j := ha j
@@ -5363,9 +5364,9 @@ theorem prefixMassRat_eq {n : ℕ} (hn : 0 < n) (p : ℚ) (hp : 0 < p) (hp1 : p 
         apply Finset.sum_congr rfl
         intro j _
         by_cases hj : j.val ≤ i.val
-        · simp only [hj, if_true]
+        · simp only [hj, ite_true]
           exact hrec j
-        · simp only [hj, if_false]
+        · simp only [hj, ite_false]
           norm_num
     _ = prefixMass (recordPosterior t (p : ℝ)) i := rfl
 
@@ -5426,9 +5427,9 @@ theorem cutAtRat_eq {n : ℕ} (hn : 0 < n) (p : ℚ) (hp : 0 < p) (hp1 : p < 1)
     apply Finset.sum_congr rfl
     intro j _
     by_cases hj : j.val ≤ i.val
-    · simp only [hj, if_true]
+    · simp only [hj, ite_true]
       exact transportFold_eq_recordPosterior hn (p : ℝ) hpR hp1R t j
-    · simp only [hj, if_false]
+    · simp only [hj, ite_false]
   have hset : cutSet (transportFold t (p : ℝ)) (ε : ℝ)
       = cutSet (recordPosterior t (p : ℝ)) (ε : ℝ) := by
     unfold cutSet
@@ -5478,13 +5479,13 @@ theorem dilutedOracle_answerLikelihood {n : ℕ} (p : ℝ) (m c : Fin n) (b : Bo
 /-- Collects agreement of rational and real cut selection and identification of comparison
 answer likelihoods with channel probabilities and diluted-oracle squared amplitudes. -/
 theorem clause16_cut_endpoint :
-    (∀ (n : ℕ) (p : ℚ) (t : Record n) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1) (ε : ℚ),
+    (∀ (n : ℕ) (p : ℚ) (t : Record n) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1) (ε : ℚ),
       cutAtRat hn p ε t = cutAt hn (p : ℝ) ε t) ∧
-    (∀ (n : ℕ) (p : ℚ) (t : Record n) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1) (ε : ℚ),
+    (∀ (n : ℕ) (p : ℚ) (t : Record n) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1) (ε : ℚ),
       stageTwoCutRat hn p ε t = stageTwoCut hn (recordPosterior t (p : ℝ)) (ε : ℝ)) ∧
     (∀ (n : ℕ) (p : ℝ) (m c : Fin n) (b : Bool),
       bscAnswerProb p (decide ((c : ℕ) ≤ (m : ℕ))) b = answerLikelihood m c p b) ∧
-    (∀ (n : ℕ) (p : ℝ) (m c : Fin n) (b : Bool) (hp0 : 0 ≤ p) (hp1 : p ≤ 1),
+    (∀ (n : ℕ) (p : ℝ) (m c : Fin n) (b : Bool) (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1),
       (dilutedOracle (fun m => decide ((c : ℕ) ≤ (m : ℕ))) p (m, b) (m, false)).normSq
         = answerLikelihood m c p b) := by
   refine ⟨?_, ?_, ?_, ?_⟩
@@ -5697,15 +5698,15 @@ theorem answerLikelihood_ratio_cross {n : ℕ} (p : ℝ) (k i : Fin n) (obs : Co
   have hp0 : p ≠ 0 := ne_of_gt hp
   have hp1' : 1 - p ≠ 0 := by linarith
   by_cases hc : IsCrossing k i obs
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     obtain ⟨hk, hi⟩ := hc
     have hnk : ¬ obs.1.val ≤ k.val := Nat.not_le.mpr hk
     cases obs.2 with
     | true =>
-      simp [answerLikelihood, bayesTrueLikelihood, hi, hnk, hp0, hp1']
+      simp [answerLikelihood, bayesTrueLikelihood, hi, hnk]
     | false =>
-      simp [answerLikelihood, bayesFalseLikelihood, hi, hnk, hp0, hp1']
-  · rw [if_neg hc]
+      simp [answerLikelihood, bayesFalseLikelihood, hi, hnk]
+  · rw [ite_eq_right hc]
     by_cases habove : k.val < obs.1.val
     · have hi : ¬ obs.1.val ≤ i.val := by
         intro hcon
@@ -5713,16 +5714,16 @@ theorem answerLikelihood_ratio_cross {n : ℕ} (p : ℝ) (k i : Fin n) (obs : Co
       have hnk : ¬ obs.1.val ≤ k.val := Nat.not_le.mpr habove
       cases obs.2 with
       | true =>
-        simp [answerLikelihood, bayesTrueLikelihood, hnk, hi, hp0, hp1']
+        simp [answerLikelihood, bayesTrueLikelihood, hnk, hi,  hp1']
       | false =>
-        simp [answerLikelihood, bayesFalseLikelihood, hnk, hi, hp0, hp1']
+        simp [answerLikelihood, bayesFalseLikelihood, hnk, hi, hp0]
     · have hlow : obs.1.val ≤ k.val := by omega
       have hi : obs.1.val ≤ i.val := by omega
       cases obs.2 with
       | true =>
-        simp [answerLikelihood, bayesTrueLikelihood, hlow, hi, hp0, hp1']
+        simp [answerLikelihood, bayesTrueLikelihood, hlow, hi, hp0]
       | false =>
-        simp [answerLikelihood, bayesFalseLikelihood, hlow, hi, hp0, hp1']
+        simp [answerLikelihood, bayesFalseLikelihood, hlow, hi, hp1']
 
 /-- For `k < i` and `0 < p < 1`, the record ratio is the product of the true- and false-crossing
 likelihood factors raised to their counts. -/
@@ -5864,14 +5865,14 @@ theorem crossFactors_ge {n : ℕ} (p : ℝ) (k i : Fin n) (hp : 0 < p) (hp1 : p 
 /-- Collects the crossing-factor formula for record ratios, the record-length bound on crossing
 counts, and a ratio lower bound from excess true crossings. -/
 theorem clause13_crossing_endpoint :
-    (∀ (n : ℕ) (p : ℝ) (k i : Fin n) (hp : 0 < p) (hp1 : p < 1) (hki : k.val < i.val)
+    (∀ (n : ℕ) (p : ℝ) (k i : Fin n) (_hp : 0 < p) (_hp1 : p < 1) (_hki : k.val < i.val)
       (t : Record n),
       recordRatio t k i p
         = (p / (1 - p)) ^ crossTrue k i t * ((1 - p) / p) ^ crossFalse k i t) ∧
     (∀ (n : ℕ) (k i : Fin n) (t : Record n),
       crossTrue k i t + crossFalse k i t ≤ t.length) ∧
-    (∀ (n : ℕ) (p : ℝ) (k i : Fin n) (hp : 0 < p) (hp1 : p < 1) (hki : k.val < i.val)
-      (t : Record n) (x r : ℕ) (hqr : 1 < p / (1 - p)),
+    (∀ (n : ℕ) (p : ℝ) (k i : Fin n) (_hp : 0 < p) (_hp1 : p < 1) (_hki : k.val < i.val)
+      (t : Record n) (x r : ℕ) (_hqr : 1 < p / (1 - p)),
       crossTrue k i t ≥ x + r → crossFalse k i t ≤ x →
         (p / (1 - p)) ^ r ≤ recordRatio t k i p) := by
   refine ⟨?_, ?_, ?_⟩
@@ -5917,20 +5918,20 @@ theorem crossScore_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (k i : Fin n) (t : R
   by_cases hc : IsCrossing k i (cutAt hn p ε t, b)
   · cases b with
     | true =>
-      simp [stepScore, hc] <;> push_cast <;> ring
+      simp [stepScore, hc]; ring
     | false =>
-      simp [stepScore, hc] <;> push_cast <;> ring
+      simp [stepScore, hc]; ring
   · cases b with
     | true =>
       have hct : ¬ IsCrossing k i (cutAt hn p ε t, true) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepScore, hc, hct] <;> push_cast <;> ring
+      simp [stepScore, hc]
     | false =>
       have hcf : ¬ IsCrossing k i (cutAt hn p ε t, false) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepScore, hc, hcf] <;> push_cast <;> ring
+      simp [stepScore, hc]
 
 /-- An adaptive record extension adds the new observation's `stepCount` to the crossing count. -/
 theorem crossCount_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (k i : Fin n) (t : Record n) (b : Bool) :
@@ -5943,25 +5944,25 @@ theorem crossCount_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (k i : Fin n) (t : R
   by_cases hc : IsCrossing k i (cutAt hn p ε t, b)
   · cases b with
     | true =>
-      simp [stepCount, hc] <;> push_cast <;> ring
+      simp [stepCount, hc]; ring
     | false =>
-      simp [stepCount, hc] <;> push_cast <;> ring
+      simp [stepCount, hc]; ring
   · cases b with
     | true =>
       have hct : ¬ IsCrossing k i (cutAt hn p ε t, true) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepCount, hc, hct] <;> push_cast <;> ring
+      simp [stepCount, hc]
     | false =>
       have hcf : ¬ IsCrossing k i (cutAt hn p ε t, false) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepCount, hc, hcf] <;> push_cast <;> ring
+      simp [stepCount, hc]
 
 /-- When `u ≤ k < i` and `0 < p < 1`, the weighted one-step crossing score is `1 - 2 * p` at a
 crossing cut and zero otherwise. -/
 theorem crossScore_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
+    (_hp : 0 < p) (_hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ))
     (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b * stepScore k i (cutAt hn p ε t, b))
       = (if IsCrossing k i (cutAt hn p ε t, true) then 1 - 2 * p else 0) := by
@@ -5981,17 +5982,17 @@ theorem crossScore_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
       simpa only [Prod.fst] using! hc
     simp only [Fintype.sum_bool, stepWeight]
     rw [hlikF, hlikT]
-    simp [stepScore, hc, hcf] <;> ring
+    simp [stepScore, hc, hcf]; ring
   · have hcf : ¬ IsCrossing k i (cutAt hn p ε t, false) := by
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepScore, hc, hcf] <;> ring
+    simp [stepScore, hc, hcf]
 
 /-- For `0 < p < 1`, the weighted one-step crossing count is one at a crossing cut and zero
 otherwise. -/
 theorem crossCount_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (t : Record n) :
+    (_hp : 0 < p) (_hp1 : p < 1) (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b * stepCount k i (cutAt hn p ε t, b))
       = (if IsCrossing k i (cutAt hn p ε t, true) then 1 else 0) := by
   have hsum : (∑ b : Bool, stepWeight hn p ε u t b) = 1 := by
@@ -6008,7 +6009,7 @@ theorem crossCount_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepCount, hc, hcf] <;> ring
+    simp [stepCount, hc, hcf]
 
 /-- For `k < i` and `0 < p < 1`, the log record ratio equals the crossing score times `Real.log
 (p / (1 - p))`. -/
@@ -6030,7 +6031,7 @@ theorem crossRatio_log {n : ℕ} (p : ℝ) (k i : Fin n) (hp : 0 < p) (hp1 : p <
     ring
   rw [hq]
   simp only [crossScore]
-  push_cast
+
   ring
 
 /-- A positive lower bound `R` on the record ratio gives `Real.log R ≤ crossScore k i t *
@@ -6054,11 +6055,11 @@ theorem treeWeight_add {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (V W : Re
         = treeWeight hn p ε u V m t + treeWeight hn p ε u W m t := by
   intro m
   induction m with
-  | zero => intro t; simp only [treeWeight] <;> ring
+  | zero => intro t; simp only [treeWeight]
   | succ m ih =>
     intro t
     simp only [treeWeight, Fintype.sum_bool]
-    simp only [ih] <;> ring
+    simp only [ih]; ring
 
 /-- A constant real factor can be pulled out of the tree-weight functional. -/
 theorem treeWeight_const_mul {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (c : ℝ)
@@ -6067,11 +6068,11 @@ theorem treeWeight_const_mul {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (c 
       treeWeight hn p ε u (fun s => c * V s) m t = c * treeWeight hn p ε u V m t := by
   intro m
   induction m with
-  | zero => intro t; simp only [treeWeight] <;> ring
+  | zero => intro t; simp only [treeWeight]
   | succ m ih =>
     intro t
     simp only [treeWeight, Fintype.sum_bool]
-    simp only [ih] <;> ring
+    simp only [ih]; ring
 
 /-- Equal record functions give equal tree-weight evaluations. -/
 theorem treeWeight_congr {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) {V W : Record n → ℝ}
@@ -6083,7 +6084,7 @@ theorem treeWeight_congr {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) {V W : 
   | succ m ih =>
     intro t
     simp only [treeWeight, Fintype.sum_bool]
-    simp only [ih, h]
+    simp only [ h]
 
 /-- The tree-weight functional preserves pointwise subtraction. -/
 theorem treeWeight_sub {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (V W : Record n → ℝ) :
@@ -6092,11 +6093,11 @@ theorem treeWeight_sub {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (V W : Re
         = treeWeight hn p ε u V m t - treeWeight hn p ε u W m t := by
   intro m
   induction m with
-  | zero => intro t; simp only [treeWeight] <;> ring
+  | zero => intro t; simp only [treeWeight]
   | succ m ih =>
     intro t
     simp only [treeWeight, Fintype.sum_bool]
-    simp only [ih] <;> ring
+    simp only [ih]; ring
 
 /-- Expands the tree weight of `(f + c)^2` into the weighted second moment, cross term, and
 constant term. -/
@@ -6108,11 +6109,11 @@ theorem treeWeight_sq_add {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (f : R
           + c ^ 2 * treeWeight hn p ε u (fun _ => 1) m t := by
   intro m
   induction m with
-  | zero => intro t; simp only [treeWeight] <;> ring
+  | zero => intro t; simp only [treeWeight]; ring
   | succ m ih =>
     intro t
     simp only [treeWeight, Fintype.sum_bool]
-    simp only [ih] <;> ring
+    simp only [ih]; ring
 
 /-- For `0 < p < 1`, the tree-weight functional preserves pointwise inequalities. -/
 theorem treeWeight_mono {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (hp : 0 < p) (hp1 : p < 1)
@@ -6154,7 +6155,7 @@ theorem treeCount_eq_indicator {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n)
   | succ m ih =>
     intro t
     simp only [treeCount, treeWeight, Fintype.sum_bool]
-    simp only [ih] <;> ring
+    simp only [ih]
 
 /-- An adaptive extension changes the crossing martingale by the crossing score increment minus
 `(1 - 2 * p)` times the crossing-count increment. -/
@@ -6173,7 +6174,7 @@ theorem crossMartingale_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (k i : Fin n) (
 /-- For `u ≤ k < i` and `0 < p < 1`, the centered crossing-score increment has weighted mean
 zero. -/
 theorem crossStep_drift_zero {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
+    (_hp : 0 < p) (_hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ))
     (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b
       * (stepScore k i (cutAt hn p ε t, b)
@@ -6190,17 +6191,17 @@ theorem crossStep_drift_zero {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
       simpa only [Prod.fst] using! hc
     simp only [Fintype.sum_bool, stepWeight]
     rw [hlikF, hlikT]
-    simp [stepScore, stepCount, hc, hcf] <;> ring
+    simp [stepScore, stepCount, hc, hcf]; ring
   · have hcf : ¬ IsCrossing k i (cutAt hn p ε t, false) := by
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepScore, stepCount, hc, hcf] <;> ring
+    simp [stepScore, stepCount, hc, hcf]
 
 /-- For `u ≤ k < i` and `0 < p < 1`, the centered crossing increment has weighted second moment
 `4 * p * (1 - p)` at a crossing cut and zero otherwise. -/
 theorem crossStep_sq_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
+    (_hp : 0 < p) (_hp1 : p < 1) (huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ))
     (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b
       * (stepScore k i (cutAt hn p ε t, b)
@@ -6218,12 +6219,12 @@ theorem crossStep_sq_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
       simpa only [Prod.fst] using! hc
     simp only [Fintype.sum_bool, stepWeight]
     rw [hlikF, hlikT]
-    simp [stepScore, stepCount, hc, hcf] <;> ring
+    simp [stepScore, stepCount, hc, hcf]; ring
   · have hcf : ¬ IsCrossing k i (cutAt hn p ε t, false) := by
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepScore, stepCount, hc, hcf] <;> ring
+    simp [stepScore, stepCount, hc, hcf]
 
 /-- For `u ≤ k < i` and `0 < p < 1`, the tree-weighted crossing martingale equals its initial
 value. -/
@@ -6469,13 +6470,13 @@ theorem crossScore_tail_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n
         <= (crossMartingale p k i s) ^ 2 / r ^ 2 := by
     intro s
     by_cases h : r <= crossMartingale p k i s
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hM2 : r ^ 2 <= (crossMartingale p k i s) ^ 2 := by nlinarith
       have h1 : 1 <= (crossMartingale p k i s) ^ 2 / r ^ 2 := by
         rw [le_div_iff₀ (by exact sq_pos_of_pos hr)]
         nlinarith
       linarith
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have h1 : 0 <= (crossMartingale p k i s) ^ 2 / r ^ 2 := by positivity
       linarith
   have h1 := treeCount_eq_indicator hn p ε u (fun t => r <= crossScore k i t) m []
@@ -6634,28 +6635,28 @@ theorem window_light_tail_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n
 /-- Collects the crossing variance identity, its linear growth bound, score and ratio tail
 bounds, and the resulting preceding-window concentration estimate. -/
 theorem clause13_concentration_endpoint :
-    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ)) (m : ℕ) (t : Record n),
+    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ)) (m : ℕ) (t : Record n),
       treeCrossVar hn p ε u k i m t
         = treeWeight hn p ε u (fun s => (crossMartingale p k i s) ^ 2) m t
           - (crossMartingale p k i t) ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
+    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
       (m : ℕ) (t : Record n),
       treeCrossVar hn p ε u k i m t ≤ 4 * p * (1 - p) * (m : ℝ)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (r : ℝ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
-      (hr : 0 < r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (r : ℝ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ))
+      (_hr : 0 < r) (m : ℕ),
       treeCount hn p ε u (fun t => r ≤ crossScore k i t) m []
         ≤ 4 * p * (1 - p) * (m : ℝ) / r ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (r : ℕ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (huk : (u : ℕ) ≤ (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
-      (hr : 0 < r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u k i : Fin n) (hn : 0 < n) (r : ℕ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_huk : (u : ℕ) ≤ (k : ℕ)) (_hki : (k : ℕ) < (i : ℕ))
+      (_hr : 0 < r) (m : ℕ),
       treeCount hn p ε u (fun t => (p / (1 - p)) ^ r ≤ recordRatio t k i p) m []
         ≤ 4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (hn : 0 < n) (l r : ℕ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hil : l ≤ (i : ℕ))
-      (hul : (u : ℕ) + l ≤ (i : ℕ)) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (hn : 0 < n) (l r : ℕ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hil : l ≤ (i : ℕ))
+      (_hul : (u : ℕ) + l ≤ (i : ℕ)) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
       treeCount hn p ε u
         (fun t => ε ≤ recordPosterior t p i ∧
           ∃ k, k ∈ windowCells i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ)) m []
@@ -6684,20 +6685,20 @@ theorem upperScore_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (i k : Fin n) (t : R
   by_cases hc : IsCrossing i k (cutAt hn p ε t, b)
   · cases b with
     | true =>
-      simp [stepUpperScore, hc] <;> push_cast <;> ring
+      simp [stepUpperScore, hc]; ring
     | false =>
-      simp [stepUpperScore, hc] <;> push_cast <;> ring
+      simp [stepUpperScore, hc]; ring
   · cases b with
     | true =>
       have hct : ¬ IsCrossing i k (cutAt hn p ε t, true) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepUpperScore, hc, hct] <;> push_cast <;> ring
+      simp [stepUpperScore, hc]
     | false =>
       have hcf : ¬ IsCrossing i k (cutAt hn p ε t, false) := by
         intro h
         exact hc (by simpa only [Prod.fst] using! h)
-      simp [stepUpperScore, hc, hcf] <;> push_cast <;> ring
+      simp [stepUpperScore, hc]
 
 /-- An adaptive extension changes the upper martingale by `stepUpperScore + (2 * p - 1) *
 stepCount` for the new observation. -/
@@ -6715,7 +6716,7 @@ theorem upperMartingale_step {n : ℕ} (hn : 0 < n) (p ε : ℝ) (i k : Fin n) (
 
 /-- For `i < k ≤ u` and `0 < p < 1`, the centered upper-score increment has weighted mean zero. -/
 theorem upperStep_drift_zero {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i k : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (hku : (k : ℕ) ≤ (u : ℕ)) (hik : (i : ℕ) < (k : ℕ))
+    (_hp : 0 < p) (_hp1 : p < 1) (hku : (k : ℕ) ≤ (u : ℕ)) (_hik : (i : ℕ) < (k : ℕ))
     (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b
       * (stepUpperScore i k (cutAt hn p ε t, b)
@@ -6732,17 +6733,17 @@ theorem upperStep_drift_zero {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i k : Fin n)
       simpa only [Prod.fst] using! hc
     simp only [Fintype.sum_bool, stepWeight]
     rw [hlikF, hlikT]
-    simp [stepUpperScore, stepCount, hc, hcf] <;> ring
+    simp [stepUpperScore, stepCount, hc, hcf]; ring
   · have hcf : ¬ IsCrossing i k (cutAt hn p ε t, false) := by
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepUpperScore, stepCount, hc, hcf] <;> ring
+    simp [stepUpperScore, stepCount, hc, hcf]
 
 /-- For `i < k ≤ u` and `0 < p < 1`, the centered upper-score increment has weighted second
 moment `4 * p * (1 - p)` at a crossing cut and zero otherwise. -/
 theorem upperStep_sq_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i k : Fin n)
-    (hp : 0 < p) (hp1 : p < 1) (hku : (k : ℕ) ≤ (u : ℕ)) (hik : (i : ℕ) < (k : ℕ))
+    (_hp : 0 < p) (_hp1 : p < 1) (hku : (k : ℕ) ≤ (u : ℕ)) (_hik : (i : ℕ) < (k : ℕ))
     (t : Record n) :
     (∑ b : Bool, stepWeight hn p ε u t b
       * (stepUpperScore i k (cutAt hn p ε t, b)
@@ -6760,17 +6761,17 @@ theorem upperStep_sq_drift {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i k : Fin n)
       simpa only [Prod.fst] using! hc
     simp only [Fintype.sum_bool, stepWeight]
     rw [hlikF, hlikT]
-    simp [stepUpperScore, stepCount, hc, hcf] <;> ring
+    simp [stepUpperScore, stepCount, hc, hcf]; ring
   · have hcf : ¬ IsCrossing i k (cutAt hn p ε t, false) := by
       intro h
       exact hc (by simpa only [Prod.fst] using! h)
     simp only [Fintype.sum_bool, stepWeight]
-    simp [stepUpperScore, stepCount, hc, hcf] <;> ring
+    simp [stepUpperScore, stepCount, hc, hcf]
 
 /-- The upper martingale is zero at the empty record. -/
 theorem upperMartingale_nil {n : ℕ} (p : ℝ) (i k : Fin n) :
     upperMartingale p i k [] = 0 := by
-  simp [upperMartingale, upperScore, crossScore, crossCount, crossTrue, crossFalse]
+  simp [upperMartingale, upperScore, crossCount, crossTrue, crossFalse]
 
 /-- For `i < k ≤ u` and `0 < p < 1`, the tree-weighted upper martingale equals its initial
 value. -/
@@ -6958,13 +6959,13 @@ theorem upperScore_tail_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i k : Fin n
         <= (upperMartingale p i k s) ^ 2 / r ^ 2 := by
     intro s
     by_cases h : r <= upperMartingale p i k s
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hM2 : r ^ 2 <= (upperMartingale p i k s) ^ 2 := by nlinarith
       have h1 : 1 <= (upperMartingale p i k s) ^ 2 / r ^ 2 := by
         rw [le_div_iff₀ (by exact sq_pos_of_pos hr)]
         nlinarith
       linarith
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have h1 : 0 <= (upperMartingale p i k s) ^ 2 / r ^ 2 := by positivity
       linarith
   have h1 := treeCount_eq_indicator hn p ε u (fun t => r <= upperScore i k t) m []
@@ -7059,7 +7060,7 @@ theorem upperScore_of_ratio_ge {n : ℕ} (p : ℝ) (i k : Fin n) (hp : 0 < p) (h
   rw [crossRatio_log p i k hp hp1 hik t] at hmono
   have hneg : upperScore i k t = -(crossScore i k t) := by
     simp only [upperScore, crossScore]
-    push_cast
+
     ring
   rw [hneg]
   nlinarith [hmono]
@@ -7149,7 +7150,7 @@ theorem window_light_cell_above {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (l : �
     rw [h1, h2, hcard, div_self hlR]
   have hlt : (∑ k ∈ W, 1 / (l : ℝ)) < ∑ k ∈ W, a k := by
     refine Finset.sum_lt_sum_of_nonempty hWne fun k hk => ?_
-    simp only [hWdef, Finset.mem_filter, Finset.mem_univ, true_and] at hk
+    simp only [hWdef] at hk
     exact hcon k hk
   have hle : ∑ k ∈ W, a k ≤ ∑ m, a m := by
     apply Finset.sum_le_sum_of_subset_of_nonneg _ (fun m _ _ => ha0 m)
@@ -7162,7 +7163,7 @@ light-witness event has tree count at most the window cardinality times `4 * p *
 / r^2`. -/
 theorem upperWindow_light_tail_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n) (l r : ℕ)
     (hp : 0 < p) (hp1 : p < 1) (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l)
-    (hin : (i : ℕ) + l < n) (hku : (i : ℕ) + l ≤ (u : ℕ)) (hr : 0 < r)
+    (_hin : (i : ℕ) + l < n) (hku : (i : ℕ) + l ≤ (u : ℕ)) (hr : 0 < r)
     (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) :
     ∀ (m : ℕ),
       treeCount hn p ε u
@@ -7213,25 +7214,25 @@ theorem upperWindow_light_tail_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : 
 /-- Collects the upper-martingale variance identity, upper-score and ratio tail bounds, and the
 upper-window concentration estimate. -/
 theorem clause13_symmetric_endpoint :
-    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hku : (k : ℕ) ≤ (u : ℕ)) (hik : (i : ℕ) < (k : ℕ)) (m : ℕ) (t : Record n),
+    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hku : (k : ℕ) ≤ (u : ℕ)) (_hik : (i : ℕ) < (k : ℕ)) (m : ℕ) (t : Record n),
       treeCrossVar hn p ε u i k m t
         = treeWeight hn p ε u (fun s => (upperMartingale p i k s) ^ 2) m t
           - (upperMartingale p i k t) ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (r : ℝ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hku : (k : ℕ) ≤ (u : ℕ)) (hik : (i : ℕ) < (k : ℕ))
-      (hr : 0 < r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (r : ℝ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hku : (k : ℕ) ≤ (u : ℕ)) (_hik : (i : ℕ) < (k : ℕ))
+      (_hr : 0 < r) (m : ℕ),
       treeCount hn p ε u (fun t => r ≤ upperScore i k t) m []
         ≤ 4 * p * (1 - p) * (m : ℝ) / r ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (r : ℕ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hku : (k : ℕ) ≤ (u : ℕ)) (hik : (i : ℕ) < (k : ℕ))
-      (hr : 0 < r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i k : Fin n) (hn : 0 < n) (r : ℕ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hku : (k : ℕ) ≤ (u : ℕ)) (_hik : (i : ℕ) < (k : ℕ))
+      (_hr : 0 < r) (m : ℕ),
       treeCount hn p ε u (fun t => (p / (1 - p)) ^ r ≤ recordRatio t k i p) m []
         ≤ 4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (hn : 0 < n) (l r : ℕ) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hin : (i : ℕ) + l < n)
-      (hku : (i : ℕ) + l ≤ (u : ℕ)) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (hn : 0 < n) (l r : ℕ) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hin : (i : ℕ) + l < n)
+      (_hku : (i : ℕ) + l ≤ (u : ℕ)) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
       treeCount hn p ε u
         (fun t => ε ≤ recordPosterior t p i ∧
           ∃ k, k ∈ windowCellsAbove i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ)) m []
@@ -7259,17 +7260,17 @@ theorem treeCount_union_le {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n)
     intro t
     simp only [treeCount]
     by_cases ho : φ t ∨ ψ t
-    · rw [if_pos ho]
+    · rw [ite_eq_left ho]
       by_cases h : φ t
       · by_cases h2 : ψ t
-        · simp [h, h2] <;> ring
-        · simp [h, h2] <;> ring
+        · simp [h, h2]
+        · simp [h, h2]
       · have h2 : ψ t := ho.resolve_left h
-        simp [h, h2] <;> ring
-    · rw [if_neg ho]
+        simp [h, h2]
+    · rw [ite_eq_right ho]
       have h1 : ¬ φ t := fun hh => ho (Or.inl hh)
       have h2 : ¬ ψ t := fun hh => ho (Or.inr hh)
-      rw [if_neg h1, if_neg h2]
+      rw [ite_eq_right h1, ite_eq_right h2]
       linarith
   | succ m ih =>
     intro t
@@ -7361,7 +7362,7 @@ truth in either window has tree count bounded by the sum of the window cardinali
 `4 * p * (1 - p) * m / r^2`. -/
 theorem clause13_window_two_arm {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n) (l r : ℕ)
     (hp : 0 < p) (hp1 : p < 1) (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l)
-    (hin : (i : ℕ) + l < n) (hr : 0 < r)
+    (_hin : (i : ℕ) + l < n) (hr : 0 < r)
     (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) :
     ∀ (m : ℕ),
       treeCount hn p ε u
@@ -7433,7 +7434,7 @@ theorem clause13_window_two_arm {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n
           have hne : ¬ φ1 k t := by
             intro hh
             exact huk hh.2.2
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
         | succ m ih =>
           intro t
           simp only [treeCount, Fintype.sum_bool]
@@ -7468,7 +7469,7 @@ theorem clause13_window_two_arm {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n
           have hne : ¬ φ2 k t := by
             intro hh
             exact hku hh.2.2
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
         | succ m ih =>
           intro t
           simp only [treeCount, Fintype.sum_bool]
@@ -7559,8 +7560,8 @@ theorem clause13_window_two_arm_card {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : 
 /-- If cell `i` has posterior at least positive `ε` and the truth lies below its window, a
 preceding-window cell has posterior at most `1 / l` and lies at or above the truth. -/
 theorem deviation_below_forces_light_cell {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n)
-    (l : ℕ) (hp : 0 < p) (hp1 : p < 1) (hε : 0 < ε) (hl : 0 < l)
-    (t : Record n) (hhi : ε ≤ recordPosterior t p i) (hdev : TruthBelowWindow u i l) :
+    (l : ℕ) (hp : 0 < p) (hp1 : p < 1) (_hε : 0 < ε) (hl : 0 < l)
+    (t : Record n) (_hhi : ε ≤ recordPosterior t p i) (hdev : TruthBelowWindow u i l) :
     ∃ k : Fin n, k ∈ windowCells i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ)
       ∧ (u : ℕ) ≤ (k : ℕ) := by
   have hdev' : (u : ℕ) + l < (i : ℕ) := hdev
@@ -7577,8 +7578,8 @@ theorem deviation_below_forces_light_cell {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u
 /-- If cell `i` has posterior at least positive `ε` and the truth lies above its window, an
 upper-window cell has posterior at most `1 / l` and lies at or below the truth. -/
 theorem deviation_above_forces_light_cell {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u i : Fin n)
-    (l : ℕ) (hp : 0 < p) (hp1 : p < 1) (hε : 0 < ε) (hl : 0 < l)
-    (t : Record n) (hhi : ε ≤ recordPosterior t p i) (hdev : TruthAboveWindow u i l) :
+    (l : ℕ) (hp : 0 < p) (hp1 : p < 1) (_hε : 0 < ε) (hl : 0 < l)
+    (t : Record n) (_hhi : ε ≤ recordPosterior t p i) (hdev : TruthAboveWindow u i l) :
     ∃ k : Fin n, k ∈ windowCellsAbove i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ)
       ∧ (k : ℕ) ≤ (u : ℕ) := by
   have hdev' : (i : ℕ) + l < (u : ℕ) := hdev
@@ -7794,7 +7795,7 @@ theorem clause13_deviation_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n)
 at most positive `δ` under the stated threshold conditions. -/
 theorem clause13_deviation_calibration {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : Fin n) (l r : ℕ)
     (hp : 0 < p) (hp1 : p < 1) (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hr : 0 < r)
-    (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (δ : ℝ) (hδ : 0 < δ) :
+    (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (δ : ℝ) (_hδ : 0 < δ) :
     ∀ (m : ℕ),
       2 * (n : ℝ) * (l : ℝ) * 4 * p * (1 - p) * (m : ℝ) ≤ δ * (r : ℝ) ^ 2 →
         treeCount hn p ε u
@@ -7813,7 +7814,7 @@ theorem clause13_deviation_calibration {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : 
   have heq : (2 * (n : ℝ) * (l : ℝ) * (4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2)) * (r : ℝ) ^ 2
       = 2 * (n : ℝ) * (l : ℝ) * 4 * p * (1 - p) * (m : ℝ) := by
     field_simp
-    <;> ring
+
   have h2 : treeCount hn p ε u
         (fun t => ∃ i : Fin n, ε ≤ recordPosterior t p i ∧
           ((u : ℕ) + l < (i : ℕ) ∨ (i : ℕ) + l < (u : ℕ))) m []
@@ -7834,35 +7835,35 @@ theorem clause13_deviation_calibration {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u : 
 bounds, their union bound, and calibration to `δ`. These give the stated finite-tree
 deviation estimates associated with [Ben-Or and Hassidim, Lemma 2.5][BenOrHassidim2007]. -/
 theorem clause13_deviation_endpoint :
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hε : 0 < ε) (hl : 0 < l) (t : Record n),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l : ℕ) (_hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hε : 0 < ε) (_hl : 0 < l) (t : Record n),
       ε ≤ recordPosterior t p i → TruthBelowWindow u i l →
         ∃ k, k ∈ windowCells i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ) ∧ (u : ℕ) ≤ (k : ℕ)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hε : 0 < ε) (hl : 0 < l) (t : Record n),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l : ℕ) (_hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hε : 0 < ε) (_hl : 0 < l) (t : Record n),
       ε ≤ recordPosterior t p i → TruthAboveWindow u i l →
         ∃ k, k ∈ windowCellsAbove i l ∧ recordPosterior t p k ≤ 1 / (l : ℝ)
           ∧ (k : ℕ) ≤ (u : ℕ)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l r : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (hdev : TruthBelowWindow u i l) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l r : ℕ) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (_hdev : TruthBelowWindow u i l) (m : ℕ),
       treeCount hn p ε u (fun t => ε ≤ recordPosterior t p i) m []
         ≤ (windowCells i l).card * (4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l r : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (hdev : TruthAboveWindow u i l) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u i : Fin n) (l r : ℕ) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (_hdev : TruthAboveWindow u i l) (m : ℕ),
       treeCount hn p ε u (fun t => ε ≤ recordPosterior t p i) m []
         ≤ (windowCellsAbove i l).card * (4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u : Fin n) (l r : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u : Fin n) (l r : ℕ) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (m : ℕ),
       treeCount hn p ε u
         (fun t => ∃ i : Fin n, ε ≤ recordPosterior t p i ∧
           ((u : ℕ) + l < (i : ℕ) ∨ (i : ℕ) + l < (u : ℕ))) m []
         ≤ 2 * (n : ℝ) * (l : ℝ) * (4 * p * (1 - p) * (m : ℝ) / (r : ℝ) ^ 2)) ∧
-    (∀ (n : ℕ) (p ε : ℝ) (u : Fin n) (l r : ℕ) (hn : 0 < n) (hp : 0 < p) (hp1 : p < 1)
-      (hhalf : 1 / 2 < p) (hε : 0 < ε) (hl : 0 < l) (hr : 0 < r)
-      (hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (δ : ℝ) (hδ : 0 < δ) (m : ℕ),
+    (∀ (n : ℕ) (p ε : ℝ) (u : Fin n) (l r : ℕ) (hn : 0 < n) (_hp : 0 < p) (_hp1 : p < 1)
+      (_hhalf : 1 / 2 < p) (_hε : 0 < ε) (_hl : 0 < l) (_hr : 0 < r)
+      (_hthr : ε * (l : ℝ) ≥ (p / (1 - p)) ^ r) (δ : ℝ) (_hδ : 0 < δ) (m : ℕ),
       2 * (n : ℝ) * (l : ℝ) * 4 * p * (1 - p) * (m : ℝ) ≤ δ * (r : ℝ) ^ 2 →
         treeCount hn p ε u
           (fun t => ∃ i : Fin n, ε ≤ recordPosterior t p i ∧
@@ -7915,7 +7916,7 @@ theorem mem_cutList {n : ℕ} (t : Record n) (obs : Comparison n) (hobs : obs �
 /-- A record satisfying `NoDupCuts` has a cut list without repetitions. -/
 theorem cutList_nodup {n : ℕ} (t : Record n) (hnd : NoDupCuts t) : (cutList t).Nodup := by
   induction t with
-  | nil => simp [cutList, NoDupCuts]
+  | nil => simp [cutList]
   | cons obs t ih =>
     simp only [cutList] at *
     exact List.nodup_cons.mpr ⟨hnd.1, ih hnd.2⟩
@@ -8056,8 +8057,8 @@ theorem noisyAnswerProb_compl_eq_bayesFalseLikelihood {n : ℕ} (j c : Fin n) (p
 theorem bayesFalseLikelihood_pos {n : ℕ} (c m : Fin n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     0 < bayesFalseLikelihood c m p := by
   by_cases h : (c : ℕ) <= (m : ℕ)
-  · unfold bayesFalseLikelihood; rw [if_pos h]; linarith
-  · unfold bayesFalseLikelihood; rw [if_neg h]; linarith
+  · unfold bayesFalseLikelihood; rw [ite_eq_left h]; linarith
+  · unfold bayesFalseLikelihood; rw [ite_eq_right h]; linarith
 
 /-- A pointwise positive prior on a nonempty search space gives a positive false-answer
 normalizer when `0 < p < 1`. -/
@@ -8261,14 +8262,14 @@ theorem clause16_cost_endpoint :
       noisyAnswerProb j c p = bayesTrueLikelihood c j p) ∧
     (∀ (n : ℕ) (j c : Fin n) (p : ℝ),
       1 - noisyAnswerProb j c p = bayesFalseLikelihood c j p) ∧
-    (∀ (n : ℕ) (hn : 0 < n) (a : Fin n → ℝ) (c : Fin n) (p : ℝ)
-      (ha : ∀ j, 0 ≤ a j) (hsum : (∑ j, a j) = 1) (hp : 0 < p) (hp1 : p < 1),
+    (∀ (n : ℕ) (_hn : 0 < n) (a : Fin n → ℝ) (c : Fin n) (p : ℝ)
+      (_ha : ∀ j, 0 ≤ a j) (_hsum : (∑ j, a j) = 1) (_hp : 0 < p) (_hp1 : p < 1),
       (∑ j, bayesFalsePost a c p j) = 1 ∧ (∑ j, bayesTruePost a c p j) = 1) ∧
-    (∀ (n : ℕ) (hn : 0 < n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1)
+    (∀ (n : ℕ) (_hn : 0 < n) (p : ℝ) (_hp : 0 < p) (_hp1 : p < 1)
       (tr : BoolQueryTree (Fin n) (Fin n)),
       uniformExpectedQueries p tr = (1 / n) * ∑ j, noisyExpectedQueries j p tr) ∧
     (∀ (n : ℕ) (t : Record n), oracleApplications t = recordQueries t) ∧
-    (∀ (n : ℕ) (hn : 0 < n) (p : ℝ) (hp : 0 < p) (hp1 : p < 1)
+    (∀ (n : ℕ) (_hn : 0 < n) (p : ℝ) (_hp : 0 < p) (_hp1 : p < 1)
       (levels : List (BoolQueryTree (Fin n) (Fin n))),
       recursiveExpectedOracleApplications p levels
         = (1 / n) * levels.foldr

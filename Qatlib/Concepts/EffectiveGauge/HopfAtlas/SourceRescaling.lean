@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.PeriodApproximation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.PeriodApproximation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
+
+@[expose] public section
 
 /-!
 # Original rational source queries approximate fixed physical period samples

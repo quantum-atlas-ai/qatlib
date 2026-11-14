@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementCompositionDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+module
+
+public import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementCompositionDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+
+@[expose] public section
 
 /-!
 # Composition and measurement resource accounting

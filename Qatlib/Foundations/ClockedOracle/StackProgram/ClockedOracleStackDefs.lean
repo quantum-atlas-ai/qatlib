@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.List.Basic
-import Mathlib.Algebra.BigOperators.Group.List.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Data.List.Basic
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+
+@[expose] public section
 
 /-!
 # A clocked oracle stack machine

@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
+module
+
+public import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
+
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Fractional-cover strategies from coefficient magnitudes
@@ -63,7 +69,7 @@ cover value times `(∑ i, |c i|^(2/3))³`. -/
 theorem attained_power_strategy (G : SimpleGraph V) (c : V → ℝ) (hc : ∀ i,c i≠0) :
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C
-    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧
+    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧
       (∀ i,0<coverage G q i) ∧
       (∀ i,a i/coverValue G a ≤ coverage G q i) ∧
       (∑ i,|c i|/Real.sqrt (coverage G q i))^2 ≤ coverValue G a*C^3 := by

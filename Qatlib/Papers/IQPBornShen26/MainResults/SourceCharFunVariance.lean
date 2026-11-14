@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IQPBornShen26.MainResults.Definitions
+module
+
+public import Qatlib.Papers.IQPBornShen26.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -123,11 +127,11 @@ lemma termR_eq_prod {J : Finset (Fin D)} (_hJ : J ⊆ supportGen s a) (θ : Fin 
   have hval : ∀ j ∈ J, factorSC s a J j (θ j) = Real.sin (2 * θ j) := by
     intro j hj
     simp only [factorSC]
-    exact if_pos hj
+    exact ite_eq_left hj
   have hcos : ∀ j ∈ supportGen s a \ J, factorSC s a J j (θ j) = Real.cos (2 * θ j) := by
     intro j hj
     simp only [factorSC]
-    rw [if_neg (Finset.mem_sdiff.1 hj).2, if_pos (Finset.mem_sdiff.1 hj).1]
+    rw [ite_eq_right (Finset.mem_sdiff.1 hj).2, ite_eq_left (Finset.mem_sdiff.1 hj).1]
   have hone : ∀ j ∈ Finset.univ, j ∉ J ∪ (supportGen s a \ J) →
       factorSC s a J j (θ j) = 1 := by
     intro j _ hj
@@ -135,7 +139,7 @@ lemma termR_eq_prod {J : Finset (Fin D)} (_hJ : J ⊆ supportGen s a) (θ : Fin 
     have h2 : j ∉ supportGen s a :=
       fun h => hj (Finset.mem_union.2 (Or.inr (Finset.mem_sdiff.2 ⟨h, h1⟩)))
     simp only [factorSC]
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
   have hsplit : (∏ j, factorSC s a J j (θ j))
       = (∏ j ∈ J, Real.sin (2 * θ j)) * ∏ j ∈ supportGen s a \ J, Real.cos (2 * θ j) := by
     rw [← Finset.prod_subset (Finset.subset_univ _) hone,
@@ -207,30 +211,30 @@ lemma integral_termR_eq {m : Measure ℝ} [IsProbabilityMeasure m]
     intro j
     simp only [factorSC]
     by_cases h1 : j ∈ J
-    · simp only [if_pos h1]
+    · simp only [ite_eq_left h1]
     · by_cases h2 : j ∈ supportGen s a
-      · simp only [if_neg h1, if_pos h2]
-      · simp only [if_neg h1, if_neg h2, integral_const, probReal_univ, one_smul]
+      · simp only [ite_eq_right h1, ite_eq_left h2]
+      · simp only [ite_eq_right h1, ite_eq_right h2, integral_const, probReal_univ, one_smul]
   simp only [termR_eq_prod (η := η) hJ]
   rw [integral_const_mul, integral_fintype_prod_eq_prod]
   simp only [hfac]
   by_cases hJ0 : J = ∅
   · subst hJ0
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hsplit := prod_two_way (∅ : Finset (Fin D)) (supportGen s a)
       (fun j => if j ∈ (∅ : Finset (Fin D)) then ∫ x, Real.sin (2 * x) ∂m
         else if j ∈ supportGen s a then ∫ x, Real.cos (2 * x) ∂m else 1)
       (∫ x, Real.sin (2 * x) ∂m) (∫ x, Real.cos (2 * x) ∂m)
       (Finset.disjoint_right.2 fun a ha => Finset.notMem_empty a)
       (fun j hj => absurd hj (Finset.notMem_empty j))
-      (fun j hj => if_pos hj)
-      (fun j _ hj => if_neg hj)
+      (fun j hj => ite_eq_left hj)
+      (fun j _ hj => ite_eq_right hj)
     rw [hsplit, Finset.card_empty, pow_zero, one_mul]
-  · rw [if_neg hJ0, hsin]
+  · rw [ite_eq_right hJ0, hsin]
     obtain ⟨j₀, hj₀⟩ := Finset.nonempty_iff_ne_empty.2 hJ0
     have hzero : (∏ j, if j ∈ J then (0:ℝ)
         else if j ∈ supportGen s a then ∫ x, Real.cos (2 * x) ∂m else 1) = 0 :=
-      Finset.prod_eq_zero (Finset.mem_univ j₀) (if_pos hj₀)
+      Finset.prod_eq_zero (Finset.mem_univ j₀) (ite_eq_left hj₀)
     rw [hzero, mul_zero]
 
 /-- Expectation of a product of two summands: `E[R_J R_K]` vanishes for
@@ -263,21 +267,21 @@ lemma integral_termR_mul {m : Measure ℝ} [IsProbabilityMeasure m]
     simp only [factorSC]
     by_cases h1 : j ∈ J
     · by_cases h2 : j ∈ K
-      · simp only [if_pos h1, if_pos h2]
+      · simp only [ite_eq_left h1, ite_eq_left h2]
         congr 1
         exact funext fun x => (pow_two _).symm
       · have hS : j ∈ supportGen s a := hJ h1
-        simp only [if_pos h1, if_neg h2, if_pos hS]
+        simp only [ite_eq_left h1, ite_eq_right h2, ite_eq_left hS]
     · by_cases h2 : j ∈ K
-      · simp only [if_neg h1, if_pos h2, if_pos (hK h2)]
+      · simp only [ite_eq_right h1, ite_eq_left h2, ite_eq_left (hK h2)]
         congr 1
         exact funext fun x => mul_comm _ _
-      · simp only [if_neg h1, if_neg h2]
+      · simp only [ite_eq_right h1, ite_eq_right h2]
         by_cases hS : j ∈ supportGen s a
-        · simp only [if_pos hS]
+        · simp only [ite_eq_left hS]
           congr 1
           exact funext fun x => (pow_two _).symm
-        · simp only [if_neg hS, one_mul, integral_const, probReal_univ, one_smul]
+        · simp only [ite_eq_right hS, one_mul, integral_const, probReal_univ, one_smul]
   have hbridge : ∀ θ : Fin D → ℝ, ∏ j, factorSC s a J j (θ j) * factorSC s a K j (θ j)
       = ∏ j, (factorSC s a J j * factorSC s a K j) (θ j) := fun θ => rfl
   have key : ∫ θ : Fin D → ℝ, ∏ j, (factorSC s a J j * factorSC s a K j) (θ j)
@@ -289,7 +293,7 @@ lemma integral_termR_mul {m : Measure ℝ} [IsProbabilityMeasure m]
   simp only [hfac]
   by_cases hJK : J = K
   · subst hJK
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hJnot : ∀ j ∈ supportGen s a \ J, j ∉ J := fun j hj => (Finset.mem_sdiff.1 hj).2
     have hsplit := prod_two_way J (supportGen s a \ J)
       (fun j => if j ∈ J then if j ∈ J then ∫ x, Real.sin (2 * x) ^ 2 ∂m
@@ -298,15 +302,15 @@ lemma integral_termR_mul {m : Measure ℝ} [IsProbabilityMeasure m]
         else if j ∈ supportGen s a then ∫ x, Real.cos (2 * x) ^ 2 ∂m else 1)
       (∫ x, Real.sin (2 * x) ^ 2 ∂m) (∫ x, Real.cos (2 * x) ^ 2 ∂m)
       (Finset.disjoint_right.2 fun aJ ha => (Finset.mem_sdiff.1 ha).2)
-      (fun j hj => by simp only [if_pos hj])
+      (fun j hj => by simp only [ite_eq_left hj])
       (fun j hj => by
-        simp only [if_neg (hJnot j hj), if_pos (Finset.mem_sdiff.1 hj).1])
+        simp only [ite_eq_right (hJnot j hj), ite_eq_left (Finset.mem_sdiff.1 hj).1])
       (by intro j h1 h2
           have hS : j ∉ supportGen s a := fun h => h2 (Finset.mem_sdiff.2 ⟨h, h1⟩)
-          simp only [if_neg h1, if_neg hS])
+          simp only [ite_eq_right h1, ite_eq_right hS])
     rw [hsplit]
     ring
-  · rw [if_neg hJK]
+  · rw [ite_eq_right hJK]
     by_cases hne : (J \ K).Nonempty
     · obtain ⟨j₀, hj₀⟩ := hne
       have hzero : (∏ j, if j ∈ J then if j ∈ K then ∫ x, Real.sin (2 * x) ^ 2 ∂m
@@ -314,7 +318,7 @@ lemma integral_termR_mul {m : Measure ℝ} [IsProbabilityMeasure m]
         else if j ∈ K then ∫ x, Real.sin (2 * x) * Real.cos (2 * x) ∂m
         else if j ∈ supportGen s a then ∫ x, Real.cos (2 * x) ^ 2 ∂m else 1) = 0 := by
         refine Finset.prod_eq_zero (Finset.mem_univ j₀) ?_
-        rw [if_pos (Finset.mem_sdiff.1 hj₀).1, if_neg (Finset.mem_sdiff.1 hj₀).2,
+        rw [ite_eq_left (Finset.mem_sdiff.1 hj₀).1, ite_eq_right (Finset.mem_sdiff.1 hj₀).2,
           hsc]
       rw [hzero, mul_zero]
     · by_cases hne2 : (K \ J).Nonempty
@@ -324,7 +328,7 @@ lemma integral_termR_mul {m : Measure ℝ} [IsProbabilityMeasure m]
           else if j ∈ K then ∫ x, Real.sin (2 * x) * Real.cos (2 * x) ∂m
           else if j ∈ supportGen s a then ∫ x, Real.cos (2 * x) ^ 2 ∂m else 1) = 0 := by
           refine Finset.prod_eq_zero (Finset.mem_univ j₀) ?_
-          rw [if_neg (Finset.mem_sdiff.1 hj₀).2, if_pos (Finset.mem_sdiff.1 hj₀).1,
+          rw [ite_eq_right (Finset.mem_sdiff.1 hj₀).2, ite_eq_left (Finset.mem_sdiff.1 hj₀).1,
             hsc]
         rw [hzero, mul_zero]
       · exfalso
@@ -431,10 +435,10 @@ theorem theorem3_2_var_charFun_moments {m : Measure ℝ} [IsProbabilityMeasure m
     rw [integral_finsetSum (zeroSumSets s a) fun J hJ => hInt J hJ,
       Finset.sum_eq_single (∅ : Finset (Fin D))
         (fun K hK hne => by
-          rw [integral_termR_eq hsin (subset_of_mem_zeroSumSets s a hK), if_neg hne])
+          rw [integral_termR_eq hsin (subset_of_mem_zeroSumSets s a hK), ite_eq_right hne])
         (fun h => (h (empty_mem_zeroSumSets s a)).elim),
       integral_termR_eq hsin (subset_of_mem_zeroSumSets s a (empty_mem_zeroSumSets s a)),
-      if_pos rfl]
+      ite_eq_left rfl]
   have hEC2 : ∫ θ, (charFunIQP s a η θ) ^ 2 ∂(Measure.pi fun _ : Fin D => m)
       = ∑ J ∈ zeroSumSets s a,
           (∫ x, Real.sin (2 * x) ^ 2 ∂m) ^ J.card
@@ -457,11 +461,11 @@ theorem theorem3_2_var_charFun_moments {m : Measure ℝ} [IsProbabilityMeasure m
       Finset.sum_eq_single J
         (fun K hK hne => by
           rw [integral_termR_mul hsc (subset_of_mem_zeroSumSets s a hJ)
-            (subset_of_mem_zeroSumSets s a hK), if_neg hne.symm])
+            (subset_of_mem_zeroSumSets s a hK), ite_eq_right hne.symm])
         (fun h => (h hJ).elim),
       integral_termR_mul hsc (subset_of_mem_zeroSumSets s a hJ)
         (subset_of_mem_zeroSumSets s a hJ),
-      if_pos rfl, hη J hJ, one_mul]
+      ite_eq_left rfl, hη J hJ, one_mul]
   have hpow : ∀ θ : Fin D → ℝ, (charFunIQP s a η ^ 2) θ = (charFunIQP s a η θ) ^ 2 :=
     fun θ => rfl
   rw [ProbabilityTheory.variance_eq_sub hLpC, funext hpow, hEC2, hEC]

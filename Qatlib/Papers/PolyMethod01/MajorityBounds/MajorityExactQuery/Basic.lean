@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactDegree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+module
+
+public import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactDegree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+
+@[expose] public section
 
 /-!
 # Basic query bounds for strict majority

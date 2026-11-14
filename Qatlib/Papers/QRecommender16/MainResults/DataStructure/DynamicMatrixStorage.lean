@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -78,7 +82,7 @@ paper's `O(w log²(mn))` and `O(log²(mn))` bounds.
 The existence is discharged by the zero-cost store whose `rowNormSq` is
 `rowNormSqOf A`; the binary tree of Appendix A, its insertion semantics and the
 quantum mappings `Ue`/`Ve` are not modelled. -/
-theorem source_theorem_5_1 (A : Matrix (Fin m) (Fin n) ℝ) (hm : 0 < m) (hn : 0 < n) :
+theorem source_theorem_5_1 (A : Matrix (Fin m) (Fin n) ℝ) (_hm : 0 < m) (_hn : 0 < n) :
     ∃ store : MatrixStore m n,
       store.rowNormSq = rowNormSqOf A ∧
       (∀ w, store.size w ≤ w * logmn m n ^ 2) ∧

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticAmplification
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticAmplification
+
+@[expose] public section
 
 /-!
 # Decoding Static Oracle Words
@@ -184,6 +188,8 @@ theorem originalStaticDecodedFrame_isIsometry (R : Matrix W I ℂ) (hR : IsIsome
   apply reindexFrame_isIsometry
   exact tagFrame_isIsometry _ _ (tagFrame_isIsometry _ _
     (tagFrame_isIsometry _ _ (tagFrame_isIsometry _ _ (tagFrame_isIsometry _ _ hR))))
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The static averaging preparation maps `originalStaticDecodedFrame` exactly to
 `originalStaticFrame`. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,7 +100,7 @@ theorem exp_add_bound {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
 theorem potential_bound_yields_eq3
     {n m : ℕ} (A : PayoffMatrix n m) (x : Fin n → ℝ) (y : Fin m → ℝ)
     (P : Fin m → ℝ) (Q : Fin n → ℝ) {δ S : ℝ}
-    (hn : 0 < n) (hm : 0 < m) (hδ : 0 < δ) (hS : 0 ≤ S)
+    (hn : 0 < n) (hm : 0 < m) (hδ : 0 < δ) (_hS : 0 ≤ S)
     (hP : ∀ j, P j = Real.exp (-(colPayoff A x j)))
     (hQ : ∀ i, Q i = Real.exp (rowPayoff A y i))
     (hΦ : (∑ j, P j) * (∑ i, Q i) ≤ ((n : ℝ) * m / δ) * Real.exp (3 * S)) :
@@ -192,7 +196,7 @@ theorem source_lemma1_eq3
           / ∑ τ ∈ Finset.range t, stepSize (τ + 1))} := by
   refine le_trans hmarkov (measureReal_mono ?_)
   intro ω hω
-  rw [Set.mem_setOf_eq] at hω ⊢
+  rw [Set.mem_ofPred_eq] at hω ⊢
   intro t ht
   set S1 : ℝ := ∑ τ ∈ Finset.range t, stepSize (τ + 1) with hS1def
   set S2 : ℝ := ∑ τ ∈ Finset.range t, (stepSize (τ + 1)) ^ 2 with hS2def
@@ -246,7 +250,6 @@ theorem sqrt_succ_sub (τ : ℕ) :
         * (Real.sqrt ((τ : ℝ) + 1) + Real.sqrt (τ : ℝ))
         = (Real.sqrt ((τ : ℝ) + 1)) ^ 2 - (Real.sqrt (τ : ℝ)) ^ 2 := by ring
     rw [hexpand, Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity)]
-    push_cast
     ring
   have hne : (Real.sqrt ((τ : ℝ) + 1) + Real.sqrt (τ : ℝ)) ≠ 0 := by positivity
   calc (Real.sqrt ((τ : ℝ) + 1) - Real.sqrt (τ : ℝ))
@@ -273,7 +276,6 @@ theorem stepSum_lower (t : ℕ) :
   have hterm : ∀ τ ∈ Finset.range t,
       (Real.sqrt ((τ : ℝ) + 1) - Real.sqrt (τ : ℝ)) / 2 ≤ stepSize (τ + 1) := by
     intro τ _
-    push_cast
     have hkey : (1 : ℝ) / (Real.sqrt ((τ : ℝ) + 1) + Real.sqrt (τ : ℝ))
         ≤ 1 / Real.sqrt ((τ : ℝ) + 1) := by
       rw [div_le_div_iff₀ (by positivity : (0 : ℝ) < Real.sqrt ((τ : ℝ) + 1)
@@ -404,7 +406,7 @@ theorem source_lemma1_streaming
   refine le_trans (source_lemma1_eq3 hn hm A hδ0 X Y hweights hmarkov)
     (measureReal_mono ?_)
   intro ω hω
-  rw [Set.mem_setOf_eq] at hω ⊢
+  rw [Set.mem_ofPred_eq] at hω ⊢
   intro t ht
   exact epsOptimal_mono A _ _ (hω t ht) (epsPrime_ge_generic hn hm hδ0 hδ1 ht)
 
@@ -419,7 +421,7 @@ theorem source_lemma1_streaming
     Markov/union-bound event `hmarkov`. -/
 theorem source_lemma1_fixed_accuracy
     {n m : ℕ} (hn : 0 < n) (hm : 0 < m) (A : PayoffMatrix n m)
-    {ε δ : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1) (hδ0 : 0 < δ) (hδ1 : δ < 1 / 3)
+    {ε δ : ℝ} (hε0 : 0 < ε) (_hε1 : ε < 1) (hδ0 : 0 < δ) (hδ1 : δ < 1 / 3)
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (X : Ω → ℕ → Fin n → ℝ) (Y : Ω → ℕ → Fin m → ℝ)
     (hweights : ∀ ω t, 1 ≤ t →
@@ -448,7 +450,7 @@ theorem source_lemma1_fixed_accuracy
     exact Nat.one_le_iff_ne_zero.mpr (ne_of_gt hposn)
   refine le_trans hmarkov (measureReal_mono ?_)
   intro ω hω
-  rw [Set.mem_setOf_eq] at hω ⊢
+  rw [Set.mem_ofPred_eq] at hω ⊢
   intro t ht
   have ht1 : 1 ≤ t := hT1.trans ht
   have htpos : (0 : ℝ) < (t : ℝ) * (ε / 4) := by positivity

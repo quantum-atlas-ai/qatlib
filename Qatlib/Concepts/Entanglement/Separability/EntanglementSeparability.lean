@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
-import QuantumInfo.Channels.Unbundled
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+public import QuantumInfo.Channels.Unbundled
+
+@[expose] public section
 
 /-!
 # Separability under local quantum channels

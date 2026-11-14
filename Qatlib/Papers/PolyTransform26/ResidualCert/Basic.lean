@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCertData
-import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponse
+module
+
+public import Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCertData
+public import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponse
+
+@[expose] public section
 
 /-!
 # Residual recurrences and polynomial responses

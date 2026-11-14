@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.ScalarNoGo.FiniteSupport
+module
+
+public import Qatlib.Concepts.QcaDynamics.ScalarNoGo.FiniteSupport
+
+@[expose] public section
 
 /-!
 # Operator form of the scalar QCA no-go theorem

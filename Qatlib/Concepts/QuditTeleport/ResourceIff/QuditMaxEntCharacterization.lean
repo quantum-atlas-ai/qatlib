@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+
+@[expose] public section
 
 /-!
 # Maximally entangled qudit resource characterization
@@ -59,7 +63,7 @@ theorem quditMaxEntCharacterization : QuditMaxEntCharacterization := by
       inner_ket_ket, qudit_scaled_rows_orthonormal Ψ hΨ, ?_⟩
     funext x
     simp only [quditMaxEntResource, Ket, ite_mul, one_mul, zero_mul,
-      Finset.sum_ite_eq, Finset.mem_univ, if_true]
+      Finset.sum_ite_eq, Finset.mem_univ, ite_true]
     rw [← mul_assoc, inv_mul_cancel₀ (qudit_sqrt_ne_zero n), one_mul]
 
 end Qatlib.Concepts.QuditTeleport.ResourceIff

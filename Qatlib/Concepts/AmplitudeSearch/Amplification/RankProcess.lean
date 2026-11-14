@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Algebra.BigOperators.Fin
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.SplitIfs
+module
+
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Algebra.BigOperators.Fin
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.SplitIfs
+
+@[expose] public section
 
 /-!
 # Finite experiments for decreasing ranks

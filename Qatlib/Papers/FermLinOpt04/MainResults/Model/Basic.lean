@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Fock-space Gaussian operator definitions

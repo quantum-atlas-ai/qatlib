@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.DistinctLB26.MainResults.Core.StateCore
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.DistinctLB26.MainResults.Core.StateCore
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,6 +60,7 @@ abbrev Joint (Y A : Type*) : Type _ := State (Y × A)
 
 variable {ι : Type*} [Fintype ι]
 
+omit [Fintype ι] in
 /-- Coordinate masks are additive. -/
 theorem projMask_add (P : ι → Prop) [DecidablePred P] (x y : State ι) :
     Core.State.projMask P (x + y) =
@@ -64,6 +69,7 @@ theorem projMask_add (P : ι → Prop) [DecidablePred P] (x y : State ι) :
   intro i
   by_cases h : P i <;> simp [Core.State.projMask_apply, h]
 
+omit [Fintype ι] in
 /-- Coordinate masks are homogeneous. -/
 theorem projMask_smul (P : ι → Prop) [DecidablePred P] (c : ℂ) (x : State ι) :
     Core.State.projMask P (c • x) = c • Core.State.projMask P x := by
@@ -167,7 +173,7 @@ state `Υ ψT' = u + v` with `‖u‖ ≤ δ` and `v` strongly `γ`-anti-concent
 then the success probability is at most `(γ + δ)²`.  States of the algorithm are
 unit vectors, hence `‖v‖ ≤ 1` is part of the paper's normalisation. -/
 theorem lemma3_12 {Y A : Type*} [Fintype Y] [Fintype A] {γ δ : ℝ} (hγ : 0 ≤ γ)
-    (hδ : 0 ≤ δ) {S : Set (State (Y × A))} {u v φ : State (Y × A)}
+    (_hδ : 0 ≤ δ) {S : Set (State (Y × A))} {u v φ : State (Y × A)}
     (hdecomp : φ = u + v) (hu : ‖u‖ ≤ δ) (hv : ‖v‖ ≤ 1) (hac : StrongAntiConc γ S)
     (hvS : v ∈ S) {ρ : Type} [Fintype ρ] (P : ρ → Y × A → Prop)
     [∀ r, DecidablePred (P r)] (hdisj : ∀ (z : Y × A) r s, r ≠ s → ¬ (P r z ∧ P s z)) :

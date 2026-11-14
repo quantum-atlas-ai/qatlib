@@ -5,11 +5,15 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@e298f64
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Szego
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Tactic.NormNum.Parity
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Szego
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Tactic.NormNum.Parity
+
+@[expose] public section
 
 /-!
 # Raw Jackson kernel and cosine expansions
@@ -140,7 +144,7 @@ lemma exists_comp_sq_of_eval_neg_eq (p : Polynomial ℝ)
     simpa [Polynomial.eval_comp] using hp x
   have hcoeff (i : ℕ) (hi : Odd i) : p.coeff i = 0 := by
     have h := congrArg (fun q : Polynomial ℝ => q.coeff i) hpoly
-    try dsimp only at h
+
     rw [coeff_comp_neg_X, hi.neg_one_pow] at h
     linarith
   have heven (i : ℕ) (hi : i ∈ p.support) : Even i := by
@@ -361,7 +365,7 @@ private lemma integral_cos_mul_cos (m n : ℕ) (hm : 0 < m) (hn : 0 < n) :
       simp [Real.pi_pos.le]; ring]
     rw [integral_cos_int ((m : ℤ) + (m : ℤ)) (by omega)]
     simp
-  · rw [if_neg hmn]
+  · rw [ite_eq_right hmn]
     have hsub0 : (m : ℤ) - (n : ℤ) ≠ 0 := by omega
     have hadd0 : (m : ℤ) + (n : ℤ) ≠ 0 := by omega
     rw [integral_cos_int _ hsub0, integral_cos_int _ hadd0]

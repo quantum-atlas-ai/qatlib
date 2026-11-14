@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+
+@[expose] public section
 
 /-!
 # Statement of exact segment composition

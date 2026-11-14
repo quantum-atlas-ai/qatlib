@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AndersonLoc09.MainResults.Defs
+module
+
+public import Qatlib.Papers.AndersonLoc09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Exact identities for the minimal-gap expression
@@ -81,7 +85,7 @@ theorem minimal_gap_eq9_vAlpha (A f2 α N : ℝ) (hA : 0 < A) (hf2 : 0 < f2)
 
 /-- For positive `N0`, `v`, and `N`, the condition `1 ≤ (v / 4) * log (N / N0)` implies that the
 reciprocal squared gap formula is at least `exp N` [AltshulerKroviRoland2010]. -/
-theorem adiabatic_time_ge_exp (N0 v N : ℝ) (hN0 : 0 < N0) (hv : 0 < v) (hN : 0 < N)
+theorem adiabatic_time_ge_exp (N0 v N : ℝ) (_hN0 : 0 < N0) (_hv : 0 < v) (hN : 0 < N)
     (hcond : 1 ≤ (v / 4) * Real.log (N / N0)) :
     Real.exp N ≤ 1 / (gapFormula (v * N) N N0) ^ 2 := by
   have hgap_pos : 0 < gapFormula (v * N) N N0 := by

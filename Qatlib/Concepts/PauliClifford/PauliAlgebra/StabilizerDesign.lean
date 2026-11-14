@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesignDefs
-import Mathlib.Algebra.Ring.BooleanRing
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesignDefs
+public import Mathlib.Algebra.Ring.BooleanRing
+
+@[expose] public section
 
 /-!
 # Stabilizer generators, code spaces, and Clifford actions
@@ -320,7 +324,7 @@ theorem list_ofFn_injective {n : ℕ} {α : Type} {f g : Fin n → α}
   funext i
   have h1 : (List.ofFn f)[i.val]? = (List.ofFn g)[i.val]? := by rw [h]
   rw [List.getElem?_ofFn, List.getElem?_ofFn] at h1
-  simp only [dif_pos i.isLt] at h1
+  simp only [dite_eq_left i.isLt] at h1
   simp only [Option.some.injEq] at h1
   have hi : (⟨i.val, i.isLt⟩ : Fin n) = i := Fin.ext rfl
   rw [hi] at h1
@@ -847,10 +851,10 @@ theorem isStabilizerFun_zero_iff {n : ℕ} (a : BooleanVec n)
   · intro h hx
     have h1 : Complex.I ^ (booleanDot a x).val ≠ 0 := pow_ne_zero _ (by simp)
     have h2 : (-1 : ℂ) ^ (quadFun Q b c x).val ≠ 0 := pow_ne_zero _ (by simp)
-    rw [if_pos hx] at h
+    rw [ite_eq_left hx] at h
     exact (mul_ne_zero (mul_ne_zero h1 h2) one_ne_zero) h
   · intro h
-    rw [if_neg h]
+    rw [ite_eq_right h]
     simp
 
 /-- The squared norm of the displayed affine-support phase function is the indicator of its
@@ -861,10 +865,10 @@ theorem isStabilizerFun_norm_sq {n : ℕ} (a : BooleanVec n)
     ‖Complex.I ^ (booleanDot a x).val * (-1 : ℂ) ^ (quadFun Q b c x).val *
       (if x ∈ A then (1 : ℂ) else 0)‖ ^ 2 = if x ∈ A then (1 : ℝ) else 0 := by
   by_cases hx : x ∈ A
-  · rw [if_pos hx, if_pos hx]
+  · rw [ite_eq_left hx, ite_eq_left hx]
     rw [norm_mul, norm_mul, norm_pow, norm_pow, norm_one, norm_I, norm_neg_one]
     simp
-  · rw [if_neg hx, if_neg hx]
+  · rw [ite_eq_right hx, ite_eq_right hx]
     simp
 
 /-- The mass of the displayed stabilizer function equals the cardinality of its affine support. -/
@@ -1382,7 +1386,7 @@ theorem mul_herm_comm_herm {n : ℕ} {p q : PauliElem n} (hp : IsHermitianPauli 
     rw [← hsq] at h
     have h' := congrArg (fun M : Matrix (Reg n) (Reg n) ℂ => M 0 0) h
     rw [hsq] at h'
-    simp only [Matrix.smul_apply, Matrix.one_apply, if_true, smul_eq_mul, mul_one] at h'
+    simp only [Matrix.smul_apply, Matrix.one_apply, ite_true, smul_eq_mul, mul_one] at h'
     exact h'.symm
   have hval : ((PauliElem.mul p q).phase + (PauliElem.mul p q).phase).val = 0 := by
     have hlt : ((PauliElem.mul p q).phase + (PauliElem.mul p q).phase).val < 4 :=
@@ -1631,10 +1635,10 @@ theorem op_maskProduct_fixes_codeSpace' {n : ℕ} (gs : List (PauliElem n)) (ψ 
           have hg : op g *ᵥ ψ = ψ := hfix g (List.mem_cons_self)
           cases b with
           | false =>
-              rw [maskProduct, if_neg (by decide)]
+              rw [maskProduct, ite_eq_right (by decide)]
               exact ih hfix' mask hlen
           | true =>
-              rw [maskProduct, if_pos (by decide)]
+              rw [maskProduct, ite_eq_left (by decide)]
               rw [op_mul, ← Matrix.mulVec_mulVec]
               rw [ih hfix' mask hlen]
               exact hg
@@ -1742,7 +1746,7 @@ theorem isStabilizerFun_value_zero {n : ℕ} (φ : BooleanVec n → ℂ) (hφ : 
   change (Complex.I ^ (booleanDot a 0).val * (-1 : ℂ) ^ (quadFun Q b c 0).val
       * (if (0 : BooleanVec n) ∈ A then (1 : ℂ) else 0)) ∈ ({1, -1} : Set ℂ)
   rw [booleanDot_zero, quadFun_zero]
-  simp only [hmem, if_pos]
+  simp only [hmem, ite_eq_left]
   rcases zmod2_eq_zero_or_one c with rfl | rfl <;> simp [zmod2_val_one]
 
 /-- A stabilizer function cannot take the value `Complex.I` at the origin. -/
@@ -2179,7 +2183,7 @@ theorem siteCanonicalVector_z_zero {n : ℕ} (j : Fin n) (v : BooleanVec n × Bo
   · by_cases hx : v.1 j = 0
     · have h1 : (cliffordSymplecticMap (.S j) v).2 j = v.2 j + v.1 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_pos hz, if_pos hx, h1]
+      rw [siteCanonicalVector, ite_eq_left hz, ite_eq_left hx, h1]
       simp [hz, hx]
     · have h1 : (cliffordSymplecticMap (.S j) (cliffordSymplecticMap (.S j) v)).2 j
           = (cliffordSymplecticMap (.S j) v).2 j + (cliffordSymplecticMap (.S j) v).1 j := by
@@ -2188,14 +2192,14 @@ theorem siteCanonicalVector_z_zero {n : ℕ} (j : Fin n) (v : BooleanVec n × Bo
         simp [cliffordSymplecticMap]
       have h3 : (cliffordSymplecticMap (.S j) v).1 j = v.1 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_pos hz, if_neg hx, h1, h2, h3]
+      rw [siteCanonicalVector, ite_eq_left hz, ite_eq_right hx, h1, h2, h3]
       rw [hz]
       simp only [zero_add]
       exact zmod2_add_self _
   · by_cases hx : v.1 j = 0
     · have h1 : (cliffordSymplecticMap (.H j) v).2 j = v.1 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_neg hz, if_pos hx, h1]
+      rw [siteCanonicalVector, ite_eq_right hz, ite_eq_left hx, h1]
       exact hx
     · have h1 : (cliffordSymplecticMap (.S j) (cliffordSymplecticMap (.H j) v)).2 j
           = (cliffordSymplecticMap (.H j) v).2 j + (cliffordSymplecticMap (.H j) v).1 j := by
@@ -2212,7 +2216,7 @@ theorem siteCanonicalVector_z_zero {n : ℕ} (j : Fin n) (v : BooleanVec n × Bo
         rcases zmod2_eq_zero_or_one (v.2 j) with h | h
         · exact absurd h hz
         · exact h
-      rw [siteCanonicalVector, if_neg hz, if_neg hx, h1, h2, h3, hx1, hz1]
+      rw [siteCanonicalVector, ite_eq_right hz, ite_eq_right hx, h1, h2, h3, hx1, hz1]
       exact zmod2_add_self _
 
 /-- The local canonicalization map preserves both binary coordinates at every other site. -/
@@ -2384,7 +2388,7 @@ theorem cnotFixCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
       = ((fun j => if x zero = 0 ∧ j = zero then x zero + x i else x j), 0) := by
   by_cases hz : x zero = 0
   · have hzi' : zero ≠ i := Ne.symm hzi
-    simp only [cnotFixCircuit, if_pos hz, cliffordSymplecticCircuit]
+    simp only [cnotFixCircuit, ite_eq_left hz, cliffordSymplecticCircuit]
     apply Prod.ext
     · funext j
       show (cliffordSymplecticMap (CliffordGate.CNOT i zero) (x, 0)).1 j = _
@@ -2412,42 +2416,42 @@ theorem siteCanonicalVector_x {n : ℕ} (j : Fin n) (v : BooleanVec n × Boolean
   · by_cases hx : v.1 j = 0
     · have h1 : (cliffordSymplecticMap (.S j) v).1 j = v.1 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_pos hz, if_pos hx, h1]
+      rw [siteCanonicalVector, ite_eq_left hz, ite_eq_left hx, h1]
       simp [hz, hx]
     · have h1 : (cliffordSymplecticMap (.S j) (cliffordSymplecticMap (.S j) v)).1 j
           = (cliffordSymplecticMap (.S j) v).1 j := by
         simp [cliffordSymplecticMap]
       have h2 : (cliffordSymplecticMap (.S j) v).1 j = v.1 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_pos hz, if_neg hx, h1, h2]
+      rw [siteCanonicalVector, ite_eq_left hz, ite_eq_right hx, h1, h2]
       have hx1 : v.1 j = 1 := by
         rcases zmod2_eq_zero_or_one (v.1 j) with h | h
         · exact absurd h hx
         · exact h
       rw [hx1]
-      simp [hz, hx]
+      simp [hz]
   · by_cases hx : v.1 j = 0
     · have h1 : (cliffordSymplecticMap (.H j) v).1 j = v.2 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_neg hz, if_pos hx, h1]
+      rw [siteCanonicalVector, ite_eq_right hz, ite_eq_left hx, h1]
       have hz1 : v.2 j = 1 := by
         rcases zmod2_eq_zero_or_one (v.2 j) with h | h
         · exact absurd h hz
         · exact h
       rw [hz1]
-      simp [hz, hx]
+      simp [hx]
     · have h1 : (cliffordSymplecticMap (.S j) (cliffordSymplecticMap (.H j) v)).1 j
           = (cliffordSymplecticMap (.H j) v).1 j := by
         simp [cliffordSymplecticMap]
       have h2 : (cliffordSymplecticMap (.H j) v).1 j = v.2 j := by
         simp [cliffordSymplecticMap]
-      rw [siteCanonicalVector, if_neg hz, if_neg hx, h1, h2]
+      rw [siteCanonicalVector, ite_eq_right hz, ite_eq_right hx, h1, h2]
       have hz1 : v.2 j = 1 := by
         rcases zmod2_eq_zero_or_one (v.2 j) with h | h
         · exact absurd h hz
         · exact h
       rw [hz1]
-      simp [hz, hx]
+      simp [hx]
 
 /-- After canonicalization at distinct listed sites, each processed X coordinate indicates
 whether its original coordinate pair was nonzero. -/
@@ -2480,14 +2484,14 @@ theorem cnotFix_x_zero {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i �
     (hxi : x i = 1) :
     (if x zero = 0 ∧ zero = zero then x zero + x i else x zero) = 1 := by
   by_cases hz : x zero = 0
-  · simp only [eq_self, and_true, if_pos hz]
+  · simp only [eq_self, and_true, ite_eq_left hz]
     rw [hz, hxi]
     simp
   · have h1 : x zero = 1 := by
       rcases zmod2_eq_zero_or_one (x zero) with h | h
       · exact absurd h hz
       · exact h
-    simp only [eq_self, and_true, if_neg hz]
+    simp only [eq_self, and_true, ite_eq_right hz]
     exact h1
 
 /-- If `x i = 1`, the displayed update sets the distinguished X coordinate to one and preserves
@@ -2503,7 +2507,7 @@ theorem cnotFix_x_apply {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i 
   · have hne : ¬ (x zero = 0 ∧ j = zero) := by
       rintro ⟨_, h2⟩
       exact hjz h2
-    rw [if_neg hne, if_neg hjz]
+    rw [ite_eq_right hne, ite_eq_right hjz]
 
 /-- At a processed site, the canonicalized X coordinate vanishes exactly when both original
 binary coordinates vanish. -/
@@ -2551,12 +2555,12 @@ theorem cnotReduceCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
   funext j
   by_cases hjz : j = zero
   · rw [hjz]
-    rw [if_neg hnotzero]
+    rw [ite_eq_right hnotzero]
     have h2 := cnotFix_x_zero zero i x hzi hxi
     rw [h2]
     simp
   · by_cases hmem : j ∈ (supportTail zero x).toList
-    · rw [if_pos hmem]
+    · rw [ite_eq_left hmem]
       rw [cnotFix_x_apply zero i x hzi hxi j]
       rw [cnotFix_x_zero zero i x hzi hxi]
       have hne : x j ≠ 0 :=
@@ -2567,7 +2571,7 @@ theorem cnotReduceCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
         · exact h
       rw [hxj]
       simp [hjz, zmod2_add_self]
-    · rw [if_neg hmem]
+    · rw [ite_eq_right hmem]
       rw [cnotFix_x_apply zero i x hzi hxi j]
       have hne : x j = 0 := by
         have h1 : ¬ (j ∈ supportTail zero x) := by
@@ -2589,13 +2593,13 @@ theorem cliffordSymplecticMap_H_inv {n : ℕ} (i : Fin n)
   · funext j
     simp only [cliffordSymplecticMap]
     by_cases h1 : j = i
-    · rw [if_pos h1, if_pos h1]
-    · rw [if_neg h1, if_neg h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
+    · rw [ite_eq_right h1, ite_eq_right h1]
   · funext j
     simp only [cliffordSymplecticMap]
     by_cases h1 : j = i
-    · rw [if_pos h1, if_pos h1]
-    · rw [if_neg h1, if_neg h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
+    · rw [ite_eq_right h1, ite_eq_right h1]
 
 /-- Applying the binary phase-gate map twice is the identity. -/
 theorem cliffordSymplecticMap_S_inv {n : ℕ} (i : Fin n)
@@ -2608,12 +2612,12 @@ theorem cliffordSymplecticMap_S_inv {n : ℕ} (i : Fin n)
   · funext j
     simp only [cliffordSymplecticMap]
     by_cases h1 : j = i
-    · rw [if_pos h1, if_pos h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
       have hxi : x j + x j = 0 := zmod2_add_self _
       calc (z j + x j) + x j = z j + (x j + x j) := by abel
         _ = z j + 0 := by rw [hxi]
         _ = z j := by simp
-    · rw [if_neg h1, if_neg h1]
+    · rw [ite_eq_right h1, ite_eq_right h1]
 
 /-- Applying a CNOT binary map with distinct control and target twice is the identity. -/
 theorem cliffordSymplecticMap_CNOT_inv {n : ℕ} (c t : Fin n) (hct : c ≠ t)
@@ -2626,24 +2630,24 @@ theorem cliffordSymplecticMap_CNOT_inv {n : ℕ} (c t : Fin n) (hct : c ≠ t)
   · funext k
     simp only [cliffordSymplecticMap]
     by_cases h1 : k = c
-    · rw [if_pos h1, if_pos h1]
+    · rw [ite_eq_left h1, ite_eq_left h1]
     · by_cases h2 : k = t
-      · rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2, if_true]
+      · rw [ite_eq_right h1, ite_eq_left h2, ite_eq_right h1, ite_eq_left h2, ite_true]
         calc (x k + x c) + x c = x k + (x c + x c) := by abel
           _ = x k + 0 := by rw [hxc]
           _ = x k := by simp
-      · rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+      · rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
   · funext k
     simp only [cliffordSymplecticMap]
     by_cases h1 : k = c
-    · rw [if_pos h1, if_pos h1]
-      rw [if_neg hct', if_true]
+    · rw [ite_eq_left h1, ite_eq_left h1]
+      rw [ite_eq_right hct', ite_true]
       calc (z k + z t) + z t = z k + (z t + z t) := by abel
         _ = z k + 0 := by rw [hzt]
         _ = z k := by simp
     · by_cases h2 : k = t
-      · rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
-      · rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+      · rw [ite_eq_right h1, ite_eq_left h2, ite_eq_right h1, ite_eq_left h2]
+      · rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
 
 /-- Every legal Clifford gate has an involutive binary symplectic map. -/
 theorem cliffordSymplecticMap_inv {n : ℕ} (g : CliffordGate n) (hg : legalGate g)
@@ -2726,12 +2730,12 @@ theorem legal_canonicalCircuit {n : ℕ} (sites : List (Fin n))
 theorem legal_cnotFixCircuit {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (hzi : i ≠ zero) :
     ∀ g ∈ cnotFixCircuit zero i x, legalGate g := by
   by_cases hz : x zero = 0
-  · simp only [cnotFixCircuit, if_pos hz]
+  · simp only [cnotFixCircuit, ite_eq_left hz]
     intro g hg
     simp only [List.mem_singleton] at hg
     subst hg
     simp [legalGate, hzi]
-  · simp only [cnotFixCircuit, if_neg hz]
+  · simp only [cnotFixCircuit, ite_eq_right hz]
     intro g hg
     simp at hg
 
@@ -2880,7 +2884,7 @@ theorem isStabilizerFun_delta {n : ℕ} (p : BooleanVec n) :
     IsStabilizerFun (fun x => if x = p then (1 : ℂ) else 0) := by
   refine ⟨0, 0, 0, 0, affineSpan (ZMod 2) ({p} : Set (BooleanVec n)), ?_⟩
   ext x
-  simp [booleanDot, quadFun, AffineSubspace.mem_affineSpan_singleton]
+  simp [booleanDot, quadFun]
 
 /-- The set of numbers of terms in finite complex linear decompositions of a function into
 stabilizer functions. -/
@@ -2923,7 +2927,7 @@ theorem stabilizerRank_smul {n : ℕ} (φ : BooleanVec n → ℂ) (lam : ℂ) (h
     have h2 : stabilizerRank φ ∈ stabilizerRankSet φ := by
       rw [stabilizerRank_eq_sInf_set]
       exact Nat.sInf_mem (stabilizerRankSet_nonempty φ)
-    simpa only [stabilizerRankSet, Set.mem_setOf_eq] using! h2
+    simpa only [stabilizerRankSet, Set.mem_ofPred_eq] using! h2
   have hmemL : ∃ (c : Fin (stabilizerRank (fun x => lam * φ x)) → ℂ)
       (ψ : Fin (stabilizerRank (fun x => lam * φ x)) → BooleanVec n → ℂ),
       (∀ j, IsStabilizerFun (ψ j))
@@ -2932,7 +2936,7 @@ theorem stabilizerRank_smul {n : ℕ} (φ : BooleanVec n → ℂ) (lam : ℂ) (h
         ∈ stabilizerRankSet (fun x => lam * φ x) := by
       rw [stabilizerRank_eq_sInf_set]
       exact Nat.sInf_mem (stabilizerRankSet_nonempty (fun x => lam * φ x))
-    simpa only [stabilizerRankSet, Set.mem_setOf_eq] using! h2
+    simpa only [stabilizerRankSet, Set.mem_ofPred_eq] using! h2
   have hle : stabilizerRank (fun x => lam * φ x) ≤ stabilizerRank φ := by
     have hset : stabilizerRank φ ∈ stabilizerRankSet (fun x => lam * φ x) := by
       obtain ⟨coeff, ψ, hψ, hrep⟩ := hmemF
@@ -3094,10 +3098,10 @@ theorem generatedSubgroup_cons_of_mem {n : ℕ} {g : PauliElem n} {rest : List (
       simp only [List.length_cons] at h1
       omega
     by_cases hb : b = true
-    · simp only [maskProduct, if_pos hb] at hpm
+    · simp only [maskProduct, ite_eq_left hb] at hpm
       have hq : maskProduct rest m0 ∈ generatedSubgroup rest := ⟨m0, hm0, rfl⟩
       exact hpm ▸ generatedSubgroup_mul_mem rest (commutingHermitian_tail hgs) hg hq
-    · simp only [maskProduct, if_neg hb] at hpm
+    · simp only [maskProduct, ite_eq_right hb] at hpm
       exact ⟨m0, hm0, hpm⟩
   · intro p hp
     obtain ⟨m, hm, hpm⟩ := hp
@@ -3126,7 +3130,7 @@ theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
     have hq : maskProduct rest m0 ∈ generatedSubgroup rest := ⟨m0, hm0, rfl⟩
     obtain ⟨m1, hm1, hq1⟩ := (hconj _).mp hq
     by_cases hb : b = true
-    · simp only [maskProduct, if_pos hb] at hpm
+    · simp only [maskProduct, ite_eq_left hb] at hpm
       have hg' : g ∈ generatedSubgroup (g :: gs) := self_mem_cons g gs
       have hmul : g.mul (maskProduct gs m1) ∈ generatedSubgroup (g :: gs) :=
         generatedSubgroup_mul_mem (g :: gs) hgs hg' ⟨false :: m1, by simp [hm1], by
@@ -3136,7 +3140,7 @@ theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
         calc p = g.mul (maskProduct rest m0) := hpm.symm
           _ = g.mul (maskProduct gs m1) := by rw [hq1]
       exact hkey ▸ hmul
-    · simp only [maskProduct, if_neg hb] at hpm
+    · simp only [maskProduct, ite_eq_right hb] at hpm
       refine ⟨false :: m1, ?_, ?_⟩
       · simp [hm1]
       · show maskProduct (g :: gs) (false :: m1) = p
@@ -3152,7 +3156,7 @@ theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
     have hq : maskProduct gs m0 ∈ generatedSubgroup gs := ⟨m0, hm0, rfl⟩
     obtain ⟨m1, hm1, hq1⟩ := (hconj _).mpr hq
     by_cases hb : b = true
-    · simp only [maskProduct, if_pos hb] at hpm
+    · simp only [maskProduct, ite_eq_left hb] at hpm
       have hg' : g ∈ generatedSubgroup (g :: rest) := self_mem_cons g rest
       have hmul : g.mul (maskProduct rest m1) ∈ generatedSubgroup (g :: rest) :=
         generatedSubgroup_mul_mem (g :: rest) hgs' hg'
@@ -3163,7 +3167,7 @@ theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
         calc p = g.mul (maskProduct gs m0) := hpm.symm
           _ = g.mul (maskProduct rest m1) := by rw [hq1]
       exact hkey ▸ hmul
-    · simp only [maskProduct, if_neg hb] at hpm
+    · simp only [maskProduct, ite_eq_right hb] at hpm
       refine ⟨false :: m1, ?_, ?_⟩
       · simp [hm1]
       · show maskProduct (g :: rest) (false :: m1) = p
@@ -3323,7 +3327,7 @@ theorem op_commute_maskProduct {n : ℕ} {g : PauliElem n} :
       have hmp : maskProduct (h :: rest) (b :: m0)
           = if b then PauliElem.mul h (maskProduct rest m0) else maskProduct rest m0 := rfl
       by_cases hb : b = true
-      · rw [hmp, if_pos hb, op_mul h (maskProduct rest m0)]
+      · rw [hmp, ite_eq_left hb, op_mul h (maskProduct rest m0)]
         have hih := ih hgrest m0 hm0
         calc op g * (op h * op (maskProduct rest m0))
             = (op g * op h) * op (maskProduct rest m0) := by rw [Matrix.mul_assoc]
@@ -3332,13 +3336,13 @@ theorem op_commute_maskProduct {n : ℕ} {g : PauliElem n} :
           _ = op h * (op g * op (maskProduct rest m0)) := by rw [Matrix.mul_assoc]
           _ = op h * (op (maskProduct rest m0) * op g) := by rw [hih]
           _ = (op h * op (maskProduct rest m0)) * op g := by rw [Matrix.mul_assoc]
-      · rw [hmp, if_neg hb]
+      · rw [hmp, ite_eq_right hb]
         exact ih hgrest m0 hm0
 
 /-- Every masked product of a commuting Hermitian generator list, with mask of the required
 length, is Hermitian. -/
 theorem maskProduct_herm {n : ℕ} :
-    ∀ (gs : List (PauliElem n)) (hgs : CommutingHermitianPaulis gs) (m : Mask),
+    ∀ (gs : List (PauliElem n)) (_hgs : CommutingHermitianPaulis gs) (m : Mask),
       m.length = gs.length → IsHermitianPauli (maskProduct gs m) := by
   intro gs
   induction gs with
@@ -3371,7 +3375,7 @@ theorem maskProduct_herm {n : ℕ} :
 /-- Every masked product of commuting Hermitian generators acts as the identity on their
 projector. -/
 theorem projectorAux_mul_maskProduct {n : ℕ} :
-    ∀ (gs : List (PauliElem n)) (hgs : CommutingHermitianPaulis gs) (m : Mask),
+    ∀ (gs : List (PauliElem n)) (_hgs : CommutingHermitianPaulis gs) (m : Mask),
       m.length = gs.length → op (maskProduct gs m) * projectorAux gs = projectorAux gs := by
   intro gs
   induction gs with
@@ -3425,7 +3429,7 @@ theorem projectorAux_mul_maskProduct {n : ℕ} :
       have hmp : maskProduct (g :: rest) (b :: m0)
           = if b then PauliElem.mul g (maskProduct rest m0) else maskProduct rest m0 := rfl
       by_cases hb : b = true
-      · rw [hmp, if_pos hb, op_mul g (maskProduct rest m0)]
+      · rw [hmp, ite_eq_left hb, op_mul g (maskProduct rest m0)]
         calc (op g * op (maskProduct rest m0)) * projectorAux (g :: rest)
             = op g * (op (maskProduct rest m0) * projectorAux (g :: rest)) := by
               rw [Matrix.mul_assoc]
@@ -3435,7 +3439,7 @@ theorem projectorAux_mul_maskProduct {n : ℕ} :
                 (fun h hh => hgs.1 h (by simp [hh]))
                 (fun u hu v hv => hgs.2 u (by simp [hu]) v (by simp [hv]))
                 g (List.mem_cons_self)
-      · rw [hmp, if_neg hb]
+      · rw [hmp, ite_eq_right hb]
         exact hinner
 
 /-- Eliminating redundant commuting Hermitian generators preserves `projectorAux`. -/
@@ -3515,7 +3519,7 @@ theorem independent_eliminateGenerators {n : ℕ} :
         · exact Or.inr rfl
       by_cases hmem : memGenerated (eliminateGenerators rest) g = true
       · have helim : eliminateGenerators (g :: rest) = eliminateGenerators rest := by
-          simp only [eliminateGenerators, hmem, if_true]
+          simp only [eliminateGenerators, hmem, ite_true]
         rw [helim]
         have hmE : m.length = (eliminateGenerators rest).length := by
           rw [helim] at hm
@@ -3791,20 +3795,20 @@ theorem decode_measuredRow_of_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p
     (b : Bool) {i : Fin m} (hi : i = a₀) :
     (measuredRow t a₀ p b i).decode = signedMeasuredPauli p b := by
   subst hi
-  rw [measuredRow, if_pos rfl, decode_encode]
+  rw [measuredRow, ite_eq_left rfl, decode_encode]
 
 /-- An unselected row commuting with the measured Pauli decodes to its original element. -/
 theorem decode_measuredRow_of_commute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : pauliCommute (t i).decode p) :
     (measuredRow t a₀ p b i).decode = (t i).decode := by
-  rw [measuredRow, if_neg hi, if_pos hc]
+  rw [measuredRow, ite_eq_right hi, ite_eq_left hc]
 
 /-- An unselected row not commuting with the measured Pauli decodes to its product with the
 selected row. -/
 theorem decode_measuredRow_of_anticommute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : ¬ pauliCommute (t i).decode p) :
     (measuredRow t a₀ p b i).decode = PauliElem.mul (t i).decode (t a₀).decode := by
-  rw [measuredRow, if_neg hi, if_neg hc, decode_mul]
+  rw [measuredRow, ite_eq_right hi, ite_eq_right hc, decode_mul]
 
 /-- Changing the measurement-outcome sign preserves the Pauli word. -/
 theorem word_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (b : Bool) :
@@ -4152,7 +4156,7 @@ theorem generatorAt_rowEquiv {n m : ℕ} (t : Tableau n m) (i : Fin m) :
   rw [List.getElem_map]
   have hfin : (List.finRange m)[i.1] = i := by
     have hq : (List.finRange m)[i.1]? = some i := by
-      simp only [List.finRange, List.getElem?_ofFn, dif_pos i.isLt]
+      simp only [List.finRange, List.getElem?_ofFn, dite_eq_left i.isLt]
     have hq' : (List.finRange m)[i.1]? = some ((List.finRange m)[i.1]) :=
       List.getElem?_eq_getElem (by simp [List.length_finRange])
     rw [hq'] at hq
@@ -4331,7 +4335,7 @@ theorem linearIndependent_measured {n m : ℕ} (v v' : Fin m → BooleanVec n ×
               intro hcon
               subst hcon
               simp at hk
-            rw [if_neg hk']
+            rw [ite_eq_right hk']
           rw [hinner, add_comm]
         have htail : (∑ k ∈ (Finset.univ : Finset (Fin m)).erase a₀, d k • v k)
             = (∑ k, d k • v k) := by
@@ -4460,7 +4464,7 @@ theorem IndependentGenerators_of_linearIndependent {n : ℕ} (gs : List (PauliEl
       simpa only [hc'] using! hc'0 i
     by_cases hb : c i = true
     · exfalso
-      simp only [if_pos hb] at hval
+      simp only [ite_eq_left hb] at hval
       exact absurd hval (by simp)
     · cases hcval : c i with
       | false => rfl
@@ -5281,13 +5285,13 @@ noncomputable def pauliThirdMoment {n : ℕ} (P1 P2 P3 : PauliElem n) : Matrix (
 theorem pauliThirdMoment_of_closed {n : ℕ} {P1 P2 P3 : PauliElem n}
     (h : (P1 * P2 * P3).word = trivialWord) :
     pauliThirdMoment P1 P2 P3 = op (P1 * P2 * P3) := by
-  rw [pauliThirdMoment, if_pos h]
+  rw [pauliThirdMoment, ite_eq_left h]
 
 /-- For a triple product with nontrivial word, `pauliThirdMoment` is zero. -/
 theorem pauliThirdMoment_of_open {n : ℕ} {P1 P2 P3 : PauliElem n}
     (h : (P1 * P2 * P3).word ≠ trivialWord) :
     pauliThirdMoment P1 P2 P3 = 0 := by
-  rw [pauliThirdMoment, if_neg h]
+  rw [pauliThirdMoment, ite_eq_right h]
   exact pauliSectorUniformAverage_eq_zero n
 
 /-- The defined third moment is the triple-product operator for trivial product word and zero
@@ -5296,8 +5300,8 @@ theorem pauliThirdMoment_eq {n : ℕ} (P1 P2 P3 : PauliElem n) :
     pauliThirdMoment P1 P2 P3
       = if (P1 * P2 * P3).word = trivialWord then op (P1 * P2 * P3) else 0 := by
   by_cases h : (P1 * P2 * P3).word = trivialWord
-  · rw [pauliThirdMoment_of_closed h, if_pos h]
-  · rw [pauliThirdMoment_of_open h, if_neg h]
+  · rw [pauliThirdMoment_of_closed h, ite_eq_left h]
+  · rw [pauliThirdMoment_of_open h, ite_eq_right h]
 
 /-- The operator matrix of every Pauli element is nonzero. -/
 theorem op_ne_zero {n : ℕ} (p : PauliElem n) : op p ≠ 0 := by
@@ -5330,13 +5334,13 @@ noncomputable def pauliSecondMoment {n : ℕ} (P1 P2 : PauliElem n) : Matrix (Re
 theorem pauliSecondMoment_of_closed {n : ℕ} {P1 P2 : PauliElem n}
     (h : (P1 * P2).word = trivialWord) :
     pauliSecondMoment P1 P2 = op (P1 * P2) := by
-  rw [pauliSecondMoment, if_pos h]
+  rw [pauliSecondMoment, ite_eq_left h]
 
 /-- For a pair product with nontrivial word, `pauliSecondMoment` is zero. -/
 theorem pauliSecondMoment_of_open {n : ℕ} {P1 P2 : PauliElem n}
     (h : (P1 * P2).word ≠ trivialWord) :
     pauliSecondMoment P1 P2 = 0 := by
-  rw [pauliSecondMoment, if_neg h]
+  rw [pauliSecondMoment, ite_eq_right h]
   exact pauliSectorUniformAverage_eq_zero n
 
 /-- A Boolean random tape indexed by `Fin m`. -/
@@ -5526,7 +5530,7 @@ theorem iPowZ2_triple (z1 z2 : ZMod 2) :
       ∈ ({1, -1} : Set ℂ) := by
   rcases zmod2_eq_zero_or_one z1 with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one z2 with rfl | rfl <;>
-    simp [zmod2_val_zero, zmod2_val_one, zmod2_val_one_add_one]
+    simp [zmod2_val_one, zmod2_val_one_add_one]
 
 /-- Every natural power of complex negative one is one or negative one. -/
 theorem negOnePow_mem (k : ℕ) : ((-1 : ℂ)^k) ∈ ({1, -1} : Set ℂ) := by
@@ -5578,7 +5582,7 @@ theorem isStabilizerFun_second_difference {n : ℕ} (φ : BooleanVec n → ℂ) 
     rw [← pow_add, ← pow_add, ← pow_add]
     exact negOnePow_mem _
   rw [hφ']
-  simp only [hxm, hym, hxym, h0m, if_true, mul_one]
+  simp only [hxm, hym, hxym, h0m, ite_true, mul_one]
   have heq :
       (Complex.I ^ (booleanDot a x).val * (-1 : ℂ) ^ (quadFun Q b c x).val)
       * (Complex.I ^ (booleanDot a y).val * (-1 : ℂ) ^ (quadFun Q b c y).val)

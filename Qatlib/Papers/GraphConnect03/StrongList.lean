@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.MainResults.Defs
-import Qatlib.Papers.GraphConnect03.MainResults.UpperBounds.Theorem1Connectivity
+module
+
+public import Qatlib.Papers.GraphConnect03.MainResults.Defs
+public import Qatlib.Papers.GraphConnect03.MainResults.UpperBounds.Theorem1Connectivity
+
+@[expose] public section
 
 /-!
 # Strong connectivity from a two-stage list certificate
@@ -47,7 +51,7 @@ theorem strongConnected_of_subgraph {n k : ℕ} {L : ListInstance n k}
   exact Relation.ReflTransGen.mono (fun a b hab => hsub a b hab) _ _ (h s t)
 
 /-- The union of the tree and back edge relations. -/
-def TwoStageEdges {n k : ℕ} (L : ListInstance n k)
+def TwoStageEdges {n k : ℕ} (_L : ListInstance n k)
     (tree back : Vertex n → Vertex n → Prop) : Vertex n → Vertex n → Prop :=
   fun u v => tree u v ∨ back u v
 

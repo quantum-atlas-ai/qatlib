@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
+module
+
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Lookup and collision recovery in record lists
@@ -53,10 +57,10 @@ theorem lookup_sound (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
   | cons p L ih =>
     rcases p with ⟨t, v⟩
     by_cases hc : v = z ∧ allow t = true
-    · simp only [lookup, if_pos hc, Option.some.injEq] at h
+    · simp only [lookup, ite_eq_left hc, Option.some.injEq] at h
       subst s
       exact ⟨by simp [hc.1], hc.2⟩
-    · simp only [lookup, if_neg hc] at h
+    · simp only [lookup, ite_eq_right hc] at h
       obtain ⟨hm, ha⟩ := ih h
       exact ⟨List.mem_cons_of_mem _ hm, ha⟩
 
@@ -77,7 +81,7 @@ theorem lookup_complete (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
           exact False.elim (hc ⟨rfl, ha⟩)
         · exact hst
       obtain ⟨u, hu⟩ := ih ht
-      exact ⟨u, by simpa only [lookup, if_neg hc] using hu⟩
+      exact ⟨u, by simpa only [lookup, ite_eq_right hc] using hu⟩
 
 /-- Searches a record list for two distinct inputs with the same stored value. -/
 def internal : List (S × R) → Option (S × S)

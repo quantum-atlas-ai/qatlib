@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Parity and OR span-program witnesses
@@ -152,7 +156,7 @@ theorem parityTrue_true_true :
 
 /-- For nonnegative `B` and `B'`, the negative witness size on the empty available set with
 weights `[B, B']` is `B + B'`. -/
-theorem parity_wsize_00 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
+theorem parity_wsize_00 (B B' : ℝ) (_hB : 0 ≤ B) (_hB' : 0 ≤ B') :
     parityProgram.WsizeFalseAt ![B, B'] (∅ : Finset (Fin 2)) (B + B') := by
   constructor
   · intro b hb _
@@ -212,20 +216,20 @@ theorem parity_wsize_01 (B B' : ℝ) :
 
 /-- For nonnegative `B` and `B'`, the negative witness size on the empty available set with
 weights `[B', B]` is `B + B'`. -/
-theorem parity_wsize_11 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
+theorem parity_wsize_11 (B B' : ℝ) (_hB : 0 ≤ B) (_hB' : 0 ≤ B') :
     parityProgram.WsizeFalseAt ![B', B] (∅ : Finset (Fin 2)) (B + B') := by
   constructor
   · intro b hb _
     rw [false_value_empty_const ![B', B] parityProgram (fun _ => rfl) b hb]
     rw [Fin.sum_univ_two]
-    simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+    simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
     linarith
   · refine ⟨fun _ => 1, rfl, ?_, ?_⟩
     · intro j hj
       exact absurd hj (by simp)
     · rw [false_value_empty_const ![B', B] parityProgram (fun _ => rfl) (fun _ => 1) rfl]
       rw [Fin.sum_univ_two]
-      simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+      simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
       linarith
 
 /-- Collect the exact positive and negative parity witness sizes `B + B'` for the four specified
@@ -356,7 +360,7 @@ theorem or_wsize_00 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
         = Real.sqrt (B ^ 2 + B' ^ 2) := by
     intro b hb
     rw [Fin.sum_univ_two, orProgram_pair_zero, orProgram_pair_one, hb]
-    simp only [mul_one, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
+    simp only [mul_one, Matrix.cons_val_zero, Matrix.cons_val_one,
       norm_conj_real_sq]
     exact orCol_weighted B B' hB hB'
   constructor
@@ -408,7 +412,7 @@ theorem or_wsize_10 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
       cases k with
       | none =>
           simp only [target_none, Finset.sum_apply, Finset.sum_singleton, Pi.smul_apply,
-            smul_eq_mul, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+            smul_eq_mul, Matrix.cons_val_zero]
           rw [orProgram_v_zero]
           rw [← Complex.ofReal_mul]
           congr 1
@@ -463,7 +467,7 @@ theorem or_wsize_01 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
       cases k with
       | none =>
           simp only [target_none, Finset.sum_apply, Finset.sum_singleton, Pi.smul_apply,
-            smul_eq_mul, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+            smul_eq_mul, Matrix.cons_val_zero, Matrix.cons_val_one]
           rw [orProgram_v_one]
           rw [← Complex.ofReal_mul]
           congr 1
@@ -488,7 +492,7 @@ theorem or_wsize_11_le (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     cases k with
     | none =>
         simp only [target_none, Finset.sum_apply, Pi.smul_apply, smul_eq_mul,
-          Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+          Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one]
         rw [orProgram_v_zero, orProgram_v_one]
         rw [zero_mul, add_zero, ← Complex.ofReal_mul]
         congr 1

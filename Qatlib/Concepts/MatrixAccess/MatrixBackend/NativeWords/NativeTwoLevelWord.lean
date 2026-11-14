@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePredicateCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePivotMoves
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeOriginReflection
+module
+
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePredicateCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePivotMoves
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeOriginReflection
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

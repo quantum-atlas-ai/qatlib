@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkCoreDefs
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.Analysis.Normed.Group.Basic
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkCoreDefs
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.Analysis.Normed.Group.Basic
+
+@[expose] public section
 
 /-!
 # Gauge invariance and matrix product representations

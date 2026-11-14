@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TriangleFind14.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.TriangleFind14.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -324,9 +328,9 @@ theorem source_lemma_4_3 {V : Type*} [Fintype V] [DecidableEq V]
     have hfun : ∀ e ∈ deltaSetW G X (C ∪ {v1, v2}) w,
         ((1 : ℝ)) = (if e ∈ deltaSetW G X (C ∪ {v1, v2}) w then (1 : ℝ) else 0) := by
       intro e he
-      exact (if_pos he).symm
+      exact (ite_eq_left he).symm
     refine Eq.trans (Finset.sum_congr rfl hfun) ?_
-    exact Finset.sum_subset hsub (fun e _ hne => if_neg hne)
+    exact Finset.sum_subset hsub (fun e _ hne => ite_eq_right hne)
   have hswap : ∑ C ∈ S', ((deltaSetW G X (C ∪ {v1, v2}) w).card : ℝ) ≤
       ∑ e ∈ D, ((S'.filter (fun C => e ⊆ C ∪ {v1, v2})).card : ℝ) := by
     calc ∑ C ∈ S', ((deltaSetW G X (C ∪ {v1, v2}) w).card : ℝ)
@@ -337,16 +341,16 @@ theorem source_lemma_4_3 {V : Type*} [Fintype V] [DecidableEq V]
           Finset.sum_le_sum (fun C _ => Finset.sum_le_sum (fun e _ => by
             by_cases h : e ∈ deltaSetW G X (C ∪ {v1, v2}) w
             · have hl : (if e ∈ deltaSetW G X (C ∪ {v1, v2}) w then (1 : ℝ) else 0) = 1 :=
-                if_pos h
+                ite_eq_left h
               have hr : (if e ⊆ C ∪ {v1, v2} then (1 : ℝ) else 0) = 1 :=
-                if_pos (mem_deltaSetW_subset h)
+                ite_eq_left (mem_deltaSetW_subset h)
               rw [hl, hr]
             · have hl : (if e ∈ deltaSetW G X (C ∪ {v1, v2}) w then (1 : ℝ) else 0) = 0 :=
-                if_neg h
+                ite_eq_right h
               have hr : (0 : ℝ) ≤ (if e ⊆ C ∪ {v1, v2} then (1 : ℝ) else 0) := by
                 by_cases hs : e ⊆ C ∪ {v1, v2}
-                · rw [if_pos hs]; norm_num
-                · rw [if_neg hs]
+                · rw [ite_eq_left hs]; norm_num
+                · rw [ite_eq_right hs]
               rw [hl]
               exact hr))
       _ = ∑ e ∈ D, ∑ C ∈ S', (if e ⊆ C ∪ {v1, v2} then (1 : ℝ) else 0) := Finset.sum_comm

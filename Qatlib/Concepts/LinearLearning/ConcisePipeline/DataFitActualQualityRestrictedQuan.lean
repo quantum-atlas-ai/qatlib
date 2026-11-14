@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedStat
-import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
+module
+
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedStat
+public import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
+
+@[expose] public section
 
 /-!
 # Restricted quantum estimation of fit quality

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+module
+
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+
+@[expose] public section
 
 /-!
 # Statistics preserved by instrument circuit compilation
@@ -69,7 +73,7 @@ theorem instrumentCircuit_compile_statistic {d : ℕ} (O : Operator d)
   | instrument s I next ih =>
       simp only [compileInstrumentCircuit, variableKrausMixedTraces,
         List.map_flatten, List.sum_flatten, List.map_ofFn, List.sum_ofFn,
-        List.map_map, Function.comp_def, restoreInstrumentRecord, Fin.isLt, dif_pos,
+        List.map_map, Function.comp_def, restoreInstrumentRecord, Fin.isLt, dite_eq_left,
         instrumentCircuitFold, LinearMap.sum_apply, LinearMap.comp_apply]
       let T : Fin s → (Operator d →ₗ[ℂ] ℂ) := fun o =>
         instrumentCircuitFold O (next o)

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+
+@[expose] public section
 
 /-!
 # Prepared amplitude estimation
@@ -291,6 +295,8 @@ private theorem aeInner_combination (b g : QState I) (a c d e : ℂ) :
     smul_dotProduct, dotProduct_smul, smul_eq_mul]
   ring
 
+omit [DecidableEq I] in
+
 /-- Swapping the arguments of the complex inner product conjugates its value. -/
 private theorem aeInner_swap (b g : QState I) : Qatlib.Foundations.PureStateMath.Inner b g = star (Qatlib.Foundations.PureStateMath.Inner g b) := by
   rw [inner_apply, inner_apply, star_sum]
@@ -344,7 +350,7 @@ private theorem aeEigenVector_orthonormal (A : Matrix I I ℂ) (j : I) (S : Fins
   change _ + _ * Qatlib.Foundations.PureStateMath.Inner b g + _ * Qatlib.Foundations.PureStateMath.Inner g b + _ * Qatlib.Foundations.PureStateMath.Inner g g = _
   rw [hbb,hgg,hbg,hgb]
   cases v <;> cases w <;>
-    simp only [Bool.false_eq_true, Bool.true_eq_false, if_true, if_false,
+    simp only [Bool.false_eq_true, Bool.true_eq_false, ite_true, ite_false,
       Complex.star_def, map_mul, map_inv₀, map_div₀, map_neg, Complex.conj_ofReal,
       Complex.conj_I, mul_zero, add_zero, Complex.ofReal_pow] <;>
     field_simp [hsC,hcC,hrC, -Complex.ofReal_cos, -Complex.ofReal_sin] <;>
@@ -372,7 +378,7 @@ private theorem aeEigenVector_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
         (Real.cos (2*θ) : ℂ)+(if b then Complex.I else -Complex.I)*(Real.sin (2*θ) : ℂ) := by
     have hπ : (Real.pi : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
     cases b
-    · simp only [Bool.false_eq_true, if_false]
+    · simp only [Bool.false_eq_true, ite_false]
       push_cast
       have he : (2*Real.pi*Complex.I*(-θ/Real.pi) : ℂ) = ((-2*θ : ℝ) : ℂ)*Complex.I := by
         push_cast
@@ -382,7 +388,7 @@ private theorem aeEigenVector_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
       simp only [Complex.ofReal_neg]
       push_cast
       ring
-    · simp only [if_true]
+    · simp only [ite_true]
       push_cast
       have he : (2*Real.pi*Complex.I*(θ/Real.pi) : ℂ) = ((2*θ : ℝ) : ℂ)*Complex.I := by
         push_cast
@@ -402,7 +408,7 @@ private theorem aeEigenVector_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
   simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul, Real.cos_two_mul, Real.sin_two_mul]
   push_cast
   simp only [Complex.ofReal_cos, Complex.ofReal_sin] at hsC hcC htrig ⊢
-  cases b <;> simp only [Bool.false_eq_true, if_true, if_false] <;>
+  cases b <;> simp only [Bool.false_eq_true, ite_true, ite_false] <;>
     field_simp [hsC,hcC,hrC, -Complex.ofReal_cos, -Complex.ofReal_sin] <;>
     ring_nf <;> simp only [Complex.I_sq] <;>
     first
@@ -437,7 +443,7 @@ private theorem aeEigen_decomposition (A : Matrix I I ℂ) (j : I) (S : Finset I
   have hr2 : (Real.sqrt 2 : ℂ)^2=2 := by exact_mod_cast (Real.sq_sqrt (by norm_num : (0 : ℝ)≤2))
   rw [Fintype.sum_bool]
   unfold aeEigenCoefficient aeEigenVector
-  simp only [if_true, Bool.false_eq_true, if_false, Complex.ofReal_neg,
+  simp only [ite_true, Bool.false_eq_true, ite_false, Complex.ofReal_neg,
     Complex.exp_mul_I, Complex.cos_neg, Complex.sin_neg]
   funext i
   simp only [Pi.smul_apply, Pi.add_apply, Pi.sub_apply, smul_eq_mul]
@@ -475,12 +481,12 @@ theorem prepared_ae_two_phase_distribution (M : ℕ) (hM : 2 ≤ M)
     (by
       intro b c
       have h := aeEigenVector_orthonormal A j S hA θ hs hc ha b c
-      by_cases he : b=c <;> simpa only [he, if_true, if_false] using h)
+      by_cases he : b=c <;> simpa only [he, ite_true, ite_false] using h)
     (aeEigenVector_eigen A j S hA θ hs hc ha) z
   rw [aeEigen_decomposition A j S θ hs hc] at h
   rw [aeLaw_prob_eq_qpe_marginal, h]
   simp_rw [aeEigenCoefficient_norm]
-  simp only [Fintype.sum_bool, Bool.false_eq_true, if_true, if_false]
+  simp only [Fintype.sum_bool, Bool.false_eq_true, ite_true, ite_false]
   ring
 
 /-- The change in squared sine is bounded by the linear variance term and the squared

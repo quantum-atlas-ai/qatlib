@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.HiddenTranslationElementaryAbelian
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Lemma34Ratio
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Prop33Span
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.HiddenTranslationElementaryAbelian
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Lemma34Ratio
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Prop33Span
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting polynomial powers on affine slices
@@ -78,7 +82,7 @@ def aZero (u : Fin n → ZMod p) (t : Fin n → ZMod p) : ZMod p :=
 cardinality when `y i ≠ 0` and `dotU u y = 1`. -/
 theorem VSet_one_card_eq_tzero (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
     (hi : y i ≠ 0) (hyu : dotU u y = 1) : (VSet u 1).card = (TZero y i).card := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hπ : projAlong y i y = 1 := projAlong_self hp hi
   have hcard := Finset.card_nbij'
     (s := VSet u 1) (t := TZero y i)
@@ -125,7 +129,7 @@ theorem SNonzero_card_le (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
     (hyR : lin y ^ (p - 1) ∉ W)
     (hV0 : ∀ t : Fin n → ZMod p, dotU u t = 0 → lin t ^ (p - 1) ∈ W) :
     (SNonzero u W).card ≤ (TZero y i).card * (p - 2) := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hπ : projAlong y i y = 1 := projAlong_self hp hi
   have hsum := Finset.card_eq_sum_card_fiberwise
     (M := Fin n → ZMod p) (ι := Fin n → ZMod p)
@@ -211,7 +215,7 @@ theorem SNonzero_card_le (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
 theorem SNonzero_card_eq (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) :
     (SNonzero u W).card = (RSet u W 1).card * (p - 1) := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hcard := Finset.card_nbij'
     (s := SNonzero u W) (t := RSet u W 1 ×ˢ (univ.erase (0 : ZMod p)))
     (i := fun x => ((dotU u x)⁻¹ • x, dotU u x))
@@ -266,7 +270,7 @@ theorem lemma_3_4_ratio_V0_sub (hp : p.Prime) (u : Fin n → ZMod p)
     (hV0 : ∀ t : Fin n → ZMod p, dotU u t = 0 → lin t ^ (p - 1) ∈ W)
     {k : ZMod p} (hk : k ≠ 0) :
     p * (RSet u W k).card ≤ (p - 1) * (VSet u k).card := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hp2 : 2 ≤ p := hp.two_le
   have hRne : ∃ x : Fin n → ZMod p, lin x ^ (p - 1) ∉ W := by
     by_contra h

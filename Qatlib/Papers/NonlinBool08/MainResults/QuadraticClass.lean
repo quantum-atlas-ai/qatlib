@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+
+@[expose] public section
 
 /-!
 # Quadratic bent functions and quadratic duals
@@ -115,10 +119,10 @@ lemma quad_autocorrelation {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
   simp only [hterm]
   rw [← Finset.mul_sum, sum_w_eps_dot]
   by_cases h : z = 0
-  · rw [if_pos (hz.mpr h), if_pos h]
+  · rw [ite_eq_left (hz.mpr h), ite_eq_left h]
     subst h
     simp [quad]
-  · rw [if_neg (fun hc => h (hz.mp hc)), if_neg h]
+  · rw [ite_eq_right (fun hc => h (hz.mp hc)), ite_eq_right h]
     simp
 
 /-- Every squared Walsh coefficient of a quadratic Boolean function with nonsingular
@@ -135,13 +139,13 @@ lemma quad_walsh_sq {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     by_cases h : z = 0
     · subst h
       simp
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       simp
   simp only [hterm]
   rw [Finset.sum_eq_single 0]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro z _ hz
-    rw [if_neg hz]
+    rw [ite_eq_right hz]
   · intro hmem
     simp at hmem
 

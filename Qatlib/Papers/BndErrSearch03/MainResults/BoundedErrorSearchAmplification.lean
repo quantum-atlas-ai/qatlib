@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.BigOperators.Finprod
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.BigOperators.Finprod
+
+@[expose] public section
 
 /-!
 # Scalar amplification bounds for bounded-error search

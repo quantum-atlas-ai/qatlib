@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+
+@[expose] public section
 
 /-!
 # Cayley approximation of Hermitian evolution

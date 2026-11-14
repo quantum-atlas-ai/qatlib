@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonEnergy
-import Mathlib.Analysis.Complex.LocallyUniformLimit
-import Mathlib.Tactic.Module
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonEnergy
+public import Mathlib.Analysis.Complex.LocallyUniformLimit
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.Tactic.Module
+
+@[expose] public section
 
 /-!
 # Dyson propagators with a complex parameter
@@ -56,7 +61,7 @@ private theorem parameterDyson_polynomial {I : Type} [Fintype I] [DecidableEq I]
     simp [orderedDysonTerm]
   | succ n ih =>
     obtain ⟨J, inst, p, C, hC, he⟩ := ih
-    letI := inst
+    let := inst
     let D : Sum J J → ℝ → Matrix I I ℂ := Sum.elim
       (fun j t => ∫ u in s..t, -(Complex.I • H u * C j u))
       (fun j t => ∫ u in s..t, -(L u * C j u))
@@ -108,7 +113,7 @@ private theorem parameterDyson_differentiable {I : Type} [Fintype I] [DecidableE
     (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s t : ℝ) (n : ℕ) :
     Differentiable ℂ (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) := by
   obtain ⟨J, inst, p, C, _, he⟩ := parameterDyson_polynomial L H hL hH s n
-  letI := inst
+  let := inst
   have hf : (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) =
       fun z => ∑ j : J, z ^ p j • C j t := funext (fun z => he z t)
   rw [hf]
@@ -208,8 +213,8 @@ private theorem dysonPropagator_action_deriv {I : Type} [Fintype I] [DecidableEq
   change HasDerivAt (fun u => (Matrix.toEuclideanCLM (𝕜 := ℂ) (n := I)) (dysonPropagator H L s u z) v)
     (((Matrix.toEuclideanCLM (𝕜 := ℂ) (n := I)) (-(Complex.I • (H t + z • L t) * dysonPropagator H L s t z))) v) t at hVec
   simpa only [map_neg, map_mul, map_smul, map_add,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.mul_apply,
-    ContinuousLinearMap.smul_apply, ContinuousLinearMap.add_apply,
+    _root_.neg_apply, _root_.mul_apply_eq_comp,
+    _root_.smul_apply, _root_.add_apply,
     neg_smul] using hVec
 
 /-- For forward time, continuous Hermitian `H` and positive semidefinite `L` give the norm bound
@@ -234,7 +239,7 @@ theorem dysonPropagator_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (fun u => (Matrix.toEuclideanCLM (𝕜 := ℂ) (n := I)) (dysonPropagator H L s u z) v)
     (dysonPropagator_action_deriv H L hH hL s z v) s t hst
   simpa only [dysonPropagator, orderedEvolution_self, map_one,
-    ContinuousLinearMap.one_apply] using! h
+    _root_.one_apply_eq_self] using! h
 
 /-- For continuous fields, the derivative in the final time is left multiplication of the
 propagator by `-i (H t + z L t)`. -/

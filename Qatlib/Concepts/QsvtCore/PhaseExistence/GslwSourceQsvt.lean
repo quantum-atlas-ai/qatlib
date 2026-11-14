@@ -4,41 +4,49 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.ColumnRowPartitioned
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Mathlib.Analysis.CStarAlgebra.ApproximateUnit
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Projection
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
-import Mathlib.Analysis.SpecialFunctions.Stirling
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.NumberTheory.Real.Irrational
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvtDefs
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma23PolynomialLevel
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Mathlib.Data.Real.Sign
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Analysis.SpecialFunctions.Arcosh
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
+module
+
+public import Mathlib.Data.Matrix.ColumnRowPartitioned
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Mathlib.Analysis.CStarAlgebra.ApproximateUnit
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Projection
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.NumberTheory.Real.Irrational
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvtDefs
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma23PolynomialLevel
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Mathlib.Basic.Real.Sign
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Analysis.SpecialFunctions.Arcosh
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
+
+@[expose] public section
+
+set_option linter.dupNamespace false
+set_option linter.unusedVariables false
+set_option linter.style.haveILetI false
 
 /-!
 # Source QSVT phase synthesis and estimates
@@ -1322,7 +1330,7 @@ theorem pair_eq_of_responseMatrix_eq {P Q P' Q' : Polynomial ℂ}
     have hi : Set.Infinite (Set.Icc (-1 : ℝ) 1) := Set.Icc_infinite (by norm_num)
     apply (hi.image Complex.ofReal_injective.injOn).mono
     rintro _ ⟨x, hx, rfl⟩
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     have hx' := congrArg (fun M : Matrix (Fin 2) (Fin 2) ℂ => M 0 0) (h x hx)
     simpa [responseMatrix] using! hx'
   subst P
@@ -1331,7 +1339,7 @@ theorem pair_eq_of_responseMatrix_eq {P Q P' Q' : Polynomial ℂ}
     have hi : Set.Infinite (Set.Icc (-1 / 2 : ℝ) (1 / 2)) := Set.Icc_infinite (by norm_num)
     apply (hi.image Complex.ofReal_injective.injOn).mono
     rintro _ ⟨x, hx, rfl⟩
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     have hx' := congrArg (fun M : Matrix (Fin 2) (Fin 2) ℂ => M 0 1)
       (h x ⟨by linarith [hx.1, hx.2], by linarith [hx.1, hx.2]⟩)
     have hsq : 0 < Real.sqrt (1 - x ^ 2) := by
@@ -1526,7 +1534,7 @@ evaluation of `R`. -/
 theorem componentEquiv_eval_true {R : Polynomial ℂ} {r : Polynomial ℝ}
     (h : componentEquiv true R r) (x : ℝ) :
     r.eval x = (R.eval (x : ℂ)).re := by
-  simp only [componentEquiv, if_true] at h
+  simp only [componentEquiv, ite_true] at h
   have he : R.eval (x : ℂ) + star (R.eval (x : ℂ))
       = (2 : ℂ) * (((r.eval x : ℝ) : ℝ) : ℂ) := by
     have he0 := congrArg (fun p : Polynomial ℂ => p.eval (x : ℂ)) h
@@ -1597,7 +1605,7 @@ theorem componentEquiv_degree_le {b : Bool} {R : Polynomial ℂ} {r : Polynomial
     r.degree ≤ ((k : ℕ) : WithBot ℕ) := by
   cases b with
   | true =>
-    simp only [componentEquiv, if_true] at h
+    simp only [componentEquiv, ite_true] at h
     have h1 : (C (2 : ℂ) * r.map Complex.ofRealHom).degree
         = (r.map Complex.ofRealHom).degree :=
       Polynomial.degree_C_mul (by norm_num : (2 : ℂ) ≠ 0)
@@ -1629,7 +1637,7 @@ theorem componentEquiv_degree_lt {b : Bool} {R : Polynomial ℂ} {r : Polynomial
     r.degree < ((k : ℕ) : WithBot ℕ) := by
   cases b with
   | true =>
-    simp only [componentEquiv, if_true] at h
+    simp only [componentEquiv, ite_true] at h
     have h1 : (C (2 : ℂ) * r.map Complex.ofRealHom).degree
         = (r.map Complex.ofRealHom).degree :=
       Polynomial.degree_C_mul (by norm_num : (2 : ℂ) ≠ 0)
@@ -3680,7 +3688,7 @@ theorem integral_exp_int_mul (n : ℤ) :
       = if n = 0 then (2 * Real.pi : ℂ) else 0 := by
   by_cases hn : n = 0
   · subst hn
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have h0 : (fun θ : ℝ => Complex.exp (Complex.I * ((((((0 : ℤ) : ℝ) * θ : ℝ)) : ℂ))))
         = fun _ => (1 : ℂ) := by
       funext θ
@@ -3689,7 +3697,7 @@ theorem integral_exp_int_mul (n : ℤ) :
       Complex.real_smul, mul_one]
     push_cast
     ring
-  · simp only [if_neg hn]
+  · simp only [ite_eq_right hn]
     have hc : Complex.I * ((n : ℝ) : ℂ) ≠ 0 :=
       mul_ne_zero Complex.I_ne_zero (by exact_mod_cast hn)
     have hform : ∀ θ : ℝ, Complex.exp (Complex.I * ((((n : ℝ) * θ : ℝ) : ℂ)))
@@ -3950,15 +3958,15 @@ theorem integral_exp_sin_pow (r k : ℕ) :
     intervalIntegral.integral_congr (fun x _ => hpt x)
   rw [hrew, integral_exp_int_mul ((r : ℤ) + 2 * m - k)]
   by_cases hcond : (r + 2 * m : ℤ) = (k : ℤ)
-  · rw [if_pos hcond]
+  · rw [ite_eq_left hcond]
     have hkey : (r : ℤ) + 2 * m - k = 0 := by omega
-    rw [hkey, if_pos rfl]
-  · rw [if_neg hcond]
+    rw [hkey, ite_eq_left rfl]
+  · rw [ite_eq_right hcond]
     have hkey : (r : ℤ) + 2 * m - k ≠ 0 := by
       intro hh
       apply hcond
       omega
-    rw [if_neg hkey]
+    rw [ite_eq_right hkey]
 
 /-- The integral Bessel coefficient equals the normalized complex exponential integral over
 `[-π, π]`. -/
@@ -4049,14 +4057,14 @@ private theorem moment_at (m j : ℕ) :
           * (if (m + 2 * p : ℤ) = ((m + 2 * j : ℕ) : ℤ) then (2 * Real.pi : ℂ) else 0)))
       = ((-1 : ℂ) ^ (m + 3 * j)) * (((m + 2 * j).choose j : ℕ) : ℂ) * (2 * Real.pi : ℂ) := by
     rw [Finset.sum_eq_single j]
-    · rw [if_pos (by push_cast; omega)]
+    · rw [ite_eq_left (by push_cast; omega)]
       rw [show (j + (m + 2 * j) : ℕ) = m + 3 * j from by omega]
     · intro p hp hpj
       have hne : (m + 2 * p : ℤ) ≠ ((m + 2 * j : ℕ) : ℤ) := by
         intro heq
         push_cast at heq
         omega
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
     · intro hj'
       exact absurd hj hj'
   rw [hsum]
@@ -4085,7 +4093,7 @@ private theorem moment_zero (m k : ℕ) (hk : k < m ∨ (k - m) % 2 = 1) :
       intro heq
       have hnat : m + 2 * p = k := by exact_mod_cast heq
       rcases hk with hk | hk <;> omega
-    rw [if_neg hne, mul_zero]
+    rw [ite_eq_right hne, mul_zero]
   rw [hsum, mul_zero]
 
 open Qatlib
@@ -4194,7 +4202,7 @@ private theorem weightedHarmonic_integral (m k : ℕ) (u : ℝ) :
     rw [mul_add, fourierMode_pos]
     by_cases hk : k = 0
     · simp [hk]
-    · simp only [if_neg hk, fourierMode_neg]
+    · simp only [ite_eq_right hk, fourierMode_neg]
   have hcp : Continuous fp := by dsimp [fp, fourierMode]; fun_prop
   have hcn : Continuous fn := by
     dsimp [fn, fourierMode]
@@ -4212,7 +4220,7 @@ private theorem weightedHarmonic_integral (m k : ℕ) (u : ℝ) :
     by_cases hk : k = 0
     · simp [fn, hk]
     · dsimp [fn]
-      simp only [if_neg hk]
+      simp only [ite_eq_right hk]
       rw [intervalIntegral.integral_const_mul, fourierMode_integral]
       have hne : (m : ℤ) + k ≠ 0 := by omega
       simp [hne]
@@ -4818,8 +4826,8 @@ lemma besselHarmonic_even (t θ : ℝ) (k : ℕ) :
       mul_one, Complex.ofReal_sub, Complex.ofReal_mul, Complex.ofReal_ofNat]
     ring
   · have hk2 : 2*k ≠ 0 := by omega
-    simp only [besselHarmonic, if_neg hk2, lcJAp, lcJAn, hn, one_mul,
-      if_neg hk, sub_zero]
+    simp only [besselHarmonic, ite_eq_right hk2, lcJAp, lcJAn, hn, one_mul,
+      ite_eq_right hk, sub_zero]
     have harg : ((2*k:ℕ):ℂ)*(θ:ℂ) = ((((2*k:ℕ):ℝ)*θ : ℝ):ℂ) := by push_cast; rfl
     rw [← mul_add, harg, add_comm (Complex.exp _), bessel_exp_pair_cos]
     push_cast
@@ -4831,7 +4839,7 @@ lemma besselHarmonic_odd (t θ : ℝ) (k : ℕ) :
       -Complex.I * ((2*lcBesselJ (2*k+1) t*Real.sin ((2*k+1:ℕ)*θ) : ℝ) : ℂ) := by
   have hn : (-1:ℂ)^(2*k+1) = -1 := by rw [pow_add, pow_mul]; norm_num
   have hk2 : 2*k+1 ≠ 0 := by omega
-  simp only [besselHarmonic, if_neg hk2, lcJAp, lcJAn, hn, neg_mul, one_mul, ← sub_eq_add_neg,
+  simp only [besselHarmonic, ite_eq_right hk2, lcJAp, lcJAn, hn, neg_mul, one_mul, ← sub_eq_add_neg,
       ← mul_sub]
   have harg : ((2*k+1:ℕ):ℂ)*(θ:ℂ) = ((((2*k+1:ℕ):ℝ)*θ : ℝ):ℂ) := by push_cast; rfl
   rw [harg, bessel_exp_pair_sin]

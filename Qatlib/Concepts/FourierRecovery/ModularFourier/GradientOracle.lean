@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleDefs
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleDefs
+
+@[expose] public section
 
 /-!
 # Value and probability phase oracle readout
@@ -107,8 +111,8 @@ theorem probability_phase_readout_coincides (d M : ℕ) (hM : 0 < M)
 at most `4 * π * δ`. -/
 theorem value_phase_readout_event_error :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M)
-      (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
-      (herror : ∀ x, ∃ k : ℤ, |gradientValuePhase Q v x - φ x - k| ≤ δ)
+      (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ) (δ : ℝ) (_hδ : 0 ≤ δ)
+      (_herror : ∀ x, ∃ k : ℤ, |gradientValuePhase Q v x - φ x - k| ≤ δ)
       (S : Finset (GradientGrid d M)),
       |MeasureProb (gradientReadout d M hM (gradientValuePhase Q v)) S -
         MeasureProb (gradientReadout d M hM φ) S| ≤ 4 * Real.pi * δ := by
@@ -146,9 +150,9 @@ has the stated exact query and gate counts, and approximates the ideal phase act
 specified frame with relative error at most `2^(-k)`. -/
 theorem probability_phase_frame_bound :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
-      (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
+      (U : Matrix (X × A) (X × A) ℂ) (_hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
       (a₀ : A) (good : Finset A)
-      (hlabel : ∀ (x y : X) (a : A), x ≠ y → U (x,a) (y,a₀) = 0) (k : ℕ),
+      (_hlabel : ∀ (x y : X) (a : A), x ≠ y → U (x,a) (y,a₀) = 0) (k : ℕ),
       WellFormedAdjointCircuit (probabilityPhaseWord (X := X) a₀ good k) ∧
         adjointQueryCount (probabilityPhaseWord (X := X) a₀ good k)
           = 54 * (4 * computedSignalCutoff (1/2) k + 1) ∧
@@ -176,10 +180,10 @@ theorem readout_is_actual_fourier_word_born_law :
 /-- For bounded gradient coordinates and window width at most `1 / 8`, the decoder has
 coordinate error at most the window width on every good sample. -/
 theorem readout_decoder_error :
-    ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
-      (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
+    ∀ (d M : ℕ) (_hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
+      (_hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (_hw : w ≤ 1 / 8)
       (z : GradientGrid d M)
-      (hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
+      (_hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
       ∀ j : Fin d, |readoutDecoder z j - g j| ≤ w := by
   intro d M hM g w hg hw z hgood j
   have h := gradient_signed_decode_window M hM (z j) (g j) w (hg j) hw (hgood j)
@@ -189,8 +193,8 @@ theorem readout_decoder_error :
 d / (M * w) - 4 * π * B` under the stated positivity conditions. -/
 theorem readout_joint_success :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
-      (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
-      (herror : ∀ x, |φ x - (c + ∑ j : Fin d, g j * (x j).val)| ≤ B),
+      (_hM2 : 2 ≤ M) (_hw : 0 < w) (_hB : 0 ≤ B)
+      (_herror : ∀ x, |φ x - (c + ∑ j : Fin d, g j * (x j).val)| ≤ B),
       MeasureProb (gradientReadout d M hM φ)
         (Finset.univ.filter (fun z => ∀ j : Fin d,
           phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w))

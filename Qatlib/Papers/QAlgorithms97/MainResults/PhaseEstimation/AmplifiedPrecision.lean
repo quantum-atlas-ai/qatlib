@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Real.Archimedean
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+
+@[expose] public section
 
 /-!
 # Corrected precision budget for phase estimation

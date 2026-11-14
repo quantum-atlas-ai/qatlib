@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+
+@[expose] public section
 
 /-!
 # Algebraic acceptance amplification

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.Lemma1
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.Lemma1
+
+@[expose] public section
 
 /-!
 # The minimum-finding rank-visit lemma

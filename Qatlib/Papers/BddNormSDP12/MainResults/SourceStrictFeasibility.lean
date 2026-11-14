@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ open Matrix
 namespace Qatlib.Papers.BddNormSDP12.MainResults.SourceStrictFeasibility
 
 open Qatlib.Concepts.SdpDuality.StrongDuality
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.QueryWordCore.Circuit

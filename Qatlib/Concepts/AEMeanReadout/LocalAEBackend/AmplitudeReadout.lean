@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutDefs
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutDefs
+
+@[expose] public section
 
 /-!
 # Oracle cost transport for amplitude readout
@@ -296,9 +300,9 @@ theorem mem_recordGrids_iff {n : ℕ} (grid : Fin n → ℕ) (exec : Fin n → B
       obtain ⟨a, ⟨l, hl⟩, he⟩ := hg
       subst a
       by_cases hx : exec l = true
-      · simp only [if_pos hx] at hl
+      · simp only [ite_eq_left hx] at hl
         exact ⟨l, hx, (Option.some.inj hl).symm⟩
-      · simp only [if_neg hx] at hl
+      · simp only [ite_eq_right hx] at hl
         exact absurd hl (by simp)
     · left
       rfl
@@ -307,7 +311,7 @@ theorem mem_recordGrids_iff {n : ℕ} (grid : Fin n → ℕ) (exec : Fin n → B
     · rw [recordGrids, List.mem_append]
       left
       simp only [List.mem_filterMap, List.mem_ofFn, id_eq]
-      exact ⟨some (grid l), ⟨l, if_pos hl⟩, rfl⟩
+      exact ⟨some (grid l), ⟨l, ite_eq_left hl⟩, rfl⟩
 
 /-- All recorded grids are positive if the prefix grids and final grid are positive. -/
 theorem one_le_of_mem_recordGrids {n : ℕ} (grid : Fin n → ℕ) (exec : Fin n → Bool) (m : ℕ)
@@ -438,9 +442,9 @@ theorem preparedMark_eq_diagonal (S : Finset I) :
   by_cases hxy : x = y
   · subst y
     by_cases hx : x ∈ S
-    · simp only [hx, if_true]
+    · simp only [hx, ite_true]
       norm_num
-    · simp only [hx, if_false]
+    · simp only [hx, ite_false]
       norm_num
   · simp [hxy]
 

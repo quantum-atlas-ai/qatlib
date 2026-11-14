@@ -4,11 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpClaims
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
-import Mathlib.Data.Complex.BigOperators
+module
+
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpClaims
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
+public import Mathlib.Basic.Complex.BigOperators
+
+@[expose] public section
+set_option linter.unusedTactic false
+set_option linter.unnecessarySeqFocus false
+set_option linter.unusedVariables false
 
 /-!
 # Overlap bounds for Grover interpolation

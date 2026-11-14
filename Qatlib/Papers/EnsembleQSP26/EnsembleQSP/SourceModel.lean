@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Data.Matrix.Mul
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Data.Matrix.Mul
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -93,7 +97,7 @@ theorem zRot_add (φ e : ℝ) : zRot (φ + e) = zRot φ * zRot e := by
   rw [zRot, zRot, zRot, Matrix.diagonal_mul_diagonal]
   congr 1
   funext i
-  fin_cases i <;> simp [Matrix.diagonal]
+  fin_cases i <;> simp
   · rw [← Complex.exp_add]; congr 1; ring
   · rw [← Complex.exp_add]; congr 1; ring
 
@@ -115,30 +119,50 @@ theorem exp_pos_I_eq (x : ℝ) :
 
 /-! ### Linearity of `cexpect` -/
 
+omit [DecidableEq Ω] in
 /-- The expectation of the zero function vanishes. -/
-theorem cexpect_zero (μ : FinDist Ω) : cexpect μ (fun _ => 0) = 0 := by
+theorem cexpect_zero {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) : cexpect μ (fun _ => 0) = 0 := by
   simp [cexpect]
 
+omit [DecidableEq Ω] in
 /-- Expectation is additive: `E[f + g] = E[f] + E[g]`. -/
-theorem cexpect_add (μ : FinDist Ω) (f g : Ω → ℂ) :
+theorem cexpect_add {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (f g : Ω → ℂ) :
     cexpect μ (fun ω => f ω + g ω) = cexpect μ f + cexpect μ g := by
   simp only [cexpect, mul_add, Finset.sum_add_distrib]
 
+omit [DecidableEq Ω] in
 /-- Expectation is subtractive: `E[f − g] = E[f] − E[g]`. -/
-theorem cexpect_sub (μ : FinDist Ω) (f g : Ω → ℂ) :
+theorem cexpect_sub {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (f g : Ω → ℂ) :
     cexpect μ (fun ω => f ω - g ω) = cexpect μ f - cexpect μ g := by
   simp only [cexpect, mul_sub, Finset.sum_sub_distrib]
 
+omit [DecidableEq Ω] in
 /-- Constants factor out of the expectation: `E[a·f] = a·E[f]`. -/
-theorem cexpect_const_mul (μ : FinDist Ω) (a : ℂ) (f : Ω → ℂ) :
+theorem cexpect_const_mul {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (a : ℂ) (f : Ω → ℂ) :
     cexpect μ (fun ω => a * f ω) = a * cexpect μ f := by
   simp only [cexpect, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro ω _
   ring
 
+omit [DecidableEq Ω] in
 /-- A matrix-constant on the right pulls out of the matrix expectation. -/
-theorem matExpect_mul_const {u v w : Type*} [Fintype u] [Fintype v] [Fintype w]
+theorem matExpect_mul_const {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    {u v w : Type*} [Fintype u] [Fintype v] [Fintype w]
     (μ : FinDist Ω) (M : Ω → Matrix u v ℂ) (R : Matrix v w ℂ) :
     matExpect μ (fun ω => M ω * R) = matExpect μ M * R := by
   ext i k
@@ -158,9 +182,13 @@ variate (arXiv:2601.20073v1 §B.1, the hypothesis on `e_j` before Eq. (B1)). -/
 def IsEvenNoise (μ : FinDist Ω) (e : Ω → ℝ) : Prop :=
   ∃ σ : Equiv.Perm Ω, (∀ ω, μ.prob (σ ω) = μ.prob ω) ∧ (∀ ω, e (σ ω) = - e ω)
 
+omit [DecidableEq Ω] in
 /-- Under an even law the mean of `sin e` vanishes (Eq. (B10) of
 arXiv:2601.20073v1: "`E f(e_j) = 0` for any odd function `f`"). -/
-theorem even_expect_sin_zero {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise μ e) :
+theorem even_expect_sin_zero {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise μ e) :
     μ.expect (fun ω => Real.sin (e ω)) = 0 := by
   unfold FinDist.expect
   obtain ⟨σ, hprob, hneg⟩ := h
@@ -182,13 +210,21 @@ theorem even_expect_sin_zero {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise
             rw [Finset.sum_neg_distrib]
   linarith [key]
 
+omit [DecidableEq Ω] in
 /-- `cexpect` of a real statistic coerced to `ℂ` equals the real expectation. -/
-theorem cexpect_ofReal (μ : FinDist Ω) (g : Ω → ℝ) :
+theorem cexpect_ofReal {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (g : Ω → ℝ) :
     cexpect μ (fun ω => (g ω : ℂ)) = (μ.expect g : ℂ) := by
   simp only [cexpect, FinDist.expect, Complex.ofReal_sum, Complex.ofReal_mul]
 
+omit [DecidableEq Ω] in
 /-- `cexpect` of `g·i` factors the imaginary unit. -/
-theorem cexpect_ofReal_mul_I (μ : FinDist Ω) (g : Ω → ℝ) :
+theorem cexpect_ofReal_mul_I {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (g : Ω → ℝ) :
     cexpect μ (fun ω => (g ω : ℂ) * Complex.I) = (μ.expect g : ℂ) * Complex.I := by
   unfold cexpect FinDist.expect
   push_cast
@@ -229,7 +265,7 @@ theorem matExpect_zRot {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise μ e)
   fin_cases i <;> fin_cases j
   · -- (0,0): exp(-(φ+e) i) = exp(-φ i) * E[exp(-e i)]
     simp only [matExpect]
-    simp [zRot, Matrix.diagonal, Matrix.smul_apply, smul_eq_mul, cexpect_zero]
+    simp [zRot, Matrix.diagonal, Matrix.smul_apply]
     have hp : ∀ ω, Complex.exp ((-↑(e ω) + -↑φ) * Complex.I)
         = Complex.exp (-(↑φ * Complex.I)) * Complex.exp (-((e ω : ℝ) : ℂ) * Complex.I) := by
       intro ω
@@ -240,13 +276,13 @@ theorem matExpect_zRot {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise μ e)
     ring
   · -- (0,1): both sides zero
     simp only [matExpect]
-    simp [zRot, Matrix.diagonal, Matrix.smul_apply, smul_eq_mul, cexpect_zero]
+    simp [zRot, Matrix.diagonal, Matrix.smul_apply, cexpect_zero]
   · -- (1,0): both sides zero
     simp only [matExpect]
-    simp [zRot, Matrix.diagonal, Matrix.smul_apply, smul_eq_mul, cexpect_zero]
+    simp [zRot, Matrix.diagonal, Matrix.smul_apply, cexpect_zero]
   · -- (1,1): exp((φ+e) i) = exp(φ i) * E[exp(e i)]
     simp only [matExpect]
-    simp [zRot, Matrix.diagonal, Matrix.smul_apply, smul_eq_mul, cexpect_zero]
+    simp [zRot, Matrix.diagonal, Matrix.smul_apply]
     have hp : ∀ ω, Complex.exp ((↑φ + ↑(e ω)) * Complex.I)
         = Complex.exp (↑φ * Complex.I) * Complex.exp (((e ω : ℝ) : ℂ) * Complex.I) := by
       intro ω
@@ -258,8 +294,12 @@ theorem matExpect_zRot {μ : FinDist Ω} {e : Ω → ℝ} (h : IsEvenNoise μ e)
 
 /-! ### Independent product law over the phase factors -/
 
+omit [DecidableEq Ω] in
 /-- Expectation of a constant complex statistic. -/
-theorem cexpect_const (μ : FinDist Ω) (c : ℂ) : cexpect μ (fun _ => c) = c := by
+theorem cexpect_const {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    (μ : FinDist Ω) (c : ℂ) : cexpect μ (fun _ => c) = c := by
   simp only [cexpect, ← Finset.sum_mul]
   have h : (∑ i, (μ.prob i : ℂ)) = 1 := by
     rw [← Complex.ofReal_sum, FinDist.sum_one, Complex.ofReal_one]
@@ -312,10 +352,14 @@ theorem matProd_smul : ∀ (d : ℕ) (c : Fin d → ℝ) (M : Fin d → Matrix (
     rw [Matrix.smul_mul, Matrix.mul_smul]
     rw [smul_smul]
 
+omit [DecidableEq Ω] in
 /-- Fubini step: the expectation of `A(ω 0) * B(tail ω)` over the product law is
 `E[A] * E[B]` when the two factors depend on disjoint coordinates
 (arXiv:2601.20073v1 Eq. (B12), split off the first coordinate). -/
-theorem matExpect_prod_split {d : ℕ} (μs : Fin (d + 1) → FinDist Ω)
+theorem matExpect_prod_split {Ω : Type*}
+    [_instFintypeOmega : Fintype Ω]
+    [_instDecidableEqOmega : DecidableEq Ω]
+    {d : ℕ} (μs : Fin (d + 1) → FinDist Ω)
     (A : Ω → Matrix (Fin 2) (Fin 2) ℂ)
     (B : (Fin d → Ω) → Matrix (Fin 2) (Fin 2) ℂ) :
     matExpect (prodLaw μs) (fun ω => A (ω 0) * B (fun j => ω j.succ))

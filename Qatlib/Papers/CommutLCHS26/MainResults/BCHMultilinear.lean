@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHCutCounts
-import Mathlib.Data.List.Permutation
-import Mathlib.Data.List.NodupEquivFin
-import Mathlib.Data.List.FinRange
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHCutCounts
+public import Mathlib.Data.List.Permutation
+public import Mathlib.Data.List.NodupEquivFin
+public import Mathlib.Data.List.FinRange
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 /-!
 # Multilinear components of word logarithms
@@ -74,20 +78,18 @@ def selectWords (xs : List α) : WordAlg α →ₗ[ℚ] WordAlg α := by
         apply MonoidAlgebra.coeff_injective
         apply Finsupp.ext
         intro w
-        simp only [MonoidAlgebra.coeff_ofCoeff, Finsupp.filter_apply,
-          MonoidAlgebra.coeff_add, Finsupp.add_apply]
+        simp only [Finsupp.filter_apply, MonoidAlgebra.coeff_add, Finsupp.add_apply]
         split_ifs <;> simp only [add_zero]
       map_smul' := by
         intro c p
         apply MonoidAlgebra.coeff_injective
         apply Finsupp.ext
         intro w
-        simp only [MonoidAlgebra.coeff_ofCoeff, Finsupp.filter_apply,
-          MonoidAlgebra.coeff_smul, Finsupp.smul_apply, smul_eq_mul]
+        simp only [Finsupp.filter_apply, MonoidAlgebra.coeff_smul, Finsupp.smul_apply, smul_eq_mul]
         by_cases h : w.toList.Perm xs
-        · simp only [if_pos h]
+        · simp only [ite_eq_left h]
           rfl
-        · simp only [if_neg h, mul_zero]
+        · simp only [ite_eq_right h, mul_zero]
         }
 
 /-- Word selection preserves a coefficient when its word is a permutation of the target list and
@@ -101,15 +103,15 @@ theorem selectWords_coeff (xs : List α) (p : WordAlg α) (w : FreeMonoid α) :
 theorem word_coeff (u : List α) (v : FreeMonoid α) :
     (word u).coeff v = if u = v.toList then 1 else 0 := by
   classical
-  change MonoidAlgebra.single (FreeMonoid.ofList u) 1 v = _
-  rw [MonoidAlgebra.single_apply]
+  change (Finsupp.single (FreeMonoid.ofList u) 1) v = _
+  rw [Finsupp.single_apply]
   by_cases h : u = v.toList
   · have he : FreeMonoid.ofList u = v := by simpa only [FreeMonoid.ofList_toList] using congrArg FreeMonoid.ofList h
-    rw [if_pos h, if_pos he]
+    rw [ite_eq_left h, ite_eq_left he]
   · have he : FreeMonoid.ofList u ≠ v := by
       intro he
       exact h (by simpa only [FreeMonoid.toList_ofList] using congrArg FreeMonoid.toList he)
-    rw [if_neg h, if_neg he]
+    rw [ite_eq_right h, ite_eq_right he]
 
 /-- Every word in the support of an element is a permutation of the given list. -/
 def SupportedOn (p : WordAlg α) (xs : List α) : Prop := ∀ w ∈ p.support, w.toList.Perm xs
@@ -181,8 +183,8 @@ theorem selectWords_eq_self {xs : List α} (p : WordAlg α) (hp : SupportedOn p 
   intro v
   rw [selectWords_coeff]
   by_cases h : v.toList.Perm xs
-  · rw [if_pos h]
-  · rw [if_neg h]
+  · rw [ite_eq_left h]
+  · rw [ite_eq_right h]
     symm
     by_contra he
     exact h (hp v (by simpa using! he))
@@ -196,11 +198,11 @@ theorem selectWords_eq_zero {xs ys : List α} (p : WordAlg α) (hp : SupportedOn
   intro v
   rw [selectWords_coeff]
   by_cases h : v.toList.Perm xs
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     by_contra he
     have hpv := hp v (by simpa using! he)
     exact hxy (hpv.symm.trans h)
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rfl
 
 /-- Selecting a right nested letter bracket keeps it if its list is a permutation of the target
@@ -210,11 +212,11 @@ theorem selectWords_rightBracket (xs w : List α) :
       if w.Perm xs then rightBracket (w.map letter) else 0 := by
   classical
   by_cases h : w.Perm xs
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     apply selectWords_eq_self
     intro v hv
     exact (supportedOn_rightBracket w v hv).trans h
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact selectWords_eq_zero _ (supportedOn_rightBracket w) h
 
 /-- Selecting a word basis element keeps it if its list is a permutation of the target list and
@@ -222,11 +224,11 @@ gives zero otherwise. -/
 theorem selectWords_word (xs w : List α) :
     selectWords xs (word w) = if w.Perm xs then word w else 0 := by
   by_cases h : w.Perm xs
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     apply selectWords_eq_self
     intro v hv
     exact (supportedOn_word w v hv).trans h
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact selectWords_eq_zero _ (supportedOn_word w) h
 
 /-- The Dynkin map sends a word basis element to its right nested letter bracket. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileDefs
+
+@[expose] public section
 
 /-!
 # Recovery of a separated finite quantile

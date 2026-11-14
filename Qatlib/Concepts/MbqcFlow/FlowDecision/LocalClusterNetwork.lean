@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+
+@[expose] public section
 
 /-!
 # Imports for local cluster networks

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchCoreDefs
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Tactic.FunProp
-import Mathlib.MeasureTheory.Function.L2Space
-import Mathlib.Probability.Moments.Variance
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchCoreDefs
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Tactic.FunProp
+public import Mathlib.MeasureTheory.Function.L2Space
+public import Mathlib.Probability.Moments.Variance
+
+@[expose] public section
 
 /-!
 # Continuity limits for zero tests and clipping bounds

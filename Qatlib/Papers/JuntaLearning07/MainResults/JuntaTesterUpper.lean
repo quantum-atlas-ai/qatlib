@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
-import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Dedup
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
+public import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Fourier-sampling junta tester ingredients
@@ -97,8 +101,8 @@ theorem fsProb_accepts_junta {k : ℕ} {f : (Fin n → Bool) → Bool}
       apply Finset.sum_congr rfl
       intro s _
       by_cases hacc : acceptsTranscript (n := n) k s
-      · rw [if_pos hacc]
-      · rw [if_neg hacc]
+      · rw [ite_eq_left hacc]
+      · rw [ite_eq_right hacc]
         obtain ⟨J, hJ, hdep⟩ := hf
         have hex : ∃ t : Fin T, ¬ s t ⊆ J := by
           by_contra hcon
@@ -161,21 +165,21 @@ theorem indicator_ne_sgn_le_sq (a : Bool) (t : ℝ) :
   case true =>
     by_cases h : 0 ≤ t
     · have hs : sgnBool t = true := by simp [sgnBool, h]
-      rw [if_pos (by simp [hs])]
+      rw [ite_eq_left (by simp [hs])]
       positivity
     · have ht : t < 0 := lt_of_not_ge h
       have hs : sgnBool t = false := by simp [sgnBool, h]
-      rw [if_neg (by simp [hs])]
+      rw [ite_eq_right (by simp [hs])]
       show (1 : ℝ) ≤ (1 - t) ^ 2
       nlinarith [mul_pos_of_neg_of_neg ht (by linarith : t - 2 < 0)]
   case false =>
     by_cases h : 0 ≤ t
     · have hs : sgnBool t = true := by simp [sgnBool, h]
-      rw [if_neg (by simp [hs])]
+      rw [ite_eq_right (by simp [hs])]
       show (1 : ℝ) ≤ (-1 - t) ^ 2
       nlinarith [mul_nonneg h (by linarith : (0 : ℝ) ≤ t + 2)]
     · have hs : sgnBool t = false := by simp [sgnBool, h]
-      rw [if_pos (by simp [hs])]
+      rw [ite_eq_left (by simp [hs])]
       positivity
 
 /-- A Boolean character indexed by `S` has the same value on inputs agreeing on a set `T`

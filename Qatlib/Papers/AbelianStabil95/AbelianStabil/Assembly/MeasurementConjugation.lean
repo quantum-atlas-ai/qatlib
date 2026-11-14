@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MeasurementOperator.CompositeMeasure
+module
+
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MeasurementOperator.CompositeMeasure
+
+@[expose] public section
 
 /-!
 # Permutation conjugation of measurement operators

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+module
+
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+
+@[expose] public section
 
 /-!
 # Product cube Poincaré estimates
@@ -157,7 +161,7 @@ variance with factor `2 * n²`. -/
 theorem cube_mu_exists_large_influence {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (hn : 0 < n) (f : (Fin n → Bool) → ℝ) :
     ∃ i : Fin n, cubeVar n (muWeight p n) f ≤ 2*(n : ℝ)^2*cubeInf n (muWeight p n) f i := by
-  letI : Nonempty (Fin n) := ⟨⟨0,hn⟩⟩
+  let : Nonempty (Fin n) := ⟨⟨0,hn⟩⟩
   obtain ⟨i,hi,hmax⟩ := Finset.exists_max_image Finset.univ
     (fun i : Fin n => cubeInf n (muWeight p n) f i) Finset.univ_nonempty
   refine ⟨i, (cube_mu_variance_le_total_inf hp0.le hp1.le n f).trans ?_⟩

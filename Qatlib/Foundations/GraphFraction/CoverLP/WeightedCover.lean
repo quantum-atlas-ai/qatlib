@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Convex.StdSimplex
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Convex.StdSimplex
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Tactic
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Attained weighted fractional independent-set covers
@@ -105,7 +110,7 @@ theorem coverage_continuous (G : SimpleGraph V) (i : V) : Continuous (fun x => c
 
 /-- The set of feasible covers is closed. -/
 theorem feasible_closed (G : SimpleGraph V) (a : V → ℝ) : IsClosed {x | Feasible G a x} := by
-  simp only [Feasible,Set.setOf_and,Set.setOf_forall]
+  simp only [Feasible,Set.ofPred_and,Set.ofPred_forall]
   exact (isClosed_iInter (fun I => isClosed_le continuous_const (continuous_apply I))).inter
     (isClosed_iInter (fun i => isClosed_le continuous_const (coverage_continuous G i)))
 
@@ -170,7 +175,7 @@ theorem total_pos (G : SimpleGraph V) {a : V → ℝ} {x : Context G → ℝ}
 probability simplex. -/
 theorem normalized_cover_simplex (G : SimpleGraph V) {a : V → ℝ} {x : Context G → ℝ}
     (hx : Feasible G a x) (ht : 0<∑ I,x I) :
-    (fun I => x I/(∑ J,x J))∈stdSimplex ℝ (Context G) := by
+    (fun I => x I/(∑ J,x J))∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) := by
   constructor
   · intro I
     exact div_nonneg (hx.1 I) ht.le
@@ -190,7 +195,7 @@ probability distribution has every coverage at least the corresponding demand di
 that value. -/
 theorem attained_strategy (G : SimpleGraph V) (a : V → ℝ) (ha : ∀ i,0 ≤ a i)
     (i0 : V) (hi0 : 0<a i0) :
-    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧
+    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧
       ∀ i,a i/coverValue G a ≤ coverage G q i := by
   obtain ⟨x,hx,hval⟩ := coverValue_attained G a ha
   have ht := total_pos G hx i0 hi0

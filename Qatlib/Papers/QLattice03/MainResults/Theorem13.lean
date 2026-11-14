@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Lemma45
-import Qatlib.Papers.QLattice03.MainResults.Lemma49
-import Qatlib.Papers.QLattice03.MainResults.Reductions
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Lemma45
+public import Qatlib.Papers.QLattice03.MainResults.Lemma49
+public import Qatlib.Papers.QLattice03.MainResults.Reductions
+
+@[expose] public section
 
 /-!
 # The subset-sum to DCP implication

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceEmbedding
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceEmbedding
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Workspace padding for circuit words
@@ -144,8 +148,8 @@ theorem workspaceEmbedding_delta {d k K : ℕ} (h : k ≤ K)
   rw [workspaceEmbedding_apply]
   simp only [Matrix.one_apply]
   by_cases hd : (finProdFinEquiv.symm a).1 = (finProdFinEquiv.symm b).1
-  · simp only [hd,if_true,one_mul,he,true_and]
-  · simp only [hd,if_false,zero_mul,he,false_and]
+  · simp only [hd,ite_true,one_mul,he,true_and]
+  · simp only [hd,ite_false,zero_mul,he,false_and]
 
 /-- The amplitude at an included basis state equals its original amplitude before workspace
 embedding. -/

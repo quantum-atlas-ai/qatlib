@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+@[expose] public section
 
 /-!
 # Conditioning and probability laws for instruments
@@ -80,11 +84,11 @@ theorem Instrument.weightedConditional_reconstruction {O : Type*} [Fintype O] {D
     intro o
     unfold weightedConditionalBranch
     by_cases h : 0 < instrumentProb I ρ o
-    · rw [dif_pos h]
+    · rw [dite_eq_left h]
       exact (Instrument.conditionalState_reconstruction I ρ o h).1
     · have hnn : 0 ≤ instrumentProb I ρ o := instrumentProb_nonneg I hρ o
       have h0 : instrumentProb I ρ o = 0 := le_antisymm (not_lt.mp h) hnn
-      rw [dif_neg h, (instrumentProb_eq_zero_iff I hρ o).mp h0]
+      rw [dite_eq_right h, (instrumentProb_eq_zero_iff I hρ o).mp h0]
   refine ⟨hbranch, ?_⟩
   rw [Instrument.forget_apply]
   refine Finset.sum_congr rfl fun o _ => ?_
@@ -114,7 +118,7 @@ outcome probability is the first probability times the second instrument's proba
 the conditional state. -/
 theorem instrumentProb_seq_conditional {O P : Type*} [Fintype O] [Fintype P]
     [DecidableEq P] {D E F : ℕ} (I : Instrument O D E) (J : Instrument P E F)
-    (ρ : Operator D) (hρ : ρ.PosSemidef) (o : O) (p : P)
+    (ρ : Operator D) (_hρ : ρ.PosSemidef) (o : O) (p : P)
     (h : 0 < instrumentProb I ρ o) :
     instrumentProb (I.seq J) ρ (o, p) = instrumentProb I ρ o *
       instrumentProb J (I.conditionalState ρ o h) p := by

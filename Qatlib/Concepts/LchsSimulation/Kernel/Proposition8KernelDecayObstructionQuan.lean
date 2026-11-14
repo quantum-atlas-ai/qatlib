@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Kernel.Proposition8KernelDecayObstructionStat
-import Qatlib.Concepts.LchsSimulation.Kernel.KernelDecayObstruction
+module
+
+public import Qatlib.Concepts.LchsSimulation.Kernel.Proposition8KernelDecayObstructionStat
+public import Qatlib.Concepts.LchsSimulation.Kernel.KernelDecayObstruction
+
+@[expose] public section
 
 /-!
 # Exponential kernel decay obstruction

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Gate synthesis and implementation resource specifications

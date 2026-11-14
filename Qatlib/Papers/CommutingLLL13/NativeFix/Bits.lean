@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Binary-logarithm parameters and count support

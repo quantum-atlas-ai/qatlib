@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.LcuFrame.Normalization
+module
+
+public import Qatlib.Foundations.MatrixGeometry.LcuFrame.Normalization
+
+@[expose] public section
 
 /-!
 # The orthogonal companion in an LCU plane

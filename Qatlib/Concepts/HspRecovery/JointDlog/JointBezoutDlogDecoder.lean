@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.JointDlog.CompositeDlogConsumers
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+module
+
+public import Qatlib.Concepts.HspRecovery.JointDlog.CompositeDlogConsumers
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+
+@[expose] public section
 
 /-!
 # Joint discrete logarithm recovery by Bezout folding
@@ -108,16 +112,16 @@ private theorem joint_euclid_pow_work (k n m : ℕ) (s t s' t' : ℤ)
     by_cases hn0 : n = 0
     · subst n; rw [cyclicDlogEuclid]; simp
     · have hnpos : 0 < n := Nat.pos_of_ne_zero hn0
-      rw [cyclicDlogEuclid, dif_neg hn0]
+      rw [cyclicDlogEuclid, dite_eq_right hn0]
       (try dsimp only)
       by_cases ha : m%n = 0
-      · rw [cyclicDlogEuclid, dif_pos ha]
+      · rw [cyclicDlogEuclid, dite_eq_left ha]
         (try dsimp only)
         omega
       · have hapos := Nat.pos_of_ne_zero ha
         have hlt := joint_euclid_two_step n (m%n) hnpos hapos (Nat.mod_lt m hnpos)
         have hu : n%(m%n) < 2^k := by rw [pow_succ] at hn; omega
-        rw [cyclicDlogEuclid, dif_neg ha]
+        rw [cyclicDlogEuclid, dite_eq_right ha]
         (try dsimp only)
         have hw := ih (n%(m%n)) (m%n)
           (s - ((n/(m%n) : ℕ) : ℤ)*(s' - ((m/n : ℕ) : ℤ)*s))
@@ -149,7 +153,7 @@ theorem binary_add_value_and_work (C : Type) [AddCommGroup C] (g : C) (n k : ℕ
     · subst n; simp [binaryAddFuel]
     · have hhalf : n/2 < 2^k := by rw [pow_succ] at hn; omega
       have hv := ih (g+g) (n/2) hhalf
-      rw [binaryAddFuel, if_neg hn0]
+      rw [binaryAddFuel, ite_eq_right hn0]
       (try dsimp only)
       constructor
       · rw [hv.1, nsmul_add, ← two_nsmul, ← mul_nsmul]
@@ -337,7 +341,7 @@ theorem joint_dlog_actual_verified_correctness_and_work (r : ℕ) [NeZero r]
     have heq := hgood.1
     by_cases hg : (jointDlogFold xs).1.1 = 1
     · have hsecret : (jointDlogFold xs).1.2 = d := by simpa only [hg, Nat.cast_one, mul_one] using! hgood.2.1
-      simp only [jointDlogVerified, hg, if_true, hsecret,
+      simp only [jointDlogVerified, hg, ite_true, hsecret,
         (binaryAddCounted_value_and_work g d.val).1, hh]
       simp [← heq, hg]
     · simp [jointDlogVerified, hg, ← heq]
@@ -392,13 +396,13 @@ private theorem joint_line_event_mass (r : ℕ) [NeZero r] (C : Type)
       simp_rw [show ∀ i, (cyclicDlogRecordDist r g h).prob (ω i) = 1/(r : ℝ) from
         fun i => by
           rw [show ω i = ((ω i).1,(ω i).2) from rfl,
-            composite_dlog_actual_line_law r C g h d _ _ hr hp hinj hh, if_pos (hon i)]]
+            composite_dlog_actual_line_law r C g h d _ _ hr hp hinj hh, ite_eq_left (hon i)]]
       simp [hon]
-    · rw [if_neg hon]
+    · rw [ite_eq_right hon]
       obtain ⟨i, hi⟩ := not_forall.mp hon
       apply Finset.prod_eq_zero (Finset.mem_univ i)
       rw [show ω i = ((ω i).1,(ω i).2) from rfl,
-        composite_dlog_actual_line_law r C g h d _ _ hr hp hinj hh, if_neg hi]
+        composite_dlog_actual_line_law r C g h d _ _ hr hp hinj hh, ite_eq_right hi]
   unfold Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent
   rw [Finset.sum_congr rfl (fun ω _ => hprob ω), ← Finset.sum_filter, Finset.filter_filter]
   apply Finset.sum_bij (fun ω _ => jointFirstRecord r m ω)
@@ -476,7 +480,7 @@ theorem joint_dlog_fresh_actual_verified_success (r : ℕ) [NeZero r] (C : Type)
   have hbound := (cyclic_verified_recovery_probability r r m hrpos f hrpos
     (dvd_refl _) hcol).1
   have hprob (a : Fin m → Fin r) : (cyclicSampleDist r hrpos f).probOf a = (1/(r : ℝ))^m := by
-    simpa only [Nat.div_self hrpos, one_dvd, implies_true, if_true] using!
+    simpa only [Nat.div_self hrpos, one_dvd, implies_true, ite_true] using!
       cyclicSampleDist_probOf r r hrpos f hrpos (dvd_refl _) hcol m a
   have hevent (a : Fin m → Fin r) : cyclicVerifiedDecode r hrpos f a = some r ↔
       (List.ofFn (fun i => (a i).val)).foldl Nat.gcd r = 1 := by

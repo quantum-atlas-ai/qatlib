@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DiscreteNodeDerivative
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DiscreteNodeDerivative
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
+
+@[expose] public section
 
 /-!
 # Consequences of the sharp polynomial derivative bound

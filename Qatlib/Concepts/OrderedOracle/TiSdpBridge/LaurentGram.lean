@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Int.Interval
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.BigOperators
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Int.Interval
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Laurent polynomials from Gram matrices
@@ -93,7 +97,7 @@ theorem matrixLaurent_eq_quadratic (A : Matrix (Fin n) (Fin n) ℂ) {z : ℂ}
       Finset.Icc (-(n : ℤ) + 1) ((n : ℤ) - 1) := by
     rw [Finset.mem_Icc]
     constructor <;> omega
-  simp only [ite_mul, zero_mul, Finset.sum_ite_eq, hm, if_true]
+  simp only [ite_mul, zero_mul, Finset.sum_ite_eq, hm, ite_true]
   rw [zpow_sub₀ hz]
   simp only [_root_.zpow_neg]
   ring
@@ -196,7 +200,7 @@ theorem genTrace_onesDiv (j : ℤ) :
   have hj : ((j.natAbs : ℕ) : ℤ) = |j| := Int.natCast_natAbs j
   by_cases h : |j| < (n : ℤ)
   · have hle : j.natAbs ≤ n := by omega
-    rw [if_pos h]
+    rw [ite_eq_left h]
     have hr : (j.natAbs : ℝ) = |(j : ℝ)| := by
       simpa only [Int.cast_natCast, Int.cast_abs] using congrArg (fun x : ℤ => (x : ℝ)) hj
     push_cast [Nat.cast_sub hle]
@@ -204,7 +208,7 @@ theorem genTrace_onesDiv (j : ℤ) :
     push_cast
     simp only [div_eq_mul_inv]
   · have hle : n ≤ j.natAbs := by omega
-    simp [if_neg h, Nat.sub_eq_zero_of_le hle]
+    simp [ite_eq_right h, Nat.sub_eq_zero_of_le hle]
 
 /-- A sum over integer offsets from `-n + 1` to `n - 1` equals the sum over `Fin n` that keeps
 the zero term once and pairs opposite nonzero offsets. -/
@@ -356,7 +360,7 @@ theorem laurentEval_at_root (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
       rw [show ((-1 : ℂ) ^ t)⁻¹ = (-1 : ℂ) ^ t from by
         rw [← inv_pow]; norm_num]
       ring
-    simp only [p, m, hi, hm0, if_false, hp]
+    simp only [p, m, hi, hm0, ite_false, hp]
     ring
 
 /-- For positive `n`, if a polynomial with coefficients indexed by `Fin n` vanishes at every
@@ -417,10 +421,10 @@ theorem symLaurent_root_vanishing_iff (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
       have hj0 : j ≠ 0 := by omega
       by_cases ht : 2 ∣ t
       · simp [hs, ht, mirrorIndex, hj0] at hR
-        simp only [if_pos ht]
+        simp only [ite_eq_left ht]
         linarith
       · simp [hs, ht, mirrorIndex, hj0] at hR
-        simp only [if_neg ht]
+        simp only [ite_eq_right ht]
         linarith
   · rintro ⟨h0, h⟩ z hz
     have hc : ∀ i : Fin n,
@@ -432,10 +436,10 @@ theorem symLaurent_root_vanishing_iff (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
         simp [he, h0]
       · have hR := h (i : ℕ) (by omega) i.isLt
         by_cases ht : 2 ∣ t
-        · simp only [if_pos ht] at hR
+        · simp only [ite_eq_left ht] at hR
           apply Complex.ext <;> simp [hi, hs, ht, mirrorIndex]
           linarith
-        · simp only [if_neg ht] at hR
+        · simp only [ite_eq_right ht] at hR
           apply Complex.ext <;> simp [hi, hs, ht, mirrorIndex]
           linarith
     rw [laurentEval_at_root hn t d z hz]
@@ -478,7 +482,7 @@ theorem sum_laurent_window_at_root (hn : 0 < n) (t : ℕ) (g : ℤ → ℂ)
       simp only [div_eq_mul_inv]
       rw [show ((-1 : ℂ) ^ t)⁻¹ = (-1 : ℂ) ^ t from by rw [← inv_pow]; norm_num]
       ring
-    simp only [p, m, hi, hm0, if_false, he, hp]
+    simp only [p, m, hi, hm0, ite_false, he, hp]
     ring
 
 /-- For positive `n`, two matrix Laurent evaluations agree at every root of `z ^ n = (-1) ^ t`
@@ -532,7 +536,7 @@ theorem gramOuter_posSemidef (v : Fin n → ℂ) : (gramOuter v).PosSemidef := b
   let C : Matrix Unit (Fin n) ℂ := fun _ i => v i
   have he : C.conjTranspose * C = gramOuter v := by
     ext i i'
-    simp +zetaDelta [C, gramOuter, Matrix.mul_apply, Matrix.conjTranspose_apply]
+    simp +zetaDelta [ gramOuter, Matrix.mul_apply, Matrix.conjTranspose_apply]
   rw [← he]
   exact Matrix.posSemidef_conjTranspose_mul_self C
 
@@ -607,9 +611,9 @@ theorem laurentEval_real_genTrace (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.IsHer
   have h0 : star (genTrace A 0) = genTrace A 0 := by
     simpa using (genTrace_neg_of_isHermitian A hA 0).symm
   by_cases hi : (i : ℕ) = 0
-  · simp only [hi, if_true, Nat.cast_zero, zpow_zero, mul_one]
+  · simp only [hi, ite_true, Nat.cast_zero, zpow_zero, mul_one]
     rw [Complex.re_eq_add_conj, ← Complex.star_def, h0]
-  · simp only [hi, if_false, genTrace_neg_of_isHermitian A hA, hs,
+  · simp only [hi, ite_false, genTrace_neg_of_isHermitian A hA, hs,
       _root_.inv_zpow, _root_.zpow_neg, inv_inv]
     rw [Complex.re_eq_add_conj, ← Complex.star_def]
     ring
@@ -647,7 +651,7 @@ theorem genTrace_diagonal (a : Fin n → ℂ) (j : ℤ) :
   by_cases hj : j = 0
   · subst j
     simp [genTrace_zero, Matrix.trace, Matrix.diag_apply]
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     unfold genTrace
     apply Finset.sum_eq_zero
     intro i _
@@ -694,7 +698,7 @@ theorem exists_rank_one_gram_of_diagonal [NeZero n] (a : Fin n → ℂ)
     rw [genTrace_diagonal, genTrace_diagonal]
     simp [b, T]
   · change a 0 ≤ b 0
-    simp only [b, if_pos rfl]
+    simp only [b, ite_eq_left rfl]
     exact Finset.single_le_sum (fun i _ => ha i) (Finset.mem_univ 0)
 
 end Qatlib.Concepts.OrderedOracle.TiSdpBridge

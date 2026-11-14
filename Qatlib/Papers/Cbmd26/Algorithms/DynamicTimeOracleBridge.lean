@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalOracleBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalOracleBridge
+
+@[expose] public section
 
 /-!
 # Time-indexed compilation to the original oracle

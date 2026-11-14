@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Exact higher Pauli shadow kernels
@@ -90,7 +94,7 @@ private theorem higher_snapshot_form (a : Fin 3×Bool) :
     PauliShadow a.2 a.1=(1/2:ℂ) • (1:Operator 2)+
       ((3/2:ℂ)*(cubicSign a.2:ℂ)) • pauliMatrix a.1 := by
   cases a.2 <;> simp only
-      [PauliShadow,PauliProjector,cubicSign,Bool.false_eq_true,if_false,if_true] <;> module
+      [PauliShadow,PauliProjector,cubicSign,Bool.false_eq_true,ite_false,ite_true] <;> module
 
 /-- Converting a Gaussian rational snapshot entry to a complex number gives the corresponding
 `PauliShadow` entry. -/

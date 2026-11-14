@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+
+@[expose] public section
 
 
 /-! The finite-dimensional perturbation lemma from Lorist--Schwenninger,
@@ -117,7 +121,7 @@ private theorem perturbation_step_vector (T : H →L[ℝ] H) (Q : K →L[ℝ] K)
     ‖T‖ • perturbation T Q V n x-perturbation T Q V (n+1) (T x)=
       (‖T‖*(‖T‖-1)) • (T†^n) x-(2 : ℝ) • (V†) ((Q†^n) (discrepancy T Q V x)) := by
   simp only [perturbation,discrepancy,sub_apply,smul_apply,comp_apply,pow_succ,
-    ContinuousLinearMap.mul_apply,heig,map_sub,map_smul]
+    _root_.mul_apply_eq_comp,heig,map_sub,map_smul]
   module
 
 /-- The identity or estimate `inner_power` holds with the displayed separation, geometry and norm hypotheses. -/
@@ -136,7 +140,7 @@ theorem perturbation_scalar_step (T : H →L[ℝ] H) (Q : K →L[ℝ] K)
   have hc (j : ℕ) : ∀ y,perturbation T Q V j ((T^n) y)=(T^n) (perturbation T Q V j y) := by
     intro y
     exact congrArg (fun A : H →L[ℝ] H => A y) ((hcomm j).pow_right n).eq
-  rw [pow_succ,ContinuousLinearMap.mul_apply,hc n,hc (n+1),← real_inner_smul_right,← inner_sub_right,← map_smul,← map_sub,
+  rw [pow_succ,_root_.mul_apply_eq_comp,hc n,hc (n+1),← real_inner_smul_right,← inner_sub_right,← map_smul,← map_sub,
     perturbation_step_vector T Q V x heig n,inner_power]
   rw [inner_sub_right,real_inner_smul_right]
   simp only [two_smul,inner_add_right,real_inner_self_eq_norm_sq]
@@ -359,7 +363,7 @@ private theorem pow_restrict_real (T : H →L[ℂ] H) (n : ℕ) :
   | zero => rfl
   | succ n ih =>
     ext x
-    simp only [pow_succ,ContinuousLinearMap.mul_apply,coe_restrictScalars']
+    simp only [pow_succ,_root_.mul_apply_eq_comp,coe_restrictScalars']
     exact congrArg (fun A : H →L[ℝ] H => A (T x)) ih
 
 /-- The identity or estimate `perturbation_restrict_real` holds with the displayed separation, geometry and norm hypotheses. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGCoarseBranchData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGBilinearQuotient
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGCoarseBranchData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGBilinearQuotient
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+
+@[expose] public section
 
 /-!
 # Correctness of the coarse frequency branch circuit
@@ -62,7 +66,7 @@ private theorem cb_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [cb_snoc_value]
-  simp only [Fin.val_castLE,dif_pos j.isLt]
+  simp only [Fin.val_castLE,dite_eq_left j.isLt]
 
 /-- Every original input coordinate retains its value under Boolean graph evaluation. -/
 private theorem cb_input_value {m n : ℕ} (g : BooleanDAG m n) (x : Reg m) (j : Fin m) :
@@ -116,7 +120,7 @@ private theorem zd_input_eq (e : Reg 4) : Fin.snoc e false = zdInput e := by
   · change (Fin.snoc e false : Reg 5) (Fin.last 4) = false
     simp only [Fin.snoc_last]
   · rw [Fin.snoc_castSucc]
-    simp only [zdInput,Fin.val_castSucc,dif_pos k.isLt]
+    simp only [zdInput,Fin.val_castSucc,dite_eq_left k.isLt]
 
 /-- Coordinate 13 of the entry-flag graph evaluates to `booleanZeroDetailMask`. -/
 private theorem zd_mask (e : Reg 4) :
@@ -172,9 +176,9 @@ private theorem zd_num_word (V b : ℕ) (e : Reg 4) :
       (fun j => if j.val=b then booleanZeroDetailMask e else false) := by
   funext j
   by_cases h : j.val=b
-  · simp only [zdNum,if_pos h]
+  · simp only [zdNum,ite_eq_left h]
     exact zd_mask e
-  · simp only [zdNum,if_neg h]
+  · simp only [zdNum,ite_eq_right h]
     exact zd_false e
 
 /-- For b < V, a word with a single possibly true bit at position b has value 2^b when that bit
@@ -217,15 +221,15 @@ private theorem zd_den_word (V : ℕ) (e : Reg 4) :
         else if j.val=4 then (e 0 && e 1) else false) := by
     funext j
     by_cases h2 : j.val=2
-    · simp only [zdDen,if_pos h2]
+    · simp only [zdDen,ite_eq_left h2]
       exact zd_not11 e
     · by_cases h3 : j.val=3
-      · simp only [zdDen,if_neg h2,if_pos h3]
+      · simp only [zdDen,ite_eq_right h2,ite_eq_left h3]
         exact zd_one e
       · by_cases h4 : j.val=4
-        · simp only [zdDen,if_neg h2,if_neg h3,if_pos h4]
+        · simp only [zdDen,ite_eq_right h2,ite_eq_right h3,ite_eq_left h4]
           exact zd_row11 e
-        · simp only [zdDen,if_neg h2,if_neg h3,if_neg h4]
+        · simp only [zdDen,ite_eq_right h2,ite_eq_right h3,ite_eq_right h4]
           exact zd_false e
   rw [hv]
   funext j
@@ -251,13 +255,13 @@ private theorem zd_inputs_value (V b : ℕ) (e : Reg 4) :
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
   · have hn : ¬2*V < V := by omega
-    simp only [zdInputs,Fin.val_last,dif_neg hn,dif_neg (Nat.lt_irrefl _),
+    simp only [zdInputs,Fin.val_last,dite_eq_right hn,dite_eq_right (Nat.lt_irrefl _),
       booleanWordSignedDivInput,Fin.snoc_last]
     exact zd_false e
   · rw [booleanWordSignedDivInput,Fin.snoc_castSucc]
     by_cases hk : k.val < V
-    · simp only [zdInputs,Fin.val_castSucc,booleanWordAdderInput,dif_pos hk]
-    · simp only [zdInputs,Fin.val_castSucc,booleanWordAdderInput,dif_neg hk,dif_pos k.isLt]
+    · simp only [zdInputs,Fin.val_castSucc,booleanWordAdderInput,dite_eq_left hk]
+    · simp only [zdInputs,Fin.val_castSucc,booleanWordAdderInput,dite_eq_right hk,dite_eq_left k.isLt]
 
 /-- The special-branch result word equals the signed division result for its selected numerator
 and divisor, with a false numerator sign. -/
@@ -394,7 +398,7 @@ private theorem cb_nz_right (n w b d : ℕ) (x : Reg (cbM n w)) :
       booleanWordCoarseFrequency n w x := by
   funext j
   have hn : ¬2*n+j.val < 2*n := by omega
-  simp only [booleanWordAdderRight,cbNZI,dif_neg hn,Nat.add_sub_cancel_left]
+  simp only [booleanWordAdderRight,cbNZI,dite_eq_right hn,Nat.add_sub_cancel_left]
   exact cb_input_value (cbP n w b d).graph x
     ⟨16*(w+1)+j.val,by have := j.isLt; dsimp only [cbM,booleanWordCoarseInputWidth]; omega⟩
 
@@ -404,7 +408,7 @@ private theorem cb_C_flag (n w b d : ℕ) (x : Reg (cbM n w)) :
       decide (booleanWordLSBValue (2*n) (booleanWordCoarseFrequency n w x) = 0) := by
   rw [cb_snoc_value]
   have hn : ¬cbM n w+cbNNZ n w b d < cbM n w+cbNNZ n w b d := by omega
-  rw [dif_neg hn]
+  rw [dite_eq_right hn]
   change (!(booleanDAGValue (cbGNZ n w b d) x (cbNZ n w b d))) = _
   rw [boolean_dag_splice_value]
   have h := (boolean_word_div_prefix (2*n) 0 (by omega)
@@ -424,9 +428,9 @@ private theorem cb_Z_inputs (n w b d : ℕ) (x : Reg (cbM n w)) :
       Fin.snoc (booleanWordCoarseEntry n w x) false := by
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
-  · simp only [cbZI,Fin.val_last,dif_neg (Nat.lt_irrefl 4),Fin.snoc_last]
+  · simp only [cbZI,Fin.val_last,dite_eq_right (Nat.lt_irrefl 4),Fin.snoc_last]
     exact cb_C_zero n w b d x
-  · simp only [cbZI,Fin.val_castSucc,dif_pos k.isLt,Fin.snoc_castSucc]
+  · simp only [cbZI,Fin.val_castSucc,dite_eq_left k.isLt,Fin.snoc_castSucc]
     exact cb_input_value (cbGC n w b d) x
       ⟨16*(w+1)+2*n+k.val,by have := k.isLt; dsimp only [cbM,booleanWordCoarseInputWidth]; omega⟩
 
@@ -487,13 +491,13 @@ private theorem cb_mux_inputs (n w b d : ℕ) (x : Reg (cbM n w)) :
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
   · have hn : ¬2*(cbV w b d+3) < cbV w b d+3 := by omega
-    simp only [cbMI,Fin.val_last,dif_neg hn,dif_neg (Nat.lt_irrefl _),booleanWordMuxInput,Fin.snoc_last]
+    simp only [cbMI,Fin.val_last,dite_eq_right hn,dite_eq_right (Nat.lt_irrefl _),booleanWordMuxInput,Fin.snoc_last]
     exact cb_Z_flag n w b d x
   · rw [booleanWordMuxInput,Fin.snoc_castSucc]
     by_cases hk : k.val < cbV w b d+3
-    · simp only [cbMI,Fin.val_castSucc,booleanWordAdderInput,dif_pos hk]
+    · simp only [cbMI,Fin.val_castSucc,booleanWordAdderInput,dite_eq_left hk]
       exact congrFun (cb_Z_word n w b d x) ⟨k.val,hk⟩
-    · simp only [cbMI,Fin.val_castSucc,booleanWordAdderInput,dif_neg hk,dif_pos k.isLt]
+    · simp only [cbMI,Fin.val_castSucc,booleanWordAdderInput,dite_eq_right hk,dite_eq_left k.isLt]
       exact congrFun (cb_Z_old_word n w b d x) ⟨k.val-(cbV w b d+3),by have := k.isLt; omega⟩
 
 /-- The coarse result word is the multiplexer output selecting between the special-branch and

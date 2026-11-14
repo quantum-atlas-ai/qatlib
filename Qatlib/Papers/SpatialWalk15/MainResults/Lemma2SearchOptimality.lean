@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialWalk15.MainResults.Lemma2TopOverlap
-import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
+module
+
+public import Qatlib.Papers.SpatialWalk15.MainResults.Lemma2TopOverlap
+public import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+public import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 /-!
 # Uniform eigenvectors and almost-sure overlap bounds
@@ -43,7 +48,6 @@ namespace Qatlib.Papers.SpatialWalk15.MainResults.Lemma2SearchOptimality
 
 variable {V : Type} [Fintype V] [DecidableEq V]
 
-omit [DecidableEq V] in
 
 /-- The adjacency matrix of a graph regular of degree `d` maps the uniform state to `d` times
 that state. -/

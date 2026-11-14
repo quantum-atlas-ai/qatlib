@@ -4,10 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdaptiveTest26.MainResults.AdaptiveFidelityTesting
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.MeasureTheory.Measure.MeasureSpace
+module
+
+public import Qatlib.Papers.AdaptiveTest26.MainResults.AdaptiveFidelityTesting
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.MeasureTheory.Measure.Basic
+public import Mathlib.MeasureTheory.Measure.CompleteLattice
+public import Mathlib.MeasureTheory.Measure.Continuity
+public import Mathlib.MeasureTheory.Measure.Filter
+public import Mathlib.MeasureTheory.Measure.Interval
+public import Mathlib.MeasureTheory.Measure.Module
+public import Mathlib.MeasureTheory.Measure.OuterMeasure
+public import Mathlib.MeasureTheory.Measure.Sum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

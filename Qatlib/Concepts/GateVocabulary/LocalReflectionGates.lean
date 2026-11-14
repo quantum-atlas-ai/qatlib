@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Local gates and exact Toffoli synthesis
@@ -454,7 +458,7 @@ theorem tofEmb_emb {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t) (hb
 
 /-- Map wire `a` to zero, wire `b` to one when distinct from `a`, and all remaining wires to
 two. -/
-def tofCoreWire {n : ℕ} (a b : Fin n) (_t : Fin n) (w : Fin n) : Fin 3 :=
+def tofCoreWire {n : ℕ} (a b _t : Fin n) (w : Fin n) : Fin 3 :=
   if w = a then 0 else if w = b then 1 else 2
 
 /-- Translate the wire labels of a local gate to the three-wire core using `tofCoreWire`. -/

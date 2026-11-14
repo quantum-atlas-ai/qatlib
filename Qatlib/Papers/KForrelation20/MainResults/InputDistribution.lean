@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,7 +100,7 @@ theorem sum_toSign_mul {N : ℕ} (i r : Fin N) :
     have h1 : ∀ x : Fin N → Bool, toSign (x i) * toSign (x i) = 1 := by
       intro x
       rw [← pow_two, toSign_sq]
-    simp only [h1, if_true, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+    simp only [h1, ite_true, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
     simp [Fintype.card_fin, Fintype.card_bool]
   · have hne : r ≠ i := Ne.symm h
     let flip : (Fin N → Bool) → (Fin N → Bool) := fun x => Function.update x i (!x i)
@@ -126,7 +130,7 @@ theorem sum_toSign_mul {N : ℕ} (i r : Fin N) :
       intro x _
       rw [hflip_same x, hflip_other x, toSign_not]
       ring
-    rw [if_neg h]
+    rw [ite_eq_right h]
     linarith [hsum, hneg]
 
 /-- Level-one orthogonality on the cube: `Σ_x (Σ_i c_i x_i)² = 2^N Σ_i c_i²`. -/

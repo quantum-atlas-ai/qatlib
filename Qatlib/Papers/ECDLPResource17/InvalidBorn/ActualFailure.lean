@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.CurveGroups.AffineAdd.CyclicBitRun
-import Qatlib.Concepts.FiniteCounts.OffsetWord.MixtureLaw
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.CurveGroups.AffineAdd.CyclicBitRun
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.MixtureLaw
+
+@[expose] public section
 
 /-!
 # Failure probabilities for encoded scalar runs
@@ -67,7 +71,7 @@ theorem source_joint_bit_failure (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w)
       (PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h)
     (law.toOuterMeasure {q | bitError E P m (List.ofFn q.1.1) (List.ofFn q.1.2) q.2}).toReal ≤
       (8*(n+1) : ℕ) / (Fintype.card (AddSubgroup.zmultiples P) - 1 : ℕ) := by
-  letI := cyclicFintype P
+  let := cyclicFintype P
   apply Qatlib.Concepts.FiniteCounts.OffsetWord.joint_error_le
   intro kl
   exact source_actual_bit_failure p w hp P m n kl.1 kl.2 h

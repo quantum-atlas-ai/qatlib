@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGData
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGData
+
+@[expose] public section
 
 /-!
 # Reversible implementations of Boolean nodes
@@ -90,7 +94,7 @@ theorem boolean_node_resources {n L : ℕ} (node : BooleanNode n) (h : n < L) :
           (boolean_source_ne_target h a) (boolean_source_ne_target h b)
         have hlength := toffoliLocalSteps_length (Fin.castLE h.le a) (Fin.castLE h.le b)
           (⟨n,h⟩ : Fin L)
-        simp only [booleanNodeSteps,if_neg hab]
+        simp only [booleanNodeSteps,ite_eq_right hab]
         exact ⟨hlegal,by simpa only [hlength] using (le_rfl : (15:ℕ) ≤ 15)⟩
   exact ⟨hl.1,hl.2,queryCount_reflectionCompile _,gateCount_reflectionCompile _⟩
 
@@ -134,6 +138,6 @@ theorem boolean_node_basis {n L : ℕ} (node : BooleanNode n) (h : n < L) (x : R
     · have ht := (local_toffoli_fifteen_exact L (Fin.castLE h.le a) (Fin.castLE h.le b)
         (⟨n,h⟩ : Fin L) (boolean_sources_ne h a b hab)
         (boolean_source_ne_target h a) (boolean_source_ne_target h b)).2.2 x
-      simpa only [booleanNodeSteps,if_neg hab,booleanNodeValue] using ht
+      simpa only [booleanNodeSteps,ite_eq_right hab,booleanNodeValue] using ht
 
 end Qatlib.Concepts.MatrixAccess.RitzPipeline

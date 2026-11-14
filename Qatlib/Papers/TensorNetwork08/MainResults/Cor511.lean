@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 /-!
 # Homogeneous Potts scale by coupling sign
@@ -39,7 +43,7 @@ theorem corollary5_11_potts_scale
         else
           (q : ℝ) * (Real.exp (β * J) + ((q : ℝ) - 1)) ^ nEtr := by
   by_cases hJ : 0 < J
-  · rw [if_pos hJ]
+  · rw [ite_eq_left hJ]
     have h1 : (1 : ℝ) < Real.exp (β * J) := by
       have hpos : 0 < β * J := mul_pos hβ hJ
       calc (1 : ℝ) = Real.exp 0 := Real.exp_zero.symm
@@ -49,7 +53,7 @@ theorem corollary5_11_potts_scale
       · exact max_le le_rfl (le_of_lt h1)
       · exact le_max_left _ _
     rw [hmax]
-  · rw [if_neg hJ]
+  · rw [ite_eq_right hJ]
     have hle : Real.exp (β * J) ≤ 1 := by
       have hnonpos : β * J ≤ 0 := by
         have hJ' : J ≤ 0 := not_lt.mp hJ

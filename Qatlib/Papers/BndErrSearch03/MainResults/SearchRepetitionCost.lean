@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoalTigh
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoal
+
+@[expose] public section
 
 /-!
 # Recurrence and repetition costs for bounded-error search

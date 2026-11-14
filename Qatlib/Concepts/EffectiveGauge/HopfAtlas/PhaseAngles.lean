@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Local real-angle geometry with quantitative margins
@@ -36,9 +40,11 @@ def complexPhase (t : ℝ) : ℂ := ⟨Real.cos t,Real.sin t⟩
 /-- Original `complexPhase_eq_cos_sin` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
 theorem complexPhase_eq_cos_sin (t : ℝ) : complexPhase t=(Real.cos t : ℂ)+(Real.sin t : ℂ)*Complex.I := by
   apply Complex.ext
-  · change Real.cos t=Real.cos t+(Real.sin t*0-0*1)
+  · simp only [complexPhase, Complex.add_re, Complex.mul_re,
+      Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
     ring
-  · change Real.sin t=0+(Real.sin t*1+0*0)
+  · simp only [complexPhase, Complex.add_im, Complex.mul_im,
+      Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
     ring
 
 /-- Original `complexPhase_norm` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
@@ -54,9 +60,8 @@ theorem complexPhase_eq_cos_sin (t : ℝ) : complexPhase t=(Real.cos t : ℂ)+(R
 /-- Original `complexPhase_add` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
 theorem complexPhase_add (s t : ℝ) : complexPhase (s+t)=complexPhase s*complexPhase t := by
   apply Complex.ext
-  · change Real.cos (s+t)=Real.cos s*Real.cos t-Real.sin s*Real.sin t
-    exact Real.cos_add s t
-  · change Real.sin (s+t)=Real.cos s*Real.sin t+Real.sin s*Real.cos t
+  · simpa only [complexPhase, Complex.mul_re] using Real.cos_add s t
+  · simp only [complexPhase, Complex.mul_im]
     rw [Real.sin_add]
     ring
 

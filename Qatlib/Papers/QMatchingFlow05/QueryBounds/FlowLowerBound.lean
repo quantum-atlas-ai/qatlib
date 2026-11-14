@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestriction
+module
+
+public import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestriction
+
+@[expose] public section
 
 /-!
 # Majority reductions for flow query bounds

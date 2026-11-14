@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Statement of Gibbs trace perturbation
@@ -34,7 +38,7 @@ open scoped Matrix.Norms.L2Operator
 matrices `H` and `Ht` is at most `(exp ‖Ht - H‖ - 1) * Re (trace (exp H))`. -/
 def GibbsTracePerturbation : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H Ht : Matrix I I ℂ)
-    (hH : H.IsHermitian) (hHt : Ht.IsHermitian),
+    (_hH : H.IsHermitian) (_hHt : Ht.IsHermitian),
     |(Matrix.trace (exp Ht)).re - (Matrix.trace (exp H)).re| ≤
       (Real.exp ‖Ht - H‖ - 1)*(Matrix.trace (exp H)).re
 

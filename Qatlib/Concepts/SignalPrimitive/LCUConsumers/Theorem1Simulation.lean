@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
-import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+public import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
+
+@[expose] public section
 
 /-!
 # Encoded Hamiltonian Simulation Contract

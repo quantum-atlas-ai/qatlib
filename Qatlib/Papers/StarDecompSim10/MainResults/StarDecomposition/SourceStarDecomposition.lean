@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StarDecompSim10.MainResults.ForestDecomposition.SourceForestDecomposition
-import Qatlib.Papers.StarDecompSim10.MainResults.VertexColoring.SourceVertexColoring
-import Qatlib.Papers.StarDecompSim10.MainResults.GalaxySimulation.SourceGalaxySimulation
+module
+
+public import Qatlib.Papers.StarDecompSim10.MainResults.ForestDecomposition.SourceForestDecomposition
+public import Qatlib.Papers.StarDecompSim10.MainResults.VertexColoring.SourceVertexColoring
+public import Qatlib.Papers.StarDecompSim10.MainResults.GalaxySimulation.SourceGalaxySimulation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

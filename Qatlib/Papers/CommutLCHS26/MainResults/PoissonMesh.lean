@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.StripContour
-import Mathlib.Analysis.Fourier.PoissonSummation
-import Mathlib.Analysis.Normed.Module.HahnBanach
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.StripContour
+public import Mathlib.Analysis.Fourier.PoissonSummation
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.Normed.Module.HahnBanach
+
+@[expose] public section
 
 /-!
 # Poisson summation and mesh error
@@ -252,7 +257,7 @@ theorem strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 <
   let g : C(ℝ, E) := ⟨fun x : ℝ => f (x : ℂ), by
     apply hf.continuousOn.comp_continuous
     · fun_prop
-    · intro x; simp only [ofReal_im, mem_setOf_eq]; constructor <;> linarith⟩
+    · intro x; simp only [ofReal_im, mem_ofPred_eq]; constructor <;> linarith⟩
   apply mesh_error g (by simpa using! hi 0 ⟨by linarith, hρ⟩) h (2 * Real.pi * ρ / h) M hh
     (by positivity)
   · intro K
@@ -297,7 +302,7 @@ theorem strip_mesh_error_of_rpow_decay (f : ℂ → E) (ρ M h b : ℝ) (hρ : 0
   let g : C(ℝ, E) := ⟨fun x : ℝ => f ((h * x : ℝ) : ℂ), by
     apply hf.continuousOn.comp_continuous
     · fun_prop
-    · intro x; simp only [ofReal_im, mem_setOf_eq]; constructor <;> linarith⟩
+    · intro x; simp only [ofReal_im, mem_ofPred_eq]; constructor <;> linarith⟩
   intro K
   convert normal_convergence_of_rpow_decay g b hb hp K using 1
   funext n

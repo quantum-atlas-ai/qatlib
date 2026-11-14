@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,7 +62,15 @@ private def eventBill : HCNativeEvent → HCNativeBill
 
 /-- Construction for hc Native Bill in the lifo allocator model. -/
 def hcNativeBill (events : List HCNativeEvent) : HCNativeBill :=
-  events.foldr (fun e b => billThen (eventBill e) b) billZero
+  events.foldr (fun e b =>
+    let a : HCNativeBill := match e with
+      | .zero _ => ⟨0,1,0,0,1,0,1⟩
+      | .gate _ => ⟨1,0,0,0,0,0,0⟩
+      | .measure _ _ => ⟨0,0,1,0,0,0,0⟩
+      | .discard _ => ⟨0,0,0,1,-1,-1,0⟩
+    ⟨a.gates+b.gates, a.zeros+b.zeros, a.measurements+b.measurements,
+     a.discards+b.discards, a.net+b.net, min a.low (a.net+b.low),
+     max a.high (a.net+b.high)⟩) ⟨0,0,0,0,0,0,0⟩
 
 
 

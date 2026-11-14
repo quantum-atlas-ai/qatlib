@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.ContourAdapters
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.ContourAdapters
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+
+@[expose] public section
 
 /-!
 # Spectral approximation for singular-value transforms

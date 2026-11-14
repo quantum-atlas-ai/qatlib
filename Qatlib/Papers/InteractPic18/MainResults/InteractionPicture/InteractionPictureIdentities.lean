@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.SegmentProductPerturbation
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+module
+
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.SegmentProductPerturbation
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+
+@[expose] public section
 
 /-!
 # InteractionPictureIdentities — Eq. (12) and Eq. (18) of InteractPic18

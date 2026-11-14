@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreqMoments15.MainResults.FrequencyMomentModel
-import Qatlib.Papers.FreqMoments15.MainResults.Lemma4CollisionMoments
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Papers.FreqMoments15.MainResults.FrequencyMomentModel
+public import Qatlib.Papers.FreqMoments15.MainResults.Lemma4CollisionMoments
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,9 +103,9 @@ The estimated quantity is the fraction of indices `j` for which some stream valu
 
 Scope note: this is a `Prop`-valued definition; the coherent
 `|j⟩|N_j⟩` construction and quantum amplitude estimation are not formalised. -/
-def lemma8_AE_estimation_statement {n m : ℕ} [NeZero m] (hn : 0 < n) (S T : ℕ)
+def lemma8_AE_estimation_statement {n m : ℕ} [NeZero m] (_hn : 0 < n) (S _T : ℕ)
     {R : Type*} [DecidableEq R] (r0 : R) (h : ZMod m → ZMod m → R)
-    (hrev : Nonempty (RevImpl m S h)) : Prop :=
+    (_hrev : Nonempty (RevImpl m S h)) : Prop :=
     ∀ ε : ℝ, 0 < ε → ε < 1 / 2 →
       ∃ P : PassProgram n m, ∃ C1 C2 : ℝ, 0 < C1 ∧ 0 < C2 ∧
         (P.S : ℝ) ≤ (S : ℝ) + C1 * (Real.log (n : ℝ) + Real.log (1 / ε)) ∧
@@ -137,8 +141,8 @@ up to relative error `ε`, with failure probability at most `1/3`, using space
 
 Scope note: this is a `Prop`-valued definition; Lemmas 9–10 and the
 hash-family construction are not formalised. -/
-def theorem11_stream_F0_statement (n m : ℕ) [NeZero m] (ε : ℝ) (hε0 : 0 < ε)
-    (hε1 : ε < 1) : Prop :=
+def theorem11_stream_F0_statement (n m : ℕ) [NeZero m] (ε : ℝ) (_hε0 : 0 < ε)
+    (_hε1 : ε < 1) : Prop :=
     ∃ P : PassProgram n m, ∃ C1 C2 : ℝ, 0 < C1 ∧ 0 < C2 ∧
       (P.S : ℝ) ≤ C1 * (Real.log (m : ℝ) * Real.log (1 / ε) + Real.log (n : ℝ)) ∧
       (P.T : ℝ) ≤ C2 / ε ∧
@@ -177,8 +181,8 @@ universal constant).
 
 Scope note: this is a `Prop`-valued definition; Claim 13 and the
 relative-variance amplifier (Theorem 12) are not formalised. -/
-def theorem14_stream_F2_statement (n m : ℕ) [NeZero m] (ε : ℝ) (hε0 : 0 < ε)
-    (hε1 : ε < 1) : Prop :=
+def theorem14_stream_F2_statement (n m : ℕ) [NeZero m] (ε : ℝ) (_hε0 : 0 < ε)
+    (_hε1 : ε < 1) : Prop :=
     ∃ P : PassProgram n m, ∃ C1 C2 : ℝ, 0 < C1 ∧ 0 < C2 ∧
       (P.S : ℝ) ≤ C1 * (Real.log (n : ℝ) + Real.log (1 / ε)) ∧
       (P.T : ℝ) ≤ C2 * (1 / ε) * Real.rpow (Real.log (1 / ε) + 2) (3 / 2 : ℝ)
@@ -208,7 +212,7 @@ algorithm which computes `F_∞` exactly, with failure probability at most `1/3`
 
 Scope note: this is a `Prop`-valued definition; Dürr--Høyer
 maximum-finding and the pass/query accounting are not formalised. -/
-def theorem16_stream_Finf_statement (n m : ℕ) [NeZero m] (hn : 0 < n) (hm : 1 < m) : Prop :=
+def theorem16_stream_Finf_statement (n m : ℕ) [NeZero m] (_hn : 0 < n) (_hm : 1 < m) : Prop :=
     ∃ P : PassProgram n m, ∃ C1 C2 : ℝ, 0 < C1 ∧ 0 < C2 ∧
       (P.S : ℝ) ≤ C1 * (Real.log (m : ℝ)) ^ 2 ∧
       (P.T : ℝ) ≤ C2 * Real.sqrt (n : ℝ) ∧

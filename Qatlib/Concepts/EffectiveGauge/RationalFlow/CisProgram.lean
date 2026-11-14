@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisSeries
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisSeries
+
+@[expose] public section
 
 /-! # Finite rational cis execution, including first stopping and squaring -/
 

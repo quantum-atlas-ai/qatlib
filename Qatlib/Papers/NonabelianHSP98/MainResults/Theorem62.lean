@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
+
+@[expose] public section
 
 /-!
 # Transform of a normalized subgroup indicator
@@ -77,7 +81,7 @@ theorem theorem_6_2 (U : Subgroup (Wreath n)) (hcard : 4 ≤ Fintype.card U) :
     rw [Finset.sum_mul]
   rw [hsum]
   by_cases hy : y ∈ perpSub U
-  · simp only [if_pos hy]
+  · simp only [ite_eq_left hy]
 
     have hchi : ∀ u : U, chi (mu (u : Wreath n) y) = 1 := by
       intro u
@@ -93,7 +97,7 @@ theorem theorem_6_2 (U : Subgroup (Wreath n)) (hcard : 4 ≤ Fintype.card U) :
     show (Fintype.card U : ℂ) * c = 1
     dsimp only [c]
     exact mul_inv_cancel₀ hcard_ne
-  · simp only [if_neg hy]
+  · simp only [ite_eq_right hy]
 
     have hsum0 : (∑ u : U, chi (mu (u : Wreath n) y)) = 0 := by
       have hne : ∃ w ∈ phiSub U, dot (phi y) w ≠ 0 := by

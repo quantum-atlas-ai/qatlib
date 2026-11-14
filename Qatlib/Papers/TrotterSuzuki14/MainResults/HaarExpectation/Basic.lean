@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrotterSuzuki14.MainResults.HaarExpectation.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.TrotterSuzuki14.MainResults.HaarExpectation.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Concentration from uncorrelated overlap moments
@@ -104,7 +108,7 @@ theorem uncorrelated_overlap_concentration
     {δ : ℝ} (hδ : 0 < δ) :
     μ {ω | Real.sqrt (∑ k ∈ s, lam k ^ 2) / (Real.sqrt δ * (d : ℝ))
         ≤ |trotterOverlapExpectation lam w s ω|} ≤ ENNReal.ofReal δ := by
-  haveI := hmom.isProb
+  have := hmom.isProb
   set S : ℝ := ∑ k ∈ s, lam k ^ 2 with hSdef
   set V : ℝ := 2 / ((d : ℝ) * ((d : ℝ) + 1)) - 1 / (d : ℝ) ^ 2 with hVdef
   set cc : ℝ := Real.sqrt S / (Real.sqrt δ * (d : ℝ)) with hcc

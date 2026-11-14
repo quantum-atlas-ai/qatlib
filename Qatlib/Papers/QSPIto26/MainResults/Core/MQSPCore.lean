@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MonoidAlgebra.Basic
-import Mathlib.Algebra.MonoidAlgebra.MapDomain
-import Mathlib.Algebra.MonoidAlgebra.Support
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Mathlib.Algebra.MonoidAlgebra.Basic
+public import Mathlib.Algebra.MonoidAlgebra.MapDomain
+public import Mathlib.Algebra.MonoidAlgebra.Support
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -179,6 +183,6 @@ def mqspCDA {m : ℕ} : MLaurent m → MLaurent m → ℕ → Bool
           mqspCDA (reduceP j φ P Q) (reduceQ j φ P Q) k
         else false
       else false
-termination_by P Q n => n
+termination_by _P _Q n => n
 
 end Qatlib.Papers.QSPIto26.MainResults.Core

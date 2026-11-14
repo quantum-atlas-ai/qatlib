@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spatial operators on a spin register
@@ -61,7 +65,7 @@ theorem sum_ite_delta {S : Type*} [Fintype S] [DecidableEq S] (x z : S) :
   by_cases h : x = z
   · subst h
     rw [Finset.sum_eq_single x] <;> simp_all
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro y _
     by_cases hxy : x = y
@@ -99,8 +103,8 @@ theorem liftSpatial_conjTranspose [Fintype R] [Fintype S] [DecidableEq S] (A : M
   ext a b
   simp only [liftSpatial, Matrix.conjTranspose_apply, star_mul]
   by_cases h : a.2 = b.2
-  · rw [if_pos h, if_pos h.symm]; simp
-  · rw [if_neg h, if_neg (fun hh => h hh.symm)]; simp
+  · rw [ite_eq_left h, ite_eq_left h.symm]; simp
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]; simp
 
 /-- The product amplitude with spatial component `ψ` and spin component supported at `s0`. -/
 def productState [DecidableEq S] (ψ : R → ℂ) (s0 : S) : R × S → ℂ :=

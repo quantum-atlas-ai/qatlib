@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreSamp
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreSamp
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+@[expose] public section
 
 /-!
 # Spectral and probability tools for SVT records
@@ -70,7 +74,7 @@ theorem eigenvalue_in_ordered_spectrum {I : Type} [Fintype I] [DecidableEq I]
         congrArg (fun M => Vᴴ * M) (orderedHermitian_diagonal hA)
       _ = _ := basis_adjoint_mul_spectralDiagonal b _
   have h := congrArg (fun w => Vᴴ *ᵥ w) hv
-  (try dsimp only at h)
+
   rw [Matrix.mulVec_mulVec, hVA, ← Matrix.mulVec_mulVec, Matrix.mulVec_smul] at h
   have hc : (orderedHermitianValues hA j : ℂ) * u j = (lam : ℂ) * u j := by
     simpa only [Matrix.mulVec_diagonal, Pi.smul_apply, smul_eq_mul] using! congrFun h j
@@ -325,11 +329,11 @@ theorem twoSketch_union_bound {K C : Type} [Fintype K] [DecidableEq K]
     have hw : 0 ≤ (condQ v).probOf w := Finset.prod_nonneg fun _ _ => (condQ v).nonneg _
     by_cases hb : Bad (v, w)
     · rcases hsub v w hb with hrow | hcol
-      · simp only [hb, hrow, if_true]
+      · simp only [hb, hrow, ite_true]
         exact le_add_of_nonneg_right (mul_nonneg (hn v) (by split_ifs <;> positivity))
-      · simp only [hb, hcol, if_true]
+      · simp only [hb, hcol, ite_true]
         exact le_add_of_nonneg_left (by split_ifs; exact mul_nonneg (hn v) hw; exact le_rfl)
-    · simp only [hb, if_false]
+    · simp only [hb, ite_false]
       apply add_nonneg
       · split_ifs; exact mul_nonneg (hn v) hw; exact le_rfl
       · apply mul_nonneg (hn v)

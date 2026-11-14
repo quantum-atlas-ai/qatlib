@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -259,7 +263,7 @@ theorem proposition6_superposition_norm_bound
     (hδ : ∀ p, ‖u p - v p‖ ≤ A)
     (hA0 : 0 ≤ A) (hA1 : A < 1)
     (L : ℝ) (hLpos : 0 < L)
-    (hLdef : L = ∑ p : Fin (m + 1), ‖v p‖ ^ 2)
+    (_hLdef : L = ∑ p : Fin (m + 1), ‖v p‖ ^ 2)
     (hL : |L - ((m + 1 : ℕ) : ℝ)| ≤ ((m + 1 : ℕ) : ℝ) * A) :
     ‖∑ p : Fin (m + 1), timeEmbed m p
         (((1 / Real.sqrt ((m + 1 : ℕ) : ℝ) : ℝ) : ℂ) • u p

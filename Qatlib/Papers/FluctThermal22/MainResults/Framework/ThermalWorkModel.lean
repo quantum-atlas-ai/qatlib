@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Probability.ProbabilityMassFunction.Basic
+module
+
+public import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -106,9 +110,13 @@ def cutoffSum (β wl : ℝ) (ε0 ε1 : ι → ℝ) (V : Matrix ι ι ℂ) (ΔA :
 
 /-! ## Elementary positivity and the diagonal (`U = 1`) specialisation -/
 
+omit [Fintype ι] [DecidableEq ι] in
+
 /-- Boltzmann weights are strictly positive. -/
 theorem boltzmannWeight_pos (β : ℝ) (ε : ι → ℝ) (i : ι) :
     0 < boltzmannWeight β ε i := Real.exp_pos _
+
+omit [DecidableEq ι] in
 
 /-- A joint two-time probability is nonnegative. -/
 theorem twoTimeProb_nonneg [Nonempty ι] (β : ℝ) (ε0 : ι → ℝ) (V : Matrix ι ι ℂ)
@@ -130,11 +138,13 @@ theorem twoTimeProb_identity (β : ℝ) (ε0 : ι → ℝ) (m n : ι) :
   unfold twoTimeProb
   rw [Matrix.one_apply]
   by_cases h : n = m
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     simp
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     simp
 
+
+omit [DecidableEq ι] in
 
 /-- **Jarzynski equality** (paper Eq. (13)–(16), page 10):
 `Σ_w P(w) e^{-βw} = Z1/Z0`, for any overlap matrix `V` whose rows are

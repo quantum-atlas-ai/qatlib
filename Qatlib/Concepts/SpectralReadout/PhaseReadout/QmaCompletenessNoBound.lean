@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+@[expose] public section
 
 /-!
 # Legal-clock sectors and energy lower bounds

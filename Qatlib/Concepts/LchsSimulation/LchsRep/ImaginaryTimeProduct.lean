@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Imaginary-time Lie products and postselection bounds
@@ -109,7 +113,7 @@ private theorem imaginary_exp_commutator_bound {I : Type} [Fintype I] [Decidable
       (s • (ipExp X ((1 - u) * s) * (Y * X - X * Y) * ipExp X (u * s))) u := by
     convert! ((ipExp_backward_scaled_deriv X s u).mul_const Y).mul
       (ipExp_scaled_deriv X s u) using 1
-    (try dsimp [f])
+
     simp only [neg_smul, neg_mul, smul_mul_assoc, mul_smul_comm, smul_sub, mul_sub, sub_mul,
         mul_assoc]
     module

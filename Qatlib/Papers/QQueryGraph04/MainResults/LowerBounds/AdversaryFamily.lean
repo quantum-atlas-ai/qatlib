@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Prod
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Prod
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # An adversary family for selection query lower bounds

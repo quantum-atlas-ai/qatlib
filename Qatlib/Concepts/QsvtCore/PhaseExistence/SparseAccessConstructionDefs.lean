@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Sparse access data and query accounting
@@ -211,7 +215,7 @@ theorem rowLegalCount_eq (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
       rw [Fintype.sum_eq_single k]
       · simp [hk]
       · intro k' hk'
-        rw [if_neg (fun e => hk' (hne k' e))]
+        rw [ite_eq_right (fun e => hk' (hne k' e))]
     simp [rowLegalCount, hsum, hz]
 
 /-- For legal data, the column slot multiplicity of an actual row is zero for a zero entry and
@@ -233,7 +237,7 @@ theorem colLegalCount_eq (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
       rw [Fintype.sum_eq_single c]
       · simp [hc]
       · intro c' hc'
-        rw [if_neg (fun e => hc' (hne c' e))]
+        rw [ite_eq_right (fun e => hc' (hne c' e))]
     simp [colLegalCount, hsum, hz]
 
 /-- Every padded column address occurs in at most one row slot for legal data. -/
@@ -259,7 +263,7 @@ theorem rowSlotCount_le_one (D : SparseAccess I O sr sc) (hD : SparseAccessLegal
     rw [Fintype.sum_eq_single k]
     · simp
     · intro k' hk'
-      rw [if_neg hk']
+      rw [ite_eq_right hk']
   · have hpoint : ∀ k' : Fin sr, (if D.rowPos i k' = c then 1 else 0) = 0 := by
       intro k'
       have hne' : ¬(D.rowPos i k' = c) := by
@@ -293,7 +297,7 @@ theorem colSlotCount_le_one (D : SparseAccess I O sr sc) (hD : SparseAccessLegal
     rw [Fintype.sum_eq_single c]
     · simp
     · intro c' hc'
-      rw [if_neg hc']
+      rw [ite_eq_right hc']
   · have hpoint : ∀ c' : Fin sc, (if D.colPos c' j = r then 1 else 0) = 0 := by
       intro c'
       have hne' : ¬(D.colPos c' j = r) := by
@@ -320,7 +324,7 @@ theorem sum_rowSlotCount (D : SparseAccess I O sr sc) (i : I) :
     rw [Fintype.sum_eq_single (D.rowPos i k)]
     · simp
     · intro c hc
-      rw [if_neg (fun e => hc e.symm)]
+      rw [ite_eq_right (fun e => hc e.symm)]
   rw [Fintype.sum_congr _ _ h1]
   simp
 
@@ -340,7 +344,7 @@ theorem sum_colSlotCount (D : SparseAccess I O sr sc) (j : O) :
     rw [Fintype.sum_eq_single (D.colPos c j)]
     · simp
     · intro r hr
-      rw [if_neg (fun e => hr e.symm)]
+      rw [ite_eq_right (fun e => hr e.symm)]
   rw [Fintype.sum_congr _ _ h1]
   simp
 

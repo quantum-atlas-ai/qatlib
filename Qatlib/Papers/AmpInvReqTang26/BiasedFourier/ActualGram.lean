@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
-import Qatlib.Foundations.MatrixAlgebra.FrameProject.AnalysisBound
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualOverlap
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+public import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+public import Qatlib.Foundations.MatrixAlgebra.FrameProject.AnalysisBound
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualOverlap
+
+@[expose] public section
 
 /-!
 # Constructing the biased Fourier basis
@@ -120,8 +124,8 @@ indicator for `p`. -/
 private theorem sum_subtype_indicator {J : Type*} [Fintype J]
     (p : J → Prop) [DecidablePred p] (f : J → ℝ) :
     (∑ j : {j // p j}, f j) = ∑ j, if p j then f j else 0 := by
-  have h1 (j : {j // p j}) : (if p j then f j else 0) = f j := if_pos j.property
-  have h0 (j : {j // ¬p j}) : (if p j then f j else 0) = 0 := if_neg j.property
+  have h1 (j : {j // p j}) : (if p j then f j else 0) = f j := ite_eq_left j.property
+  have h0 (j : {j // ¬p j}) : (if p j then f j else 0) = 0 := ite_eq_right j.property
   have hs := Fintype.sum_subtype_add_sum_subtype p (fun j => if p j then f j else 0)
   simpa only [h1,h0,Finset.sum_const_zero,add_zero] using! hs
 
@@ -154,7 +158,7 @@ theorem actual_prefix_projection (eps : ℝ) (q : ℕ) (hq : 1<q)
     intro j _
     by_cases hj : j<k
     · simp [hj,ne_of_lt hj]
-    · simp only [if_neg hj]
+    · simp only [ite_eq_right hj]
       split_ifs <;> positivity
   have hoff := actual_offdiag_budget q hq eps he0.le (by linarith) k
   have hinner (j : Fin q) : inner ℂ (weightedColumn eps q j) (weightedColumn eps q k) =

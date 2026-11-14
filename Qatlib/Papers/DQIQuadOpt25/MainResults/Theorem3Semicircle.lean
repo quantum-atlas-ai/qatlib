@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.AlgorithmModel
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.AlgorithmModel
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -182,26 +186,26 @@ theorem tridiagA_apply (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1)) :
 /-- Diagonal entries of `A^{(m,ℓ,d)}` are `k·d`. -/
 theorem tridiagA_diag (m ℓ : ℕ) (d : ℝ) (i : Fin (ℓ + 1)) :
     tridiagA m ℓ d i i = (i.val : ℝ) * d := by
-  rw [tridiagA_apply, if_pos rfl]
+  rw [tridiagA_apply, ite_eq_left rfl]
 
 /-- Superdiagonal entries of `A^{(m,ℓ,d)}` are `a_{i+1}`. -/
 theorem tridiagA_super (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1))
     (hij : i ≠ j) (h : i.val + 1 = j.val) :
     tridiagA m ℓ d i j = ak m j.val := by
-  rw [tridiagA_apply, if_neg hij, if_pos h]
+  rw [tridiagA_apply, ite_eq_right hij, ite_eq_left h]
 
 /-- Subdiagonal entries of `A^{(m,ℓ,d)}` are `a_{j+1}`. -/
 theorem tridiagA_sub (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1))
     (hij : i ≠ j) (h : j.val + 1 = i.val) :
     tridiagA m ℓ d i j = ak m i.val := by
   have hne : ¬ i.val + 1 = j.val := by omega
-  rw [tridiagA_apply, if_neg hij, if_neg hne, if_pos h]
+  rw [tridiagA_apply, ite_eq_right hij, ite_eq_right hne, ite_eq_left h]
 
 /-- All other entries of `A^{(m,ℓ,d)}` vanish. -/
 theorem tridiagA_off (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1))
     (hij : i ≠ j) (h1 : i.val + 1 ≠ j.val) (h2 : j.val + 1 ≠ i.val) :
     tridiagA m ℓ d i j = 0 := by
-  rw [tridiagA_apply, if_neg hij, if_neg h1, if_neg h2]
+  rw [tridiagA_apply, ite_eq_right hij, ite_eq_right h1, ite_eq_right h2]
 
 /-- `A^{(m,ℓ,d)}` is symmetric, as asserted on p.4. -/
 theorem tridiagA_symm (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1)) :
@@ -210,10 +214,10 @@ theorem tridiagA_symm (m ℓ : ℕ) (d : ℝ) (i j : Fin (ℓ + 1)) :
   · subst hij; rfl
   · by_cases h1 : i.val + 1 = j.val
     · have h2 : ¬ j.val + 1 = i.val := by omega
-      simp only [tridiagA_apply, if_neg hij, if_neg (Ne.symm hij), if_neg h2, if_pos h1]
+      simp only [tridiagA_apply, ite_eq_right hij, ite_eq_right (Ne.symm hij), ite_eq_right h2, ite_eq_left h1]
     · by_cases h2 : j.val + 1 = i.val
-      · simp only [tridiagA_apply, if_neg hij, if_neg (Ne.symm hij), if_neg h1, if_pos h2]
-      · simp only [tridiagA_apply, if_neg hij, if_neg (Ne.symm hij), if_neg h1, if_neg h2]
+      · simp only [tridiagA_apply, ite_eq_right hij, ite_eq_right (Ne.symm hij), ite_eq_right h1, ite_eq_left h2]
+      · simp only [tridiagA_apply, ite_eq_right hij, ite_eq_right (Ne.symm hij), ite_eq_right h1, ite_eq_right h2]
 
 /-! ## The binomial inner product and the Krawtchouk input -/
 
@@ -275,16 +279,16 @@ matching, expand `P* = ∑ w_k K_k` and use `hK.orthonormal` (denominator `= 1`)
 together with `hK.mul_by_s` and `hK.zero` to obtain
 `∑_{i,j} w_i w_j A_{ij} + (mr/p)·∑_{i,j} w_i w_j δ_{ij}`. -/
 def theorem3_semicircle
-    {p m n ℓ : ℕ} [Fact p.Prime] (hmn : n < m)
+    {p m n ℓ : ℕ} [Fact p.Prime] (_hmn : n < m)
     (inst : LINSATInstance p n m) (r : ℕ)
-    (hr0 : 0 < r) (hrp : r < p)
-    (hr : ∀ i, (Finset.univ.filter fun y : ZMod p => inst.f i y = 1).card = r)
-    (hdist : MinDistanceExceeds inst.B (2 * ℓ + 1))
-    (P : Polynomial ℝ) (hdeg : P.natDegree ≤ ℓ)
+    (_hr0 : 0 < r) (_hrp : r < p)
+    (_hr : ∀ i, (Finset.univ.filter fun y : ZMod p => inst.f i y = 1).card = r)
+    (_hdist : MinDistanceExceeds inst.B (2 * ℓ + 1))
+    (P : Polynomial ℝ) (_hdeg : P.natDegree ≤ ℓ)
     (K : ℕ → ℕ → ℝ)
-    (hK : IsKrawtchoukSystem m ℓ ((r : ℝ) / (p : ℝ)) (semicircleD (r : ℝ) (p : ℝ)) K)
+    (_hK : IsKrawtchoukSystem m ℓ ((r : ℝ) / (p : ℝ)) (semicircleD (r : ℝ) (p : ℝ)) K)
     (w : Fin (ℓ + 1) → ℝ)
-    (hP : ∀ s : ℕ, s ≤ m →
+    (_hP : ∀ s : ℕ, s ≤ m →
       P.eval (2 * (s : ℝ) - (m : ℝ)) = ∑ k : Fin (ℓ + 1), w k * K k.val s) : Prop := dqiExpectation inst P
       = (m : ℝ) * (r : ℝ) / (p : ℝ)
         + Real.sqrt ((r : ℝ) * ((p : ℝ) - (r : ℝ))) / (p : ℝ)

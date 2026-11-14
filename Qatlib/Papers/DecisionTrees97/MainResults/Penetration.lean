@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Order.Filter.AtTopBot.Basic
-import Mathlib.Topology.Order.Compact
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Order.Filter.AtTopBot.Basic
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Scalar penetrability from an assumed bound
@@ -131,7 +135,7 @@ theorem penetration_amplitude_step
       mul_le_mul_of_nonneg_left hstep hpipos.le
     have h3 : π * ((ε / π) * ((D + 1) * (n : ℝ))) = ε * ((D + 1) * (n : ℝ)) := by
       field_simp
-      try ring
+
     linarith [h2, h3]
   have hpow : (1 / (n : ℝ)) ^ (B + 1) = (1 / (n : ℝ)) ^ B * (1 / (n : ℝ)) :=
     Real.rpow_add_one (ne_of_gt hrpos) B
@@ -139,7 +143,7 @@ theorem penetration_amplitude_step
   have hmul : π / (2 * (D + 1)) * ((1 / (n : ℝ)) ^ B * (1 / (n : ℝ)))
       = π * ((1 / 2 : ℝ) * (1 / (n : ℝ)) ^ B) / ((D + 1) * (n : ℝ)) := by
     field_simp
-    try ring
+
   rw [hmul]
   exact hstep'
 

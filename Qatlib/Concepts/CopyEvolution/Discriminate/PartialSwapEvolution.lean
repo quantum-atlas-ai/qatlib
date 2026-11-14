@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Mathlib.Analysis.Convex.Between
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # Partial-swap density evolution
@@ -195,7 +200,7 @@ private theorem tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D ×
   classical
   simp only [Matrix.mul_apply, swapRegisterMatrix_apply]
   rw [Fintype.sum_eq_single (Prod.swap y)
-    (fun p hp => by rw [if_neg hp, mul_zero])]
+    (fun p hp => by rw [ite_eq_right hp, mul_zero])]
   simp only [ite_true, mul_one]
   rfl
 
@@ -207,8 +212,8 @@ private theorem swap_tensor_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D ×
   simp only [Matrix.mul_apply, swapRegisterMatrix_apply]
   rw [Fintype.sum_eq_single (Prod.swap x)
     (fun p hp => by
-      rw [if_neg (fun e => hp (by rw [e, Prod.swap_swap])), zero_mul])]
-  rw [Prod.swap_swap, if_pos rfl, one_mul]
+      rw [ite_eq_right (fun e => hp (by rw [e, Prod.swap_swap])), zero_mul])]
+  rw [Prod.swap_swap, ite_eq_left rfl, one_mul]
   rfl
 
 /-- Conjugating a tensor product by the swap exchanges its two factors, entrywise. -/
@@ -224,7 +229,7 @@ private theorem swap_tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin
         = σ x.2 p.1 * ρ x.1 p.2 * swapRegisterMatrix D p y :=
     fun p => by rw [swap_tensor_apply σ ρ x p]
   rw [Fintype.sum_eq_single (Prod.swap y)
-    (fun p hp => by rw [hstep p, swapRegisterMatrix_apply, if_neg hp, mul_zero])]
+    (fun p hp => by rw [hstep p, swapRegisterMatrix_apply, ite_eq_right hp, mul_zero])]
   rw [hstep]
   simp only [swapRegisterMatrix_apply, ite_true, mul_one]
   rfl
@@ -546,7 +551,7 @@ private theorem blockMap_conjStep {D R : ℕ} (θ : ℝ)
   simp only [blockMap, conjStep_apply, Matrix.mul_apply, tensorGate_apply,
     Matrix.conjTranspose_one, Matrix.one_apply, Fintype.sum_prod_type, mul_ite, ite_mul,
     mul_zero, mul_one, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ,
-    if_true]
+    ite_true]
 
 /-- The blockwise extension of the copy partial trace is the right partial trace after
 regrouping the registers. -/
@@ -621,7 +626,7 @@ theorem tensorLeft_mulLeft {D R : ℕ} (ρ : Operator D)
   classical
   simp only [tensorLeft, LinearMap.mulLeft_apply, Matrix.mul_apply, tensorGate_apply,
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, ite_mul, mul_zero, zero_mul, mul_one,
-    Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- The reference extension of right multiplication by `ρ` is right multiplication by
 `TensorGate ρ 1`. -/
@@ -632,7 +637,7 @@ theorem tensorLeft_mulRight {D R : ℕ} (ρ : Operator D)
   classical
   simp only [tensorLeft, LinearMap.mulRight_apply, Matrix.mul_apply, tensorGate_apply,
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, mul_zero, mul_one,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- The reference extension of a trace-preserving map preserves trace. -/
 theorem tensorLeft_trace {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Aut
-import Mathlib.Algebra.Group.End
-import Mathlib.Algebra.Group.TypeTags.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.Data.Nat.Totient
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Aut
+public import Mathlib.Algebra.Group.End
+public import Mathlib.Algebra.Group.TypeTags.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Trivial cyclic actions and direct-product splittings
@@ -61,7 +65,7 @@ theorem monoidHom_zmod_prime_eq_one_of_coprime_card
     {B : Type*} [Group B] [Fintype B] {p : ℕ} (hp : p.Prime)
     (hcop : Nat.Coprime p (Fintype.card B))
     (φ : Multiplicative (ZMod p) →* B) : φ = 1 := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero p := ⟨hp.ne_zero⟩
   have hgen : ∀ x : Multiplicative (ZMod p),
       x = Multiplicative.ofAdd (1 : ZMod p) ^ x.toAdd.val := by
     intro x
@@ -96,7 +100,7 @@ theorem theorem1_cyclic_factor_action_trivial
     (hq1 : ¬ p ∣ q - 1)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (q ^ r)))) :
     φ = 1 := by
-  haveI : NeZero (q ^ r) := ⟨(pow_pos hq.pos r).ne'⟩
+  have : NeZero (q ^ r) := ⟨(pow_pos hq.pos r).ne'⟩
   apply monoidHom_zmod_prime_eq_one_of_coprime_card hp
   rw [card_mulAut_multiplicative_zmod, Nat.totient_prime_pow hq hr]
   apply (Nat.Prime.coprime_iff_not_dvd hp).mpr

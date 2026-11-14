@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAScalar
-import Qatlib.Papers.CommutLCHS26.MainResults.TwoSpectra
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAALCU
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAScalar
+public import Qatlib.Papers.CommutLCHS26.MainResults.TwoSpectra
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAALCU
+
+@[expose] public section
 
 /-!
 # Robustness of multi-product amplitude amplification

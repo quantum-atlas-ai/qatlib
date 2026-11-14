@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPolyShor07.MainResults.Density.Proposition3
+module
+
+public import Qatlib.Papers.JonesPolyShor07.MainResults.Density.Proposition3
+
+@[expose] public section
 
 /-!
 # Reversal equivalence for Fibonacci endpoint sectors

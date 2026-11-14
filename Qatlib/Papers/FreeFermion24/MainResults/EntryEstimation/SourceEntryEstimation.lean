@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,10 +37,10 @@ Headline resource specification for `lemma12_entryEstimation`.
 The records below carry independent output and resource annotations; this proposition
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def lemma12_entryEstimation_statement
-    (n : ℕ) (m : ℕ) (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
+    (n : ℕ) (_m : ℕ) (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (α ε εt δ : ℝ) (i j : Fin (2 ^ n))
-    (B : ControlledBlockEncoding (2 ^ n) A α ε)
-    (hα : 0 ≤ α) (hε : 0 ≤ ε) (hεt : 0 < εt) (hδ : 0 < δ) (hδ1 : δ < 1) : Prop :=
+    (_B : ControlledBlockEncoding (2 ^ n) A α ε)
+    (_hα : 0 ≤ α) (_hε : 0 ≤ ε) (_hεt : 0 < εt) (_hδ : 0 < δ) (_hδ1 : δ < 1) : Prop :=
     ∃ E : RandomisedEstimator (2 ^ n),
       (∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ (E.k : ℝ) ≤ P.eval (n : ℝ)) ∧
       ThetaBound (E.calls : ℝ) ((1 / εt ^ 2) * Real.log (4 / δ))

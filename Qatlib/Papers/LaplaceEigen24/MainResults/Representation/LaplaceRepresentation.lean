@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LaplaceEigen24.MainResults.SourceModel
-import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralKernelContour
+module
+
+public import Qatlib.Papers.LaplaceEigen24.MainResults.SourceModel
+public import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralKernelContour
+
+@[expose] public section
 
 /-!
 # LaplaceEigen24 — the Laplace-transform LCHS representation (Theorem 4)
@@ -143,7 +147,7 @@ theorem laplace_transform_lchs_representation
     (hdecay : ∃ α C : ℝ, 0 < α ∧ 0 ≤ C ∧
       ∀ z : ℂ, z.im ≤ 0 → ‖z‖ ^ α * ‖f z‖ ≤ C)
     (hnorm : (∫ k : ℝ, laplaceKernel f k) = 1)
-    (hg : IntegrableOn g (Set.Ioi (0 : ℝ))) :
+    (_hg : IntegrableOn g (Set.Ioi (0 : ℝ))) :
     matrixLaplace g (cartesianMatrix L H) =
       ∫ t in Set.Ioi (0 : ℝ), ∫ k : ℝ,
         (g t * laplaceKernel f k) • lchsKernelEvolution L H k t := by

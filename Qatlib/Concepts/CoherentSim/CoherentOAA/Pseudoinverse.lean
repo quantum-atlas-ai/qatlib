@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+
+@[expose] public section
 
 /-!
 # Matrix pseudoinverses and QSVT approximation
@@ -98,7 +102,7 @@ theorem leftSingularColumns_mul_support (A : Matrix O I ℂ) :
   rw [singularSupport, Matrix.mul_diagonal]
   by_cases hi : matrixSingularValues A i = 0
   · simp [hi, leftSingularColumns, leftSingularVector_eq_zero A i hi]
-  · simp only [if_neg hi, mul_one]
+  · simp only [ite_eq_right hi, mul_one]
 
 /-- Left multiplication by the singular support leaves the adjoint left singular columns
 unchanged. -/
@@ -118,9 +122,9 @@ private theorem singular_diagonal_mul_inv (A : Matrix O I ℂ) :
   congr 1
   funext i
   by_cases hi : matrixSingularValues A i = 0
-  · rw [if_pos hi, hi, Complex.ofReal_zero, zero_mul]
+  · rw [ite_eq_left hi, hi, Complex.ofReal_zero, zero_mul]
   · have hc : (matrixSingularValues A i : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hi
-    simp only [if_neg hi, mul_inv_cancel₀ hc]
+    simp only [ite_eq_right hi, mul_inv_cancel₀ hc]
 
 /-- The reciprocal singular-value diagonal multiplied by the singular-value diagonal equals the
 singular support. -/
@@ -158,8 +162,8 @@ theorem matrixPseudoinverse_mul (A : Matrix O I ℂ) :
       congr 1
       funext i
       by_cases hi : matrixSingularValues A i = 0
-      · rw [if_pos hi, hi, Complex.ofReal_zero, mul_zero]
-      · rw [if_neg hi, one_mul]
+      · rw [ite_eq_left hi, hi, Complex.ofReal_zero, mul_zero]
+      · rw [ite_eq_right hi, one_mul]
     calc
       (leftSingularColumns A)ᴴ * A = (leftSingularColumns A)ᴴ *
           (leftSingularColumns A *
@@ -189,8 +193,8 @@ theorem mul_matrixPseudoinverse_mul (A : Matrix O I ℂ) :
     congr 1
     funext i
     by_cases hi : matrixSingularValues A i = 0
-    · rw [if_pos hi, hi, Complex.ofReal_zero, zero_mul]
-    · rw [if_neg hi, mul_one]
+    · rw [ite_eq_left hi, hi, Complex.ofReal_zero, zero_mul]
+    · rw [ite_eq_right hi, mul_one]
   rw [Matrix.mul_assoc (leftSingularColumns A), hd]
   exact oddSingularTransform_id A
 

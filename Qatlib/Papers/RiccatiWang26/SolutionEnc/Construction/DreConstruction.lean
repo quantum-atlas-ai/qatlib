@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,10 +42,12 @@ variable {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-! ## Proposition D.5: stability and cost of direct recovery -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Arithmetic core associated with Proposition D.5: assuming the displayed formula for `Q`, proves only `0 ≤ Q`, `δE ≤ ε` and `εinv ≤ ε/4`. The matrix arguments are unused. No block encoding, decoded product-error estimate or query implementation is constructed. -/
 theorem proposition_D_5_stability_and_cost
-    (E P : Sq n) (αE αP M ε δE εinv QE Q : ℝ) (QEfun : ℝ → ℝ)
-    (hM : 0 ≤ M) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
+    (_E _P : Sq n) (αE αP M ε δE εinv _QE Q : ℝ) (QEfun : ℝ → ℝ)
+    (hM : 0 ≤ M) (hε0 : 0 < ε) (_hε1 : ε ≤ 1)
     (hαE : 0 ≤ αE) (hαP : 0 < αP)
     (hδE : δE ≤ ε / (8 * (1 + M) ^ 2))
     (hεinv : εinv = ε / (4 * (1 + αE)))
@@ -84,8 +90,8 @@ theorem proposition_D_5_stability_and_cost
 /-- Arithmetic core associated with Corollary D.7: proves nonnegativity of the displayed normalization expression. The bound on `αP` is an assumption and is not derived. -/
 theorem corollary_D_7_output_normalization
     (αP M RDRE αR0 σminInit C : ℝ)
-    (hM : 0 ≤ M) (hRDRE : 0 ≤ RDRE) (hαR0 : 0 ≤ αR0) (hσ : 0 < σminInit) (hC : 0 < C)
-    (hαP : αP ≤ C * (Real.sqrt (1 + M ^ 2) * RDRE + αR0 * RDRE ^ 2 / σminInit)) :
+    (_hM : 0 ≤ M) (hRDRE : 0 ≤ RDRE) (hαR0 : 0 ≤ αR0) (hσ : 0 < σminInit) (_hC : 0 < C)
+    (_hαP : αP ≤ C * (Real.sqrt (1 + M ^ 2) * RDRE + αR0 * RDRE ^ 2 / σminInit)) :
     0 ≤ Real.sqrt (1 + M ^ 2) * RDRE + αR0 * RDRE ^ 2 / σminInit := by
   -- Source: Cor. D.7 (p. 80).  The output normalization is the sum of the `[I;X]` factor
   -- `√(1+‖X‖²) ≤ √(1+M²)` and the pseudoinverse factor `α_{R₀} R²/σmin(Π₊R₀)`, both
@@ -105,7 +111,7 @@ theorem corollary_D_7_output_normalization
 /-- Arithmetic core associated with Lemma F.2: returns the assumed contour normalization inequality and proves nonnegativity of `(6*cβ/π)*RCARE`. No quadrature normalization bound is derived. -/
 theorem lemma_F_2_care_normalization
     (cβ RCARE αCARE αH sumT : ℝ) (hβ : 4 ≤ cβ) (hR : 0 ≤ RCARE)
-    (hαH : 0 ≤ αH) (hsum : 0 ≤ sumT)
+    (_hαH : 0 ≤ αH) (_hsum : 0 ≤ sumT)
     (hα : αCARE ≤ cβ * RCARE * sumT) :
     αCARE ≤ cβ * RCARE * sumT ∧ 0 ≤ (6 * cβ / Real.pi) * RCARE := by
   -- Source: Lemma F.2 (p. 96).  `α_CARE = Σ_j |ωj| βj ≤ cβ Σ_j |ω_j| ‖(z_jI - H)⁻¹‖` and on
@@ -122,13 +128,13 @@ theorem lemma_F_2_care_normalization
 
 /-- Arithmetic core associated with Proposition F.3: proves positivity of `d`, `ℓΓ` and `αX`, and returns the assumed panel bound. No decoded-error estimate, block encoding or query cost is constructed. -/
 theorem proposition_F_3_care_finite_rectangle
-    (αH Δax d ℓΓ cβ RCARE αCARE αX Xnorm ε p Npan : ℝ)
+    (αH Δax d ℓΓ cβ RCARE αCARE αX Xnorm ε _p Npan : ℝ)
     (hαH : 0 < αH) (hΔ : 0 < Δax) (hd : d = Δax / 2) (hℓ : ℓΓ = 12 * αH - Δax)
     (hΔ6 : Δax < 6 * αH)
-    (hβ : 4 ≤ cβ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hX : 0 ≤ Xnorm)
+    (_hβ : 4 ≤ cβ) (_hε : 0 < ε) (_hε1 : ε ≤ 1) (_hX : 0 ≤ Xnorm)
     (hαCARE : 0 < αCARE)
-    (hNpan : Npan ≤ ℓΓ / d + 4) (hR : RCARE ≤ (1 + 2 * Real.sqrt 2) * αH / d)
-    (hα : αCARE ≤ (6 * cβ / Real.pi) * RCARE)
+    (hNpan : Npan ≤ ℓΓ / d + 4) (_hR : RCARE ≤ (1 + 2 * Real.sqrt 2) * αH / d)
+    (_hα : αCARE ≤ (6 * cβ / Real.pi) * RCARE)
     (hαX : αX = 8 * αCARE * Real.sqrt (1 + Xnorm ^ 2)) :
     0 < d ∧ 0 < ℓΓ ∧ 0 < αX ∧ Npan ≤ ℓΓ / d + 4 := by
   -- Source: Prop. F.3 (pp. 96–97).  The rectangle encloses the stable branch by Theorem B.4;

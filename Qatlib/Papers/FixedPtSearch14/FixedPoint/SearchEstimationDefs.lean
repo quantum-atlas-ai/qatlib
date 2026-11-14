@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefinedDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimation
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefinedDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimation
+
+@[expose] public section
 
 /-!
 # Native count readout and pilot-tail estimates

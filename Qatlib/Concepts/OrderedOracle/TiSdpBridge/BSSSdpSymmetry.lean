@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
-import Mathlib.GroupTheory.Perm.Finite
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
+public import Mathlib.GroupTheory.Perm.Finite
+
+@[expose] public section
 
 /-!
 # Symmetry averaging of query matrix witnesses
@@ -253,7 +257,7 @@ theorem bssFeasible_exists_symmetry_invariant {m : ℕ} (bit : X → Fin m → B
         (∀ y x x',Γ (σ y) (π x) (π x')=Γ y x x') := by
   obtain ⟨M,N,Γ,hf⟩ := h
   let S := ↥(bssTransportGroup bit f)
-  letI : Fintype S := Fintype.ofFinite S
+  let : Fintype S := Fintype.ofFinite S
   have hsym (g : S) : IsBssSymmetry bit f g.val.1 g.val.2.1.symm g.val.2.2 := by
     refine ⟨?_,g.property.2⟩
     intro i x x'

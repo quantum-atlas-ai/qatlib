@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+
+@[expose] public section
 
 /-!
 # Finite query budgets for unknown-count search
@@ -95,7 +99,7 @@ theorem search_finite_budget_law {I : Type*} [Fintype I] [DecidableEq I]
           | none => FiniteBudgetMass A sizes (stage+1) (budget-(x.1.val+1)) out
         else if out = none then 1 else 0)) = 1 := by
       by_cases hc : x.1.val+1 ≤ budget
-      · simp only [dif_pos hc]
+      · simp only [dite_eq_left hc]
         cases hx : x.2 with
         | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
         | some i =>
@@ -104,7 +108,7 @@ theorem search_finite_budget_law {I : Type*} [Fintype I] [DecidableEq I]
             change 0 ≤ (if out = some i then (1 : ℝ) else 0)
             split_ifs <;> norm_num
           · simp
-      · simp only [dif_neg hc]
+      · simp only [dite_eq_right hc]
         constructor
         · intro out
           split_ifs <;> norm_num
@@ -147,7 +151,7 @@ theorem search_finite_budget_no_false_positive {I : Type*} [Fintype I] [Decidabl
     apply Finset.sum_eq_zero
     rintro ⟨j,o⟩ _
     by_cases hc : j.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases o with
       | none => rw [ih _ (search_budget_progress _ _ hc), mul_zero]
       | some k =>

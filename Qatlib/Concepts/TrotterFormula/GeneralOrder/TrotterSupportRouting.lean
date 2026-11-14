@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
+
+@[expose] public section
 
 /-!
 # Support counting and wire routing for product formulas
@@ -654,10 +658,10 @@ private theorem wireSwapContents_apply (w₁ w₂ : Fin Λ) (ρ : Fin Λ → Fin
     (w : Fin Λ) : wireSwapContents w₁ w₂ ρ w = ρ (wireSwapFn w₁ w₂ w) := by
   unfold wireSwapContents wireSwapFn
   by_cases h1 : w = w₁
-  · rw [if_pos h1, if_pos h1]
+  · rw [ite_eq_left h1, ite_eq_left h1]
   · by_cases h2 : w = w₂
-    · rw [if_neg h1, if_pos h2, if_pos h2, if_neg h1]
-    · rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+    · rw [ite_eq_right h1, ite_eq_left h2, ite_eq_left h2, ite_eq_right h1]
+    · rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
 
 /-- Applying a swap word to an assignment evaluates as the original assignment composed with
 `swapWordFn`. -/
@@ -683,16 +687,16 @@ theorem wireSwapFn_involution (w₁ w₂ : Fin Λ) (w : Fin Λ) :
     wireSwapFn w₁ w₂ (wireSwapFn w₁ w₂ w) = w := by
   unfold wireSwapFn
   by_cases h1 : w = w₁
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     by_cases h2 : w₂ = w₁
-    · rw [if_pos h2, h2, h1]
-    · rw [if_neg h2, if_pos rfl, h1]
+    · rw [ite_eq_left h2, h2, h1]
+    · rw [ite_eq_right h2, ite_eq_left rfl, h1]
   · by_cases h2 : w = w₂
-    · rw [if_neg h1, if_pos h2, if_pos rfl, h2]
-    · rw [if_neg h1, if_neg h2]
+    · rw [ite_eq_right h1, ite_eq_left h2, ite_eq_left rfl, h2]
+    · rw [ite_eq_right h1, ite_eq_right h2]
       by_cases h3 : w = w₂
       · exact absurd h3 h2
-      · rw [if_neg h1, if_neg h3]
+      · rw [ite_eq_right h1, ite_eq_right h3]
 
 /-- Every wire transposition is bijective. -/
 theorem wireSwapFn_bijective (w₁ w₂ : Fin Λ) :
@@ -723,9 +727,9 @@ theorem swapWordFn_eq_of_untouched : ∀ (W : List (Fin Λ × Fin Λ)) (w : Fin 
       have hp := h p (List.mem_cons_self ..)
       rw [swapWordFn, Function.comp_apply,
         ih w (fun q hq => h q (List.mem_cons_of_mem _ hq)), wireSwapFn,
-        if_neg (Fin.ne_of_val_ne (by
+        ite_eq_right (Fin.ne_of_val_ne (by
           have := h p (List.mem_cons_self ..); omega)),
-        if_neg (Fin.ne_of_val_ne (by
+        ite_eq_right (Fin.ne_of_val_ne (by
           have := h p (List.mem_cons_self ..); omega))]
 
 /-- A swap word using only endpoints at or above `M` fixes all wires below `M`. -/
@@ -740,8 +744,8 @@ theorem swapWordFn_low_fix : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
       have hp := h p (List.mem_cons_self ..)
       rw [swapWordFn, Function.comp_apply,
         ih M (fun q hq => h q (List.mem_cons_of_mem _ hq)) w hw, wireSwapFn,
-        if_neg (Fin.ne_of_val_ne (by omega)),
-        if_neg (Fin.ne_of_val_ne (by omega))]
+        ite_eq_right (Fin.ne_of_val_ne (by omega)),
+        ite_eq_right (Fin.ne_of_val_ne (by omega))]
 
 /-- A swap word using only endpoints at or above `M` maps every wire at or above `M` to that
 region. -/
@@ -761,10 +765,10 @@ theorem swapWordFn_high_preserve : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
             ∨ wireSwapFn p.1 p.2 (swapWordFn t w) = p.2 := by
         unfold wireSwapFn
         by_cases hu1 : swapWordFn t w = p.1
-        · rw [if_pos hu1]; exact Or.inr (Or.inr rfl)
+        · rw [ite_eq_left hu1]; exact Or.inr (Or.inr rfl)
         · by_cases hu2 : swapWordFn t w = p.2
-          · rw [if_neg hu1, if_pos hu2]; exact Or.inr (Or.inl rfl)
-          · rw [if_neg hu1, if_neg hu2]; exact Or.inl rfl
+          · rw [ite_eq_right hu1, ite_eq_left hu2]; exact Or.inr (Or.inl rfl)
+          · rw [ite_eq_right hu1, ite_eq_right hu2]; exact Or.inl rfl
       rcases hcase with hcase | hcase | hcase
       · rw [hcase]; exact hrest
       · rw [hcase]; exact hp.1
@@ -854,13 +858,13 @@ theorem supportWires_nonempty (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective
 theorem minWire_le (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) {w : Fin Λ} (hw : w ∈ supportWires ρ S) :
     minWire ρ S ≤ w.val := by
-  rw [minWire, dif_pos hne]
+  rw [minWire, dite_eq_left hne]
   exact Fin.le_def.mp ((supportWires ρ S).min'_le w hw)
 
 /-- For a nonempty occupied-wire set, its least index is less than `Λ`. -/
 theorem minWire_lt (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) : minWire ρ S < Λ := by
-  rw [minWire, dif_pos hne]
+  rw [minWire, dite_eq_left hne]
   exact ((supportWires ρ S).min' hne).isLt
 
 /-- The wire with index `minWire ρ S` belongs to the nonempty occupied-wire set. -/
@@ -869,7 +873,7 @@ theorem minWire_mem (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (⟨minWire ρ S, minWire_lt ρ S hne⟩ : Fin Λ) ∈ supportWires ρ S := by
   have h := Finset.min'_mem (supportWires ρ S) hne
   convert! h using 1
-  simp only [minWire, dif_pos hne]
+  simp only [minWire, dite_eq_left hne]
 
 /-- For a bijective assignment and nonempty support, the interval starting at its least wire and
 having its cardinality fits within `Fin Λ`. -/
@@ -925,7 +929,7 @@ private theorem mem_zip_right {α β : Type} : ∀ (l₁ : List α) (l₂ : List
 /-- Swapping two wire contents leaves the contents of every other wire unchanged. -/
 private theorem wireSwapContents_of_ne (ρ : Fin Λ → Fin Λ) (h x w : Fin Λ)
     (w1 : w ≠ h) (w2 : w ≠ x) : wireSwapContents h x ρ w = ρ w := by
-  rw [wireSwapContents, if_neg w1, if_neg w2]
+  rw [wireSwapContents, ite_eq_right w1, ite_eq_right w2]
 
 /-- Swapping a wire outside the support with a wire inside it replaces the latter occupied wire
 by the former. -/
@@ -939,13 +943,13 @@ private theorem supportWires_single_swap (S : Finset (Fin Λ)) (ρ : Fin Λ → 
   simp only [supportWires, Finset.mem_filter, Finset.mem_univ, true_and, wireSwapContents,
     Finset.mem_insert, Finset.mem_erase]
   by_cases hw1 : w = h
-  · rw [hw1, if_pos rfl]
+  · rw [hw1, ite_eq_left rfl]
     constructor
     · intro _; exact Or.inl rfl
     · intro _; exact hρx
   · by_cases hw2 : w = x
     · rw [hw2] at hw1 ⊢
-      rw [if_neg hw1, if_pos rfl]
+      rw [ite_eq_right hw1, ite_eq_left rfl]
       constructor
       · intro hc
         exact absurd hc hρh
@@ -953,7 +957,7 @@ private theorem supportWires_single_swap (S : Finset (Fin Λ)) (ρ : Fin Λ → 
         rcases hc with hc | hc
         · exact absurd hc hw1
         · exact absurd rfl hc.1
-    · rw [if_neg hw1, if_neg hw2]
+    · rw [ite_eq_right hw1, ite_eq_right hw2]
       constructor
       · intro hmem
         exact Or.inr ⟨hw2, hmem⟩
@@ -1123,7 +1127,7 @@ theorem swapWordFn_zip_apply_left (hs : List (Fin Λ)) :
               · exact (hcross h₀ (List.mem_cons_self ..) p.2
                   (List.mem_cons_of_mem _ (mem_zip_right t t' p hp))).symm
             rw [List.zip_cons_cons, swapWordFn, Function.comp_apply, hunt, wireSwapFn,
-              if_pos rfl]
+              ite_eq_left rfl]
             exact ⟨x₀, List.mem_cons_self .., rfl⟩
           · have hht : h ∈ t := by
               rcases List.mem_cons.mp hh with he | he
@@ -1143,7 +1147,7 @@ theorem swapWordFn_zip_apply_left (hs : List (Fin Λ)) :
               intro he
               exact (List.nodup_cons.mp hndup2).1 (he ▸ hxk)
             rw [List.zip_cons_cons, swapWordFn, Function.comp_apply, hxik, wireSwapFn,
-              if_neg e1, if_neg e2]
+              ite_eq_right e1, ite_eq_right e2]
             exact ⟨xk, List.mem_cons_of_mem _ hxk, rfl⟩
 
 /-- Under distinctness, disjointness, and sufficient left-list length, each right endpoint of a
@@ -1172,7 +1176,7 @@ theorem swapWordFn_zip_apply_right (xs : List (Fin Λ)) :
             have hne0 : x₀ ≠ h₀ :=
               (hcross h₀ (List.mem_cons_self ..) x₀ (List.mem_cons_self ..)).symm
             rw [List.zip_cons_cons, swapWordFn, Function.comp_apply, hunt, wireSwapFn,
-              if_neg hne0, if_pos rfl]
+              ite_eq_right hne0, ite_eq_left rfl]
             exact ⟨h₀, List.mem_cons_self .., rfl⟩
           · have hxt : x ∈ t' := by
               rcases List.mem_cons.mp hx with he | he
@@ -1192,7 +1196,7 @@ theorem swapWordFn_zip_apply_right (xs : List (Fin Λ)) :
               intro he
               exact (List.nodup_cons.mp hndup1).1 (he ▸ hhk)
             rw [List.zip_cons_cons, swapWordFn, Function.comp_apply, hxih, wireSwapFn,
-              if_neg e2, if_neg e1]
+              ite_eq_right e2, ite_eq_right e1]
             exact ⟨hk, List.mem_cons_of_mem _ hhk, rfl⟩
 
 /-- Gathering a nonempty support uses fewer swaps than its cardinality, fills its target
@@ -1571,7 +1575,7 @@ private theorem layer_compile_aux {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
                 exact hval
             · have hiR : i ∈ (u₀ :: rest₀).erase ustar := mem_of_ne_erase hi hiu
               have hsub := hfinalr i hiR
-              simp only [if_neg hiu]
+              simp only [ite_eq_right hiu]
               rw [swapWordApply_append, hsub.2.2]
               exact ⟨hsub.1, Nat.le_trans (Nat.le_max_left _ _) hsub.2.1, rfl⟩
           · intro i hi j hj hij
@@ -1580,20 +1584,20 @@ private theorem layer_compile_aux {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
               have hjne : j ≠ ustar := fun heq => hij (by rw [hiu, heq])
               have hjsub : j ∈ (u₀ :: rest₀).erase ustar := mem_of_ne_erase hj hjne
               have hrestr := hfinalr j hjsub
-              simp only [if_neg hjne]
+              simp only [ite_eq_right hjne]
               have hge : minWire ρ (F ustar).support + (F ustar).support.card ≤ anchor_r j :=
                 Nat.le_trans (Nat.le_max_right _ _) hrestr.2.1
               exact wireInterval_disjoint Λ (minWire ρ (F ustar).support) (F ustar).support.card
                 (anchor_r j) (F j).support.card hge
             · by_cases hju : j = ustar
-              · simp only [hju, if_neg hiu]
+              · simp only [hju, ite_eq_right hiu]
                 have hisub : i ∈ (u₀ :: rest₀).erase ustar := mem_of_ne_erase hi hiu
                 have hrestr := hfinalr i hisub
                 have hge : minWire ρ (F ustar).support + (F ustar).support.card ≤ anchor_r i :=
                   Nat.le_trans (Nat.le_max_right _ _) hrestr.2.1
                 exact (wireInterval_disjoint Λ (minWire ρ (F ustar).support) (F ustar).support.card
                   (anchor_r i) (F i).support.card hge).symm
-              · simp only [if_neg hiu, if_neg hju]
+              · simp only [ite_eq_right hiu, ite_eq_right hju]
                 exact hdisjr i (mem_of_ne_erase hi hiu) j (mem_of_ne_erase hj hju) hij
 
 end Routing

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperQuan
-import Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperQuan
+public import Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Application profiles for coherent reweighting
@@ -180,7 +184,7 @@ def reweightingIntegerBits (m b : ℕ) : ℕ := 2 * m * b
 
 /-- For every positive supplied tolerance, a legal finite gate word exists with the stated
 bounds on word length and workspace. -/
-def HasReweightingFixedGateBackend (m D : ℕ) (π σ : Fin m → ℚ) (γ a : ℝ)
+def HasReweightingFixedGateBackend (m D : ℕ) (_π _σ : Fin m → ℚ) (_γ _a : ℝ)
     (tableBits : ℕ) (ε : ℝ) : Prop :=
   0 < ε →
     ∃ (w : ℕ) (gs : List FiniteGateCode),

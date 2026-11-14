@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+
+@[expose] public section
 
 /-!
 # Singular polynomials through Hermitian dilation

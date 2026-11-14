@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Permanent
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Permanent
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # Bosonic occupation matrices and permanent weights
@@ -93,8 +97,8 @@ and zero in the rest. -/
 def oneStateFun (n : ℕ) (i : Fin (2 * n)) : Fin (n + 1) :=
   ⟨if (i : ℕ) < n then 1 else 0, by
     by_cases h : (i : ℕ) < n
-    · simp only [if_pos h]; omega
-    · simp only [if_neg h]; omega⟩
+    · simp only [ite_eq_left h]; omega
+    · simp only [ite_eq_right h]; omega⟩
 
 /-- The standard one-particle-per-mode count function has total occupation `n`. -/
 theorem oneState_sum (n : ℕ) :
@@ -110,11 +114,11 @@ theorem oneState_sum (n : ℕ) :
         rw [Fin.sum_univ_eq_sum_range (fun k => if k < n then (1 : ℕ) else 0) (2 * n),
           show 2 * n = n + n by rw [Nat.two_mul], Finset.sum_range_add]
         have h1 : ∑ x ∈ Finset.range n, (if x < n then (1 : ℕ) else 0) = n := by
-          rw [Finset.sum_congr rfl (fun x hx => if_pos (Finset.mem_range.mp hx)),
+          rw [Finset.sum_congr rfl (fun x hx => ite_eq_left (Finset.mem_range.mp hx)),
             Finset.sum_const, Finset.card_range]
           simp
         have h2 : ∑ x ∈ Finset.range n, (if n + x < n then (1 : ℕ) else 0) = 0 := by
-          refine Finset.sum_eq_zero fun x hx => if_neg ?_
+          refine Finset.sum_eq_zero fun x hx => ite_eq_right ?_
           simp only [Finset.mem_range] at hx
           omega
         rw [h1, h2, Nat.add_zero]

@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphFraction.CoverLP.PowerAllocation
-import Qatlib.Foundations.FiniteStats.BornEstimator.SecondMoment
-import Qatlib.Foundations.FiniteStats.BornEstimator.IndependentShots
+module
+
+public import Qatlib.Foundations.GraphFraction.CoverLP.PowerAllocation
+public import Qatlib.Foundations.FiniteStats.BornEstimator.SecondMoment
+public import Qatlib.Foundations.FiniteStats.BornEstimator.IndependentShots
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Fractional-cover allocations for Born energy estimators
@@ -68,7 +73,7 @@ theorem optimal_born_energy_estimator (G : SimpleGraph V) {S : V → HermitianMa
     (c : V → ℝ) (hc : ∀ i,c i≠0) (N : ℕ) (hN : 0<N) :
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C
-    ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧
+    ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧
       (∀ i,0 < inclusion M q i) ∧
       ∀ ρ : MState d,
         (mean (shotLaw (bornLaw M q ρ) N) (shotAverage (energyScore G M q c) N)=
@@ -103,7 +108,7 @@ theorem optimal_born_operator_estimator [Nonempty d] (G : SimpleGraph V) {S : V 
     (c : V → ℝ) (hc : ∀ i,c i≠0) (N : ℕ) (hN : 0<N) :
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C
-    ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
+    ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
       0 ≤ secondOperator M q (energyScore G M q c) ∧
       largestEigenvalue (secondOperator M q (energyScore G M q c)) ≤ coverValue G a*C^3 ∧
       ∀ ρ : MState d,

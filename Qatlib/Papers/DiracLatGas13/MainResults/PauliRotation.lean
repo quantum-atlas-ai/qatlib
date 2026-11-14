@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,8 +100,8 @@ theorem pauli_mul (a b : ℝ × ℝ × ℝ) :
   fin_cases i <;> fin_cases j <;>
     apply Complex.ext <;>
     simp [pauli, sigmaX, sigmaY, sigmaZ, dot3, cross3, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.add_apply, Matrix.smul_apply, Matrix.one_apply, Complex.mul_re, Complex.mul_im,
-      Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im, Matrix.neg_apply] <;>
+      Matrix.add_apply, Matrix.smul_apply, Complex.mul_re, Complex.mul_im,
+      Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im] <;>
     ring
 
 /-- A unit Pauli vector squares to the identity: `(n̂·σ)² = 1` (the involution

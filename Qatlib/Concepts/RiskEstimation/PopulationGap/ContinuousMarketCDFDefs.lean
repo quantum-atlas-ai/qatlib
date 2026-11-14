@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ExactVaRProgramDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ExactVaRProgramDefs
+
+@[expose] public section
 
 /-!
 # Real-valued market CDFs and truncation
@@ -167,11 +171,11 @@ theorem truncated_CDF_eq_below {n : ℕ} (p : FinDist (Option (Fin n)))
   · have hmin : truncatedLoss loss T a = loss a := by
       unfold truncatedLoss
       exact min_eq_left (ha.trans (le_of_lt ht))
-    rw [hmin, if_pos ha]
+    rw [hmin, ite_eq_left ha]
   · have hpos : t < truncatedLoss loss T a := by
       unfold truncatedLoss
       exact lt_min (lt_of_not_ge ha) ht
-    rw [if_neg (not_le_of_gt hpos), if_neg ha]
+    rw [ite_eq_right (not_le_of_gt hpos), ite_eq_right ha]
 
 /-- The CDF of losses capped at `T` is one at every threshold at least `T`. -/
 theorem truncated_CDF_eq_one_above {n : ℕ} (p : FinDist (Option (Fin n)))
@@ -187,7 +191,7 @@ theorem truncated_CDF_eq_one_above {n : ℕ} (p : FinDist (Option (Fin n)))
         = ∑ a, p.prob a * 1 := by
           apply Finset.sum_congr rfl
           intro a _
-          rw [if_pos (hmin a)]
+          rw [ite_eq_left (hmin a)]
     _ = 1 := by
       calc
         (∑ a, p.prob a * 1) = ∑ a, p.prob a := by
@@ -206,10 +210,10 @@ theorem market_tail_mass {n : ℕ} (p : FinDist (Option (Fin n)))
     intro a
     by_cases ha : loss a ≤ T
     · have hn : ¬ (T < loss a) := not_lt.mpr ha
-      simp only [if_pos ha, if_neg hn]
+      simp only [ite_eq_left ha, ite_eq_right hn]
       ring
     · have hn : T < loss a := lt_of_not_ge ha
-      simp only [if_neg ha, if_pos hn]
+      simp only [ite_eq_right ha, ite_eq_left hn]
       ring
   have hmain : (∑ a, p.prob a * (if loss a ≤ T then 1 else 0))
       + (∑ a, p.prob a * (if T < loss a then 1 else 0)) = 1 := by
@@ -325,7 +329,7 @@ theorem continuousTwoAtom_cdf_quarter (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) 
   rw [e0, e1, e2]
   have hl0 : ((0:ℝ) ≤ 1/4) := by norm_num
   have hnl1 : ¬ ((1/2:ℝ) ≤ 1/4) := by norm_num
-  simp only [hl0, hnl1, if_true, if_false]
+  simp only [hl0, hnl1, ite_true, ite_false]
   ring
 
 /-- At every threshold strictly below one half, the real-loss two-atom CDF is at most `a`. -/
@@ -350,11 +354,11 @@ theorem continuousTwoAtom_cdf_le {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
   rw [e0, e1, e2]
   by_cases hs0 : ((0:ℝ) ≤ s)
   · by_cases hs1 : ((1/2:ℝ) ≤ s)
-    · simp only [hs0, hs1, if_true]
+    · simp only [hs0, hs1, ite_true]
       linarith [hs]
-    · simp only [hs0, hs1, if_true, if_false]
+    · simp only [hs0, hs1, ite_true, ite_false]
       linarith [hs]
   · have hs1 : ¬ ((1/2:ℝ) ≤ s) := by linarith [hs]
-    simp only [hs0, hs1, if_false]
+    simp only [hs0, hs1, ite_false]
     linarith
 end Qatlib.Concepts.RiskEstimation.PopulationGap

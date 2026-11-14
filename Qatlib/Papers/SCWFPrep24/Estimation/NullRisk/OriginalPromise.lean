@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PhysicalRisk
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.LegalNull
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PhasedAlternative
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PhysicalRisk
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.LegalNull
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PhasedAlternative
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

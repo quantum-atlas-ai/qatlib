@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.NearIsometry
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Concepts.SpectralSketch.NearIsometry
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Statement of the approximate eigendecomposition trace bound
@@ -39,8 +43,8 @@ bounds give relative exponential-trace error at most `2 * (exp 1 - 1) * ε` for 
 dimension-corrected diagonal estimate. -/
 def ApproximateEigendecompositionTrace : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I]
-    (H : Matrix I I ℂ) (hH : H.IsHermitian) (r : ℕ) (d : Fin r → ℝ)
-    (D : Matrix (Fin r) (Fin r) ℂ) (hD : D = Matrix.diagonal (fun i => (d i : ℂ)))
+    (H : Matrix I I ℂ) (_hH : H.IsHermitian) (r : ℕ) (d : Fin r → ℝ)
+    (D : Matrix (Fin r) (Fin r) ℂ) (_hD : D = Matrix.diagonal (fun i => (d i : ℂ)))
     (Ut : Matrix (Fin r) I ℂ) (ε δ : ℝ),
     0 ≤ ε → ε ≤ 1/2 → δ ≤ ε/2 → δ ≤ ε/(4*(‖H‖ + ε)) →
     ‖Ut*Utᴴ - 1‖ ≤ δ →

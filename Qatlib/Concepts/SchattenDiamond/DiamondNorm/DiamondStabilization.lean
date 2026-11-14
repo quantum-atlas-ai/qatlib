@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+@[expose] public section
 
 /-!
 # Input-dimension stabilization of the diamond norm
@@ -506,32 +510,32 @@ theorem diamond_finite_attained_maximum : ∀ (D E : ℕ)
       Matrix.traceNorm X ≤ 1 ∧
       finiteDiamondNorm T = ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X)) := by
   intro D E T
-  letI : Norm (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := ⟨Matrix.traceNorm⟩
+  let : Norm (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := ⟨Matrix.traceNorm⟩
   let cD : NormedSpace.Core ℂ (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := {
     norm_nonneg := Matrix.traceNorm_nonneg
     norm_smul := fun c X => Matrix.traceNorm_smul X c
     norm_triangle := Matrix.traceNorm_add_le
     norm_eq_zero_iff := Matrix.traceNorm_zero_iff }
-  letI : NormedAddCommGroup (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :=
+  let : NormedAddCommGroup (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :=
     NormedAddCommGroup.ofCore cD
-  letI : SeminormedAddCommGroup (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :=
+  let : SeminormedAddCommGroup (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :=
     (NormedAddCommGroup.ofCore cD).toSeminormedAddCommGroup
-  letI : MetricSpace (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := (NormedAddCommGroup.ofCore cD).toMetricSpace
-  letI : TopologicalSpace (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := (NormedAddCommGroup.ofCore cD).toMetricSpace.toPseudoMetricSpace.toUniformSpace.toTopologicalSpace
-  letI : NormedSpace ℂ (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := NormedSpace.ofCore cD
-  letI : Norm (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := ⟨Matrix.traceNorm⟩
+  let : MetricSpace (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := (NormedAddCommGroup.ofCore cD).toMetricSpace
+  let : TopologicalSpace (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := (NormedAddCommGroup.ofCore cD).toMetricSpace.toPseudoMetricSpace.toUniformSpace.toTopologicalSpace
+  let : NormedSpace ℂ (Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) := NormedSpace.ofCore cD
+  let : Norm (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := ⟨Matrix.traceNorm⟩
   let cE : NormedSpace.Core ℂ (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := {
     norm_nonneg := Matrix.traceNorm_nonneg
     norm_smul := fun c X => Matrix.traceNorm_smul X c
     norm_triangle := Matrix.traceNorm_add_le
     norm_eq_zero_iff := Matrix.traceNorm_zero_iff }
-  letI : NormedAddCommGroup (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :=
+  let : NormedAddCommGroup (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :=
     NormedAddCommGroup.ofCore cE
-  letI : SeminormedAddCommGroup (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :=
+  let : SeminormedAddCommGroup (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :=
     (NormedAddCommGroup.ofCore cE).toSeminormedAddCommGroup
-  letI : MetricSpace (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := (NormedAddCommGroup.ofCore cE).toMetricSpace
-  letI : TopologicalSpace (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := (NormedAddCommGroup.ofCore cE).toMetricSpace.toPseudoMetricSpace.toUniformSpace.toTopologicalSpace
-  letI : NormedSpace ℂ (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := NormedSpace.ofCore cE
+  let : MetricSpace (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := (NormedAddCommGroup.ofCore cE).toMetricSpace
+  let : TopologicalSpace (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := (NormedAddCommGroup.ofCore cE).toMetricSpace.toPseudoMetricSpace.toUniformSpace.toTopologicalSpace
+  let : NormedSpace ℂ (Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) := NormedSpace.ofCore cE
   let f := diamondAmplification T D
   have hf : Continuous (fun X => ‖f X‖) :=
     continuous_norm.comp f.continuous_of_finiteDimensional

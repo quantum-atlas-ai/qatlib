@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Pauli byproducts of the cluster CNOT pattern
@@ -95,15 +99,15 @@ private theorem sum_reg_erase_delta {n : ℕ} (x : Reg n) (v : Fin n) (F : Reg n
         have hprod' : (∏ i ∈ (Finset.univ : Finset (Fin n)).erase v,
             (if x i = Function.update x v false i then (1 : ℂ) else 0)) = 1 := by
           refine Finset.prod_eq_one fun i hi => ?_
-          rw [if_pos (hc i hi)]
-        rw [hprod', one_mul, if_pos rfl, if_neg hupd, add_zero]
+          rw [ite_eq_left (hc i hi)]
+        rw [hprod', one_mul, ite_eq_left rfl, ite_eq_right hupd, add_zero]
       · have hy' : y = Function.update x v true := by rw [hy, hyv]
         subst hy'
         have hprod' : (∏ i ∈ (Finset.univ : Finset (Fin n)).erase v,
             (if x i = Function.update x v true i then (1 : ℂ) else 0)) = 1 := by
           refine Finset.prod_eq_one fun i hi => ?_
-          rw [if_pos (hc i hi)]
-        rw [hprod', one_mul, if_neg (Ne.symm hupd), if_pos rfl, zero_add]
+          rw [ite_eq_left (hc i hi)]
+        rw [hprod', one_mul, ite_eq_right (Ne.symm hupd), ite_eq_left rfl, zero_add]
     · have hex : ∃ i ∈ (Finset.univ : Finset (Fin n)).erase v, x i ≠ y i := by
         by_contra hc'
         apply hc
@@ -114,20 +118,20 @@ private theorem sum_reg_erase_delta {n : ℕ} (x : Reg n) (v : Fin n) (F : Reg n
       have hprod' : (∏ k ∈ (Finset.univ : Finset (Fin n)).erase v,
           (if x k = y k then (1 : ℂ) else 0)) = 0 := by
         refine Finset.prod_eq_zero hi ?_
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
       rw [hprod', zero_mul]
       by_cases h0 : y = Function.update x v false
       · subst h0
         have hxi : x i = Function.update x v false i := by
           rw [Function.update_of_ne (Finset.mem_erase.mp hi).1]
         exact absurd hxi hne
-      · rw [if_neg h0]
+      · rw [ite_eq_right h0]
         by_cases h1 : y = Function.update x v true
         · subst h1
           have hxi : x i = Function.update x v true i := by
             rw [Function.update_of_ne (Finset.mem_erase.mp hi).1]
           exact absurd hxi hne
-        · rw [if_neg h1, add_zero]
+        · rw [ite_eq_right h1, add_zero]
   calc ∑ y : Reg n, (∏ i ∈ (Finset.univ : Finset (Fin n)).erase v,
           (if x i = y i then (1 : ℂ) else 0)) * F y
       = ∑ y : Reg n, ((if y = Function.update x v false
@@ -243,9 +247,9 @@ private theorem pulse_entry (x y : Reg 4) :
   · rw [Finset.sum_eq_zero (fun w _ => by
       by_cases hxw : x = w
       · have hwy : w ≠ y := fun h => hxy (hxw.trans h)
-        rw [if_pos hxw, if_neg hwy, mul_zero]
-      · rw [if_neg hxw, zero_mul])]
-    rw [if_neg hxy]
+        rw [ite_eq_left hxw, ite_eq_right hwy, mul_zero]
+      · rw [ite_eq_right hxw, zero_mul])]
+    rw [ite_eq_right hxy]
 
 /-- The CNOT output frame is the product of equality indicators fixing the first two bits to `z`
 and the final two bits to the output index. -/
@@ -284,13 +288,13 @@ private theorem outframe_sum (z : Bool × Bool) (j' : Fin 4)
         · by_cases hy3 : y 3 = (bitVecEquiv 2).symm j' 1
           · exact absurd (funext fun k => by
               fin_cases k <;> simp [hy0, hy1, hy2, hy3]) hy
-          · rw [if_neg hy3]
+          · rw [ite_eq_right hy3]
             ring
-        · rw [if_neg hy2]
+        · rw [ite_eq_right hy2]
           ring
-      · rw [if_neg hy1]
+      · rw [ite_eq_right hy1]
         ring
-    · rw [if_neg hy0]
+    · rw [ite_eq_right hy0]
       ring
   · intro h
     exact absurd (Finset.mem_univ _) h
@@ -387,10 +391,10 @@ private theorem s2_entry (x : Reg 4) (j : Fin 4) :
   rw [cnotA2, Matrix.mul_apply]
   simp only [pulse_entry]
   rw [Finset.sum_eq_single x]
-  · rw [if_pos rfl, s1_entry]
+  · rw [ite_eq_left rfl, s1_entry]
     ring
   · intro y _ hy
-    rw [if_neg (Ne.symm hy), zero_mul]
+    rw [ite_eq_right (Ne.symm hy), zero_mul]
   · intro h
     exact absurd (Finset.mem_univ x) h
 
@@ -546,9 +550,9 @@ private theorem target_entry (s : Bool × Bool) (j' j : Fin 4) :
       = relabelGate (bitVecEquiv 2) (pauliProductDensity (clause3Kappa s)) j'
           (teleportOutcomeEquiv (cnotFlip (teleportOutcomeEquiv.symm j))) := by
     rw [Finset.sum_eq_single (teleportOutcomeEquiv (cnotFlip (teleportOutcomeEquiv.symm j)))]
-    · rw [rbCnotOp_apply, if_pos rfl, mul_one]
+    · rw [rbCnotOp_apply, ite_eq_left rfl, mul_one]
     · intro k _ hk
-      rw [rbCnotOp_apply, if_neg hk, mul_zero]
+      rw [rbCnotOp_apply, ite_eq_right hk, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   refine hsingle.trans ?_
@@ -611,9 +615,9 @@ private theorem cnotScalar_norm (s : Bool × Bool) :
         * star (if s.1 then -(2 : ℂ)⁻¹ else (2 : ℂ)⁻¹))
       = ((2 : ℂ)⁻¹) ^ 2 := by
   by_cases hs : s.1 = true
-  · rw [if_pos hs, star_neg, inv2_star]
+  · rw [ite_eq_left hs, star_neg, inv2_star]
     ring
-  · rw [if_neg hs, inv2_star]
+  · rw [ite_eq_right hs, inv2_star]
     ring
 
 /-- There are local Pauli byproducts for which each CNOT-pattern branch equals one quarter of
@@ -631,9 +635,9 @@ theorem clause3_clause2 :
   intro ρ s
   rw [rbCnotBranch, rbCnotBranchMap, LinearMap.sum_apply]
   rw [Finset.sum_eq_single s]
-  · rw [rbCnotKraus_smul, if_pos rfl, conjBranch_smul, cnotScalar_norm]
+  · rw [rbCnotKraus_smul, ite_eq_left rfl, conjBranch_smul, cnotScalar_norm]
   · intro z _ hz
-    rw [rbCnotKraus_smul, if_neg hz, zero_smul]
+    rw [rbCnotKraus_smul, ite_eq_right hz, zero_smul]
     simp
   · intro h
     exact absurd (Finset.mem_univ s) h

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupRepetition
-import Qatlib.Concepts.HspRecovery.BackendAudit.FiniteAbelianDuality
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupRepetition
+public import Qatlib.Concepts.HspRecovery.BackendAudit.FiniteAbelianDuality
+
+@[expose] public section
 
 /-!
 # Counted character kernel table decoding
@@ -92,10 +96,24 @@ private instance : Std.Associative (tableScanMerge (G := G)) :=
 candidates and summing the table reads. -/
 def tableEnumeratedScan (tab : G → G → Bool) (xs : List G) (candidates : Finset G) :
     Finset G × ℕ :=
-  candidates.fold tableScanMerge (∅, 0) fun x =>
+  let merge := fun (a b : Finset G × ℕ) => (a.1 ∪ b.1, a.2 + b.2)
+  letI : Std.Commutative merge :=
+    ⟨fun a b => Prod.ext (Finset.union_comm a.1 b.1) (Nat.add_comm a.2 b.2)⟩
+  letI : Std.Associative merge :=
+    ⟨fun a b c => Prod.ext (Finset.union_assoc a.1 b.1 c.1) (Nat.add_assoc a.2 b.2 c.2)⟩
+  candidates.fold merge (∅, 0) fun x =>
     let row := tableCandidateScan tab x xs
     (if row.1 then {x} else ∅, row.2)
 
+omit [Fintype G] in
+private theorem tableEnumeratedScan_eq (tab : G → G → Bool) (xs : List G)
+    (candidates : Finset G) :
+    tableEnumeratedScan tab xs candidates =
+      candidates.fold tableScanMerge (∅, 0) (fun x =>
+        let row := tableCandidateScan tab x xs
+        (if row.1 then {x} else ∅, row.2)) := rfl
+
+omit [Fintype G] in
 /-- An element survives an enumerated scan exactly when it was a candidate and passes every
 table test. -/
 private theorem tableEnumeratedScan_mem (tab : G → G → Bool) (xs : List G)
@@ -103,9 +121,9 @@ private theorem tableEnumeratedScan_mem (tab : G → G → Bool) (xs : List G)
     x ∈ (tableEnumeratedScan tab xs candidates).1 ↔
       x ∈ candidates ∧ ∀ a ∈ xs, tab a x = true := by
   induction candidates using Finset.induction_on with
-  | empty => simp [tableEnumeratedScan]
+  | empty => simp [tableEnumeratedScan_eq]
   | @insert y candidates hy ih =>
-    simp only [tableEnumeratedScan] at ih ⊢
+    simp only [tableEnumeratedScan_eq] at ih ⊢
     rw [Finset.fold_insert hy]
     by_cases hrow : (tableCandidateScan tab y xs).1 = true
     · have hrows := (tableCandidateScan_spec tab y xs).mp hrow
@@ -113,15 +131,16 @@ private theorem tableEnumeratedScan_mem (tab : G → G → Bool) (xs : List G)
     · have hrows := (tableCandidateScan_spec tab y xs).not.mp hrow
       by_cases hxy : x = y <;> simp_all [tableScanMerge]
 
+omit [Fintype G] in
 /-- The enumerated scan uses exactly the candidate cardinality times the sample list length
 table reads. -/
 private theorem tableEnumeratedScan_reads (tab : G → G → Bool) (xs : List G)
     (candidates : Finset G) :
     (tableEnumeratedScan tab xs candidates).2 = candidates.card * xs.length := by
   induction candidates using Finset.induction_on with
-  | empty => simp [tableEnumeratedScan]
+  | empty => simp [tableEnumeratedScan_eq]
   | @insert x candidates hx ih =>
-    simp only [tableEnumeratedScan] at ih ⊢
+    simp only [tableEnumeratedScan_eq] at ih ⊢
     simp only [tableCandidateScan_reads] at ih
     rw [Finset.fold_insert hx]
     simp [tableScanMerge, tableCandidateScan_reads, ih, Finset.card_insert_of_notMem hx,

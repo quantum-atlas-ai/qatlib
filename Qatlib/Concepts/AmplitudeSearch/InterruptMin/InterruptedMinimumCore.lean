@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+
+@[expose] public section
 
 /-!
 # Recursive interrupted minimum-search laws

@@ -7,10 +7,14 @@ Authors: Qatlib Contributors
 /-
 Copyright (c) 2026. All rights reserved.
 -/
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ lemma log_inv_pow (n p α : ℝ) (hp : 0 < p) (hα : α ≠ 0) (hln : Real.log n
 theorem proposition_6_4
     (n p α d ε : ℝ) (hn : 1 < n) (hp : 0 < p) (hα : 0 < α) (hd : 1 < d)
     (hlogp : Real.log p = -α * Real.log n)
-    (hlo : 1 / (d + 1) < α) (hhi : α < 1 / d)
+    (_hlo : 1 / (d + 1) < α) (hhi : α < 1 / d)
     (hε : 0 < ε) (hgapd : 2 ≤ d * (1 + ε)) :
     d + 2 < (2 + ε) * (Real.log n / Real.log (1 / p)) := by
   have hdpos : (0 : ℝ) < d := by linarith

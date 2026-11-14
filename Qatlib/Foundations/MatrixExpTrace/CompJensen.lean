@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.HermitianMat.LogExp
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
-import Mathlib.Analysis.Convex.SpecificFunctions.Basic
-import Mathlib.Tactic
+module
+
+public import QuantumInfo.ForMathlib.HermitianMat.LogExp
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+public import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Jensen bounds for compressed matrix exponentials
@@ -70,7 +74,7 @@ theorem density_exp_jensen (D : ℕ) (X sigma : Matrix (Fin D) (Fin D) ℂ)
       Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,mul_zero,sub_zero,p]
   have htex : (Matrix.trace (sigma*NormedSpace.exp X)).re=∑i,p i*Real.exp (hX.eigenvalues i) := by
     have he : NormedSpace.exp X=cfc Real.exp X := by
-      letI : ContinuousFunctionalCalculus ℝ (Matrix (Fin D) (Fin D) ℂ) IsSelfAdjoint :=
+      let : ContinuousFunctionalCalculus ℝ (Matrix (Fin D) (Fin D) ℂ) IsSelfAdjoint :=
         Matrix.IsHermitian.instContinuousFunctionalCalculus
       exact (CFC.real_exp_eq_normedSpace_exp (a := X) (show IsSelfAdjoint X from hX)).symm
     rw [he]
@@ -90,7 +94,7 @@ exponential of the underlying matrix. -/
 theorem hermitian_exp_mat {E : ℕ} (H : HermitianMat (Fin E) ℂ) :
     H.exp.mat=NormedSpace.exp H.mat := by
   rw [HermitianMat.exp,HermitianMat.mat_cfc]
-  letI : ContinuousFunctionalCalculus ℝ (Matrix (Fin E) (Fin E) ℂ) IsSelfAdjoint :=
+  let : ContinuousFunctionalCalculus ℝ (Matrix (Fin E) (Fin E) ℂ) IsSelfAdjoint :=
     Matrix.IsHermitian.instContinuousFunctionalCalculus
   exact CFC.real_exp_eq_normedSpace_exp H.H
 

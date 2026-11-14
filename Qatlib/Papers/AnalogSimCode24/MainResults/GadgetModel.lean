@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -102,7 +106,7 @@ end Sign
 `Z⊗Z` eigenvalue of that pair, the `t`-coordinate its `X⊗X` eigenvalue (Eq. (D1)). -/
 abbrev Coord (β : Type) := β × Fin 2 × Fin 2
 
-variable {β : Type} [Fintype β] [DecidableEq β]
+variable {β : Type} [instFintypeBeta : Fintype β] [instDecidableEqBeta : DecidableEq β]
 
 /-- A basis state of the `n`-block system (Eq. (D5)): a sign for every Bell-pair coordinate. -/
 abbrev State (β : Type) := Coord β → Sign
@@ -122,25 +126,37 @@ def energy (gx gz : β → ℝ) (ω : State β) : ℝ :=
 def flipAt (c : Coord β) (ω : State β) : State β :=
   fun d => if d = c then Sign.flip (ω c) else ω d
 
+omit instFintypeBeta in
 /-- The `flipAt_self` result for the AnalogSimCode24 paper model. -/
-theorem flipAt_self (c : Coord β) (ω : State β) : flipAt c ω c = Sign.flip (ω c) := by
+theorem flipAt_self {β : Type}
+    [_instFintypeBeta : Fintype β]
+    [_instDecidableEqBeta : DecidableEq β] (c : Coord β) (ω : State β) : flipAt c ω c = Sign.flip (ω c) := by
   simp [flipAt]
 
+omit instFintypeBeta in
 /-- The `flipAt_of_ne` result for the AnalogSimCode24 paper model. -/
-theorem flipAt_of_ne {c c' : Coord β} (h : c' ≠ c) (ω : State β) :
+theorem flipAt_of_ne {β : Type}
+    [_instFintypeBeta : Fintype β]
+    [_instDecidableEqBeta : DecidableEq β] {c c' : Coord β} (h : c' ≠ c) (ω : State β) :
     flipAt c ω c' = ω c' := by
   simp [flipAt, h]
 
+omit instFintypeBeta in
 /-- The `flipAt_flipAt` result for the AnalogSimCode24 paper model. -/
-theorem flipAt_flipAt (c : Coord β) (ω : State β) : flipAt c (flipAt c ω) = ω := by
+theorem flipAt_flipAt {β : Type}
+    [_instFintypeBeta : Fintype β]
+    [_instDecidableEqBeta : DecidableEq β] (c : Coord β) (ω : State β) : flipAt c (flipAt c ω) = ω := by
   funext x
   by_cases hx : x = c
   · subst hx
     simp [flipAt]
   · simp [flipAt, hx]
 
+omit instFintypeBeta in
 /-- The `flipAt_comm` result for the AnalogSimCode24 paper model. -/
-theorem flipAt_comm {c d : Coord β} (h : c ≠ d) (ω : State β) :
+theorem flipAt_comm {β : Type}
+    [_instFintypeBeta : Fintype β]
+    [_instDecidableEqBeta : DecidableEq β] {c d : Coord β} (h : c ≠ d) (ω : State β) :
     flipAt c (flipAt d ω) = flipAt d (flipAt c ω) := by
   funext x
   by_cases hx : x = c
@@ -148,7 +164,7 @@ theorem flipAt_comm {c d : Coord β} (h : c ≠ d) (ω : State β) :
     simp [flipAt, h]
   · by_cases hx' : x = d
     · subst hx'
-      simp [flipAt, hx, Ne.symm h]
+      simp [flipAt, hx]
     · simp [flipAt, hx, hx']
 
 /-! ## Energy increments -/
@@ -249,8 +265,8 @@ theorem mono_one {ι : Type} [DecidableEq ι] : mono (id : ι → ι) (fun _ => 
   show (if (j : ι) = i then (1 : ℂ) else 0) = (1 : Matrix ι ι ℂ) i j
   rw [Matrix.one_apply]
   by_cases h : j = i
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun hh : i = j => h hh.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun hh : i = j => h hh.symm)]
 
 /-- Two monomials with equal flip and coefficient functions are equal. -/
 theorem mono_congr {ι : Type} [DecidableEq ι] {f g : ι → ι} {c d : ι → ℂ} (hf : f = g) (hc : c = d) :
@@ -317,7 +333,7 @@ theorem interference_zero {ι : Type} [Fintype ι] [DecidableEq ι] (E : ι → 
             rw [hδ]
             push_cast
             rw [inv_neg]
-          simp only [hω, hf, hB, hA, if_true, if_false, one_mul, zero_mul, hinv]
+          simp only [hω, hf, hB, hA, ite_true, ite_false, one_mul, hinv]
           have hc := hcoeff ω
           linear_combination ((E (fB ω) : ℂ))⁻¹ * hc
       · simp [hω, hf]
@@ -367,11 +383,14 @@ def Q0 (gx gz : β → ℝ) : Matrix (State β) (State β) ℂ :=
 def HpenInv (gx gz : β → ℝ) : Matrix (State β) (State β) ℂ :=
   mono id (fun ω => if energy gx gz ω = 0 then 0 else ((energy gx gz ω : ℂ))⁻¹)
 
+omit instDecidableEqBeta in
 /-- The `one_sub_P0` result for the AnalogSimCode24 paper model. -/
-theorem one_sub_P0 (gx gz : β → ℝ) : (1 : Matrix (State β) (State β) ℂ) - P0 gx gz = Q0 gx gz := by
+theorem one_sub_P0 {β : Type}
+    [_instFintypeBeta : Fintype β]
+    [_instDecidableEqBeta : DecidableEq β] (gx gz : β → ℝ) : (1 : Matrix (State β) (State β) ℂ) - P0 gx gz = Q0 gx gz := by
   rw [← mono_one, Q0, P0]
   ext i j
-  simp only [mono, Matrix.sub_apply, Matrix.one_apply]
+  simp only [mono, Matrix.sub_apply]
   by_cases h : i = j
   · subst h
     by_cases hE : energy gx gz i = 0 <;> simp [hE]

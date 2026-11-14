@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCCDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCCDefs
+
+@[expose] public section
 
 /-!
 # Party-plan and communication guarantees
@@ -133,7 +137,7 @@ theorem clause6_complete :
         (conditionalUnitaryInstrument I U hU).branch o ρ
           = (U o) * (I.branch o ρ) * (U o)ᴴ) ∧
     (∀ {O : Type} [Fintype O] {D E : ℕ} (B : O → (Operator D →ₗ[ℂ] Operator E))
-        (hTP : ∀ A, Matrix.trace (∑ o, B o A) = Matrix.trace A) (R : ℕ)
+        (_hTP : ∀ A, Matrix.trace (∑ o, B o A) = Matrix.trace A) (R : ℕ)
         (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
         partialTraceFirst (∑ o, tensorLeft (B o) ρ) = partialTraceFirst ρ) ∧
     (∀ (n : ℕ) [NeZero n] (R : ℕ) (ρ : Matrix (Fin n × Fin R) (Fin n × Fin R) ℂ)
@@ -280,20 +284,20 @@ theorem clause7_complete :
         (p : P), (instrumentReindex I e).branch p = I.branch (e.symm p)) ∧
     (∀ {X : Type} [Fintype X] [Nonempty X] {T : BinaryMessageTree} {A E B F : ℕ} {s : ℕ}
         (P : FinGuessProtocol X T A E B F s)
-        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (hσ : σ.PosSemidef)
-        (htrace : Matrix.trace σ = 1) (C : ℕ) (hC : T.depth ≤ C),
+        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (_hσ : σ.PosSemidef)
+        (_htrace : Matrix.trace σ = 1) (C : ℕ) (_hC : T.depth ≤ C),
         P.toTree.success σ (fun _ => 1 / (Fintype.card X : ℝ)) ≤ (2 : ℝ) ^ C / Fintype.card X) ∧
     (∀ {X : Type} [Fintype X] [Nonempty X] {M : Type} [Fintype M] {A E B F : ℕ}
         (P : MessageGuessProtocol X M A E B F)
-        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (hσ : σ.PosSemidef)
-        (htrace : Matrix.trace σ = 1),
+        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (_hσ : σ.PosSemidef)
+        (_htrace : Matrix.trace σ = 1),
         P.success σ (fun _ => 1 / (Fintype.card X : ℝ))
           ≤ (Fintype.card M : ℝ) * (1 / (Fintype.card X : ℝ))) ∧
     (∀ {X : Type} [Fintype X] [Nonempty X] {M : Type} [Fintype M]
         {T : BinaryMessageTree} {A E B F : ℕ} (P : MessageGuessProtocol X M A E B F)
         (m : M → T.Path) (bob : T.Path → Instrument X B F)
-        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (hσ : σ.PosSemidef)
-        (htrace : Matrix.trace σ = 1) (C : ℕ) (hC : T.depth ≤ C),
+        (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (_hσ : σ.PosSemidef)
+        (_htrace : Matrix.trace σ = 1) (C : ℕ) (_hC : T.depth ≤ C),
         (P.coarsen m bob).success σ (fun _ => 1 / (Fintype.card X : ℝ))
           ≤ (2 : ℝ) ^ C * (1 / (Fintype.card X : ℝ))) ∧
     ((∀ (i : Fin 6), (counterWords i).length ≤ 2) ∧ ¬ PrefixFree counterWords ∧
@@ -337,11 +341,11 @@ theorem clause6_general_transport {O : Type} [Fintype O] {D E : ℕ}
     (hTP : ∀ A, Matrix.trace (∑ o, B o A) = Matrix.trace A) :
     (∀ (R : ℕ) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
         partialTraceFirst (∑ o, tensorLeft (B o) ρ) = partialTraceFirst ρ) ∧
-    (∀ (hCP : ∀ o, CompletelyPositive (B o)) (R : ℕ)
-        (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (hρ : ρ.PosSemidef) (o : O),
+    (∀ (_hCP : ∀ o, CompletelyPositive (B o)) (R : ℕ)
+        (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (_hρ : ρ.PosSemidef) (o : O),
         (Matrix.trace (tensorLeft (B o) ρ)).re ≤ (Matrix.trace ρ).re) :=
-  ⟨fun R ρ => referenceMarginal_of_total B hTP ρ,
-   fun hCP R ρ hρ o => tensorLeft_tni_of_total B hCP hTP hρ o⟩
+  ⟨fun _R ρ => referenceMarginal_of_total B hTP ρ,
+   fun hCP _R _ρ hρ o => tensorLeft_tni_of_total B hCP hTP hρ o⟩
 
 /-- Each corrected qudit teleportation branch acts on a system with an arbitrary reference as
 multiplication by `1 / n ^ 2`, and their sum is the identity. -/

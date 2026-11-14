@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.DegreeConcentration
-import Qatlib.Concepts.WalkSearch.Primitives.RemovalTriangleFact5
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.DegreeConcentration
+public import Qatlib.Concepts.WalkSearch.Primitives.RemovalTriangleFact5
+
+@[expose] public section
 
 /-!
 # Graph steps in pair classification

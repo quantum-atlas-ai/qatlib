@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+
+@[expose] public section
 
 /-!
 # Lemma 5.3 — a three-point fidelity inequality

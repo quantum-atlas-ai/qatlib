@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound.ChannelIdentity
+module
+
+public import Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound.ChannelIdentity
+
+@[expose] public section
 
 /-!
 # A general one way teleporter message bound

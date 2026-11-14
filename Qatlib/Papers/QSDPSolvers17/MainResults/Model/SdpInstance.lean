@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MatrixWeights.WeightsCore
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

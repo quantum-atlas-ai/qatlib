@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

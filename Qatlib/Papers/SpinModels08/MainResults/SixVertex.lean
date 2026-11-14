@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinModels08.MainResults.VertexModel.EightVertex
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.SpinModels08.MainResults.VertexModel.EightVertex
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Six-vertex gates and encoded amplitude identities
@@ -159,7 +163,7 @@ theorem sixVertexWeight_unitary (t : ℝ) :
   simp only [Fin.sum_univ_two]
   fin_cases i <;> fin_cases j <;> fin_cases k <;> fin_cases l <;>
     rw [Complex.ext_iff] <;> constructor <;>
-    simp [twoLocalGate, sixVertexWeight, Matrix.one_apply, sixVertexWeight_phase,
+    simp [twoLocalGate, sixVertexWeight,  sixVertexWeight_phase,
       cos2_re, cos2_im, sin2_re, sin2_im,
       Complex.mul_re, Complex.mul_im, Complex.add_re, Complex.add_im,
       Complex.I_re, Complex.I_im, Complex.neg_re, Complex.neg_im,
@@ -221,7 +225,7 @@ theorem prepGate_mulVec_01 : prepGate.mulVec (basisPair 0 1) = singlet := by
   obtain ⟨k, l⟩ := x
   fin_cases k <;> fin_cases l <;>
     simp [prepGate, twoLocalGate, encodingWeight, basisPair, singlet, Matrix.mulVec,
-      dotProduct, Fintype.sum_prod_type, Fin.sum_univ_two]
+      dotProduct]
 
 /-- The complex inner product obtained by conjugating the first vector and summing coordinate
 products. -/

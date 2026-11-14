@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Algebra.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Algebra.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Contractions from an operator anticommutation identity
@@ -42,8 +46,8 @@ theorem car_norm_split (A : E →L[ℂ] E)
     ‖A x‖^2 + ‖A.adjoint x‖^2 = ‖x‖^2 := by
   have hvec := congrArg (fun T : E →L[ℂ] E => T x) hcar
   have hi := congrArg (fun y => (inner ℂ x y).re) hvec
-  simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.mul_apply,
-    ContinuousLinearMap.one_apply, inner_add_right, Complex.add_re] at hi
+  simp only [_root_.add_apply, _root_.mul_apply_eq_comp,
+    _root_.one_apply_eq_self, inner_add_right, Complex.add_re] at hi
   have hA := ContinuousLinearMap.apply_norm_sq_eq_inner_adjoint_right A x
   have hB := ContinuousLinearMap.apply_norm_sq_eq_inner_adjoint_right A.adjoint x
   simp only [ContinuousLinearMap.adjoint_adjoint, ContinuousLinearMap.comp_apply] at hA hB

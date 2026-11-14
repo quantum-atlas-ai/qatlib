@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Data.Nat.Totient
-import Mathlib.Algebra.Group.Subgroup.Finite
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Algebra.Group.Subgroup.Finite
+
+@[expose] public section
 
 /-!
 # Order-p units modulo twice an odd prime power
@@ -71,14 +75,14 @@ lemma shiftUnit_ne_one (hp : p.Prime) (hr : 2 ≤ r) :
 /-- For prime `p` and `r ≥ 2`, `shiftUnit` has order `p`. -/
 lemma orderOf_shiftUnit_eq_p (hp : p.Prime) (hr : 2 ≤ r) :
     orderOf (shiftUnit p r hp hr) = p := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   exact orderOf_eq_prime (shiftUnit_pow_eq_one hp hr) (shiftUnit_ne_one hp hr)
 
 /-- For odd prime `p` and `r ≥ 2`, the unit group modulo `2 * p ^ r` has cardinality `p ^ (r -
 1) * (p - 1)`. -/
 lemma card_units_two_pow (hp : p.Prime) (hodd : p ≠ 2) (hr : 2 ≤ r) :
     Nat.card (ZMod (2 * p ^ r))ˣ = p ^ (r - 1) * (p - 1) := by
-  haveI : NeZero (2 * p ^ r) :=
+  have : NeZero (2 * p ^ r) :=
     ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
   rw [Nat.card_eq_fintype_card, ZMod.card_units_eq_totient,
     Nat.totient_two_mul_of_odd ((hp.odd_of_ne_two hodd).pow),
@@ -112,10 +116,10 @@ theorem proposition1_unit_order
   intro α
   constructor
   · intro hα
-    haveI : NeZero p := ⟨hp.ne_zero⟩
-    haveI : NeZero (2 * p ^ r) :=
+    have : NeZero p := ⟨hp.ne_zero⟩
+    have : NeZero (2 * p ^ r) :=
       ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
-    haveI : IsCyclic (ZMod (2 * p ^ r))ˣ := isCyclic_units_two_pow hp hodd
+    have : IsCyclic (ZMod (2 * p ^ r))ˣ := isCyclic_units_two_pow hp hodd
 
     have hαK : α ∈ (powMonoidHom p : (ZMod (2 * p ^ r))ˣ →* (ZMod (2 * p ^ r))ˣ).ker := by
       rw [MonoidHom.mem_ker, powMonoidHom_apply]

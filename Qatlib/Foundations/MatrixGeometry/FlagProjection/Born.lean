@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.FlagProjection.Word
+module
+
+public import Qatlib.Foundations.MatrixGeometry.FlagProjection.Word
+
+@[expose] public section
 
 /-!
 # Conditional Born laws for flagged states
@@ -59,7 +63,7 @@ source's conditional Born values. -/
 theorem tail_born (S : Finset X) (v : EuclideanSpace ℂ X) (hp : 0 < mass S v) (x : X) :
     ‖(tail S v).ofLp x‖^2 = conditionalBorn S v x := by
   by_cases hx : x ∈ S
-  · simp only [tail, project, conditionalBorn, PiLp.smul_apply, if_pos hx]
+  · simp only [tail, project, conditionalBorn, PiLp.smul_apply, ite_eq_left hx]
     change ‖(Real.sqrt (mass S v) : ℂ)⁻¹ * v.ofLp x‖^2 =
       ‖v.ofLp x‖^2 / mass S v
     simp [norm_inv, Complex.norm_real, Real.norm_eq_abs,
@@ -81,8 +85,8 @@ theorem span_conditional (S : Finset X) (v : EuclideanSpace ℂ X) (hp : 0 < mas
   · have hcoord := congrArg (fun q : EuclideanSpace ℂ X => q.ofLp x) (project_span S v hp a b)
     change (if x ∈ S then (a • v + b • tail S v).ofLp x else 0) =
       (a * (Real.sqrt (mass S v) : ℂ) + b) * (tail S v).ofLp x at hcoord
-    rw [if_pos hx] at hcoord
-    rw [conditionalBorn, if_pos hx, hcoord, norm_mul, mul_pow, mass_span S v hp]
+    rw [ite_eq_left hx] at hcoord
+    rw [conditionalBorn, ite_eq_left hx, hcoord, norm_mul, mul_pow, mass_span S v hp]
     rw [mul_div_cancel_left₀ _ hc, tail_born S v hp]
   · simp [conditionalBorn, hx]
 
@@ -101,7 +105,7 @@ theorem conditional_smul (S : Finset X) (v : EuclideanSpace ℂ X) (c : ℂ) (hc
   have hn : ‖c‖^2 ≠ 0 := pow_ne_zero _ (norm_ne_zero_iff.mpr hc)
   funext x
   by_cases hx : x ∈ S
-  · simp only [conditionalBorn, if_pos hx, mass_smul]
+  · simp only [conditionalBorn, ite_eq_left hx, mass_smul]
     change ‖c * v.ofLp x‖^2 / (‖c‖^2 * mass S v) = ‖v.ofLp x‖^2 / mass S v
     rw [norm_mul, mul_pow, mul_div_mul_left _ _ hn]
   · simp [conditionalBorn, hx]

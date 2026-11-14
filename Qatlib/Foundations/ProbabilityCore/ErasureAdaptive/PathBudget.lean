@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Policy
+module
+
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Policy
+
+@[expose] public section
 
 /-!
 # Histories and pathwise erasure budgets

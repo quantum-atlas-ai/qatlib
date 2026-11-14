@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+
+@[expose] public section
 
 /-!
 # Subset sums and sorted spectral prefixes

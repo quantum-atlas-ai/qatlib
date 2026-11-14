@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
-import Qatlib.Papers.PhaseEst07.MainResults.Shared.SinusoidSums
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
+public import Qatlib.Papers.PhaseEst07.MainResults.Shared.SinusoidSums
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Optimal sine state for the variance cost

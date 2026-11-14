@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
-import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.SketchSpectral.EvenSVT.Numerics
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmetic
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+public import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.Numerics
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmetic
+
+@[expose] public section
 
 /-!
 # Pilot estimators and sample/query closure cost definitions

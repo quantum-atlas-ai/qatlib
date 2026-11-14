@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountDefs
+module
+
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountDefs
+
+@[expose] public section
 
 /-!
 # Approximate counting success specification

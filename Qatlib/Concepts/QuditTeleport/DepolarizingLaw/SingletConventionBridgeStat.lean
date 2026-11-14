@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeAuxiliary
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeAuxiliary
+
+@[expose] public section
 
 /-!
 # The singlet convention bridge contract

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroverSearch96.MainResults.Counterexamples
+module
+
+public import Qatlib.Papers.GroverSearch96.MainResults.Counterexamples
+
+@[expose] public section
 
 /-!
 # Corrections to Grover amplitude and success claims

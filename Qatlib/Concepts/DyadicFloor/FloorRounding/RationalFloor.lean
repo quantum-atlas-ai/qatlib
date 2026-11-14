@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicFloor.FloorRounding.RationalRoundingDefs
+module
+
+public import Qatlib.Concepts.DyadicFloor.FloorRounding.RationalRoundingDefs
+
+@[expose] public section
 
 /-!
 # Error bounds for rational dyadic floor rounding
@@ -32,6 +36,7 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.DyadicFloor.FloorRounding
 open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 
 /-- Every natural power of two is positive in the rationals. -/
 lemma two_pow_pos (p : ℕ) : 0 < (2 : ℚ) ^ p := by

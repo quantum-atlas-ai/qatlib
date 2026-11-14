@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
-import Mathlib.Data.Finset.Card
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Edge-constrained triangle-search guarantees

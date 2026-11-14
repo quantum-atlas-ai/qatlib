@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Finset.Max
-import Mathlib.Order.PiLex
-import Mathlib.Tactic
+module
 
-import Qatlib.Concepts.QcaDynamics.ScalarNoGo.LocalKernel
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Order.PiLex
+public import Mathlib.Tactic
+
+public import Qatlib.Concepts.QcaDynamics.ScalarNoGo.LocalKernel
+
+@[expose] public section
 
 /-!
 # Scalar unitarity on ordered groups
@@ -211,7 +215,7 @@ noncomputable def weightedTranslation [DecidableEq V] (e₀ : V) (c : ℂ) : Wei
     intro v hv
     by_contra h
     rw [Finset.mem_singleton] at h
-    exact hv (if_neg h)
+    exact hv (ite_eq_right h)
 
 /-- A singleton weight with coefficient of norm one satisfies the weight unitarity equations. -/
 theorem weightedTranslation_isUnitary [AddCommGroup V] [DecidableEq V] (e₀ : V) {c : ℂ}
@@ -221,7 +225,7 @@ theorem weightedTranslation_isUnitary [AddCommGroup V] [DecidableEq V] (e₀ : V
   · show (∑ e ∈ ({e₀} : Finset V),
         (if e = e₀ then c else 0) * star (if e = e₀ then c else 0)) = 1
     rw [Finset.sum_singleton]
-    simp only [if_true]
+    simp only [ite_true]
     have hmul : c * star c = ((‖c‖ ^ 2 : ℝ) : ℂ) := by
       show c * (starRingEnd ℂ) c = ((‖c‖ ^ 2 : ℝ) : ℂ)
       rw [Complex.ofReal_pow]

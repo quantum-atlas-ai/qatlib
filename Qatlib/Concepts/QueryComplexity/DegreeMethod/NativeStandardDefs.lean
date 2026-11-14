@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
-import Mathlib.Data.Int.Interval
-import Mathlib.Data.Nat.Log
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.SubspaceUnitary
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Mathlib.Logic.Equiv.Prod
-import Mathlib.Logic.Equiv.Bool
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
+public import Mathlib.Data.Int.Interval
+public import Mathlib.Data.Nat.Log
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.SubspaceUnitary
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Mathlib.Logic.Equiv.Prod
+public import Mathlib.Logic.Equiv.Bool
+
+@[expose] public section
 
 /-!
 # Finite-window simulation of native quantum machines
@@ -106,7 +110,7 @@ theorem Rule.runBasis_head_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule 
   induction t generalizing c with
   | zero =>
     have hc : c ≠ d := by intro h; subst d; omega
-    simp only [Rule.runBasis, ket_apply, if_neg hc]
+    simp only [Rule.runBasis, ket_apply, ite_eq_right hc]
   | succ t ih =>
     simp only [Rule.runBasis, lp.coeFn_sum, Finset.sum_apply, lp.coeFn_smul, Pi.smul_apply,
         smul_eq_mul]
@@ -126,7 +130,7 @@ theorem Rule.runBasis_tape_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule 
   induction t generalizing c with
   | zero =>
     have hc : c ≠ d := by intro h; subst d; exact hchange rfl
-    simp only [Rule.runBasis, ket_apply, if_neg hc]
+    simp only [Rule.runBasis, ket_apply, ite_eq_right hc]
   | succ t ih =>
     simp only [Rule.runBasis, lp.coeFn_sum, Finset.sum_apply, lp.coeFn_smul, Pi.smul_apply,
         smul_eq_mul]
@@ -183,7 +187,7 @@ theorem shiftRule_runBasis (Q A : Type*) [Fintype Q] [Fintype A] (blank : A) (mo
       rcases b with ⟨d, q, a⟩
       change (if (d, q, a) = (move, c.state, c.tape c.head) then (1 : ℂ) else 0) •
         (shiftRule Q A blank move).runBasis t (target c d q a) = 0
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
       exact zero_smul ℂ _
     · intro h
       exact False.elim (h (Finset.mem_univ _))
@@ -257,7 +261,7 @@ def Tape.patchWindow {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (
     · exact Or.inr h
     · apply Or.inl
       change (if h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ) then a (windowIndex center t i h) else T i) ≠ blank at hi
-      simpa only [dif_neg h] using! hi)
+      simpa only [dite_eq_right h] using! hi)
 
 /-- A patched tape has the prescribed symbol at each indexed position of the window. -/
 theorem Tape.patchWindow_at {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
@@ -265,14 +269,14 @@ theorem Tape.patchWindow_at {A : Type*} {blank : A} (T : Tape A blank) (center :
     T.patchWindow center t a (windowPos center t j) = a j := by
   change (if h : center - (t : ℤ) ≤ windowPos center t j ∧ windowPos center t j ≤ center + (t : ℤ)
     then a (windowIndex center t (windowPos center t j) h) else T (windowPos center t j)) = _
-  rw [dif_pos (windowPos_bounds center t j), windowIndex_pos]
+  rw [dite_eq_left (windowPos_bounds center t j), windowIndex_pos]
 
 /-- Patching a finite window leaves every tape cell outside that window unchanged. -/
 theorem Tape.patchWindow_outside {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (a : Fin (2*t+1) → A) (i : ℤ)
     (h : i < center - (t : ℤ) ∨ center + (t : ℤ) < i) : T.patchWindow center t a i = T i := by
   change (if h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ) then a (windowIndex center t i h) else T i) = _
-  rw [dif_neg (by omega)]
+  rw [dite_eq_right (by omega)]
 
 /-- A finite window configuration consisting of an internal state, a head index, and the
 window's tape symbols. -/
@@ -314,7 +318,7 @@ theorem decodeWindow_encode {Q A : Type*} {blank : A} (T : Tape A blank) (center
     (w : WindowConfig Q A t) : decodeWindow center t (encodeWindow T center t w) = some w := by
   unfold decodeWindow
   dsimp only [encodeWindow]
-  rw [dif_pos (windowPos_bounds center t w.2.1), windowIndex_pos]
+  rw [dite_eq_left (windowPos_bounds center t w.2.1), windowIndex_pos]
   congr 1
   apply Prod.ext
   · rfl
@@ -377,7 +381,7 @@ theorem Rule.runBasis_eq_window_sum {Q A : Type*} [Fintype Q] [Fintype A] (R : R
     rw [Finset.sum_eq_single w]
     · simp
     · intro v _ hv
-      rw [if_neg (fun hh => hv (encodeWindow_injective c.tape c.head t hh)), mul_zero]
+      rw [ite_eq_right (fun hh => hv (encodeWindow_injective c.tape c.head t hh)), mul_zero]
     · intro hh
       exact False.elim (hh (Finset.mem_univ _))
   · have hz : R.runBasis t c d = 0 := by
@@ -388,7 +392,7 @@ theorem Rule.runBasis_eq_window_sum {Q A : Type*} [Fintype Q] [Fintype A] (R : R
     symm
     apply Finset.sum_eq_zero
     intro w _
-    rw [if_neg (fun hh => he ⟨w, hh⟩), mul_zero]
+    rw [ite_eq_right (fun hh => he ⟨w, hh⟩), mul_zero]
 
 /-- The squared amplitudes over the encoded radius-`t` window sum to one for a globally
 well-formed rule. -/
@@ -436,7 +440,7 @@ theorem WindowConfig.step?_exists {Q A : Type*} {B : ℕ} (w : WindowConfig Q A 
     (hb : 0 ≤ (w.2.1.val : ℤ) + m.offset ∧ (w.2.1.val : ℤ) + m.offset < ((2*B+1 : ℕ) : ℤ)) :
     ∃ v, w.step? m q a = some v := by
   unfold WindowConfig.step?
-  rw [dif_pos hb]
+  rw [dite_eq_left hb]
   exact ⟨_, rfl⟩
 
 /-- Writing a cell of a patched tape is equivalent to updating that cell in the window data
@@ -526,7 +530,7 @@ theorem windowEmbed_eval {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   rw [Finset.sum_eq_single w]
   · simp
   · intro v _ hv
-    rw [if_neg (fun he => hv (encodeWindow_injective T center B he)), mul_zero]
+    rw [ite_eq_right (fun he => hv (encodeWindow_injective T center B he)), mul_zero]
   · intro hh
     exact False.elim (hh (Finset.mem_univ _))
 
@@ -648,7 +652,7 @@ theorem windowEmbed_outside {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   simp only [lp.coeFn_sum, Finset.sum_apply, lp.coeFn_smul, Pi.smul_apply, smul_eq_mul, ket_apply]
   apply Finset.sum_eq_zero
   intro w _
-  rw [if_neg (fun he => hd ⟨w, he⟩), mul_zero]
+  rw [ite_eq_right (fun he => hd ⟨w, he⟩), mul_zero]
 
 /-- A Born-weighted sum of a real observable after global evolution equals the corresponding
 finite window sum when sufficient room is available. -/
@@ -817,7 +821,7 @@ theorem injectionFrame_isometry {ι κ : Type*} [Fintype ι] [Fintype κ] [Decid
     split_ifs <;> simp
   simp only [hs, ite_mul, one_mul, zero_mul]
   rw [Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true, Matrix.one_apply, hf.eq_iff]
+  simp only [Finset.mem_univ, ite_true, Matrix.one_apply, hf.eq_iff]
 
 /-- The coordinate frame embedding local cell labels and the remaining tape data into
 mode-tagged window configurations. -/
@@ -863,7 +867,7 @@ theorem cellPlace_step {Q A : Type*} {B : ℕ}
   have hm := Move.offset_bounds m
   have hb : 0 ≤ (i.val : ℤ)+m.offset ∧ (i.val : ℤ)+m.offset < ((2*B+1 : ℕ) : ℤ) := by omega
   unfold WindowConfig.step?
-  rw [dif_pos hb, cellAssemble_update]
+  rw [dite_eq_left hb, cellAssemble_update]
   rfl
 
 /-- A local gate column in the placement frame is the corresponding cell-swap column with the
@@ -879,9 +883,9 @@ theorem Rule.cellLocalGate_column {Q A : Type*} [Fintype Q] [Fintype A] [Decidab
     ∑ z : CellView Q A × CellRest A i,
       (if x = cellPlace i hi z then 1 else 0) *
         (R.cellSwap z.1 vr.1 * (if z.2 = vr.2 then 1 else 0)) at he
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true] at he
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at he
   rw [Fintype.sum_prod_type] at he
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true] at he
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true] at he
   rw [he]
   apply Finset.sum_congr rfl
   intro v _
@@ -1042,7 +1046,7 @@ theorem Rule.windowRun_one_inner_ne {Q A : Type*} [Fintype Q] [Fintype A] (R : R
   rw [← R.runBasis_eq_unitary_power U hU 1, ← R.runBasis_eq_unitary_power U hU 1]
   change inner ℂ (U (ket (encodeWindow T 0 B u))) (U (ket (encodeWindow T 0 B v))) = 0
   rw [U.inner_map_map, ket_inner]
-  exact if_neg (fun he => hne (encodeWindow_injective T 0 B he))
+  exact ite_eq_right (fun he => hne (encodeWindow_injective T 0 B he))
 
 /-- The coordinate inner product with a one-step window evolution equals the local sum weighted
 by conjugate transition amplitudes. -/
@@ -1127,7 +1131,7 @@ theorem Rule.cellSweep_source {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq
     R.cellSweep l *ᵥ Pi.single (false,w) 1 =
       if (⟨w.2.1,hw⟩ : WindowCenter B) ∈ l then windowMode true (R.windowRun B 1 w) else Pi.single (false,w) 1 := by
   induction l with
-  | nil => simp only [Rule.cellSweep, Matrix.one_mulVec, List.not_mem_nil, if_false]
+  | nil => simp only [Rule.cellSweep, Matrix.one_mulVec, List.not_mem_nil, ite_false]
   | cons i l ih =>
     obtain ⟨hnot,htail⟩ := List.nodup_cons.mp hl
     rw [Rule.cellSweep, ← Matrix.mulVec_mulVec]
@@ -1178,7 +1182,7 @@ true-mode one-step evolution. -/
 theorem Rule.cellSweep_complete {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (w : WindowConfig Q A B) (hw : w.Room 1) :
     R.cellSweep (windowCenters B) *ᵥ Pi.single (false,w) 1 = windowMode true (R.windowRun B 1 w) := by
-  rw [R.cellSweep_source h _ (windowCenters_nodup B) w hw, if_pos (mem_windowCenters _)]
+  rw [R.cellSweep_source h _ (windowCenters_nodup B) w hw, ite_eq_left (mem_windowCenters _)]
 
 /-- The coordinate matrix of a permutation acts on amplitudes by precomposition with its
 inverse. -/
@@ -1390,7 +1394,7 @@ theorem WindowOp.decode_encode {B : ℕ} (g : WindowOp B) : decode B g.encode = 
   | cell i =>
     have hi := i.property
     simp only [encode,decode]
-    rw [if_neg (by omega), dif_pos (by omega)]
+    rw [ite_eq_right (by omega), dite_eq_left (by omega)]
     congr 3
 
 /-- The list of natural-number codes for the `t`-step window word. -/
@@ -1422,7 +1426,7 @@ theorem slotRoutePrefix_spec {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin 
   | succ n ih =>
     intro j hj
     have hnk : n < k := by omega
-    rw [slotRoutePrefix, dif_pos hnk, Equiv.trans_apply]
+    rw [slotRoutePrefix, dite_eq_left hnk, Equiv.trans_apply]
     by_cases he : j.val = n
     · have hjn : j = ⟨n,hnk⟩ := Fin.ext he
       subst j
@@ -1475,9 +1479,9 @@ theorem slotRouteSwaps_eval {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k
   | zero => rfl
   | succ n ih =>
     by_cases hn : n < k
-    · rw [slotRouteSwaps, dif_pos hn, swapWordEval_append, ih, slotRoutePrefix, dif_pos hn]
+    · rw [slotRouteSwaps, dite_eq_left hn, swapWordEval_append, ih, slotRoutePrefix, dite_eq_left hn]
       rfl
-    · rw [slotRouteSwaps, dif_neg hn, slotRoutePrefix, dif_neg hn, ih]
+    · rw [slotRouteSwaps, dite_eq_right hn, slotRoutePrefix, dite_eq_right hn, ih]
 
 /-- For `n ≤ k`, the first `n` routing stages use exactly `n` swaps. -/
 theorem slotRouteSwaps_length {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α)
@@ -1485,7 +1489,7 @@ theorem slotRouteSwaps_length {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin
   induction n with
   | zero => rfl
   | succ n ih =>
-    rw [slotRouteSwaps, dif_pos (by omega), List.length_append]
+    rw [slotRouteSwaps, dite_eq_left (by omega), List.length_append]
     simp [ih (by omega)]
 
 /-- A Boolean processing mode paired with a finite window head position. -/
@@ -1582,7 +1586,7 @@ theorem headToBits_injective (B : ℕ) : Function.Injective (headToBits B) := by
 /-- Decoding an encoded head register recovers the mode-tagged head position. -/
 theorem headFromBits_toBits (B : ℕ) (x : WindowHead B) : headFromBits B (headToBits B x) = some x := by
   unfold headFromBits
-  rw [dif_pos (by rw [headToBits_address]; exact (headAddressEquiv B x).isLt)]
+  rw [dite_eq_left (by rw [headToBits_address]; exact (headAddressEquiv B x).isLt)]
   congr 1
   apply (headAddressEquiv B).injective
   simp only [Equiv.apply_symm_apply]
@@ -1677,7 +1681,7 @@ theorem injectionFrame_equiv_trans {κ : Type*} [Fintype κ] [DecidableEq κ] (e
   ext x y
   change (if x = f (e y) then (1 : ℂ) else 0) =
     ∑ z : κ, (if x = f z then 1 else 0) * (if z = e y then 1 else 0)
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- The matrix product implementing a list of transpositions in list order. -/
 noncomputable def swapWordMatrix {κ : Type*} [Fintype κ] [DecidableEq κ] : List (κ × κ) → Matrix κ κ ℂ
@@ -1850,7 +1854,7 @@ theorem injectionFrame_comp {ι κ η : Type*} [Fintype κ] [DecidableEq κ] [De
   ext x y
   change (if x = g (f y) then (1 : ℂ) else 0) =
     ∑ z : κ, (if x = g z then 1 else 0) * (if z = f y then 1 else 0)
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- Changing a frame by a unitary matrix conjugates the corresponding frame extension by that
 matrix. -/
@@ -1990,7 +1994,7 @@ theorem cellToBits_injective (q a : ℕ) : Function.Injective (cellToBits q a) :
 theorem cellFromBits_toBits (q a : ℕ) (x : CellView (Fin q) (Fin a)) :
     cellFromBits q a (cellToBits q a x) = some x := by
   unfold cellFromBits
-  rw [dif_pos (by rw [cellToBits_address]; exact (cellLabelEquiv q a x).isLt)]
+  rw [dite_eq_left (by rw [cellToBits_address]; exact (cellLabelEquiv q a x).isLt)]
   congr 1
   apply (cellLabelEquiv q a).injective
   simp only [Equiv.apply_symm_apply]
@@ -2142,7 +2146,7 @@ theorem finToBits_injective (n : ℕ) : Function.Injective (finToBits n) := by
 theorem finFromBits_toBits (n : ℕ) (x : Fin n) : finFromBits n (finToBits n x) = some x := by
   unfold finFromBits
   simp only [finToBits, Equiv.apply_symm_apply, Fin.val_castLE]
-  rw [dif_pos x.isLt]
+  rw [dite_eq_left x.isLt]
 
 /-- Re-encoding a successfully decoded finite-index register recovers the original register. -/
 theorem finToBits_fromBits {n : ℕ} {b : Qatlib.Foundations.PureStateMath.Reg (finiteQubits n)} {x : Fin n}
@@ -2245,9 +2249,9 @@ theorem frameUnitary_tensor_single {K S H : Type*} [Fintype K] [Fintype S] [Fint
   change (∑ y : H, Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (injectionFrame f) (T ⊗ₖ (1 : Matrix S S ℂ)) x y *
       (if y = f (v,r) then 1 else 0)) =
     ∑ z : K × S, (if x = f z then 1 else 0) * (T z.1 v * (if z.2 = r then 1 else 0)) at he
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true] at he
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at he
   rw [Fintype.sum_prod_type] at he
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true] at he
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true] at he
   change Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (injectionFrame f)
       (T ⊗ₖ (1 : Matrix S S ℂ)) x (f (v,r)) = _
   rw [he]
@@ -2639,7 +2643,7 @@ theorem injectionFrame_eval {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I
     (injectionFrame f *ᵥ x) (f i) = x i := by
   have he := congrArg (fun v : I → ℂ => v i)
     (congrArg (fun M : Matrix I I ℂ => M *ᵥ x) (injectionFrame_isometry f hf))
-  (try dsimp only at he)
+
   rw [← Matrix.mulVec_mulVec, injectionFrame_adjoint_apply, Matrix.one_mulVec] at he
   exact he
 
@@ -2675,7 +2679,7 @@ theorem injectionFrame_outside {I J : Type*} [Fintype I] [DecidableEq J]
   simp only [Matrix.mulVec, dotProduct, injectionFrame]
   apply Finset.sum_eq_zero
   intro i _
-  rw [if_neg (fun he => hj ⟨i,he.symm⟩), zero_mul]
+  rw [ite_eq_right (fun he => hj ⟨i,he.symm⟩), zero_mul]
 
 /-- An injective coordinate-frame embedding preserves Born-weighted sums after pulling the
 observable back along the encoding. -/
@@ -2705,7 +2709,7 @@ theorem tapeBitsDecode_encode (a B : ℕ) (x : Fin (2*B+1) → Fin a) :
     tapeBitsDecode a B (fun j => finToBits a (x j)) = some x := by
   unfold tapeBitsDecode
   simp only [finToBits, Equiv.apply_symm_apply, Fin.val_castLE]
-  rw [dif_pos (fun j => (x j).isLt)]
+  rw [dite_eq_left (fun j => (x j).isLt)]
 
 /-- Decode the head, state, and tape registers of a binary window, failing if any component is
 illegal. -/
@@ -2743,7 +2747,7 @@ theorem Rule.qubitWord_born_value {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.
   rw [R.qubitWord_source h B t w hw, windowQubitFrame, injectionFrame_born_value (windowToQubits q a B)
     ((binaryWindowFlatten q a B).injective.comp (windowToBits_injective q a B))]
   simp only [Fintype.sum_prod_type, Fintype.sum_bool, windowMode, LinearMap.coe_mk, AddHom.coe_mk]
-  simp only [Bool.true_eq_false, if_false, if_true, norm_zero, zero_pow (by decide : 2 ≠ 0), zero_mul,
+  simp only [Bool.true_eq_false, ite_false, ite_true, norm_zero, zero_pow (by decide : 2 ≠ 0), zero_mul,
     Finset.sum_const_zero, zero_add]
 
 /-- The payoff obtained by decoding a false-mode window register and evaluating the global
@@ -3097,7 +3101,6 @@ theorem Rule.binaryCanonicalGate_entry {q a B : ℕ} (R : Rule (Fin q) (Fin a)) 
         if (binaryCellSplit q a i.val x).2 = (binaryCellSplit q a i.val y).2 then 1 else 0 := by
   have he := congrArg (fun M => M (binaryCellSplit q a i.val x) (binaryCellSplit q a i.val y))
     (R.binaryCanonicalGate_local i)
-  (try dsimp only at he)
   rw [injectionFrame_equiv_conjugate_apply] at he
   exact he
 
@@ -3505,12 +3508,12 @@ theorem swapWordEval_headFlipList {B : ℕ} (l : List (Fin (2*B+1))) (p : Bool) 
       | false =>
         rw [Equiv.swap_apply_left]
         have hinner := ih (hnodup := htail) true j
-        rw [hinner, if_neg hnotj, if_pos (by simp : j ∈ j :: l)]
+        rw [hinner, ite_eq_right hnotj, ite_eq_left (by simp : j ∈ j :: l)]
         rfl
       | true =>
         rw [Equiv.swap_apply_right]
         have hinner := ih (hnodup := htail) false j
-        rw [hinner, if_neg hnotj, if_pos (by simp : j ∈ j :: l)]
+        rw [hinner, ite_eq_right hnotj, ite_eq_left (by simp : j ∈ j :: l)]
         rfl
     · have h1 : (p, k) ≠ (false, j) := by
         intro hc
@@ -3528,7 +3531,7 @@ theorem headFlipWord_eval (B : ℕ) (h : WindowHead B) :
     swapWordEval (headFlipWord B) h = (!h.1, h.2) := by
   rcases h with ⟨p, k⟩
   rw [headFlipWord, swapWordEval_headFlipList (List.finRange (2*B+1)) p k
-    (List.nodup_finRange (2*B+1)), if_pos (List.mem_finRange k)]
+    (List.nodup_finRange (2*B+1)), ite_eq_left (List.mem_finRange k)]
 
 /-- The head mode-flip swap word transported to binary head-register labels. -/
 def headFlipBitWord (B : ℕ) :

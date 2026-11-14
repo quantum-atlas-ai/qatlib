@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwRecordStatistics
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwSpectralMixture
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwRecordStatistics
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwSpectralMixture
+
+@[expose] public section
 
 /-!
 # Two-projector mixtures and verifier promises

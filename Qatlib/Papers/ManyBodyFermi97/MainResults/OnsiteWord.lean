@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.TwoParticleAntisym
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.TwoParticleAntisym
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Onsite double-occupation phase circuits
@@ -160,7 +164,7 @@ theorem word_apply {m : ℕ} (sites : List (Fin m)) (V : Fin m → ℝ) (time : 
     simp only [energy,List.map_cons,List.sum_cons]
     by_cases hi : x (i,false) = true ∧ x (i,true) = true
     · simp only [scalar,Bool.and_eq_true]
-      rw [if_pos hi,if_pos hi]
+      rw [ite_eq_left hi,ite_eq_left hi]
       rw [← mul_assoc,← Complex.exp_add]
       congr 2
       push_cast

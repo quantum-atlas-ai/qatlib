@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridHHLConsumers
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridHHLConsumers
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Spectral pseudoinverses for Hermitian systems
@@ -70,7 +74,7 @@ theorem singular_hermitian_support_products (D : ℕ) (eig : Fin D → ℝ) (V :
   have he (i : Fin D) : (eig i:ℂ)*(eig i:ℂ)⁻¹ = if eig i=0 then 0 else 1 := by
     by_cases h : eig i=0
     · simp [h]
-    · simp only [if_neg h]
+    · simp only [ite_eq_right h]
       exact mul_inv_cancel₀ (Complex.ofReal_ne_zero.mpr h)
   constructor
   · rw [continuousHHLMatrix, singular_conj_diagonal_mul _ _ V hV]

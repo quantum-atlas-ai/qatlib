@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+
+@[expose] public section
 
 /-!
 # Rational objective search state and recursion
@@ -29,7 +33,7 @@ set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.SdpObjective.ObjectiveSearch
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 /-- The state of rational objective bisection, containing interval endpoints, the best
 coordinate vector, and the history of thresholds and ellipsoid results. -/
 structure SearchState (D E : ℕ) where

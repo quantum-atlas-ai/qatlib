@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.ActualDiagonalization
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.ActualDiagonalization
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Hermitian evolution and phase estimation

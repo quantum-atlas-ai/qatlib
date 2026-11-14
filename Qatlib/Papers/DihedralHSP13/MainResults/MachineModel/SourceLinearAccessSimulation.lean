@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Data.List.Range
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Data.List.Range
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,7 +52,7 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Matrix
 
-variable {I : Type*} [Fintype I] [DecidableEq I]
+variable {I : Type*} [instFintypeI : Fintype I] [instDecidableEqI : DecidableEq I]
 
 /-! ## §1. Boolean and `ZMod 2` formulations of one memory cell -/
 
@@ -57,9 +61,12 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 def qramFlip (mem : I → ZMod 2) : I × ZMod 2 → I × ZMod 2 :=
   fun p => (p.1, p.2 + mem p.1)
 
+omit instFintypeI instDecidableEqI in
 /-- A random-access read is an involution: adding the stored cell twice returns the
 original bit.  This is the unitary that a quantum access memory performs in one step. -/
-theorem qramFlip_involutive (mem : I → ZMod 2) : Function.Involutive (qramFlip mem) := by
+theorem qramFlip_involutive {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (mem : I → ZMod 2) : Function.Involutive (qramFlip mem) := by
   intro p
   rcases p with ⟨a, b⟩
   simp only [qramFlip, add_assoc, CharTwo.add_self_eq_zero, add_zero]
@@ -69,18 +76,24 @@ the address register currently holds `n`, using the *same* memory cell `mem n`. 
 def scanFlip (mem : I → ZMod 2) (n : I) : I × ZMod 2 → I × ZMod 2 :=
   fun p => (p.1, p.2 + (if p.1 = n then mem n else 0))
 
+omit instFintypeI in
 /-- Each scan step is an involution (it is a conditional bit flip). -/
-theorem scanFlip_involutive (mem : I → ZMod 2) (n : I) :
+theorem scanFlip_involutive {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (mem : I → ZMod 2) (n : I) :
     Function.Involutive (scanFlip mem n) := by
   intro p
   rcases p with ⟨a, b⟩
   by_cases h : a = n
-  · simp only [scanFlip, h, if_true, add_assoc, CharTwo.add_self_eq_zero, add_zero]
+  · simp only [scanFlip, h, ite_true, add_assoc, CharTwo.add_self_eq_zero, add_zero]
   · simp [scanFlip, h]
 
+omit instFintypeI in
 /-- A scan step only reads the cell `mem n` it is indexed by; this is the formal
 "same cells" content of the scan. -/
-theorem scanFlip_depends_only_on_cell (mem mem' : I → ZMod 2) (n : I)
+theorem scanFlip_depends_only_on_cell {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (mem mem' : I → ZMod 2) (n : I)
     (h : mem n = mem' n) : scanFlip mem n = scanFlip mem' n := by
   funext p
   simp only [scanFlip, h]
@@ -90,8 +103,11 @@ theorem scanFlip_depends_only_on_cell (mem mem' : I → ZMod 2) (n : I)
 def qramFlipBool (f : I → Bool) : I × Bool → I × Bool :=
   fun p => (p.1, p.2 ^^ f p.1)
 
+omit instFintypeI instDecidableEqI in
 /-- The Boolean read is an involution (`xor` twice cancels). -/
-theorem qramFlipBool_involutive (f : I → Bool) : Function.Involutive (qramFlipBool f) := by
+theorem qramFlipBool_involutive {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (f : I → Bool) : Function.Involutive (qramFlipBool f) := by
   intro p
   rcases p with ⟨a, b⟩
   cases h : f a <;> simp [qramFlipBool, h]
@@ -139,13 +155,19 @@ theorem queryCount_map_gate {J K : Type*} (L : List J) (f : J → Matrix K K ℂ
   | nil => simp
   | cons n L ih => simp [ih]
 
+omit instFintypeI in
 /-- The scan circuit performs exactly one gate per address in `L`. -/
-theorem gateCount_scanCircuitOn (mem : I → ZMod 2) (L : List I) :
+theorem gateCount_scanCircuitOn {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (mem : I → ZMod 2) (L : List I) :
     GateCount (scanCircuitOn mem L) = L.length := by
   simpa [scanCircuitOn] using gateCount_map_gate L (fun n => permMatrix (scanFlip mem n))
 
+omit instFintypeI in
 /-- The scan circuit performs no oracle query. -/
-theorem queryCount_scanCircuitOn (mem : I → ZMod 2) (L : List I) :
+theorem queryCount_scanCircuitOn {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (mem : I → ZMod 2) (L : List I) :
     QueryCount (scanCircuitOn mem L) = 0 := by
   simpa [scanCircuitOn] using queryCount_map_gate L (fun n => permMatrix (scanFlip mem n))
 
@@ -178,7 +200,7 @@ theorem sum_ite_cell (mem : I → ZMod 2) (a : I) :
   rw [Finset.sum_eq_single a]
   · simp
   · intro n _ hn
-    rw [if_neg (Ne.symm hn)]
+    rw [ite_eq_right (Ne.symm hn)]
   · intro h
     exact absurd (Finset.mem_univ a) h
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsStat
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsStat
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Products of nested amplification gains
@@ -55,7 +59,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m+1) → Matrix H H ℂ)
     {k : ℕ} (hk : k ≤ m) : extendClock m P k = P ⟨k, by omega⟩ := by
   unfold extendClock
-  exact dif_pos hk
+  exact dite_eq_left hk
 
 /-- The single-stage word at slot `k` is legal when `k < m + 1`. -/
 private theorem legal_stageWord {H : Type} [Fintype H] [DecidableEq H] (m k : ℕ)
@@ -88,7 +92,7 @@ private theorem calls_stageWord {H : Type} (k slot : ℕ) :
 /-- A stage word with nonzero slot index makes no calls to slot zero. -/
 private theorem calls_stageWord_zero {H : Type} (k : ℕ) (hk : k ≠ 0) :
     calls (stageWord (H := H) k) 0 = 0 := by
-  rw [calls_stageWord, if_neg hk]
+  rw [calls_stageWord, ite_eq_right hk]
 
 /-- Weighted oracle cost is additive under concatenation. -/
 private theorem weightedCost_append {H : Type} (prices : ℕ → ℕ) (C D : Word H 1) :
@@ -472,9 +476,9 @@ private theorem gainLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     0 < gainLoss (2*rs (j+1)+1) (preAmplitude (extendClock m P) bad ω U rs j) := by
   unfold gainLoss
   by_cases ha : preAmplitude (extendClock m P) bad ω U rs j = 0
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     norm_num
-  · rw [if_neg ha]
+  · rw [ite_eq_right ha]
     set a := preAmplitude (extendClock m P) bad ω U rs j with haa
     have ha0 : 0 < a := lt_of_le_of_ne (norm_nonneg _) (Ne.symm ha)
     have hno := noOvershoot m P bad U ω α rs htun habove hj

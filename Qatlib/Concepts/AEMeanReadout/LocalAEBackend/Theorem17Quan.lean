@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
+
+@[expose] public section
 
 /-!
 # Success and expected cost of exact counting
@@ -670,14 +674,14 @@ private theorem ec_dyadic_layer (c : ℝ) (hc : 0 ≤ c) (m J : ℕ) (hm : (m:�
   | succ J ih =>
     rw [Finset.sum_range_succ]
     by_cases hmJ : (m:ℝ) ≤ c*(2:ℝ)^J
-    · rw [if_neg (not_lt.mpr hmJ)]
+    · rw [ite_eq_right (not_lt.mpr hmJ)]
       have hstep := ih m hmJ htermnn
       have hsum : (0:ℝ) ≤ ∑ j ∈ Finset.range J,
           (if c*(2:ℝ)^j < (m:ℝ) then 2*c*(2:ℝ)^j else 0) :=
         Finset.sum_nonneg (fun j _ => htermnn j)
       linarith
     · have hlt : c*(2:ℝ)^J < (m:ℝ) := lt_of_not_ge hmJ
-      rw [if_pos hlt]
+      rw [ite_eq_left hlt]
       have hsum : (0:ℝ) ≤ ∑ j ∈ Finset.range J,
           (if c*(2:ℝ)^j < (m:ℝ) then 2*c*(2:ℝ)^j else 0) :=
         Finset.sum_nonneg (fun j _ => htermnn j)
@@ -731,8 +735,8 @@ private theorem ec_dyadic_expectation {M : ℕ} (p : Fin M → ℝ)
       = 2*c*(2:ℝ)^j*(p z₁*(p z₂*(if c*(2:ℝ)^j < (F z₁ z₂ : ℝ) then (1:ℝ) else 0))) := by
     intro j z₁ z₂
     by_cases hE : c*(2:ℝ)^j < (F z₁ z₂ : ℝ)
-    · rw [if_pos hE, if_pos hE]; ring
-    · rw [if_neg hE, if_neg hE]; ring
+    · rw [ite_eq_left hE, ite_eq_left hE]; ring
+    · rw [ite_eq_right hE, ite_eq_right hE]; ring
   have hstep2 : (∑ z₁ : Fin M, ∑ z₂ : Fin M, p z₁*(p z₂*(2*c + ∑ j ∈ Finset.range J,
         (if c*(2:ℝ)^j < (F z₁ z₂ : ℝ) then 2*c*(2:ℝ)^j else 0))))
       = (∑ z₁ : Fin M, ∑ z₂ : Fin M, p z₁*(p z₂*(2*c))) +
@@ -1101,8 +1105,8 @@ private theorem ec_cost_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
               rw [hnat]
             rw [hswap] at hle
             linarith
-          rw [if_pos hE, if_pos hw₁, if_pos hw₂, mul_one]
-        · rw [if_neg hE, mul_zero, mul_zero]
+          rw [ite_eq_left hE, ite_eq_left hw₁, ite_eq_left hw₂, mul_one]
+        · rw [ite_eq_right hE, mul_zero, mul_zero]
           exact mul_nonneg (hg z₁) (hg z₂)
       calc (∑ z₁ : Fin (exactCountM₀ N), ∑ z₂ : Fin (exactCountM₀ N),
           (aeLaw (exactCountM₀ N) (QFTMatrix N) (⟨0,hN⟩ : Fin N) S

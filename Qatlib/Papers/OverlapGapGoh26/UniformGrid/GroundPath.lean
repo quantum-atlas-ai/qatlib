@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.NormRegion
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.NormRegion
+
+@[expose] public section
 
 /-!
 # Ground and maximum energies along Gaussian paths
@@ -111,8 +115,7 @@ theorem actual_ground_continuum_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (ε : ℝ
           abs_sub_le (smoothGround m β (inputPath w.1 w.2 τ)) (smoothGround m β w.1) (ground w.1)
       rw [abs_sub_comm (ground (inputPath w.1 w.2 τ)) (smoothGround m β (inputPath w.1 w.2 τ))] at htri
       refine ⟨Real.arcsin (Real.sqrt τ),inputPath_angle τ,?_⟩
-      change ε/2≤|smoothGround m β
-          (ContinuousLinearMap.rotation (Real.arcsin (Real.sqrt τ)) w).1-smoothGround m β w.1|
+
       rw [← inputPath_rotation w.1 w.2 τ hτ]
       linarith
     · exact Or.inl hw

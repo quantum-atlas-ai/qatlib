@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
-import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStack
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
+public import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStack
+
+@[expose] public section
 
 /-!
 # Fixed address-gate routing for native machines
@@ -396,7 +400,7 @@ theorem toOracleQTM_queryRow {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A
       intro q' _
       apply Finset.sum_congr rfl
       intro b _
-      simp only [oracleDelta, toOracleQTM, Finset.mem_singleton, if_true]
+      simp only [oracleDelta, toOracleQTM, Finset.mem_singleton, ite_true]
       exact normSq_ite
     rw [h1]
     calc
@@ -497,8 +501,8 @@ theorem binaryRouteGateMatrix_amp (q a B : ℕ) (i : WindowCenter B)
     rw [AddrWord.perm_apply]
   rw [hf]
   by_cases hc : (AddrWord.eval (routeGateWord B i) x.1, x.2.1, x.2.2) = y
-  · rw [if_pos hc, if_pos hc.symm]
-  · rw [if_neg hc, if_neg (Ne.symm hc)]
+  · rw [ite_eq_left hc, ite_eq_left hc.symm]
+  · rw [ite_eq_right hc, ite_eq_right (Ne.symm hc)]
 
 /-- Each head-flip matrix entry is one exactly at the output of `binaryFlipEval` and zero
 elsewhere. -/
@@ -513,8 +517,8 @@ theorem binaryFlipGateMatrix_amp (q a B : ℕ) (x y : BinaryWindow q a B) :
     rw [AddrWord.perm_apply]
   rw [hf]
   by_cases hc : (AddrWord.eval (flipGateWord B) x.1, x.2.1, x.2.2) = y
-  · rw [if_pos hc, if_pos hc.symm]
-  · rw [if_neg hc, if_neg (Ne.symm hc)]
+  · rw [ite_eq_left hc, ite_eq_left hc.symm]
+  · rw [ite_eq_right hc, ite_eq_right (Ne.symm hc)]
 
 /-- On a basis input, the routing matrix has Born probability one at the routed output and zero
 at every other output. -/
@@ -543,7 +547,7 @@ theorem binaryRouteGateMatrix_mass (q a B : ℕ) (i : WindowCenter B)
   · simp [h]
   · intro y _ hy
     rw [h]
-    rw [if_neg (Ne.symm hy)]
+    rw [ite_eq_right (Ne.symm hy)]
   · intro hc
     exact (hc (Finset.mem_univ _)).elim
 
@@ -1107,7 +1111,7 @@ theorem tape_eq_cases {t : ℕ} {Q A : Type*} (c c'' : WindowCfg t Q A) (b : A) 
     · have h1 := h c''.head
       have h2 : c.tape c''.head = b' := by
         have h3 := h1
-        simp only [if_neg (Ne.symm hh)] at h3
+        simp only [ite_eq_right (Ne.symm hh)] at h3
         exact h3
       exact h2.symm
     · intro j hj hj2

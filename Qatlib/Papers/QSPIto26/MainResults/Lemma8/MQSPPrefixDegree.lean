@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
-import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
-import Qatlib.Papers.QSPIto26.MainResults.Lemma7.MQSPDegreeStep
+module
+
+public import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma7.MQSPDegreeStep
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -98,9 +102,9 @@ lemma count_castLE_succ {m n : ℕ} (s : Fin n → Fin m) (j : Fin m) (l : ℕ) 
     rw [← Finset.sum_filter (fun k => t k = j) (fun _ => (1 : ℕ)), Finset.card_eq_sum_ones]
   rw [hcard, hcard, Fin.sum_univ_castSucc]
   by_cases hjs : j = s (Fin.castLE h2' (Fin.last l))
-  · rw [if_pos hjs.symm, if_pos hjs]
+  · rw [ite_eq_left hjs.symm, ite_eq_left hjs]
     rfl
-  · rw [if_neg (fun h => hjs h.symm), if_neg hjs]
+  · rw [ite_eq_right (fun h => hjs h.symm), ite_eq_right hjs]
     rfl
 
 /-- Truncating the prefix at `l` and appending the `(l+1)`-st signal and phase reproduces the
@@ -146,13 +150,13 @@ lemma wordMatrix_castLE_succ {m n : ℕ} (φ : Fin (n + 1) → ℝ) (s : Fin n �
 /-- Lemma 8 (arXiv:2410.02332v3, p. 13, Eqs. (65)--(66)): every prefix `P^{(l)}` of a word with
 `deg P = n` saturates its degree. Complete given the lex-leading-monomial interface hypothesis
 `hlead` of Lemmas 4--7. -/
-theorem lemma8_prefix_degree {m n : ℕ} (hn : 1 ≤ n) (P Q : MLaurent m)
+theorem lemma8_prefix_degree {m n : ℕ} (_hn : 1 ≤ n) (P Q : MLaurent m)
     (φ : Fin (n + 1) → ℝ) (s : Fin n → Fin m)
     (h : wordMatrix n φ s = !![P, Q; -starOp Q, starOp P])
     (hdeg : degTotal P = n)
     (hlead : ∀ (X : MLaurent m) (j : Fin m), X ≠ 0 →
       degVar j (X * starOp X) = 2 * degVar j X) :
-    ∀ (l : ℕ) (h1 : 1 ≤ l) (h2 : l ≤ n),
+    ∀ (l : ℕ) (_h1 : 1 ≤ l) (h2 : l ≤ n),
       degTotal (wordMatrixPrefix n l h2 φ s 0 0) = l ∧
         ∀ j : Fin m,
           degVar j (wordMatrixPrefix n l h2 φ s 0 0) =
@@ -275,9 +279,9 @@ theorem lemma8_prefix_degree {m n : ℕ} (hn : 1 ≤ n) (P Q : MLaurent m)
         ∑ j : Fin m, (if s (Fin.castLE h2 k) = j then 1 else 0) = 1 := by
       intro k
       rw [Finset.sum_eq_single_of_mem (s (Fin.castLE h2 k)) (Finset.mem_univ _)]
-      · exact if_pos rfl
+      · exact ite_eq_left rfl
       · intro b _ hb
-        exact if_neg (Ne.symm hb)
+        exact ite_eq_right (Ne.symm hb)
     simp only [hone]
     simp
   -- Saturation at the full length: `deg P = n` forces equality at `l = n`.
@@ -288,7 +292,7 @@ theorem lemma8_prefix_degree {m n : ℕ} (hn : 1 ≤ n) (P Q : MLaurent m)
   have topEq : ∀ j : Fin m, degVar j P
       = (Finset.univ.filter (fun k : Fin n => s (Fin.castLE (Nat.le_refl n) k) = j)).card := by
     by_contra hcon
-    push_neg at hcon
+    push Not at hcon
     obtain ⟨j₀, hj₀⟩ := hcon
     have hle : ∀ j ∈ (Finset.univ : Finset (Fin m)), degVar j P
         ≤ (Finset.univ.filter (fun k : Fin n => s (Fin.castLE (Nat.le_refl n) k) = j)).card := by
@@ -358,14 +362,14 @@ theorem lemma8_prefix_degree {m n : ℕ} (hn : 1 ≤ n) (P Q : MLaurent m)
         have hcountL1 := hstep.2 j
         rw [hentryEq j] at hcountL1
         by_cases hjs : j = s (Fin.castLE h2' (Fin.last l))
-        · rw [if_pos hjs] at hcj
+        · rw [ite_eq_left hjs] at hcj
           rw [hjs] at hcountL1 hcj ⊢
           rcases hstep7.1 with h' | h'
           · have hbL := boundU l (Nat.le_of_succ_le h2') j
             rw [hjs, hPlE] at hbL
             omega
           · omega
-        · rw [if_neg hjs] at hcj
+        · rw [ite_eq_right hjs] at hcj
           have honej := hstep7.2 j hjs
           rw [honej] at hcountL1
           omega
@@ -377,7 +381,7 @@ theorem lemma8_prefix_degree {m n : ℕ} (hn : 1 ≤ n) (P Q : MLaurent m)
           = ∑ j : Fin m, (Finset.univ.filter (fun k : Fin l => s (Fin.castLE (Nat.le_of_succ_le h2') k) = j)).card :=
         Finset.sum_congr rfl (fun j _ => key j)
       omega
-  intro l h1 h2
+  intro l _h1 h2
   exact main (n - l) l (by omega) h2
 
 end Qatlib.Papers.QSPIto26.MainResults.Lemma8

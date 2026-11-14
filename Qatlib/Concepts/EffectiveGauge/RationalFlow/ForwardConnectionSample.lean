@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.HittingSpectrum
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.HittingSpectrum
+
+@[expose] public section
 
 /-!
 # An idealized spectral detection model
@@ -78,13 +82,13 @@ def idealMainDetectWeight (p detAcc : ℝ) : ℝ := p + (1 - p) * detAcc
 theorem estimateNonzero_of_pos {Δ α : ℝ} (hα : 0 < α) (h : Δ ≤ α) :
     idealThresholdWeight Δ α = 2 / 3 := by
   unfold idealThresholdWeight
-  rw [abs_of_pos hα, if_pos h]
+  rw [abs_of_pos hα, ite_eq_left h]
 
 /-- A positive phase below `Δ` has ideal threshold weight zero. -/
 theorem estimateNonzero_of_not {Δ α : ℝ} (hα : 0 < α) (h : ¬ Δ ≤ α) :
     idealThresholdWeight Δ α = 0 := by
   unfold idealThresholdWeight
-  rw [abs_of_pos hα, if_neg h]
+  rw [abs_of_pos hα, ite_eq_right h]
 
 /-- For `0 < Δ ≤ 1`, the detection cost is at most `2 * k / Δ`. -/
 theorem detectCost_le (Δ : ℝ) (k : ℕ) (hΔ0 : 0 < Δ) (hΔ1 : Δ ≤ 1) :
@@ -131,7 +135,7 @@ theorem detectAccept_zero (S : PhaseSpectrum J) (Δ : ℝ) (k : ℕ)
 2`, acceptance is at least `totalMass - 2 * ε`. This is the idealized acceptance estimate
 for Lemma 3.4 in [MagniezEtAl2008]. -/
 theorem lemma_3_4_accept (S : PhaseSpectrum J) (Δ ε : ℝ) (k : ℕ)
-    (hε0 : 0 < ε) (hε1 : ε ≤ 1)
+    (hε0 : 0 < ε) (_hε1 : ε ≤ 1)
     (hk : (1 / 3 : ℝ) ^ k ≤ ε / 2)
     (hmass : S.totalMass ≤ 1)
     (hQH : (∑ j ∈ Finset.univ.filter (fun j => S.phase j < Δ), S.mass j) ≤ ε) :
@@ -194,7 +198,7 @@ theorem theorem_3_5 (S : PhaseSpectrum J) (ε T : ℝ) (k : ℕ)
     have heq : Finset.univ.filter (fun j => S.phase j < 1 / T) =
         Finset.univ.filter (fun j => T < (S.law).val j) := by
       ext j
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and, law, HittingLaw.val]
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, law]
       constructor
       · intro h
         rw [lt_div_iff₀ hT0] at h
@@ -225,7 +229,7 @@ theorem theorem_3_5_zero (S : PhaseSpectrum J) (T : ℝ) (k : ℕ)
 /-- For `0 ≤ p < 1` and `ε > 0`, a conditional detection weight at least `1 - 2 * ε / (1 - p)`
 gives combined acceptance at least `1 - 2 * ε`, as in Corollary 3.6 of [MagniezEtAl2008]. -/
 theorem corollary_3_6 (p detAcc ε : ℝ)
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hε0 : 0 < ε)
+    (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (_hε0 : 0 < ε)
     (hm : 0 < 1 - p)
     (hdet : 1 - 2 * ε / (1 - p) ≤ detAcc) :
     1 - 2 * ε ≤ idealMainDetectWeight p detAcc := by

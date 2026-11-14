@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Normalization and completion of signed Kraus families
@@ -86,7 +90,7 @@ the trace-preserving Gram identity. -/
 theorem gamma_ge_one {d r : ℕ} (hd : 0 < d) (K : Fin r → Matrix (Fin d) (Fin d) ℂ)
     (α : Fin r → ℂ) (hα : ∀ i, α i = 1 ∨ α i = -1)
     (hTP : ∑ i, α i • ((K i).conjTranspose * K i) = 1) : 1 ≤ gamma K := by
-  letI : Nonempty (Fin d) := ⟨⟨0, hd⟩⟩
+  let : Nonempty (Fin d) := ⟨⟨0, hd⟩⟩
   have h := CStarAlgebra.norm_le_norm_of_le_of_nonneg
     (identity_le_unsignedSum K α hα hTP)
     zero_le_one

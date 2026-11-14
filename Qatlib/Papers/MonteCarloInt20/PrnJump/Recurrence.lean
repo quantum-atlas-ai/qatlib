@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.MonteCarloInt20.PrnJump.Kernel.ModularReversibleWord
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.Kernel.ModularReversibleWord
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+@[expose] public section
 
 /-!
 # Linear congruential recurrences and stride bounds

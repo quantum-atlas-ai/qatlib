@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Module.Basic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -111,9 +115,11 @@ def normalizedLaplacian (G : ElecNetwork V E) : Matrix V V ℝ :=
       laplacian G u v / Real.sqrt (weightedDegree G u * weightedDegree G v)
     else 0
 
+omit [Fintype E] [DecidableEq E] in
+
 /-- **The incidence matrix acts as a difference of potentials**: for any
 potential field `v`, the `e`-th component of `B_Gᵀ v` is `v(e⁻) − v(e⁺)`. -/
-theorem incident_transpose_mulVec_apply (G : ElecNetwork V E) (v : V → ℝ) (e : E) :
+theorem incident_transpose_mulVec_apply {V E : Type} [_scopeInst0 : Fintype V] [_scopeInst1 : DecidableEq V] [_scopeInst2 : Fintype E] [_scopeInst3 : DecidableEq E] (G : ElecNetwork V E) (v : V → ℝ) (e : E) :
     ((incident G)ᵀ *ᵥ v) e = v (G.tail e) - v (G.head e) := by
   have hstep : ∀ x, (incident G)ᵀ e x * v x =
       (if x = G.tail e then v x else 0) + (if x = G.head e then - v x else 0) := by
@@ -140,9 +146,11 @@ theorem flowFromPotential_apply (G : ElecNetwork V E) (v : V → ℝ) (e : E) :
   simp only [flowFromPotential, weightMatrix]
   rw [Matrix.mulVec_diagonal, incident_transpose_mulVec_apply]
 
+omit [Fintype V] [DecidableEq E] in
+
 /-- `B_G` applied to a flow `f` is `x ↦ ∑_e B_G x e · f e` (componentwise form of
 the flow-conservation operator, Eq. (26)). -/
-theorem incident_mulVec_apply (G : ElecNetwork V E) (f : E → ℝ) (x : V) :
+theorem incident_mulVec_apply {V E : Type} [_scopeInst0 : Fintype V] [_scopeInst1 : DecidableEq V] [_scopeInst2 : Fintype E] [_scopeInst3 : DecidableEq E] (G : ElecNetwork V E) (f : E → ℝ) (x : V) :
     (incident G *ᵥ f) x = ∑ e, incident G x e * f e := by
   simp [Matrix.mulVec, dotProduct]
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.FreshSignalWordBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.FreshSignalWordBridge
+
+@[expose] public section
 
 /-!
 # Coherent fresh-register oracle words
@@ -407,15 +411,16 @@ theorem coherent_fresh_lcu_counted (j₀ : J) (l₀ : L) (a₀ : A) (n : ℕ)
 end Fresh
 
 section Routed
+set_option linter.overlappingInstances false
 variable {A J I : Type} [Fintype A] [DecidableEq A] [Fintype J] [DecidableEq J]
   [Fintype I] [DecidableEq I]
 
-private instance routedFreshWorkspaceDecEq (K : ℕ) :
+instance routedFreshWorkspaceDecEq (K : ℕ) :
     DecidableEq (FreshQueryWorkspace A J I K) :=
   @instDecidableEqProd (FreshSignals A K) (Bool × (J × (A × I)))
     (freshSignalsDecidableEq A K) inferInstance
 
-private instance routedFreshLabelWorkspaceDecEq (K : ℕ) :
+instance routedFreshLabelWorkspaceDecEq (K : ℕ) :
     DecidableEq (TaylorWordLabel J K × FreshQueryWorkspace A J I K) :=
   @instDecidableEqProd (TaylorWordLabel J K) (FreshQueryWorkspace A J I K)
     inferInstance (routedFreshWorkspaceDecEq K)

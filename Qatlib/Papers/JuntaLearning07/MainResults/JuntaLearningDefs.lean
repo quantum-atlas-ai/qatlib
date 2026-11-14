@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSliceCoupling
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+module
+
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSliceCoupling
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+
+@[expose] public section
 
 /-!
 # Boolean juntas and Fourier-sampling weights
@@ -129,8 +133,8 @@ theorem signFun_flip_sq (f : (Fin n → Bool) → Bool) (x : Fin n → Bool) (i 
       4 * (if f x = f (cubeFlip x i) then (0 : ℝ) else 1) := by
   unfold signFun
   by_cases h : f x = f (cubeFlip x i)
-  · rw [if_pos h, h]; ring
-  · rw [if_neg h]
+  · rw [ite_eq_left h, h]; ring
+  · rw [ite_eq_right h]
     cases hx1 : f x <;> cases hx2 : f (cubeFlip x i) <;> simp_all <;> norm_num
 
 /-- At uniform cube weight, the real cube influence of the sign representation is four times the
@@ -166,13 +170,13 @@ theorem boolInfluence_pos_of_mem_fsWeight (f : (Fin n → Bool) → Bool)
       ∑ T : Finset (Fin n), if j ∈ T then fsWeight f T else 0 :=
     Finset.single_le_sum (f := fun T => if j ∈ T then fsWeight f T else 0)
       (fun T _ => by
-        (try dsimp only)
+
         split_ifs with hT
         · exact fsWeight_nonneg f T
         · norm_num)
       (Finset.mem_univ S)
   have hpos : 0 < (if j ∈ S then fsWeight f S else 0) := by
-    rw [if_pos hj]; exact hS
+    rw [ite_eq_left hj]; exact hS
   exact lt_of_lt_of_le hpos hterm
 
 /-- If a Boolean function depends only on `J`, its real-valued sign representation also depends
@@ -196,7 +200,7 @@ theorem signCoeff_eq_zero_of_not_subset {J : Finset (Fin n)} {f : (Fin n → Boo
   have hchar : ∀ x : Fin n → Bool, A (cubeFlip x i) = -A x := by
     intro x
     have hc : cubeChar S (cubeFlip x i) = -cubeChar S x := by
-      rw [cubeChar_flip, if_pos hiS]
+      rw [cubeChar_flip, ite_eq_left hiS]
     have hf' : signFun f (cubeFlip x i) = signFun f x := by
       apply signFun_dependsOnlyOnReal hf
       intro j hj

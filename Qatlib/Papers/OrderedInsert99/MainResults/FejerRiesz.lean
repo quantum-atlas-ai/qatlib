@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTran
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorUniquenessTran
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTransport
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorUniquenessTransport
+
+@[expose] public section
 
 /-!
 # Fejer-Riesz factorization on the unit circle

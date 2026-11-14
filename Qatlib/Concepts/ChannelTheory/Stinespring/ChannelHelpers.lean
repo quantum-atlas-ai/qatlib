@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import QuantumInfo.Channels.Unbundled
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import QuantumInfo.Channels.Unbundled
+
+@[expose] public section
 
 /-!
 # A conditional-swap channel and its environment
@@ -131,7 +135,7 @@ theorem prepareLocalEnvironment_isometry (q : Fin 2 → ℂ) (hq : Qatlib.Founda
   rw [Finset.sum_eq_single i]
   · by_cases hij : i = j
     · subst j
-      simpa only [Qatlib.Concepts.ChannelTheory.Stinespring.ConditionalSwapChannel.prepareLocalEnvironment, ↓reduceIte, Matrix.one_apply, if_true] using
+      simpa only [Qatlib.Concepts.ChannelTheory.Stinespring.ConditionalSwapChannel.prepareLocalEnvironment, ↓reduceIte, Matrix.one_apply, ite_true] using
         local_environment_inner q hq
     · simp [Qatlib.Concepts.ChannelTheory.Stinespring.ConditionalSwapChannel.prepareLocalEnvironment, hij]
   · intro k _ hki

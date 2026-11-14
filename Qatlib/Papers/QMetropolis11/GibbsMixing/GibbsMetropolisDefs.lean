@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.QuantumGibbs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.QuantumGibbs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
+
+@[expose] public section
 
 /-!
 # Finite-bit Metropolis kernel and ledger

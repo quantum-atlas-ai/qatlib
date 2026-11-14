@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.Coverage
-import Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
-import Qatlib.Papers.LatentPQCTran26.MainResults.ActualWarmRoute
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.Coverage
+public import Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
+public import Qatlib.Papers.LatentPQCTran26.MainResults.ActualWarmRoute
+
+@[expose] public section
 
 /-!
 # Coverage by native squared gradients

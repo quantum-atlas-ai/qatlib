@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterSourceBounds
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCore
-import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterSourceBounds
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCore
+public import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+@[expose] public section
 
 /-!
 # Data for refined commutator expansions

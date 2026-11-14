@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Transition support for a bit-flip ansatz

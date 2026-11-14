@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Qatlib.Papers.AdiabaticQLS23.MainResults.FilterCost
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Papers.AdiabaticQLS23.MainResults.FilterCost
+public import Mathlib.Tactic
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Paid clocks for geometric QLS retries
@@ -43,17 +48,18 @@ open Qatlib.Concepts.FairRandomBits.GeometricRetry
 /-- The Bernoulli distribution with success outcome `true` of mass `1 - q` and failure outcome
 `false` of mass `q`. -/
 def failureCoin (q : ℝ) (h0 : 0 ≤ q) (_h1 : q < 1) : PMF Bool :=
-  PMF.bernoulli ((1-q).toNNReal) (Real.toNNReal_le_one.mpr (by linarith))
+  Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli ((1-q).toNNReal)
+    (Real.toNNReal_le_one.mpr (by linarith))
 
 /-- The success mass of `failureCoin q h0 h1` is `ENNReal.ofReal (1 - q)`. -/
 @[simp] theorem failureCoin_true (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1) :
     failureCoin q h0 h1 true = ENNReal.ofReal (1-q) := by
-  simp [failureCoin, PMF.bernoulli_apply, ENNReal.ofReal]
+  simp [failureCoin, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply, ENNReal.ofReal]
 
 /-- The failure mass of `failureCoin q h0 h1` is `ENNReal.ofReal q`. -/
 @[simp] theorem failureCoin_false (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1) :
     failureCoin q h0 h1 false = ENNReal.ofReal q := by
-  simp only [failureCoin, PMF.bernoulli_apply, Bool.cond_false]
+  simp only [failureCoin, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply, Bool.cond_false]
   change 1 - ENNReal.ofReal (1-q) = ENNReal.ofReal q
   rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_sub 1 (by linarith : 0 ≤ 1-q)]
   congr 1

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionDefs
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionDefs
+
+@[expose] public section
 
 /-!
 # Fermionic local gates and covariance transformations
@@ -85,7 +89,7 @@ theorem localGate_diagonal {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) ℂ
     have hz : G (boolEquivFin2 (y j)) (boolEquivFin2 (x j)) = 0 := by
       by_contra hcon
       exact hne (hG _ _ hcon)
-    simp [hc, hz]
+    simp [hz]
   · simp [hc]
 
 /-- A local Pauli Z gate has zero entries between distinct registers. -/
@@ -114,7 +118,7 @@ theorem onsiteLocalGate_apply {n : ℕ} (i : Fin n) (θ : ℝ) (x : Reg n) :
     onsiteLocalGate i θ x x = (if x i then Complex.exp (-Complex.I * θ) else 1) := by
   unfold onsiteLocalGate
   rw [localGate_apply]
-  simp only [if_true]
+  simp only
   rw [oneQubitPhase]
   by_cases hi : x i
   · simp [hi, boolEquivFin2]
@@ -143,9 +147,7 @@ theorem localGateListOp_append {n : ℕ} (l₁ l₂ : LocalGateList n) :
 theorem oneQubitZ_diagonal (b c : Fin 2) (h : oneQubitZ b c ≠ 0) : b = c := by
   by_cases hbc : b = c
   · exact hbc
-  · have h2 : (if b = c then (if c = 1 then -1 else 1 : ℂ) else 0) ≠ 0 := by
-      simpa [oneQubitZ, Matrix.of_apply, hbc] using! h
-    simp [hbc] at h2
+  · simp [oneQubitZ, Matrix.of_apply, hbc] at h
 
 /-- The diagonal entry of `oneQubitZ` is minus one at index one and one otherwise. -/
 theorem oneQubitZ_diagEntry (b : Fin 2) :
@@ -207,9 +209,9 @@ theorem localGate_diag_apply {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) �
       have hz : G (boolEquivFin2 (y j)) (boolEquivFin2 (x j)) = 0 := by
         by_contra hcon
         exact hne (hG _ _ hcon)
-      rw [if_pos hc, hz]
+      rw [ite_eq_left hc, hz]
       simp [hyx]
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       simp [hyx]
 
 /-- A list of diagonal local gates gives a diagonal operator whose diagonal entries are products
@@ -237,9 +239,9 @@ theorem localGateListOp_diag {n : ℕ} :
         intro z
         rw [localGate_diag_apply p.1 hGp y z]
         by_cases h : y = z
-        · rw [if_pos h]
+        · rw [ite_eq_left h]
           simp [h, localGateDiagEntry]
-        · rw [if_neg h]
+        · rw [ite_eq_right h]
           simp [h]
       have hB : ∀ z, localGateListOp rest y z
           = if y = z then (rest.map (fun q => localGateDiagEntry q y)).prod else 0 :=
@@ -251,7 +253,7 @@ theorem localGateListOp_diag {n : ℕ} :
         · rw [hA y, hB y]
           simp [List.map_cons, List.prod_cons]
         · intro z _ hzy
-          rw [hA z, if_neg hzy.symm, zero_mul]
+          rw [hA z, ite_eq_right hzy.symm, zero_mul]
         · intro h
           exact absurd h (by simp)
       · have hsum : (∑ j, localGate p.1 p.2 y j * localGateListOp rest j x) = 0 := by
@@ -259,9 +261,9 @@ theorem localGateListOp_diag {n : ℕ} :
           intro z _
           by_cases hzy : z = y
           · subst hzy
-            rw [hB x, if_neg hyx]
+            rw [hB x, ite_eq_right hyx]
             ring
-          · rw [hA z, if_neg (fun h => hzy h.symm), zero_mul]
+          · rw [hA z, ite_eq_right (fun h => hzy h.symm), zero_mul]
         rw [hsum]
         simp [hyx]
 
@@ -300,7 +302,7 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
     have h := localGateListOp_diag (jwZPrefix i)
       (fun p hp b c hbc =>
         oneQubitZ_diagonal b c (by rw [jwZPrefix_mem i hp] at hbc; exact hbc)) y' x'
-    rw [if_neg hne] at h
+    rw [ite_eq_right hne] at h
     exact h
   have hprefix_entry : ∀ (y : Reg n),
       localGateListOp (jwZPrefix i) y y
@@ -309,7 +311,7 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
     have h := localGateListOp_diag (jwZPrefix i)
       (fun p hp b c hbc =>
         oneQubitZ_diagonal b c (by rw [jwZPrefix_mem i hp] at hbc; exact hbc)) y y
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     rw [h, jwZPrefix, List.map_map, Finset.prod_map_toList]
     apply Finset.prod_congr rfl
     intro j hj
@@ -328,7 +330,7 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
   by_cases hloc : ∀ k : Fin n, k ≠ i → y k = x k
   · have hM : localGate i sigmaMinus y x
         = sigmaMinus (boolEquivFin2 (y i)) (boolEquivFin2 (x i)) := by
-      rw [localGate_apply, if_pos hloc]
+      rw [localGate_apply, ite_eq_left hloc]
     have hMid : jwSiteFactor i i y x
         = sigmaMinus (boolEquivFin2 (y i)) (boolEquivFin2 (x i)) := by
       simp [jwSiteFactor]
@@ -339,14 +341,14 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
       have hjlt : j < i := (Finset.mem_filter.mp hj).2
       have hji : j ≠ i := by omega
       have hyj : y j = x j := hloc j hji
-      rw [jwSiteFactor, if_pos hjlt, if_pos hyj, hyj]
+      rw [jwSiteFactor, ite_eq_left hjlt, ite_eq_left hyj, hyj]
     have hsu : ((Finset.univ : Finset (Fin n)).filter (i < ·)).prod (jwSiteFactor i · y x) = 1 := by
       apply Finset.prod_eq_one
       intro j hj
       have hjgt : i < j := (Finset.mem_filter.mp hj).2
       have hji : j ≠ i := by omega
       have hyj : y j = x j := hloc j hji
-      rw [jwSiteFactor, if_neg (by omega : ¬ (j < i)), if_pos hjgt, if_pos hyj]
+      rw [jwSiteFactor, ite_eq_right (by omega : ¬ (j < i)), ite_eq_left hjgt, ite_eq_left hyj]
     have hLHS : localGateListOp (jwLocalGateList i) y x
         = ((Finset.univ : Finset (Fin n)).filter (· < i)).prod (fun j => (if y j then -1 else 1))
           * sigmaMinus (boolEquivFin2 (y i)) (boolEquivFin2 (x i)) := by
@@ -381,7 +383,7 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
       intro hc'
       exact hky (hc' k hki)
     have hM0 : localGate i sigmaMinus y x = 0 := by
-      rw [localGate_apply, if_neg hne]
+      rw [localGate_apply, ite_eq_right hne]
     have hLHS0 : localGateListOp (jwLocalGateList i) y x = 0 := by
       rw [hsplit, mul_apply_diag_left _ _ hprefix_diag y x, hprefix_entry, hM0]
       ring
@@ -390,14 +392,14 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
       · have hpre0 : ((Finset.univ : Finset (Fin n)).filter (· < i)).prod
             (jwSiteFactor i · y x) = 0 := by
           apply Finset.prod_eq_zero (Finset.mem_filter.mpr ⟨Finset.mem_univ k, hki_lt⟩)
-          rw [jwSiteFactor, if_pos hki_lt, if_neg hky]
+          rw [jwSiteFactor, ite_eq_left hki_lt, ite_eq_right hky]
         rw [hR, hpre0]
         ring
       · have hki_gt : i < k := by omega
         have hsu0 : ((Finset.univ : Finset (Fin n)).filter (i < ·)).prod
             (jwSiteFactor i · y x) = 0 := by
           apply Finset.prod_eq_zero (Finset.mem_filter.mpr ⟨Finset.mem_univ k, hki_gt⟩)
-          rw [jwSiteFactor, if_neg hki_lt, if_pos hki_gt, if_neg hky]
+          rw [jwSiteFactor, ite_eq_right hki_lt, ite_eq_left hki_gt, ite_eq_right hky]
         rw [hR, hsu0]
         ring
     rw [hLHS0, hRHS0]
@@ -492,7 +494,7 @@ theorem localBlock_covarianceUpdate {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2
   ext p q
   unfold covarianceUpdate
   simp only [localBlock, Matrix.of_apply]
-  rw [if_pos ⟨isLocalMajorana_localIndices i j p, isLocalMajorana_localIndices i j q⟩]
+  rw [ite_eq_left ⟨isLocalMajorana_localIndices i j p, isLocalMajorana_localIndices i j q⟩]
   rw [localSlot_localIndices i j hij p, localSlot_localIndices i j hij q]
 
 /-- The ring connectivity list has length `n` when `n` is positive. -/
@@ -507,7 +509,7 @@ theorem annihilation_support {n : ℕ} (j : Fin n) (z x : Reg n) (h : annihilati
   have hcond : x j ∧ z = Function.update x j false := by
     by_contra hc
     have hz : annihilation j z x = 0 := by
-      rw [annihilation, Matrix.of_apply, if_neg hc]
+      rw [annihilation, Matrix.of_apply, ite_eq_right hc]
     rw [hz] at h
     exact h rfl
   intro k hk
@@ -519,7 +521,7 @@ theorem creation_support {n : ℕ} (i : Fin n) (y z : Reg n) (h : creation i y z
   have hcond : ¬ z i ∧ y = Function.update z i true := by
     by_contra hc
     have hz : creation i y z = 0 := by
-      rw [creation, Matrix.of_apply, if_neg hc]
+      rw [creation, Matrix.of_apply, ite_eq_right hc]
     rw [hz] at h
     exact h rfl
   intro k hk
@@ -851,7 +853,7 @@ lemma im_univ_sum {ι : Type*} [Fintype ι] [DecidableEq ι] (f : ι → ℂ) :
     | empty => simp
     | @insert a s ha ih =>
       rw [Finset.sum_insert ha, Complex.add_im, ih, Finset.sum_insert ha]
-  simpa using! aux Finset.univ
+  simp
 
 /-- Two real factors can be pulled outside the imaginary part of their product with a complex
 number. -/
@@ -1079,7 +1081,7 @@ def majoranaOdd {n : ℕ} (k : Fin n) : Matrix (Reg n) (Reg n) ℂ :=
 theorem majorana_even_eq (n : ℕ) (k : Fin n) :
     majorana ⟨2 * k.val, by omega⟩ = majoranaEven k := by
   unfold majorana majoranaEven
-  rw [if_pos (by omega : (2 * k.val) % 2 = 0)]
+  rw [ite_eq_left (by omega : (2 * k.val) % 2 = 0)]
   have h1 : (⟨2 * k.val, by omega⟩ : Fin (2 * n)).val / 2 = k.val := by
     rw [Fin.val_mk]; omega
   simp only [h1]
@@ -1096,7 +1098,7 @@ theorem majoranaEven_sq (n : ℕ) (k : Fin n) : majoranaEven k * majoranaEven k 
     exact add_self_eq_zero_of_complex _ h'
   have hcar : annihilation k * creation k + creation k * annihilation k = 1 := by
     have h := car_aa n k k
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     exact h
   unfold majoranaEven
   calc (creation k + annihilation k) * (creation k + annihilation k)
@@ -1118,7 +1120,7 @@ open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 theorem majorana_odd_eq (n : ℕ) (k : Fin n) :
     majorana ⟨2 * k.val + 1, by omega⟩ = majoranaOdd k := by
   unfold majorana majoranaOdd
-  rw [if_neg (by omega : ¬ (2 * k.val + 1) % 2 = 0)]
+  rw [ite_eq_right (by omega : ¬ (2 * k.val + 1) % 2 = 0)]
   have h1 : (⟨2 * k.val + 1, by omega⟩ : Fin (2 * n)).val / 2 = k.val := by
     rw [Fin.val_mk]; omega
   simp only [h1]
@@ -1132,11 +1134,11 @@ theorem majoranaEven_anticommute (n : ℕ) (k l : Fin n) (hkl : k ≠ l) :
     car_cre n k l
   have hcar1 : annihilation k * creation l + creation l * annihilation k = 0 := by
     have h := car_aa n k l
-    rw [if_neg (by omega : ¬ (k = l))] at h
+    rw [ite_eq_right (by omega : ¬ (k = l))] at h
     exact h
   have hcar2 : annihilation l * creation k + creation k * annihilation l = 0 := by
     have h := car_aa n l k
-    rw [if_neg (by omega : ¬ (l = k))] at h
+    rw [ite_eq_right (by omega : ¬ (l = k))] at h
     exact h
   unfold majoranaEven
   calc (creation k + annihilation k) * (creation l + annihilation l)
@@ -1184,7 +1186,7 @@ theorem majoranaOdd_sq {n : ℕ} (k : Fin n) :
     exact add_self_eq_zero_of_complex _ h'
   have hcar : annihilation k * creation k + creation k * annihilation k = 1 := by
     have h := car_aa n k k
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     exact h
   have hX : (annihilation k - creation k) * (annihilation k - creation k)
       = -(1 : Matrix (Reg n) (Reg n) ℂ) := by
@@ -1212,11 +1214,11 @@ theorem majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k ≠ l) :
     car_cre n k l
   have hAC : annihilation k * creation l + creation l * annihilation k = 0 := by
     have h := car_aa n k l
-    rw [if_neg hkl] at h
+    rw [ite_eq_right hkl] at h
     exact h
   have hCA : creation k * annihilation l + annihilation l * creation k = 0 := by
     have h := car_aa n l k
-    rw [if_neg (fun h => hkl h.symm)] at h
+    rw [ite_eq_right (fun h => hkl h.symm)] at h
     simpa [add_comm] using! h
   have hX : (annihilation k - creation k) * (annihilation l - creation l)
       + (annihilation l - creation l) * (annihilation k - creation k) = 0 := by
@@ -1252,11 +1254,11 @@ theorem majoranaEven_majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k �
     car_cre n k l
   have hAC : annihilation k * creation l + creation l * annihilation k = 0 := by
     have h := car_aa n k l
-    rw [if_neg hkl] at h
+    rw [ite_eq_right hkl] at h
     exact h
   have hCA : creation k * annihilation l + annihilation l * creation k = 0 := by
     have h := car_aa n l k
-    rw [if_neg (fun h => hkl h.symm)] at h
+    rw [ite_eq_right (fun h => hkl h.symm)] at h
     simpa [add_comm] using! h
   have hX : (creation k + annihilation k) * (annihilation l - creation l)
       + (annihilation l - creation l) * (creation k + annihilation k) = 0 := by
@@ -1291,7 +1293,7 @@ theorem annihilation_mul_creation_eq_one_sub_numberOp {n : ℕ} (k : Fin n) :
     annihilation k * creation k = 1 - numberOp k := by
   have hcar : annihilation k * creation k + creation k * annihilation k = 1 := by
     have h := car_aa n k k
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     exact h
   calc annihilation k * creation k
       = (annihilation k * creation k + creation k * annihilation k)
@@ -1390,7 +1392,7 @@ theorem majoranaIndices_even (n : ℕ) (k : Fin n) :
     omega
   rw [hidx]
   unfold majorana
-  rw [if_pos (by omega : (2 * k.val) % 2 = 0)]
+  rw [ite_eq_left (by omega : (2 * k.val) % 2 = 0)]
   have h1 : (⟨2 * k.val, by omega⟩ : Fin (2 * n)).val / 2 = k.val := by
     rw [Fin.val_mk]; omega
   simp only [h1]
@@ -1405,7 +1407,7 @@ theorem majoranaIndices_odd (n : ℕ) (k : Fin n) :
     omega
   rw [hidx]
   unfold majorana
-  rw [if_neg (by omega : ¬ (2 * k.val + 1) % 2 = 0)]
+  rw [ite_eq_right (by omega : ¬ (2 * k.val + 1) % 2 = 0)]
   have h1 : (⟨2 * k.val + 1, by omega⟩ : Fin (2 * n)).val / 2 = k.val := by
     rw [Fin.val_mk]; omega
   simp only [h1]
@@ -1605,10 +1607,10 @@ theorem majorana_clifford (n : ℕ) (a b : Fin (2 * n)) :
     omega
   by_cases ha : a.val % 2 = 0
   · by_cases hb : b.val % 2 = 0
-    · rw [hA, if_pos ha, hB, if_pos hb]
+    · rw [hA, ite_eq_left ha, hB, ite_eq_left hb]
       by_cases h : a.val / 2 = b.val / 2
       · have hab : a = b := hab_of ha hb h
-        rw [if_pos hab]
+        rw [ite_eq_left hab]
         rw [heq_of h]
         have hsq := majoranaEven_sq n ⟨a.val / 2, hka⟩
         calc majoranaEven _ * majoranaEven _ + majoranaEven _ * majoranaEven _
@@ -1616,45 +1618,45 @@ theorem majorana_clifford (n : ℕ) (a b : Fin (2 * n)) :
           _ = (2 : ℂ) • 1 := one_add_one_eq_two n
       · have hz := majoranaEven_anticommute n ⟨a.val / 2, hka⟩ ⟨b.val / 2, hkb⟩ (hne_of h)
         rw [hz]
-        rw [if_neg (hne_same ha hb h)]
+        rw [ite_eq_right (hne_same ha hb h)]
         simp
     · have hb1 : b.val % 2 = 1 := by omega
-      rw [hA, if_pos ha, hB, if_neg hb]
+      rw [hA, ite_eq_left ha, hB, ite_eq_right hb]
       by_cases h : a.val / 2 = b.val / 2
       · have hz : majoranaEven ⟨a.val / 2, hka⟩ * majoranaOdd ⟨b.val / 2, hkb⟩
             + majoranaOdd ⟨b.val / 2, hkb⟩ * majoranaEven ⟨a.val / 2, hka⟩ = 0 := by
           rw [heq_of h]
           exact majoranaEven_majoranaOdd_anticommute_same n ⟨a.val / 2, hka⟩
         rw [hz]
-        rw [if_neg (hne_mixed ha hb1)]
+        rw [ite_eq_right (hne_mixed ha hb1)]
         simp
       · have hz := majoranaEven_majoranaOdd_anticommute ⟨a.val / 2, hka⟩ ⟨b.val / 2, hkb⟩
             (hne_of h)
         rw [hz]
-        rw [if_neg (hne_mixed ha hb1)]
+        rw [ite_eq_right (hne_mixed ha hb1)]
         simp
   · by_cases hb : b.val % 2 = 0
     · have ha1 : a.val % 2 = 1 := by omega
-      rw [hA, if_neg ha, hB, if_pos hb]
+      rw [hA, ite_eq_right ha, hB, ite_eq_left hb]
       by_cases h : a.val / 2 = b.val / 2
       · have hz : majoranaOdd ⟨a.val / 2, hka⟩ * majoranaEven ⟨b.val / 2, hkb⟩
             + majoranaEven ⟨b.val / 2, hkb⟩ * majoranaOdd ⟨a.val / 2, hka⟩ = 0 := by
           rw [heq_of h, add_comm]
           exact majoranaEven_majoranaOdd_anticommute_same n ⟨a.val / 2, hka⟩
         rw [hz]
-        rw [if_neg (hne_mixed' ha1 hb)]
+        rw [ite_eq_right (hne_mixed' ha1 hb)]
         simp
       · have hz := majoranaEven_majoranaOdd_anticommute ⟨b.val / 2, hkb⟩ ⟨a.val / 2, hka⟩
             (hne_of' h)
         rw [add_comm, hz]
-        rw [if_neg (hne_mixed' ha1 hb)]
+        rw [ite_eq_right (hne_mixed' ha1 hb)]
         simp
     · have ha1 : a.val % 2 = 1 := by omega
       have hb1 : b.val % 2 = 1 := by omega
-      rw [hA, if_neg ha, hB, if_neg hb]
+      rw [hA, ite_eq_right ha, hB, ite_eq_right hb]
       by_cases h : a.val / 2 = b.val / 2
       · have hab : a = b := hab_of_odd ha1 hb1 h
-        rw [if_pos hab]
+        rw [ite_eq_left hab]
         rw [heq_of h]
         have hsq := majoranaOdd_sq ⟨a.val / 2, hka⟩
         calc majoranaOdd _ * majoranaOdd _ + majoranaOdd _ * majoranaOdd _
@@ -1662,7 +1664,7 @@ theorem majorana_clifford (n : ℕ) (a b : Fin (2 * n)) :
           _ = (2 : ℂ) • 1 := one_add_one_eq_two n
       · have hz := majoranaOdd_anticommute ⟨a.val / 2, hka⟩ ⟨b.val / 2, hkb⟩ (hne_of h)
         rw [hz]
-        rw [if_neg (hne_same_odd ha1 hb1 h)]
+        rw [ite_eq_right (hne_same_odd ha1 hb1 h)]
         simp
 
 /-- The Gram matrix entry of two rows of the real matrix `S`, defined as their dot product. -/
@@ -1672,7 +1674,8 @@ def gramMatrix {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (a b : Fin
 /-- Interchanging two scalar factors does not change their product acting on a matrix over a
 commutative semiring. -/
 lemma smul_comm {m n : Type} [Fintype m] [DecidableEq m] [Fintype n] [DecidableEq n]
-    {α : Type} [CommSemiring α] [AddCommMonoid α] (r s : α) (M : Matrix m n α) :
+    {α : Type} [CommSemiring α] (r s : α) (M : Matrix m n α)
+    (_extraAddCommMonoid : AddCommMonoid α := inferInstance) :
     (r * s) • M = (s * r) • M := by
   ext i j
   simp [Matrix.smul_apply, mul_comm]
@@ -1708,7 +1711,7 @@ theorem majoranaInBasis_anticommutator {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin 
       intro c hc
       refine Finset.sum_congr rfl ?_
       intro d hd
-      rw [smul_comm]
+      rw [smul_comm (_extraAddCommMonoid := inferInstance)]
     rw [hB]
     rw [← Finset.sum_add_distrib]
     refine Finset.sum_congr rfl ?_
@@ -1807,15 +1810,15 @@ theorem majoranaInBasis_orthogonal_of_clifford {n : ℕ} (S : Matrix (Fin (2 * n
     by_cases h : a = b
     · have h6 := congrArg Complex.re h4
       rw [Complex.ofReal_re] at h6
-      simp only [if_pos h] at h6
+      simp only [ite_eq_left h] at h6
       norm_num at h6
-      simp only [if_pos h]
+      simp only [ite_eq_left h]
       linarith
     · have h6 := congrArg Complex.re h4
       rw [Complex.ofReal_re] at h6
-      simp only [if_neg h] at h6
+      simp only [ite_eq_right h] at h6
       norm_num at h6
-      simp only [if_neg h]
+      simp only [ite_eq_right h]
       linarith
   exact hgram
 
@@ -1838,8 +1841,8 @@ theorem localMajorana_clifford {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p q : Fi
     simpa using! (majorana_clifford n (localIndices i j p) (localIndices i j p))
   · have hab : localIndices i j p ≠ localIndices i j q := localMajoranaIndices_ne i j hij p q hpq
     have h := majorana_clifford n (localIndices i j p) (localIndices i j q)
-    rw [if_neg hab] at h
-    rw [if_neg hpq]
+    rw [ite_eq_right hab] at h
+    rw [ite_eq_right hpq]
     exact h
 
 /-- For distinct modes, the anticommutator of transformed local Majoranas is twice the complex
@@ -1865,7 +1868,7 @@ theorem localMajoranaInBasis_anticommutator {n : ℕ} (i j : Fin n) (hij : i ≠
       intro c hc
       refine Finset.sum_congr rfl ?_
       intro d hd
-      rw [smul_comm]
+      rw [smul_comm (_extraAddCommMonoid := inferInstance)]
     rw [hB]
     rw [← Finset.sum_add_distrib]
     refine Finset.sum_congr rfl ?_
@@ -1949,13 +1952,13 @@ lemma gramMatrix_eq_ite {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (
   have h6 := congrArg Complex.re h
   rw [Complex.ofReal_re] at h6
   by_cases hab : a = b
-  · simp only [if_pos hab] at h6
+  · simp only [ite_eq_left hab] at h6
     norm_num at h6
-    simp only [if_pos hab]
+    simp only [ite_eq_left hab]
     linarith
-  · simp only [if_neg hab] at h6
+  · simp only [ite_eq_right hab] at h6
     norm_num at h6
-    simp only [if_neg hab]
+    simp only [ite_eq_right hab]
     linarith
 
 /-- The conjugate transpose of a matrix product is the product of the conjugate transposes in
@@ -2249,7 +2252,7 @@ theorem cross_quad_sum {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   rw [h2]
   have hcar : annihilation i * creation j + creation j * annihilation i = 0 := by
     have h := car_aa n i j
-    rw [if_neg (fun h => hij h)] at h
+    rw [ite_eq_right (fun h => hij h)] at h
     exact h
   have hog : annihilation i * creation j = -(creation j * annihilation i) :=
     add_eq_zero_iff_eq_neg.mp hcar
@@ -2270,7 +2273,7 @@ theorem cross_quad_diff {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     rw [← Matrix.smul_mul]
   have hcar : annihilation i * creation j + creation j * annihilation i = 0 := by
     have h := car_aa n i j
-    rw [if_neg (fun h => hij h)] at h
+    rw [ite_eq_right (fun h => hij h)] at h
     exact h
   have hog : annihilation i * creation j = -(creation j * annihilation i) :=
     add_eq_zero_iff_eq_neg.mp hcar
@@ -2531,7 +2534,7 @@ theorem localRotation_mul_transpose (A : Matrix (Fin 2) (Fin 2) ℂ) :
   rw [h1]
   unfold localRotation
   have hcomm : Commute ((2 : ℝ) • localFormMatrix A) (-((2 : ℝ) • localFormMatrix A)) := by
-    simp [Matrix.mul_apply, Matrix.smul_apply, Matrix.neg_apply]
+    simp
   rw [← Matrix.exp_add_of_commute _ _ hcomm]
   rw [add_neg_cancel, NormedSpace.exp_zero]
 
@@ -2704,7 +2707,6 @@ theorem majoranaInBasis_frameRotation_local {n : ℕ} (i j : Fin n) (hij : i ≠
   rw [hsum]
   apply Finset.sum_congr rfl
   intro s hs
-  (try dsimp only)
   rw [frameRotation_apply_local i j A _ _ (isLocalMajorana_localIndices i j p)
     (isLocalMajorana_localIndices i j s)]
   rw [localSlot_localIndices i j hij p, localSlot_localIndices i j hij s]
@@ -2855,12 +2857,12 @@ theorem frameRotation_mul_transpose {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       have hconv : (if a = b then 1 else 0 : ℝ)
           = frameRotation i j A a a * frameRotation i j A b a := by
         by_cases h : a = b
-        · rw [if_pos h, frameRotation_apply_away_eq i j A a ha]
+        · rw [ite_eq_left h, frameRotation_apply_away_eq i j A a ha]
           have h1 : frameRotation i j A b a = 1 := by
             rw [← h]
             exact frameRotation_apply_away_eq i j A a ha
           rw [h1, mul_one]
-        · rw [if_neg h, frameRotation_apply_away_eq i j A a ha,
+        · rw [ite_eq_right h, frameRotation_apply_away_eq i j A a ha,
             frameRotation_apply_away_neq i j A b a hb ha (Ne.symm h), mul_zero]
       rw [hconv]
       refine Finset.sum_eq_single a ?_ ?_
@@ -2883,7 +2885,7 @@ lemma smul_neg_two {n : ℕ} (M : FermMat n) : (-2 : ℂ) • M = -(M + M) := by
 /-- Every Majorana operator squares to the identity. -/
 theorem majorana_sq (n : ℕ) (a : Fin (2 * n)) : majorana a * majorana a = (1 : FermMat n) := by
   have h := majorana_clifford n a a
-  rw [if_pos rfl] at h
+  rw [ite_eq_left rfl] at h
   rw [two_smul] at h
   have h2 : (majorana a * majorana a - (1 : FermMat n)) + (majorana a * majorana a - (1 : FermMat n)) = 0 := by
     calc (majorana a * majorana a - (1 : FermMat n)) + (majorana a * majorana a - (1 : FermMat n))
@@ -2895,7 +2897,7 @@ theorem majorana_sq (n : ℕ) (a : Fin (2 * n)) : majorana a * majorana a = (1 :
 theorem majorana_anticommute (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     majorana a * majorana b + majorana b * majorana a = 0 := by
   have h := majorana_clifford n a b
-  rw [if_neg hab] at h
+  rw [ite_eq_right hab] at h
   simpa using! h
 
 /-- For distinct indices, the commutator of a Majorana pair with its first factor is minus twice
@@ -2956,7 +2958,7 @@ theorem majorana_comm_right (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
 
 /-- A product of two Majorana operators commutes with a third Majorana whose index differs from
 both. -/
-theorem majorana_comm_third (n : ℕ) (a b c : Fin (2 * n)) (hab : a ≠ b) (hbc : b ≠ c)
+theorem majorana_comm_third (n : ℕ) (a b c : Fin (2 * n)) (_hab : a ≠ b) (hbc : b ≠ c)
     (hac : a ≠ c) :
     majorana a * majorana b * majorana c = majorana c * majorana a * majorana b := by
   have e1 : majorana b * majorana c = -(majorana c * majorana b) :=
@@ -2983,12 +2985,12 @@ theorem majoranaPair_comm {n : ℕ} (a b c : Fin (2 * n)) (hab : a ≠ b) :
         else if c = b then (2 : ℂ) • majorana a
         else 0 := by
   by_cases hca : c = a
-  · rw [if_pos hca, hca]
+  · rw [ite_eq_left hca, hca]
     exact majorana_comm_left n a b hab
   · by_cases hcb : c = b
-    · rw [if_neg hca, if_pos hcb, hcb]
+    · rw [ite_eq_right hca, ite_eq_left hcb, hcb]
       exact majorana_comm_right n a b hab
-    · rw [if_neg hca, if_neg hcb]
+    · rw [ite_eq_right hca, ite_eq_right hcb]
       have h1 : majorana a * majorana b * majorana c = majorana c * majorana a * majorana b :=
         majorana_comm_third n a b c hab (Ne.symm hcb) (Ne.symm hca)
       rw [h1]
@@ -3044,10 +3046,10 @@ theorem coeff_cross {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
   have hkey : A 0 1 - A 1 0 = 2 * Complex.ofReal ((A 0 1).re) := by
     rw [h10, conj_eq (A 0 1)]
     apply Complex.ext
-    · simp [Complex.sub_re, Complex.add_re, Complex.mul_re, Complex.neg_re,
-        Complex.I_re, Complex.I_im, Complex.ofReal_re] <;> ring
-    · simp [Complex.sub_im, Complex.add_im, Complex.mul_im, Complex.neg_im,
-        Complex.I_re, Complex.I_im, Complex.ofReal_im] <;> ring
+    · simp [Complex.sub_re, Complex.mul_re,
+        Complex.I_re, Complex.I_im, Complex.ofReal_re]; ring
+    · simp [Complex.sub_im, Complex.mul_im,
+        Complex.I_re, Complex.I_im, Complex.ofReal_im]
   rw [hkey, Complex.ofReal_div]
   push_cast
   ring
@@ -3059,19 +3061,19 @@ theorem coeff_mixed {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
   have h10 := hA_10 hA
   have hre : (A 0 1 + A 1 0).re = 0 := by
     rw [h10, conj_eq (A 0 1)]
-    simp [Complex.add_re, Complex.sub_re, Complex.mul_re, Complex.neg_re,
-      Complex.I_re, Complex.I_im] <;> ring
+    simp [Complex.add_re, Complex.sub_re, Complex.mul_re,
+      Complex.I_re, Complex.I_im]
   have him : (A 0 1 + A 1 0).im = 2 * (A 0 1).im := by
     rw [h10, conj_eq (A 0 1)]
-    simp [Complex.add_im, Complex.sub_im, Complex.mul_im, Complex.neg_im,
-      Complex.I_re, Complex.I_im] <;> ring
+    simp [Complex.add_im, Complex.sub_im, Complex.mul_im,
+      Complex.I_re, Complex.I_im]; ring
   have hz := of_re_zero_eq (A 0 1 + A 1 0) hre
   rw [hz]
   have hkey : (A 0 1 + A 1 0).im = 2 * (A 0 1).im := him
   rw [hkey]
   apply Complex.ext
-  · simp [Complex.div_re, Complex.mul_re, Complex.I_re, Complex.I_im] <;> ring
-  · simp [Complex.div_im, Complex.mul_im, Complex.I_re, Complex.I_im] <;> ring
+  · simp [Complex.mul_re, Complex.I_re, Complex.I_im]; ring
+  · simp [Complex.mul_im, Complex.I_re, Complex.I_im]
 
 /-- The Majorana operator at within-mode index zero equals the even Majorana operator. -/
 theorem majorana_even_index {n : ℕ} (i : Fin n) :
@@ -3096,8 +3098,8 @@ theorem negI_mul (z : ℂ) (hz : z.re = 0) :
   have hid := of_re_zero_eq z hz
   rw [hid]
   apply Complex.ext
-  · simp [Complex.div_re, Complex.mul_re, Complex.I_re, Complex.I_im] <;> ring
-  · simp [Complex.div_im, Complex.mul_im, Complex.I_re, Complex.I_im] <;> ring
+  · simp [Complex.mul_re, Complex.I_re, Complex.I_im]
+  · simp [Complex.mul_im, Complex.I_re, Complex.I_im]
 
 /-- For skew-Hermitian `A`, `-I * A 0 0 / 2` is the real embedding of half the imaginary part of
 its first diagonal entry. -/
@@ -3455,9 +3457,9 @@ theorem clause3_endpoint_partial :
       ∧ (∀ (n : ℕ) (i : Fin n) (b c : Fin 2), b ≠ c →
           majoranaIndices i b ≠ majoranaIndices i c)
       ∧ (∀ (n : ℕ), (linearConnectivity n).length = n - 1)
-      ∧ (∀ (n : ℕ) (h : 0 < n), (ringConnectivity n).length = n)
+      ∧ (∀ (n : ℕ) (_h : 0 < n), (ringConnectivity n).length = n)
       ∧ (∀ (n : ℕ) (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (i j : Fin n)
-        (R : Matrix (Fin 4) (Fin 4) ℝ) (hij : i ≠ j),
+        (R : Matrix (Fin 4) (Fin 4) ℝ) (_hij : i ≠ j),
           localBlock (covarianceUpdate Γ i j R) i j = R * localBlock Γ i j * R.transpose)
       ∧ (∀ (m : ℕ), determinantOpCost m ≤ m ^ 3)
       ∧ (∀ (m : ℕ), pfaffianOpCost m ≤ (2 * m) ^ 3)
@@ -3470,9 +3472,9 @@ theorem clause3_endpoint_partial :
             + (star (A 0 1)) • (creation j * annihilation i)
             + (star (A 1 0)) • (creation i * annihilation j)
             + (star (A 1 1)) • (numberOp j))
-      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (_hA : Aᴴ = -A),
         (quadraticGenerator i j A)ᴴ = -quadraticGenerator i j A)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (_hA : Aᴴ = -A),
         matchGate i j A ∈ Matrix.unitaryGroup (Reg n) ℂ)
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (a b : Fin (2 * n)),
         covarianceMatrix M b a = -covarianceMatrix M a b)
@@ -3483,20 +3485,20 @@ theorem clause3_endpoint_partial :
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ),
         localCovarianceInBasis M i j R = R * localBlock (covarianceMatrix M) i j * R.transpose)
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ)
-          (hij : i ≠ j),
+          (_hij : i ≠ j),
         localBlock (covarianceUpdate (covarianceMatrix M) i j R) i j = localCovarianceInBasis M i j R)
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
           (a b : Fin (2 * n)),
         covarianceInBasis M S b a = -covarianceInBasis M S a b)
       ∧ (∀ (n : ℕ) (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ)
-          (hij : i ≠ j) (p q : Fin 4),
+          (_hij : i ≠ j) (p q : Fin 4),
         (∀ s t : Fin 4, localBlock Γ i j t s = -localBlock Γ i j s t) →
           localBlock (covarianceUpdate Γ i j R) i j q p
             = -localBlock (covarianceUpdate Γ i j R) i j p q)
       ∧ (∀ (n : ℕ) (Γ Γ' : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ),
         Γ = Γ' → covarianceUpdate Γ i j R = covarianceUpdate Γ' i j R)
       ∧ (∀ (n : ℕ) (k : Fin n), majoranaEven k * majoranaEven k = 1)
-      ∧ (∀ (n : ℕ) (k l : Fin n) (hkl : k ≠ l),
+      ∧ (∀ (n : ℕ) (k l : Fin n) (_hkl : k ≠ l),
         majoranaEven k * majoranaEven l + majoranaEven l * majoranaEven k = 0)
       ∧ (∀ (n : ℕ) (k : Fin n), majorana ⟨2 * k.val, by omega⟩ = majoranaEven k)
       ∧ (∀ (n : ℕ) (k : Fin n), majorana ⟨2 * k.val + 1, by omega⟩ = majoranaOdd k)
@@ -3507,9 +3509,9 @@ theorem clause3_endpoint_partial :
       ∧ (∀ (n : ℕ) (k : Fin n),
         majoranaOdd k * majoranaEven k = Complex.I • (1 - numberOp k - numberOp k))
       ∧ (∀ (n : ℕ) (k : Fin n), majoranaOdd k * majoranaOdd k = 1)
-      ∧ (∀ (n : ℕ) (k l : Fin n) (hkl : k ≠ l),
+      ∧ (∀ (n : ℕ) (k l : Fin n) (_hkl : k ≠ l),
         majoranaOdd k * majoranaOdd l + majoranaOdd l * majoranaOdd k = 0)
-      ∧ (∀ (n : ℕ) (k l : Fin n) (hkl : k ≠ l),
+      ∧ (∀ (n : ℕ) (k l : Fin n) (_hkl : k ≠ l),
         majoranaEven k * majoranaOdd l + majoranaOdd l * majoranaEven k = 0)
       ∧ (∀ (n : ℕ) (k : Fin n),
         majoranaEven k * majoranaOdd k + majoranaOdd k * majoranaEven k = 0)
@@ -3520,36 +3522,36 @@ theorem clause3_endpoint_partial :
         majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
           = ((2 * gramMatrix S a b : ℝ) : ℂ) • (1 : Matrix (Reg n) (Reg n) ℂ))
       ∧ (∀ (n : ℕ) (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
-          (hS : S * S.transpose = 1) (a b : Fin (2 * n)),
+          (_hS : S * S.transpose = 1) (a b : Fin (2 * n)),
         majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
           = (if a = b then (2 : ℂ) else 0) • (1 : Matrix (Reg n) (Reg n) ℂ))
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (R : Matrix (Fin 4) (Fin 4) ℝ)
-          (hR : R * R.transpose = 1) (p q : Fin 4),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (R : Matrix (Fin 4) (Fin 4) ℝ)
+          (_hR : R * R.transpose = 1) (p q : Fin 4),
         localMajoranaInBasis i j R p * localMajoranaInBasis i j R q
           + localMajoranaInBasis i j R q * localMajoranaInBasis i j R p
           = (if p = q then (2 : ℂ) else 0) • (1 : Matrix (Reg n) (Reg n) ℂ))
       ∧ (∀ (n : ℕ) (U M : Matrix (Reg n) (Reg n) ℂ)
-          (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (hU : U * Uᴴ = 1)
-          (hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a),
+          (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (_hU : U * Uᴴ = 1)
+          (_hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a),
         covarianceMatrix (U * M) = S * covarianceMatrix M * S.transpose)
-      ∧ (∀ (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (hU : Uᴴ * U = 1)
+      ∧ (∀ (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (_hU : Uᴴ * U = 1)
           (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
-          (hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a),
+          (_hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a),
         S * S.transpose = 1)
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (k : Fin n),
         covarianceMatrix M (majoranaIndices k 0) (majoranaIndices k 1)
           = (Matrix.trace (Mᴴ * M)).re
             - 2 * (Matrix.trace (Mᴴ * (numberOp k) * M)).re)
       ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (k : Fin n)
-          (hM : (Matrix.trace (Mᴴ * M)).re = 1),
+          (_hM : (Matrix.trace (Mᴴ * M)).re = 1),
         occupationExpectation M k = occupationFromCovariance (covarianceMatrix M) k)
       ∧ (∀ (n : ℕ) (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (k : Fin n)
-          (hlo : -1 ≤ Γ (majoranaIndices k 0) (majoranaIndices k 1))
-          (hhi : Γ (majoranaIndices k 0) (majoranaIndices k 1) ≤ 1),
+          (_hlo : -1 ≤ Γ (majoranaIndices k 0) (majoranaIndices k 1))
+          (_hhi : Γ (majoranaIndices k 0) (majoranaIndices k 1) ≤ 1),
         0 ≤ occupationFromCovariance Γ k ∧ occupationFromCovariance Γ k ≤ 1)
-      ∧ (∀ (n : ℕ) (k : Fin n) (h : 0 < n),
+      ∧ (∀ (n : ℕ) (k : Fin n) (_h : 0 < n),
         occupationClassicalCost k < physicalMeasurementCost n)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ),
         quadraticGenerator i j A
           = ((A 0 0 + A 1 1) / 2) • 1
             + (-(Complex.I) * A 0 0 / 2) • (majoranaEven i * majoranaOdd i)
@@ -3558,7 +3560,7 @@ theorem clause3_endpoint_partial :
                 • (majoranaEven i * majoranaEven j + majoranaOdd i * majoranaOdd j)
             + (-(Complex.I) * (A 0 1 + A 1 0) / 4)
                 • (majoranaEven i * majoranaOdd j - majoranaOdd i * majoranaEven j))
-      ∧ (∀ (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A),
+      ∧ (∀ (A : Matrix (Fin 2) (Fin 2) ℂ) (_hA : Aᴴ = -A),
         ((-(Complex.I) * A 0 0 / 2 : ℂ).im : ℂ) = 0
           ∧ ((-(Complex.I) * A 1 1 / 2 : ℂ).im : ℂ) = 0
           ∧ (((A 0 1 - A 1 0) / 4 : ℂ).im : ℂ) = 0
@@ -3576,41 +3578,41 @@ theorem clause3_endpoint_partial :
           ∧ localFormMatrix A 1 2 = -(A 0 1).im / 2)
       ∧ (∀ (n : ℕ) (a : Fin (2 * n)), majoranaInBasis 1 a = majorana a)
       ∧ (∀ (n : ℕ) (U M : Matrix (Reg n) (Reg n) ℂ)
-          (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (hU : U * Uᴴ = 1)
-          (hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a) (k : Fin n),
+          (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (_hU : U * Uᴴ = 1)
+          (_hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a) (k : Fin n),
         2 * occupationExpectation (U * M) k
           = (Matrix.trace (Mᴴ * M)).re
             - (S * covarianceMatrix M * S.transpose) (majoranaIndices k 0) (majoranaIndices k 1))
-      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A)
+      ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (_hA : Aᴴ = -A)
           (M : Matrix (Reg n) (Reg n) ℂ) (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
-          (hS : ∀ a : Fin (2 * n),
+          (_hS : ∀ a : Fin (2 * n),
             (matchGate i j A)ᴴ * majorana a * (matchGate i j A) = majoranaInBasis S a),
         covarianceMatrix (matchGate i j A * M) = S * covarianceMatrix M * S.transpose)
       ∧ (∀ (n : ℕ) (gl : MatchGateCircuit n) (k : Fin n),
         matchGateCircuitClassicalOps gl + occupationClassicalCost k
           ≤ 64 * matchGateCount gl + 1)
 
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ),
         frameRotation i j A * (frameRotation i j A).transpose = 1)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ) (p : Fin 4),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ) (p : Fin 4),
         majoranaInBasis (frameRotation i j A) (localIndices i j p)
           = localMajoranaInBasis i j (localRotation A) p)
       ∧ (∀ (n : ℕ) (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ) (a : Fin (2 * n)),
         ¬ isLocalMajorana i j a → majoranaInBasis (frameRotation i j A) a = majorana a)
-      ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n) (hij : i ≠ j)
+      ∧ (∀ (n : ℕ) (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n) (_hij : i ≠ j)
           (A : Matrix (Fin 2) (Fin 2) ℂ),
         localBlock (covarianceInBasis M (frameRotation i j A)) i j
           = (localRotation A) * localBlock (covarianceMatrix M) i j * (localRotation A).transpose)
-      ∧ (∀ (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b),
+      ∧ (∀ (n : ℕ) (a b : Fin (2 * n)) (_hab : a ≠ b),
         majorana a * majorana b * majorana a - majorana a * majorana a * majorana b
           = (-2 : ℂ) • majorana b)
-      ∧ (∀ (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b),
+      ∧ (∀ (n : ℕ) (a b : Fin (2 * n)) (_hab : a ≠ b),
         majorana a * majorana b * majorana b - majorana b * majorana a * majorana b
           = (2 : ℂ) • majorana a)
-      ∧ (∀ (n : ℕ) (a b c : Fin (2 * n)) (hab : a ≠ b) (hbc : b ≠ c) (hac : a ≠ c),
+      ∧ (∀ (n : ℕ) (a b c : Fin (2 * n)) (_hab : a ≠ b) (_hbc : b ≠ c) (_hac : a ≠ c),
         majorana a * majorana b * majorana c = majorana c * majorana a * majorana b)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ)
-          (hA : Aᴴ = -A),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ)
+          (_hA : Aᴴ = -A),
         quadraticGenerator i j A
           = ((A 0 0 + A 1 1) / 2) • (1 : FermMat n)
             + Complex.ofReal ((A 0 0).im / 2)
@@ -3625,8 +3627,8 @@ theorem clause3_endpoint_partial :
                 • (majorana (majoranaIndices i 1) * majorana (majoranaIndices j 1))
             + Complex.ofReal ((A 1 1).im / 2)
                 • (majorana (majoranaIndices j 0) * majorana (majoranaIndices j 1)))
-      ∧ (∀ (n : ℕ) (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ)
-          (hA : Aᴴ = -A),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ)
+          (_hA : Aᴴ = -A),
         quadraticGenerator i j A * (majorana (majoranaIndices i 0))
             - (majorana (majoranaIndices i 0)) * quadraticGenerator i j A
           = Complex.ofReal (-2 * localFormSym A 0 1)
@@ -3635,27 +3637,27 @@ theorem clause3_endpoint_partial :
                 • (majorana (majoranaIndices j 0))
             + Complex.ofReal (-2 * localFormSym A 0 3)
                 • (majorana (majoranaIndices j 1))) :=
-  ⟨fun n gl => matchGateCircuitClassicalOps_le gl,
-   fun n Γ i j R a b ha hb => covarianceUpdate_eq_of_not_local Γ i j R a b ha hb,
-   fun n i b c hbc => majoranaIndices_ne i b c hbc,
+  ⟨fun _n gl => matchGateCircuitClassicalOps_le gl,
+   fun _n Γ i j R a b ha hb => covarianceUpdate_eq_of_not_local Γ i j R a b ha hb,
+   fun _n i b c hbc => majoranaIndices_ne i b c hbc,
    fun n => length_linearConnectivity n,
-   fun n h => length_ringConnectivity h,
-   fun n Γ i j R hij => localBlock_covarianceUpdate Γ i j R hij,
+   fun _n h => length_ringConnectivity h,
+   fun _n Γ i j R hij => localBlock_covarianceUpdate Γ i j R hij,
    fun m => determinantOpCost_le m,
    fun m => pfaffianOpCost_le m,
-   fun n i => numberOp_hermitian i,
-   fun n i j => creation_mul_annihilation_conjTranspose i j,
-   fun n i j A => quadraticGenerator_conjTranspose i j A,
-   fun n i j A hA => quadraticGenerator_skewHermitian i j A hA,
-   fun n i j A hA => matchGate_unitary i j A hA,
-   fun n M a b => covarianceMatrix_antisymm M a b,
-   fun n M i j p q => localBlock_covariance_antisymm M i j p q,
-   fun n M S => covarianceInBasis_eq_congruence M S,
-   fun n M i j R => localCovarianceInBasis_eq M i j R,
-   fun n M i j R hij => covarianceUpdate_local_eq_rotatedBasis M i j R hij,
-   fun n M S a b => covarianceInBasis_antisymm M S a b,
-   fun n Γ i j R hij p q h => localBlock_covarianceUpdate_antisymm Γ i j R hij p q h,
-   fun n Γ Γ' i j R h => covarianceUpdate_eq_of_covariance_eq h i j R,
+   fun _n i => numberOp_hermitian i,
+   fun _n i j => creation_mul_annihilation_conjTranspose i j,
+   fun _n i j A => quadraticGenerator_conjTranspose i j A,
+   fun _n i j A hA => quadraticGenerator_skewHermitian i j A hA,
+   fun _n i j A hA => matchGate_unitary i j A hA,
+   fun _n M a b => covarianceMatrix_antisymm M a b,
+   fun _n M i j p q => localBlock_covariance_antisymm M i j p q,
+   fun _n M S => covarianceInBasis_eq_congruence M S,
+   fun _n M i j R => localCovarianceInBasis_eq M i j R,
+   fun _n M i j R hij => covarianceUpdate_local_eq_rotatedBasis M i j R hij,
+   fun _n M S a b => covarianceInBasis_antisymm M S a b,
+   fun _n Γ i j R hij p q h => localBlock_covarianceUpdate_antisymm Γ i j R hij p q h,
+   fun _n _Γ _Γ' i j R h => covarianceUpdate_eq_of_covariance_eq h i j R,
    fun n k => majoranaEven_sq n k,
    fun n k l hkl => majoranaEven_anticommute n k l hkl,
    fun n k => majorana_even_eq n k,
@@ -3664,38 +3666,38 @@ theorem clause3_endpoint_partial :
    fun n k => majoranaIndices_odd n k,
    fun n k => majoranaEven_majoranaOdd (n := n) k,
    fun n k => majoranaOdd_majoranaEven (n := n) k,
-   fun n k => majoranaOdd_sq k,
-   fun n k l hkl => majoranaOdd_anticommute k l hkl,
-   fun n k l hkl => majoranaEven_majoranaOdd_anticommute k l hkl,
+   fun _n k => majoranaOdd_sq k,
+   fun _n k l hkl => majoranaOdd_anticommute k l hkl,
+   fun _n k l hkl => majoranaEven_majoranaOdd_anticommute k l hkl,
    fun n k => majoranaEven_majoranaOdd_anticommute_same n k,
    fun n a b => majorana_clifford n a b,
-   fun n S a b => majoranaInBasis_anticommutator_real S a b,
-   fun n S hS a b => majoranaInBasis_clifford_of_orthogonal S hS a b,
-   fun n i j hij R hR p q => localMajoranaInBasis_clifford_of_orthogonal i j hij R hR p q,
-   fun n U M S hU hS => covarianceMatrix_congruence_of_induced U M S hU hS,
-   fun n U hU S hS => induced_frame_orthogonal_of_unitary U hU S hS,
-   fun n M k => covarianceMatrix_occupation M k,
-   fun n M k hM => occupationExpectation_eq_occupationFromCovariance M k hM,
-   fun n Γ k hlo hhi => occupationFromCovariance_bounds Γ k hlo hhi,
-   fun n k h => occupationClassicalCost_lt_physical k h,
-   fun n i j hij A => quadraticGenerator_eq_majoranaForm i j hij A,
-   fun A hA => quadraticGenerator_majoranaForm_coef_real hA,
+   fun _n S a b => majoranaInBasis_anticommutator_real S a b,
+   fun _n S hS a b => majoranaInBasis_clifford_of_orthogonal S hS a b,
+   fun _n i j hij R hR p q => localMajoranaInBasis_clifford_of_orthogonal i j hij R hR p q,
+   fun _n U M S hU hS => covarianceMatrix_congruence_of_induced U M S hU hS,
+   fun _n U hU S hS => induced_frame_orthogonal_of_unitary U hU S hS,
+   fun _n M k => covarianceMatrix_occupation M k,
+   fun _n M k hM => occupationExpectation_eq_occupationFromCovariance M k hM,
+   fun _n Γ k hlo hhi => occupationFromCovariance_bounds Γ k hlo hhi,
+   fun _n k h => occupationClassicalCost_lt_physical k h,
+   fun _n i j hij A => quadraticGenerator_eq_majoranaForm i j hij A,
+   fun _A hA => quadraticGenerator_majoranaForm_coef_real hA,
    fun A => localFormMatrix_transpose A,
    fun A => localRotation_mul_transpose A,
    fun A => localFormMatrix_apply A,
-  fun n a => majoranaInBasis_one a,
-  fun n U M S hU hS k => occupationExpectation_congruence_of_induced_general U M S hU hS k,
-  fun n i j A hA M S hS => matchGate_covariance_congruence i j A hA M S hS,
-  fun n gl k => classicalSimulationCost_le gl k,
-  fun n i j hij A => frameRotation_mul_transpose i j hij A,
-  fun n i j hij A p => majoranaInBasis_frameRotation_local i j hij A p,
-  fun n i j A a ha => majoranaInBasis_frameRotation_away i j A a ha,
-  fun n M i j hij A => localBlock_covarianceInBasis_frameRotation M i j hij A,
+  fun _n a => majoranaInBasis_one a,
+  fun _n U M S hU hS k => occupationExpectation_congruence_of_induced_general U M S hU hS k,
+  fun _n i j A hA M S hS => matchGate_covariance_congruence i j A hA M S hS,
+  fun _n gl k => classicalSimulationCost_le gl k,
+  fun _n i j hij A => frameRotation_mul_transpose i j hij A,
+  fun _n i j hij A p => majoranaInBasis_frameRotation_local i j hij A p,
+  fun _n i j A a ha => majoranaInBasis_frameRotation_away i j A a ha,
+  fun _n M i j hij A => localBlock_covarianceInBasis_frameRotation M i j hij A,
   fun n a b hab => majorana_comm_left n a b hab,
   fun n a b hab => majorana_comm_right n a b hab,
   fun n a b c hab hbc hac => majorana_comm_third n a b c hab hbc hac,
-  fun n i j hij A hA => quadraticGenerator_eq_localForm i j hij A hA,
-  fun n i j hij A hA => generator_comm_even_even i j hij A hA⟩
+  fun _n i j hij A hA => quadraticGenerator_eq_localForm i j hij A hA,
+  fun _n i j hij A hA => generator_comm_even_even i j hij A hA⟩
 
 /-- The creation matrix `sigmaPlus` is the two-by-two matrix with its sole nonzero entry equal
 to one in row one, column zero. -/
@@ -3759,12 +3761,12 @@ theorem localGate_conjTranspose {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2
   · have h' : ∀ k : Fin n, k ≠ j → y k = x k := by
       intro k hk
       exact (h k hk).symm
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
     simp [Matrix.conjTranspose_apply]
   · have h' : ¬ (∀ k : Fin n, k ≠ j → y k = x k) := by
       intro hh
       exact h (fun k hk => (hh k hk).symm)
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
     simp
 
 /-- The operator of a singleton local gate list is its local gate. -/
@@ -3830,7 +3832,7 @@ theorem jwZPrefix_op_diag {n : ℕ} (i : Fin n) (y : Reg n) :
       = ((Finset.univ : Finset (Fin n)).filter (· < i)).prod (fun j => (if y j then -1 else 1)) := by
   have h := localGateListOp_diag (jwZPrefix i)
     (fun p hp b c hbc => oneQubitZ_diagonal b c (by rw [jwZPrefix_mem i hp] at hbc; exact hbc)) y y
-  rw [if_pos rfl] at h
+  rw [ite_eq_left rfl] at h
   rw [h, jwZPrefix, List.map_map, Finset.prod_map_toList]
   apply Finset.prod_congr rfl
   intro j hj
@@ -3983,7 +3985,7 @@ theorem numberGateList_op {n : ℕ} (i : Fin n) :
   ext y x
   rw [localGate_apply, numberOp_apply]
   by_cases h : ∀ k : Fin n, k ≠ i → y k = x k
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     by_cases hyx : y = x
     · subst hyx
       by_cases hi : y i
@@ -4009,7 +4011,7 @@ theorem numberGateList_op {n : ℕ} (i : Fin n) :
         intro hxy
         exact hyx hxy.symm
       simp [hne']
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hne' : x ≠ y := by
       intro hxy
       exact h (fun k hk => by rw [hxy])
@@ -4031,7 +4033,7 @@ theorem zRangeGateList_op_diag {n : ℕ} (i j : Fin n) (y : Reg n) :
       simp only [zRangeGateList, List.mem_map] at hp
       obtain ⟨q, -, rfl⟩ := hp
       exact hbc)) y y
-  rw [if_pos rfl] at h
+  rw [ite_eq_left rfl] at h
   rw [h, zRangeGateList, List.map_map, Finset.prod_map_toList]
   apply Finset.prod_congr rfl
   intro k hk
@@ -4055,13 +4057,13 @@ theorem zRange_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
       intro y x hne
       have h := localGateListOp_diag (jwZPrefix i)
         (fun p hp b c hbc => oneQubitZ_diagonal b c (by rw [jwZPrefix_mem i hp] at hbc; exact hbc)) y x
-      rw [if_neg hne] at h
+      rw [ite_eq_right hne] at h
       exact h
     have hdiagj : ∀ (y x : Reg n), y ≠ x → localGateListOp (jwZPrefix j) y x = 0 := by
       intro y x hne
       have h := localGateListOp_diag (jwZPrefix j)
         (fun p hp b c hbc => oneQubitZ_diagonal b c (by rw [jwZPrefix_mem j hp] at hbc; exact hbc)) y x
-      rw [if_neg hne] at h
+      rw [ite_eq_right hne] at h
       exact h
     have hdiagz : ∀ (y x : Reg n), y ≠ x → localGateListOp (zRangeGateList i j) y x = 0 := by
       intro y x hne
@@ -4070,7 +4072,7 @@ theorem zRange_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
           simp only [zRangeGateList, List.mem_map] at hp
           obtain ⟨q, -, rfl⟩ := hp
           exact hbc)) y x
-      rw [if_neg hne] at h
+      rw [ite_eq_right hne] at h
       exact h
     apply Matrix.ext
     intro y x
@@ -4317,7 +4319,7 @@ theorem onsiteLocalGate_eq_diagonal {n : ℕ} (i : Fin n) (s : ℝ) :
         · rw [hk]
           exact boolEquivFin2.injective hh.symm
         · exact (hc k hk).symm
-      rw [oneQubitPhase, Matrix.of_apply, if_neg hne]
+      rw [oneQubitPhase, Matrix.of_apply, ite_eq_right hne]
       simp
     · simp [hc]
 
@@ -4333,7 +4335,7 @@ theorem hamiltonianEvolution_numberOp_eq_onsiteLocalGate {n : ℕ} (i : Fin n) (
     funext x
     by_cases hx : x i
     · simp [hx, ← Complex.exp_eq_exp_ℂ]
-    · simp [hx, ← Complex.exp_eq_exp_ℂ]
+    · simp [hx]
   rw [hmain, onsiteLocalGate_eq_diagonal]
 
 /-- A register-indexed sum supported on two distinct registers equals the sum of its values at
@@ -4395,7 +4397,7 @@ private theorem localGate_apply_update {n : ℕ} (j : Fin n) (G : Matrix (Fin 2)
   have hcond : ∀ k : Fin n, k ≠ j → y k = Function.update y j b k := by
     intro k hk
     rw [Function.update_of_ne hk]
-  rw [if_pos hcond]
+  rw [ite_eq_left hcond]
   simp [Function.update_self, boolEquivFin2]
 
 /-- When registers agree away from `j`, updating the row register at `j` gives the corresponding
@@ -4408,7 +4410,7 @@ private theorem localGate_apply_update' {n : ℕ} (j : Fin n) (H : Matrix (Fin 2
     intro k hk
     rw [Function.update_of_ne hk]
     exact hyx k hk
-  rw [if_pos hcond]
+  rw [ite_eq_left hcond]
   simp [Function.update_self, boolEquivFin2]
 
 /-- Multiplying two local gates at the same site embeds the product of their local matrices. -/
@@ -4441,14 +4443,14 @@ theorem localGate_mul_localGate_same {n : ℕ} (j : Fin n) (G H : Matrix (Fin 2)
                   rw [show z j = false from Bool.eq_false_of_not_eq_true hb]
             exact absurd hzfalse hz1
         · show localGate j G y z * localGate j H z x = 0
-          rw [localGate_apply, if_neg hcond]
+          rw [localGate_apply, ite_eq_right hcond]
           simp
     rw [hconv]
     rw [localGate_apply_update j G y false, localGate_apply_update' j H y x false hyx,
       localGate_apply_update j G y true, localGate_apply_update' j H y x true hyx]
     rw [boolEquivFin2_false, boolEquivFin2_true]
     rw [localGate_apply]
-    simp only [if_pos hyx]
+    simp only [ite_eq_left hyx]
     rw [Matrix.mul_apply, Fin.sum_univ_two]
   · have hzero : (∑ z : Reg n, (localGate j G y z) * (localGate j H z x)) = 0 := by
       have h1 : (∑ z : Reg n, (localGate j G y z) * (localGate j H z x))
@@ -4467,10 +4469,10 @@ theorem localGate_mul_localGate_same {n : ℕ} (j : Fin n) (G H : Matrix (Fin 2)
               exact (Function.update_of_ne hk (z j) y).symm
             exact hyz.trans (h2 k hk)
           show localGate j G y z * localGate j H z x = 0
-          rw [localGate_apply, localGate_apply, if_pos hcond, if_neg h2]
+          rw [localGate_apply, localGate_apply, ite_eq_left hcond, ite_eq_right h2]
           simp
         · show localGate j G y z * localGate j H z x = 0
-          rw [localGate_apply, if_neg hcond]
+          rw [localGate_apply, ite_eq_right hcond]
           simp
       rw [h1]
       show localGate j G y (Function.update y j false) * localGate j H
@@ -4484,16 +4486,16 @@ theorem localGate_mul_localGate_same {n : ℕ} (j : Fin n) (G H : Matrix (Fin 2)
         apply hyx
         intro k hk
         exact (Function.update_of_ne hk false y).symm.trans (h2 k hk)
-      rw [if_pos hcond1, if_neg hcond2]
+      rw [ite_eq_left hcond1, ite_eq_right hcond2]
       simp
     rw [hzero, localGate_apply]
-    simp only [if_neg hyx]
+    simp only [ite_eq_right hyx]
 
 /-- A nonzero local gate entry connects registers that agree away from its site. -/
 private theorem localGate_ne_zero {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ)
     (y z : Reg n) (h : localGate j G y z ≠ 0) : ∀ k : Fin n, k ≠ j → y k = z k := by
   by_contra hcon
-  rw [localGate_apply, if_neg hcon] at h
+  rw [localGate_apply, ite_eq_right hcon] at h
   exact h rfl
 
 /-- Successive updates at `j` and `k` leave a register value unchanged at a site distinct from
@@ -4512,7 +4514,7 @@ private theorem update2_apply_j {n : ℕ} (y x : Reg n) (j k : Fin n) (hk : j �
   rw [Function.update_of_ne hk (y k) (Function.update y j (x j)), Function.update_self]
 
 /-- Updating `y` at `j` with `x j` and then at `k` with `y k` gives value `y k` at `k`. -/
-private theorem update2_apply_k {n : ℕ} (y x : Reg n) (j k : Fin n) (hj : k ≠ j) :
+private theorem update2_apply_k {n : ℕ} (y x : Reg n) (j k : Fin n) (_hj : k ≠ j) :
     Function.update (Function.update y j (x j)) k (y k) k = y k := by
   rw [Function.update_self]
 
@@ -4546,7 +4548,7 @@ private theorem localGate_apply_update2 {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     by_cases hm2 : m = k
     · rw [hm2, update2_apply_k y x j k (Ne.symm hjk)]
     · rw [update2_apply y x j k m hm hm2]
-  rw [if_pos hcond, update2_apply_j y x j k hjk]
+  rw [ite_eq_left hcond, update2_apply_j y x j k hjk]
 
 /-- For distinct sites and registers agreeing elsewhere, the local gate entry from the specified
 intermediate register is the corresponding entry of `H`. -/
@@ -4563,7 +4565,7 @@ private theorem localGate_apply_update2' {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     · rw [hm2, update2_apply_j y x j k hjk]
     · rw [update2_apply y x j k m hm2 hm]
       exact hyx m hm2 hm
-  rw [if_pos hcond, update2_apply_k y x j k (Ne.symm hjk)]
+  rw [ite_eq_left hcond, update2_apply_k y x j k (Ne.symm hjk)]
 
 /-- For gates at distinct sites and registers agreeing elsewhere, the product entry is the
 product of the two local matrix entries. -/
@@ -4677,10 +4679,10 @@ theorem twoSiteGate_eq_localGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   by_cases hyx : ∀ m : Fin n, m ≠ i → m ≠ j → y m = x m
   · rw [localGate_mul_ne_entry i j hij G H y x hyx]
     unfold twoSiteGate
-    rw [Matrix.of_apply, if_pos hyx]
+    rw [Matrix.of_apply, ite_eq_left hyx]
   · rw [localGate_mul_ne_zero i j hij G H y x hyx]
     unfold twoSiteGate
-    rw [Matrix.of_apply, if_neg hyx]
+    rw [Matrix.of_apply, ite_eq_right hyx]
 
 /-- The sum of forward and backward hopping monomials is Hermitian. -/
 theorem hoppingTerm_hermitian {n : ℕ} (i j : Fin n) :
@@ -5127,11 +5129,11 @@ theorem fermionPairs_lt {n : ℕ} {p : Fin n × Fin n} (hp : p ∈ fermionPairs 
   rw [List.mem_filterMap] at hp
   obtain ⟨j, hj, heq⟩ := hp
   by_cases hij : i < j
-  · rw [if_pos hij] at heq
+  · rw [ite_eq_left hij] at heq
     have hpair : (i, j) = p := Option.some.inj heq
     obtain ⟨rfl, rfl⟩ := hpair
     exact hij
-  · rw [if_neg hij] at heq
+  · rw [ite_eq_right hij] at heq
     cases heq
 
 /-- Folding Hubbard onsite word operators equals folding the corresponding weighted number
@@ -5352,7 +5354,6 @@ theorem hubbardHamiltonianWord_count_le {n : ℕ} (t μ U : ℂ) :
     intro p hp
     have hlt := fermionPairs_lt hp
     have hp2 := p.2.isLt
-    (try dsimp only)
     omega
   have hmain : 2 * (fermionPairs n).length
         + (fermionPairs n).foldr (fun p acc => 2 * (p.2.val - p.1.val) + 4 + acc) 0
@@ -5505,7 +5506,7 @@ theorem zListOp_diag_entry {n : ℕ} (S : Finset (Fin n)) (y : Reg n) :
       simp only [List.mem_map] at hp
       obtain ⟨q, -, rfl⟩ := hp
       exact oneQubitZ_diagonal b c hbc) y y
-  rw [if_pos rfl] at h
+  rw [ite_eq_left rfl] at h
   rw [h, List.map_map, Finset.prod_map_toList]
   apply Finset.prod_congr rfl
   intro k hk
@@ -5519,7 +5520,7 @@ theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S)
   classical
   have hloc : ∀ (y z : Reg n), y ≠ z → localGate k oneQubitZ y z = 0 := by
     intro y z hne
-    rw [localGate_diag_apply k oneQubitZ_diagonal y z, if_neg hne]
+    rw [localGate_diag_apply k oneQubitZ_diagonal y z, ite_eq_right hne]
   have hdiagL : ∀ (y x : Reg n), y ≠ x →
       localGateListOp ((insert k S).toList.map (fun m => (m, oneQubitZ))) y x = 0 := by
     intro y x hne
@@ -5528,7 +5529,7 @@ theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S)
         simp only [List.mem_map] at hp
         obtain ⟨q, -, rfl⟩ := hp
         exact oneQubitZ_diagonal b c hbc) y x
-    rw [if_neg hne] at h
+    rw [ite_eq_right hne] at h
     exact h
   have hdiagR : ∀ (y x : Reg n), y ≠ x →
       localGateListOp (S.toList.map (fun m => (m, oneQubitZ))) y x = 0 := by
@@ -5538,7 +5539,7 @@ theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S)
         simp only [List.mem_map] at hp
         obtain ⟨q, -, rfl⟩ := hp
         exact oneQubitZ_diagonal b c hbc) y x
-    rw [if_neg hne] at h
+    rw [ite_eq_right hne] at h
     exact h
   ext y x
   by_cases hyx : y = x
@@ -5546,7 +5547,7 @@ theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S)
     rw [mul_apply_diag_left _ _ hloc y y, zListOp_diag_entry (insert k S) y,
       zListOp_diag_entry S y, Finset.prod_insert hk,
       localGate_diag_apply k oneQubitZ_diagonal y y]
-    simp only [if_true]
+    simp only [ite_true]
     rw [oneQubitZ_diagEntry_bool k y]
   · rw [hdiagL y x hyx, mul_apply_diag_left _ _ hloc y x, hdiagR y x hyx]
     simp
@@ -5699,11 +5700,11 @@ theorem twoSiteGate_linear {n : ℕ} (i j : Fin n) (c : ℂ)
     twoSiteGate i j (c • B + D) = c • twoSiteGate i j B + twoSiteGate i j D := by
   ext y x
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
-  · rw [twoSiteGate_apply, if_pos hout, Matrix.add_apply, Matrix.smul_apply,
-      Matrix.add_apply, Matrix.smul_apply, twoSiteGate_apply, if_pos hout,
-      twoSiteGate_apply, if_pos hout]
-  · rw [twoSiteGate_apply, if_neg hout, Matrix.add_apply, Matrix.smul_apply,
-      twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
+  · rw [twoSiteGate_apply, ite_eq_left hout, Matrix.add_apply, Matrix.smul_apply,
+      Matrix.add_apply, Matrix.smul_apply, twoSiteGate_apply, ite_eq_left hout,
+      twoSiteGate_apply, ite_eq_left hout]
+  · rw [twoSiteGate_apply, ite_eq_right hout, Matrix.add_apply, Matrix.smul_apply,
+      twoSiteGate_apply, ite_eq_right hout, twoSiteGate_apply, ite_eq_right hout]
     simp
 
 /-- The two-site embedding preserves addition of block matrices. -/
@@ -5712,10 +5713,10 @@ theorem twoSiteGate_add {n : ℕ} (i j : Fin n)
     twoSiteGate i j (B + D) = twoSiteGate i j B + twoSiteGate i j D := by
   ext y x
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
-  · rw [twoSiteGate_apply, if_pos hout, Matrix.add_apply, Matrix.add_apply,
-      twoSiteGate_apply, if_pos hout, twoSiteGate_apply, if_pos hout]
-  · rw [twoSiteGate_apply, if_neg hout, Matrix.add_apply,
-      twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
+  · rw [twoSiteGate_apply, ite_eq_left hout, Matrix.add_apply, Matrix.add_apply,
+      twoSiteGate_apply, ite_eq_left hout, twoSiteGate_apply, ite_eq_left hout]
+  · rw [twoSiteGate_apply, ite_eq_right hout, Matrix.add_apply,
+      twoSiteGate_apply, ite_eq_right hout, twoSiteGate_apply, ite_eq_right hout]
     simp
 
 /-- A complex scalar multiple of a two-site gate equals the embedding of the scalar-multiplied
@@ -5725,9 +5726,9 @@ theorem twoSiteGate_smul {n : ℕ} (i j : Fin n) (c : ℂ)
     c • twoSiteGate i j B = twoSiteGate i j (c • B) := by
   ext y x
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
-  · rw [Matrix.smul_apply, twoSiteGate_apply, if_pos hout, twoSiteGate_apply, if_pos hout,
+  · rw [Matrix.smul_apply, twoSiteGate_apply, ite_eq_left hout, twoSiteGate_apply, ite_eq_left hout,
       Matrix.smul_apply]
-  · rw [Matrix.smul_apply, twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
+  · rw [Matrix.smul_apply, twoSiteGate_apply, ite_eq_right hout, twoSiteGate_apply, ite_eq_right hout]
     simp
 
 /-- For distinct modes, the number operator at the first mode is the two-site embedding of
@@ -5738,10 +5739,10 @@ theorem numberOp_twoSiteGate_i {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
   · by_cases hxy : x = y
     · subst hxy
-      rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_pos hout]
+      rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_left hout]
       cases h : x i <;>
         simp [numberBlockI, boolEquivFin2_false, boolEquivFin2_true]
-    · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_pos hout]
+    · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_left hout]
       have hbits : (boolEquivFin2 (y i), boolEquivFin2 (y j))
           ≠ (boolEquivFin2 (x i), boolEquivFin2 (x j)) := by
         intro hcon
@@ -5755,7 +5756,7 @@ theorem numberOp_twoSiteGate_i {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
           · simp [hk2, h2]
           · exact (hout k hk hk2).symm
       simp [numberBlockI, hbits, hxy]
-  · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_neg hout]
+  · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_right hout]
     have hxy : ¬ x = y := by
       intro h
       exact hout (fun k hk1 hk2 => by rw [h])
@@ -5769,10 +5770,10 @@ theorem numberOp_twoSiteGate_j {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
   · by_cases hxy : x = y
     · subst hxy
-      rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_pos hout]
+      rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_left hout]
       cases h : x j <;>
         simp [numberBlockJ, boolEquivFin2_false, boolEquivFin2_true]
-    · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_pos hout]
+    · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_left hout]
       have hbits : (boolEquivFin2 (y i), boolEquivFin2 (y j))
           ≠ (boolEquivFin2 (x i), boolEquivFin2 (x j)) := by
         intro hcon
@@ -5786,7 +5787,7 @@ theorem numberOp_twoSiteGate_j {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
           · simp [hk2, h2]
           · exact (hout k hk hk2).symm
       simp [numberBlockJ, hbits, hxy]
-  · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, if_neg hout]
+  · rw [numberOp, Matrix.of_apply, twoSiteGate_apply, ite_eq_right hout]
     have hxy : ¬ x = y := by
       intro h
       exact hout (fun k hk1 hk2 => by rw [h])
@@ -5801,7 +5802,7 @@ theorem zTailSet_eq_empty_of_adjacent {n : ℕ} (i j : Fin n) (hadj : j.val = i.
   · intro hk
     exact (by omega : False).elim
   · intro hk
-    exact (by simpa using! hk : False).elim
+    simp at hk
 
 /-- The strict Z-tail gate list is empty for consecutive mode indices. -/
 theorem zTailGateList_eq_nil_of_adjacent {n : ℕ} (i j : Fin n) (hadj : j.val = i.val + 1) :
@@ -6029,7 +6030,7 @@ theorem twoSiteGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
           = B (twoSiteBits i j y) w := by
       intro w
       rw [twoSiteGate_apply,
-        if_pos (fun k hk hk' => (twoSiteExtend_out i j y w k hk hk').symm)]
+        ite_eq_left (fun k hk hk' => (twoSiteExtend_out i j y w k hk hk').symm)]
       rw [boolEquivFin2_twoSiteExtend_i i j y w,
         boolEquivFin2_twoSiteExtend_j i j hij y w]
       simp [twoSiteBits]
@@ -6038,12 +6039,12 @@ theorem twoSiteGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
           = C w (twoSiteBits i j x) := by
       intro w
       rw [twoSiteGate_apply,
-        if_pos (fun k hk hk' => (twoSiteExtend_out i j y w k hk hk').trans (hout k hk hk'))]
+        ite_eq_left (fun k hk hk' => (twoSiteExtend_out i j y w k hk hk').trans (hout k hk hk'))]
       rw [boolEquivFin2_twoSiteExtend_i i j y w,
         boolEquivFin2_twoSiteExtend_j i j hij y w]
       simp [twoSiteBits]
     simp only [hstep, hstep2]
-    rw [twoSiteGate_apply, if_pos hout, Matrix.mul_apply]
+    rw [twoSiteGate_apply, ite_eq_left hout, Matrix.mul_apply]
     simp only [twoSiteBits]
   · have hex : ∃ k : Fin n, k ≠ i ∧ k ≠ j ∧ y k ≠ x k := by
       by_contra hcon
@@ -6065,7 +6066,7 @@ theorem twoSiteGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
         exact absurd hcx hne
       · simp [hc]
     simp only [hzero2, mul_zero]
-    rw [twoSiteGate_apply, if_neg hout]
+    rw [twoSiteGate_apply, ite_eq_right hout]
     simp
 
 /-- Embedding the identity block as a two-site gate gives the register identity matrix. -/
@@ -6073,7 +6074,7 @@ theorem twoSiteGate_one {n : ℕ} (i j : Fin n) :
     twoSiteGate i j 1 = 1 := by
   ext y x
   by_cases hout : ∀ k : Fin n, k ≠ i → k ≠ j → y k = x k
-  · rw [twoSiteGate_apply, if_pos hout, Matrix.one_apply]
+  · rw [twoSiteGate_apply, ite_eq_left hout, Matrix.one_apply]
     by_cases heq : y = x
     · subst heq
       simp
@@ -6091,7 +6092,7 @@ theorem twoSiteGate_one {n : ℕ} (i j : Fin n) :
             · rw [hout k hki hkj]
         exact heq hyx
       simp [hbits, heq]
-  · rw [twoSiteGate_apply, if_neg hout, Matrix.one_apply]
+  · rw [twoSiteGate_apply, ite_eq_right hout, Matrix.one_apply]
     have hne : y ≠ x := by
       intro hyx
       subst hyx
@@ -6163,11 +6164,11 @@ theorem clause2_endpoint_partial :
             + localGateCount (hopBackwardGateList i j)
             + localGateCount (numberGateList j)
           = 2 * (j.val - i.val) + 6)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (k : Fin n) (hk : k ≠ i) (hk' : k ≠ j) (y x : Reg n),
+      ∧ (∀ (n : ℕ) (i j : Fin n) (k : Fin n) (_hk : k ≠ i) (_hk' : k ≠ j) (y x : Reg n),
         y k ≠ x k →
           (creation i * annihilation j + creation j * annihilation i) y x = 0)
       ∧ (∀ (n : ℕ) (i j : Fin n) (T : Matrix (Reg n) (Reg n) ℂ) (s : ℝ),
-        (∀ (k : Fin n) (hk : k ≠ i) (hk' : k ≠ j) (y x : Reg n),
+        (∀ (k : Fin n) (_hk : k ≠ i) (_hk' : k ≠ j) (y x : Reg n),
           y k ≠ x k → T y x = 0) →
           ∀ (y x : Reg n), (∃ k : Fin n, k ≠ i ∧ k ≠ j ∧ y k ≠ x k) →
             (HamiltonianEvolution T s) y x = 0)
@@ -6207,7 +6208,7 @@ theorem clause2_endpoint_partial :
           ≤ (2 * n + 4) * terms.length * modeAddressBits n)
       ∧ (∀ (n : ℕ) (terms : List (QuadraticTerm n)),
         localGateSumSpaceCost (quadraticHamiltonianWord terms) ≤ n)
-      ∧ (∀ (n : ℕ) (terms : List (QuadraticTerm n)) (h : terms.length ≤ n * n),
+      ∧ (∀ (n : ℕ) (terms : List (QuadraticTerm n)) (_h : terms.length ≤ n * n),
         localGateSumCount (quadraticHamiltonianWord terms) ≤ (2 * n + 4) * n ^ 2)
       ∧ (∀ (n : ℕ) (t : OneBodyTerm n),
         localGateSumOp (oneBodyWord t) = t.h • numberOp t.i)
@@ -6265,7 +6266,7 @@ theorem clause2_endpoint_partial :
           = twoSiteGate i j hopBackwardBlock * localGateListOp (zTailGateList i j))
       ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j), numberOp i = twoSiteGate i j numberBlockI)
       ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j), numberOp j = twoSiteGate i j numberBlockJ)
-      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (hadj : j.val = i.val + 1)
+      ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i ≠ j) (_hadj : j.val = i.val + 1)
         (A : Matrix (Fin 2) (Fin 2) ℂ),
         quadraticGenerator i j A = twoSiteGate i j (generatorBlock A))
       ∧ (∀ (n : ℕ) (i j : Fin n) (_hij : i < j) (A : Matrix (Fin 2) (Fin 2) ℂ),

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MCMontanaro15.MonteCarlo.TvEstimation.TvEstimationModel
+module
+
+public import Qatlib.Papers.MCMontanaro15.MonteCarlo.TvEstimation.TvEstimationModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -308,9 +312,9 @@ theorem expect_abs_sub_le_of_bounded {L : ℕ} (mu : FinDist (Fin L))
   have hpt : ∀ s, |a s - d| ≤ eps + (if G s then 0 else 1) := by
     intro s
     by_cases hs : G s
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       linarith [hG s hs]
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       have hab : |a s - d| ≤ 1 := by
         rw [abs_le]
         constructor <;> linarith [ha0 s, ha1 s]
@@ -417,7 +421,7 @@ theorem tv_integrand_expect_error {n L : ℕ} (p q : FinDist X)
       ≤ if 2 * eps / n ≤ p.prob x + q.prob x then 3 * eps else 1 := by
     intro x
     by_cases hx : 2 * eps / n ≤ p.prob x + q.prob x
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have hinner := expect_abs_sub_le_of_bounded A.seedLaw
         (fun s => A.integrand x s) (tvIntegrand p q x) eps eps
         (tvIntegrand_nonneg p q x) (tvIntegrand_le_one p q x)
@@ -428,7 +432,7 @@ theorem tv_integrand_expect_error {n L : ℕ} (p q : FinDist X)
       show |A.conditionalMean x - tvIntegrand p q x| ≤ 3 * eps
       show |A.seedLaw.expect (fun s => A.integrand x s) - tvIntegrand p q x| ≤ 3 * eps
       nlinarith [hinner]
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       have hcm := expect_mem_unit A.seedLaw (fun s => A.integrand x s)
         (fun s => A.integrand_nonneg x s) (fun s => A.integrand_le_one x s)
       have hd0 := tvIntegrand_nonneg p q x
@@ -447,7 +451,7 @@ theorem tv_integrand_expect_error {n L : ℕ} (p q : FinDist X)
     intro x hx
     have hxs : 2 * eps / n ≤ p.prob x + q.prob x := (Finset.mem_filter.mp hx).2
     have hb := hbound x
-    rw [if_pos hxs] at hb
+    rw [ite_eq_left hxs] at hb
     calc (avgLaw p q).prob x * |A.conditionalMean x - tvIntegrand p q x|
         ≤ (avgLaw p q).prob x * (3 * eps) :=
           mul_le_mul_of_nonneg_left hb ((avgLaw p q).nonneg x)
@@ -498,7 +502,7 @@ theorem tv_integrand_expect_error {n L : ℕ} (p q : FinDist X)
           apply Finset.sum_le_sum
           intro x hx
           have hb := hbound x
-          rw [if_neg (Finset.mem_filter.mp hx).2] at hb
+          rw [ite_eq_right (Finset.mem_filter.mp hx).2] at hb
           calc (avgLaw p q).prob x * |A.conditionalMean x - tvIntegrand p q x|
               ≤ (avgLaw p q).prob x * 1 :=
                 mul_le_mul_of_nonneg_left hb ((avgLaw p q).nonneg x)

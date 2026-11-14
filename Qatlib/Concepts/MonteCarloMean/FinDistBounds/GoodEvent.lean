@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Expectation lower bounds from good events
@@ -44,9 +48,9 @@ theorem expect_ge_on_good {X : Type*} [Fintype X] [DecidableEq X]
     apply Finset.sum_le_sum
     intro x _
     by_cases hx : E x
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       simpa only [mul_comm a] using! mul_le_mul_of_nonneg_left (hgood x hx) (p.nonneg x)
-    · rw [if_neg hx,mul_zero]
+    · rw [ite_eq_right hx,mul_zero]
       exact mul_nonneg (p.nonneg x) (hf0 x)
   exact (mul_le_mul_of_nonneg_left hE ha).trans hp
 

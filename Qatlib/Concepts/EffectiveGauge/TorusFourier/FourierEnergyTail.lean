@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierHigherEnergy
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyEnergyTail
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierHigherEnergy
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyEnergyTail
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -90,11 +94,11 @@ theorem unitFourierH1TailEnergy_le (f : SpatialPoint → ℂ) (hf : ContDiff ℝ
     · exact mul_nonneg (by linarith [frequencyEnergy_nonneg k]) (sq_nonneg _)
   have hmajor (k : SpatialFrequency) : t k ≤ C*(frequencySixthEnergy k*a k) := by
     by_cases hk : k∈Finset.Icc (-N : SpatialFrequency) N
-    · simp only [t,if_pos hk]
+    · simp only [t,ite_eq_left hk]
       have he : 0 ≤ frequencySixthEnergy k := Finset.sum_nonneg
         (fun i _ => Even.pow_nonneg (by decide : Even (6 : ℕ)) (k i : ℝ))
       exact mul_nonneg hC (mul_nonneg he (sq_nonneg _))
-    · simp only [t,if_neg hk]
+    · simp only [t,ite_eq_right hk]
       have h := mul_le_mul_of_nonneg_right (frequencyH1_tail_weight N k hk) (sq_nonneg (‖unitFourierCoefficient f hf.continuous hp k‖))
       convert h using 1
       dsimp only [C,a]

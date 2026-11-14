@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewise
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonUniqueness
-import Mathlib.Topology.Piecewise
-import Mathlib.MeasureTheory.Measure.Typeclasses.NoAtoms
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewise
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonUniqueness
+public import Mathlib.Topology.Piecewise
+public import Mathlib.MeasureTheory.Measure.Typeclasses.NullSingletonClass
+
+@[expose] public section
 
 /-!
 # Assembling piecewise matrix evolutions

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupCore.SourceSemigroupCore
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBounds
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Mathlib.Data.Nat.Log
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
-import Mathlib.Data.Finset.Dedup
+module
+
+public import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupCore.SourceSemigroupCore
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBounds
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
+public import Mathlib.Data.Finset.Dedup
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

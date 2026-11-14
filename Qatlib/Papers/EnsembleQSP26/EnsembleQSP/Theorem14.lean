@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.Definitions
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
-import Mathlib.Algebra.Order.Floor.Semiring
+module
+
+public import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.Definitions
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+public import Mathlib.Algebra.Order.Floor.Semiring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

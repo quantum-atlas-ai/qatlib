@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Qatlib.Papers.ElemDistinct00.MainResults.Claw.OrReduction
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Qatlib.Papers.ElemDistinct00.MainResults.Claw.OrReduction
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Ordered claw guarantees and singleton lower bounds
@@ -56,6 +60,7 @@ section Guarantees
 variable {X Y Z W : Type*} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
   [Fintype W] [DecidableEq W] [Preorder X] [Preorder Y] [LinearOrder Z]
 
+omit [Preorder Y] in
 /-- A bounded-error claw-finding guarantee for arbitrary inputs also holds under the promise
 that the first function is monotone. This transfers guarantees to the ordered setting of
 [BuhrmanEtAl2005]. -/
@@ -63,6 +68,7 @@ theorem orderedClawBoundedError_of_clawBoundedError (A : ClawAlgorithm X Y Z W)
     (h : ClawBoundedError A) : OrderedClawBoundedError A :=
   fun f g _ hclaw => h f g hclaw
 
+omit [Preorder Y] in
 /-- An exact claw-finding guarantee for arbitrary inputs also holds under the promise that the
 first function is monotone. This transfers guarantees to the ordered setting of
 [BuhrmanEtAl2005]. -/

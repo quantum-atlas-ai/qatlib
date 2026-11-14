@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoModelCorrected
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoModelCorrected
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+@[expose] public section
 
 /-!
 # Specification of corrected polynomial payoff semantics

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyDefs
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyDefs
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # An explicit self-tomography specification

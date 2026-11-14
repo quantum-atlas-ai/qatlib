@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformDefs
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformDefs
+
+@[expose] public section
 
 /-!
 # Spectral gap transport between reference states
@@ -105,7 +109,7 @@ theorem learned_reference_gap (E : I → ℝ) (u : I → ℂ) (hu : l2norm u=1)
     (hL : 2≤Fintype.card I) (s : ℝ) (hs : s∈Set.Icc (0:ℝ) 1) :
     |referenceGap E u hL s-spectralGap E hL s|≤2*phaseDist u (uniformReference (I:=I)) := by
   have hcard : 0<Fintype.card I := by omega
-  letI : Nonempty I:=Fintype.card_pos_iff.mp hcard
+  let : Nonempty I:=Fintype.card_pos_iff.mp hcard
   have h:=referenceGap_transport E u uniformReference hu uniformReference_normalized hL s
   have he : referenceGap E uniformReference hL s=spectralGap E hL s := rfl
   rw [he] at h

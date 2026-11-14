@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionStat
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataQuan
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionStat
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataQuan
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Native collision search with a unique solution

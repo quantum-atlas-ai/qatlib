@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TranscorrChem20.MainResults.TCSimilarity.Basic
+module
+
+public import Qatlib.Papers.TranscorrChem20.MainResults.TCSimilarity.Basic
+
+@[expose] public section
 
 /-!
 # Compression and transcorrelation need not commute

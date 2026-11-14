@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAPadding
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAPadding
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
+
+@[expose] public section
 
 /-!
 # Compiled amplification words and query counts

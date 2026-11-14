@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.TensorModel.TensorNorm
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.SpinReadoutL2
-import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
-import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.TensorModel.TensorNorm
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.SpinReadoutL2
+public import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
+public import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+@[expose] public section
 
 /-!
 # Euclidean stability of actual field histories
@@ -88,7 +92,7 @@ theorem headVector_spin_difference {r N : ℕ} (hr : 0<r) (A : Tensor (r+1) N)
     (z w : EuclideanSpace ℝ (Fin N)) :
     ‖headVector A z-headVector A w‖≤
       ‖tensorForm A‖*(r:ℝ)*max ‖z‖ ‖w‖^(r-1)*‖z-w‖ := by
-  letI : Nonempty (Fin r) := ⟨⟨0,hr⟩⟩
+  let : Nonempty (Fin r) := ⟨⟨0,hr⟩⟩
   let v := headVector A z-headVector A w
   apply norm_le_of_inner_self_bound v _ (by positivity)
   rw [inner_sub_right,headVector_inner,headVector_inner]

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.GeneralUnitary.GeneralUnitaryTaylor
+module
+
+public import Qatlib.Concepts.CoherentSim.GeneralUnitary.GeneralUnitaryTaylor
+
+@[expose] public section
 
 /-!
 # Coherent Taylor simulation for unitary decompositions
@@ -202,7 +206,7 @@ theorem general_unitary_taylor_same_program_noise :
     have hbound := (norm_add_le _ _).trans (add_le_add hdiff' (herr ψ))
     rw [hq] at hbound
     exact hbound.trans_eq (by push_cast; ring)
-  · (try dsimp only)
+  ·
     change adjointQueryCount cs+adjointQueryCount (adjointCircuit cs) = 6*s*K
     have hqc : adjointQueryCount cs = 3*s*K := hq
     simp only [adjointQueryCount_adjointCircuit, hqc]

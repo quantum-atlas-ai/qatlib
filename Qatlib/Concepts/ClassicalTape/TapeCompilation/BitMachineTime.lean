@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Computability.TuringMachine.PostTuringMachine
-import Mathlib.Data.Fintype.Basic
+module
+
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
+public import Mathlib.Data.Fintype.Basic
+
+@[expose] public section
 
 /-!
 # Exact-step execution and polynomial tape-machine time

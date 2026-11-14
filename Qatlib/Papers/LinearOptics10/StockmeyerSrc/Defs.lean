@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
-import Qatlib.Concepts.CountingClasses.ClassTransport.LinearOpticsComplexityModelsDefs
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
-import Mathlib.LinearAlgebra.Matrix.Permanent
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Nat.Factorial.Basic
+module
+
+public import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+public import Qatlib.Concepts.CountingClasses.ClassTransport.LinearOpticsComplexityModelsDefs
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+public import Mathlib.LinearAlgebra.Matrix.Permanent
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Nat.Factorial.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,8 +78,8 @@ def topLeft {m : ℕ} (V : Matrix (Fin m) (Fin m) ℂ) (n : ℕ) (hnm : n ≤ m)
 def oneOccupation (m n : ℕ) (hnm : n ≤ m) : FockOccupation m n :=
   ⟨fun i => ⟨if (i : ℕ) < n then 1 else 0, by
       by_cases h : (i : ℕ) < n
-      · simp only [if_pos h]; omega
-      · simp only [if_neg h]; omega⟩, by
+      · simp only [ite_eq_left h]; omega
+      · simp only [ite_eq_right h]; omega⟩, by
     rw [Finset.sum_boole]
     simp only [Nat.cast_id]
     have himg : (Finset.univ.filter (fun i : Fin m => (i : ℕ) < n))

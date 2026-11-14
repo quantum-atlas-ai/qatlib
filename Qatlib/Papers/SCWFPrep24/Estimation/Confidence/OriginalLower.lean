@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalReadout
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.DenseTesting
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.RateExtraction
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalReadout
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.DenseTesting
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.RateExtraction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

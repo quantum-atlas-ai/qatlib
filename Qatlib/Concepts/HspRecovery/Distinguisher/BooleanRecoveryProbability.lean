@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+
+@[expose] public section
 
 /-!
 # Probability bounds for Boolean subgroup recovery
@@ -325,7 +329,7 @@ theorem hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported
     exact hi ((booleanDecodedSamples_mem_orthogonal_iff H xs i).2 hχ)
   unfold FinDist.probOf
   apply Finset.prod_eq_zero (Finset.mem_univ i)
-  rw [hiddenSubgroupSampleDist_prob f H hf e, if_neg hχ]
+  rw [hiddenSubgroupSampleDist_prob f H hf e, ite_eq_right hχ]
 
 /-- Every decoded sample in a fresh sequence of nonzero mass belongs to the orthogonal
 complement of the hidden subgroup. -/
@@ -355,16 +359,16 @@ theorem hiddenSubgroupSampleDist_boolean_probOf
         (1 / (Fintype.card (characterAnnihilator H) : ℝ)) ^ m else 0 := by
   classical
   by_cases hs : ∀ i, booleanDecodedSamples xs i ∈ booleanOrthogonal H
-  · rw [if_pos hs]
+  · rw [ite_eq_left hs]
     unfold FinDist.probOf
     calc
       _ = ∏ _i : Fin m, (1 / (Fintype.card (characterAnnihilator H) : ℝ)) := by
         apply Finset.prod_congr rfl
         intro i _
         rw [hiddenSubgroupSampleDist_prob f H hf e,
-          if_pos ((booleanDecodedSamples_mem_orthogonal_iff H xs i).1 (hs i))]
+          ite_eq_left ((booleanDecodedSamples_mem_orthogonal_iff H xs i).1 (hs i))]
       _ = _ := by simp
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     exact hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported f H hf e xs hs
 
 /-- For a function hiding `H`, a sequence has positive product probability exactly when every
@@ -381,9 +385,9 @@ theorem hiddenSubgroupSampleDist_boolean_probOf_pos_iff
     apply pow_pos
     exact div_pos zero_lt_one (by exact_mod_cast Fintype.card_pos)
   by_cases hs : ∀ i, booleanDecodedSamples xs i ∈ booleanOrthogonal H
-  · rw [if_pos hs]
+  · rw [ite_eq_left hs]
     exact iff_of_true hmass hs
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     exact iff_of_false (lt_irrefl 0) hs
 
 /-- A fresh sample sequence has nonzero mass exactly when all its decoded samples belong to the

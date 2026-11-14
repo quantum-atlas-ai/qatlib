@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.Definitions
-import Qatlib.Concepts.KrausCompile.Normalize
-import Qatlib.Concepts.KrausCompile.BinaryTree.PhysicalSemantics
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.Definitions
+public import Qatlib.Concepts.KrausCompile.Normalize
+public import Qatlib.Concepts.KrausCompile.BinaryTree.PhysicalSemantics
+
+@[expose] public section
 
 /-!
 # Automatic completion and binary-tree compilation

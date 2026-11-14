@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
-import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
+
+@[expose] public section
 
 /-!
 # Time-grid encoding definitions
@@ -111,7 +115,7 @@ is supplied. -/
 theorem timeMultiplicity_pos (l M : ℕ) (c : Fin M → ℕ) (u : Fin l → Fin M)
     (hc : ∀ j : Fin M, timeCount u j = c j) : 0 < timeMultiplicity l M c := by
   classical
-  letI : Nonempty {u : Fin l → Fin M // ∀ j : Fin M, timeCount u j = c j} :=
+  let _ : Nonempty {u : Fin l → Fin M // ∀ j : Fin M, timeCount u j = c j} :=
     ⟨u, fun j => hc j⟩
   exact Nat.pos_of_ne_zero (Fintype.card_ne_zero)
 
@@ -186,7 +190,7 @@ noncomputable def timeQuery (U : J → Matrix I I ℂ) (M : ℕ) (K : ℕ) :
 
 /-- The adjoint-circuit word consisting of inverse preparation, coefficient phases, Taylor
 blocks, and final preparation for time-grid coefficients. -/
-noncomputable def timeLCUWord (h : ℝ → J → ℝ) (U : J → Matrix I I ℂ)
+noncomputable def timeLCUWord (h : ℝ → J → ℝ) (_U : J → Matrix I I ℂ)
     (M : ℕ) (j0 : Fin M × J) (τ : ℝ) (K : ℕ) :
     List (AdjointStep (TimeWordLabel J K M × (Bool × ((Fin M × J) × I)))) :=
   [.gate (TensorGate (timePrepare h τ M K)ᴴ

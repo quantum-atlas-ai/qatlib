@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3Defs
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+module
+
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3Defs
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+
+@[expose] public section
 
 /-!
 # Statement of three-wire universality

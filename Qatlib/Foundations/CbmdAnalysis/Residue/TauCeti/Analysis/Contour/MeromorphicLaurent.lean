@@ -6,9 +6,13 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.Basic
+
+@[expose] public section
 
 /-!
 # Finite Laurent polar parts of meromorphic functions
@@ -250,7 +254,7 @@ theorem meromorphicPolarCoeffAt_zero_eq_residue {f : ℂ → ℂ} {s : ℂ}
   have hres := residue_of_laurent_expansion
     (exists_laurent_data_of_meromorphicAt hMero).choose_spec.choose_spec.1
     (exists_laurent_data_of_meromorphicAt hMero).choose_spec.choose_spec.2
-  rw [dif_pos h_pos] at hres
+  rw [dite_eq_left h_pos] at hres
   exact hres.symm
 
 /-- If a finite inverse-power sum agrees near a puncture with a function continuous at the
@@ -325,12 +329,12 @@ private theorem sum_fin_div_pow_eq_sum_range {s : ℂ} {N L : ℕ} (hNL : N ≤ 
       = ∑ k ∈ Finset.range N,
         (if hk : k < N then a ⟨k, hk⟩ else 0) / (z - s) ^ (k + 1) := by
     rw [← Fin.sum_univ_eq_sum_range]
-    exact Finset.sum_congr rfl fun k _ => by rw [dif_pos k.isLt]
+    exact Finset.sum_congr rfl fun k _ => by rw [dite_eq_left k.isLt]
   rw [h₁]
   exact Finset.sum_subset
     (fun x hx => Finset.mem_range.mpr (lt_of_lt_of_le (Finset.mem_range.mp hx) hNL))
     fun k _ hk => by
-    rw [dif_neg (Finset.mem_range.not.mp hk), zero_div]
+    rw [dite_eq_right (Finset.mem_range.not.mp hk), zero_div]
 
 /-- Two finite polar expansions with continuous remainders that agree on a punctured
 neighborhood have equal coefficients after padding with zeros. -/
@@ -355,7 +359,7 @@ theorem laurent_coeff_unique {s : ℂ} {N M : ℕ} {a : Fin N → ℂ} {b : Fin 
       linear_combination hz
     exact sub_eq_zero.mp
       (laurent_coeff_eq_zero_of_eventuallyEq (hh.sub hg) h_diff k hk_lt)
-  · rw [dif_neg (by omega : ¬ k < N), dif_neg (by omega : ¬ k < M)]
+  · rw [dite_eq_right (by omega : ¬ k < N), dite_eq_right (by omega : ¬ k < M)]
 
 /-- Every finite polar expansion of a meromorphic function with a continuous remainder has the
 same zero-padded coefficients as `meromorphicPolarCoeffAt`. -/

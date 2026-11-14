@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Clifford
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.AmplitudeAmplification
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Clifford
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.AmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # The T gate and a single-qubit magic state
@@ -127,13 +131,13 @@ theorem tGate_tGate (j : Fin n) (ψ : QReg n) : tGate j (tGate j ψ) = sGate j �
 def unitV (j : Fin n) : Fin n → Fin 2 := fun i => if i = j then 1 else 0
 
 /-- The vector `unitV j` has value one at `j`. -/
-lemma unitV_apply_self (j : Fin n) : unitV j j = 1 := if_pos rfl
+lemma unitV_apply_self (j : Fin n) : unitV j j = 1 := ite_eq_left rfl
 
 /-- The binary dot product of `unitV j` with `w` extracts the bit `w j`. -/
 lemma bdot_unitV (j : Fin n) (w : Fin n → Fin 2) : bdot (unitV j) w = w j := by
   rw [bdot, Finset.sum_eq_single j
-    (fun i _ hij => by rw [unitV, if_neg hij, zero_mul])
-    (fun h => absurd (Finset.mem_univ _) h), unitV, if_pos rfl, one_mul]
+    (fun i _ hij => by rw [unitV, ite_eq_right hij, zero_mul])
+    (fun h => absurd (Finset.mem_univ _) h), unitV, ite_eq_left rfl, one_mul]
 
 /-- Conjugating X on wire `j` by T yields `1 / √2` times the sum of X and `i` times the Pauli
 operator with both labels `unitV j`. -/
@@ -175,7 +179,7 @@ lemma tGate_basisState (j : Fin n) (w : Fin n → Fin 2) :
   by_cases hz : z = w
   · subst hz
     rfl
-  · rw [if_neg hz, mul_zero, mul_zero]
+  · rw [ite_eq_right hz, mul_zero, mul_zero]
 
 /-- A computational basis state is an eigenvector of inverse T with eigenvalue `tPhaseInv`
 raised to its bit on the selected wire. -/
@@ -186,7 +190,7 @@ lemma tGateInv_basisState (j : Fin n) (w : Fin n → Fin 2) :
   by_cases hz : z = w
   · subst hz
     rfl
-  · rw [if_neg hz, mul_zero, mul_zero]
+  · rw [ite_eq_right hz, mul_zero, mul_zero]
 
 /-- Conjugating X on wire `j` by T flips the `j`th basis bit and multiplies by the product of
 the inverse input phase and the output phase. -/
@@ -215,12 +219,12 @@ theorem tGate_conj_X_not_pauli :
     Fin.val_zero, Fin.val_one, pow_zero, pow_one, one_mul, mul_one] at e0 e1
   rcases (by decide : ∀ v : Fin 1 → Fin 2, v = (fun _ => 0) ∨ v = (fun _ => 1)) a
     with ha | ha <;> subst ha
-  · rw [if_neg (by decide : ¬((fun _ => 0) + unitV 0 : Fin 1 → Fin 2)
+  · rw [ite_eq_right (by decide : ¬((fun _ => 0) + unitV 0 : Fin 1 → Fin 2)
         = (fun _ => 0) + (fun _ => 0)), mul_zero, mul_zero] at e0
     exact tPhase_ne_zero e0
-  · rw [if_pos (by decide : ((fun _ => 0) + unitV 0 : Fin 1 → Fin 2)
+  · rw [ite_eq_left (by decide : ((fun _ => 0) + unitV 0 : Fin 1 → Fin 2)
         = (fun _ => 0) + (fun _ => 1)), mul_one] at e0
-    rw [if_pos (by decide : ((fun _ => 1) + unitV 0 : Fin 1 → Fin 2)
+    rw [ite_eq_left (by decide : ((fun _ => 1) + unitV 0 : Fin 1 → Fin 2)
         = (fun _ => 1) + (fun _ => 1)), mul_one] at e1
 
     rw [pauliSign, show bdot b (fun _ => 0) = 0 from by
@@ -261,8 +265,8 @@ lemma magicState_apply (z : Fin 1 → Fin 2) :
     show (Function.update z 0 1 : Fin 1 → Fin 2) = (fun _ => 1) from by
       funext i
       rw [Subsingleton.elim i 0, Function.update_self],
-    basisState_apply, basisState_apply, if_pos rfl,
-    if_neg (by intro hc; exact absurd (congrFun hc 0) (by decide))]
+    basisState_apply, basisState_apply, ite_eq_left rfl,
+    ite_eq_right (by intro hc; exact absurd (congrFun hc 0) (by decide))]
   simp only [mul_zero, mul_one, add_zero, signChar_zero]
   ring
 

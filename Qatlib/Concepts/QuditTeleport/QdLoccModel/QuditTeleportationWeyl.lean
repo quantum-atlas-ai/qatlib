@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+@[expose] public section
 
 /-!
 # Weyl orthogonality and teleportation branch geometry
@@ -139,18 +143,18 @@ theorem clause4Aux_weyl_col_sum (n : ℕ) [NeZero n] (a a' b b' : ZMod n) (j : F
   set s1 : ℂ := star (ZMod.stdAddChar (a * (ZMod.finEquiv n) j))
   set s2 : ℂ := ZMod.stdAddChar (a' * (ZMod.finEquiv n) j)
   by_cases hb : c1 = c2
-  · rw [if_pos hb]
+  · rw [ite_eq_left hb]
     have hbb : ∀ i : Fin n,
         (if (ZMod.finEquiv n) i = c1 then s1 else 0) *
           (if (ZMod.finEquiv n) i = c2 then s2 else 0)
         = if (ZMod.finEquiv n) i = c1 then s1 * s2 else 0 := by
       intro i
       by_cases hi : (ZMod.finEquiv n) i = c1
-      · rw [if_pos hi, if_pos (hi.trans hb), if_pos hi]
-      · rw [if_neg hi, if_neg (fun he => hi (he.trans hb.symm)), if_neg hi, zero_mul]
+      · rw [ite_eq_left hi, ite_eq_left (hi.trans hb), ite_eq_left hi]
+      · rw [ite_eq_right hi, ite_eq_right (fun he => hi (he.trans hb.symm)), ite_eq_right hi, zero_mul]
     rw [Finset.sum_congr rfl (fun i _ => hbb i)]
     exact clause4Aux_sum_ite_const (ZMod.finEquiv n).toEquiv c1 (s1 * s2)
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     have hz : ∀ i : Fin n,
         (if (ZMod.finEquiv n) i = c1 then s1 else 0) *
           (if (ZMod.finEquiv n) i = c2 then s2 else 0) = 0 := by
@@ -158,8 +162,8 @@ theorem clause4Aux_weyl_col_sum (n : ℕ) [NeZero n] (a a' b b' : ZMod n) (j : F
       by_cases hi : (ZMod.finEquiv n) i = c1
       · by_cases hi' : (ZMod.finEquiv n) i = c2
         · exact (hb (hi.symm.trans hi')).elim
-        · rw [if_pos hi, if_neg hi', mul_zero]
-      · rw [if_neg hi, zero_mul]
+        · rw [ite_eq_left hi, ite_eq_right hi', mul_zero]
+      · rw [ite_eq_right hi, zero_mul]
     rw [Finset.sum_congr rfl (fun i _ => hz i), Finset.sum_const_zero]
 
 /-- The inner product of two phase-character columns is `n` when their phase parameters agree
@@ -185,8 +189,8 @@ theorem clause4Aux_weyl_char_sum (n : ℕ) [NeZero n] (a a' : ZMod n) :
   rw [htr, sum_stdAddChar_mul]
   by_cases ha : a = a'
   · subst ha
-    rw [if_pos (sub_self a), if_pos rfl]
-  · rw [if_neg (fun he => ha (sub_eq_zero.mp he).symm), if_neg ha]
+    rw [ite_eq_left (sub_self a), ite_eq_left rfl]
+  · rw [ite_eq_right (fun he => ha (sub_eq_zero.mp he).symm), ite_eq_right ha]
 
 /-- The Hilbert–Schmidt pairing of two Weyl operators is `n` when both labels agree and zero
 otherwise. -/
@@ -205,7 +209,7 @@ theorem clause4Aux_weyl_hs (n : ℕ) [NeZero n] (a a' b b' : ZMod n) :
             * ZMod.stdAddChar (a' * (ZMod.finEquiv n) j) else 0)
         = ∑ j : Fin n, star (ZMod.stdAddChar (a * (ZMod.finEquiv n) j))
             * ZMod.stdAddChar (a' * (ZMod.finEquiv n) j) :=
-      Finset.sum_congr rfl (fun j _ => if_pos rfl)
+      Finset.sum_congr rfl (fun j _ => ite_eq_left rfl)
     rw [hsum, clause4Aux_weyl_char_sum]
     by_cases ha : a = a' <;> simp [ha]
   · have hz : ∀ j : Fin n,
@@ -213,9 +217,9 @@ theorem clause4Aux_weyl_hs (n : ℕ) [NeZero n] (a a' b b' : ZMod n) :
           then star (ZMod.stdAddChar (a * (ZMod.finEquiv n) j))
             * ZMod.stdAddChar (a' * (ZMod.finEquiv n) j) else 0) = 0 := by
       intro j
-      rw [if_neg (fun he => hb (add_left_cancel he))]
+      rw [ite_eq_right (fun he => hb (add_left_cancel he))]
     rw [Finset.sum_congr rfl (fun j _ => hz j), Finset.sum_const_zero]
-    rw [if_neg (fun h : a = a' ∧ b = b' => hb h.2)]
+    rw [ite_eq_right (fun h : a = a' ∧ b = b' => hb h.2)]
 
 /-- The Hilbert–Schmidt pairing of a Weyl operator with itself is `n`. -/
 theorem clause4Aux_weyl_hs_self (n : ℕ) [NeZero n] (a b : ZMod n) :
@@ -229,7 +233,7 @@ theorem clause4Aux_weyl_hs_cross (n : ℕ) [NeZero n] (a a' b b' : ZMod n)
     (h : a ≠ a' ∨ b ≠ b') :
     clause4Aux_hs (clause4Aux_weyl n a b) (clause4Aux_weyl n a' b') = 0 := by
   rw [clause4Aux_weyl_hs]
-  apply if_neg
+  apply ite_eq_right
   rintro ⟨ha, hb⟩
   rcases h with h | h
   · exact h ha
@@ -320,9 +324,9 @@ theorem clause4Aux_branchKraus_hs (n : ℕ) [NeZero n] (o o' : Fin n × Fin n) :
   have hn : (n : ℂ) ≠ 0 := by exact_mod_cast NeZero.ne n
   by_cases ho : o = o'
   · subst ho
-    rw [if_pos ⟨rfl, rfl⟩, if_pos rfl]
+    rw [ite_eq_left ⟨rfl, rfl⟩, ite_eq_left rfl]
     field_simp
-  · rw [if_neg (fun h => ho (hlab.mp h)), if_neg ho]
+  · rw [ite_eq_right (fun h => ho (hlab.mp h)), ite_eq_right ho]
     rw [mul_zero, mul_zero]
 
 /-- The Hilbert–Schmidt Gram matrix of the qudit branch Kraus family equals `(1 / n) • 1`. -/
@@ -335,8 +339,8 @@ theorem clause4Aux_branchKraus_gramMatrix (n : ℕ) [NeZero n] :
   rw [clause4Aux_branchKraus_hs]
   by_cases h : o = o'
   · subst h
-    rw [if_pos rfl, if_pos rfl, mul_one]
-  · rw [if_neg h, if_neg h, mul_zero]
+    rw [ite_eq_left rfl, ite_eq_left rfl, mul_one]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 open Matrix
 open scoped BigOperators ComplexOrder
 open scoped BigOperators

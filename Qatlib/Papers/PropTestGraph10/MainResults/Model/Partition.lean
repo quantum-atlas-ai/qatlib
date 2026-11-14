@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Order.Partition.Finpartition
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Order.WellFounded
+module
+
+public import Mathlib.Order.Partition.Finpartition
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Order.WellFounded
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -105,7 +109,7 @@ theorem chainCoeff_of_lt {α : Type*} [PartialOrder α] [Fintype α] {P Q : α} 
   conv_lhs => unfold chainCoeff
   rw [WellFounded.fix_eq]
   have hne : ¬ P = Q := h.ne
-  simp only [hne, if_false]
+  simp only [hne, ite_false]
   congr 1
   change ∑ x : {x : α // x ∈ Finset.univ.filter (fun R : α => P < R ∧ R ≤ Q)},
       chainCoeff x.1 Q =
@@ -132,11 +136,11 @@ theorem sum_chainCoeff_eq {α : Type*} [PartialOrder α] [Fintype α] (P Q : α)
       · intro hmem
         rw [hmem]
         exact ⟨le_refl P, le_refl P⟩
-    rw [hset, Finset.sum_singleton, chainCoeff_self, if_pos rfl]
+    rw [hset, Finset.sum_singleton, chainCoeff_self, ite_eq_left rfl]
   · by_cases hle : P ≤ Q
     · -- strict case: split off the `P` term and use the recurrence
       have hlt : P < Q := lt_of_le_of_ne hle hPQ
-      rw [if_neg hPQ]
+      rw [ite_eq_right hPQ]
       have hset : Finset.univ.filter (fun R : α => P ≤ R ∧ R ≤ Q) =
           insert P (Finset.univ.filter (fun R : α => P < R ∧ R ≤ Q)) := by
         ext R
@@ -156,7 +160,7 @@ theorem sum_chainCoeff_eq {α : Type*} [PartialOrder α] [Fintype α] (P Q : α)
       rw [hset, Finset.sum_insert hnotmem, chainCoeff_of_lt hlt]
       ring
     · -- `P ≰ Q`: the interval is empty and `P ≠ Q`
-      rw [if_neg hPQ]
+      rw [ite_eq_right hPQ]
       have hempty : Finset.univ.filter (fun R : α => P ≤ R ∧ R ≤ Q) = ∅ := by
         rw [Finset.filter_eq_empty_iff]
         intro R _
@@ -171,7 +175,7 @@ order, so we prove it at that generality. -/
 theorem proposition5_chain_identity {α : Type*} [PartialOrder α] [Fintype α]
     {L'' L : α} (h : L'' < L) :
     ∑ L' ∈ Finset.univ.filter (fun L' : α => L'' ≤ L' ∧ L' ≤ L), chainCoeff L' L = 0 := by
-  rw [sum_chainCoeff_eq, if_neg h.ne]
+  rw [sum_chainCoeff_eq, ite_eq_right h.ne]
 
 /-- Proposition 5 of the paper (p. 6) specialised to the partition lattice of
 `{1,…,k}`, which is the form used in Sections 3--5. -/

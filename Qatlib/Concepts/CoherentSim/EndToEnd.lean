@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.CleanSubroutinePhaseReadout
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.CleanSubroutinePhaseReadout
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+
+@[expose] public section
 
 /-!
 # Taylor simulation with spectral phase readout

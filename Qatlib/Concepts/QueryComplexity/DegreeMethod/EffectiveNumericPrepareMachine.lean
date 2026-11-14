@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader
-import Mathlib.Data.Nat.Size
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader
+public import Mathlib.Data.Nat.Size
+
+@[expose] public section
 
 /-!
 # Encoded preparation-loop machine
@@ -767,7 +771,8 @@ theorem one_frame {J : Type} [DecidableEq J] (code : Fin 1 → J) (S : J → Bit
   funext j
   by_cases h : j=code 0
   · subst j
-    simpa only [Normalization.singleStack_zero,Function.update_self] using!
+    have hss0 (bits : Bits) : Normalization.singleStack bits 0 = bits := rfl
+    simpa only [hss0, Function.update_self] using
       StackCall.frame_at code S (Normalization.singleStack bits) hinj 0
   · rw [WordValidator.frame_outside code S _ j (by
       intro i

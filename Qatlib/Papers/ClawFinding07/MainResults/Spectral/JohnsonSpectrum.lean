@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # Johnson spectrum and norm contraction
@@ -110,25 +114,25 @@ def johnsonInner {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) : ℝ 
 /-- For `k ≤ n`, evaluates `johnsonInner T S` as `n-k`, one, or zero according as `T` has zero,
 one, or more elements outside `S`. -/
 theorem johnsonInner_eq {n k : ℕ} {T : Finset (Fin n)} {S : JohnsonVertex n k}
-    (hk : k ≤ n) :
+    (_hk : k ≤ n) :
     johnsonInner T S
       = if T \ S.1 = ∅ then ((n - k : ℕ) : ℝ)
         else if (T \ S.1).card = 1 then 1 else 0 := by
   unfold johnsonInner
   set U := T \ S.1 with hU
   by_cases h0 : U = ∅
-  · rw [if_pos h0]
+  · rw [ite_eq_left h0]
     have hsub : ∀ j ∈ (Finset.univ \ S.1), (U ⊆ {j}) := by
       intro j _; rw [h0]; exact Finset.empty_subset _
     have hcongr : (∑ j ∈ (Finset.univ \ S.1), (if U ⊆ {j} then (1 : ℝ) else 0))
         = ∑ _j ∈ (Finset.univ \ S.1), (1 : ℝ) :=
-      Finset.sum_congr rfl fun j hj => by rw [if_pos (hsub j hj)]
+      Finset.sum_congr rfl fun j hj => by rw [ite_eq_left (hsub j hj)]
     rw [hcongr, Finset.sum_const, nsmul_eq_mul]
     have hcard : ((Finset.univ \ S.1).card : ℝ) = ((n - k : ℕ) : ℝ) := by
       rw [Finset.card_sdiff, Finset.card_univ, Fintype.card_fin, Finset.inter_univ, S.2]
     rw [hcard, mul_one]
   · by_cases h1 : U.card = 1
-    · rw [if_neg h0, if_pos h1]
+    · rw [ite_eq_right h0, ite_eq_left h1]
       obtain ⟨b, hb⟩ := Finset.card_eq_one.mp h1
       have hbS : b ∉ S.1 := by
         have : b ∈ U := by rw [hb]; exact Finset.mem_singleton_self b
@@ -141,12 +145,12 @@ theorem johnsonInner_eq {n k : ℕ} {T : Finset (Fin n)} {S : JohnsonVertex n k}
           = ∑ j ∈ (Finset.univ \ S.1), (if j = b then (1 : ℝ) else 0) :=
         Finset.sum_congr rfl fun j hj => by
           by_cases hjb : U ⊆ {j}
-          · rw [if_pos hjb, if_pos ((hiff j hj).mp hjb)]
+          · rw [ite_eq_left hjb, ite_eq_left ((hiff j hj).mp hjb)]
           · have : ¬ (j = b) := fun h => hjb ((hiff j hj).mpr h)
-            rw [if_neg hjb, if_neg this]
+            rw [ite_eq_right hjb, ite_eq_right this]
       rw [hcongr, Finset.sum_ite_eq']
       simp [hbS]
-    · rw [if_neg h0, if_neg h1]
+    · rw [ite_eq_right h0, ite_eq_right h1]
       have h2 : 2 ≤ U.card := by
         have hpos : 0 < U.card := Finset.card_pos.mpr (Finset.nonempty_iff_ne_empty.mpr h0)
         omega
@@ -157,7 +161,7 @@ theorem johnsonInner_eq {n k : ℕ} {T : Finset (Fin n)} {S : JohnsonVertex n k}
         omega
       have hcongr : (∑ j ∈ (Finset.univ \ S.1), (if U ⊆ {j} then (1 : ℝ) else 0))
           = ∑ _j ∈ (Finset.univ \ S.1), (0 : ℝ) :=
-        Finset.sum_congr rfl fun j hj => by rw [if_neg (hsub j hj)]
+        Finset.sum_congr rfl fun j hj => by rw [ite_eq_right (hsub j hj)]
       rw [hcongr, Finset.sum_const_zero]
 
 /-- Expresses the Johnson adjacency action on a containment indicator using `johnsonInner` and
@@ -173,13 +177,13 @@ theorem johnsonAct_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) 
     intro i _
     simp only [johnsonInd]
     by_cases hiT : i.1 ∈ T
-    · rw [if_pos hiT]
+    · rw [ite_eq_left hiT]
       apply Finset.sum_eq_zero
       intro j _
-      rw [if_neg]
+      rw [ite_eq_right]
       intro hsub
       exact ((subset_swap_iff T S i.2 (Finset.mem_sdiff.mp j.2).2).mp hsub).1 hiT
-    · rw [if_neg hiT]
+    · rw [ite_eq_right hiT]
       have hcongr : (∑ j ∈ (Finset.univ \ S.1).attach,
           if T ⊆ (johnsonSwap S i.1 j.1 i.2 (Finset.mem_sdiff.mp j.2).2).1 then (1 : ℝ) else 0)
           = ∑ j ∈ (Finset.univ \ S.1).attach,
@@ -187,9 +191,9 @@ theorem johnsonAct_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) 
         apply Finset.sum_congr rfl
         intro j _
         by_cases h : T ⊆ (johnsonSwap S i.1 j.1 i.2 (Finset.mem_sdiff.mp j.2).2).1
-        · rw [if_pos h, if_pos ((subset_swap_iff T S i.2 (Finset.mem_sdiff.mp j.2).2).mp h).2]
-        · rw [if_neg h,
-            if_neg (fun hc => h ((subset_swap_iff T S i.2 (Finset.mem_sdiff.mp j.2).2).mpr ⟨hiT, hc⟩))]
+        · rw [ite_eq_left h, ite_eq_left ((subset_swap_iff T S i.2 (Finset.mem_sdiff.mp j.2).2).mp h).2]
+        · rw [ite_eq_right h,
+            ite_eq_right (fun hc => h ((subset_swap_iff T S i.2 (Finset.mem_sdiff.mp j.2).2).mpr ⟨hiT, hc⟩))]
       rw [hcongr]
       have hattach := Finset.sum_attach (s := Finset.univ \ S.1)
         (f := fun x : Fin n => if T \ S.1 ⊆ ({x} : Finset (Fin n)) then (1 : ℝ) else 0)
@@ -218,7 +222,7 @@ def johnsonOp {n k : ℕ} (c : ℝ) (g : JohnsonVertex n k → ℝ) : JohnsonVer
 
 /-- For `u ∈ T`, the set `T.erase u` is contained in `S` exactly when every element of `T`
 outside `S` equals `u`. -/
-theorem erase_subset_iff {n : ℕ} {T S : Finset (Fin n)} {u : Fin n} (hu : u ∈ T) :
+theorem erase_subset_iff {n : ℕ} {T S : Finset (Fin n)} {u : Fin n} (_hu : u ∈ T) :
     T.erase u ⊆ S ↔ T \ S ⊆ {u} := by
   constructor
   · intro h x hx
@@ -241,8 +245,8 @@ theorem johnsonInd_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k
     johnsonInd (T.erase u) S = if T \ S.1 ⊆ {u} then (1 : ℝ) else 0 := by
   unfold johnsonInd
   by_cases h : T.erase u ⊆ S.1
-  · rw [if_pos h, if_pos ((erase_subset_iff hu).mp h)]
-  · rw [if_neg h, if_neg (fun hc => h ((erase_subset_iff hu).mpr hc))]
+  · rw [ite_eq_left h, ite_eq_left ((erase_subset_iff hu).mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hc => h ((erase_subset_iff hu).mpr hc))]
 
 /-- Counts the single-element erasures of `T` contained in a vertex, according to the
 cardinality of `T` outside that vertex. -/
@@ -257,15 +261,15 @@ theorem sum_ind_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
     rw [johnsonInd_erase T S hu]
   rw [hcongr]
   by_cases h0 : T \ S.1 = ∅
-  · rw [if_pos h0]
+  · rw [ite_eq_left h0]
     have hsub : ∀ u ∈ T, (T \ S.1 ⊆ {u}) := by
       intro u _; rw [h0]; exact Finset.empty_subset _
     have hcongr2 : (∑ u ∈ T, (if T \ S.1 ⊆ {u} then (1 : ℝ) else 0))
         = ∑ _u ∈ T, (1 : ℝ) :=
-      Finset.sum_congr rfl fun u hu => by rw [if_pos (hsub u hu)]
+      Finset.sum_congr rfl fun u hu => by rw [ite_eq_left (hsub u hu)]
     rw [hcongr2, Finset.sum_const, nsmul_eq_mul, mul_one]
   · by_cases h1 : (T \ S.1).card = 1
-    · rw [if_neg h0, if_pos h1]
+    · rw [ite_eq_right h0, ite_eq_left h1]
       obtain ⟨b, hb⟩ := Finset.card_eq_one.mp h1
       have hbT : b ∈ T := (Finset.mem_sdiff.mp (by rw [hb]; exact Finset.mem_singleton_self b)).1
       have hiff : ∀ u ∈ T, (T \ S.1 ⊆ {u} ↔ u = b) := by
@@ -276,10 +280,10 @@ theorem sum_ind_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
           = ∑ u ∈ T, (if u = b then (1 : ℝ) else 0) :=
         Finset.sum_congr rfl fun u hu => by
           by_cases h : T \ S.1 ⊆ {u}
-          · rw [if_pos h, if_pos ((hiff u hu).mp h)]
-          · rw [if_neg h, if_neg (fun hb' => h ((hiff u hu).mpr hb'))]
-      rw [hcongr2, Finset.sum_ite_eq', if_pos hbT]
-    · rw [if_neg h0, if_neg h1]
+          · rw [ite_eq_left h, ite_eq_left ((hiff u hu).mp h)]
+          · rw [ite_eq_right h, ite_eq_right (fun hb' => h ((hiff u hu).mpr hb'))]
+      rw [hcongr2, Finset.sum_ite_eq', ite_eq_left hbT]
+    · rw [ite_eq_right h0, ite_eq_right h1]
       have h2 : 2 ≤ (T \ S.1).card := by
         have hpos : 0 < (T \ S.1).card := Finset.card_pos.mpr (Finset.nonempty_iff_ne_empty.mpr h0)
         omega
@@ -290,13 +294,13 @@ theorem sum_ind_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
         omega
       have hcongr2 : (∑ u ∈ T, (if T \ S.1 ⊆ {u} then (1 : ℝ) else 0))
           = ∑ _u ∈ T, (0 : ℝ) :=
-        Finset.sum_congr rfl fun u hu => by rw [if_neg (hsub u hu)]
+        Finset.sum_congr rfl fun u hu => by rw [ite_eq_right (hsub u hu)]
       rw [hcongr2, Finset.sum_const_zero]
 
 /-- For `T.card ≤ k ≤ n`, the Johnson operator shifted by `johnsonTheta n k T.card` sends the
 containment indicator of `T` to `(k-T.card+1)` times the sum of its erasure indicators. -/
 theorem johnsonOp_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
-    (hk : k ≤ n) (hT : T.card ≤ k) :
+    (hk : k ≤ n) (_hT : T.card ≤ k) :
     johnsonOp (johnsonTheta n k T.card) (johnsonInd T) S
       = ((k : ℝ) - T.card + 1) * ∑ u ∈ T, johnsonInd (T.erase u) S := by
   unfold johnsonOp
@@ -308,17 +312,17 @@ theorem johnsonOp_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
     have hinter : (S.1 ∩ T).card = T.card := by
       rw [Finset.inter_eq_right.mpr hsub]
     have hin : johnsonInner T S = ((n - k : ℕ) : ℝ) := by
-      rw [johnsonInner_eq hk, if_pos h0]
+      rw [johnsonInner_eq hk, ite_eq_left h0]
     have hind : johnsonInd T S = 1 := by
-      unfold johnsonInd; rw [if_pos hsub]
-    rw [if_pos h0, hin, hind, hinter, hn]
+      unfold johnsonInd; rw [ite_eq_left hsub]
+    rw [ite_eq_left h0, hin, hind, hinter, hn]
     simp only [johnsonTheta]
     ring
   · have hne : T \ S.1 ≠ ∅ := h0
     have hnonempty : (T \ S.1).Nonempty := Finset.nonempty_iff_ne_empty.mpr hne
     have hind : johnsonInd T S = 0 := by
       unfold johnsonInd
-      rw [if_neg (fun hsub => hne (Finset.sdiff_eq_empty_iff_subset.mpr hsub))]
+      rw [ite_eq_right (fun hsub => hne (Finset.sdiff_eq_empty_iff_subset.mpr hsub))]
     by_cases h1 : (T \ S.1).card = 1
     · have hcardS : (S.1 ∩ T).card = T.card - 1 := by
         have h := Finset.card_sdiff (s := S.1) (t := T)
@@ -329,16 +333,16 @@ theorem johnsonOp_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
         have := Finset.card_pos.mpr hnonempty
         omega
       have hin : johnsonInner T S = 1 := by
-        rw [johnsonInner_eq hk, if_neg hne, if_pos h1]
-      rw [if_neg hne, if_pos h1, hin, hind, hcardS, Nat.cast_sub hm1]
+        rw [johnsonInner_eq hk, ite_eq_right hne, ite_eq_left h1]
+      rw [ite_eq_right hne, ite_eq_left h1, hin, hind, hcardS, Nat.cast_sub hm1]
       simp only [johnsonTheta]
       ring
     · have h2 : 2 ≤ (T \ S.1).card := by
         have := Finset.card_pos.mpr hnonempty
         omega
       have hin : johnsonInner T S = 0 := by
-        rw [johnsonInner_eq hk, if_neg hne, if_neg h1]
-      rw [if_neg hne, if_neg h1, hin, hind]
+        rw [johnsonInner_eq hk, ite_eq_right hne, ite_eq_right h1]
+      rw [ite_eq_right hne, ite_eq_right h1, hin, hind]
       ring
 
 /-- The Johnson adjacency operator preserves pointwise addition. -/
@@ -616,8 +620,8 @@ theorem johnsonAct_eq_adj_sum {n k : ℕ} (g : JohnsonVertex n k → ℝ) (S : J
   apply Finset.sum_congr rfl
   intro S' _
   by_cases h : (S.1 \ S'.1).card = 1
-  · rw [if_pos h, if_pos h]; ring
-  · rw [if_neg h, if_neg h]; ring
+  · rw [ite_eq_left h, ite_eq_left h]; ring
+  · rw [ite_eq_right h, ite_eq_right h]; ring
 
 /-- The Johnson adjacency operator is self-adjoint for the finite real dot product. -/
 theorem johnsonAct_inner_symm {n k : ℕ} (v w : JohnsonVertex n k → ℝ) :
@@ -646,9 +650,9 @@ theorem johnsonAct_inner_symm {n k : ℕ} (v w : JohnsonVertex n k → ℝ) :
       = (if (p.1 \ q.1).card = 1 then (1 : ℝ) else 0) := by
     by_cases h : (q.1 \ p.1).card = 1
     · have hpq : (p.1 \ q.1).card = 1 := johnsonAdj_symm h
-      rw [if_pos h, if_pos hpq]
+      rw [ite_eq_left h, ite_eq_left hpq]
     · have hpq : ¬ (p.1 \ q.1).card = 1 := fun hc => h (johnsonAdj_symm hc)
-      rw [if_neg h, if_neg hpq]
+      rw [ite_eq_right h, ite_eq_right hpq]
   rw [hs]
 
 /-- Pairing a Johnson annihilator applied to `g` with an eigenvector multiplies the original
@@ -686,7 +690,7 @@ theorem johnsonAnn_pairing {n k : ℕ} (v : JohnsonVertex n k → ℝ) (lam : �
           = (∏ j ∈ Finset.range (0+1), (lam - johnsonTheta n k j))
               * ∑ S, g S * v S
       rw [hstep]
-      simp [Finset.prod_range_succ]
+      simp
   | succ m ih =>
       intro g
       show (∑ S, johnsonAnn m (johnsonOp (johnsonTheta n k (m+1)) g) S * v S)
@@ -704,7 +708,7 @@ theorem johnsonEigenvalue_mem {n k : ℕ} (hk : k ≤ n) (v : JohnsonVertex n k 
   classical
   have hex : ∃ S0 : JohnsonVertex n k, v S0 ≠ 0 := by
     by_contra h
-    push_neg at h
+    push Not at h
     exact hv0 (funext fun S => h S)
   obtain ⟨S0, hS0⟩ := hex
   have hann := johnsonAnn_ind hk k S0.1 (by rw [S0.2]) (le_refl k)
@@ -762,11 +766,11 @@ theorem johnsonAct_one {n k : ℕ} (S : JohnsonVertex n k) :
   have h : (fun _ : JohnsonVertex n k => (1 : ℝ)) = johnsonInd (∅ : Finset (Fin n)) := by
     funext T
     unfold johnsonInd
-    rw [if_pos (Finset.empty_subset _)]
+    rw [ite_eq_left (Finset.empty_subset _)]
   rw [h, johnsonAct_ind]
   have h1 : (S.1 ∩ (∅ : Finset (Fin n))).card = 0 := by simp
   have h2 : johnsonInner (∅ : Finset (Fin n)) S = ((n - k : ℕ) : ℝ) := by
-    rw [johnsonInner_eq (johnsonCard_le S), if_pos (by simp)]
+    rw [johnsonInner_eq (johnsonCard_le S), ite_eq_left (by simp)]
   rw [h1, h2, Nat.cast_sub (johnsonCard_le S)]
   ring
 
@@ -827,7 +831,7 @@ theorem swap_sdiff_out {n k : ℕ} (T A : JohnsonVertex n k) {x y : Fin n}
 
 /-- A top-eigenvalue eigenfunction takes the same value at a global maximum and any adjacent
 vertex, assuming `k ≤ n`. -/
-theorem johnson_eq_of_max_adj {n k : ℕ} (hk : k ≤ n)
+theorem johnson_eq_of_max_adj {n k : ℕ} (_hk : k ≤ n)
     (g : JohnsonVertex n k → ℝ)
     (hg : ∀ S, johnsonAct g S = johnsonTheta n k 0 * g S)
     {S S' : JohnsonVertex n k} (hadj : johnsonAdj S S')
@@ -866,7 +870,7 @@ theorem johnson_eq_of_max_adj {n k : ℕ} (hk : k ≤ n)
     (Finset.sum_eq_zero_iff_of_nonneg hnonneg).mp hsum S' (Finset.mem_univ S')
   have hwS' : johnsonW S S' = 1 := by
     unfold johnsonW
-    rw [if_pos (show (S.1 \ S'.1).card = 1 from hadj)]
+    rw [ite_eq_left (show (S.1 \ S'.1).card = 1 from hadj)]
   rw [hwS', one_mul] at hterm
   exact (sub_eq_zero.mp hterm).symm
 
@@ -876,7 +880,7 @@ theorem johnson_const_of_eigen {n k : ℕ} (hk : k ≤ n) (g : JohnsonVertex n k
     (hg : ∀ S, johnsonAct g S = johnsonTheta n k 0 * g S) :
     ∃ c : ℝ, g = fun _ => c := by
   classical
-  haveI : Nonempty (JohnsonVertex n k) := by
+  let _ : Nonempty (JohnsonVertex n k) := by
     have h1 : k ≤ (Finset.univ : Finset (Fin n)).card := by
       rw [Finset.card_univ, Fintype.card_fin]
       exact hk

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
+
+@[expose] public section
 
 /-!
 # Exponential growth bounds for wave and Bessel series

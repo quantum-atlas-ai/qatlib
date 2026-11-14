@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueLabels
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueLabels
+
+@[expose] public section
 
 /-!
 # Fourier-character laws for full-range phase kickback
@@ -78,7 +82,7 @@ theorem full_range_character_preparation (K k : ℕ) :
     ApplyGate ((zmodQFTGate (N:=2^(K+k)))ᴴ) (Ket (fullRangeCharacterIndex K k)) = fullRangeKickState K k := by
   ext y
   simp only [ApplyGate,Matrix.mulVec,dotProduct,Ket,mul_ite,mul_one,mul_zero,
-    Finset.sum_ite_eq',Finset.mem_univ,if_true,Matrix.conjTranspose_apply,zmodQFTGate_apply,
+    Finset.sum_ite_eq',Finset.mem_univ,ite_true,Matrix.conjTranspose_apply,zmodQFTGate_apply,
     fullRangeKickState,star_mul,Complex.star_def]
   simp [mul_comm]
 

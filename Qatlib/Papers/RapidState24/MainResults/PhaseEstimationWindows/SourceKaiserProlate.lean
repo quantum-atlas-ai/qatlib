@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ theorem kaiser_log_identity (α : ℝ) (hα : 1 / 2 < α) :
 /-- **Claim c005, Eq. (43) leading term.**  Section IV.A, p. 15: the leading
 solution of Eq. (42) is `α ≈ ln(1/δ)/(2π)`, i.e. `2πα = ln(1/δ)` exactly at
 leading order. -/
-theorem kaiser_alpha_leading (δ : ℝ) (hδ : 0 < δ) :
+theorem kaiser_alpha_leading (δ : ℝ) (_hδ : 0 < δ) :
     2 * Real.pi * ((1 / (2 * Real.pi)) * Real.log (1 / δ)) = Real.log (1 / δ) := by
   field_simp [Real.pi_pos.ne']
 

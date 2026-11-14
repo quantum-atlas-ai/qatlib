@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+
+@[expose] public section
 
 /-!
 # Exact masses for the dyadic threshold producer
@@ -122,7 +126,7 @@ theorem thresholdWords_ge (N : ℕ) (hN : 0 < N) : N ≤ thresholdWords N := by
 theorem acceptThreshold_some_iff (N : ℕ) (w : Fin (thresholdWords N)) (i : Fin N) :
     acceptThreshold N w = some i ↔ w.val = i.val := by
   by_cases hw : w.val < N
-  · simp only [acceptThreshold, dif_pos hw]
+  · simp only [acceptThreshold, dite_eq_left hw]
     constructor
     · intro hh
       have hinj : (⟨w.val, hw⟩ : Fin N) = i := Option.some.inj hh
@@ -130,7 +134,7 @@ theorem acceptThreshold_some_iff (N : ℕ) (w : Fin (thresholdWords N)) (i : Fin
     · intro hh
       have hv : (⟨w.val, hw⟩ : Fin N) = i := Fin.ext hh
       simp [hv]
-  · simp only [acceptThreshold, dif_neg hw]
+  · simp only [acceptThreshold, dite_eq_right hw]
     constructor
     · intro h
       cases h
@@ -301,7 +305,7 @@ theorem producerWordLaw_map_mass (N : ℕ) {β : Type*} (f : Fin (thresholdWords
     ((producerWordLaw N).map f b).toReal
       = (Finset.univ.filter (fun a : Fin (thresholdWords N) => b = f a)).card
           * (1 / (thresholdWords N : ℝ)) := by
-  letI : Nonempty (Fin (thresholdWords N)) :=
+  let : Nonempty (Fin (thresholdWords N)) :=
     ⟨⟨0, by unfold thresholdWords; positivity⟩⟩
   have h := uniform_map_mass_real f b
   unfold producerWordLaw
@@ -319,7 +323,7 @@ theorem acceptThreshold_none_iff (N : ℕ) (w : Fin (thresholdWords N)) :
 /-- For positive `N`, each accepted index has one-round real mass `1 / 2 ^ thresholdWidth N`. -/
 theorem thresholdRoundLaw_some_mass (N : ℕ) (hN : 0 < N) (i : Fin N) :
     ((thresholdRoundLaw N) (some i)).toReal = 1 / (2 ^ thresholdWidth N : ℝ) := by
-  letI : Nonempty (Fin (thresholdWords N)) :=
+  let : Nonempty (Fin (thresholdWords N)) :=
     ⟨⟨0, by unfold thresholdWords; positivity⟩⟩
   have hi : i.val < thresholdWords N := i.isLt.trans_le (thresholdWords_ge N hN)
   have hcard : (Finset.univ.filter (fun w : Fin (thresholdWords N) =>
@@ -376,7 +380,7 @@ N`, with the subtraction taken in the natural numbers. -/
 theorem thresholdRoundLaw_none_mass (N : ℕ) (hN : 0 < N) :
     ((thresholdRoundLaw N) (none : Option (Fin N))).toReal
       = ((thresholdWords N - N : ℕ) : ℝ) / (thresholdWords N : ℝ) := by
-  letI : Nonempty (Fin (thresholdWords N)) :=
+  let : Nonempty (Fin (thresholdWords N)) :=
     ⟨⟨0, by unfold thresholdWords; positivity⟩⟩
   have hcard : (Finset.univ.filter (fun w : Fin (thresholdWords N) =>
       none = acceptThreshold N w)).card = thresholdWords N - N := by
@@ -535,7 +539,7 @@ theorem map_bump_zero_rejections (N r : ℕ) (i : Fin N) :
     by_cases hc : (ThresholdOutcome.accepted i ⟨0, by omega⟩ : ThresholdOutcome N (r + 1))
         = bumpOutcome a
     · exact absurd hc.symm (bumpOutcome_rejections_ne_zero N r a i)
-    · simp [hc]
+    · simp
   rw [Finset.sum_congr rfl hconv]
   rw [← Finset.sum_filter]
   have hempty : (Finset.univ.filter (fun a : ThresholdOutcome N r =>
@@ -658,7 +662,7 @@ theorem thresholdRunLaw_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
                 ⟨show (some i : Option (Fin N)) ≠ none by simp, Finset.mem_univ (some i)⟩)).elim
           rw [hone]
           simp only [PMF.pure_apply]
-          rw [if_pos (congrArg _ hfin)]
+          rw [ite_eq_left (congrArg _ hfin)]
           have hz : ((runContinuation none)
               (ThresholdOutcome.accepted i n : ThresholdOutcome N (r + 1))).toReal = 0 := by
             simp only [runContinuation]
@@ -666,7 +670,7 @@ theorem thresholdRunLaw_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
             exact map_bump_zero_rejections N r i
           rw [hz]
           rw [hsome]
-          simp [hq, thresholdRejectProb, hn0]
+          simp [thresholdRejectProb, hn0]
         · have hn1 : 1 ≤ n.val := by omega
           have hnr : n.val ≤ r := by omega
           obtain ⟨k, hk⟩ : ∃ k : Fin r, n.val = k.val + 1 := by

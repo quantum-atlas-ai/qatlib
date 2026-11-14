@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUContracts
-import Qatlib.Papers.HamLCUSim12.Multiproduct.NearbyLCUDiagnostics
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUContracts
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.NearbyLCUDiagnostics
+
+@[expose] public section
 
 /-!
 # Failure fibers of the legacy deferred LCU protocol

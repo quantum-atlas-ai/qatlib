@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleCombinedCost
-import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderPaperNormalization
-import Qatlib.Papers.Cbmd26.Algorithms.CosineConditionNumberBudget
-import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderZeroTime
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleCombinedCost
+public import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderPaperNormalization
+public import Qatlib.Papers.Cbmd26.Algorithms.CosineConditionNumberBudget
+public import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderZeroTime
+
+@[expose] public section
 
 /-!
 # Paper statements for second-order preparation

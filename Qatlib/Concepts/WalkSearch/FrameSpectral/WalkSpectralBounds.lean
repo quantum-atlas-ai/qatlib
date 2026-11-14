@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.WalkSearch.FrameSpectral.PrintedPlusIDetectorWalkAuxiliary
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.PrintedPlusIDetectorWalkAuxiliary
+
+@[expose] public section
 
 /-!
 # Frame spectral endpoints and detector branch laws

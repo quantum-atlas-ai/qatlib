@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricGamma
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricGamma
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Layer-change counts and counting-cost bounds
@@ -94,12 +98,12 @@ theorem layerChange_card_le_totalDegree {f : (Fin n → Bool) → Bool} (hsym : 
     rcases (show layerVal f 0 = true ∨ layerVal f 0 = false from Bool.eq_false_or_eq_true _)
       with hb | hb
     · rw [hb] at hA
-      simp only [if_true] at hA
+      simp only [ite_true] at hA
       have hA' : |(avgPoly p).eval (0 : ℝ) - 1| ≤ 1 / 3 := by simpa using! hA
       rw [hval] at hA'
       norm_num at hA'
     · rw [hb] at hA
-      simp only [Bool.false_eq_true, if_false] at hA
+      simp only [Bool.false_eq_true, ite_false] at hA
       have hA' : |(avgPoly p).eval (0 : ℝ) - 0| ≤ 1 / 3 := by simpa using! hA
       rw [hval] at hA'
       norm_num at hA'

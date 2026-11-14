@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Probability.ProbabilityMassFunction.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -156,7 +160,7 @@ positive spectrum.  For `d ≥ log(1/ε)/δ` the normalised power trace is squee
 between the normalised Betti number and that number plus `ε`. -/
 theorem lemma_5_1_power_trace {N : ℕ} (ε δ : ℝ) (hε : 0 < ε) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1)
     (d : ℕ) (hd : Real.log (1 / ε) / δ ≤ (d : ℝ))
-    (ν : Fin N → ℝ) (hν0 : ∀ i, 0 ≤ ν i) (hν1 : ∀ i, ν i ≤ 1)
+    (ν : Fin N → ℝ) (hν0 : ∀ i, 0 ≤ ν i) (_hν1 : ∀ i, ν i ≤ 1)
     (hνgap : ∀ i, ν i ≠ 1 → ν i ≤ 1 - δ) :
     (((Finset.univ.filter (fun i => ν i = 1)).card : ℝ) ≤ ∑ i, (ν i) ^ d) ∧
     (∑ i, (ν i) ^ d

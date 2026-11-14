@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPhysical
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Finset.Sort
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPhysical
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Finset.Sort
+
+@[expose] public section
 
 /-!
 # Semantics of generated history Hamiltonians
@@ -172,10 +176,10 @@ theorem output_values_list (C : QmaHistoryCircuit) :
           propagationTerm_value C.qubits (qmaClause2Bits C) i (C.gates.get i)
       · apply List.map_congr_left
         intro j _
-        simpa only [boundaryTarget, Bool.false_eq_true, if_false] using
+        simpa only [boundaryTarget, Bool.false_eq_true, ite_false] using
           boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) false j
     · exact congrArg (fun M => [M]) (by
-        simpa only [boundaryTarget, if_true] using
+        simpa only [boundaryTarget, ite_true] using
           boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) true C.outputWire)
   · apply congrArg (fun f : Fin C.gates.length →
         List (Matrix (Reg (C.gates.length+C.qubits)) (Reg (C.gates.length+C.qubits)) ℂ) =>

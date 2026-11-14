@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
-import Mathlib.Computability.Primrec.List
-import Mathlib.Data.List.GetD
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
+public import Mathlib.Computability.Primrec.List
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Floor Cutoff Row Code
@@ -61,18 +65,18 @@ theorem floorCutoffCodeAt_value (n m : ℕ) :
     · have hlen : m<(floorCutoffCodeRow (n+1)).length := by rw [floorCutoffCodeRow_length]; exact hm
       rw [floorCutoffCodeAt,List.getD_eq_getElem _ _ hlen]
       simp only [floorCutoffCodeRow,floorCutoffNextCodeRow,List.getElem_map,List.getElem_range]
-      rw [cutoffCoefficientAt,dif_pos hm]
+      rw [cutoffCoefficientAt,dite_eq_left hm]
       simp only [cutoffCoefficientRow,cutoffNextCoefficientRow,Vector.getElem_ofFn]
       by_cases htwo : 2 ≤ m
-      · simp only [floorCutoffCodeEntry,if_pos htwo,floorRationalCodeAdd_value,
+      · simp only [floorCutoffCodeEntry,ite_eq_left htwo,floorRationalCodeAdd_value,
           floorRationalCodeNeg_value,floorRationalCodeMul_value,floorRationalCodeNat_value,
           ih]
         push_cast
         rw [Nat.cast_sub (by omega : 1 ≤ m)]
         simp only [Nat.cast_one,sub_eq_add_neg]
-      · simp only [floorCutoffCodeEntry,if_neg htwo,floorRationalCodeNat_value,Nat.cast_zero,Int.cast_zero]
+      · simp only [floorCutoffCodeEntry,ite_eq_right htwo,floorRationalCodeNat_value,Nat.cast_zero,Int.cast_zero]
     · rw [floorCutoffCodeAt,List.getD_eq_default _ _ (by rw [floorCutoffCodeRow_length]; omega)]
-      rw [floorRationalCodeNat_value,cutoffCoefficientAt,dif_neg hm]
+      rw [floorRationalCodeNat_value,cutoffCoefficientAt,dite_eq_right hm]
       simp
 
 /-- Original `primrec_floorCutoffCodeAt` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/

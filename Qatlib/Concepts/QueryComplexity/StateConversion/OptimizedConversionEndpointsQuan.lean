@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
-import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
+module
+
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
+public import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
+
+@[expose] public section
 
 /-!
 # Optimized state-conversion complexity endpoints
@@ -200,7 +204,7 @@ theorem sourceNoncoherent_actual_word_raw_lower {X H : Type}
         sourceRectValue (gramStateMatrix ρ-T) (sourceAlphabetDelta input) else ⊤) ≤
         (2 : ℝ≥0∞)*(sourceWordCalls C : ℝ≥0∞) := by
     refine (iInf_le _ κ0).trans ?_
-    rw [if_pos hFeas]
+    rw [ite_eq_left hFeas]
     exact hObj.trans_eq (by
       rw [ENNReal.ofReal_mul (by norm_num : (0 : ℝ)≤2),ENNReal.ofReal_natCast]
       norm_num)
@@ -238,7 +242,7 @@ theorem sourceCoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
     sourceCoherentQ input ρ σ ε ≤ (sourceWordCalls C : ℝ≥0∞) := by
   unfold sourceCoherentQ
   refine sInf_le ?_
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   exact ⟨r,hr,C,rfl,hC,hSuccess⟩
 
 /-- Any legal source word satisfying the noncoherent overlap threshold with normalized ancillary
@@ -253,7 +257,7 @@ theorem sourceNoncoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
     sourceNoncoherentQ input ρ σ ε ≤ (sourceWordCalls C : ℝ≥0∞) := by
   unfold sourceNoncoherentQ
   refine sInf_le ?_
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   exact ⟨r,hr,C,rfl,hC,hSuccess⟩
 
 /-- A real upper bound on a source word's query count induces the corresponding upper bound in

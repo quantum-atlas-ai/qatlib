@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ObliviousAmplitudeAmplification
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Data.Complex.Basic
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ObliviousAmplitudeAmplification
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Statement of the projected cubic identity

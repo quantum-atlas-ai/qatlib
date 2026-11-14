@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
-import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
-import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
+
+set_option linter.dupNamespace false
 
 /-!
 # Bit-word compiler consumers and echo families
@@ -314,7 +320,7 @@ theorem lsEcho_compiler_time : ∃ C D : ℕ,0<C ∧ nativeCompilerTime lsEcho C
         Qatlib.Concepts.BitWordCompiler.WordComposition.natBits=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := rfl
     rw [htail,he]
     cases simple <;> simp only
-        [Bool.false_eq_true,if_false,if_true,List.cons_append,List.nil_append,TM.NativeEcho.input]
+        [Bool.false_eq_true,ite_false,ite_true,List.cons_append,List.nil_append,TM.NativeEcho.input]
   have hRuns := hM simple k d.h tail
   rcases hRuns with ⟨_,ticks,last,ht,hr,hh,_,ho,_,_⟩
   refine ⟨ticks,last,?_,?_,hh,?_⟩

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinModels08.MainResults.Defs
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Papers.SpinModels08.MainResults.Defs
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Hadamard-test expectation and concentration bounds
@@ -51,40 +55,40 @@ def hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) : FinDist (Fin 2) where
     obtain ⟨hlo, hhi⟩ := hμ
     show 0 ≤ (if x = 0 then (1 + μ) / 2 else (1 - μ) / 2)
     by_cases h : x = 0
-    · rw [if_pos h]; linarith
-    · rw [if_neg h]; linarith
+    · rw [ite_eq_left h]; linarith
+    · rw [ite_eq_right h]; linarith
   sum_one := by
     show (∑ x : Fin 2, if x = 0 then (1 + μ) / 2 else (1 - μ) / 2) = 1
     rw [Fin.sum_univ_two]
     have h1 : ¬((1 : Fin 2) = 0) := by decide
-    rw [if_pos rfl, if_neg h1]
+    rw [ite_eq_left rfl, ite_eq_right h1]
     ring
 
 /-- The probability of outcome zero is `(1 + μ) / 2`. -/
 theorem hadamardLaw_prob_zero (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).prob 0 = (1 + μ) / 2 := by
   show (if (0 : Fin 2) = 0 then (1 + μ) / 2 else (1 - μ) / 2) = (1 + μ) / 2
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- The probability of outcome one is `(1 - μ) / 2`. -/
 theorem hadamardLaw_prob_one (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).prob 1 = (1 - μ) / 2 := by
   show (if (1 : Fin 2) = 0 then (1 + μ) / 2 else (1 - μ) / 2) = (1 - μ) / 2
-  exact if_neg (by decide)
+  exact ite_eq_right (by decide)
 
 /-- The signed outcome at zero equals one. -/
-theorem signOutcome_zero : signOutcome 0 = 1 := if_pos rfl
+theorem signOutcome_zero : signOutcome 0 = 1 := ite_eq_left rfl
 
 /-- The signed outcome at one equals minus one. -/
 theorem signOutcome_one : signOutcome 1 = -1 := by
   show (if (1 : Fin 2) = 0 then (1 : ℝ) else -1) = -1
-  exact if_neg (by decide)
+  exact ite_eq_right (by decide)
 
 /-- The signed Hadamard-test outcome has expectation `μ` [VanDenNestEtAl2009]. -/
 theorem expect_hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).expect signOutcome = μ := by
   show (∑ x : Fin 2, (if x = 0 then (1 + μ) / 2 else (1 - μ) / 2) * signOutcome x) = μ
-  rw [Fin.sum_univ_two, if_pos rfl, if_neg (by decide : ¬((1 : Fin 2) = 0)),
+  rw [Fin.sum_univ_two, ite_eq_left rfl, ite_eq_right (by decide : ¬((1 : Fin 2) = 0)),
     signOutcome_zero, signOutcome_one]
   ring
 

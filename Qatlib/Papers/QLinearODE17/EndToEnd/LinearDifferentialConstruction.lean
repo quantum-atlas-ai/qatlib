@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialConstructionDefs
+module
+
+public import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialConstructionDefs
+
+@[expose] public section
 
 /-!
 # Construction and resource lemmas for the ODE solver
@@ -105,7 +109,7 @@ theorem taylorRHS_zero_outside_support {N : Type} [Fintype N] [DecidableEq N]
     apply hn
     simp only [taylorRHSSupport, Finset.mem_union, Finset.mem_singleton]
     exact Or.inl h0
-  rw [taylorRHS, if_neg hn0]
+  rw [taylorRHS, ite_eq_right hn0]
   by_cases h1 : (r.1 : ℕ) ≤ m * (k + 1) ∧ (r.1 : ℕ) % (k + 1) = 1
   · exfalso
     apply hn
@@ -246,7 +250,7 @@ theorem roundFiniteDigit_error (x : ℝ) (bits : ℕ) :
     simp [roundFiniteDigit, FiniteDigit.value]
   rw [hval]
   by_cases hs : x < 0
-  · rw [if_pos hs]
+  · rw [ite_eq_left hs]
     have hkey2 : -1 * (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits - x =
         |x| - (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits := by
       rw [abs_of_neg hs]
@@ -254,7 +258,7 @@ theorem roundFiniteDigit_error (x : ℝ) (bits : ℕ) :
     rw [hkey2, abs_of_nonneg (by
       linarith : 0 ≤ |x| - (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits)]
     exact hlt.le
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     have hkey2 : 1 * (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits - x =
         -(|x| - (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits) := by
       rw [abs_of_nonneg (by linarith [hs] : 0 ≤ x)]

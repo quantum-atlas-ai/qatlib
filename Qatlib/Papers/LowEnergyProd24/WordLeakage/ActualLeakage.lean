@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.GeneratorTail
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+module
+
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.GeneratorTail
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+
+@[expose] public section
 
 /-!
 # Weighted product-word and leakage bounds

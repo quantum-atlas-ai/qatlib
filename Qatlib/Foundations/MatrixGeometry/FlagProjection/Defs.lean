@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coordinate flag projections and normalized tails
@@ -89,7 +93,7 @@ theorem project_inner [Fintype X] (S : Finset X) (v : EuclideanSpace ℂ X) :
   have he (x : X) : inner ℂ (if x ∈ S then v.ofLp x else 0) (v.ofLp x) =
       if x ∈ S then (‖v.ofLp x‖ : ℂ)^2 else 0 := by
     by_cases hx : x ∈ S
-    · rw [if_pos hx, if_pos hx, inner_self_eq_norm_sq_to_K]
+    · rw [ite_eq_left hx, ite_eq_left hx, inner_self_eq_norm_sq_to_K]
       rfl
     · simp [hx]
   simp_rw [he]

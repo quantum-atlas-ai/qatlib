@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21Defs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21Defs
+
+@[expose] public section
 
 /-!
 # Statement of the Kushilevitz adversary separation

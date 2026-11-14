@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
-import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+public import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Paired eigenphases for the Johnson spectrum
@@ -204,7 +208,7 @@ theorem phaseEigenvalues_plus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
     change (2*j.val+1-1)/2 = j.val
     omega
   simp only [phaseEigenvalues, phaseAngle]
-  rw [dif_neg hz, if_pos hp, hj]
+  rw [dite_eq_right hz, ite_eq_left hp, hj]
   exact congrArg Complex.exp (mul_comm _ _)
 end
 noncomputable section
@@ -219,7 +223,7 @@ theorem phaseEigenvalues_minus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
     change (2*j.val+2-1)/2 = j.val
     omega
   simp only [phaseEigenvalues, phaseAngle]
-  rw [dif_neg hz, if_neg hp, hj]
+  rw [dite_eq_right hz, ite_eq_right hp, hj]
   unfold purePhase
   congr 1
   simp only [Complex.ofReal_neg, neg_mul]
@@ -243,7 +247,7 @@ theorem phaseEigenvalues_sq_ne_one {k : ℕ} (θ : Fin k → ℝ)
     (hθ : ∀ j, 0 < θ j ∧ θ j < Real.pi) (i : Fin (2*k+1)) (hi : i.val ≠ 0) :
     (phaseEigenvalues θ i)^2 ≠ 1 := by
   unfold phaseEigenvalues phaseAngle
-  rw [dif_neg hi]
+  rw [dite_eq_right hi]
   split_ifs
   · exact purePhase_sq_ne_one (hθ (phaseIndex i hi)).1 (hθ (phaseIndex i hi)).2
   · exact purePhase_neg_sq_ne_one (hθ (phaseIndex i hi)).1 (hθ (phaseIndex i hi)).2
@@ -256,7 +260,7 @@ theorem phaseEigenvalues_quadratic {k : ℕ} (θ : Fin k → ℝ)
     (i : Fin (2*k+1)) (hi : i.val ≠ 0) :
     (phaseEigenvalues θ i)^2-2*(Real.cos (θ (phaseIndex i hi)) : ℂ)*phaseEigenvalues θ i+1 = 0 := by
   unfold phaseEigenvalues phaseAngle
-  rw [dif_neg hi]
+  rw [dite_eq_right hi]
   split_ifs
   · exact purePhase_quadratic _
   · simpa only [Real.cos_neg] using! purePhase_quadratic (-θ (phaseIndex i hi))

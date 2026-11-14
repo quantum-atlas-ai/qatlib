@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite element runtime cost models
@@ -88,7 +92,7 @@ theorem modeledNo_preconditioning_bound (C : ℝ) (k : ℕ) (hk : 1 ≤ k)
   have heb : ε ^ ((2 : ℝ) / ((k : ℝ) + 1)) ≠ 0 := ne_of_gt (Real.rpow_pos_of_pos hε _)
   have he : ε ≠ 0 := ne_of_gt hε
   field_simp [hea, heb, he]
-  try ring
+
 
 /-- For `0 ≤ κ ≤ K`, `K ≥ 1`, and the stated norm bounds, the unit sparsity quantum cost is at
 most `2 * K ^ 2 * C * u1Norm / ε`. See [MontanaroPallister2016]. -/

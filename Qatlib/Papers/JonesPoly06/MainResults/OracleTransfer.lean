@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly06.MainResults.AmplitudeApprox
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.JonesPoly06.MainResults.AmplitudeApprox
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Arithmetic support for oracle error transfer
@@ -165,7 +169,7 @@ theorem conj_pow {M : Type*} [Monoid M] (W U : M) (hW : W * W = 1) (e : ℕ) :
 /-- For a positive exponent e and nonnegative ε, two contractions within ε/e have e-th powers
 within ε; see [WocjanYard2006]. -/
 theorem pow_error_of_div {A : Type*} [SeminormedRing A] [NormOneClass A]
-    (a b : A) (e : ℕ) (he : 0 < e) (ε : ℝ) (hε : 0 ≤ ε)
+    (a b : A) (e : ℕ) (he : 0 < e) (ε : ℝ) (_hε : 0 ≤ ε)
     (ha : ‖a‖ ≤ 1) (hb : ‖b‖ ≤ 1) (h : ‖a - b‖ ≤ ε / e) :
     ‖a ^ e - b ^ e‖ ≤ ε := by
   have hbnd := pow_sub_pow_le a b ha hb e

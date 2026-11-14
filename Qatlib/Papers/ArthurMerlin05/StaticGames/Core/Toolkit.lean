@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Channels.Dual
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+module
+
+public import QuantumInfo.Channels.Dual
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+
+@[expose] public section
 
 /-!
 # Toolkit — acceptance operators, traces, and spectral bounds

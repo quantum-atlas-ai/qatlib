@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
-import Mathlib.Data.Finset.Max
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Decoding local measurement predictions
@@ -58,7 +62,7 @@ lemma local_good_prediction_unique_max {M : ℕ} (ε : ℝ) (hε : 0 < ε)
   have hx := (abs_le.mp (hv x)).1
   have hii := (abs_le.mp (hv i)).2
   simp at hx
-  simp only [if_neg hi, mul_zero, sub_zero] at hii
+  simp only [ite_eq_right hi, mul_zero, sub_zero] at hii
   linarith
 
 /-- A maximizing coordinate of predictions within `ε` of the distinguished-coordinate signal

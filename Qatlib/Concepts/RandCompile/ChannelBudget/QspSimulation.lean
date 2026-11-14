@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.QspSimulationDefs
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.QspSimulationDefs
+
+@[expose] public section
 
 /-!
 # Quantum signal processing simulation and resource bounds
@@ -75,7 +79,7 @@ theorem jaAccuracy_le_one (ε : ℝ) : jaAccuracy ε ≤ 1 := by
   exact min_le_right _ _
 
 /-- For positive `ε`, the clipped Jacobi-Anger accuracy is at most `ε`. -/
-theorem jaAccuracy_le_eps (ε : ℝ) (hε : 0 < ε) : jaAccuracy ε ≤ ε := by
+theorem jaAccuracy_le_eps (ε : ℝ) (_hε : 0 < ε) : jaAccuracy ε ≤ ε := by
   unfold jaAccuracy
   exact min_le_left _ _
 
@@ -233,7 +237,7 @@ theorem jaCount_near_optimal (τ ε : ℝ) (h : JaDomain τ ε) :
 
 /-- For positive `ε`, zero time has an even-odd polynomial pair satisfying the selected degree
 bounds and having zero Jacobi-Anger error on `[0, 2π]`. -/
-theorem jaCount_zero_time (ε : ℝ) (hε : 0 < ε) :
+theorem jaCount_zero_time (ε : ℝ) (_hε : 0 < ε) :
     ∃ (A Qt : Polynomial ℝ),
       A.comp (-X) = A ∧ Qt.comp (-X) = -Qt ∧
       A.degree ≤ ((2 * (jaCount 0 ε - 1) : ℕ) : WithBot ℕ) ∧
@@ -268,7 +272,7 @@ theorem jaCount_zero_time (ε : ℝ) (hε : 0 < ε) :
 
 /-- For `0 ≤ τ ≤ 1` and positive `ε`, the selected count equals the stated ceiling formula
 depending only on the logarithmic accuracy budget. -/
-theorem jaCount_small_time (ε : ℝ) (hε : 0 < ε) (τ : ℝ) (hτ : 0 ≤ τ) (hτ1 : τ ≤ 1) :
+theorem jaCount_small_time (ε : ℝ) (_hε : 0 < ε) (τ : ℝ) (hτ : 0 ≤ τ) (hτ1 : τ ≤ 1) :
     jaCount τ ε = max 4 (⌈3 * jaLogBudget ε / Real.log (1 + jaLogBudget ε)⌉₊ + 1) := by
   have hmax : max τ 1 = 1 := max_eq_right hτ1
   have hceil : ⌈3 * τ⌉₊ < 4 := by
@@ -294,7 +298,7 @@ theorem jaCount_small_time (ε : ℝ) (hε : 0 < ε) (τ : ℝ) (hτ : 0 ≤ τ)
   rw [h2]
 
 /-- For `τ ≥ 1` and positive `ε`, the selected count is at least `3 * τ`. -/
-theorem jaCount_large_time (τ ε : ℝ) (hε : 0 < ε) (hτ : (1 : ℝ) ≤ τ) :
+theorem jaCount_large_time (τ ε : ℝ) (_hε : 0 < ε) (_hτ : (1 : ℝ) ≤ τ) :
     3 * τ ≤ (jaCount τ ε : ℝ) := by
   have hmax : ⌈3 * τ⌉₊ + 1 ≤ lcCorrectedQ τ (jaAccuracy ε) := by
     unfold lcCorrectedQ
@@ -385,7 +389,7 @@ theorem honestPhaseRun_search_tested (p : List ℚ) (d : ℕ) (eps : ℚ)
             (phaseBackendBits d (phaseToleranceBits eps)))
             (2 ^ phaseGridBits d (phaseToleranceBits eps))).1
           (gridWords (2 ^ phaseGridBits d (phaseToleranceBits eps)) (d + 1))).tested + 1 := by
-    simp only [finitePhaseSynthesis, hnot, if_false]
+    simp only [finitePhaseSynthesis, hnot, ite_false]
   have hledger : (honestPhaseRun p d eps).ledger.testedWords
       = (findGridWord p d ((1 / 2 : ℚ) ^ phaseToleranceBits eps)
           (phaseTable (numericalDyadicPhase (phaseGridBits d (phaseToleranceBits eps)) false

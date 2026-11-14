@@ -24,15 +24,19 @@ This module fixes the objects used by the paper-layer statements:
   the cheat-sheet totalization `F_n`;
 * the asymptotic vocabulary `IsBigO`, `IsBigOmega`, `IsTheta`.
 -/
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Nat.Lattice
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Order.Filter.Basic
-import Mathlib.Topology.Algebra.Order.LiminfLimsup
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+module
+
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Order.Lattice.Nat
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Topology.Algebra.Order.LiminfLimsup
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -313,7 +317,7 @@ lemma mOf_le_posLen {n : ℕ} {P : PosTable n} (hG : GoodTable P)
     mOf P j S ≤ posLen n := by
   have hne := goodTable_hit hG hS j
   unfold mOf
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   have := ((Finset.univ.filter (fun a : Fin (posLen n) => P j a ∈ S)).min' hne).isLt
   omega
 
@@ -325,7 +329,7 @@ lemma mOf_pred_mem {n : ℕ} {P : PosTable n} (hG : GoodTable P)
       have hne := goodTable_hit hG hS j
       have hpos : 1 ≤ mOf P j S := by
         unfold mOf
-        rw [dif_pos hne]
+        rw [dite_eq_left hne]
         omega
       omega⟩ ∈ S := by
   have hne := goodTable_hit hG hS j
@@ -335,7 +339,7 @@ lemma mOf_pred_mem {n : ℕ} {P : PosTable n} (hG : GoodTable P)
   have hval : mOf P j S =
       ((Finset.univ.filter (fun a : Fin (posLen n) => P j a ∈ S)).min' hne).val + 1 := by
     unfold mOf
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
   have hpos : 1 ≤ mOf P j S := by omega
   have hidx : (⟨mOf P j S - 1, by
       have hle := mOf_le_posLen hG hS j

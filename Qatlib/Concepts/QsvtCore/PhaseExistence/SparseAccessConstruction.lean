@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstructionDefs
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstructionDefs
+
+@[expose] public section
 
 /-!
 # Block encoding from sparse matrix access
@@ -54,7 +58,7 @@ private theorem sum_indicator {A : Type*} [Fintype A] [DecidableEq A] (f : A →
   rw [Fintype.sum_eq_single a]
   · simp
   · intro x hx
-    rw [if_neg (fun h => hx h.symm)]
+    rw [ite_eq_right (fun h => hx h.symm)]
 
 /-- A condition independent of the summation index can be moved outside a finite sum. -/
 private theorem sum_block_inner {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B]
@@ -65,9 +69,9 @@ private theorem sum_block_inner {A B : Type*} [Fintype A] [DecidableEq A] [Finty
   · simp [h]
   · have hz : ∀ b, (if x = a then f b else 0) = 0 := by
       intro b
-      rw [if_neg h]
+      rw [ite_eq_right h]
     rw [Finset.sum_congr rfl fun b _ => hz b]
-    rw [if_neg h]
+    rw [ite_eq_right h]
     simp
 
 /-- A double finite sum supported at one outer index reduces to the inner sum at that index. -/
@@ -702,7 +706,7 @@ theorem compress_deltaFrame (scratchCol : ColAddr O sr)
     rw [Fintype.sum_eq_single (scratchCol, (.inl i, false))]
     · simp [hstar]
     · intro x hx
-      rw [hstar x, if_neg hx]
+      rw [hstar x, ite_eq_right hx]
       simp
   have hsum : (∑ y : SparseWorkspace I O sr sc,
         (∑ x : SparseWorkspace I O sr sc,
@@ -719,7 +723,7 @@ theorem compress_deltaFrame (scratchCol : ColAddr O sr)
   rw [Fintype.sum_eq_single (.inl j, (scratchRow, false))]
   · simp [hR]
   · intro y hy
-    rw [hR y, if_neg hy]
+    rw [hR y, ite_eq_right hy]
     simp
 
 /-- The compressed sparse operator has entry `D.entry i j / sparseAlphaComplex sr sc` under

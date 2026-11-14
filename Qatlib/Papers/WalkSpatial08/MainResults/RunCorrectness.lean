@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSpatial08.MainResults.RunDynamics
-import Qatlib.Papers.WalkSpatial08.MainResults.RunRates
+module
+
+public import Qatlib.Papers.WalkSpatial08.MainResults.RunDynamics
+public import Qatlib.Papers.WalkSpatial08.MainResults.RunRates
+
+@[expose] public section
 
 /-!
 # Success weights for balanced lattice schedules

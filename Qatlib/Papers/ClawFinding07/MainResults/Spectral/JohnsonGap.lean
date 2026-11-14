@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ChainProduct
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ChainProduct
+
+@[expose] public section
 
 /-!
 # Johnson-chain eigenvalue estimates
@@ -69,8 +73,8 @@ theorem johnsonChain_symm (n k : ℕ) : ∀ a b : JohnsonVertex n k,
   intro a b
   simp only [johnsonChain]
   by_cases h : johnsonAdj a b
-  · rw [if_pos h, if_pos (johnsonAdj_symm h)]
-  · rw [if_neg h, if_neg (fun h' => h (johnsonAdj_symm h'))]
+  · rw [ite_eq_left h, ite_eq_left (johnsonAdj_symm h)]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h (johnsonAdj_symm h'))]
 
 /-- For `k ≤ n`, every entry of the Johnson-chain matrix is nonnegative; see [Tani2009]. -/
 theorem johnsonChain_nonneg (n k : ℕ) (hkn : k ≤ n) : ∀ a b : JohnsonVertex n k,

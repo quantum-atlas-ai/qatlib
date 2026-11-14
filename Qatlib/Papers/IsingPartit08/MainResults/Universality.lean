@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingPartit08.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+module
+
+public import Qatlib.Papers.IsingPartit08.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+@[expose] public section
 
 /-!
 # Normalized gate parameters and explicit rotation angles

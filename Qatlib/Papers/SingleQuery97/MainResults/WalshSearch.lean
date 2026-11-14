@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+
+@[expose] public section
 
 /-!
 # Walsh phase states and proposed preparation costs

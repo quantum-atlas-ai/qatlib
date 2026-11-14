@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.ElementaryRelations
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.ElementaryRelations
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Generators and the normal cyclic factor of the canonical semidirect product
@@ -68,7 +72,7 @@ theorem proposition7_y_order : orderOf (canonicalY p r hp hp2 hr) = p := by
 `p ^ r`. -/
 theorem zpowers_ofAdd_one_top (hp : p.Prime) :
     Subgroup.zpowers (Multiplicative.ofAdd (1 : ZMod (p ^ r))) = ⊤ := by
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
   rw [eq_top_iff]
   intro x _
   rw [Subgroup.mem_zpowers_iff]
@@ -85,7 +89,7 @@ canonical left generator. -/
 theorem px_eq_x_pow (hp : p.Prime) (hp2 : p ≠ 2) (hr : 2 ≤ r) (a : ZMod (p ^ r)) :
     px p r (canonicalUnit p r hp hr) (canonicalUnit_pow_eq_one p r hp hp2 hr) a
       = (canonicalX p r hp hp2 hr) ^ a.val := by
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
   conv_lhs => rw [show a = ((a.val : ℕ) : ZMod (p ^ r)) from (ZMod.natCast_zmod_val a).symm]
   rw [show ((a.val : ℕ) : ZMod (p ^ r)) = a.val * (1 : ZMod (p ^ r))
       from (mul_one _).symm]
@@ -96,7 +100,7 @@ canonical right generator. -/
 theorem py_eq_y_pow (hp : p.Prime) (hp2 : p ≠ 2) (hr : 2 ≤ r) (b : ZMod p) :
     py p r (canonicalUnit p r hp hr) (canonicalUnit_pow_eq_one p r hp hp2 hr) b
       = (canonicalY p r hp hp2 hr) ^ b.val := by
-  haveI : NeZero p := ⟨hp.pos.ne'⟩
+  have : NeZero p := ⟨hp.pos.ne'⟩
   conv_lhs => rw [show b = ((b.val : ℕ) : ZMod p) from (ZMod.natCast_zmod_val b).symm]
   rw [show ((b.val : ℕ) : ZMod p) = b.val * (1 : ZMod p) from (mul_one _).symm]
   rw [← py_pow, ← canonicalY_eq_py]

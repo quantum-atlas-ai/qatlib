@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableRepresentationStat
-import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableReprCounterexample
-import Mathlib.Analysis.InnerProductSpace.LinearMap
+module
+
+public import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableRepresentationStat
+public import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableReprCounterexample
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+
+@[expose] public section
 
 /-!
 # Hybrid observable representation in forward time

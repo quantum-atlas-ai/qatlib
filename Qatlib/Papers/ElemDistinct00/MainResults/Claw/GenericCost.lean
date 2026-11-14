@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Generic claw finding cost expressions
@@ -135,7 +139,7 @@ theorem clawCost_sqrtM_le {N M : ℝ} (hN : 1 ≤ N) (hM : 1 ≤ M) (hMN : M ≤
   exact mul_le_mul_of_nonneg_left hlog hnonneg
 
 /-- For positive `N` and nonnegative `M`, choosing `L = N` gives cost `sqrt M * log N`. -/
-theorem clawCost_N_eq {N M : ℝ} (hN : 0 < N) (hM : 0 ≤ M) :
+theorem clawCost_N_eq {N M : ℝ} (hN : 0 < N) (_hM : 0 ≤ M) :
     clawCost N M N = Real.sqrt M * Real.log N := by
   unfold clawCost
   rw [show N * M / N = M by field_simp]
@@ -160,9 +164,9 @@ theorem clawCost_min_bound {N M : ℝ} (hN : 1 ≤ N) (hM : 1 ≤ M) :
       ≤ (if M ≤ N ^ 2 then Real.sqrt N * M ^ (1 / 4 : ℝ) * Real.log N
           else Real.sqrt M * Real.log N) := by
   by_cases h : M ≤ N ^ 2
-  · rw [min_eq_sqrtM hN h, if_pos h]
+  · rw [min_eq_sqrtM hN h, ite_eq_left h]
     exact clawCost_sqrtM_le hN hM h
   · have hlt : N ^ 2 < M := lt_of_not_ge h
-    rw [min_eq_N hN hlt, if_neg h, clawCost_N_eq (by linarith) (by linarith)]
+    rw [min_eq_N hN hlt, ite_eq_right h, clawCost_N_eq (by linarith) (by linarith)]
 
 end Qatlib.Papers.ElemDistinct00.MainResults.Claw

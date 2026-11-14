@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.List.Induction
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.List.Induction
+
+@[expose] public section
 
 /-! # Coordinate-word product majorants, including the highest-order cancellation -/
 set_option autoImplicit false

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceBeurlingWeight
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceBeurlingWeight
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 /-!
 # Lemma 1: Wiener's lemma for the weighted Wiener algebra `A_w` (c005)

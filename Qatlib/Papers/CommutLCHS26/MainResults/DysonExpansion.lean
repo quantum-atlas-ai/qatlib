@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.DysonCoefficients
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.DysonCoefficients
+
+@[expose] public section
 
 /-!
 # Collected Dyson expansions for repeated formulas
@@ -46,12 +50,12 @@ theorem shift_hasSum {E : Type} [NormedAddCommGroup E] (f : ℕ → E) (x : E)
   have hzero : ∑ k ∈ Finset.range l, g k = 0 := by
     apply Finset.sum_eq_zero
     intro k hk
-    exact if_neg (by have := Finset.mem_range.mp hk; omega)
+    exact ite_eq_right (by have := Finset.mem_range.mp hk; omega)
   have hs : HasSum (fun k => g (k + l)) x := by
     convert! hf using 1
     funext k
     dsimp only [g]
-    rw [if_pos (by omega), Nat.add_sub_cancel]
+    rw [ite_eq_left (by omega), Nat.add_sub_cancel]
   have h := (hasSum_nat_add_iff l).mp hs
   simpa only [hzero, add_zero] using! h
 
@@ -75,7 +79,7 @@ theorem orderCoefficient_zero (xs : List (Matrix I I ℂ)) (t : ℝ) (p : ℕ) :
   unfold orderCoefficient
   apply Finset.sum_eq_zero
   intro j _
-  exact if_neg (by omega)
+  exact ite_eq_right (by omega)
 
 /-- For Hermitian generators, the norm of each collected coefficient is bounded by its order
 profile. -/
@@ -86,9 +90,9 @@ theorem orderCoefficient_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, 
   apply Finset.sum_le_sum
   intro j _
   by_cases hj : j + 1 ≤ k
-  · simp only [if_pos hj]
+  · simp only [ite_eq_left hj]
     exact powerCoefficient_norm xs hxs t (j + 1) (k - (j + 1))
-  · simp only [if_neg hj, norm_zero, le_refl]
+  · simp only [ite_eq_right hj, norm_zero, le_refl]
 
 /-- Under odd-coefficient control, a shifted inverse-even-power coefficient series sums to its
 fixed-depth Dyson term. -/
@@ -102,8 +106,8 @@ theorem shifted_depth_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, A
   convert! hs using 1
   funext k
   by_cases hk : l ≤ k
-  · simp only [if_pos hk, Nat.sub_add_cancel hk]
-  · simp only [if_neg hk, smul_zero]
+  · simp only [ite_eq_left hk, Nat.sub_add_cancel hk]
+  · simp only [ite_eq_right hk, smul_zero]
 
 /-- The inverse-even-power series of collected coefficients sums to the Dyson terms of positive
 depths below p. -/

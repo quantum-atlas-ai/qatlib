@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Mathlib.Analysis.Analytic.Basic
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.LinearAlgebra.Matrix.Permutation
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Mathlib.Analysis.Analytic.Basic
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

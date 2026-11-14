@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.Set.Card
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.Set.Card
+
+@[expose] public section
 
 /-!
 # Prime-order units modulo prime powers
@@ -64,15 +68,15 @@ theorem prop4_case_i (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (hqr : q ∣ p - 1) :
     Nat.card {α : (ZMod (p ^ r))ˣ // orderOf α = q} = q - 1 := by
   classical
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
   have hp2 : p ≠ 2 := by
     intro h
     subst h
     have : q ∣ 1 := by simpa using hqr
     have hq1 : q = 1 := Nat.dvd_one.mp this
     exact hq.ne_one hq1
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
+  have : Fact p.Prime := ⟨hp⟩
+  have : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
   have hdvd : q ∣ Fintype.card (ZMod (p ^ r))ˣ := by
     rw [ZMod.card_units_eq_totient, Nat.totient_prime_pow hp hr]
     exact dvd_mul_of_dvd_right hqr (p ^ (r - 1))
@@ -113,9 +117,9 @@ theorem prop4_case_ii_candUnit_order (p r t : ℕ) (hp : p.Prime) (hp2 : p ≠ 2
 theorem prop4_case_ii_card (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hr : 1 < r) :
     Nat.card {α : (ZMod (p ^ r))ˣ // orderOf α = p} = p - 1 := by
   classical
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : Fact p.Prime := ⟨hp⟩
+  have : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
   have hdvd : p ∣ Fintype.card (ZMod (p ^ r))ˣ := by
     rw [ZMod.card_units_eq_totient, Nat.totient_prime_pow hp (by omega)]
     exact dvd_mul_of_dvd_left (dvd_pow_self p (by omega)) (p - 1)
@@ -132,7 +136,7 @@ theorem prop4_case_ii_characterization (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2
       = {α : (ZMod (p ^ r))ˣ | ∃ t : ℕ, 0 < t ∧ t < p ∧
           α = candUnit p r t hp (by omega)} := by
   classical
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
 
   have h2 : 2 ≤ r := by omega
 
@@ -299,7 +303,7 @@ two. -/
 theorem orderOf_eq_two_of_residue (r : ℕ) (α : (ZMod (2 ^ r))ˣ)
     (hsq : ((α : ZMod (2 ^ r))) ^ 2 = 1) (hne : ((α : ZMod (2 ^ r))) ≠ 1) :
     orderOf α = 2 := by
-  haveI : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
+  have : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
   refine orderOf_eq_prime ?_ ?_
   · apply Units.ext
     rw [Units.val_pow_eq_pow_val, Units.val_one]
@@ -317,7 +321,7 @@ theorem prop4_case_iii_gt_two (r : ℕ) (hr : 2 < r) :
         ∨ (α : ZMod (2 ^ r)) = ((2 ^ (r - 1) - 1 : ℕ) : ZMod (2 ^ r))
         ∨ (α : ZMod (2 ^ r)) = ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r))) := by
   intro α
-  haveI : NeZero (2 ^ r) := ⟨pow_ne_zero r (by norm_num)⟩
+  have : NeZero (2 ^ r) := ⟨pow_ne_zero r (by norm_num)⟩
   constructor
   · intro hord
     have h2 : α ^ 2 = 1 := orderOf_dvd_iff_pow_eq_one.mp (by rw [hord])
@@ -514,7 +518,7 @@ theorem prop4_only_cases (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤
     (α : (ZMod (p ^ r))ˣ) (hα : orderOf α = q) :
     q ∣ p - 1 ∨ (1 < r ∧ q = p) := by
   classical
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
   have hdvd : orderOf α ∣ Fintype.card (ZMod (p ^ r))ˣ := orderOf_dvd_card
   rw [ZMod.card_units_eq_totient, Nat.totient_prime_pow hp hr] at hdvd
   have hq' : q ∣ p ^ (r - 1) * (p - 1) := by rw [← hα]; exact hdvd

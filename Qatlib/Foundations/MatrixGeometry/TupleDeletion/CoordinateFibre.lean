@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
-import Mathlib.Logic.Embedding.Set
-import Mathlib.Data.Fintype.Card
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
+public import Mathlib.Logic.Embedding.Set
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # Coordinate fibers of injective tuples

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGibbs23.MainResults.Model.SourceModel
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Papers.ZeroSumGibbs23.MainResults.Model.SourceModel
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

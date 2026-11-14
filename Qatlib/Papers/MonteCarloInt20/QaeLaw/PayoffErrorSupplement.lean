@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.FourierLaw
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.TrigonometricBias
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.FourierLaw
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.TrigonometricBias
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+
+@[expose] public section
 
 /-!
 # Variance of the finite Fourier QAE estimator

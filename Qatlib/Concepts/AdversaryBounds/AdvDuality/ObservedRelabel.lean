@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Basis relabeling of observed circuits
@@ -97,7 +101,7 @@ private theorem relabel_partition (e : I ≃ J) (psi : QState I)
       relabelState e (Collapse psi (Finset.univ.filter (fun i => label i = o))) := by
   funext j
   simp only [collapse_apply, Finset.mem_filter, Finset.mem_univ, true_and,
-    relabelState_apply, Function.comp_apply]
+    relabelState_apply]
 
 /-- Relabeling an orthogonal projector across a basis equivalence preserves the orthogonal
 projector property. -/
@@ -113,6 +117,7 @@ private theorem relabel_projector (e : I ≃ J) {Q : Matrix I I ℂ}
     show (relabelGate e Q)ᴴ = relabelGate e Q
     rw [hstar, hQstar]
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- Basis relabeling preserves the branch mass of a state. -/
 private theorem relabel_mass (e : I ≃ J) (psi : QState I) :
     branchMass (relabelState e psi) = branchMass psi := by

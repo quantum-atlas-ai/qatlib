@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutExt
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
-import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalMont
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutExt
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
+public import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalMont
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
+
+@[expose] public section
 
 /-!
 # Refined amplitude readout, counting, and search
@@ -54,6 +58,9 @@ guarantees through clean ancillas and oracle simulations.
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
 
 open Qatlib
 open Matrix
@@ -2728,8 +2735,8 @@ theorem ladder_pointwise_gt {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
              then ladderCost (t + ladderWindow N (j + 1) t) N else 0) :=
           Finset.sum_nonneg (fun j _ => by
             by_cases hc : t + ladderWindow N j t < v
-            · rw [if_pos hc]; exact hlevel (j + 1)
-            · rw [if_neg hc])
+            · rw [ite_eq_left hc]; exact hlevel (j + 1)
+            · rw [ite_eq_right hc])
         linarith
       _ = _ := rfl
   · have hpos : 0 < Nat.find hex := by omega
@@ -2747,8 +2754,8 @@ theorem ladder_pointwise_gt {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
            then ladderCost (t + ladderWindow N (b + 1) t) N else 0) := by
         intro b _
         by_cases hc : t + ladderWindow N b t < v
-        · rw [if_pos hc]; exact hlevel (b + 1)
-        · rw [if_neg hc]
+        · rw [ite_eq_left hc]; exact hlevel (b + 1)
+        · rw [ite_eq_right hc]
       have hsingle := Finset.single_le_sum
         (f := fun b =>
           (if t + ladderWindow N b t < v
@@ -2757,7 +2764,7 @@ theorem ladder_pointwise_gt {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
       have hval : (if t + ladderWindow N (Nat.find hex - 1) t < v
           then ladderCost (t + ladderWindow N ((Nat.find hex - 1) + 1) t) N else 0)
           ≥ ladderCost v N := by
-        rw [if_pos hcond]
+        rw [ite_eq_left hcond]
         have hstep : (Nat.find hex - 1) + 1 = Nat.find hex := by omega
         rw [hstep]
         exact ladderCost_mono hjs
@@ -2860,23 +2867,23 @@ theorem ladder_pointwise_all {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
   by_cases htv : t < v
   · have h1 := ladder_pointwise_gt hN ht0 htN L hL htv hcross
     have hbase : ladderCost (t + ladderWindow N 0 t) N * (if t < v then 1 else 0)
-        = ladderCost (t + ladderWindow N 0 t) N := by rw [if_pos htv, mul_one]
-    rw [if_pos htv, if_neg (by linarith : ¬ (v ≤ t))]
+        = ladderCost (t + ladderWindow N 0 t) N := by rw [ite_eq_left htv, mul_one]
+    rw [ite_eq_left htv, ite_eq_right (by linarith : ¬ (v ≤ t))]
     have hn : 0 ≤ ∑ j ∈ Finset.range L,
         (if t + ladderWindow N j t < v
          then ladderCost (t + ladderWindow N (j + 1) t) N else 0) := by
       apply Finset.sum_nonneg
       intro j _
       by_cases hc : t + ladderWindow N j t < v
-      · rw [if_pos hc]
+      · rw [ite_eq_left hc]
         have hw := ladderWindow_nonneg hN ht0 htN (j + 1)
         unfold ladderCost
         have h1 : 0 ≤ (t + ladderWindow N (j + 1) t + 1) * ((N : ℝ) + 1) := by positivity
         exact Real.sqrt_nonneg _
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
     linarith
   · have hvle : v ≤ t := by linarith
-    rw [if_pos hvle, if_neg htv]
+    rw [ite_eq_left hvle, ite_eq_right htv]
     have hmono : ladderCost v N ≤ ladderCost t N := ladderCost_mono hvle
     have hn : 0 ≤ ∑ j ∈ Finset.range L,
         (if t + ladderWindow N j t < v
@@ -2884,12 +2891,12 @@ theorem ladder_pointwise_all {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
       apply Finset.sum_nonneg
       intro j _
       by_cases hc : t + ladderWindow N j t < v
-      · rw [if_pos hc]
+      · rw [ite_eq_left hc]
         have hw := ladderWindow_nonneg hN ht0 htN (j + 1)
         unfold ladderCost
         have h1 : 0 ≤ (t + ladderWindow N (j + 1) t + 1) * ((N : ℝ) + 1) := by positivity
         exact Real.sqrt_nonneg _
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
     linarith
 
 /-- For `N > 0` and `1 ≤ t ≤ N / 2`, the level `N + 3` ladder window is at least `N`. -/
@@ -3597,8 +3604,8 @@ theorem cor4_expected_cost_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
           apply Finset.sum_congr rfl
           intro z _
           by_cases hc : (S.card : ℝ) + ladderWindow N j (S.card : ℝ) < pairMin z
-          · rw [if_pos hc, if_pos hc]
-          · rw [if_neg hc, if_neg hc]
+          · rw [ite_eq_left hc, ite_eq_left hc]
+          · rw [ite_eq_right hc, ite_eq_right hc]
             ring
         _ = ∑ z ∈ P.filter
             (fun z => (S.card : ℝ) + ladderWindow N j (S.card : ℝ) < pairMin z),

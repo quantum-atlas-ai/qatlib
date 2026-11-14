@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceDecode
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceDecode
+
+@[expose] public section
 
 /-!
 # Teleportation with maximally entangled qudit resources

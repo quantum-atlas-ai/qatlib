@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+
+@[expose] public section
 
 /-!
 # Certificate trees and sensitive block histories
@@ -264,9 +268,9 @@ lemma certificateTree_correct (f : (Fin N → Bool) → Bool) (r m : ℕ)
     subst m
     simp only [certificateTree, Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run]
     by_cases hp : PositiveExtension f K a
-    · rw [if_pos hp]
+    · rw [ite_eq_left hp]
       exact (exhaustedHistory_positive hh hp x hx).symm
-    · rw [if_neg hp]
+    · rw [ite_eq_right hp]
       exact (noPositiveExtension_false hp x hx).symm
   | succ r ih =>
     unfold certificateTree

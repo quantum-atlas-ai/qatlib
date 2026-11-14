@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleCoefficients
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
-import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelLCU
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleCoefficients
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
+public import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelLCU
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
+
+@[expose] public section
 
 /-!
 # Finite circle identity for the integer kernel

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.GroupTheory.Index
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.GroupTheory.Index
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,8 +65,8 @@ theorem strict_chain_doubling
       simp
     have hmem : ((⟨x, hxC⟩ : C) : A) ∈ B := AddSubgroup.mem_comap.mp hxK
     simpa using hmem
-  haveI : Finite C := Subtype.finite
-  haveI : Finite (C ⧸ K) := inferInstance
+  have : Finite C := Subtype.finite
+  have : Finite (C ⧸ K) := inferInstance
   have hidx : 1 < K.index := AddSubgroup.one_lt_index_of_ne_top hKtop
   have hcard : Nat.card K * K.index = Nat.card C := K.card_mul_index
   have hcardK : Nat.card K = Nat.card B :=
@@ -107,7 +111,7 @@ theorem iterations_le_log_card
     (B : ℕ → AddSubgroup A) (hstrict : ∀ k, B k < B (k + 1)) (n : ℕ) :
     n ≤ Nat.log 2 (Nat.card A) := by
   have hchain := chain_length_bound B hstrict n
-  haveI : Nonempty (B 0) := ⟨0⟩
+  have : Nonempty (B 0) := ⟨0⟩
   have hpos : 0 < Nat.card (B 0) := Nat.card_pos
   have h2 : 2 ^ n ≤ Nat.card (B n) := by
     calc 2 ^ n = 2 ^ n * 1 := by simp

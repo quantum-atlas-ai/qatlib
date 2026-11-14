@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
-import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleAmplification
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
+public import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleAmplification
+
+@[expose] public section
 
 /-!
 # Second-order preparation at zero time

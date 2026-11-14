@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
-import Mathlib.Data.Nat.Totient
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Order recovery from two samples

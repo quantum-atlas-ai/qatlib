@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmStat
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmRefl
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmStat
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmRefl
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Source programs and successful query counts

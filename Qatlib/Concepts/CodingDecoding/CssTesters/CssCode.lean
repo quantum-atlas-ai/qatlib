@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Order.CompletePartialOrder
-import Mathlib.RepresentationTheory.Character
-import Mathlib.RingTheory.PicardGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Order.CompletePartialOrder
+public import Mathlib.RepresentationTheory.Character
+public import Mathlib.RingTheory.PicardGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+@[expose] public section
 
 /-!
 # CSS codespaces and dimension
@@ -113,6 +117,7 @@ def CssData.qubitIncidence (c : CssData ι κX κZ) : ℕ :=
     (Finset.univ.filter fun i : κX => c.hX i p ≠ 0).card +
       (Finset.univ.filter fun j : κZ => c.hZ j p ≠ 0).card
 
+omit [DecidableEq ι] in
 /-- The sum of the X-check and Z-check ranks is at most the number of physical qubits, as in the
 CSS dimension count of [CalderbankShor1996]. -/
 theorem cssRank_add_le (c : CssData ι κX κZ) :
@@ -121,6 +126,7 @@ theorem cssRank_add_le (c : CssData ι κX κZ) :
   have h := Matrix.rank_add_rank_le_card_of_mul_eq_zero c.hcompat
   simpa only [Matrix.rank_transpose] using h
 
+omit [DecidableEq ι] in
 /-- The CSS distance equals the infimum of weights of zero-syndrome Pauli labels outside the
 stabilizer row spaces. This is the stabilizer description of distance discussed in
 [Gottesman1997]. -/
@@ -315,6 +321,7 @@ private theorem binary_rep_fixed_iff {κ : Type*} [Fintype κ] [DecidableEq κ]
       simp [Pi.single_apply]
     simpa only [ha] using hs Finset.univ a
 
+omit [Fintype κX] [Fintype κZ] in
 /-- A vector belongs to the CSS codespace exactly when all X-check and Z-check operators fix it. -/
 private theorem mem_cssCodespace_iff (c : CssData ι κX κZ) (v : (ι → ZMod 2) → ℂ) :
     v ∈ cssCodespace c ↔
@@ -394,15 +401,15 @@ theorem cssCodespace_finrank (c : CssData ι κX κZ) :
   classical
   rw [← cssStabilizer_invariants c]
   let G := Multiplicative (cssRowX c × cssRowZ c)
-  letI : Fintype (cssRowX c) := Fintype.ofFinite _
-  letI : Fintype (cssRowZ c) := Fintype.ofFinite _
-  letI : Fintype G := inferInstance
+  let : Fintype (cssRowX c) := Fintype.ofFinite _
+  let : Fintype (cssRowZ c) := Fintype.ofFinite _
+  let : Fintype G := inferInstance
   have hgn : (Nat.card G : ℂ) ≠ 0 := by
     rw [← Fintype.card_eq_nat_card]
     exact_mod_cast (Nat.ne_of_gt (Fintype.card_pos : 0 < Fintype.card G))
-  letI : Invertible (Nat.card G : ℂ) := invertibleOfNonzero hgn
+  let : Invertible (Nat.card G : ℂ) := invertibleOfNonzero hgn
   have ha := (cssStabilizerRepresentation c).card_inv_mul_sum_char_eq_finrank
-  simp only [cssStabilizer_character, Finset.sum_ite_eq', Finset.mem_univ, if_true] at ha
+  simp only [cssStabilizer_character, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at ha
   have hgc : Nat.card G = 2 ^ (Matrix.rank c.hX + Matrix.rank c.hZ) := by
     rw [← Fintype.card_eq_nat_card]
     change Fintype.card (Multiplicative (cssRowX c × cssRowZ c)) = _

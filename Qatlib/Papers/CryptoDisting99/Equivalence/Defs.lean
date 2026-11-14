@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+
+@[expose] public section
 
 /-!
 # Classical and quantum distinguishability measures

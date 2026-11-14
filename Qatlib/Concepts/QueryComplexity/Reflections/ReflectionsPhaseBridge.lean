@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedRefl
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
-import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedRefl
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
+public import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+
+@[expose] public section
 
 /-!
 # From reflection witnesses to phase and interference bounds

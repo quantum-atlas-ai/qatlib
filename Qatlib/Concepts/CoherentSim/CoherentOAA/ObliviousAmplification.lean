@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Amplification
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Amplification
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+
+@[expose] public section
 
 /-!
 # Oblivious cubic amplification and fixed-point responses

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Circuit relabeling
@@ -173,7 +177,7 @@ namespace CircuitRelabel
 theorem relabelGate_mul (e : I ≃ J) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M N : Matrix I I ℂ) :
     relabelGate e (M * N) = relabelGate e M * relabelGate e N :=
-  Matrix.reindexAlgEquiv_mul ℂ ℂ e M N
+  map_mul (Matrix.reindexAlgEquiv ℂ ℂ e) M N
 
 /-- Relabeling the identity matrix gives the identity matrix. -/
 theorem relabelGate_one {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]

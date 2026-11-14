@@ -4,14 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.LinearAlgebra.Matrix.FiniteDimensional
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.LinearAlgebra.Matrix.FiniteDimensional
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Exact evolution of a symmetric two-level system
@@ -102,7 +108,7 @@ theorem twoLevelH_eigen_plus (c d : ℝ) :
     twoLevelH c d *ᵥ twoPlus = ((c + d : ℝ) : ℂ) • twoPlus := by
   ext i
   fin_cases i <;>
-    simp [twoLevelH, twoPlus, Matrix.mulVec] <;> try ring
+    simp [twoLevelH, twoPlus, Matrix.mulVec]; try ring
 
 /-- The antisymmetric vector `twoMinus` is an eigenvector of `twoLevelH c d` with eigenvalue `c
 - d`. -/

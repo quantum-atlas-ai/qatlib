@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Comparison
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Comparison
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+@[expose] public section
 
 /-!
 # Classical kernels associated with walk amplitudes

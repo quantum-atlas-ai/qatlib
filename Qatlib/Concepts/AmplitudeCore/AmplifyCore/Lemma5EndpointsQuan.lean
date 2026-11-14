@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5EndpointsStat
+module
+
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5EndpointsStat
+
+@[expose] public section
 
 /-!
 # General-phase amplitude amplification at the endpoints

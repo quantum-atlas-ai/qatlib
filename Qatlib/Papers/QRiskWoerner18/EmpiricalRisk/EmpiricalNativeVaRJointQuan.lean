@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeVaRJointStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+module
+
+public import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeVaRJointStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Joint empirical value-at-risk guarantee

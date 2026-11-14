@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Workspace decision and search query lower bounds

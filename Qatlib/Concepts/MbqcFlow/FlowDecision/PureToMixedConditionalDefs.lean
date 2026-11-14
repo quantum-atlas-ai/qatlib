@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Conditional branch error specifications

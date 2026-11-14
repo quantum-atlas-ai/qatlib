@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedList
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedList
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -100,7 +104,7 @@ private theorem rootSelected_map {α β : Type} {m : Nat} (d e : Fin m → Nat)
   · simp [ht]
 
 /-- Construction for root Selection Count in the native root returned completeness model. -/
-private def rootSelectionCount {m : Nat} (d e : Fin m → Nat)
+def rootSelectionCount {m : Nat} (d e : Fin m → Nat)
     (tag : (j : Fin m) → Fin (d j) → Bool) : Nat :=
   ((List.finRange m).map (fun j =>
     ((List.finRange (d j)).map (fun i => if tag j i=true then e j else 0)).sum)).sum

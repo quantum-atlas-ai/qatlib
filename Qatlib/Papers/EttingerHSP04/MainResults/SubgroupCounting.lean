@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Data.SetLike.Fintype
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Set.Finite.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Order.Minimal
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Data.SetLike.Fintype
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Set.Finite.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Order.Minimal
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting subgroups and bounding query parameters
@@ -146,15 +150,13 @@ theorem pow_card_le_card_of_minimal {G : Type*} [Group G] [Fintype G]
       have hclosure_congr :
           Subgroup.closure (insert a (K : Set G)) = Subgroup.closure (insert a (s : Set G)) := by
         apply le_antisymm
-        · change Subgroup.closure (insert a (K : Set G)) ≤
-            Subgroup.closure (insert a (s : Set G))
+        ·
           rw [Subgroup.closure_le]
           intro y hy
           rcases hy with rfl | hyK
           · exact Subgroup.subset_closure (Or.inl rfl)
           · exact Subgroup.closure_mono (fun z hz => Or.inr hz) hyK
-        · change Subgroup.closure (insert a (s : Set G)) ≤
-            Subgroup.closure (insert a (K : Set G))
+        ·
           rw [Subgroup.closure_le]
           intro y hy
           rcases hy with rfl | hys

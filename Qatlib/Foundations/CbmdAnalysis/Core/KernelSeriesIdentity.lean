@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelFiniteCircle
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelCircleBounds
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonKernel
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
-import Mathlib.Order.Filter.AtTopBot.Interval
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelFiniteCircle
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelCircleBounds
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonKernel
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
+public import Mathlib.Order.Filter.AtTopBot.Interval
+
+@[expose] public section
 
 /-!
 # The integer sampling series identity

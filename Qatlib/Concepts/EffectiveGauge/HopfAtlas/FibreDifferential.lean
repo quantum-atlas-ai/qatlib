@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HopfFibre
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
-import Mathlib.Analysis.Calculus.FDeriv.Star
-import Mathlib.Analysis.InnerProductSpace.Calculus
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HopfFibre
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+public import Mathlib.Analysis.Calculus.FDeriv.Star
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+
+@[expose] public section
 
 /-!
 # Fibre Differential

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalCircuits.LocalGateCosts.LocalGateDefs
-import Qatlib.Foundations.BornMetrics.FiniteStats.Defs
-import Mathlib.Data.ENat.Lattice
+module
+
+public import Qatlib.Concepts.LocalCircuits.LocalGateCosts.LocalGateDefs
+public import Qatlib.Foundations.BornMetrics.FiniteStats.Defs
+public import Mathlib.Data.ENat.Lattice
+
+@[expose] public section
 
 /-!
 # Exact local gate costs
@@ -48,7 +52,7 @@ theorem prefixMap_bitVec (n l : ℕ) (hl : l ≤ n) (x : Reg n) :
   | zero =>
     have h : l = 0 := by omega
     subst l
-    haveI : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
+    have : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
     exact Subsingleton.elim _ _
   | succ n ih =>
     by_cases h : l = n + 1
@@ -161,7 +165,7 @@ theorem bComplexity_eq_top (g n k : ℕ) (u v : Fin k → Fin (2 ^ n) → ℂ)
     bComplexity g n k u v = ⊤ := by
   have hempty : {b : ℕ | ∃ U ∈ repBy g n b, ∀ i, U *ᵥ u i = v i} = ∅ := by
     ext b
-    simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
+    simp only [Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
     exact h b
   simp only [bComplexity, hempty, Set.image_empty, sInf_empty]
 

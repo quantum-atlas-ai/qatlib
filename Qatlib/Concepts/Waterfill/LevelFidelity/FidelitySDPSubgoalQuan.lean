@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPSubgoalStat
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPSubgoalStat
+
+@[expose] public section
 
 /-!
 # Semidefinite optimality of water-filling profiles

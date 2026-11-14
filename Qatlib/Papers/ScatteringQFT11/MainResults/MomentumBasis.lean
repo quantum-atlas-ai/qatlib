@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ScatteringQFT11.MainResults.ExpectationCore
+module
+
+public import Qatlib.Papers.ScatteringQFT11.MainResults.ExpectationCore
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,13 +61,15 @@ finite-dimensional Weyl relation with phase `ω` when `U V = ω (V U)`; for a
 `[q̂, p̂] = i𝟙`. -/
 def WeylPair (U V : Matrix n n ℂ) (ω : ℂ) : Prop := U * V = ω • (V * U)
 
+omit [Fintype n] [DecidableEq n] in
 /-- **Finite analogue of equations (59)–(60).** If `U, V` obey the Weyl relation
 `U V = ω (V U)` with `ω ≠ 0`, then conjugating by `U` sends a `V`-eigenvector with
 eigenvalue `ζ` to a `V`-eigenvector with eigenvalue `ω⁻¹ ζ`. This is precisely the
 mechanism by which the paper's `e^{iq̂δ}` shifts the eigenvalue of `p̂`:
 
 `p̂ e^{iq̂δ} = e^{iq̂δ}(p̂ + δ𝟙)` (59) ⟹ `p̂ (e^{iq̂δ}|p⟩) = (p + δ)(e^{iq̂δ}|p⟩)` (60). -/
-theorem weyl_conj_shifts_eigenvalue {U V : Matrix n n ℂ} {ω ζ : ℂ}
+theorem weyl_conj_shifts_eigenvalue {n : Type*} [Fintype n] [_decidableEqN : DecidableEq n]
+    {U V : Matrix n n ℂ} {ω ζ : ℂ}
     (hWeyl : WeylPair U V ω) (hω : ω ≠ 0) (v : QState n)
     (hv : V *ᵥ v = ζ • v) :
     V *ᵥ (U *ᵥ v) = (ω⁻¹ * ζ) • (U *ᵥ v) := by

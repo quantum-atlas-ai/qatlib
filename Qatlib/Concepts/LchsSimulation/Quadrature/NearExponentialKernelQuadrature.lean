@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.OrderedUnitaryParameterDerivatives
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Qatlib.Concepts.LchsSimulation.TimeLchs
-import Mathlib.Analysis.Complex.Liouville
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.Calculus.FDeriv.Analytic
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.OrderedUnitaryParameterDerivatives
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Qatlib.Concepts.LchsSimulation.TimeLchs
+public import Mathlib.Analysis.Complex.Liouville
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Calculus.FDeriv.Analytic
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Derivative and precision budgets for LCHS quadrature

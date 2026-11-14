@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceRescaling
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeededPhysical
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceRescaling
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeededPhysical
+
+@[expose] public section
 
 /-! # Unit-coordinate line values target the fixed original physical raw field -/
 
@@ -305,7 +309,7 @@ theorem rescaledLineValue_error (v : SpatialPoint → SpatialPoint) (hv : ContDi
       rw [hz] at h
       simp only [Rat.cast_zero,mul_zero,zero_div] at h
       exact norm_le_zero_iff.mp h
-    rw [rescaledLineValue,if_pos hz,sourceLine_zero v hv hu q₀ h₀ p x hx hk]
+    rw [rescaledLineValue,ite_eq_left hz,sourceLine_zero v hv hu q₀ h₀ p x hx hk]
     exact hseed.trans (by
       have hp : (0 : ℝ)<tolerance := by exact_mod_cast ht
       linarith)
@@ -353,7 +357,7 @@ theorem rescaledLineValue_error (v : SpatialPoint → SpatialPoint) (hv : ContDi
     have h := cayleyPlannedSource_error v hv hu q₀ h₀ p x hx K M (tolerance/4) hK (by positivity) (by linarith)
       (physicalCoefficientOracle samples (a 1) (a 2) (a 0) (7*m1)) hnorm hlip horacle
       (rationalQuaternionCast (originSeedApproximation samples (tolerance/8))) ((tolerance : ℝ)/8) hseed
-    rw [rescaledLineValue,if_neg hz,seededPhysicalValue,map_mul,rationalCayleyValue_cast,physicalCayleyExecution]
+    rw [rescaledLineValue,ite_eq_right hz,seededPhysicalValue,map_mul,rationalCayleyValue_cast,physicalCayleyExecution]
     push_cast at h
     have hp : (0 : ℝ)<tolerance := by exact_mod_cast ht
     linarith

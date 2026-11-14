@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Finite execution of fair-bit rejection sampling
@@ -56,11 +60,11 @@ noncomputable def uniformOfFinset {α : Type*} (s : Finset α) (hs : s.Nonempty)
   ofFinset (fun a => if a ∈ s then (s.card : ℝ≥0∞)⁻¹ else 0) s
     (by
       have h1 : (∑ a ∈ s, if a ∈ s then (s.card : ℝ≥0∞)⁻¹ else 0) = ∑ _a ∈ s, (s.card : ℝ≥0∞)⁻¹ :=
-        Finset.sum_congr rfl (fun _ ha => if_pos ha)
+        Finset.sum_congr rfl (fun _ ha => ite_eq_left ha)
       rw [h1, Finset.sum_const, nsmul_eq_mul]
       exact ENNReal.mul_inv_cancel (Nat.cast_ne_zero.mpr hs.card_pos.ne')
           (ENNReal.natCast_ne_top _))
-    (fun _ ha => if_neg ha)
+    (fun _ ha => ite_eq_right ha)
 
 /-- The uniform finite-set law assigns reciprocal cardinality to members and zero to nonmembers. -/
 @[simp]
@@ -193,7 +197,7 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
           have h2 := congrArg Prod.snd h
           simp at h2
           omega
-        rw [if_neg hn, if_neg hne]
+        rw [ite_eq_right hn, ite_eq_right hne]
   | succ k ih =>
       rw [fairBitsCosted_succ, PMF.bind_apply, tsum_prod_type']
       have hinner : ∀ ω' : Reg k,
@@ -201,8 +205,8 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
             = PMF.uniformOfFintype' (Reg k) ω' * fairBitCont k (ω', k) (ω, n) := by
         intro ω'
         refine Eq.trans (tsum_eq_single k fun b hb => ?_) ?_
-        · rw [ih b ω', if_neg hb, zero_mul]
-        · rw [ih k ω', if_pos rfl]
+        · rw [ih b ω', ite_eq_right hb, zero_mul]
+        · rw [ih k ω', ite_eq_left rfl]
       rw [tsum_congr hinner]
       have hpre : ∀ ω' : Reg k, ω' ≠ (regSuccEquiv k ω).1 →
           PMF.uniformOfFintype' (Reg k) ω' * fairBitCont k (ω', k) (ω, n) = 0 := by
@@ -219,7 +223,7 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
           exact hne' h2.symm
         rw [fairBitCont_apply]
         (try dsimp only)
-        exact mul_eq_zero.mpr (Or.inr (ENNReal.tsum_eq_zero.mpr fun b => if_neg (hcond b)))
+        exact mul_eq_zero.mpr (Or.inr (ENNReal.tsum_eq_zero.mpr fun b => ite_eq_right (hcond b)))
       rw [tsum_eq_single (regSuccEquiv k ω).1 (fun ω' hne' => hpre ω' hne')]
       by_cases hn : n = k + 1
       · subst hn
@@ -236,7 +240,7 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
               = ((regSuccEquiv k ω).1, (regSuccEquiv k ω).2) :=
             h5.trans Prod.mk.eta.symm
           exact hb (congrArg Prod.snd h6)
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         have hEq : ((regSuccEquiv k).symm ((regSuccEquiv k ω).1, (regSuccEquiv k ω).2),
             k + 1) = (ω, k + 1) := by
           have he : ((regSuccEquiv k ω).1, (regSuccEquiv k ω).2) = regSuccEquiv k ω :=
@@ -248,14 +252,14 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
           rw [fairBitCont_apply]
           (try dsimp only)
           refine Eq.trans (tsum_eq_single (regSuccEquiv k ω).2 fun b hb => ?_) ?_
-          · rw [if_neg (hbne b hb)]
-          · rw [hEq, if_pos rfl]
+          · rw [ite_eq_right (hbne b hb)]
+          · rw [hEq, ite_eq_left rfl]
         have h2k : ((2:ℕ)^(k+1)) = 2^k * 2 := by rw [Nat.pow_succ]
         rw [hsum, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply,
           PMF.uniformOfFintype'_apply, Fintype.card_bool, card_reg, card_reg, h2k,
           Nat.cast_mul]
         exact (ENNReal.mul_inv (by simp) (by simp)).symm
-      · rw [if_neg hn]
+      · rw [ite_eq_right hn]
         have hcond : ∀ b : Bool,
             ¬ ((ω, n) = ((regSuccEquiv k).symm ((regSuccEquiv k ω).1, b), k + 1)) := by
           intro b hc
@@ -264,7 +268,7 @@ theorem fair_bit_program_joint_distribution (k n : ℕ) (ω : Reg k) :
           omega
         rw [fairBitCont_apply]
         (try dsimp only)
-        exact mul_eq_zero.mpr (Or.inr (ENNReal.tsum_eq_zero.mpr fun b => if_neg (hcond b)))
+        exact mul_eq_zero.mpr (Or.inr (ENNReal.tsum_eq_zero.mpr fun b => ite_eq_right (hcond b)))
 
 /-- Summing the fair-bit joint law over costs gives the uniform law on bit registers. -/
 theorem fairBitsCosted_marginal (k : ℕ) (ω : Reg k) :
@@ -273,8 +277,8 @@ theorem fairBitsCosted_marginal (k : ℕ) (ω : Reg k) :
       = if n = k then PMF.uniformOfFintype' (Reg k) ω else 0 :=
     fun n => fair_bit_program_joint_distribution k n ω
   rw [tsum_congr h]
-  refine Eq.trans (tsum_eq_single k fun b hb => if_neg hb) ?_
-  rw [if_pos rfl]
+  refine Eq.trans (tsum_eq_single k fun b hb => ite_eq_right hb) ?_
+  rw [ite_eq_left rfl]
 
 /-- Discarding the recorded cost from the fair-bit program yields the uniform bit-register law. -/
 @[simp] theorem fairBitsCosted_output (k : ℕ) :
@@ -296,13 +300,13 @@ theorem decodeBoundedBits_eq_some_iff {k m : ℕ} (hm : m ≤ 2 ^ k) (b : Reg k)
   constructor
   · intro h
     by_cases hb : (bitVecEquiv k b).val < m
-    · rw [decodeBoundedBits, dif_pos hb] at h
+    · rw [decodeBoundedBits, dite_eq_left hb] at h
       have hv : (bitVecEquiv k b).val = i.val := by
         injection h with h'
         exact congrArg Fin.val h'
       have hbe : bitVecEquiv k b = Fin.castLE hm i := Fin.ext hv
       exact (Equiv.symm_apply_eq _).mp hbe
-    · rw [decodeBoundedBits, dif_neg hb] at h
+    · rw [decodeBoundedBits, dite_eq_right hb] at h
       simp at h
   · intro h
     rw [decodeBoundedBits]
@@ -312,7 +316,7 @@ theorem decodeBoundedBits_eq_some_iff {k m : ℕ} (hm : m ≤ 2 ^ k) (b : Reg k)
       have : (bitVecEquiv k b).val = i.val := by rw [hbe, Fin.val_castLE]
       rw [this]
       exact i.isLt
-    rw [dif_pos hb]
+    rw [dite_eq_left hb]
     have hv : (bitVecEquiv k b).val = i.val := by rw [hbe, Fin.val_castLE]
     exact congrArg some (Fin.ext hv)
 
@@ -440,10 +444,10 @@ theorem finite_coin_step_distribution (k m : ℕ) (hm : m ≤ 2 ^ k) :
     rw [PMF.map_apply]
     refine Eq.trans (tsum_eq_single ((bitVecEquiv k).symm (Fin.castLE hm i))
       fun b hb => ?_) ?_
-    · refine if_neg fun hc => hb ?_
+    · refine ite_eq_right fun hc => hb ?_
       exact (decodeBoundedBits_eq_some_iff hm b i).mp
         ((coinStep_inl k m b i).mp hc.symm)
-    · rw [if_pos (((coinStep_inl k m _ i).mpr
+    · rw [ite_eq_left (((coinStep_inl k m _ i).mpr
         ((decodeBoundedBits_eq_some_iff hm _ i).mpr rfl)).symm)]
   refine ⟨h1, ?_⟩
   have htotal : ∑' c : RandomizedExecution.Configuration Unit (Fin m),
@@ -638,7 +642,7 @@ theorem finiteCoinRun_halt_invariant (k m fuel : ℕ) (hm : m ≤ 2 ^ k) (i : Fi
         by_cases hji : j = i
         · subst hji
           simp
-        · rw [if_neg hji, if_neg]
+        · rw [ite_eq_right hji, ite_eq_right]
           intro h
           exact hji (by simpa using h)
       have hWinr : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (CostedLaw.charge 1 (runFor (finiteCoinNext k m) fuel
@@ -657,7 +661,7 @@ theorem finiteCoinRun_halt_invariant (k m fuel : ℕ) (hm : m ≤ 2 ^ k) (i : Fi
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map, finiteCoinNext_expectation k m hm]
       (try dsimp only)
       rw [Finset.sum_congr rfl (fun j _ => hWinl j), hWinr,
-        Finset.sum_ite_eq' Finset.univ i fun _ => (1 : ℝ≥0∞), if_pos (Finset.mem_univ i),
+        Finset.sum_ite_eq' Finset.univ i fun _ => (1 : ℝ≥0∞), ite_eq_left (Finset.mem_univ i),
         pow_succ]
       have htotal := finiteCoinNext_total k m hm
       calc ((m : ℕ) : ℝ≥0∞) * (((2 ^ k : ℕ) : ℝ≥0∞)⁻¹ * 1

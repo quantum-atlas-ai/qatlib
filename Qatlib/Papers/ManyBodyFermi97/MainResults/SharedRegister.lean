@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Hopping
-import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Hopping
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
+
+@[expose] public section
 
 /-!
 # Onsite and hopping circuits on a shared register

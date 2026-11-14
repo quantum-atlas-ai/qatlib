@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite clock matrices and an explicit history inverse
@@ -107,7 +111,7 @@ theorem history_solution_iff {I : Type} [Fintype I] [DecidableEq I] (N : ℕ) (K
   constructor
   · intro h
     have hh := congrArg (fun v=>historyInverse N K*ᵥ v) h
-    try dsimp only at hh
+
     rw [Matrix.mulVec_mulVec,historyInverse_left,Matrix.one_mulVec] at hh
     exact hh
   · intro h

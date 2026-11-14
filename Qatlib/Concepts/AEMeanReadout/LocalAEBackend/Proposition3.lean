@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3Defs
+module
+
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3Defs
+
+@[expose] public section
 
 /-!
 # A discriminant singular-value specification

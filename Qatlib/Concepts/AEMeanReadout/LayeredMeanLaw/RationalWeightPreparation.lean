@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Preparation of rationally weighted states
@@ -121,7 +125,7 @@ theorem rationalWeightTail_ge {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (j : Fin n) : w (some j) ≤ rationalWeightTail w j := by
   have hsum : w (some j) ≤ ∑ i : Fin n, if j.val ≤ i.val then w (some i) else 0 := by
     simpa using! Finset.single_le_sum (f := fun i : Fin n => if j.val ≤ i.val then w (some i) else 0)
-      (fun i (_ : i ∈ Finset.univ) => by (try dsimp only); split_ifs; exact hw _; exact le_rfl)
+      (fun i (_ : i ∈ Finset.univ) => by  split_ifs; exact hw _; exact le_rfl)
       (Finset.mem_univ j)
   unfold rationalWeightTail
   linarith [hw none]
@@ -157,7 +161,7 @@ theorem rational_weight_data_ranges_and_actual_comparisons : ∀ (n k : ℕ)
     rw [h.2.2.2.2.2.2.1, h'.2.2.2.2.2.2.1]
     omega
   simp only [rationalWeightComparisons, hc]
-  simp [List.ofFn_const, mul_comm, mul_left_comm, mul_assoc]
+  simp [List.ofFn_const, mul_comm, mul_left_comm]
 
 /-- The two-level matrix mixes the `none` and `some j` components with coefficients `c` and `s`
 and fixes every other component. -/
@@ -178,7 +182,7 @@ theorem weightTwoLevel_mulVec {n : ℕ} (j : Fin n) (c s : ℂ)
   | some i =>
     rw [Finset.sum_eq_single i]
     · by_cases hij : i = j
-      · subst i; simp [weightTwoLevel, add_comm]
+      · subst i; simp [weightTwoLevel]
       · simp [weightTwoLevel, hij]
     · intro l _ hli
       by_cases hi : i = j
@@ -199,26 +203,26 @@ theorem weightTwoLevel_unitary {n : ℕ} (j : Fin n) (c s : ℝ)
   cases a with
   | none =>
     cases b with
-    | none => simp [weightTwoLevel, Matrix.one_apply]; linear_combination hc
+    | none => simp [weightTwoLevel]; linear_combination hc
     | some l =>
       by_cases hl : l = j
-      · subst l; simp [weightTwoLevel, Matrix.one_apply]; ring
-      · simp [weightTwoLevel, hl, Matrix.one_apply]
+      · subst l; simp [weightTwoLevel]; ring
+      · simp [weightTwoLevel, hl]
   | some i =>
     cases b with
     | none =>
       by_cases hi : i = j
-      · subst i; simp [weightTwoLevel, Matrix.one_apply]; ring
-      · simp [weightTwoLevel, hi, Ne.symm hi, Matrix.one_apply]
+      · subst i; simp [weightTwoLevel]; ring
+      · simp [weightTwoLevel, hi]
     | some l =>
       by_cases hi : i = j <;> by_cases hl : l = j
       · subst i; subst l
-        simp [weightTwoLevel, Matrix.one_apply]; linear_combination hc
-      · subst i; simp [weightTwoLevel, hl, Ne.symm hl, Matrix.one_apply]
-      · subst l; simp [weightTwoLevel, hi, Ne.symm hi, Matrix.one_apply]
+        simp [weightTwoLevel]; linear_combination hc
+      · subst i; simp [weightTwoLevel, hl, Ne.symm hl]
+      · subst l; simp [weightTwoLevel, hi, Ne.symm hi]
       · by_cases hil : i = l
-        · subst l; simp [weightTwoLevel, hi, Ne.symm hi, Matrix.one_apply]
-        · simp [weightTwoLevel, hi, hl, Ne.symm hi, Ne.symm hl, hil, Ne.symm hil, Matrix.one_apply]
+        · subst l; simp [weightTwoLevel, hi]
+        · simp [weightTwoLevel, hi, hl,  hil, Ne.symm hil]
 
 /-- Every rational weight gate is unitary. -/
 theorem rationalWeightGate_unitary {n : ℕ} (w : Option (Fin n) → ℚ)
@@ -324,7 +328,7 @@ theorem weightTwoLevel_error {n : ℕ} (j : Fin n) (c s c' s' : ℝ) :
   have hC : ‖C‖ ≤ |c-c'| := by
     rw [Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (abs_nonneg _)]
     intro a
-    split_ifs <;> simp only [Complex.norm_real, Real.norm_eq_abs, norm_zero, abs_neg]
+    split_ifs <;> simp only [Complex.norm_real, Real.norm_eq_abs, norm_zero]
     all_goals first | exact le_refl _ | exact abs_nonneg _
   have hS : ‖S‖ ≤ |s-s'| := by
     rw [Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (abs_nonneg _)]

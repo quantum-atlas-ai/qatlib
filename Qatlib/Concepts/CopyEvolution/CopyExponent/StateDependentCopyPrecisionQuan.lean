@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CopyStateDependentPrecision
+module
+
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CopyStateDependentPrecision
+
+@[expose] public section
 
 /-!
 # State-dependent copy-precision guarantee

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Stat
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Defs
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Stat
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Defs
+
+@[expose] public section
 
 /-!
 # Statement of the reduced amplified-state error

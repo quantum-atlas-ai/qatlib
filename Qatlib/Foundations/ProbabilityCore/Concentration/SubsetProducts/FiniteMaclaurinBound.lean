@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.Concentration.SubsetProducts.FiniteMaclaurin
+module
+
+public import Qatlib.Foundations.ProbabilityCore.Concentration.SubsetProducts.FiniteMaclaurin
+
+@[expose] public section
 
 /-!
 # Finite Maclaurin Bound

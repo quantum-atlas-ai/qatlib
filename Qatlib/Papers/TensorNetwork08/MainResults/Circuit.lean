@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TableAccess.ReversibleTable
+module
+
+public import Qatlib.Foundations.TableAccess.ReversibleTable
+
+@[expose] public section
 
 /-!
 # Circuit amplitude identity for a copied output bit
@@ -119,7 +123,7 @@ theorem fig6_amplitude {n : ℕ} (Q : Matrix (Reg n) (Reg n) ℂ) (a : Fin n) :
             = if s a = false then ((‖Q s (zeroReg n)‖ ^ 2 : ℝ) : ℂ) else 0 := by
           by_cases hs : s a
           · simp [lift, cnotFun, hs]
-          · simp only [hs, cnotFun, Bool.false_eq_true, if_false]
+          · simp only [hs, cnotFun, Bool.false_eq_true, ite_false]
             simp [lift, conj_mul_eq_norm_sq]
         rw [htrue, hfalse]
         simp

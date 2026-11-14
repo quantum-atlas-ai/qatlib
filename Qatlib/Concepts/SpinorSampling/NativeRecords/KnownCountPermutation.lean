@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.NativeRecords.SharedCopyPhases
-import Qatlib.Concepts.SpinorSampling.NativeRecords.LabelPhaseIsometry
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.Data.Fintype.EquivFin
+module
+
+public import Qatlib.Concepts.SpinorSampling.NativeRecords.SharedCopyPhases
+public import Qatlib.Concepts.SpinorSampling.NativeRecords.LabelPhaseIsometry
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.Data.Fintype.EquivFin
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

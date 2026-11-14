@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Topology.MetricSpace.Isometry
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Topology.MetricSpace.Isometry
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Accumulation of gradient-oracle errors
@@ -173,7 +177,7 @@ theorem large_errors_negligible {E : Type*} [NormedAddCommGroup E]
     (r L : ℕ) (hL : 0 < L) (f g : ℕ → E → E)
     (hn : ∀ i x y, ‖f i x - f i y‖ ≤ ‖x - y‖) (η : ℝ) (hη : 0 < η) :
     ∃ ε : ℝ, 0 < ε ∧
-      ∀ (hfg : ∀ i x, ‖f i x - g i x‖ < ε) (ψ : E),
+      ∀ (_hfg : ∀ i x, ‖f i x - g i x‖ < ε) (ψ : E),
         ‖orbit f (gbsGradientEstimateCount r L) ψ
           - orbit g (gbsGradientEstimateCount r L) ψ‖ < η := by
   obtain ⟨ε, hε, hlt⟩ := large_error_tolerance_exists r L η hη

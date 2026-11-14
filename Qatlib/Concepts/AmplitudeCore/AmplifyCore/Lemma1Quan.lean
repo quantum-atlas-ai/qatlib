@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma1Stat
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma1Stat
+
+@[expose] public section
 
 /-!
 # Amplitude amplification on good and bad components

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Convex.Birkhoff
-import Mathlib.Algebra.Order.Rearrangement
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Convex.Birkhoff
+public import Mathlib.Algebra.Order.Rearrangement
+
+@[expose] public section
 
 /-!
 # Ordered eigenvalue and singular value perturbation
@@ -79,7 +83,7 @@ theorem ordered_transport_rearrangement : ∀ (n : ℕ) (a b : Fin n→ℝ)
     have he : (∑ i,∑ j,σ.permMatrix ℝ i j*a i*b j)=∑ i,a i*b (σ i) := by
       simp only [Equiv.Perm.permMatrix,PEquiv.toMatrix_apply,Equiv.toPEquiv_apply,
         Option.mem_def,Option.some.injEq,ite_mul,one_mul,zero_mul,Finset.sum_ite_eq,
-        Finset.mem_univ,if_true]
+        Finset.mem_univ,ite_true]
     rw [he]
     exact (ha.monovary hb).sum_mul_comp_perm_le_sum_mul
   calc
@@ -201,9 +205,9 @@ theorem spectral_operator_norm_le_frobenius [DecidableEq I] (A : Matrix O I ℂ)
     let r : EuclideanSpace ℂ I := WithLp.toLp 2 (fun j => star (A i j))
     have hi : (A*ᵥv) i=inner ℂ r u := by
       simp only [EuclideanSpace.inner_eq_star_dotProduct,dotProduct,Matrix.mulVec,
-        r,u,toEuclidean_fromVec,WithLp.ofLp_toLp,Pi.star_apply,star_star,mul_comm]
+        r,u,toEuclidean_fromVec,Pi.star_apply,star_star,mul_comm]
     have hr : ‖r‖^2=∑ j,Complex.normSq (A i j) := by
-      simp only [EuclideanSpace.norm_sq_eq,r,WithLp.ofLp_toLp,norm_star,Complex.sq_norm]
+      simp only [EuclideanSpace.norm_sq_eq,r,norm_star,Complex.sq_norm]
     rw [hi]
     have hc : ‖inner ℂ r u‖^2 ≤ (‖r‖*‖u‖)^2 :=
       (sq_le_sq₀ (norm_nonneg (inner ℂ r u)) (mul_nonneg (norm_nonneg r) (norm_nonneg u))).mpr
@@ -496,6 +500,7 @@ theorem ordered_hermitian_hoffman_wielandt {I : Type} [Fintype I] [DecidableEq I
 section SingularPerturbation
 variable {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- Equal symmetric endomorphisms have equal chosen orthonormal eigenvector bases. -/
 private theorem spectral_frame_congr (T S : Module.End ℂ (EuclideanSpace ℂ I))
     (hT : T.IsSymmetric) (hS : S.IsSymmetric) (h : T=S) :
@@ -503,6 +508,7 @@ private theorem spectral_frame_congr (T S : Module.End ℂ (EuclideanSpace ℂ I
   subst S
   rfl
 
+omit [DecidableEq I] in
 /-- Equal symmetric endomorphisms have equal chosen eigenvalue families. -/
 private theorem spectral_values_congr (T S : Module.End ℂ (EuclideanSpace ℂ I))
     (hT : T.IsSymmetric) (hS : S.IsSymmetric) (h : T=S) :
@@ -602,7 +608,7 @@ theorem contraction_normSq_marginals (n : ℕ) (Q : Matrix (Fin n) (Fin n) ℂ)
     let e := EuclideanSpace.basisFun (Fin n) ℂ j
     have he : P.toEuclideanLin e=WithLp.toLp 2 (fun i => P i j) := by
       ext i
-      simp [e,Matrix.toLpLin_apply,EuclideanSpace.basisFun_apply,Matrix.mulVec_single_one]
+      simp [e,Matrix.toLpLin_apply,EuclideanSpace.basisFun_apply]
     have h := Matrix.l2_opNorm_mulVec P e
     change ‖P.toEuclideanLin e‖ ≤ ‖P‖*‖e‖ at h
     have he1 : ‖e‖=1 := (EuclideanSpace.basisFun (Fin n) ℂ).norm_eq_one j
@@ -624,6 +630,7 @@ theorem complex_overlap_real_le (z w : ℂ) :
   simp only [Complex.star_def] at h ⊢
   linarith
 
+omit [DecidableEq O] [DecidableEq I] in
 /-- Expand the real trace inner product of two factored matrices as a sum of coefficient
 products weighted by left and right factor overlaps. -/
 theorem singular_cross_trace (n : ℕ) (LA LB : Matrix O (Fin n) ℂ)
@@ -664,6 +671,7 @@ theorem singular_cross_trace (n : ℕ) (LA LB : Matrix O (Fin n) ℂ)
   simp only [Complex.mul_re,Complex.mul_im,Complex.ofReal_re,Complex.ofReal_im,mul_zero,zero_mul,sub_zero]
   ring
 
+omit [DecidableEq I] in
 /-- The trace of a spectral diagonal matrix is the sum of its spectral coefficients. -/
 theorem spectralDiagonal_trace (n : ℕ)
     (b : OrthonormalBasis (Fin n) ℂ (EuclideanSpace ℂ I)) (f : Fin n → ℂ) :
@@ -681,6 +689,7 @@ theorem spectralFrobenius_sq_singular (A : Matrix O I ℂ) :
   rw [spectralFrobenius_sq_trace,hGram,spectralDiagonal_trace]
   simp only [Complex.re_sum,← Complex.ofReal_pow,Complex.ofReal_re]
 
+omit [DecidableEq O] in
 /-- The squared Frobenius norm of `A - B` equals the sum of their squared Frobenius norms minus
 twice the real trace inner product. -/
 theorem spectralFrobenius_sq_sub (A B : Matrix O I ℂ) :

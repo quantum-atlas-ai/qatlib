@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ open scoped Topology BigOperators
 namespace Qatlib.Papers.MultilevelMC20.MainResults
 
 /-- The inverse step size `(ε/(2B))^{-1/r}` is in the cost class `(1/r, 0, 0)`. -/
-theorem inv_step_costClass {r B : ℝ} (hr : 0 < r) (hB : 0 < B) :
+theorem inv_step_costClass {r B : ℝ} (_hr : 0 < r) (hB : 0 < B) :
     CostClass (1 / r) 0 0 (fun ε => ((ε / (2 * B)) ^ (1 / r))⁻¹) := by
   have hEq : (fun ε : ℝ => ((ε / (2 * B)) ^ (1 / r))⁻¹)
       =ᶠ[epsZero] fun ε => (2 * B) ^ (1 / r) * ε ^ (-(1 / r)) := by
@@ -53,7 +57,7 @@ theorem inv_step_costClass {r B : ℝ} (hr : 0 < r) (hB : 0 < B) :
 /-- Theorem 1 (p. 7, (2.9)--(2.10)): quantum-accelerated MC with a strong-order-`r`
 scheme attains additive error `ε` with probability `0.99` at cost `Õ(ε^{-1-1/r})`. -/
 theorem theorem1
-    {r B σ : ℝ} (hr : 0 < r) (hB : 0 < B) (hσ : 0 < σ) {qcost : ℝ → ℝ}
+    {r B σ : ℝ} (hr : 0 < r) (hB : 0 < B) (_hσ : 0 < σ) {qcost : ℝ → ℝ}
     (hq : CostTildeClass 1 qcost) :
     ∃ cost : ℝ → ℝ,
       CostTildeClass (1 + 1 / r) cost ∧

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+
+@[expose] public section
 
 /-!
 # Adding an unchanged track to a quantum machine
@@ -58,6 +62,7 @@ added-track symbol `b0`, leaving the state and head position unchanged. -/
 def addTrackCfg (b0 : B) (c : QtmCfg Q A w) : QtmCfg Q (A × B) w :=
   (c.1, c.2.1, fun i => (c.2.2 i, b0))
 
+omit [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Adding the constant track is injective on configurations, since the original tape is
 recovered from the first component of every cell. -/
 theorem addTrackCfg_injective (b0 : B) :
@@ -71,6 +76,7 @@ theorem addTrackCfg_injective (b0 : B) :
   have := congrFun htp i
   simpa using congrArg Prod.fst this
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Updating an embedded tape with `(a', b0)` is the same as updating the original tape with
 `a'` and then adding the constant track. -/
 theorem update_addTrack (b0 : B) (f : Fin w → A) (i : Fin w) (a' : A) :
@@ -82,6 +88,9 @@ theorem update_addTrack (b0 : B) (f : Fin w → A) (i : Fin w) (a' : A) :
     simp [Function.update]
   · simp [Function.update, h]
 
+omit [Fintype Q] [DecidableEq Q] in
+
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Computing a transition target on a configuration with the constant added track gives the
 embedding of the original optional target. Boundary failure of the head move is preserved. -/
 theorem stepTarget_addTrack (b0 : B) (c : QtmCfg Q A w) (d : QtmMove)
@@ -94,6 +103,9 @@ theorem stepTarget_addTrack (b0 : B) (c : QtmCfg Q A w) (d : QtmMove)
   · simp
     rw [update_addTrack b0 c.2.2 c.2.1 a']
 
+omit [Fintype Q] [DecidableEq Q] in
+
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- A transition reaches a specified embedded configuration exactly when the corresponding
 original transition reaches the original configuration. -/
 theorem stepTarget_addTrack_eq_some (b0 : B) (c c' : QtmCfg Q A w)
@@ -131,12 +143,12 @@ theorem addTrack_stepAmplitude (R : QtmRule Q A) (b0 : B) (w : ℕ)
     · have h' : QtmRule.stepTarget (addTrackCfg b0 c) d q' (a', b0)
           = some (addTrackCfg b0 c') :=
         (stepTarget_addTrack_eq_some b0 c c' d q' a').2 h
-      rw [if_pos h', if_pos h]
+      rw [ite_eq_left h', ite_eq_left h]
       simp [addTrackRule, addTrackCfg]
     · have h' : ¬ QtmRule.stepTarget (addTrackCfg b0 c) d q' (a', b0)
           = some (addTrackCfg b0 c') := fun hh =>
         h ((stepTarget_addTrack_eq_some b0 c c' d q' a').1 hh)
-      rw [if_neg h', if_neg h]
+      rw [ite_eq_right h', ite_eq_right h]
   · intro b' _ hb
     simp [addTrackRule, addTrackCfg, hb]
   · intro h
@@ -185,7 +197,7 @@ theorem addTrackRule_localWellformed (R : QtmRule Q A) (h : R.LocalWellformed) (
         intro d q' a' b'
         by_cases h1 : b' = p₁.2
         · have h2 : b' ≠ p₂.2 := fun h2 => hb (h1.symm.trans h2)
-          rw [if_pos h1, if_neg h2]
+          rw [ite_eq_left h1, ite_eq_right h2]
           simp
         · simp [h1]
       refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun a' _ => ?_
@@ -219,6 +231,7 @@ configurations whose added track is constantly `b0`. -/
 def addTrackState (b0 : B) (ψ : QState (QtmCfg Q A w)) : QState (QtmCfg Q (A × B) w) :=
   fun d => ∑ c, if addTrackCfg b0 c = d then ψ c else 0
 
+omit [Fintype B] in
 /-- The embedded state has the original amplitude at each configuration obtained by adding the
 constant track. -/
 theorem addTrackState_apply (b0 : B) (ψ : QState (QtmCfg Q A w)) (c : QtmCfg Q A w) :
@@ -233,6 +246,7 @@ theorem addTrackState_apply (b0 : B) (ψ : QState (QtmCfg Q A w)) (c : QtmCfg Q 
   · intro h
     exact absurd (Finset.mem_univ c) h
 
+omit [Fintype B] in
 /-- The embedded state has zero amplitude at every configuration outside the image of the
 constant-track embedding. -/
 theorem addTrackState_eq_zero (b0 : B) (ψ : QState (QtmCfg Q A w))

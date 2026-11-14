@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Stability of squared transition amplitudes
@@ -165,7 +169,7 @@ theorem SourceLemma72 (U U' : E →L[ℂ] E)
   have hv : ‖U' ψ‖ = 1 := by rw [hU', hψ]
   have hφ' : ‖φ‖ ≤ 1 := le_of_eq hφ
   have hnorm : ‖U ψ - U' ψ‖ ≤ ε := by
-    calc ‖U ψ - U' ψ‖ = ‖(U - U') ψ‖ := by rw [ContinuousLinearMap.sub_apply]
+    calc ‖U ψ - U' ψ‖ = ‖(U - U') ψ‖ := by rw [_root_.sub_apply]
       _ ≤ ‖U - U'‖ * ‖ψ‖ := ContinuousLinearMap.le_opNorm _ _
       _ = ‖U - U'‖ := by rw [hψ, mul_one]
       _ ≤ ε := hop
@@ -262,7 +266,7 @@ theorem list_prod_isometry : ∀ (l : List (E →L[ℂ] E)),
   | [], _ => by intro x; simp
   | W :: l, h => by
       intro x
-      rw [List.prod_cons, ContinuousLinearMap.mul_apply, h W (by simp) (l.prod x)]
+      rw [List.prod_cons, _root_.mul_apply_eq_comp, h W (by simp) (l.prod x)]
       exact list_prod_isometry l (fun V hV => h V (by simp [hV])) x
 
 omit [Nontrivial E] in

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Theorem3
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Theorem3
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ theorem qamlc_regimes {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ}
     have hδ : 0 < (r - 2) / 2 := by linarith
     have hexp : quantumMLMCExponent (r - (r - 2) / 2) ((r - (r - 2) / 2) / 2) 1 = 1 := by
       unfold quantumMLMCExponent
-      rw [if_pos (show (1 : ℝ) < (r - (r - 2) / 2) / 2 by linarith)]
+      rw [ite_eq_left (show (1 : ℝ) < (r - (r - 2) / 2) / 2 by linarith)]
     have hh := hGen ((r - 2) / 2) hδ
     rwa [hexp] at hh
   · intro hr2 δ hδ
@@ -65,7 +69,7 @@ theorem qamlc_regimes {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ}
     have hlt : ¬ (1 < (r - η) / 2) := by nlinarith
     have hexp : quantumMLMCExponent (r - η) ((r - η) / 2) 1 = 1 / 2 + 1 / (r - η) := by
       unfold quantumMLMCExponent
-      rw [if_neg hlt]
+      rw [ite_eq_right hlt]
       have hrη0 : r - η ≠ 0 := ne_of_gt hrδ
       field_simp
       ring
@@ -88,20 +92,20 @@ theorem qamlc_regimes {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ}
     · subst hrne
       have hexp : quantumMLMCExponent 1 1 1 = 1 := by
         unfold quantumMLMCExponent
-        rw [if_neg (by norm_num : ¬ (1 : ℝ) < 1)]
+        rw [ite_eq_right (by norm_num : ¬ (1 : ℝ) < 1)]
         norm_num
       rw [← hexp]
       exact hLip
     · have hlt : (1 : ℝ) < r := lt_of_le_of_ne hr1 (Ne.symm hrne)
       have hexp : quantumMLMCExponent r r 1 = 1 := by
         unfold quantumMLMCExponent
-        rw [if_pos hlt]
+        rw [ite_eq_left hlt]
       rw [← hexp]
       exact hLip
   · intro hr1
     have hexp : quantumMLMCExponent r r 1 = 1 / r := by
       unfold quantumMLMCExponent
-      rw [if_neg (not_lt.mpr (by linarith))]
+      rw [ite_eq_right (not_lt.mpr (by linarith))]
       have hr0 : r ≠ 0 := ne_of_gt hr
       field_simp
       ring

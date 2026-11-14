@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Dual filtered norm SDP and closure laws
@@ -215,7 +219,7 @@ theorem sourcePSD_closed {K : Type} [Fintype K] [DecidableEq K] :
   apply IsClosed.inter
   · apply isClosed_eq <;> fun_prop
   · change IsClosed {B : Matrix K K ℂ | ∀ v, 0 ≤ star v ⬝ᵥ (B*ᵥv)}
-    rw [Set.setOf_forall]
+    rw [Set.ofPred_forall]
     apply isClosed_iInter
     intro v
     apply isClosed_le continuous_const
@@ -228,13 +232,13 @@ theorem sourceSDPBudget_compact {K : Type} [Fintype K] [DecidableEq K] (n : ℕ)
   have hc : IsClosed (sourceSDPBudget (K := K) (n := n)) := by
     apply IsClosed.inter
     · change IsClosed {Y : Fin n → Matrix K K ℂ | ∀ j, (Y j).PosSemidef}
-      rw [Set.setOf_forall]
+      rw [Set.ofPred_forall]
       apply isClosed_iInter
       intro j
       exact IsClosed.preimage (f := fun Y : Fin n → Matrix K K ℂ => Y j)
         (continuous_apply j) sourcePSD_closed
     · change IsClosed {Y : Fin n → Matrix K K ℂ | ∀ i, ∑ j, (Y j i i).re ≤ 1}
-      rw [Set.setOf_forall]
+      rw [Set.ofPred_forall]
       apply isClosed_iInter
       intro i
       apply isClosed_le _ continuous_const
@@ -406,7 +410,7 @@ theorem sourceSDPHypograph_separator {R S : Type}
     (hc : c ∉ sourceSDPHypograph A Z) :
     ∃ l : StrongDual ℝ (((R ⊕ S) → ℝ) × ℝ),
       (∀ d ∈ sourceSDPHypograph A Z, 0 ≤ l d) ∧ l c < 0 := by
-  letI : LocallyConvexSpace ℝ (((R ⊕ S) → ℝ) × ℝ) := NormedSpace.toLocallyConvexSpace' ℝ
+  let : LocallyConvexSpace ℝ (((R ⊕ S) → ℝ) × ℝ) := NormedSpace.toLocallyConvexSpace' ℝ
   let K : ProperCone ℝ (((R ⊕ S) → ℝ) × ℝ) :=
     ⟨sourceSDPHypographCone A Z,sourceSDPHypograph_closed A Z⟩
   exact K.hyperplane_separation_point hc

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+module
+
+public import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+@[expose] public section
 
 /-!
 # Ratio estimation from phase accuracy
@@ -38,7 +42,7 @@ namespace Qatlib.Papers.PartitionFunc08.MainResults.RatioEstimation
 /-- If `α ≥ 0`, `cos θ = 2 * α - 1`, and `|θ' - θ| ≤ 2 * ε * α`, then the ratio estimate `(1 +
 cos θ') / 2` differs from `α` by at most `ε * α`. See [Wocjan et al.,
 2009][WocjanEtAl2009a]. -/
-theorem cos_phase_rel_error {α ε θ θ' : ℝ} (hα0 : 0 ≤ α)
+theorem cos_phase_rel_error {α ε θ θ' : ℝ} (_hα0 : 0 ≤ α)
     (hcos : Real.cos θ = 2 * α - 1)
     (h : |θ' - θ| ≤ 2 * ε * α) :
     |α - (1 + Real.cos θ') / 2| ≤ ε * α := by
@@ -59,13 +63,13 @@ theorem cos_phase_rel_error {α ε θ θ' : ℝ} (hα0 : 0 ≤ α)
 with at least the same probability. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma1_ratio_estimation
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
-    {α ε θ : ℝ} (hα0 : 0 ≤ α) (hcos : Real.cos θ = 2 * α - 1) (hε0 : 0 < ε)
-    (θ' : Ω → ℝ) (hθ' : Measurable θ')
+    {α ε θ : ℝ} (hα0 : 0 ≤ α) (hcos : Real.cos θ = 2 * α - 1) (_hε0 : 0 < ε)
+    (θ' : Ω → ℝ) (_hθ' : Measurable θ')
     (hphase : 7 / 8 ≤ μ.real {ω | |θ' ω - θ| ≤ 2 * ε * α}) :
     7 / 8 ≤ μ.real (relAccEvent α ε (fun ω => (1 + Real.cos (θ' ω)) / 2)) := by
   refine le_trans hphase (measureReal_mono ?_)
   intro ω hω
-  simp only [relAccEvent, Set.mem_setOf_eq] at hω ⊢
+  simp only [relAccEvent, Set.mem_ofPred_eq] at hω ⊢
   exact ⟨by
 
       have h := cos_phase_rel_error hα0 hcos hω

@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
+module
+
 /-!
 # Main theorem statements of *The Quantum Decoding Problem* (arXiv:2509.24796v2)
 
@@ -17,3 +19,7 @@ The independently proved lower-level results remain in `TypicalEntropy.lean`
 (Lemma 1) and `PgmCore.lean` (Proposition 5). See this paper's PR body for the
 full list of unformalized claims and the infrastructure each one requires.
 -/
+
+
+
+@[expose] public section

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.ExponentialLoss
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.ExponentialLoss
+
+@[expose] public section
 
 /-!
 # Smoothness bounds for parameterized quantum losses

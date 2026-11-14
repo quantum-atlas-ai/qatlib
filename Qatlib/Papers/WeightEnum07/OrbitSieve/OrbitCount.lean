@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WeightEnum07.OrbitSieve.CosetSieve
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Papers.WeightEnum07.OrbitSieve.CosetSieve
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Orbit counts and sieve cost identities
@@ -34,6 +38,7 @@ namespace Qatlib.Papers.WeightEnum07.OrbitSieve
 
 variable {N : ℕ} [NeZero N]
 
+omit [NeZero N] in
 /-- The cardinality of a multiplication orbit is at most the order of `u`. -/
 theorem orbitFinset_card_le_orderOf (u : (ZMod N)ˣ) (a : ZMod N) :
     (orbitFinset u a).card ≤ orderOf u := by
@@ -43,6 +48,7 @@ theorem orbitFinset_card_le_orderOf (u : (ZMod N)ˣ) (a : ZMod N) :
       ≤ (Finset.range (orderOf u)).card := Finset.card_image_le
     _ = orderOf u := Finset.card_range _
 
+omit [NeZero N] in
 /-- If positive `k` satisfies `u ^ k = 1`, every multiplication orbit has cardinality at most
 `k`. See [GeraciVanBussel2007]. -/
 theorem orbitFinset_card_le_of_pow_eq_one {u : (ZMod N)ˣ} {k : ℕ} (hk : u ^ k = 1)

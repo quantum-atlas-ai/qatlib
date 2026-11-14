@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Linarith
-import Qatlib.Concepts.DyadicProgram.DyadicContract.DyadicMpsProgramDefs
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Concepts.DyadicProgram.DyadicContract.DyadicMpsProgramDefs
+
+@[expose] public section
 
 /-!
 # Correctness and bounds for dyadic matrix contractions

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.ODE.Gronwall
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Matchgate conjugation of Majorana operators
@@ -65,17 +69,17 @@ theorem hasDerivAt_exp_smul_const_ofReal {n : ℕ} (H : Matrix (Reg n) (Reg n) �
       ((ContinuousLinearMap.smulRight (1 : ℂ →L[ℂ] ℂ) H).smulRight E) u = u • (H * E) := by
     intro u
     rw [ContinuousLinearMap.smulRight_apply, ContinuousLinearMap.smulRight_apply,
-      ContinuousLinearMap.one_apply, smul_eq_mul, smul_mul_assoc]
+      _root_.one_apply_eq_self, smul_eq_mul, smul_mul_assoc]
   have h1 := hasFDerivAt_exp_smul_const' ℂ H (t : ℂ)
   have h2 := (h1.restrictScalars ℝ).comp t Complex.ofRealCLM.hasFDerivAt
   have heq : (ContinuousLinearMap.restrictScalars ℝ
       ((ContinuousLinearMap.smulRight (1 : ℂ →L[ℂ] ℂ) H).smulRight E) ∘SL Complex.ofRealCLM)
       = (ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (H * E)) := by
     ext1
-    simp only [ContinuousLinearMap.coe_comp', Function.comp_apply,
+    simp only [ContinuousLinearMap.coe_comp, Function.comp_apply,
       ContinuousLinearMap.coe_restrictScalars', hstep, Complex.ofRealCLM_apply,
       Complex.ofReal_one, one_smul, ContinuousLinearMap.smulRight_apply,
-      ContinuousLinearMap.one_apply]
+      _root_.one_apply_eq_self]
   have hfin : (ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (H * E)) 1 = H * E := by
     simp
   have h3 := (h2.congr_fderiv heq).hasDerivAt
@@ -254,7 +258,7 @@ theorem quadraticGenerator_eq_localForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
 theorem majorana_sq {n : ℕ} (a : Fin (2 * n)) :
     majorana a * majorana a = 1 := by
   have h0 := majorana_clifford n a a
-  rw [if_pos (rfl : a = a), two_smul] at h0
+  rw [ite_eq_left (rfl : a = a), two_smul] at h0
   have h2 : (2 : ℂ) • (majorana a * majorana a)
       = (2 : ℂ) • (1 : Matrix (Reg n) (Reg n) ℂ) := by
     rw [two_smul, two_smul]
@@ -267,7 +271,7 @@ theorem majorana_anticommute {n : ℕ} (a b : Fin (2 * n)) (h : a ≠ b) :
   have hc : majorana a * majorana b + majorana b * majorana a
       = (0 : Matrix (Reg n) (Reg n) ℂ) := by
     have h2 := majorana_clifford n a b
-    rw [if_neg h, zero_smul] at h2
+    rw [ite_eq_right h, zero_smul] at h2
     exact h2
   exact eq_neg_of_add_eq_zero_left hc
 
@@ -313,7 +317,7 @@ theorem majorana_pair_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   by_cases hr : r = localIndices i j p
   · subst hr
     have key := majorana_mul_mul_self (localIndices i j p) (localIndices i j q) hne
-    rw [if_pos rfl, if_neg (fun hc => hne hc.symm), sub_zero]
+    rw [ite_eq_left rfl, ite_eq_right (fun hc => hne hc.symm), sub_zero]
     calc majorana (localIndices i j p)
           * (majorana (localIndices i j p) * majorana (localIndices i j q))
           - majorana (localIndices i j p) * majorana (localIndices i j q)
@@ -332,7 +336,7 @@ theorem majorana_pair_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     · subst hr2
       have key := majorana_mul_mul_self (localIndices i j q) (localIndices i j p)
         (Ne.symm hne)
-      rw [if_neg hne, if_pos rfl]
+      rw [ite_eq_right hne, ite_eq_left rfl]
       calc majorana (localIndices i j q)
             * (majorana (localIndices i j p) * majorana (localIndices i j q))
             - majorana (localIndices i j p) * majorana (localIndices i j q)
@@ -358,7 +362,7 @@ theorem majorana_pair_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
             rw [two_smul]
             abel
     · have key := majorana_mul_two_mul r (localIndices i j p) (localIndices i j q) hr hr2
-      rw [if_neg (Ne.symm hr), if_neg (Ne.symm hr2), sub_zero]
+      rw [ite_eq_right (Ne.symm hr), ite_eq_right (Ne.symm hr2), sub_zero]
       rw [key, sub_self, smul_zero]
 
 /-- Embeds a four-by-four real matrix into the selected Majorana block, setting every entry
@@ -523,7 +527,7 @@ theorem frameZeroExtend_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       (fun k : ℕ => if k = 0 then
         (1 : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) - frameZeroExtend i j 1 else 0)
       (1 - frameZeroExtend i j 1) :=
-    hasSum_single 0 (fun b hb => if_neg hb)
+    hasSum_single 0 (fun b hb => ite_eq_right hb)
   have hcomb : HasSum
       (fun k : ℕ => (((Nat.factorial k)⁻¹ : ℝ) • frameZeroExtend i j (Y ^ k)
         + (if k = 0 then
@@ -538,10 +542,10 @@ theorem frameZeroExtend_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     match k with
     | 0 =>
         simp only [Nat.factorial_zero, Nat.cast_one, inv_one, one_smul, pow_zero,
-          if_true]
+          ite_true]
         abel
     | (k + 1) =>
-        rw [if_neg (Nat.succ_ne_zero k),
+        rw [ite_eq_right (Nat.succ_ne_zero k),
           frameZeroExtend_pow i j hij Y (Nat.succ_ne_zero k), add_zero]
   have hfun : (fun k : ℕ => ((Nat.factorial k)⁻¹ : ℝ) • (frameZeroExtend i j Y) ^ k)
       = fun k : ℕ => (((Nat.factorial k)⁻¹ : ℝ) • frameZeroExtend i j (Y ^ k)
@@ -575,18 +579,18 @@ theorem frameExtend_eq_one_add {n : ℕ} (i j : Fin n) (hij : i ≠ j)
         Matrix.sub_apply, Matrix.one_apply, frameExtend_apply_local i j X a b ha hb]
       by_cases hslot : localSlot i j a = localSlot i j b
       · have hab : a = b := localSlot_inj_local i j hij a b ha hb hslot
-        rw [if_pos hab, if_pos hslot]
+        rw [ite_eq_left hab, ite_eq_left hslot]
         ring
       · have hab : a ≠ b := fun h => hslot (congrArg (localSlot i j) h)
-        rw [if_neg hab, if_neg hslot, zero_add, sub_zero]
+        rw [ite_eq_right hab, ite_eq_right hslot, zero_add, sub_zero]
     · rw [frameExtend_apply_left_local_right_away i j X a b ha hb,
-        Matrix.add_apply, Matrix.one_apply, if_neg (local_ne_away i j ha hb),
+        Matrix.add_apply, Matrix.one_apply, ite_eq_right (local_ne_away i j ha hb),
         frameZeroExtend_apply_of_not_local' i j (X - 1) a b hb, zero_add]
   · rw [Matrix.add_apply, Matrix.one_apply,
       frameZeroExtend_apply_of_not_local i j (X - 1) a b ha, add_zero]
     by_cases hb : isLocalMajorana i j b
     · rw [frameExtend_apply_right_local_left_away i j X a b ha hb,
-        if_neg (Ne.symm (local_ne_away i j hb ha))]
+        ite_eq_right (Ne.symm (local_ne_away i j hb ha))]
     · rw [frameExtend_apply_away i j X a b ha hb]
 
 /-- For distinct modes, `frameRotation` is the exponential of the zero extension of twice the
@@ -619,10 +623,10 @@ theorem localFormSym_ite_sub {A : Matrix (Fin 2) (Fin 2) ℂ} (s d : Fin 4) :
     ((if s < d then localFormSym A s d else 0) - (if d < s then localFormSym A d s else 0) : ℝ)
       = localFormSym A s d - localFormSym A d s := by
   by_cases h1 : s < d
-  · rw [if_pos h1, if_neg (Fin.lt_asymm h1), localFormSym_eq_zero_of_not_lt (Fin.lt_asymm h1)]
+  · rw [ite_eq_left h1, ite_eq_right (Fin.lt_asymm h1), localFormSym_eq_zero_of_not_lt (Fin.lt_asymm h1)]
   · by_cases h2 : d < s
-    · rw [if_neg h1, if_pos h2, localFormSym_eq_zero_of_not_lt h1]
-    · rw [if_neg h1, if_neg h2, localFormSym_eq_zero_of_not_lt h1,
+    · rw [ite_eq_right h1, ite_eq_left h2, localFormSym_eq_zero_of_not_lt h1]
+    · rw [ite_eq_right h1, ite_eq_right h2, localFormSym_eq_zero_of_not_lt h1,
         localFormSym_eq_zero_of_not_lt h2]
 
 /-- A factor of 2 can be factored out of the difference of the two indicated triangular
@@ -675,22 +679,22 @@ theorem majorana_pairSum_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
           • (majorana (localIndices i j p) : Matrix (Reg n) (Reg n) ℂ)) else 0) := by
     intro p q
     by_cases hpq : p < q
-    · rw [← smul_sub, if_pos hpq, majorana_pair_commutator i j hij p q (ne_of_lt hpq)
+    · rw [← smul_sub, ite_eq_left hpq, majorana_pair_commutator i j hij p q (ne_of_lt hpq)
         (localIndices i j s)]
       simp only [hinj]
       rw [smul_sub, smul_sub]
       by_cases hps : p = s
       · rw [← hps]
         have hqp : q ≠ p := fun h => by rw [h] at hpq; exact absurd hpq (lt_irrefl p)
-        rw [if_pos rfl, if_neg hqp, if_pos rfl, if_neg hqp, smul_zero, smul_zero,
-          sub_zero, sub_zero, coef_two_smul, if_pos hpq]
+        rw [ite_eq_left rfl, ite_eq_right hqp, ite_eq_left rfl, ite_eq_right hqp, smul_zero, smul_zero,
+          sub_zero, sub_zero, coef_two_smul, ite_eq_left hpq]
       · by_cases hqs : q = s
         · rw [← hqs] at hps ⊢
-          rw [if_neg hps, if_pos rfl, if_neg hps, if_pos rfl, smul_zero, smul_zero,
-            zero_sub, zero_sub, coef_two_smul, if_pos hpq]
-        · rw [if_neg hps, if_neg hqs, if_neg hps, if_neg hqs]
+          rw [ite_eq_right hps, ite_eq_left rfl, ite_eq_right hps, ite_eq_left rfl, smul_zero, smul_zero,
+            zero_sub, zero_sub, coef_two_smul, ite_eq_left hpq]
+        · rw [ite_eq_right hps, ite_eq_right hqs, ite_eq_right hps, ite_eq_right hqs]
           simp
-    · rw [if_neg hpq]
+    · rw [ite_eq_right hpq]
       simp [hpq]
   simp only [hcom]
   simp only [Finset.sum_sub_distrib]
@@ -702,7 +706,7 @@ theorem majorana_pairSum_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
           • (majorana (localIndices i j d) : Matrix (Reg n) (Reg n) ℂ)) := by
     rw [Finset.sum_comm]
     refine Finset.sum_congr rfl fun q _ => ?_
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ s)]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ s)]
     by_cases h : s < q <;> simp [h]
   have hB : ∑ p : Fin 4, ∑ q : Fin 4,
       (if q = s then (((2 * (if p < q then f p q else 0) : ℝ) : ℂ)
@@ -711,7 +715,7 @@ theorem majorana_pairSum_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
         (((if d < s then 2 * f d s else 0 : ℝ) : ℂ)
           • (majorana (localIndices i j d) : Matrix (Reg n) (Reg n) ℂ)) := by
     refine Finset.sum_congr rfl fun p _ => ?_
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ s)]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ s)]
     by_cases h : p < s <;> simp [h]
   rw [hA, hB, ← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun d _ => ?_
@@ -755,14 +759,14 @@ theorem majorana_generator_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
               * majorana (localIndices i j q) * majorana r)) = 0 := by
       intro p q
       by_cases hpq : p < q
-      · rw [if_pos hpq]
+      · rw [ite_eq_left hpq]
         have hnp : r ≠ localIndices i j p := fun h =>
           hr (h ▸ isLocalMajorana_localIndices i j p)
         have hnq : r ≠ localIndices i j q := fun h =>
           hr (h ▸ isLocalMajorana_localIndices i j q)
         rw [majorana_mul_two_mul r (localIndices i j p) (localIndices i j q) hnp hnq,
           sub_self]
-      · rw [if_neg hpq, zero_smul, zero_smul, sub_self]
+      · rw [ite_eq_right hpq, zero_smul, zero_smul, sub_self]
     have hrow : ∑ c : Fin (2 * n),
         ((frameZeroExtend i j ((2 : ℝ) • localFormMatrix A) r c : ℝ) : ℂ) • majorana c
         = 0 := by
@@ -797,8 +801,8 @@ theorem majoranaInBasis_one {n : ℕ} (a : Fin (2 * n)) :
   simp only [majoranaInBasis, Matrix.one_apply, apply_ite, Complex.ofReal_one,
     Complex.ofReal_zero, ite_smul, one_smul, zero_smul]
   rw [Finset.sum_eq_single a]
-  · rw [if_pos rfl]
-  · intro b _ hb; rw [if_neg (Ne.symm hb)]
+  · rw [ite_eq_left rfl]
+  · intro b _ hb; rw [ite_eq_right (Ne.symm hb)]
   · intro hb; exact absurd (Finset.mem_univ a) hb
 
 /-- The derivative of the Majorana combination in frame `exp (s • K)` is the combination in
@@ -1291,8 +1295,8 @@ theorem fockProjector_hermitian {n : ℕ} (x : Reg n) :
   rw [Matrix.conjTranspose_apply]
   simp only [fockProjector_apply]
   by_cases h : z = x ∧ y = x
-  · rw [if_pos h, if_pos ⟨h.2, h.1⟩, star_one]
-  · rw [if_neg h, if_neg (fun hh => h ⟨hh.2, hh.1⟩), star_zero]
+  · rw [ite_eq_left h, ite_eq_left ⟨h.2, h.1⟩, star_one]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h ⟨hh.2, hh.1⟩), star_zero]
 
 /-- The Fock basis projector is idempotent. -/
 theorem fockProjector_idem {n : ℕ} (x : Reg n) :
@@ -1302,7 +1306,7 @@ theorem fockProjector_idem {n : ℕ} (x : Reg n) :
   · by_cases hyx : y = x <;> by_cases hzx : z = x <;>
       simp [fockProjector_apply, hyx, hzx]
   · intro w _ hw
-    rw [fockProjector_apply x y w, if_neg (fun hh => hw hh.2), zero_mul]
+    rw [fockProjector_apply x y w, ite_eq_right (fun hh => hw hh.2), zero_mul]
   · intro hna
     exact absurd (Finset.mem_univ x) hna
 
@@ -1322,10 +1326,10 @@ theorem measurementProjector_mul_fockProjector {n : ℕ} (k : Fin n) (b : Bool) 
       by_cases hxb : x k = b <;> simp [fockProjector_apply, hxb]
     · have h1 : ¬ (x = y ∧ x k = b) := fun hh => hxy hh.1
       have h2 : ¬ (y = x ∧ z = x) := fun hh => hxy hh.1.symm
-      rw [fockProjector_apply x x z, if_neg h1, zero_mul]
+      rw [fockProjector_apply x x z, ite_eq_right h1, zero_mul]
       simp [fockProjector_apply, h2]
   · intro w _ hw
-    rw [fockProjector_apply x w z, if_neg (fun hh => hw hh.1), mul_zero]
+    rw [fockProjector_apply x w z, ite_eq_right (fun hh => hw hh.1), mul_zero]
   · intro hna
     exact absurd (Finset.mem_univ x) hna
 
@@ -1358,7 +1362,7 @@ theorem bornWeight_gaussianInput {n : ℕ} (k : Fin n) (b : Bool) (gl : MatchGat
   unfold bornWeight
   rw [hcomb]
   by_cases hxk : x k = b
-  · rw [if_pos hxk, one_smul]
+  · rw [ite_eq_left hxk, one_smul]
     have hU := matchGateCircuitOp_mem_unitaryGroup gl (fun g hg => (hwf g hg).2)
     have hU1 := Matrix.mem_unitaryGroup_iff'.mp hU
     rw [Matrix.star_eq_conjTranspose] at hU1
@@ -1368,7 +1372,7 @@ theorem bornWeight_gaussianInput {n : ℕ} (k : Fin n) (b : Bool) (gl : MatchGat
       rw [Matrix.conjTranspose_mul, fockProjector_hermitian, Matrix.mul_assoc,
         ← Matrix.mul_assoc (matchGateCircuitOp gl)ᴴ (matchGateCircuitOp gl)
           (fockProjector x), hU1, one_mul, fockProjector_idem]
-    rw [hM, fockProjector_trace, Complex.one_re, if_pos hxk]
+    rw [hM, fockProjector_trace, Complex.one_re, ite_eq_left hxk]
   · simp [hxk]
 
 /-- For a well-formed preparation circuit avoiding `k`, projection scales each external
@@ -1404,11 +1408,11 @@ theorem measurement_hAway_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
   rw [covarianceMatrix_projector_apply _ _ (measurementProjector_hermitian k b) a c,
     hPCP, Matrix.mul_assoc, Matrix.mul_assoc, hcomb]
   by_cases hxk : x k = b
-  · rw [if_pos hxk, one_smul, ← Matrix.mul_assoc,
-      bornWeight_gaussianInput k b gl x hwf hav, if_pos hxk, one_mul]
+  · rw [ite_eq_left hxk, one_smul, ← Matrix.mul_assoc,
+      bornWeight_gaussianInput k b gl x hwf hav, ite_eq_left hxk, one_mul]
     rfl
-  · rw [if_neg hxk, zero_smul, Matrix.mul_zero, Matrix.mul_zero, Matrix.trace_zero,
-      mul_zero, Complex.zero_re, bornWeight_gaussianInput k b gl x hwf hav, if_neg hxk,
+  · rw [ite_eq_right hxk, zero_smul, Matrix.mul_zero, Matrix.mul_zero, Matrix.trace_zero,
+      mul_zero, Complex.zero_re, bornWeight_gaussianInput k b gl x hwf hav, ite_eq_right hxk,
       zero_mul]
 
 /-- For a well-formed preparation circuit avoiding `k`, the covariance after projection at `k`

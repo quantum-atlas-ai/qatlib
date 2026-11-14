@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.PermAnalysis.GaussianComparison
-import Mathlib.Analysis.Quaternion
-import Mathlib.Data.Real.Star
+module
+
+public import Qatlib.Concepts.BosonFock.PermAnalysis.GaussianComparison
+public import Mathlib.Analysis.Quaternion
+public import Mathlib.Basic.Real.Star
+
+@[expose] public section
 
 /-!
 # Gaussian permanent and cofactor comparison models
@@ -58,21 +62,27 @@ noncomputable def dimR (S : Type*) [AddCommGroup S] [Module ℝ S] : ℕ :=
 /-- The pushforward of the standard real Gaussian measure on `S` by scaling with the reciprocal
 square root of its real dimension. -/
 noncomputable def kGaussianLaw (S : Type*) [NormedAddCommGroup S] [InnerProductSpace ℝ S]
-    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] [Module ℝ S] : Measure S :=
+    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (realModule : Module ℝ S := by infer_instance) : Measure S :=
+  let : Module ℝ S := realModule
   Measure.map (fun x : S => (Real.sqrt (Module.finrank ℝ S : ℝ))⁻¹ • x) (stdGaussian S)
 
 /-- The measure on rectangular matrices whose entries are independently distributed according to
 `kGaussianLaw S`. -/
 noncomputable def gaussianMatrixLaw (S : Type*) [NormedAddCommGroup S] [InnerProductSpace ℝ S]
-    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] [Module ℝ S]
-    (m n : ℕ) : Measure (Matrix (Fin m) (Fin n) S) :=
+    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (m n : ℕ) (realModule : Module ℝ S := by infer_instance) :
+    Measure (Matrix (Fin m) (Fin n) S) :=
+  let : Module ℝ S := realModule
   Measure.map (fun f : (Fin m × Fin n) → S => fun i j => f (i, j))
     (Measure.pi fun _ : Fin m × Fin n => kGaussianLaw S)
 
 /-- The square-matrix specialization of `gaussianMatrixLaw S`. -/
 noncomputable def ginibreLaw (S : Type*) [NormedAddCommGroup S] [InnerProductSpace ℝ S]
-    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] [Module ℝ S] (n : ℕ) :
+    [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] (n : ℕ)
+    (realModule : Module ℝ S := by infer_instance) :
     Measure (Matrix (Fin n) (Fin n) S) :=
+  let : Module ℝ S := realModule
   gaussianMatrixLaw S n n
 
 /-- The row-ordered permanent scaled by the reciprocal square root of `n!`. -/
@@ -82,8 +92,11 @@ noncomputable def normalizedPermanent (S : Type*) [NormedDivisionRing S] [Module
 
 /-- The pushforward of the square Gaussian matrix measure by the normalized permanent. -/
 noncomputable def normalizedPermanentLaw (S : Type*) [NormedDivisionRing S]
-    [NormedAlgebra ℝ S] [InnerProductSpace ℝ S] [FiniteDimensional ℝ S]
-    [MeasurableSpace S] [BorelSpace S] (n : ℕ) : Measure S :=
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S]
+    [MeasurableSpace S] [BorelSpace S] (n : ℕ)
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Measure S :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   Measure.map (normalizedPermanent S n) (ginibreLaw S n)
 
 /-- The measure `μ` equals Lebesgue measure weighted by `ENNReal.ofReal ∘ p`. -/
@@ -99,9 +112,11 @@ def IsRadialNonincDensity (S : Type*) [Zero S] [Norm S] (p : S → ℝ) : Prop :
 
 /-- For every `n ≥ 1`, the normalized permanent measure has a radial nonincreasing Lebesgue
 density whose value at zero is at most `C * n^((dimR S + 2)/4)`. -/
-def Thm11Density (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    (C : ℝ) : Prop :=
+def Thm11Density (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (C : ℝ) (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   ∀ n : ℕ, 1 ≤ n → ∃ p : S → ℝ,
     HasLebesgueDensity S (normalizedPermanentLaw S n) p ∧
     IsRadialNonincDensity S p ∧
@@ -110,17 +125,22 @@ def Thm11Density (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
 /-- For every `n ≥ 1`, every positive radius, and every center, the normalized permanent measure
 of the closed ball is bounded by `C * n^((dimR S + 2)/4)` times the radius to the real
 dimension. -/
-def Thm11SmallBall (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    (C : ℝ) : Prop :=
+def Thm11SmallBall (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (C : ℝ) (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   ∀ n : ℕ, 1 ≤ n → ∀ ε : ℝ, 0 < ε → ∀ z : S,
     ((normalizedPermanentLaw S n) (Metric.closedBall z ε)).toReal ≤
       C * (n : ℝ) ^ (((Module.finrank ℝ S : ℝ) + 2) / 4) * ε ^ Module.finrank ℝ S
 
 /-- The conjunction of the density and small-ball predicates, each with some positive constant
 uniform in the matrix size. -/
-def GaussianPermanentAnticoncentration (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] : Prop :=
+def GaussianPermanentAnticoncentration (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   (∃ C : ℝ, 0 < C ∧ Thm11Density S C) ∧ (∃ C : ℝ, 0 < C ∧ Thm11SmallBall S C)
 
 /-- The existence of a positive uniform constant bounding complex normalized-permanent
@@ -145,9 +165,11 @@ noncomputable def perCofactorColumn (S : Type*) [AddCommMonoid S] [Monoid S] {n 
 
 /-- The pushforward of the `(n - 1)`-by-`n` Gaussian matrix measure by its permanent cofactor
 vector. -/
-noncomputable def cofactorColumnLaw (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    (n : ℕ) : Measure (Fin n → S) :=
+noncomputable def cofactorColumnLaw (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (n : ℕ) (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Measure (Fin n → S) :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   Measure.map (fun B : Matrix (Fin (n - 1)) (Fin n) S => perCofactorColumn S B)
     (gaussianMatrixLaw S (n - 1) n)
 
@@ -200,8 +222,11 @@ noncomputable def gammaRampLaw (n β : ℕ) : Measure ℝ :=
 /-- The distribution obtained by scaling an independent vector of `kGaussianLaw S` coordinates
 by the square root of a scalar drawn from `gammaProductLaw (m - 1) (dimR S)`. -/
 noncomputable def gammaScaledGaussianColumnLaw (S : Type*) [NormedDivisionRing S]
-    [NormedAlgebra ℝ S] [InnerProductSpace ℝ S] [FiniteDimensional ℝ S]
-    [MeasurableSpace S] [BorelSpace S] (m : ℕ) : Measure (Fin m → S) :=
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S]
+    [MeasurableSpace S] [BorelSpace S] (m : ℕ)
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Measure (Fin m → S) :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   Measure.map (fun p : ℝ × (Fin m → S) => (Real.sqrt p.1 : ℝ) • p.2)
     ((gammaProductLaw (m - 1) (dimR S)).prod (Measure.pi fun _ : Fin m => kGaussianLaw S))
 
@@ -223,9 +248,11 @@ noncomputable def detCofactorColumn (S : Type*) [CommRing S] {n : ℕ}
 
 /-- The conjunction of gamma-distribution identities for determinant cofactor vectors, their
 outer products and squared norms, and normalized squared determinants of Gaussian matrices. -/
-def DetGammaBenchmark (S : Type*) [NormedField S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    [StarRing S] : Prop :=
+def DetGammaBenchmark (S : Type*) [NormedField S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    [StarRing S] (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   (∀ n : ℕ, 2 ≤ n →
     Measure.map (fun B : Matrix (Fin (n - 1)) (Fin n) S => detCofactorColumn S B)
       (gaussianMatrixLaw S (n - 1) n)
@@ -301,8 +328,11 @@ def IsRealNonneg (w : ℂ) : Prop := w.im = 0 ∧ 0 ≤ w.re
 /-- In dimensions at least two, the cofactor characteristic function is real and nonnegative
 both at a vector and at its norm in the first coordinate, and the latter value bounds the
 former above. -/
-def FourierCofactorCompression (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] : Prop :=
+def FourierCofactorCompression (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   ∀ n : ℕ, 2 ≤ n → ∀ z : Fin n → S,
     IsRealNonneg (vecCF S (cofactorColumnLaw S n) z) ∧
     IsRealNonneg (vecCF S (cofactorColumnLaw S n) (unitFirst S n (vecNorm S z))) ∧
@@ -312,8 +342,11 @@ def FourierCofactorCompression (S : Type*) [NormedDivisionRing S] [NormedAlgebra
 /-- The conjunction of vector Laplace comparison, squared-norm Laplace comparison with a gamma
 product measure, and a real nonnegative Fourier comparison for the cofactor and gamma-scaled
 Gaussian measures. -/
-def GaussianCofactorInduction (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] : Prop :=
+def GaussianCofactorInduction (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   (∀ n : ℕ, 1 ≤ n →
     matrixLaplaceLEVec S (gammaScaledGaussianColumnLaw S n) (cofactorColumnLaw S n)) ∧
   (∀ n : ℕ, 1 ≤ n →

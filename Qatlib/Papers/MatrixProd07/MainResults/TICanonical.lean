@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatrixProd07.MainResults.Defs
-import Qatlib.Papers.MatrixProd07.MainResults.Appendix
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
-import Mathlib.Topology.Order.Basic
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Data.Fin.Tuple.Basic
+module
+
+public import Qatlib.Papers.MatrixProd07.MainResults.Defs
+public import Qatlib.Papers.MatrixProd07.MainResults.Appendix
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
+public import Mathlib.Topology.Order.Basic
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Data.Fin.Tuple.Basic
+
+@[expose] public section
 
 /-!
 # Translation invariant canonical forms and block algebra
@@ -251,7 +255,7 @@ lemma tiAmplitude_splitJoin {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → B
     have hin : (i : ℕ) < n := lt_of_lt_of_le i.isLt hR
     have hmod : (i : ℕ) % n = (i : ℕ) := Nat.mod_eq_of_lt hin
     simp only [hxs, hx, splitJoin]
-    rw [dif_pos (by rw [hmod]; exact i.isLt)]
+    rw [dite_eq_left (by rw [hmod]; exact i.isLt)]
     congr 1
     exact Fin.ext (by simp [hmod])
   have hv : (fun i : Fin (n - R) => xs (R + i)) = v := by
@@ -259,7 +263,7 @@ lemma tiAmplitude_splitJoin {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → B
     have hi : R + (i : ℕ) < n := by have := i.isLt; omega
     have hmod : (R + (i : ℕ)) % n = R + (i : ℕ) := Nat.mod_eq_of_lt hi
     simp only [hxs, hx, splitJoin]
-    rw [dif_neg (by rw [hmod]; omega)]
+    rw [dite_eq_right (by rw [hmod]; omega)]
     congr 1
     exact Fin.ext (by simp [hmod])
   rw [hu, hv]
@@ -629,14 +633,14 @@ lemma mul_single_mul_apply {D : ℕ} (X Y : BM D) (k l : Fin D) (i j : Fin D) :
   · rw [Finset.sum_eq_single k]
     · simp
     · intro y _ hy
-      rw [if_neg (by intro h; exact hy h.1.symm)]
+      rw [ite_eq_right (by intro h; exact hy h.1.symm)]
       simp
     · intro hk
       exact absurd (Finset.mem_univ k) hk
   · intro x _ hxl
     have hzero : (∑ y, X i y * (if k = y ∧ l = x then (1 : ℂ) else 0)) = 0 := by
       refine Finset.sum_eq_zero fun y _ => ?_
-      rw [if_neg (by intro h; exact hxl h.2.symm)]
+      rw [ite_eq_right (by intro h; exact hxl h.2.symm)]
       simp
     rw [hzero, zero_mul]
   · intro hl

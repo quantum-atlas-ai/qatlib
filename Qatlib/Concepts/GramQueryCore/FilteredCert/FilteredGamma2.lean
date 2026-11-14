@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.Matrix.Order
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.Matrix.Order
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+@[expose] public section
 
 /-!
 # Filtered Gram factorization certificates

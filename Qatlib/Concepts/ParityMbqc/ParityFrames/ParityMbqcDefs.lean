@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.List.FinRange
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+module
+
+public import Mathlib.Data.List.FinRange
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+
+@[expose] public section
 
 /-!
 # Parity frames and measurement-branch definitions

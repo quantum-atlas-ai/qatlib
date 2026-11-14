@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerExt
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerExt
+
+@[expose] public section
 
 /-!
 # Tableau simulation of stabilizer programs
@@ -1413,7 +1417,7 @@ theorem phaseAdd_correct (f : BitFrame 8) (p q : ZMod 4)
       bankRead (bitRun phaseAddCode f).regs 1 = (p + q).val.testBit 1 := by
   fin_cases p <;> fin_cases q <;>
     simp only [phaseAddCode, bitRun, List.foldl_cons, List.foldl_nil, bitStep,
-      BitExpr.eval, bankRead_write, Fin.reduceEq, if_true, if_false, h0, h1, h2, h3] <;> decide
+      BitExpr.eval, bankRead_write, Fin.reduceEq, ite_true, ite_false, h0, h1, h2, h3] <;> decide
 
 /-- The phase addition code generates exactly sixteen elementary events. -/
 theorem phaseAdd_trace_length (f : BitFrame 8) :
@@ -1793,10 +1797,10 @@ theorem phaseSite_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
   · simpa [bitRun, bitStep] using! h0
   · simpa [bitRun, bitStep] using! h1
   · simp only [bitRun, List.foldl_cons, List.foldl_nil, bitStep, bankRead_write,
-      Fin.reduceEq, if_true, if_false]
+      Fin.reduceEq, ite_true, ite_false]
     exact (cocycleExpr_correct a c f r s hr hs k).1
   · simp only [bitRun, List.foldl_cons, List.foldl_nil, bitStep, bankRead_write,
-      Fin.reduceEq, if_true, if_false]
+      Fin.reduceEq, ite_true, ite_false]
     exact (cocycleExpr_correct a c _ r s hr hs k).2
 
 /-- Phase accumulation over `ks` adds the sum of their cocycle contributions to the encoded
@@ -2010,7 +2014,7 @@ theorem paritySites_correct {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f
     rw [h]
     simp only [List.map_cons, List.foldl_cons]
     congr 1
-    simp only [step, bitStep, bankRead_write, if_true, BitExpr.eval, cocycleLowExpr,
+    simp only [step, bitStep, bankRead_write, ite_true, BitExpr.eval, cocycleLowExpr,
       cocycleLow, hr.1, hr.2.1, hs.1, hs.2.1, rowParityAt]
 
 /-- For represented rows, parity code stores their row parity in register six. -/
@@ -2024,7 +2028,7 @@ theorem parityCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     rw [bitRun_input]; exact hs
   rw [paritySites_correct a c _ _ r s hr' hs']
   simp only [bitRun, List.foldl_cons, List.foldl_nil, bitStep, BitExpr.eval,
-    bankRead_write, if_true, List.map_ofFn, Function.comp_id, rowParity]
+    bankRead_write, ite_true, List.map_ofFn, Function.comp_id, rowParity]
 
 /-- Executing code that never assigns a particular register preserves that register. -/
 theorem bitRun_register {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (k : Fin R)
@@ -2040,7 +2044,7 @@ theorem bitRun_register {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (k
     cases i with
     | assign j e =>
       change j ≠ k at h0
-      simp only [bitStep, bankRead_write, if_neg (Ne.symm h0)]
+      simp only [bitStep, bankRead_write, ite_eq_right (Ne.symm h0)]
     | emit e => rfl
 
 /-- Product-phase code preserves every register other than zero through five. -/
@@ -2100,15 +2104,15 @@ theorem nonpivotExprs_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
   · have hb : bankRead f.regs 6 = false := h6.trans ((rowParity_false_iff r p).mpr hc)
     simp only [nonpivotExprs, List.map_append, List.map_ofFn, Function.comp_def,
       List.map_cons, List.map_nil, muxExpr_eval, BitExpr.eval, hb, Bool.false_eq_true,
-      if_false, hr.1, hr.2.1, hr.2.2.1, hr.2.2.2, if_pos hc, Row.bits]
+      ite_false, hr.1, hr.2.1, hr.2.2.1, hr.2.2.2, ite_eq_left hc, Row.bits]
   · have hb : bankRead f.regs 6 = true := by
       rw [h6]
       cases hp : rowParity r p
       · exact False.elim (hc ((rowParity_false_iff r p).mp hp))
       · rfl
     simp only [nonpivotExprs, List.map_append, List.map_ofFn, Function.comp_def,
-      List.map_cons, List.map_nil, muxExpr_eval, BitExpr.eval, hb, if_true,
-      hr.1, hr.2.1, hs.1, hs.2.1, h0, h1, if_neg hc, Row.bits, Row.mul]
+      List.map_cons, List.map_nil, muxExpr_eval, BitExpr.eval, hb, ite_true,
+      hr.1, hr.2.1, hs.1, hs.2.1, h0, h1, ite_eq_right hc, Row.bits, Row.mul]
 
 /-- For represented row, pivot, and observable inputs, nonpivot code emits the original row if
 it commutes with the observable and its product with the pivot otherwise. -/
@@ -2219,17 +2223,17 @@ theorem measuredRowCode_correct {n m : ℕ} (a i : Fin m) (t : Tableau n m)
     simpa only [tableau_bits_length, rowWidth] using!
         representsRow_prefixed (tableauBits t) (encode p)
   by_cases hi : i = a
-  · rw [measuredRowCode, if_pos hi, (emitCode_correct _ _).2.2,
-      pivotRowExprs_correct _ f p b hp hb, measureRow, if_pos hi]
-  · rw [measuredRowCode, if_neg hi, nonpivotRowCode_correct _ _ _ f (t i) (t a) (encode p) hr hs hp]
-    simp only [measureRow, if_neg hi, decode_encode]
+  · rw [measuredRowCode, ite_eq_left hi, (emitCode_correct _ _).2.2,
+      pivotRowExprs_correct _ f p b hp hb, measureRow, ite_eq_left hi]
+  · rw [measuredRowCode, ite_eq_right hi, nonpivotRowCode_correct _ _ _ f (t i) (t a) (encode p) hr hs hp]
+    simp only [measureRow, ite_eq_right hi, decode_encode]
 
 /-- Measured row code preserves register seven. -/
 theorem measuredRowCode_register7 {n m : ℕ} (a i : Fin m) (f : BitFrame 8) :
     bankRead (bitRun (measuredRowCode (n := n) a i) f).regs 7 = bankRead f.regs 7 := by
   by_cases hi : i = a
-  · rw [measuredRowCode, if_pos hi, (emitCode_correct _ _).2.1]
-  · rw [measuredRowCode, if_neg hi, nonpivotRowCode_register7]
+  · rw [measuredRowCode, ite_eq_left hi, (emitCode_correct _ _).2.1]
+  · rw [measuredRowCode, ite_eq_right hi, nonpivotRowCode_register7]
 
 /-- Concatenate indexed row blocks in reverse index-list order to support output prepending. -/
 def rowBlocksCode {α : Type} (ks : List α) (code : α → List (BitInstr 8)) : List (BitInstr 8) :=
@@ -2422,9 +2426,9 @@ theorem rowLayout_bound {n m j : ℕ} (hj : j ≤ m) :
 theorem measuredRowCode_bound {n m : ℕ} (a i : Fin m) :
     CodeBound (measuredRowCode (n := n) a i) ((m + 1) * rowWidth n) := by
   by_cases hi : i = a
-  · rw [measuredRowCode, if_pos hi]
+  · rw [measuredRowCode, ite_eq_left hi]
     exact emitCode_bound _ _ (pivotRowExprs_bounds _ _ (rowLayout_bound (Nat.le_refl m)))
-  · rw [measuredRowCode, if_neg hi]
+  · rw [measuredRowCode, ite_eq_right hi]
     exact nonpivotRowCode_bound _ _ _ _ (rowLayout_bound (Nat.le_of_lt i.isLt))
       (rowLayout_bound (Nat.le_of_lt a.isLt)) (rowLayout_bound (Nat.le_refl m))
 
@@ -2455,10 +2459,10 @@ theorem nonpivotRowCode_length {n : ℕ} (a pivot measured : RowLayout n) :
 theorem measuredRowCode_length {n m : ℕ} (a i : Fin m) :
     (measuredRowCode (n := n) a i).length ≤ 9 * n + 11 := by
   by_cases hi : i = a
-  · rw [measuredRowCode, if_pos hi]
+  · rw [measuredRowCode, ite_eq_left hi]
     simp [emitCode, pivotRowExprs]
     omega
-  · rw [measuredRowCode, if_neg hi, nonpivotRowCode_length]
+  · rw [measuredRowCode, ite_eq_right hi, nonpivotRowCode_length]
 
 /-- If every indexed row block has at most `B` instructions, their concatenation has at most
 `ks.length * B` instructions. -/

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Finset.Max
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Measurement sums from good-set cardinalities
@@ -65,7 +69,7 @@ theorem WgoodMin_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F)) {x : Fin n → F}
     (hx : x ∈ X) : WgoodMin X W ≤ (W x).card := by
   unfold WgoodMin
-  rw [dif_pos ⟨x, hx⟩]
+  rw [dite_eq_left ⟨x, hx⟩]
   exact Finset.min'_le _ _ (Finset.mem_image_of_mem _ hx)
 
 /-- For an index `x` in `X`, the minimum squared good output cardinality is at most the squared
@@ -74,7 +78,7 @@ theorem WgoodSq_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F)) {x : Fin n → F}
     (hx : x ∈ X) : WgoodSq X W ≤ (W x).card ^ 2 := by
   unfold WgoodSq
-  rw [dif_pos ⟨x, hx⟩]
+  rw [dite_eq_left ⟨x, hx⟩]
   exact Finset.min'_le _ _ (Finset.mem_image_of_mem _ hx)
 
 /-- If every selected multiplicity is at least one, the square of the output-set cardinality is

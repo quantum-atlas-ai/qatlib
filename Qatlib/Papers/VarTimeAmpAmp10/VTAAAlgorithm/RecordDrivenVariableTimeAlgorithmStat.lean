@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
+
+@[expose] public section
 
 /-!
 # Specification of the record-driven variable-time algorithm

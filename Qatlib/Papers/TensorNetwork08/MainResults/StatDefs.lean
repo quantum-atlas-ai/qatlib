@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # Tensor-network and statistical-model definitions

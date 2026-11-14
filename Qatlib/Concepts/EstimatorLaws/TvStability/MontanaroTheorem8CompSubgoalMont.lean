@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8CompSubgoalStat
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8CompSubgoalStat
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
+
+@[expose] public section
 
 /-!
 # Composition of relative factor estimates

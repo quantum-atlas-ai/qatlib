@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
-import Mathlib.Analysis.Normed.Module.Multilinear.Basic
+module
+
+public import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
+public import Mathlib.Analysis.Normed.Module.Multilinear.Basic
+
+@[expose] public section
 
 /-!
 # Multilinear norm bounds from sphere nets

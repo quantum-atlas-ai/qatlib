@@ -3853,10 +3853,8 @@ class _LinkCollector(HTMLParser):
 def verify_portal_links(out_dir: Path) -> list[str]:
     """Verify every internal relative link on generated portal pages resolves on disk."""
     errors: list[str] = []
-    portal_pages = [
-        *out_dir.glob("*.html"),
-        *(out_dir / "zh").glob("*.html"),
-    ]
+    portal_pages = (p for p in out_dir.rglob("*.html")
+                    if "docs" not in p.relative_to(out_dir).parts)
     for html_file in portal_pages:
         parser = _LinkCollector()
         parser.feed(html_file.read_text(encoding="utf-8"))
@@ -3871,6 +3869,21 @@ def verify_portal_links(out_dir: Path) -> list[str]:
                 resolved = resolved / "index.html"
             if not resolved.is_file():
                 errors.append(f"{html_file.relative_to(out_dir)} -> broken link: {raw}")
+    return errors
+
+
+def verify_docgen(repo_root: Path, docgen_dir: Path) -> list[str]:
+    """Require real API pages for every source module and usable search assets."""
+    required = ["index.html", "navbar.html", "style.css", "search.html", "search.js",
+                "declaration-data.js", "references.html", "Qatlib.html",
+                "declarations/declaration-data.bmp"]
+    required.extend(str(p.relative_to(repo_root).with_suffix(".html"))
+                    for p in (repo_root / "Qatlib").rglob("*.lean"))
+    errors = []
+    for name in required:
+        path = docgen_dir / name
+        if not path.is_file() or path.stat().st_size == 0:
+            errors.append(f"missing or empty API output: {name}")
     return errors
 
 
@@ -3957,6 +3970,10 @@ def build_site(
     check_links: bool,
     metadata_dir: Path | None = None,
 ) -> None:
+    if docgen_dir is not None:
+        errors = verify_docgen(repo_root, docgen_dir)
+        if errors:
+            raise RuntimeError("Incomplete doc-gen4 output: " + "; ".join(errors[:10]))
     tc_raw = (repo_root / "lean-toolchain").read_text(encoding="utf-8").strip()
     toolchain_tag = tc_raw.split(":")[-1] if ":" in tc_raw else tc_raw
 
@@ -4178,7 +4195,7 @@ def build_site(
             bib_count=len(bib_entries),
             areas_en=areas_en,
         )
-    elif stub_docgen or check_links:
+    elif stub_docgen:
         create_stub_docgen_dir(docs_target, toolchain_tag, tree_stats)
 
     if check_links:

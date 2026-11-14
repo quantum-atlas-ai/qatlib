@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

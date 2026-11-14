@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonRecovery
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonRecovery
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Boolean Gaussian elimination and Simon decoding
@@ -558,10 +562,10 @@ theorem booleanInsertRow_echelon {n : ℕ} (acc : BooleanEchelonResult n) (x : R
     simp only [Function.update_apply] at hj
     by_cases hji : j = i
     · subst hji
-      rw [if_pos rfl] at hj
+      rw [ite_eq_left rfl] at hj
       cases hj
       exact ⟨hlead, fun l hl => hlow l hl⟩
-    · rw [if_neg hji] at hj
+    · rw [ite_eq_right hji] at hj
       exact hech j row hj
 
 /-- Inserting a row into an echelon pivot table adds exactly that row's span to the pivot span. -/
@@ -815,10 +819,10 @@ theorem boolZModEquiv_foldl_xor_ite {ι : Type*} (l : List ι) (p : ι → Prop)
   | cons j l ih =>
     simp only [List.foldl_cons, List.map_cons, List.sum_cons]
     by_cases hj : p j
-    · simp only [hj, if_true]
+    · simp only [hj, ite_true]
       rw [ih, boolZModEquiv_xor]
       ring
-    · simp only [hj, if_false]
+    · simp only [hj, ite_false]
       rw [ih]
       simp
 
@@ -850,9 +854,9 @@ theorem booleanTailParityFull_fst {n : ℕ} (row x : Reg n) (i : Fin n) :
     | cons j l ih =>
       simp only [List.foldl_cons]
       by_cases hij : i < j
-      · simp only [hij, if_true]
+      · simp only [hij, ite_true]
         exact ih _ _
-      · simp only [hij, if_false]
+      · simp only [hij, ite_false]
         exact ih _ _
   exact hgen _ false 0
 
@@ -871,9 +875,9 @@ theorem booleanTailParity_congr {n : ℕ} (row : Reg n) (i : Fin n) {x y : Reg n
     | cons j l ih =>
       simp only [List.foldl_cons]
       by_cases hij : i < j
-      · simp only [hij, if_true, h j hij]
+      · simp only [hij, ite_true, h j hij]
         exact ih _
-      · simp only [hij, if_false]
+      · simp only [hij, ite_false]
         exact ih _
   exact hgen _ false
 
@@ -1281,7 +1285,7 @@ theorem booleanKernelBasis_eval_free {n : ℕ} {piv : Fin n → Option (Reg n)}
     have h0 : decide (((booleanFreeColumns piv)[j]'hj) =
         ((booleanFreeColumns piv)[i]'hifree)) = false :=
       decide_eq_false_iff_not.mpr hne
-    rw [h0, if_neg hji]
+    rw [h0, ite_eq_right hji]
     exact boolZModEquiv_false
 
 /-- The constructed kernel list has no repeated registers. -/
@@ -1318,13 +1322,13 @@ theorem booleanKernelBasis_linearIndependent {n : ℕ} (piv : Fin n → Option (
         ((booleanFreeColumns piv)[j.val]'hjlt) = f i * (if j = i then 1 else 0)
     rw [booleanKernelBasis_eval_free i.val i.isLt j.val hjlt]
     by_cases hji : j = i
-    · rw [if_pos hji]
+    · rw [ite_eq_left hji]
       subst hji
       simp
-    · rw [if_neg hji, if_neg (by intro h; exact hji (Fin.ext h))]
+    · rw [ite_eq_right hji, ite_eq_right (by intro h; exact hji (Fin.ext h))]
   rw [Finset.sum_congr rfl hterm] at h0
   rw [Finset.sum_eq_single j (fun i _ hij => by
-      rw [if_neg (fun h => hij h.symm), mul_zero]) (fun hn => absurd hj hn)] at h0
+      rw [ite_eq_right (fun h => hij h.symm), mul_zero]) (fun hn => absurd hj hn)] at h0
   simpa using h0
 
 /-- Every element of `ZMod 2` is zero or one. -/
@@ -1431,17 +1435,17 @@ theorem booleanPivotKernel_le_span {n : ℕ} (piv : Fin n → Option (Reg n))
               intro t _
               rw [booleanKernelBasis_eval_free t.val _ t₀ ht₀lt]
               by_cases htt : (⟨t₀, ht₀lt⟩ : Fin L) = t
-              · rw [if_pos htt]
+              · rw [ite_eq_left htt]
                 subst htt
                 simp
-              · rw [if_neg htt, if_neg (by
+              · rw [ite_eq_right htt, ite_eq_right (by
                   intro h
                   exact htt (Fin.ext h))]
             rw [Finset.sum_congr rfl hterm]
             rw [Finset.sum_eq_single ⟨t₀, ht₀lt⟩]
             · simp
             · intro t _ htt
-              rw [if_neg (fun h => htt h.symm), mul_zero]
+              rw [ite_eq_right (fun h => htt h.symm), mul_zero]
             · simp
           | some row =>
 

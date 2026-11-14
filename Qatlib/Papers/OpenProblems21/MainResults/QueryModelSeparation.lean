@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OpenProblems21.MainResults.SimonGarbage
+module
+
+public import Qatlib.Papers.OpenProblems21.MainResults.SimonGarbage
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -128,7 +132,7 @@ theorem answerProb_one {X R : Type*} [Fintype X] [DecidableEq X] [Fintype R]
   unfold answerProb MeasureProb BornProb
   rw [applyGate_one]
   by_cases h : init.2 = b
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     rw [Finset.sum_eq_single init]
     · simp
     · intro s _ hs
@@ -136,7 +140,7 @@ theorem answerProb_one {X R : Type*} [Fintype X] [DecidableEq X] [Fintype R]
       simp [Ket, hne]
     · intro hnot
       exact absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ init, h⟩) hnot
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro s hs
     have hs2 : s.2 = b := (Finset.mem_filter.mp hs).2
@@ -217,10 +221,10 @@ theorem erasingOracleAnswer_mulVec_ket {N k g r : ℕ} (enc : Fin N ↪ Reg k ×
       (if ∃ j : Fin N, x'.1 = enc j ∧ y = (f j, x'.2) then (1 : ℂ) else 0)
         * Ket (enc i, z) x') = Ket (f i, z) y
   rw [Finset.sum_eq_single (enc i, z)]
-  · simp only [Ket, if_true, mul_one]
+  · simp only [Ket, ite_true, mul_one]
     by_cases h : y = (f i, z)
-    · rw [if_pos h, if_pos ⟨i, rfl, h⟩]
-    · rw [if_neg h, if_neg]
+    · rw [ite_eq_left h, ite_eq_left ⟨i, rfl, h⟩]
+    · rw [ite_eq_right h, ite_eq_right]
       rintro ⟨j, hj, hy⟩
       have hji : j = i := enc.injective hj.symm
       exact h (hji ▸ hy)

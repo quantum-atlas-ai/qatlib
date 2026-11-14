@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiControlConsumers
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiControlConsumers
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Exact local synthesis of known unitaries
@@ -346,7 +350,7 @@ theorem known_two_level_local_implementation_zero
     rw [knownScalarPhaseSteps_run]
     congr 1
     funext u
-    rw [twoLevel_phase_mulVec, if_pos (Subsingleton.elim u x)]
+    rw [twoLevel_phase_mulVec, ite_eq_left (Subsingleton.elim u x)]
     rfl
 
 /-- The qubit block with rows `(conj(a), conj(b)) / r` and `(-b, a) / r` used to eliminate a
@@ -413,7 +417,7 @@ theorem known_two_coordinate_elimination {I : Type} [Fintype I] [DecidableEq I]
       exact_mod_cast hsq.symm
     refine ⟨knownGivensBlock (ψ x) (ψ y) r,
       knownGivensBlock_unitary (ψ x) (ψ y) r hr hh, ?_⟩
-    rw [twoLevel_pair_mulVec x y _ hxy, if_neg (Ne.symm hxy), if_pos rfl]
+    rw [twoLevel_pair_mulVec x y _ hxy, ite_eq_right (Ne.symm hxy), ite_eq_left rfl]
     have he := congrFun (knownGivensBlock_eliminate (ψ x) (ψ y) r hr hh) true
     simpa [Matrix.mulVec, dotProduct, add_comm] using! he
 
@@ -422,7 +426,7 @@ theorem twoLevel_pair_outside {I : Type} [Fintype I] [DecidableEq I]
     (x y : I) (B : Matrix Bool Bool ℂ) (hxy : x ≠ y) (ψ : QState I)
     (u : I) (hux : u ≠ x) (huy : u ≠ y) :
     (twoLevelMatrix (.pair x y B) *ᵥ ψ) u = ψ u := by
-  rw [twoLevel_pair_mulVec x y B hxy, if_neg hux, if_neg huy]
+  rw [twoLevel_pair_mulVec x y B hxy, ite_eq_right hux, ite_eq_right huy]
 
 /-- At most one legal two-level instruction per coordinate in `s` eliminates those coordinates
 while preserving coordinates outside `s` and the chosen pivot. -/
@@ -472,7 +476,7 @@ theorem knownFrameEmbed_ket (n : ℕ) (x : Reg n) :
   rw [tensorState_ket_ket]
   funext y
   simp only [relabelState, Function.comp_apply, Equiv.symm_symm, Qatlib.Foundations.PureStateMath.Ket,
-    Equiv.apply_eq_iff_eq_symm_apply]
+    Equiv.eq_symm_apply]
 
 /-- Appending zero workspace to the all-false basis state gives the all-false basis state on the
 larger register. -/
@@ -586,7 +590,6 @@ private theorem known_unitary_fixed_row {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ unitaryGroup I ℂ) (x : I)
     (hx : U *ᵥ Qatlib.Foundations.PureStateMath.Ket x = Qatlib.Foundations.PureStateMath.Ket x) (y : I) : U x y = if x = y then 1 else 0 := by
   have h := congrArg (fun v => Uᴴ *ᵥ v) hx
-  (try dsimp only at h)
   rw [Matrix.mulVec_mulVec, show Uᴴ * U = 1 from hU.1, Matrix.one_mulVec] at h
   have hh := congrFun h y
   rw [known_mulVec_ket_apply, Matrix.conjTranspose_apply] at hh
@@ -642,7 +645,7 @@ private theorem known_factorization_supported {I : Type} [Fintype I] [DecidableE
     have hz : star z*z = 1 := by
       have hh := congrArg (fun M : Matrix I I ℂ => M x x) hW.1
       simp only [Matrix.star_eq_conjTranspose, Matrix.mul_apply,
-        Matrix.conjTranspose_apply, Matrix.one_apply, if_true] at hh
+        Matrix.conjTranspose_apply, Matrix.one_apply, ite_true] at hh
       rw [Finset.sum_eq_single x] at hh
       · exact hh
       · intro y _ hy; simp [hwcol y hy]
@@ -1001,13 +1004,13 @@ theorem knownSwapSteps_spec {n : ℕ} (t w : Fin n) :
   · subst w; simp [knownSwapSteps, reflectionLegal, reflectionCompile]
   · refine ⟨?_, by simp [knownSwapSteps, htw], ?_⟩
     · intro g hg
-      simp only [knownSwapSteps, if_neg htw, List.mem_cons, List.not_mem_nil, or_false] at hg
+      simp only [knownSwapSteps, ite_eq_right htw, List.mem_cons, List.not_mem_nil, or_false] at hg
       rcases hg with rfl | rfl | rfl
       exact htw
       exact Ne.symm htw
       exact htw
     · intro x
-      simp only [knownSwapSteps, if_neg htw, reflectionCompile, List.map_cons, List.map_nil,
+      simp only [knownSwapSteps, ite_eq_right htw, reflectionCompile, List.map_cons, List.map_nil,
         run_gate, run_nil, reflectionGateMatrix]
       rw [applyGate_cnotGate_ket n t w htw,
         applyGate_cnotGate_ket n w t (Ne.symm htw), applyGate_cnotGate_ket n t w htw]

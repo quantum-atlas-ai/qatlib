@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QMonteCarlo22.MainResults.Eigenphase.PhaseAlgebra
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QMonteCarlo22.MainResults.Eigenphase.PhaseAlgebra
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,17 +66,19 @@ noncomputable def filtered (θ : J → ℝ) (sHat : J → ℂ) : J → ℂ :=
 noncomputable def invFiltered (θ : J → ℝ) (sHat : J → ℂ) : J → ℂ :=
   fun j => invFilterCoeff (θ j) * sHat j
 
+omit [Fintype J] in
 /-- Pointwise form of Proposition 3.8: the squared modulus of the `j`-th filtered
 coefficient is `q_j · hav θ_j`. -/
-theorem normSq_filtered_apply (θ : J → ℝ) (sHat : J → ℂ) (j : J) :
+theorem normSq_filtered_apply {J : Type*} [_inst0 : Fintype J] (θ : J → ℝ) (sHat : J → ℂ) (j : J) :
     ‖filtered θ sHat j‖ ^ 2 = juProb sHat j * hav (θ j) := by
   unfold filtered juProb
   rw [norm_mul, mul_pow, normSq_filterCoeff]
   ring
 
+omit [Fintype J] in
 /-- Pointwise form of Proposition 3.8 for the inverse filter: the squared modulus of the
 `j`-th inverse-filtered coefficient is `q_j · (hav θ_j)⁻¹`, provided `hav θ_j ≠ 0`. -/
-theorem normSq_invFiltered_apply (θ : J → ℝ) (sHat : J → ℂ) (j : J)
+theorem normSq_invFiltered_apply {J : Type*} [_inst0 : Fintype J] (θ : J → ℝ) (sHat : J → ℂ) (j : J)
     (h : hav (θ j) ≠ 0) :
     ‖invFiltered θ sHat j‖ ^ 2 = juProb sHat j * (hav (θ j))⁻¹ := by
   unfold invFiltered juProb

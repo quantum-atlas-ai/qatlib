@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteTailProgram.Value
-import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Indices
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteTailProgram.Value
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Indices
+
+@[expose] public section
 
 /-!
 # Observed finite-tail programs

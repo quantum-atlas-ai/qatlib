@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerStat
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Lemma61HybridSamplerCoreSepa
+module
+
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerStat
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Lemma61HybridSamplerCoreSepa
+
+@[expose] public section
 
 /-!
 # Cumulative witness-sampler bound

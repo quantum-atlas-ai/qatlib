@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphSpectralDefs
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphSpectralDefs
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Query models for element distinctness and claw finding

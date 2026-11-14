@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualTwoProjectors
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualTwoProjectors
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+
+@[expose] public section
 
 /-!
 # Uniform compilation of alternating verifier measurements
@@ -165,7 +169,7 @@ theorem selected_pulledAccept {H : Type} [Fintype H] [DecidableEq H]
     simpa only [Matrix.star_eq_conjTranspose] using! Matrix.mem_unitaryGroup_iff'.mp hU
   cases outcome with
   | false =>
-      simp only [selected, Bool.false_eq_true, if_false, pulledAccept]
+      simp only [selected, Bool.false_eq_true, ite_false, pulledAccept]
       calc
         1 - Uᴴ * Projector S * U = Uᴴ * U - Uᴴ * Projector S * U := by rw [hleft]
         _ = Uᴴ * (1 - Projector S) * U := by noncomm_ring
@@ -241,7 +245,7 @@ theorem run_alternatingWord (A : ClassicalOracle) (p : WitnessVerifierProgram)
               simp only [alternatingWord, Bool.not_false, cleanSegment, alternatingState]
               exact ih true outcome outcomes _ hlength'
           | true =>
-              simp only [alternatingWord, Bool.not_true, if_true, alternatingState]
+              simp only [alternatingWord, Bool.not_true, ite_true, alternatingState]
               rw [run_acceptSegment A p x hlegal]
               exact ih false outcome outcomes _ hlength'
 
@@ -290,7 +294,7 @@ theorem alternatingWord_length_le (p : WitnessVerifierProgram) (acceptFirst : Bo
           have h := ih true
           omega
       | true =>
-          simp only [Bool.not_true, if_true, acceptSegment_length]
+          simp only [Bool.not_true, ite_true, acceptSegment_length]
           rw [Nat.mul_succ]
           have h := ih false
           omega

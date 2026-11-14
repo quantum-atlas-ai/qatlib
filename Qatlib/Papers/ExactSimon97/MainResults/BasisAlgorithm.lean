@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.Defs
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.Defs
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+
+@[expose] public section
 
 /-!
 # Boolean echelon bases and orthogonal generators

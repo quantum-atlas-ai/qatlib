@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfacesDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfacesDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Payoff and recorded-history interfaces for matrix optimization

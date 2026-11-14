@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Algebra.Polynomial.BigOperators
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Data.Nat.Choose.Cast
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Data.Nat.Choose.Cast
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Polynomial growth between integer-grid nodes
@@ -132,7 +136,7 @@ theorem lagrangeCardinal_eval_node (m d i k : ℕ) (hi : i ≤ d) (hk : k ≤ d)
   rw [hprod]
   by_cases hik : i = k
   · subst hik
-    rw [if_pos rfl, prod_node_sub d i hi]
+    rw [ite_eq_left rfl, prod_node_sub d i hi]
     set B : ℝ := (-1 : ℝ) ^ (d - i) with hB
     have hB2 : B * B = 1 := by
       rw [hB, ← pow_add]
@@ -152,7 +156,7 @@ theorem lagrangeCardinal_eval_node (m d i k : ℕ) (hi : i ≤ d) (hk : k ≤ d)
         = (((i.factorial : ℝ) * ((d - i).factorial : ℝ))⁻¹ *
             ((i.factorial : ℝ) * ((d - i).factorial : ℝ))) * (B * B) := by ring
       _ = 1 := by rw [inv_mul_cancel₀ hCD, hB2, mul_one]
-  · rw [if_neg hik]
+  · rw [ite_eq_right hik]
     have hkmem : k ∈ (Finset.range (d + 1)).erase i := by
       rw [Finset.mem_erase, Finset.mem_range]
       exact ⟨Ne.symm hik, by omega⟩
@@ -232,10 +236,10 @@ theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
     intro j
     simp only [hb]
     by_cases hj : j ≤ k
-    · rw [if_pos hj]
+    · rw [ite_eq_left hj]
       have : 1 ≤ k + 1 - j := by omega
       exact_mod_cast this
-    · rw [if_neg hj]
+    · rw [ite_eq_right hj]
       push Not at hj
       have : 1 ≤ j - k := by omega
       exact_mod_cast this
@@ -244,14 +248,14 @@ theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
     rw [Finset.mem_erase, Finset.mem_range] at hj
     simp only [hb]
     by_cases hj' : j ≤ k
-    · rw [if_pos hj']
+    · rw [ite_eq_left hj']
       have h1 : (j : ℝ) ≤ y := le_trans (by exact_mod_cast hj') hk_y
       rw [abs_of_nonneg (by linarith)]
       have h2 : y - (j : ℝ) ≤ (k : ℝ) + 1 - (j : ℝ) := by linarith
       have h3 : ((k + 1 - j : ℕ) : ℝ) = (k : ℝ) + 1 - (j : ℝ) := by
         rw [Nat.cast_sub (by omega : j ≤ k + 1)]; push_cast; ring
       rw [h3]; exact h2
-    · rw [if_neg hj']
+    · rw [ite_eq_right hj']
       push Not at hj'
       have h1 : y ≤ (j : ℝ) := le_trans hk_y1 (by exact_mod_cast hj')
       rw [abs_of_nonpos (by linarith), neg_sub]
@@ -269,7 +273,7 @@ theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
       have hstep : ∀ j ∈ Finset.range (k + 1), b j = ((k + 1 - j : ℕ) : ℝ) := by
         intro j hj
         rw [Finset.mem_range] at hj
-        simp only [hb]; exact if_pos (by omega)
+        simp only [hb]; exact ite_eq_left (by omega)
       rw [Finset.prod_congr rfl hstep]
       have key : (∏ j ∈ Finset.range (k + 1), (k + 1 - j : ℕ)) = (k + 1).factorial := by
         rw [← Nat.descFactorial_eq_prod_range (k + 1) (k + 1), Nat.descFactorial_self]
@@ -281,7 +285,7 @@ theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
         intro j hj
         rw [Finset.mem_range] at hj
         simp only [hb]
-        rw [if_neg (by omega)]
+        rw [ite_eq_right (by omega)]
         congr 1
         omega
       rw [Finset.prod_congr rfl hstep]
@@ -341,13 +345,13 @@ theorem interpolation_eq (m d : ℕ) {p : Polynomial ℝ} (hdeg : p.natDegree �
       rw [Polynomial.eval_mul, Polynomial.eval_C, lagrangeCardinal_eval_node m d i k
         (by omega) (by omega)]
       by_cases hik : i = k
-      · rw [if_pos hik, if_pos hik, mul_one]
-      · rw [if_neg hik, if_neg hik, mul_zero]
+      · rw [ite_eq_left hik, ite_eq_left hik, mul_one]
+      · rw [ite_eq_right hik, ite_eq_right hik, mul_zero]
     rw [Finset.sum_congr rfl hterm]
     rw [Finset.sum_eq_single k]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro b _ hbk
-      rw [if_neg hbk]
+      rw [ite_eq_right hbk]
     · intro hknot
       exact absurd (Finset.mem_range.mpr hk) hknot
   have hcard : max p.natDegree I.natDegree <

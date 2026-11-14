@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.ProposalUnitary
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.ProposalUnitary
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+
+@[expose] public section
 
 /-!
 # Energy measurements and quantum Metropolis steps
@@ -58,9 +62,9 @@ theorem registerProjector_hermitian (G : PhaseGrid) (j : Fin G.levels) :
   simp only [registerProjector, Matrix.diagonal_apply, Matrix.conjTranspose_apply]
   by_cases h : i = k
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     split_ifs <;> simp
-  · rw [if_neg (Ne.symm h), if_neg h, star_zero]
+  · rw [ite_eq_right (Ne.symm h), ite_eq_right h, star_zero]
 
 /-- Each phase-register basis projector is idempotent. -/
 theorem registerProjector_sq (G : PhaseGrid) (j : Fin G.levels) :
@@ -70,7 +74,7 @@ theorem registerProjector_sq (G : PhaseGrid) (j : Fin G.levels) :
   by_cases h : i = k
   · subst h
     by_cases h1 : i = j <;> simp [h1]
-  · simp only [if_neg h, zero_mul]
+  · simp only [ite_eq_right h, zero_mul]
 
 /-- Summing the equality indicator over a finite index set gives one at any fixed index. -/
 private theorem sum_ite_eq_one (M : ℕ) (i : Fin M) :
@@ -78,7 +82,7 @@ private theorem sum_ite_eq_one (M : ℕ) (i : Fin M) :
   rw [Finset.sum_eq_single i]
   · simp
   · intro b _ hb
-    rw [if_neg (fun h : i = b => hb h.symm)]
+    rw [ite_eq_right (fun h : i = b => hb h.symm)]
   · intro hcon
     exact absurd (Finset.mem_univ i) hcon
 
@@ -89,9 +93,9 @@ theorem registerProjector_sum (G : PhaseGrid) :
   simp only [registerProjector, Matrix.diagonal_apply, Matrix.sum_apply, Matrix.one_apply]
   by_cases h : i = k
   · subst h
-    simp only [if_true]
+    simp only [ite_true]
     rw [sum_ite_eq_one]
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro j _
     simp
@@ -108,19 +112,19 @@ theorem registerProjector_tensor_sum (G : PhaseGrid) (D : ℕ) :
   by_cases hp : (i, a) = (k, b)
   · have hik : i = k := (Prod.mk.inj hp).1
     have hab : a = b := (Prod.mk.inj hp).2
-    simp only [if_pos hik, if_pos hab, if_pos hp, mul_one]
+    simp only [ite_eq_left hik, ite_eq_left hab, ite_eq_left hp, mul_one]
     rw [sum_ite_eq_one]
   · have hzero : (1 : Matrix (QpeSpace G D) (QpeSpace G D) ℂ) (i, a) (k, b) = 0 := by
-      simp only [Matrix.one_apply, if_neg hp, Matrix.zero_apply]
-    simp only [if_neg hp]
+      simp only [Matrix.one_apply, ite_eq_right hp]
+    simp only [ite_eq_right hp]
     apply Finset.sum_eq_zero
     intro j _
     by_cases hik : i = k
     · have hab : a ≠ b := by
         intro h
         exact hp (Prod.ext hik h)
-      simp only [if_pos hik, if_neg hab, mul_zero]
-    · simp only [if_neg hik, zero_mul]
+      simp only [ite_eq_left hik, ite_eq_right hab, mul_zero]
+    · simp only [ite_eq_right hik, zero_mul]
 
 /-- The inverse Fourier transform on the phase register tensored with the system identity is
 unitary. -/
@@ -135,7 +139,7 @@ theorem qftTensorGate_unitary (G : PhaseGrid) (D : ℕ) :
     exact h
   have h1 : (1 : Operator D) ∈ Matrix.unitaryGroup (Fin D) ℂ := by
     rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
-    simp [Matrix.conjTranspose_one, Matrix.one_mul]
+    simp [Matrix.conjTranspose_one]
   exact tensorGate_unitary hU h1
 
 /-- The phase-estimation circuit associated with an energy oracle and phase grid is unitary. -/
@@ -292,7 +296,7 @@ theorem controlledPowers_kickback_general {D M : ℕ} {U : Matrix (Fin D) (Fin D
         = ((Real.sqrt (M : ℝ) : ℂ)⁻¹) * ((U ^ (x.val : ℕ)) *ᵥ ψ) i := by
       simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
       exact Finset.sum_congr rfl fun j _ => by ring
-    simp only [if_true]
+    simp only [ite_true]
     rw [hsum, mulVec_pow_of_eigen hψ, Pi.smul_apply]
     ring
   · intro m _ hm
@@ -331,7 +335,6 @@ theorem qft_readout_amplitude (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) :
     intro x
     rw [hconj]
     have harg : -((x.val : ℤ) * (j.val : ℤ)) = (-((j.val : ℤ))) * ((x.val : ℕ) : ℤ) := by
-      push_cast
       ring
     have hzp : primRoot M ^ (-((x.val : ℤ) * (j.val : ℤ)))
         = (primRoot M ^ (-((j.val : ℤ)))) ^ (x.val : ℕ) := by
@@ -375,7 +378,7 @@ theorem qpe_phase_error_bound (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) (hl
         rw [hw1]
         simp
       rw [hx]
-      simp only [norm_zero, sub_self, zero_mul]
+      simp only [norm_zero, sub_self]
       positivity
     · have hgeom : ∑ i ∈ Finset.range x.val, (lam * primRoot M ^ (-((j.val : ℤ)))) ^ i
           = ((lam * primRoot M ^ (-((j.val : ℤ)))) ^ (x.val : ℕ) - 1)
@@ -576,8 +579,8 @@ theorem acceptMass_le_one {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M �
 
 /-- The acceptance mass and its complementary rejection mass sum to one. -/
 theorem acceptReject_partition {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M → Fin M → ℝ)
-    (ha : ∀ k, accept k ≤ 1) (hp : ∀ k j, 0 ≤ propose k j)
-    (hrow : ∀ j, (∑ k, propose k j) = 1) (j : Fin M) :
+    (_ha : ∀ k, accept k ≤ 1) (_hp : ∀ k j, 0 ≤ propose k j)
+    (_hrow : ∀ j, (∑ k, propose k j) = 1) (j : Fin M) :
     acceptMass M accept propose j + (1 - acceptMass M accept propose j) = 1 := by ring
 
 /-- A chain minorization's parameter is strictly between zero and one. -/
@@ -908,7 +911,7 @@ theorem metropolisReject_branch_restores {D M : ℕ} (P : LabelProjectors D M)
 
 /-- The Metropolis-step ledger assigning grid-sized energy-estimation counts, one proposal, one
 rewind, system field `D`, and `Nat.log2 G.levels + 1` readout bits. -/
-noncomputable def metropolisStepLedger {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
+noncomputable def metropolisStepLedger {D : ℕ} (_O : EnergyOracle D) (G : PhaseGrid) :
     MetropolisStepLedger where
   energyControlledPowers := G.levels
   energyInverseQftGates := G.levels

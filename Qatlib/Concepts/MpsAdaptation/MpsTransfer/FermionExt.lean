@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
+
+@[expose] public section
 
 /-!
 # Complete covariance updates and mode measurements
@@ -138,12 +142,12 @@ theorem frameExtend_one {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     · by_cases hbb : isLocalMajorana i j b
       · rw [frameExtend_apply_right_local_left_away i j 1 a b ha hbb]
         have hne : a ≠ b := fun h => ha (h ▸ hbb)
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
       · rw [frameExtend_apply_away i j 1 a b ha hbb]
     · by_cases haa : isLocalMajorana i j a
       · rw [frameExtend_apply_left_local_right_away i j 1 a b haa hb]
         have hne : a ≠ b := fun h => hb (h ▸ haa)
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
       · rw [frameExtend_apply_away i j 1 a b haa hb]
 
 /-- Transforms `Γ` by congruence with `frameExtend i j R`, including the cross entries between
@@ -544,7 +548,7 @@ theorem measurementProjector_eq_diagonal {n : ℕ} (k : Fin n) (b : Bool) :
     by_cases hx : x k = b <;> simp [hx]
   · rw [Matrix.diagonal_apply_ne _ (fun h => hxy h.symm)]
     have : ¬ (x = y ∧ x k = b) := by intro hh; exact hxy hh.1
-    rw [if_neg this]
+    rw [ite_eq_right this]
 
 /-- An annihilation matrix entry vanishes when the input and output bits at its mode agree. -/
 theorem annihilation_apply_of_bit_eq {n : ℕ} (k : Fin n) {y x : Reg n} (h : y k = x k) :
@@ -555,7 +559,7 @@ theorem annihilation_apply_of_bit_eq {n : ℕ} (k : Fin n) {y x : Reg n} (h : y 
     rw [hcond.2] at h
     rw [Function.update_self] at h
     exact Bool.noConfusion (h.trans hcond.1)
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
 
 /-- A creation matrix entry vanishes when the input and output bits at its mode agree. -/
 theorem creation_apply_of_bit_eq {n : ℕ} (k : Fin n) {y x : Reg n} (h : y k = x k) :
@@ -566,7 +570,7 @@ theorem creation_apply_of_bit_eq {n : ℕ} (k : Fin n) {y x : Reg n} (h : y k = 
     rw [hcond.2] at h
     rw [Function.update_self] at h
     exact hcond.1 h.symm
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
 
 /-- A nonzero entry of the even Majorana operator changes the bit at its mode. -/
 theorem majoranaEven_apply_ne_zero {n : ℕ} (k : Fin n) {y x : Reg n}
@@ -591,7 +595,7 @@ theorem numberOp_mul_annihilation_of_ne {n : ℕ} (k m : Fin n) (hkm : k ≠ m) 
     eq_neg_of_add_eq_zero_left (car_ann n k m)
   have h2 : creation k * annihilation m = -(annihilation m * creation k) := by
     have haa := car_aa n m k
-    rw [if_neg (Ne.symm hkm)] at haa
+    rw [ite_eq_right (Ne.symm hkm)] at haa
     exact eq_neg_of_add_eq_zero_right haa
   calc numberOp k * annihilation m
       = creation k * annihilation k * annihilation m := by
@@ -609,7 +613,7 @@ theorem numberOp_mul_creation_of_ne {n : ℕ} (k m : Fin n) (hkm : k ≠ m) :
     numberOp k * creation m = creation m * numberOp k := by
   have h1 : annihilation k * creation m = -(creation m * annihilation k) := by
     have haa := car_aa n k m
-    rw [if_neg hkm] at haa
+    rw [ite_eq_right hkm] at haa
     exact eq_neg_of_add_eq_zero_left haa
   have h2 : creation k * creation m = -(creation m * creation k) :=
     eq_neg_of_add_eq_zero_left (car_cre n k m)
@@ -695,12 +699,12 @@ theorem measurementProjector_mul_majorana_of_not_mode {n : ℕ} (k : Fin n) (b :
     measurementProjector k b * majorana c = majorana c * measurementProjector k b := by
   rw [majorana_eq_flavour n c]
   by_cases hpar : c.val % 2 = 0
-  · rw [if_pos hpar]
+  · rw [ite_eq_left hpar]
     refine measurementProjector_mul_majoranaEven_of_ne k ⟨c.val / 2, by omega⟩ ?_ b
     intro heq
     exact hc (isModeMajorana_of_val (by simpa using! (congrArg Fin.val heq).symm)
       (Or.inl hpar))
-  · rw [if_neg hpar]
+  · rw [ite_eq_right hpar]
     refine measurementProjector_mul_majoranaOdd_of_ne k ⟨c.val / 2, by omega⟩ ?_ b
     intro heq
     exact hc (isModeMajorana_of_val (by simpa using! (congrArg Fin.val heq).symm)
@@ -735,7 +739,7 @@ theorem measurementProjector_mul_majoranaMul {n : ℕ} (k : Fin n) (b : Bool)
   rw [measurementProjector_eq_diagonal k b]
   ext y x
   simp only [Matrix.mul_apply, Matrix.diagonal_apply, mul_ite, mul_zero,
-    mul_one, Finset.sum_ite_eq', Finset.mem_univ, if_true, Matrix.zero_apply]
+    mul_one, Finset.sum_ite_eq', Finset.mem_univ, ite_true, Matrix.zero_apply]
   by_cases hyx : y k = x k
   · have h0 : γ y x = 0 := by
       by_contra h
@@ -1003,7 +1007,7 @@ theorem measurementUpdate_entry_main {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (
     measurementUpdate Γ k b (majoranaIndices k 0) (majoranaIndices k 1)
       = if b then (-1 : ℝ) else 1 := by
   unfold measurementUpdate
-  rw [Matrix.of_apply, if_pos ⟨rfl, rfl⟩]
+  rw [Matrix.of_apply, ite_eq_left ⟨rfl, rfl⟩]
 
 /-- The measured mode's odd-even entry in `measurementUpdate` is 1 for true and -1 for false. -/
 theorem measurementUpdate_entry_anti {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1012,8 +1016,8 @@ theorem measurementUpdate_entry_anti {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (
       = if b then (1 : ℝ) else -1 := by
   unfold measurementUpdate
   rw [Matrix.of_apply,
-    if_neg (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
-    if_pos ⟨rfl, rfl⟩]
+    ite_eq_right (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
+    ite_eq_left ⟨rfl, rfl⟩]
 
 /-- The diagonal entries of `measurementUpdate` at measured-mode indices vanish. -/
 theorem measurementUpdate_entry_diag {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1023,15 +1027,15 @@ theorem measurementUpdate_entry_diag {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 0) := Or.inl rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => majoranaIndices_ne k 0 1 (by decide) h.2),
-      if_neg (fun h => majoranaIndices_ne k 0 1 (by decide) h.1),
-      if_pos (Or.inl him)]
+      ite_eq_right (fun h => majoranaIndices_ne k 0 1 (by decide) h.2),
+      ite_eq_right (fun h => majoranaIndices_ne k 0 1 (by decide) h.1),
+      ite_eq_left (Or.inl him)]
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 1) := Or.inr rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
-      if_neg (fun h => majoranaIndices_ne k 1 0 (by decide) h.2),
-      if_pos (Or.inl him)]
+      ite_eq_right (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
+      ite_eq_right (fun h => majoranaIndices_ne k 1 0 (by decide) h.2),
+      ite_eq_left (Or.inl him)]
 
 /-- An entry of `measurementUpdate` vanishes when its row belongs to the measured mode and its
 column is external. -/
@@ -1043,15 +1047,15 @@ theorem measurementUpdate_entry_cross_left {n : ℕ}
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 0) := Or.inl rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => hc (Or.inr h.2)),
-      if_neg (fun h => hc (Or.inl h.2)),
-      if_pos (Or.inl him)]
+      ite_eq_right (fun h => hc (Or.inr h.2)),
+      ite_eq_right (fun h => hc (Or.inl h.2)),
+      ite_eq_left (Or.inl him)]
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 1) := Or.inr rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
-      if_neg (fun h => hc (Or.inl h.2)),
-      if_pos (Or.inl him)]
+      ite_eq_right (fun h => majoranaIndices_ne k 1 0 (by decide) h.1),
+      ite_eq_right (fun h => hc (Or.inl h.2)),
+      ite_eq_left (Or.inl him)]
 
 /-- An entry of `measurementUpdate` vanishes when its row is external and its column belongs to
 the measured mode. -/
@@ -1063,15 +1067,15 @@ theorem measurementUpdate_entry_cross_right {n : ℕ}
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 0) := Or.inl rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => ha (Or.inl h.1)),
-      if_neg (fun h => ha (Or.inr h.1)),
-      if_pos (Or.inr him)]
+      ite_eq_right (fun h => ha (Or.inl h.1)),
+      ite_eq_right (fun h => ha (Or.inr h.1)),
+      ite_eq_left (Or.inr him)]
   · unfold measurementUpdate
     have him : isModeMajorana k (majoranaIndices k 1) := Or.inr rfl
     rw [Matrix.of_apply,
-      if_neg (fun h => ha (Or.inl h.1)),
-      if_neg (fun h => ha (Or.inr h.1)),
-      if_pos (Or.inr him)]
+      ite_eq_right (fun h => ha (Or.inl h.1)),
+      ite_eq_right (fun h => ha (Or.inr h.1)),
+      ite_eq_left (Or.inr him)]
 
 /-- The measurement update retains entries with both indices outside the measured mode. -/
 theorem measurementUpdate_entry_away {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1080,9 +1084,9 @@ theorem measurementUpdate_entry_away {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (
     measurementUpdate Γ k b a c = Γ a c := by
   unfold measurementUpdate
   rw [Matrix.of_apply,
-    if_neg (fun h => hc (Or.inr h.2)),
-    if_neg (fun h => hc (Or.inl h.2)),
-    if_neg (fun h => h.elim ha hc)]
+    ite_eq_right (fun h => hc (Or.inr h.2)),
+    ite_eq_right (fun h => hc (Or.inl h.2)),
+    ite_eq_right (fun h => h.elim ha hc)]
 
 /-- If every external covariance entry after projection equals its original value times the
 outcome weight, the full projected covariance equals that weight times `measurementUpdate`.
@@ -1138,10 +1142,20 @@ private def counterexampleR : Matrix (Fin 4) (Fin 4) ℝ :=
 /-- For the specified three-mode example, the local-block and complete covariance updates differ
 at an explicit local-to-external entry. -/
 theorem covarianceUpdate_ne_covarianceUpdateComplete_entry :
-    covarianceUpdate counterexampleΓ 0 2 counterexampleR (majoranaIndices 0 0)
+    let Γ : Matrix (Fin (2 * 3)) (Fin (2 * 3)) ℝ :=
+      Matrix.of fun a c =>
+        if a = majoranaIndices 0 0 ∧ c = majoranaIndices 1 0 then (1 : ℝ) else 0
+    let R : Matrix (Fin 4) (Fin 4) ℝ :=
+      Matrix.of fun p q =>
+        if p = 0 ∧ q = 1 then (1 : ℝ) else if p = 1 ∧ q = 0 then 1
+        else if p = 2 ∧ q = 2 then 1 else if p = 3 ∧ q = 3 then 1 else 0
+    covarianceUpdate Γ 0 2 R (majoranaIndices 0 0)
         (majoranaIndices 1 0)
-      ≠ covarianceUpdateComplete counterexampleΓ 0 2 counterexampleR
+      ≠ covarianceUpdateComplete Γ 0 2 R
         (majoranaIndices 0 0) (majoranaIndices 1 0) := by
+  change covarianceUpdate counterexampleΓ 0 2 counterexampleR (majoranaIndices 0 0)
+    (majoranaIndices 1 0) ≠ covarianceUpdateComplete counterexampleΓ 0 2 counterexampleR
+      (majoranaIndices 0 0) (majoranaIndices 1 0)
   have hc : ¬ isLocalMajorana (0 : Fin 3) (2 : Fin 3) (majoranaIndices 1 0) := by decide
   have hold : covarianceUpdate counterexampleΓ 0 2 counterexampleR (majoranaIndices 0 0)
       (majoranaIndices 1 0) = 1 := by
@@ -1169,8 +1183,16 @@ theorem covarianceUpdate_ne_covarianceUpdateComplete_entry :
 /-- The specified three-mode example yields distinct matrices under the local-block and complete
 covariance updates. -/
 theorem covarianceUpdate_ne_covarianceUpdateComplete :
-    covarianceUpdate counterexampleΓ 0 2 counterexampleR
-      ≠ covarianceUpdateComplete counterexampleΓ 0 2 counterexampleR := by
+    let Γ : Matrix (Fin (2 * 3)) (Fin (2 * 3)) ℝ :=
+      Matrix.of fun a c =>
+        if a = majoranaIndices 0 0 ∧ c = majoranaIndices 1 0 then (1 : ℝ) else 0
+    let R : Matrix (Fin 4) (Fin 4) ℝ :=
+      Matrix.of fun p q =>
+        if p = 0 ∧ q = 1 then (1 : ℝ) else if p = 1 ∧ q = 0 then 1
+        else if p = 2 ∧ q = 2 then 1 else if p = 3 ∧ q = 3 then 1 else 0
+    covarianceUpdate Γ 0 2 R ≠ covarianceUpdateComplete Γ 0 2 R := by
+  change covarianceUpdate counterexampleΓ 0 2 counterexampleR
+    ≠ covarianceUpdateComplete counterexampleΓ 0 2 counterexampleR
   intro h
   exact covarianceUpdate_ne_covarianceUpdateComplete_entry
     (congrArg (fun X => X (majoranaIndices 0 0) (majoranaIndices 1 0)) h)
@@ -1209,8 +1231,14 @@ theorem frontier1 :
             = bornWeight M k β * covarianceMatrix M a c),
         covarianceMatrix (measurementProjector k β * M)
           = bornWeight M k β • measurementUpdate (covarianceMatrix M) k β)
-    ∧ covarianceUpdate counterexampleΓ 0 2 counterexampleR
-        ≠ covarianceUpdateComplete counterexampleΓ 0 2 counterexampleR :=
+    ∧ (let Γ : Matrix (Fin (2 * 3)) (Fin (2 * 3)) ℝ :=
+         Matrix.of fun a c =>
+           if a = majoranaIndices 0 0 ∧ c = majoranaIndices 1 0 then (1 : ℝ) else 0
+       let R : Matrix (Fin 4) (Fin 4) ℝ :=
+         Matrix.of fun p q =>
+           if p = 0 ∧ q = 1 then (1 : ℝ) else if p = 1 ∧ q = 0 then 1
+           else if p = 2 ∧ q = 2 then 1 else if p = 3 ∧ q = 3 then 1 else 0
+       covarianceUpdate Γ 0 2 R ≠ covarianceUpdateComplete Γ 0 2 R) :=
   ⟨fun _ Γ i j hij R p c hb => covarianceUpdateComplete_cross Γ i j hij R p c hb,
     fun _ Γ i j hij R => localBlock_covarianceUpdateComplete Γ i j hij R,
     fun _ gl h M => covarianceMatrix_matchGateCircuit_of_bridged gl h M,

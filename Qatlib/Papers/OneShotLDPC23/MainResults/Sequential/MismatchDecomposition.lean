@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneShotLDPC23.MainResults.Model.BinaryWeight
+module
+
+public import Qatlib.Papers.OneShotLDPC23.MainResults.Model.BinaryWeight
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -63,7 +67,7 @@ theorem step_reduces_cumulative {Q : Type*} [Fintype Q] (δ : ℝ)
     (F : List (BitVec Q)) (Z : BitVec Q) (h : StepReduces δ Z F) :
     (1 - δ) * (F.map weightR).sum ≤ weightR Z - weightR (Z + F.sum) := by
   induction F generalizing Z with
-  | nil => simp [StepReduces]
+  | nil => simp
   | cons x xs ih =>
     obtain ⟨hx, hxs⟩ := h
     have hrest := ih (Z + x) hxs
@@ -133,16 +137,16 @@ theorem overlap_add_left_self {Q : Type*} [Fintype Q] (x y : BitVec Q) :
   by_cases hx : x i = 0
   · have h1 : ¬ ((x + y) i ≠ 0 ∧ x i ≠ 0) := fun h => h.2 hx
     have h2 : ¬ (x i ≠ 0 ∧ y i ≠ 0) := fun h => h.1 hx
-    simp [hx, h1, h2]
+    simp [hx]
   · by_cases hy : y i = 0
     · have hxy : (x + y) i ≠ 0 := by
         show x i + y i ≠ 0
         rw [hy, add_zero]
         exact hx
       have h2 : ¬ (x i ≠ 0 ∧ y i ≠ 0) := fun h => h.2 hy
-      simp [hx, hy, hxy, h2]
+      simp [hx, hy]
     · have hxy : (x + y) i = 0 := binary_add_eq_zero (x i) (y i) hx hy
-      simp [hx, hy, hxy]
+      simp [hx, hy]
 
 /-- Real form: `|(x+y) ∩ x| + |x ∩ y| = |x|`. -/
 theorem overlapR_add_left_self {Q : Type*} [Fintype Q] (x y : BitVec Q) :
@@ -166,7 +170,7 @@ theorem list_sum_filter_add {α : Type*} (l : List α) (p : α → Bool) (f : α
         cases hp : p x
         · rfl
         · exact absurd hp hx
-      simp [hx', hx] at ih ⊢
+      simp [hx'] at ih ⊢
       linarith
 
 /-- Termwise comparison of mapped list sums. -/
@@ -202,7 +206,7 @@ is `δ`-decomposable with decomposition `F = {xᵢ}`.  For
 `c₁|Z| ≤ c₂|Z_N|` (the `sum = 0` specialization). -/
 theorem lemma_4_13 {Q : Type*} [Fintype Q] [DecidableEq Q]
     (Z ZN : BitVec Q) (F : List (BitVec Q)) (δ ε : ℝ)
-    (hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hε : 0 < ε) (hε1 : ε < 1)
+    (_hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hε : 0 < ε) (hε1 : ε < 1)
     (hdec : DeltaDecomposes δ Z F) :
     ((ε - 2 * δ) / (ε * (1 - δ))) * weightR Z - (2 / ε) * weightR ZN ≤
       ((F.filter fun x => (1 - ε) * weightR x ≤
@@ -287,7 +291,6 @@ theorem lemma_4_13 {Q : Type*} [Fintype Q] [DecidableEq Q]
       have heq : (1 - ε / 2) * (weightR Z / (1 - δ)) =
           (2 - ε) / (2 * (1 - δ)) * weightR Z := by
         field_simp
-        try ring
       linarith
     nlinarith [le_trans hlower hupper, hFsum, h1]
   have hkey : (2 / ε) * (weightR Z - weightR ZN - (2 - ε) / (2 * (1 - δ)) * weightR Z) =

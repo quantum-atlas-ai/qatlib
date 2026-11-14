@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
+
+@[expose] public section
 
 /-!
 # Numerical medians for counting repetition

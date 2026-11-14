@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
-import Qatlib.Papers.RydbergMaxCut26.Rounding.PhysicalRounding
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.PhysicalRounding
+
+@[expose] public section
 
 /-!
 # Gaussian laws for physical fit vectors

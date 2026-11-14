@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+module
+
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

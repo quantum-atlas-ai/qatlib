@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+
+@[expose] public section
 
 /-!
 # Finite-window transitions with explicit escape outcomes
@@ -47,6 +51,7 @@ section B3WindowWellformed
 variable {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q] [Fintype A]
   [DecidableEq A]
 
+omit [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A] in
 /-- Two window configurations are equal when their head positions, internal states, and tapes
 are equal. -/
 private theorem windowCfg_eq {c c' : WindowCfg t Q A} (h : c.head = c'.head)
@@ -64,12 +69,12 @@ private lemma moveCell_left_iff {h k : Fin (2 * t + 1)} :
   · have hlt : h.val < 2 * t + 1 := h.isLt
     constructor
     · intro hc
-      simp only [moveCell, dif_neg hh] at hc
+      simp only [moveCell, dite_eq_right hh] at hc
       have hv : h.val - 1 = k.val := congrArg Fin.val (Option.some.inj hc)
       omega
     · rintro ⟨_, hc⟩
       have hmc : moveCell QtmMove.left h = some ⟨h.val - 1, by omega⟩ := by
-        simp only [moveCell, dif_neg hh]
+        simp only [moveCell, dite_eq_right hh]
       rw [hmc]
       refine congrArg some (Fin.ext ?_)
       show h.val - 1 = k.val
@@ -90,12 +95,12 @@ private lemma moveCell_right_iff {h k : Fin (2 * t + 1)} :
   · have hlt : h.val < 2 * t + 1 := h.isLt
     constructor
     · intro hc
-      simp only [moveCell, dif_neg hh] at hc
+      simp only [moveCell, dite_eq_right hh] at hc
       have hv : h.val + 1 = k.val := congrArg Fin.val (Option.some.inj hc)
       omega
     · rintro ⟨_, hc⟩
       have hmc : moveCell QtmMove.right h = some ⟨h.val + 1, by omega⟩ := by
-        simp only [moveCell, dif_neg hh]
+        simp only [moveCell, dite_eq_right hh]
       rw [hmc]
       refine congrArg some (Fin.ext ?_)
       show h.val + 1 = k.val
@@ -193,23 +198,23 @@ private lemma windowStep_apply (M : LocalQTM Q A) (c' c : WindowCfg t Q A) :
           M.step c.state (c.tape c.head) d c'.state (c'.tape c.head) := by
         rw [Finset.sum_eq_single_of_mem c'.state (Finset.mem_univ _)
           (fun q' _ hq' => Finset.sum_eq_zero fun b _ =>
-            if_neg (fun ht => hq' ht.2.1.symm))]
+            ite_eq_right (fun ht => hq' ht.2.1.symm))]
         rw [Finset.sum_eq_single_of_mem (c'.tape c.head) (Finset.mem_univ _)
-          (fun b _ hb => if_neg (fun ht => hb (by
+          (fun b _ hb => ite_eq_right (fun ht => hb (by
             have hj := ht.2.2 c.head
-            rw [if_pos rfl] at hj
+            rw [ite_eq_left rfl] at hj
             exact hj.symm)))]
-        rw [if_pos ⟨hmc, rfl, fun j => by
+        rw [ite_eq_left ⟨hmc, rfl, fun j => by
           by_cases hj : j = c.head
           · simp [hj]
           · simp [hj, hag j hj]⟩]
-      rw [hR, if_pos ⟨hmc, hag⟩]
-    · rw [if_neg (fun h => hag h.2)]
+      rw [hR, ite_eq_left ⟨hmc, hag⟩]
+    · rw [ite_eq_right (fun h => hag h.2)]
       refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun b _ =>
-        if_neg (fun ht => hag (fun j hj => (ht.2.2 j).trans (if_neg hj)))
-  · rw [if_neg (fun h => hmc h.1)]
+        ite_eq_right (fun ht => hag (fun j hj => (ht.2.2 j).trans (ite_eq_right hj)))
+  · rw [ite_eq_right (fun h => hmc h.1)]
     refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun b _ =>
-      if_neg (fun ht => hmc ht.1)
+      ite_eq_right (fun ht => hmc ht.1)
 
 /-- The conjugate of a window transition entry is the sum of the conjugates of its move-specific
 amplitudes. -/
@@ -245,6 +250,7 @@ private lemma inner_expand (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
           star (stepAmp M c₁ d₁ c') * stepAmp M c₂ d₂ c' :=
         Finset.sum_congr rfl fun d₁ _ => Finset.sum_comm
 
+omit [DecidableEq Q] in
 /-- For equal write positions and tapes agreeing away from that position, the constrained
 configuration sum reduces to a sum over the output state and the single written symbol. -/
 private lemma sum_write_one (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 * t + 1) → A)
@@ -276,7 +282,7 @@ private lemma sum_write_one (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (
       refine ⟨⟨k, p.1, fun j => if j = k₁ then p.2 else σ₁ j⟩, ?_, by simp⟩
       refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, ⟨rfl, fun j hj => by simp [hj], ?_⟩⟩
       intro j hj
-      simp only [if_neg hj]
+      simp only [ite_eq_right hj]
       exact hcomp j hj
     · intro a ha
       have h₁ := (Finset.mem_filter.mp ha).2
@@ -289,6 +295,7 @@ private lemma sum_write_one (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (
   exact Fintype.sum_prod_type
     (f := fun p => F ⟨k, p.1, fun j => if j = k₁ then p.2 else σ₁ j⟩)
 
+omit [DecidableEq Q] in
 /-- For distinct write positions and tapes agreeing away from both, the two tape constraints
 uniquely determine the output tape, leaving only a sum over output states. -/
 private lemma sum_pin_two (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 * t + 1) → A)
@@ -322,7 +329,7 @@ private lemma sum_pin_two (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 
     intro j hj
     by_cases hj' : j = k₁
     · simp [hj']
-    · simp only [if_neg hj']
+    · simp only [ite_eq_right hj']
       exact hcomp j hj' hj
   · intro a ha
     have h₁ := (Finset.mem_filter.mp ha).2
@@ -352,10 +359,10 @@ private lemma stepAmp_merge (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d�
   · have hk' : c'.head = k := (Option.some.inj (h₁e.symm.trans p₁.1)).symm
     by_cases p₂ : moveCell d₂ c₂.head = some c'.head ∧
         ∀ j : Fin (2 * t + 1), j ≠ c₂.head → c'.tape j = c₂.tape j
-    · rw [if_pos ⟨p₁, p₂⟩, if_pos ⟨hk', p₁.2, p₂.2⟩]
-    · rw [if_neg (fun hp => p₂ hp.2), if_neg (fun hp =>
+    · rw [ite_eq_left ⟨p₁, p₂⟩, ite_eq_left ⟨hk', p₁.2, p₂.2⟩]
+    · rw [ite_eq_right (fun hp => p₂ hp.2), ite_eq_right (fun hp =>
         p₂ ⟨by rw [h₂e, hp.1], hp.2.2⟩)]
-  · rw [if_neg (fun hp => p₁ hp.1), if_neg (fun hp =>
+  · rw [ite_eq_right (fun hp => p₁ hp.1), ite_eq_right (fun hp =>
       p₁ ⟨by rw [h₁e, hp.1], hp.2.1⟩)]
 
 /-- For a common move direction, the column inner product reduces to a local transition inner
@@ -373,19 +380,19 @@ private lemma inner_sameMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
   · have hz : ∀ c' : WindowCfg t Q A, stepAmp M c₁ d c' = 0 := by
       intro c'; unfold stepAmp; simp [e]
     rw [Finset.sum_congr rfl (fun c' _ => by rw [hz c', star_zero, zero_mul]),
-      Finset.sum_const_zero, if_neg (fun h => h.2.2 rfl)]
+      Finset.sum_const_zero, ite_eq_right (fun h => h.2.2 rfl)]
   · have h1e : moveCell d c₁.head = some k := e
     by_cases h2e : moveCell d c₂.head = some k
     · have hhead : c₁.head = c₂.head := moveCell_inj d (by rw [h1e, h2e])
       by_cases hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₂.tape j
-      · rw [if_pos ⟨hcomp, by rw [h2e], by simp⟩]
+      · rw [ite_eq_left ⟨hcomp, by rw [h2e], by simp⟩]
         rw [Finset.sum_congr rfl
           (fun c' _ => stepAmp_merge M c₁ c₂ d d k h1e h2e c')]
         rw [sum_write_one k c₁.head c₂.head c₁.tape c₂.tape _ hhead hcomp]
         refine Finset.sum_congr rfl fun q' _ => Finset.sum_congr rfl fun b _ => ?_
         (try dsimp only)
-        rw [if_pos rfl, if_pos hhead.symm]
-      · rw [if_neg (fun h => hcomp h.1)]
+        rw [ite_eq_left rfl, ite_eq_left hhead.symm]
+      · rw [ite_eq_right (fun h => hcomp h.1)]
         refine Finset.sum_eq_zero fun c' _ => ?_
         unfold stepAmp
         by_cases p₁ : moveCell d c₁.head = some c'.head ∧
@@ -396,7 +403,7 @@ private lemma inner_sameMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
               (p₁.2 j hj).symm.trans (p₂.2 j (fun h => hj (h.trans hhead.symm)))) hcomp
           · simp [p₂]
         · simp [p₁]
-    · rw [if_neg (fun h => h2e h.2.1.symm)]
+    · rw [ite_eq_right (fun h => h2e h.2.1.symm)]
       refine Finset.sum_eq_zero fun c' _ => ?_
       unfold stepAmp
       by_cases p₁ : moveCell d c₁.head = some c'.head ∧
@@ -419,13 +426,13 @@ private lemma cross_reduce (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d�
             M.step c₂.state (c₂.tape c₂.head) d₂ q' (c₁.tape c₂.head)
       else 0 := by
   by_cases hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → j ≠ c₂.head → c₁.tape j = c₂.tape j
-  · rw [if_pos hcomp]
+  · rw [ite_eq_left hcomp]
     rw [Finset.sum_congr rfl (fun c' _ => stepAmp_merge M c₁ c₂ d₁ d₂ k h₁e h₂e c')]
     rw [sum_pin_two k c₁.head c₂.head c₁.tape c₂.tape _ hk hcomp]
     refine Finset.sum_congr rfl fun q' _ => ?_
     (try dsimp only)
-    rw [if_pos rfl, if_neg (Ne.symm hk)]
-  · rw [if_neg hcomp]
+    rw [ite_eq_left rfl, ite_eq_right (Ne.symm hk)]
+  · rw [ite_eq_right hcomp]
     refine Finset.sum_eq_zero fun c' _ => ?_
     unfold stepAmp
     by_cases p₁ : moveCell d₁ c₁.head = some c'.head ∧
@@ -436,6 +443,7 @@ private lemma cross_reduce (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d�
       · simp [p₂]
     · simp [p₁]
 
+omit [DecidableEq Q] in
 /-- A finite complex inner-product sum equals the conjugate of the sum with conjugation on the
 second factor. -/
 private lemma sum_star_mul_eq (x y : Q → ℂ) :
@@ -454,7 +462,7 @@ private lemma inner_diffMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
       hd (moveCell_some_inj d₁ d₂ (by rw [← he]; exact h₁e) h₂e)
     rw [cross_reduce M c₁ c₂ d₁ d₂ k h₁e h₂e hk]
     by_cases hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → j ≠ c₂.head → c₁.tape j = c₂.tape j
-    · rw [if_pos hcomp]
+    · rw [ite_eq_left hcomp]
       rcases d₁ with _ | _ | _ <;> rcases d₂ with _ | _ | _
       all_goals first
       | exact absurd rfl hd
@@ -467,7 +475,7 @@ private lemma inner_diffMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
       | (rw [Finset.sum_congr rfl (fun q' _ => mul_comm _ _)];
           exact M.wf_rightLeft _ _ _ _ _ _)
       | (rw [sum_star_mul_eq, M.wf_rightLeft _ _ _ _ _ _, star_zero])
-    · rw [if_neg hcomp]
+    · rw [ite_eq_right hcomp]
   · refine Finset.sum_eq_zero fun c' _ => ?_
     unfold stepAmp
     by_cases p₁ : moveCell d₁ c₁.head = some c'.head ∧
@@ -501,9 +509,9 @@ theorem windowStep_inner_self (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   refine Finset.sum_congr rfl fun d _ => ?_
   rw [inner_sameMove M c c d]
   by_cases hn : moveCell d c.head = none
-  · rw [if_neg (fun h => h.2.2 hn)]
+  · rw [ite_eq_right (fun h => h.2.2 hn)]
     simp [hn]
-  · rw [if_pos ⟨fun j _ => rfl, rfl, hn⟩]
+  · rw [ite_eq_left ⟨fun j _ => rfl, rfl, hn⟩]
     simp [hn]
 
 /-- The sum of squared local transition amplitudes for head moves that leave the finite window. -/
@@ -522,7 +530,7 @@ theorem windowEscapeMass_eq (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   rw [windowEscapeMass, Finset.sum_filter]
   have henum : (Finset.univ : Finset QtmMove) =
       {QtmMove.left, QtmMove.stay, QtmMove.right} := by
-    ext d <;> cases d <;> simp
+    ext d; cases d <;> simp
   rw [henum]
   by_cases hl : c.head.val = 0 <;> by_cases hr : c.head.val = 2 * t <;>
     simp [moveCell_left_none, moveCell_right_none, moveCell_stay_ne_none, hl, hr]
@@ -585,8 +593,7 @@ theorem windowStep_columnNorm_add_windowEscapeMass (M : LocalQTM Q A) (c : Windo
       (∑ c' : WindowCfg t Q A, star (windowStep M c' c) * windowStep M c' c).re := by
     have hcast : (∑ c' : WindowCfg t Q A, star (windowStep M c' c) * windowStep M c' c).re
         = ∑ c' : WindowCfg t Q A, (star (windowStep M c' c) * windowStep M c' c).re := by
-      simpa using! map_sum Complex.reAddGroupHom
-        (fun c' => star (windowStep M c' c) * windowStep M c' c) Finset.univ
+      simp
     rw [hcast]
     exact Finset.sum_congr rfl fun c' _ => normSq_eq _
   have h2 := windowStep_inner_self M c
@@ -599,11 +606,7 @@ theorem windowStep_columnNorm_add_windowEscapeMass (M : LocalQTM Q A) (c : Windo
       (if moveCell d c.head = none then (0 : ℂ)
         else star (M.step c.state (c.tape c.head) d q' b) *
           M.step c.state (c.tape c.head) d q' b)).re := by
-    simpa using! map_sum Complex.reAddGroupHom
-      (fun d => ∑ q' : Q, ∑ b : A,
-        (if moveCell d c.head = none then (0 : ℂ)
-          else star (M.step c.state (c.tape c.head) d q' b) *
-            M.step c.state (c.tape c.head) d q' b)) Finset.univ
+    simp
   rw [h1, h2re, hcast]
   have h3 : windowEscapeMass M c =
       ∑ d : QtmMove, if moveCell d c.head = none then
@@ -655,7 +658,7 @@ theorem windowStep_columnNorm_interior (M : LocalQTM Q A) (c : WindowCfg t Q A)
   have h := windowStep_columnNorm_add_windowEscapeMass M c
   have hf : (Finset.univ : Finset QtmMove).filter
       (fun d => moveCell d c.head = none) = ∅ := by
-    ext d <;> cases d <;>
+    ext d; cases d <;>
       simp [moveCell_left_none, moveCell_right_none, moveCell_stay_ne_none, h₀, h₂t]
   rw [windowEscapeMass, hf, Finset.sum_empty] at h
   linarith
@@ -679,9 +682,9 @@ theorem windowStep_gram_interior (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A
       if c₁ = c₂ then (1 : ℂ) else 0 := by
   by_cases he : c₁ = c₂
   · subst he
-    rw [if_pos rfl, gram_self_cast, windowStep_columnNorm_interior M c₁ h₁₀ h₁t]
+    rw [ite_eq_left rfl, gram_self_cast, windowStep_columnNorm_interior M c₁ h₁₀ h₁t]
     simp
-  · rw [if_neg he, inner_expand, inner_offdiag_zero]
+  · rw [ite_eq_right he, inner_expand, inner_offdiag_zero]
     have hnne₁ : ∀ d : QtmMove, moveCell d c₁.head ≠ none := by
       intro d; cases d with
       | left => intro h; exact h₁₀ (moveCell_left_none.mp h)
@@ -704,7 +707,7 @@ theorem windowStep_gram_interior (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A
                 star (M.step c₁.state (c₁.tape c₁.head) d q' b) *
                   M.step c₂.state (c₂.tape c₂.head) d q' b := by
                   refine Finset.sum_congr rfl fun d _ => ?_
-                  rw [inner_sameMove M c₁ c₂ d, if_pos ⟨hcomp, by rw [hhead], hnne₁ d⟩]
+                  rw [inner_sameMove M c₁ c₂ d, ite_eq_left ⟨hcomp, by rw [hhead], hnne₁ d⟩]
           _ = ∑ q' : Q, ∑ d : QtmMove, ∑ b : A,
               star (M.step c₁.state (c₁.tape c₁.head) d q' b) *
                 M.step c₂.state (c₂.tape c₂.head) d q' b := Finset.sum_comm
@@ -717,13 +720,13 @@ theorem windowStep_gram_interior (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A
           (∑ c' : WindowCfg t Q A,
             star (stepAmp M c₁ d c') * stepAmp M c₂ d c') = 0 := by
           intro d
-          rw [inner_sameMove M c₁ c₂ d, if_neg (fun h => hcomp h.1)]
+          rw [inner_sameMove M c₁ c₂ d, ite_eq_right (fun h => hcomp h.1)]
         exact Finset.sum_eq_zero fun d _ => hz d
     · have hz : ∀ d : QtmMove,
         (∑ c' : WindowCfg t Q A,
           star (stepAmp M c₁ d c') * stepAmp M c₂ d c') = 0 := by
         intro d
-        rw [inner_sameMove M c₁ c₂ d, if_neg (fun h => hhead (moveCell_inj d h.2.1))]
+        rw [inner_sameMove M c₁ c₂ d, ite_eq_right (fun h => hhead (moveCell_inj d h.2.1))]
       exact Finset.sum_eq_zero fun d _ => hz d
 
 end B3WindowWellformed
@@ -775,6 +778,7 @@ theorem windowEscAmp_prod (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove)
           ∀ j : Fin (2 * t + 1), j ≠ c.head → τ' j = c.tape j
       then M.step c.state (c.tape c.head) d q' (τ' c.head) else 0 := rfl
 
+omit [DecidableEq Q] [DecidableEq A] in
 /-- Summing over escape outcomes is the iterated sum over move directions, output states, and
 output tapes. -/
 private lemma sum_esc_triple {γ : Type*} [AddCommMonoid γ] (F : WindowEsc t Q A → γ) :
@@ -827,12 +831,12 @@ theorem windowEscAmp_mass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
         intro τ'
         rw [windowEscAmp_prod]
         by_cases hc : ∀ j : Fin (2 * t + 1), j ≠ c.head → τ' j = c.tape j
-        · rw [if_pos ⟨hd, hc⟩, if_pos hc]
-        · rw [if_neg (fun hcon => hc hcon.2), if_neg hc]
+        · rw [ite_eq_left ⟨hd, hc⟩, ite_eq_left hc]
+        · rw [ite_eq_right (fun hcon => hc hcon.2), ite_eq_right hc]
           simp
       have hsum := sum_tape_one c.head c.tape
         (fun b : A => ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2)
-      rw [if_pos hd]
+      rw [ite_eq_left hd]
       calc
         ∑ τ' : Fin (2 * t + 1) → A, ‖windowEscAmp M c (d, q', τ')‖ ^ 2
             = ∑ τ' : Fin (2 * t + 1) → A,
@@ -842,11 +846,11 @@ theorem windowEscAmp_mass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
         _ = ∑ b : A, ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2 := hsum
     · have hz : ∀ τ' : Fin (2 * t + 1) → A, ‖windowEscAmp M c (d, q', τ')‖ ^ 2 = 0 := by
         intro τ'
-        rw [windowEscAmp_prod, if_neg]
+        rw [windowEscAmp_prod, ite_eq_right]
         · simp
         · intro hcon
           exact hd hcon.1
-      rw [if_neg hd]
+      rw [ite_eq_right hd]
       calc
         ∑ τ' : Fin (2 * t + 1) → A, ‖windowEscAmp M c (d, q', τ')‖ ^ 2
             = ∑ τ' : Fin (2 * t + 1) → A, (0 : ℝ) :=
@@ -863,12 +867,12 @@ theorem windowEscAmp_mass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     · have h1 : (∑ q' : Q, (if moveCell d c.head = none then
           ∑ b : A, ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2 else 0)) =
           ∑ q' : Q, ∑ b : A, ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2 :=
-        Finset.sum_congr rfl fun q' _ => if_pos hd
-      rw [h1, if_pos hd]
+        Finset.sum_congr rfl fun q' _ => ite_eq_left hd
+      rw [h1, ite_eq_left hd]
     · have h1 : (∑ q' : Q, (if moveCell d c.head = none then
           ∑ b : A, ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2 else 0)) = 0 :=
-        Finset.sum_eq_zero fun q' _ => if_neg hd
-      rw [h1, if_neg hd]
+        Finset.sum_eq_zero fun q' _ => ite_eq_right hd
+      rw [h1, ite_eq_right hd]
   rw [hswap, windowEscapeMass, ← Finset.sum_filter]
 
 /-- The Gram entry for two window transition columns is the sum of the local same-direction
@@ -893,7 +897,7 @@ private lemma escGram_diffHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
   refine Finset.sum_eq_zero fun e _ => ?_
   unfold windowEscAmp
   rw [star_ite_mul]
-  apply if_neg
+  apply ite_eq_right
   intro hcon
   exact hh (moveCell_inj e.1 (by rw [hcon.1.1, hcon.2.1]))
 
@@ -913,7 +917,7 @@ private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
   classical
   rw [sum_esc_triple]
   by_cases hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₂.tape j
-  · rw [if_pos hcomp]
+  · rw [ite_eq_left hcomp]
     have hper : ∀ d : QtmMove, ∀ q' : Q,
         (∑ τ' : Fin (2 * t + 1) → A,
           star (windowEscAmp M c₁ (d, q', τ')) * windowEscAmp M c₂ (d, q', τ')) =
@@ -941,11 +945,11 @@ private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
             exact (hc j hj').trans (hcomp j hj')
           have hmv : moveCell d c₂.head = none ↔ moveCell d c₁.head = none := by rw [hh]
           by_cases hd : moveCell d c₁.head = none
-          · rw [if_pos ⟨⟨hd, hc⟩, ⟨hmv.mpr hd, hc₂⟩⟩, hτh τ', if_pos hc, if_pos hd]
-          · rw [if_neg (fun hcon => hd hcon.1.1), if_pos hc, if_neg hd]
-        · rw [if_neg (fun hcon => hc hcon.1.2), if_neg hc]
+          · rw [ite_eq_left ⟨⟨hd, hc⟩, ⟨hmv.mpr hd, hc₂⟩⟩, hτh τ', ite_eq_left hc, ite_eq_left hd]
+          · rw [ite_eq_right (fun hcon => hd hcon.1.1), ite_eq_left hc, ite_eq_right hd]
+        · rw [ite_eq_right (fun hcon => hc hcon.1.2), ite_eq_right hc]
       by_cases hd : moveCell d c₁.head = none
-      · rw [if_pos hd]
+      · rw [ite_eq_left hd]
         have hfold : ∀ τ' : Fin (2 * t + 1) → A,
             (if ∀ j : Fin (2 * t + 1), j ≠ c₁.head → τ' j = c₁.tape j then
               (if moveCell d c₁.head = none then
@@ -958,13 +962,13 @@ private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
                 M.step c₂.state (c₂.tape c₂.head) d q' (τ' c₁.head)
               else 0) := by
           intro τ'
-          rw [if_pos hd]
+          rw [ite_eq_left hd]
         have hsum := sum_tape_one c₁.head c₁.tape
           (fun b : A => star (M.step c₁.state (c₁.tape c₁.head) d q' b) *
             M.step c₂.state (c₂.tape c₂.head) d q' b)
         rw [Finset.sum_congr rfl (fun τ' _ => hτ' τ')]
         rw [Finset.sum_congr rfl (fun τ' _ => hfold τ'), hsum]
-      · rw [if_neg hd]
+      · rw [ite_eq_right hd]
         have hz : ∀ τ' : Fin (2 * t + 1) → A,
             (if ∀ j : Fin (2 * t + 1), j ≠ c₁.head → τ' j = c₁.tape j then
               (if moveCell d c₁.head = none then
@@ -974,26 +978,26 @@ private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
               else 0) = 0 := by
           intro τ'
           by_cases hc : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → τ' j = c₁.tape j
-          · rw [if_pos hc, if_neg hd]
-          · rw [if_neg hc]
+          · rw [ite_eq_left hc, ite_eq_right hd]
+          · rw [ite_eq_right hc]
         rw [Finset.sum_congr rfl (fun τ' _ => hτ' τ'), Finset.sum_eq_zero fun τ' _ => hz τ']
     rw [Finset.sum_congr rfl (fun d _ => Finset.sum_congr rfl (fun q' _ => hper d q'))]
     refine Finset.sum_congr rfl fun d _ => ?_
     by_cases hd : moveCell d c₁.head = none
-    · rw [if_pos hd]
-      exact Finset.sum_congr rfl fun q' _ => if_pos hd
+    · rw [ite_eq_left hd]
+      exact Finset.sum_congr rfl fun q' _ => ite_eq_left hd
     · have h1 : (∑ q' : Q,
           (if moveCell d c₁.head = none then
             ∑ b : A, star (M.step c₁.state (c₁.tape c₁.head) d q' b) *
               M.step c₂.state (c₂.tape c₂.head) d q' b
             else (0 : ℂ))) = 0 :=
-        Finset.sum_eq_zero fun q' _ => if_neg hd
-      rw [h1, if_neg hd]
-  · rw [if_neg hcomp]
+        Finset.sum_eq_zero fun q' _ => ite_eq_right hd
+      rw [h1, ite_eq_right hd]
+  · rw [ite_eq_right hcomp]
     refine Finset.sum_eq_zero fun d _ => Finset.sum_eq_zero fun q' _ =>
       Finset.sum_eq_zero fun τ' _ => ?_
     rw [windowEscAmp_prod, windowEscAmp_prod, star_ite_mul]
-    apply if_neg
+    apply ite_eq_right
     intro hcon
     exact hcomp fun j hj => by
       have h2 : j ≠ c₂.head := by rw [← hh]; exact hj
@@ -1027,9 +1031,9 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
   by_cases hh : c₁.head = c₂.head
   · by_cases he : c₁ = c₂
     · subst he
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       have hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₁.tape j := fun _ _ => rfl
-      rw [windowGram_eq, escGram_sameHead M c₁ c₁ rfl, if_pos hcomp]
+      rw [windowGram_eq, escGram_sameHead M c₁ c₁ rfl, ite_eq_left hcomp]
       have hmerge : (∑ d : QtmMove,
             if (∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₁.tape j) ∧
                 moveCell d c₁.head = moveCell d c₁.head ∧ moveCell d c₁.head ≠ none then
@@ -1060,10 +1064,10 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
                 M.step c₁.state (c₁.tape c₁.head) d q' b := by
           intro d
           by_cases hd : moveCell d c₁.head = none
-          · rw [if_neg, if_pos hd, zero_add]
+          · rw [ite_eq_right, ite_eq_left hd, zero_add]
             intro hcon
             exact hcon.2.2 hd
-          · rw [if_pos, if_neg hd, add_zero]
+          · rw [ite_eq_left, ite_eq_right hd, add_zero]
             exact ⟨fun _ _ => rfl, rfl, hd⟩
         rw [← Finset.sum_add_distrib, Finset.sum_congr rfl (fun d _ => hkey d)]
         have hre : (∑ d : QtmMove, ∑ q' : Q, ∑ b : A,
@@ -1106,7 +1110,7 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
         rw [hreorder, hnorm]
         simp
       exact hmerge
-    · rw [if_neg he]
+    · rw [ite_eq_right he]
       by_cases hcomp : ∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₂.tape j
       · have hv : (c₁.state, c₁.tape c₁.head) ≠ (c₂.state, c₂.tape c₂.head) := by
           intro hview
@@ -1120,7 +1124,7 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
             rw [← hh] at ht
             exact ht
           · exact hcomp j hj
-        rw [windowGram_eq, escGram_sameHead M c₁ c₂ hh, if_pos hcomp]
+        rw [windowGram_eq, escGram_sameHead M c₁ c₂ hh, ite_eq_left hcomp]
         have hmerge : (∑ d : QtmMove,
               if (∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₂.tape j) ∧
                   moveCell d c₁.head = moveCell d c₂.head ∧ moveCell d c₁.head ≠ none then
@@ -1155,11 +1159,11 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
                       M.step c₂.state (c₂.tape c₂.head) d q' b := by
             intro d
             by_cases hd : moveCell d c₁.head = none
-            · rw [if_neg, if_pos hd]
+            · rw [ite_eq_right, ite_eq_left hd]
               · simp
               · intro hcon
                 exact hcon.2.2 hd
-            · rw [if_pos, if_neg hd]
+            · rw [ite_eq_left, ite_eq_right hd]
               · simp
               · exact ⟨hcomp, by rw [hh], hd⟩
           rw [← Finset.sum_add_distrib, Finset.sum_congr rfl (fun d _ => hkey d)]
@@ -1189,13 +1193,13 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
           rw [hreorder]
           exact M.wf_sameCell c₁.state (c₁.tape c₁.head) c₂.state (c₂.tape c₂.head) hv
         exact hmerge
-      · rw [windowGram_eq, escGram_sameHead M c₁ c₂ hh, if_neg hcomp, add_zero]
+      · rw [windowGram_eq, escGram_sameHead M c₁ c₂ hh, ite_eq_right hcomp, add_zero]
         refine Finset.sum_eq_zero fun d _ => ?_
-        rw [if_neg (fun hcon => hcomp hcon.1)]
-  · rw [if_neg (fun h => hh (congrArg WindowCfg.head h))]
+        rw [ite_eq_right (fun hcon => hcomp hcon.1)]
+  · rw [ite_eq_right (fun h => hh (congrArg WindowCfg.head h))]
     rw [windowGram_eq, escGram_diffHead M c₁ c₂ hh, add_zero]
     refine Finset.sum_eq_zero fun d _ => ?_
-    rw [if_neg]
+    rw [ite_eq_right]
     intro hcon
     exact hh (moveCell_inj d hcon.2.1)
 
@@ -1203,7 +1207,7 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
 theorem windowStepFull_columnNorm (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ tgt : WindowFull t Q A, ‖windowStepFull M tgt c‖ ^ 2 = 1 := by
   have h := windowStepFull_gram M c c
-  rw [if_pos rfl] at h
+  rw [ite_eq_left rfl] at h
   have hre : (∑ tgt : WindowFull t Q A, ‖windowStepFull M tgt c‖ ^ 2) =
       (∑ tgt : WindowFull t Q A,
         star (windowStepFull M tgt c) * windowStepFull M tgt c).re := by
@@ -1211,8 +1215,7 @@ theorem windowStepFull_columnNorm (M : LocalQTM Q A) (c : WindowCfg t Q A) :
         star (windowStepFull M tgt c) * windowStepFull M tgt c).re =
         ∑ tgt : WindowFull t Q A,
           (star (windowStepFull M tgt c) * windowStepFull M tgt c).re := by
-      simpa using! map_sum Complex.reAddGroupHom
-        (fun tgt => star (windowStepFull M tgt c) * windowStepFull M tgt c) Finset.univ
+      simp
     rw [hcast]
     exact Finset.sum_congr rfl fun tgt _ => normSq_eq _
   rw [hre, h]
@@ -1334,9 +1337,9 @@ theorem windowStepFull_state_add_esc (M : LocalQTM Q A) (φ : WindowCfg t Q A �
                 windowStepFull M tgt c) := by
           rw [Finset.sum_eq_single_of_mem c (Finset.mem_univ _)]
           intro c' _ hc'
-          rw [hgram c c', if_neg (Ne.symm hc')]
+          rw [hgram c c', ite_eq_right (Ne.symm hc')]
           ring
-        rw [hsingle, hgram c c, if_pos rfl]
+        rw [hsingle, hgram c c, ite_eq_left rfl]
         ring
       have h2 : (∑ c : WindowCfg t Q A, ∑ c' : WindowCfg t Q A,
           star (φ c) * φ c' *
@@ -1392,9 +1395,9 @@ theorem windowStep_pow_contraction (M : LocalQTM Q A) (k : ℕ)
     have h1 : (∑ c : WindowCfg t Q A, (1 : Matrix (WindowCfg t Q A) (WindowCfg t Q A) ℂ) c' c *
         φ c) = φ c' := by
       rw [Finset.sum_eq_single_of_mem c' (Finset.mem_univ _)]
-      · rw [Matrix.one_apply, if_pos rfl, one_mul]
+      · rw [Matrix.one_apply, ite_eq_left rfl, one_mul]
       · intro c _ hc
-        rw [Matrix.one_apply, if_neg (Ne.symm hc), zero_mul]
+        rw [Matrix.one_apply, ite_eq_right (Ne.symm hc), zero_mul]
     rw [h1]
   | succ k ih =>
     have hcomp : W ^ (k + 1) = W * W ^ k := by
@@ -1462,7 +1465,7 @@ theorem initWindowCfg_tape_of_lt (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A) 
     exact ⟨by omega, by omega⟩
   unfold initWindowCfg
   simp only
-  rw [dif_pos hp]
+  rw [dite_eq_left hp]
   refine congrArg x (Fin.ext ?_)
   show t + 1 + i.val - t - 1 = i.val
   omega
@@ -1476,7 +1479,7 @@ theorem initWindowCfg_tape_blank (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A)
     omega
   unfold initWindowCfg
   simp only
-  rw [dif_neg hneg]
+  rw [dite_eq_right hneg]
 
 /-- An input index with `t ≤ i.val` has no corresponding cell `t + 1 + i.val` in the window. -/
 theorem initWindowCfg_input_outside {n : ℕ} (i : Fin n)
@@ -1499,7 +1502,7 @@ theorem initWindowCfg_tape_zero_width (M : LocalQTM Q A) {n : ℕ} (x : Fin n �
     omega
   unfold initWindowCfg
   simp only
-  rw [dif_neg hneg]
+  rw [dite_eq_right hneg]
 
 end B3FullOutcome
 

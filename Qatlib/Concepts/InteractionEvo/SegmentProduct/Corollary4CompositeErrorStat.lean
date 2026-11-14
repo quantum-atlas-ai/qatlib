@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeStat
+module
+
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeStat
+
+@[expose] public section
 
 /-!
 # Statement of repeated-segment simulation error

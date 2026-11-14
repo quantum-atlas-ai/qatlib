@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3WireTransport
+module
+
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3WireTransport
+
+@[expose] public section
 
 /-!
 # Transport of local QTM cell operations
@@ -143,20 +147,20 @@ theorem qtmCellGate_ket {C : Type} [Fintype C] [DecidableEq C] {m c : ℕ}
       ∑ s, U s (fun i => r (p i)) • Qatlib.Foundations.PureStateMath.Ket (qtmCellContextExtend p r s) := by
   funext x
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, Finset.sum_apply, Pi.smul_apply,
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, Finset.sum_apply, Pi.smul_apply,
     smul_eq_mul]
   rw [Finset.sum_eq_single (fun i => x (p i))]
   · unfold qtmCellGate
     by_cases hoff : ∀ j, (∀ i, p i ≠ j) → x j = r j
-    · rw [if_pos hoff, if_pos (qtmCellContextExtend_reconstruct p x r hoff).symm]
-    · rw [if_neg hoff]
+    · rw [ite_eq_left hoff, ite_eq_left (qtmCellContextExtend_reconstruct p x r hoff).symm]
+    · rw [ite_eq_right hoff]
       have hx : x ≠ qtmCellContextExtend p r (fun i => x (p i)) := by
         intro hh
         apply hoff
         intro j hj
         have hn : ¬∃ i, p i = j := by rintro ⟨i,hi⟩; exact hj i hi
         rw [hh, qtmCellContextExtend, Function.extend_apply' _ _ _ hn]
-      rw [if_neg hx]
+      rw [ite_eq_right hx]
   · intro s _ hs
     have hx : x ≠ qtmCellContextExtend p r s := by
       intro hh
@@ -164,7 +168,7 @@ theorem qtmCellGate_ket {C : Type} [Fintype C] [DecidableEq C] {m c : ℕ}
       funext i
       have hi := congrFun hh (p i)
       simpa using! hi.symm
-    rw [if_neg hx]
+    rw [ite_eq_right hx]
   · intro hx
     exact (hx (Finset.mem_univ _)).elim
 

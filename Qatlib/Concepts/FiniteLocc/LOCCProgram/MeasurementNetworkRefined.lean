@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetworkDefs
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetwork
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetworkDefs
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetwork
+
+@[expose] public section
 
 /-!
 # Corrected instruments and bounded message codes
@@ -321,15 +325,15 @@ theorem clause6_endpoint :
         (hU : K.correct_unitary) (ρ : LocalJoint D R),
         partialTraceFirst (K.forget hK hU ρ) = partialTraceFirst ρ) ∧
     (∀ {D R s : ℕ} (K : RecordConditionedFamily D s) (hK : K.complete)
-        (hU : K.correct_unitary) {ρ : LocalJoint D R} (hρ : ρ.PosSemidef) (k : Fin s),
+        (hU : K.correct_unitary) {ρ : LocalJoint D R} (_hρ : ρ.PosSemidef) (k : Fin s),
         (Matrix.trace (K.branch hK hU ρ k)).re ≤ (Matrix.trace ρ).re) ∧
     (∀ {D s : ℕ} (K : RecordConditionedFamily D s) (hK : K.complete) (hU : K.correct_unitary)
-        (ρ : Operator D) (k : Fin s) (hρ : ρ.PosSemidef),
+        (ρ : Operator D) (k : Fin s) (_hρ : ρ.PosSemidef),
         instrumentProb (K.corrected hK hU) ρ k = 0 →
           (K.corrected hK hU).branch k ρ = 0) ∧
     (∀ {records pairs : ℕ} (h : records ≤ pairs),
         (canonicalLedger records pairs h).price = 2 * pairs + records) ∧
-    (∀ {records pairs : ℕ} (L : CorrectedNetworkLedger records pairs), records ≤ pairs) ∧
+    (∀ {records pairs : ℕ} (_L : CorrectedNetworkLedger records pairs), records ≤ pairs) ∧
     (∀ (n : ℕ), (canonicalLedger (n ^ 2) (n ^ 2) (by omega)).price = 3 * n ^ 2) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro D s K hK A
@@ -352,16 +356,16 @@ theorem clause6_endpoint :
 /-- Collects prefix-free alphabet bounds, teleportation-code injectivity, redundant fixed-width
 code properties, the frozen-word counterexample, and monotonicity of the redundancy bound. -/
 theorem clause7_endpoint :
-    (∀ {M : Type} [Fintype M] {C : ℕ} (K : PrefixFreeCode M C),
+    (∀ {M : Type} [Fintype M] {C : ℕ} (_K : PrefixFreeCode M C),
         Fintype.card M ≤ 2 ^ C) ∧
-    (∀ {n k : ℕ} (hw : n ≤ 2 ^ k), Fintype.card (Fin n × Fin n) ≤ 2 ^ (2 * k)) ∧
-    (∀ {n k : ℕ} (hw : n ≤ 2 ^ k), PrefixFree (teleportTypeCode n k)) ∧
-    (∀ {n k : ℕ} (hw : n ≤ 2 ^ k) {o₁ o₂ : Fin n × Fin n},
+    (∀ {n k : ℕ} (_hw : n ≤ 2 ^ k), Fintype.card (Fin n × Fin n) ≤ 2 ^ (2 * k)) ∧
+    (∀ {n k : ℕ} (_hw : n ≤ 2 ^ k), PrefixFree (teleportTypeCode n k)) ∧
+    (∀ {n k : ℕ} (_hw : n ≤ 2 ^ k) {o₁ o₂ : Fin n × Fin n},
         teleportTypeCode n k o₁ = teleportTypeCode n k o₂ → o₁ = o₂) ∧
-    (∀ {r w : ℕ} (hr : 0 < r), PrefixFree (redundantFixedWidth r w)) ∧
+    (∀ {r w : ℕ} (_hr : 0 < r), PrefixFree (redundantFixedWidth r w)) ∧
     (∀ {r w : ℕ} (m : Fin (2 ^ w)), (redundantFixedWidth r w m).length = r * w) ∧
     (¬ PrefixFree frozenRedundantWords) ∧
-    (∀ {N C r : ℕ} (hr : 0 < r),
+    (∀ {N C r : ℕ} (_hr : 0 < r),
         (2 : ℝ) ^ C * (1 / (N : ℝ)) ≤ (2 : ℝ) ^ (r * C) * (1 / (N : ℝ))) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro M inst C K

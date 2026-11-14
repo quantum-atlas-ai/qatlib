@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.UnitaryLearn09.MainResults.MeasureRotate
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.UnitaryLearn09.MainResults.MeasureRotate
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -95,10 +99,10 @@ theorem inner_alpha_beta {p : J → ℝ} {d m : J → ℕ}
       field_simp
     by_cases h : a = b
     · subst h
-      simp only [alphaBlock, betaBlock, if_true, mul_one,
+      simp only [alphaBlock, betaBlock, ite_true, mul_one,
         Complex.star_def, Complex.conj_ofReal]
       exact hsqrt
-    · simp only [alphaBlock, betaBlock, h, if_false, mul_zero, star_zero]
+    · simp only [alphaBlock, betaBlock, h, ite_false, mul_zero, star_zero]
   simp only [Pi.star_apply, step]
   have hfac : (∑ x : Fin (m j), ∑ x_1 : Fin (m j),
         ((Real.sqrt (p j) : ℝ) : ℂ) * (if x = x_1 then (1 : ℂ) else 0))

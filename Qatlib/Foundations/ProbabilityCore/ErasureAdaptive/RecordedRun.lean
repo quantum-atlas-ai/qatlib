@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.PathBudget
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.AllocationBound
+module
+
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.PathBudget
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.AllocationBound
+
+@[expose] public section
 
 /-!
 # Recorded erasure runs and survival
@@ -66,11 +70,11 @@ theorem recordedRun_survival {R : Type*} (p : ℝ≥0) (hp : p ≤ 1) {S C : ℕ
     congr 1
     funext mask
     by_cases hmask : mask = (fun _ => true)
-    · simp only [survives, hmask, if_true, Function.comp_def]
+    · simp only [survives, hmask, ite_true, Function.comp_def]
       change ((observe (fun _ => true)).bind (fun r =>
         (recordedRun p hp (next mask r)).map (Function.const _ false))) = PMF.pure false
       simp only [PMF.map_const, PMF.bind_const]
-    · simp only [survives, hmask, if_false, Function.comp_def, ih]
+    · simp only [survives, hmask, ite_false, Function.comp_def, ih]
 
 /-- For `0 < p < 1` and a positive number of steps, the real probability that a recorded history
 survives is at most exp(-S p^(C/S)). -/

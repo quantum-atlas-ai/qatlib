@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Topology.Algebra.Order.Floor
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Mathlib.Topology.Algebra.Order.Floor
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # The lattice Schwinger model: on-site/diagonal structure and truncation
@@ -145,7 +149,7 @@ residual bounds `‖T_r^I(t)‖ ≤ 2x`, and the radius-`R` ball `X_R` around `k
 dense-output truncation error is bounded by the factorial tail.  The Duhamel
 estimate producing this bound is the paper's input. -/
 theorem theorem11_schwinger_truncation
-    {JH JHR x T : ℝ} (hx : 0 ≤ x) (hT : 0 ≤ T)
+    {JH JHR x T : ℝ} (_hx : 0 ≤ x) (_hT : 0 ≤ T)
     (hR : ∀ R : ℕ, |JH - JHR| ≤ schwingerTail x T R) (R : ℕ) :
     |JH - JHR| ≤ 8 * x * T ^ 2 * (8 * x * T) ^ R * Real.exp (8 * x * T) /
       (R.factorial : ℝ) := hR R
@@ -154,9 +158,9 @@ theorem theorem11_schwinger_truncation
 factorial tail tends to zero.  (The paper sharpens this to
 `R_ε = Θ(xT + log(1/ε))`.) -/
 theorem theorem11_sufficient_radius
-    {JH JHR x T ε : ℝ} (hx : 0 ≤ x) (hT : 0 ≤ T) (hε : 0 < ε)
+    {JH JHR x T ε : ℝ} (_hx : 0 ≤ x) (_hT : 0 ≤ T) (hε : 0 < ε)
     (hR : ∀ R : ℕ, |JH - JHR| ≤ schwingerTail x T R) :
-    ∃ R : ℕ, |JH - JHR| ≤ ε := by
+    ∃ _R : ℕ, |JH - JHR| ≤ ε := by
   have hev : ∀ᶠ R : ℕ in Filter.atTop, schwingerTail x T R < ε :=
     (tendsto_order.1 (theorem11_tail_tendsto_zero x T)).2 ε hε
   obtain ⟨R0, hR0⟩ := Filter.eventually_atTop.1 hev

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionCalls
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionCalls
+
+@[expose] public section
 
 /-!
 # Preparing division cross products
@@ -51,7 +55,7 @@ def work (k : Fin 6) (xs : Bits) : Fin 6 → Bits := Function.update emptyWork k
 /-- Writing an empty word to any stack of `emptyWork` leaves it unchanged. -/
 @[simp] theorem empty_update (k : Fin 6) : Function.update emptyWork k [] = emptyWork := by
   funext j
-  by_cases h : j=k <;> simp [Function.update_apply,emptyWork,h]
+  by_cases h : j=k <;> simp [emptyWork,h]
 
 /-- A workspace with an empty designated word is `emptyWork`. -/
 @[simp] theorem work_nil (k : Fin 6) : work k [] = emptyWork := by

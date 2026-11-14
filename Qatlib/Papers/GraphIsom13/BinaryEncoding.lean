@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphIsom13.GiCost
-import Qatlib.Concepts.TensorRegisters.RegisterModel.BinaryWords
+module
+
+public import Qatlib.Papers.GraphIsom13.GiCost
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.BinaryWords
+
+@[expose] public section
 
 /-!
 # Binary encoding of graph-isomorphism strings

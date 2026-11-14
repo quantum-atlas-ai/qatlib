@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,7 +49,7 @@ where `χ⁰_min > 0` is the constant of eq. (1). Here `shellCard` is
 `|A^{∂∂}|`, `E` realises `E_A` and `EP` the entropy production
 `EP_{L_{A^∂}}`. -/
 def davies_conditional_entropy_bound (ρ : Density I) (E : Density I → Density I)
-    (EP : Density I → ℝ) (g J β shellCard χ : ℝ) (hχ : 0 < χ)  : Prop :=
+    (EP : Density I → ℝ) (g J β shellCard χ : ℝ) (_hχ : 0 < χ)  : Prop :=
     relEnt ρ (E ρ) ≤ Real.exp (2 * g * J * (1 + 2 * β * shellCard)) * χ⁻¹ * EP ρ
   -- Source: arXiv:2412.01732v1, Lemma 2.11 (p.8, eq. (14)); proof in
   -- Appendix B.5 (pp.36–37), reducing β to 0 via Lemma B.6 and using the
@@ -77,10 +81,10 @@ entropy production, `hwmlsi` the weak MLSI hypothesis
 `EP_L(τ) ≥ c₁ (D(τ‖σ) − c₂)`, and `hc₂` the standing assumption
 `D(ρ‖σ) ≥ c₂`. -/
 def entropy_production_integral_bound (σ : Density I) (ρs : ℝ → Density I)
-    (EP : Density I → ℝ) (c₁ c₂ t : ℝ) (hc₁ : 0 ≤ c₁) (ht : 0 ≤ t)
-    (hc₂ : c₂ ≤ relEnt (ρs 0) σ)
-    (hint : IntervalIntegrable (fun s => Real.sqrt (EP (ρs s))) MeasureTheory.volume 0 t)
-    (hwmlsi : ∀ s ∈ Set.Icc 0 t, c₁ * (relEnt (ρs s) σ - c₂) ≤ EP (ρs s))  : Prop :=
+    (EP : Density I → ℝ) (c₁ c₂ t : ℝ) (_hc₁ : 0 ≤ c₁) (_ht : 0 ≤ t)
+    (_hc₂ : c₂ ≤ relEnt (ρs 0) σ)
+    (_hint : IntervalIntegrable (fun s => Real.sqrt (EP (ρs s))) MeasureTheory.volume 0 t)
+    (_hwmlsi : ∀ s ∈ Set.Icc 0 t, c₁ * (relEnt (ρs s) σ - c₂) ≤ EP (ρs s))  : Prop :=
     ∫ s in (0 : ℝ)..t, Real.sqrt (EP (ρs s)) ≤ 2 * Real.sqrt (c₁ * relEnt (ρs 0) σ)
   -- Source: arXiv:2412.01732v1, Lemma B.4 (p.35, eq. (51)); proof on p.35.
   -- Proof route: define
@@ -137,7 +141,7 @@ Appendix A.3, for `A ⊆ Λ` and `E^0_A = lim e^{t L^0_A}`:
 
 `χ⁰_min D(ρ‖E^0_A(ρ)) ≤ EP_{L^0_{A^∂}}(ρ)`. -/
 def infinite_temperature_mlsi (ρ : Density I) (E0 : Density I → Density I)
-    (EP0 : Density I → ℝ) (χ : ℝ) (hχ : 0 < χ)  : Prop :=
+    (EP0 : Density I → ℝ) (χ : ℝ) (_hχ : 0 < χ)  : Prop :=
     χ * relEnt ρ (E0 ρ) ≤ EP0 ρ
   -- Source: arXiv:2412.01732v1, Lemma B.7 (p.38, eq. (63)); proof on p.38.
   -- Proof route: by GNS symmetry of `L^0_{A^∂}`, [CM17, Theorem 5.10] writes

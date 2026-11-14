@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReactDiffuse22.MainResults.Model.SourceModel
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Batteries.Tactic.Lint
+module
+
+public import Qatlib.Papers.ReactDiffuse22.MainResults.Model.SourceModel
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Batteries.Tactic.Lint
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

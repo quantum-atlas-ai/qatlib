@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+
+@[expose] public section
 
 /-!
 # Clocked Turing machine decisions
@@ -90,15 +94,15 @@ theorem tapeDecisionRun_eq_some_iff (M : Turing.TM0.Machine Γ Λ) (accept : Λ 
     · intro h
       simp only [tapeDecisionRun] at h
       by_cases hs : Turing.TM0.step M cfg = none
-      · rw [if_pos hs] at h
+      · rw [ite_eq_left hs] at h
         exact ⟨0, cfg, le_refl 0, rfl, hs, Option.some.inj h⟩
-      · rw [if_neg hs] at h
+      · rw [ite_eq_right hs] at h
         nomatch h
     · rintro ⟨s, cfg', hs_le, hiter, hhalt, hacc⟩
       obtain rfl : s = 0 := Nat.le_zero.mp hs_le
       simp only [Function.iterate_zero_apply] at hiter
       obtain rfl : cfg' = cfg := (Option.some.inj hiter).symm
-      simp only [tapeDecisionRun, if_pos hhalt, hacc]
+      simp only [tapeDecisionRun, ite_eq_left hhalt, hacc]
   | succ t ih =>
     constructor
     · intro h

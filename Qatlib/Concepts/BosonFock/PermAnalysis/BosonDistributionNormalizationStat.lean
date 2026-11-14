@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+module
+
+public import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+
+@[expose] public section
 
 /-!
 # Normalization statement for bosonic permanent weights

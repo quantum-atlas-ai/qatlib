@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+module
+
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+
+@[expose] public section
 
 /-!
 # Finite-coin algorithms and correctness-preserving maps
@@ -130,7 +134,7 @@ theorem CoinAlgo.indicator_mono {α : Type*} (A : CoinAlgo α)
       obtain ⟨x, hx, hg⟩ := hc
       exact ⟨x, hx, h x hg⟩
     simp [hc, hc']
-  · simp only [hc, if_false]
+  · simp only [hc, ite_false]
     split_ifs <;> norm_num
 
 /-- Weakening the output predicate can only increase its success probability. -/
@@ -173,12 +177,8 @@ theorem CoinAlgo.indicator_map {α β : Type*} (A : CoinAlgo α) (f : α → β)
   show (if ∃ y, (A.run c).map f = some y ∧ good y then (1 : ℝ) else 0)
       = (if ∃ a, A.run c = some a ∧ good (f a) then 1 else 0)
   by_cases h : ∃ a, A.run c = some a ∧ good (f a)
-  · have h' : ∃ y, (A.run c).map f = some y ∧ good y :=
-      (CoinAlgo.map_pred_iff A f good c).mpr h
-    simp [h, h']
-  · have h' : ¬ ∃ y, (A.run c).map f = some y ∧ good y :=
-      fun hh => h ((CoinAlgo.map_pred_iff A f good c).mp hh)
-    simp [h, h']
+  · simp [h]
+  · simp [h]
 
 /-- The success probability after mapping equals the original success probability for the
 predicate composed with the map. -/
@@ -245,7 +245,7 @@ theorem CoinAlgo.indicator_bind {α β : Type*} (A : CoinAlgo α) (g : α → Op
   by_cases hp : ∃ x, A.run c = some x ∧ goodα x
   · have hq := CoinAlgo.bind_imp A g hg c hp
     simp [hp, hq]
-  · simp only [hp, if_false]
+  · simp only [hp, ite_false]
     split_ifs <;> norm_num
 
 /-- Optional postprocessing that succeeds correctly on every good input preserves the Monte

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhasePrimitive
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhasePrimitive
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -67,7 +71,7 @@ theorem sourceFrameBoundRun_phase_correct (v : SpatialPoint → SpatialPoint)
     have hΛ : (sourceFrameLambdaMajorant packet r : ℝ)=
         (sourceFrameGammaMajorant packet ⟨r.val-1,by omega⟩ : ℝ)+
           7*(sourceFrameGammaMajorant packet r : ℝ) := by
-      simp only [sourceFrameLambdaMajorant,dif_neg (Nat.ne_of_gt hrpos),Rat.cast_add,
+      simp only [sourceFrameLambdaMajorant,dite_eq_right (Nat.ne_of_gt hrpos),Rat.cast_add,
         Rat.cast_mul,Rat.cast_ofNat]
     rw [hΛ]
     exact hbG.trans (by linarith)
@@ -89,7 +93,7 @@ theorem sourceFrameBoundRun_phase_correct (v : SpatialPoint → SpatialPoint)
       linarith
     · have hG := hGnonneg r
       have hGprev := hGnonneg ⟨r.val-1,by omega⟩
-      simp only [sourceFrameLambdaMajorant,dif_neg hrzero,Rat.cast_add,Rat.cast_mul,Rat.cast_ofNat]
+      simp only [sourceFrameLambdaMajorant,dite_eq_right hrzero,Rat.cast_add,Rat.cast_mul,Rat.cast_ofNat]
       linarith
 
 end

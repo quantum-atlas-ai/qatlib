@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.FDeriv.Basic
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Fin.Basic
+module
+
+public import Mathlib.Analysis.Calculus.FDeriv.Basic
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Derivative bounds for expectation losses
@@ -104,8 +108,8 @@ private theorem single_eq_ite {K : ℕ} (i : Fin K) :
     (Pi.single i 1 : Fin K → ℝ) = fun j => if i = j then 1 else 0 := by
   funext j
   by_cases h : i = j
-  · rw [Pi.single_apply, if_pos h.symm, if_pos h]
-  · rw [Pi.single_apply, if_neg (fun hc => h hc.symm), if_neg h]
+  · rw [Pi.single_apply, ite_eq_left h.symm, ite_eq_left h]
+  · rw [Pi.single_apply, ite_eq_right (fun hc => h hc.symm), ite_eq_right h]
 
 /-- A real continuous linear functional whose coordinate values have absolute value at most
 nonnegative `B` satisfies `|T x| ≤ K * B * ‖x‖`. -/
@@ -118,7 +122,7 @@ private theorem scalarClm_bound {K : ℕ} (T : (Fin K → ℝ) →L[ℝ] ℝ) {B
     refine Finset.sum_congr rfl fun i _ => ?_
     rw [map_smul, smul_eq_mul, single_eq_ite]
   have hxi : ∀ i : Fin K, |x i| ≤ ‖x‖ := fun i => by
-    haveI : Nonempty (Fin K) := ⟨i⟩
+    have : Nonempty (Fin K) := ⟨i⟩
     rw [← Real.norm_eq_abs]
     exact (pi_norm_le_iff_of_nonempty (r := ‖x‖) x).1 le_rfl i
   calc |T x| ≤ ∑ i : Fin K, |x i * T (Pi.single i 1)| := by
@@ -189,10 +193,10 @@ theorem lemma5_gradient_lipschitz
     rw [map_smul, smul_eq_mul, single_eq_ite]
   have hent : ∀ i : Fin K, |T (Pi.single i 1)| ≤ 4 * ((K : ℝ) + 1) * ‖θ - θ'‖ := by
     intro i
-    rw [hT, ContinuousLinearMap.sub_apply]
+    rw [hT, _root_.sub_apply]
     exact hmvt i θ θ'
   have hxi : ∀ i : Fin K, |x i| ≤ ‖x‖ := fun i => by
-    haveI : Nonempty (Fin K) := ⟨i⟩
+    have : Nonempty (Fin K) := ⟨i⟩
     rw [← Real.norm_eq_abs]
     exact (pi_norm_le_iff_of_nonempty (r := ‖x‖) x).1 le_rfl i
   rw [Real.norm_eq_abs]

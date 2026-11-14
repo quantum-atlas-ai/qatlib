@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
+module
+
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Average query counts for fixed-point search
@@ -41,14 +45,14 @@ def avgQueriesN (ε : ℝ) (n : ℕ) : ℝ :=
     + ((n : ℝ) + 1) * (1 + ε) / 2 * (ε ^ 2) ^ n
 
 /-- For `0 ≤ ε < 1`, the truncated average is `1 + (1 - (ε ^ 2) ^ n) / (2 * (1 - ε))`. -/
-theorem avgQueriesN_eq (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε < 1) (n : ℕ) :
+theorem avgQueriesN_eq (ε : ℝ) (_hε0 : 0 ≤ ε) (hε1 : ε < 1) (n : ℕ) :
     avgQueriesN ε n = 1 + (1 - (ε ^ 2) ^ n) / (2 * (1 - ε)) := by
   have hden : (1 - ε) ≠ 0 := by
     intro h
     linarith
   induction n with
   | zero =>
-      simp only [avgQueriesN, Finset.sum_range_zero, sum_empty, mul_zero, add_zero,
+      simp only [avgQueriesN, Finset.sum_range_zero, mul_zero, add_zero,
         Nat.cast_zero, zero_add, pow_zero, mul_one]
       field_simp
       ring
@@ -102,13 +106,11 @@ theorem clSum_eq (ε : ℝ) (hε : ε ≠ 1) (m : ℕ) :
       have hd : (1 - ε) * clSum ε (m + 1) - (1 - ε) * clSum ε m
           = (1 - ε) * ((m : ℝ) + 1) * ε ^ m := by
         simp only [clSum, Finset.sum_range_succ]
-        push_cast
         ring
       have hr : ((1 - ε ^ (m + 1)) / (1 - ε) - ((m : ℝ) + 1) * ε ^ (m + 1))
             - ((1 - ε ^ m) / (1 - ε) - (m : ℝ) * ε ^ m)
           = (1 - ε) * ((m : ℝ) + 1) * ε ^ m := by
         rw [pow_succ]
-        push_cast
         field_simp [hden]
         ring
       linarith [ih, hd, hr]

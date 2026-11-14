@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedStat
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Simu
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedStat
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Simu
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+
+@[expose] public section
 
 /-!
 # Amplified reset-and-discard error bounds
@@ -161,7 +165,7 @@ theorem resetDiscardStepCorrected_corner
   rw [Matrix.mul_assoc,fiberProjector_mul_mul_corner] at he
   ext i j
   have hh := congrArg (fun A : Matrix (J × I) (J × I) ℂ => A (j₀,i) (j₀,j)) he
-  simpa only [fiberEmbed_apply,and_self,if_true] using hh
+  simpa only [fiberEmbed_apply,and_self,ite_true] using hh
 
 /-- An amplified corner within norm distance `e` of a unitary gives corrected-step trace-norm
 error at most `4 * e` on density operators. -/

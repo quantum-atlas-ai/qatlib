@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichStat
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichContracts
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationVari
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichStat
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichContracts
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationVari
+
+@[expose] public section
 
 /-!
 # Proofs of the amplitude-estimation contracts
@@ -62,7 +66,7 @@ theorem estimateSandwich_proof : estimateSandwich := by
     exact he.trans d.sum_one
   refine ⟨2, 1, by omega, (fun _ => 0), law, Finset.univ,
     hsum, (fun ω => d.nonneg (ω 0)), ?_, ?_, ?_, ?_⟩
-  · change 1 - δ ≤ ∑ ω, law ω
+  ·
     rw [hsum]
     linarith
   · intro ω _

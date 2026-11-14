@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Growing stopping histories
@@ -117,7 +121,7 @@ theorem growing_stage_preserves_reached {history : ℕ → Finset C} {k : ℕ} {
   funext p
   rw [collapse_apply,collapse_apply]
   by_cases hp : p∈reachedStoppedSet history k
-  · simp only [if_pos hp]
+  · simp only [ite_eq_left hp]
     simp [ApplyGate,Matrix.mulVec,dotProduct,growing_stage_reached_row hU p hp]
   · simp [hp]
 

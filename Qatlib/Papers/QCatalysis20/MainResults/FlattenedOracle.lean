@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCatalysis20.MainResults.MultiplexedLookup
+module
+
+public import Qatlib.Papers.QCatalysis20.MainResults.MultiplexedLookup
+
+@[expose] public section
 
 /-!
 # Flattened sparse lookup tables
@@ -79,7 +83,7 @@ theorem flattenedTable_correct {J a b : ℕ} (K : ℕ→ℕ)
   have hv: (BitVec.ofNat a (multiplexedIndex K j.val k.val)).toNat=multiplexedIndex K j.val k.val := by
     rw [BitVec.toNat_ofNat,Nat.mod_eq_of_lt (ht.trans_le ha)]
   unfold flattenedTable
-  rw [dif_pos (by rw [hv];exact ht)]
+  rw [dite_eq_left (by rw [hv];exact ht)]
   have he : (⟨(BitVec.ofNat a (multiplexedIndex K j.val k.val)).toNat,by rw [hv];exact ht⟩:
       Fin (totalEntries J K))=addressEquiv J K ⟨j,k⟩ := Fin.ext hv
   rw [he,Equiv.symm_apply_apply]

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Matrix.Mul
-import Qatlib.Papers.QLearningGeom03.MainResults.ImpatientCritical
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Qatlib.Papers.QLearningGeom03.MainResults.ImpatientCritical
+
+@[expose] public section
 
 /-!
 # Success amplitudes for impatient learning

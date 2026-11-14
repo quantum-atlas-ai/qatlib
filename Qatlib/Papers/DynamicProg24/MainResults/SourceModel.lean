@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Arcosh
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Arcosh
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -141,7 +145,7 @@ theorem sech_pos (y : ℝ) : 0 < sech y := by
   exact inv_pos.mpr (lt_of_lt_of_le zero_lt_one (Real.one_le_cosh y))
 
 /-- The `sech_le_one` result for the DynamicProg24 paper model. -/
-theorem sech_le_one {y : ℝ} (hy : 0 ≤ y) : sech y ≤ 1 := by
+theorem sech_le_one {y : ℝ} (_hy : 0 ≤ y) : sech y ≤ 1 := by
   unfold sech
   have h2 : 0 < Real.cosh y := lt_of_lt_of_le zero_lt_one (Real.one_le_cosh y)
   have h := (div_le_one h2).2 (Real.one_le_cosh y)

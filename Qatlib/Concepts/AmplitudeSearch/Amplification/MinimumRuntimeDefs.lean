@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainderDefs
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainderDefs
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
+
+@[expose] public section
 
 /-!
 # Runtime models for quantum minimum search

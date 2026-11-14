@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+
+@[expose] public section
 
 /-!
 # Sensitive blocks and bounded certificates
@@ -229,7 +233,7 @@ lemma bounded_certificate (f : (Fin N → Bool) → Bool) (x : Fin N → Bool) :
     ∃ S, IsCertificateFor f x S ∧ S.card ≤ blockSensitivity f ^ 2 := by
   let T := Finset.univ.filter fun F : Finset (Finset (Fin N)) =>
     SensitiveFamily f x F ∧ ∀ B ∈ F, MinimalSensitive f x B
-  have hn : T.Nonempty := ⟨∅, by simp [T, SensitiveFamily, Set.PairwiseDisjoint]⟩
+  have hn : T.Nonempty := ⟨∅, by simp [T, SensitiveFamily]⟩
   obtain ⟨F, hF, hmax⟩ := Finset.exists_max_image T Finset.card hn
   have hFs := (Finset.mem_filter.mp hF).2
   let S := F.biUnion id

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+@[expose] public section
 
 /-!
 # Gauss-sum identities for Jacobi phases
@@ -79,7 +83,7 @@ def jacobiSum {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K) : ℂ :=
 product-character Gauss sum equals the product of the two individual Gauss sums at frequency
 one [VanDamSeroussi2002]. -/
 theorem jacobiSum_mul_gaussSum {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
-    (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
+    (e : AddChar K) (_hχ : χ.IsNontrivial) (_hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial) :
     jacobiSum χ ψ * gaussSum (fun x => χ.toFun x * ψ.toFun x) e 1
       = gaussSum χ.toFun e 1 * gaussSum ψ.toFun e 1 := by
@@ -270,8 +274,8 @@ theorem norm_inv_sub_inv {x y : ℂ} (hx : ‖x‖ = 1) (hy : ‖y‖ = 1) :
 
 /-- For two triples of unit complex numbers, the distance between their products is at most the
 sum of the three component distances. -/
-theorem norm_mul3_sub_mul3_le {a b c A B C : ℂ} (ha : ‖a‖ = 1) (hb : ‖b‖ = 1)
-    (hc : ‖c‖ = 1) (hA : ‖A‖ = 1) (hB : ‖B‖ = 1) (hC : ‖C‖ = 1) :
+theorem norm_mul3_sub_mul3_le {a b c A B C : ℂ} (_ha : ‖a‖ = 1) (hb : ‖b‖ = 1)
+    (hc : ‖c‖ = 1) (hA : ‖A‖ = 1) (hB : ‖B‖ = 1) (_hC : ‖C‖ = 1) :
     ‖a * b * c - A * B * C‖ ≤ ‖a - A‖ + ‖b - B‖ + ‖c - C‖ := by
   have h : a * b * c - A * B * C
       = (a - A) * (b * c) + A * ((b - B) * c) + A * B * (c - C) := by ring

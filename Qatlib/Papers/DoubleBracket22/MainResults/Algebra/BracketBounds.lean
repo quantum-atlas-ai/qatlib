@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DoubleBracket22.MainResults.Model.DoubleBracketModel
-import Qatlib.Papers.DoubleBracket22.MainResults.Algebra.CommutatorFormulas
+module
+
+public import Qatlib.Papers.DoubleBracket22.MainResults.Model.DoubleBracketModel
+public import Qatlib.Papers.DoubleBracket22.MainResults.Algebra.CommutatorFormulas
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

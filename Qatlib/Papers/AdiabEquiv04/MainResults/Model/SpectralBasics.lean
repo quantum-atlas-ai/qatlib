@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+
+@[expose] public section
 
 /-!
 # Rayleigh expressions and coordinate projections
@@ -37,12 +41,14 @@ namespace Qatlib.Papers.AdiabEquiv04.MainResults.Model
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+omit [DecidableEq ι] in
 /-- The Rayleigh expression of a matrix sum is the sum of the two Rayleigh expressions. -/
 theorem rayleigh_add (A B : Matrix ι ι ℂ) (ψ : Vector ι) :
     rayleigh (A + B) ψ = rayleigh A ψ + rayleigh B ψ := by
   unfold rayleigh
   rw [Matrix.add_mulVec, dotProduct_add, Complex.add_re]
 
+omit [DecidableEq ι] in
 /-- Multiplying a matrix by a real scalar multiplies its Rayleigh expression by that scalar. -/
 theorem rayleigh_real_smul (c : ℝ) (A : Matrix ι ι ℂ) (ψ : Vector ι) :
     rayleigh ((c : ℂ) • A) ψ = c * rayleigh A ψ := by
@@ -50,6 +56,7 @@ theorem rayleigh_real_smul (c : ℝ) (A : Matrix ι ι ℂ) (ψ : Vector ι) :
   rw [smul_mulVec, dotProduct_smul]
   simp [Complex.mul_re]
 
+omit [DecidableEq ι] in
 /-- The Rayleigh expression of a finite matrix sum equals the sum of the individual Rayleigh
 expressions. -/
 theorem rayleigh_finset_sum {κ : Type} (s : Finset κ) (f : κ → Matrix ι ι ℂ)
@@ -64,10 +71,13 @@ theorem rayleigh_finset_sum {κ : Type} (s : Finset κ) (f : κ → Matrix ι ι
 /-- The condition that a matrix has nonnegative real quadratic expression on every vector. -/
 def IsPositive (A : Matrix ι ι ℂ) : Prop := ∀ ψ : Vector ι, 0 ≤ rayleigh A ψ
 
+omit [DecidableEq ι] in
 /-- The zero matrix has nonnegative Rayleigh expression on every vector. -/
 theorem isPositive_zero : IsPositive (0 : Matrix ι ι ℂ) := by
   intro ψ
-  simp [IsPositive, rayleigh]
+  simp [rayleigh]
+
+omit [DecidableEq ι] in
 
 /-- Multiplication by a nonnegative real scalar preserves `IsPositive`. -/
 theorem IsPositive.real_smul {A : Matrix ι ι ℂ} (hA : IsPositive A) {c : ℝ}
@@ -76,6 +86,7 @@ theorem IsPositive.real_smul {A : Matrix ι ι ℂ} (hA : IsPositive A) {c : ℝ
   rw [rayleigh_real_smul]
   exact mul_nonneg hc (hA ψ)
 
+omit [DecidableEq ι] in
 /-- The sum of two matrices satisfying `IsPositive` also satisfies `IsPositive`. -/
 theorem IsPositive.add {A B : Matrix ι ι ℂ} (hA : IsPositive A) (hB : IsPositive B) :
     IsPositive (A + B) := by
@@ -83,6 +94,7 @@ theorem IsPositive.add {A B : Matrix ι ι ℂ} (hA : IsPositive A) (hB : IsPosi
   rw [rayleigh_add]
   exact add_nonneg (hA ψ) (hB ψ)
 
+omit [DecidableEq ι] in
 /-- A finite sum of matrices satisfying `IsPositive` satisfies `IsPositive`. -/
 theorem IsPositive.finset_sum {κ : Type} (s : Finset κ) {f : κ → Matrix ι ι ℂ}
     (h : ∀ k ∈ s, IsPositive (f k)) : IsPositive (∑ k ∈ s, f k) := by
@@ -118,7 +130,7 @@ theorem rayleigh_basisProj (P : ι → Prop) [DecidablePred P] (ψ : Vector ι) 
   rw [basisProj_mulVec, dotProduct, Complex.re_sum]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   by_cases h : P i
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     have h1 : ((star ψ) i) * ψ i = ((Complex.normSq (ψ i) : ℝ) : ℂ) := by
       rw [Pi.star_apply, Complex.star_def, ← Complex.normSq_eq_conj_mul_self]
     rw [h1]
@@ -140,9 +152,9 @@ theorem normSq_basisKet (a : ι) : normSq (basisKet a) = 1 := by
   classical
   unfold normSq basisKet
   rw [Finset.sum_eq_single a]
-  · simp [basisKet]
+  · simp []
   · intro b _ hb
-    simp [basisKet, if_neg hb]
+    simp [ ite_eq_right hb]
   · intro ha
     exact absurd (Finset.mem_univ a) ha
 

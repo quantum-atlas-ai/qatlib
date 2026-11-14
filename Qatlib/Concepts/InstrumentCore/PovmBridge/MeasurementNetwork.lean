@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetworkDefs
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetworkDefs
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # POVM instruments and pure-state measurement
@@ -128,7 +132,7 @@ theorem outerProduct_postMeasure_univ {I : Type*} [Fintype I] [DecidableEq I]
       ((MeasureProb φ Finset.univ : ℝ) : ℂ)⁻¹ := by
     rw [← mul_inv, ← Complex.ofReal_mul, Real.mul_self_sqrt hφ.le]
   ext i j
-  simp only [outerProduct_apply, PostMeasure, collapse_apply, Finset.mem_univ, if_true,
+  simp only [outerProduct_apply, PostMeasure, collapse_apply, Finset.mem_univ, ite_true,
     map_mul, map_inv₀, Complex.conj_ofReal, Matrix.smul_apply, smul_eq_mul]
   calc
     _ = (((Real.sqrt (MeasureProb φ Finset.univ) : ℂ)⁻¹) *
@@ -164,7 +168,7 @@ theorem binary_projective_conditional {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     cases o <;> simp [binaryProjectivePOVM, ProjectiveBranch, ApplyGate]
   refine ⟨PostMeasure (ProjectiveBranch P.mat o ψ) Finset.univ, ?_, ?_⟩
   · unfold ProjectiveConditionalState ConditionalState
-    rw [if_pos (by simpa only [← hb, ← hm] using hp)]
+    rw [ite_eq_left (by simpa only [← hb, ← hm] using hp)]
   · simpa only [hb] using povm_projective_pure_conditional
       (binaryProjectivePOVM P hP) ψ o (binaryProjectivePOVM_projection P hP o) hp
 

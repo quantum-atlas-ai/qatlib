@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+
+@[expose] public section
 
 /-!
 # Length-controlled real QSVT compilation
@@ -262,8 +266,9 @@ private theorem source_branches_encoding {H I O : Type} [Fintype H] [DecidableEq
     ext ⟨b,h⟩ ⟨c,i⟩
     have he := congrFun (congrFun hu (!b,h)) (!c,i)
     cases b <;> cases c <;>
-      simpa [select,Matrix.mul_apply,Matrix.conjTranspose_apply,
-        Fintype.sum_prod_type,Matrix.one_apply,mul_ite,ite_mul] using he
+      simp [select,Matrix.mul_apply,Matrix.conjTranspose_apply,
+        Fintype.sum_prod_type,Matrix.one_apply,mul_ite] at he ⊢
+    all_goals exact he
   · have he := hreal.encoded
     simp only [realPartQSVT,star_one,averageCircuit_compress] at he
     rw [averageCircuit_compress,add_comm]
@@ -301,7 +306,7 @@ theorem source_cpp_real_singular_transform_of_response : ∀ (H I O : Type) [Fin
     have hbranch := source_branches_encoding Φ hreal
     obtain ⟨hu,hact,_⟩ := cpp_family_actual_compilation_and_counts Bool H U
       (rangeProjector R) (rangeProjector L) (sourceRealFamily Φ) h.unitary hP hQ
-    rw [sourceRealWord,if_pos hodd]
+    rw [sourceRealWord,ite_eq_left hodd]
     exact source_clean_encoding hu hact hbranch
   · intro heven
     have hreal := realPartQSVT_even_right_singularEncoding h hone (Φ.map anglePhase) hz
@@ -310,7 +315,7 @@ theorem source_cpp_real_singular_transform_of_response : ∀ (H I O : Type) [Fin
     have hbranch := source_branches_encoding Φ hreal
     obtain ⟨hu,hact,_⟩ := cpp_family_actual_compilation_and_counts Bool H Uᴴ
       (rangeProjector L) (rangeProjector R) (sourceRealFamily Φ) (adjoint_unitary h.unitary) hQ hP
-    rw [sourceRealWord,if_neg (by simp [heven]),cppEvaluate_swapData]
+    rw [sourceRealWord,ite_eq_right (by simp [heven]),cppEvaluate_swapData]
     exact source_clean_encoding hu hact hbranch
   · simpa [sourceRealFamily] using cppCompile_counts (sourceRealFamily Φ)
 

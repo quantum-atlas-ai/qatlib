@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
-import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+public import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Mathlib.Data.Fin.Tuple.Basic
+
+@[expose] public section
 
 /-!
 # Measured Metropolis instruments and mixing
@@ -86,9 +91,9 @@ column, with all other entries zero. -/
 theorem thermalKrausWeight_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) (b : Bool) : 0 ≤ thermalKrausWeight D E β i j b := by
   by_cases hb : b
-  · rw [thermalKrausWeight, if_pos hb]
+  · rw [thermalKrausWeight, ite_eq_left hb]
     exact div_nonneg (thermalAcceptance_pos E β i j).le (by exact_mod_cast hD.le)
-  · rw [thermalKrausWeight, if_neg hb]
+  · rw [thermalKrausWeight, ite_eq_right hb]
     exact div_nonneg (by linarith [thermalAcceptance_le_one E β i j])
       (by exact_mod_cast hD.le)
 
@@ -112,13 +117,13 @@ private theorem thermalKraus_mul_conjTranspose_entry (D : ℕ) (hD : 0 < D)
       refine (Fintype.sum_eq_single (thermalKrausRow D o.1 o.2.1 o.2.2) ?_).trans ?_
       · intro r hr
         simp [hr]
-      · rw [if_pos ⟨rfl, rfl⟩, hsq, if_pos ⟨rfl, rfl⟩]
+      · rw [ite_eq_left ⟨rfl, rfl⟩, hsq, ite_eq_left ⟨rfl, rfl⟩]
     · rw [Fintype.sum_eq_zero _ (fun r => by
-          simp only [if_neg (fun h : q = o.1 ∧ r = _ => hq h.1), mul_zero]),
-        if_neg (fun h => hq h.2)]
+          simp only [ite_eq_right (fun h : q = o.1 ∧ r = _ => hq h.1), mul_zero]),
+        ite_eq_right (fun h => hq h.2)]
   · rw [Fintype.sum_eq_zero _ (fun r => by
-        simp only [if_neg (fun h : p = o.1 ∧ r = _ => hp h.1), star_zero, zero_mul]),
-      if_neg (fun h => hp h.1)]
+        simp only [ite_eq_right (fun h : p = o.1 ∧ r = _ => hp h.1), star_zero, zero_mul]),
+      ite_eq_right (fun h => hp h.1)]
 
 /-- The thermal Kraus operators satisfy the completeness relation in positive dimension. -/
 theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
@@ -126,7 +131,6 @@ theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : �
   ext p q
   simp only [Matrix.sum_apply, thermalKraus_mul_conjTranspose_entry D hD E β]
   rw [Fintype.sum_prod_type]
-  simp only [Prod.fst, Prod.snd]
   by_cases hpq : p = q
   · subst q
     have hsumb : ∀ j : Fin D, ∑ b : Bool,
@@ -159,15 +163,14 @@ theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : �
       exact mul_inv_cancel₀ hne
     have hsumy : ∑ y : Fin D × Bool, (thermalKrausWeight D E β p y.1 y.2 : ℂ) = 1 := by
       rw [Fintype.sum_prod_type]
-      simp only [Prod.fst, Prod.snd]
       rw [Finset.sum_congr rfl fun j _ => hsumb j]
       exact hsumi
-    have hR : (1 : Operator D) p p = 1 := by simp [Matrix.one_apply]
+    have hR : (1 : Operator D) p p = 1 := by simp
     refine (Fintype.sum_eq_single p ?_).trans ?_
     · intro i hi
       have hnp : ¬(p = i) := fun h => hi h.symm
       simp [hnp]
-    · simp only [eq_self_iff_true, true_and, if_true]
+    · simp only [true_and, ite_true]
       rw [hR]
       exact hsumy
   · have hzero : ∀ i : Fin D, (∑ y : Fin D × Bool,
@@ -179,7 +182,7 @@ theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : �
           (if p = i ∧ q = i then (thermalKrausWeight D E β i y.1 y.2 : ℂ) else 0))
         = ∑ i : Fin D, (0 : ℂ) := Finset.sum_congr rfl fun i _ => hzero i
       _ = (0:ℂ) := by simp
-      _ = (1 : Operator D) p q := by simp [Matrix.one_apply, hpq]
+      _ = (1 : Operator D) p q := by simp [hpq]
 
 /-- The instrument whose outcomes record the source index, proposed index, and acceptance bit,
 built from the thermal Kraus operators. -/
@@ -228,7 +231,7 @@ def thermalCoinSet (D : ℕ) (c : Fin 2) : Finset (Fin (D*2)) :=
 
 /-- Applies the feedback gate selected by the measured coin outcome and then halts with
 acceptance. -/
-noncomputable def thermalFeedbackStep (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
+noncomputable def thermalFeedbackStep (D : ℕ) (_E : Fin D → ℝ) (_β : ℝ) (j i : Fin D)
     (c : Fin 2) : ObservedCircuit (Fin (D*2)) :=
   .step (.gate (thermalFeedbackGate D i j (c = 1))) (.halt true)
 
@@ -379,7 +382,7 @@ theorem observedKrausLeaves_thermalProgram (D : ℕ) (E : Fin D → ℝ) (β : �
     rw [List.map_ofFn]
     rfl
   unfold thermalProgram thermalDataStep thermalCoinMeasure thermalFeedbackStep
-  simp only [observedKrausLeaves, hinner, hblock, hmapD]
+  simp only [observedKrausLeaves]
   rfl
 
 /-- Equal natural-number indices select equal elements of a list, independently of the proofs of
@@ -394,8 +397,8 @@ private theorem getElem_index_eq {α : Type*} (l : List α) (k1 k2 : ℕ)
 `c.val` of block `i`. -/
 private theorem getElem_flatten_ofFn_two {α : Type*} : ∀ {D : ℕ} (g : Fin D → List α),
     ∀ hlen : (∀ i, (g i).length = 2), ∀ (i : Fin D) (c : Fin 2) (L : List α)
-    (hL : L = List.flatten (List.ofFn g)) (k : ℕ)
-    (hk : k < L.length) (hkval : k = 2*i.val + c.val),
+    (_hL : L = List.flatten (List.ofFn g)) (k : ℕ)
+    (hk : k < L.length) (_hkval : k = 2*i.val + c.val),
     L[k]'hk = (g i)[c.val]'(by rw [hlen i]; omega) := by
   intro D
   induction D with
@@ -425,7 +428,7 @@ private theorem getElem_flatten_ofFn_two {α : Type*} : ∀ {D : ℕ} (g : Fin D
           rw [hlen 0, Fin.val_succ]; omega)
 
 /-- The observed-leaf index corresponding to a data outcome and Boolean coin outcome. -/
-noncomputable def thermalLeaf (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
+noncomputable def thermalLeaf (D : ℕ) (_hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
     (b : Bool) : Fin (observedLeafCount (thermalProgram D E β j)) :=
   Fin.cast (thermalProgram_leafCount D E β j).symm
     (finProdFinEquiv (i, thermalCoinIdx b))
@@ -553,15 +556,15 @@ noncomputable def thermalDiscard (D : ℕ) : Operator (D*2) →ₗ[ℂ] Operator
   map_add' := by
     intro A B
     ext x y
-    simp [Matrix.add_apply, add_mul, Finset.sum_add_distrib]
+    simp [Matrix.add_apply, Finset.sum_add_distrib]
   map_smul' := by
     intro c A
     ext x y
-    simp [Finset.mul_sum, RingHom.id_apply, add_mul, mul_add]
+    simp [RingHom.id_apply, mul_add]
 
 /-- The data-register branch obtained by embedding, applying the thermal leaf, discarding the
 coin, and scaling by the uniform proposal weight `1 / D`. -/
-noncomputable def thermalActualBranch (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
+noncomputable def thermalActualBranch (D : ℕ) (_hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (j i : Fin D) (b : Bool) : Operator D →ₗ[ℂ] Operator D :=
   ((1/(D:ℝ) : ℂ)) • ((thermalDiscard D).comp
     ((conjBranch (thermalLeafOperator D E β j i b)).comp (thermalEmbed D)))
@@ -576,7 +579,7 @@ theorem thermalEmbed_apply (D : ℕ) (ρ : Operator D) (p q : Fin D × Fin 2) :
   simp only [thermalEmbed, LinearMap.coe_mk, AddHom.coe_mk, Matrix.submatrix_apply,
     Equiv.symm_apply_apply, tensorGate_apply, outerProduct_apply]
   by_cases hp : c = 0 <;> by_cases hq : c' = 0 <;>
-    simp [Qatlib.Foundations.PureStateMath.Ket, Matrix.of_apply, hp, hq, star_one, star_zero]
+    simp [Qatlib.Foundations.PureStateMath.Ket, hp, hq]
 
 /-- In product coordinates, the thermal coin gate is the Metropolis coin matrix when the data
 coordinates agree and zero otherwise. -/
@@ -588,8 +591,7 @@ theorem thermalCoinGate_apply (D : ℕ) (a : ℝ) (p q : Fin D × Fin 2) :
   simp only [thermalCoinGate, Matrix.submatrix_apply, Equiv.symm_apply_apply,
     tensorGate_apply]
   by_cases h : a₁ = b₁ <;>
-    simp [h, Qatlib.Foundations.PureStateMath.Ket, Matrix.of_apply, mul_ite, mul_one,
-        mul_zero, Matrix.one_apply]
+    simp [h, Matrix.one_apply]
 
 /-- The data projector is diagonal and selects joint indices whose data coordinate is the
 specified index. -/
@@ -633,7 +635,7 @@ private theorem coinGate_mul_dataProjector (D : ℕ) (a : ℝ) (i : Fin D)
   · rw [Fintype.sum_eq_single q]
     · simp [hq]
     · intro w hw
-      rw [if_neg (fun h => hw h.1)]
+      rw [ite_eq_right (fun h => hw h.1)]
   · have hz : ∀ w : Fin D × Fin 2,
         (if w = q ∧ p.1 = i ∧ q.1 = i then MetropolisCoin a p.2 q.2 else 0) = 0 := by
       intro w
@@ -654,18 +656,18 @@ private theorem coinProjector_mul (D : ℕ) (c : Fin 2) (X : Operator (D*2))
       = if p = w ∧ p.2 = c then X (finProdFinEquiv w) (finProdFinEquiv q) else 0 := by
     intro w
     by_cases hwp : p = w
-    · by_cases hp : p.2 = c <;> simp [hwp, hp]
-    · rw [if_neg (fun h => hwp h.1), if_neg (fun h => hwp h.1), zero_mul]
+    · by_cases hp : p.2 = c <;> simp [hwp]
+    · rw [ite_eq_right (fun h => hwp h.1), ite_eq_right (fun h => hwp h.1), zero_mul]
   simp only [thermalCoinProjector_apply, hstep]
   by_cases hp : p.2 = c
   · rw [Fintype.sum_eq_single p]
     · simp [hp]
     · intro w hw
-      rw [if_neg (fun h => hw h.1.symm)]
+      rw [ite_eq_right (fun h => hw h.1.symm)]
   · have hz : ∀ w : Fin D × Fin 2,
         (if p = w ∧ p.2 = c then X (finProdFinEquiv w) (finProdFinEquiv q) else 0) = 0 := by
       intro w
-      rw [if_neg (fun h => hp h.2)]
+      rw [ite_eq_right (fun h => hp h.2)]
     rw [Finset.sum_congr rfl (fun w _ => hz w)]
     simp [hp]
 
@@ -684,8 +686,8 @@ designated Kraus output row. -/
 theorem thermalDataMap_eq_iff (D : ℕ) (i j : Fin D) (b : Bool) (x : Fin D) :
     thermalDataMap D i j b x = i ↔ x = thermalKrausRow D i j b := by
   cases b
-  · simp only [thermalDataMap, thermalKrausRow, if_neg (by simp : ¬(false = true))]
-  · simp only [thermalDataMap, thermalKrausRow, if_true]
+  · simp only [thermalDataMap, thermalKrausRow, ite_eq_right (by simp : ¬(false = true))]
+  · simp only [thermalDataMap, thermalKrausRow, ite_true]
     constructor
     · intro h
       rw [← Equiv.swap_apply_self i j x, h]
@@ -701,7 +703,7 @@ private theorem feedbackGate_mul (D : ℕ) (i j : Fin D) (b : Bool) (X : Operato
     (thermalFeedbackGate D i j b * X) (finProdFinEquiv p) (finProdFinEquiv q)
       = X (finProdFinEquiv (thermalDataMap D i j b p.1, p.2)) (finProdFinEquiv q) := by
   cases b
-  · rw [thermalFeedbackGate, if_neg (by simp), one_mul, thermalDataMap]
+  · rw [thermalFeedbackGate, ite_eq_right (by simp), one_mul, thermalDataMap]
     rfl
   · rw [show thermalFeedbackGate D i j true = thermalSwapGate D i j from rfl]
     rw [Matrix.mul_apply, ← Equiv.sum_comp finProdFinEquiv (fun k =>
@@ -718,7 +720,7 @@ private theorem feedbackGate_mul (D : ℕ) (i j : Fin D) (b : Bool) (X : Operato
         simp [h1, h2, permMatrix, Matrix.of_apply, Matrix.one_apply]
     rw [Fintype.sum_eq_single (Equiv.swap i j p.1, p.2)]
     · simp only [hentry]
-      rw [if_pos ⟨(Equiv.swap_apply_self i j p.1).symm, trivial⟩, one_mul]
+      rw [ite_eq_left ⟨(Equiv.swap_apply_self i j p.1).symm, trivial⟩, one_mul]
       rfl
     · intro w hw
       rw [hentry w]
@@ -729,9 +731,9 @@ private theorem feedbackGate_mul (D : ℕ) (i j : Fin D) (b : Bool) (X : Operato
           show w.1 = Equiv.swap i j p.1
           rw [h1]
           exact (Equiv.swap_apply_self i j w.1).symm
-        · rw [if_neg (fun h => h2 h.2)]
+        · rw [ite_eq_right (fun h => h2 h.2)]
           simp
-      · rw [if_neg (fun h => h1 h.1)]
+      · rw [ite_eq_right (fun h => h1 h.1)]
         simp
 
 /-- The thermal leaf operator is supported on its designated data-and-coin output row and source
@@ -756,8 +758,8 @@ theorem thermalLeafOperator_apply (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i 
     have hrow : thermalDataMap D i j b p.1 = i :=
       (thermalDataMap_eq_iff D i j b p.1).mpr (congrArg (fun r => r.1) hp)
     by_cases hi : q.1 = i
-    · rw [if_pos hp2, if_pos ⟨hrow, hi⟩, if_pos ⟨hp, hi⟩, hp2]
-    · rw [if_pos hp2, if_neg (fun h => hi h.2), if_neg (fun h => hi h.2)]
+    · rw [ite_eq_left hp2, ite_eq_left ⟨hrow, hi⟩, ite_eq_left ⟨hp, hi⟩, hp2]
+    · rw [ite_eq_left hp2, ite_eq_right (fun h => hi h.2), ite_eq_right (fun h => hi h.2)]
   · have hdm : ¬(p.2 = thermalCoinIdx b ∧ thermalDataMap D i j b p.1 = i) := by
       intro h
       exact hp (Prod.ext ((thermalDataMap_eq_iff D i j b p.1).mp h.2) h.1)
@@ -765,8 +767,8 @@ theorem thermalLeafOperator_apply (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i 
     · have hneg : ¬(thermalDataMap D i j b p.1 = i ∧ q.1 = i) := by
         intro h
         exact hdm ⟨hp2, h.1⟩
-      rw [if_pos hp2, if_neg hneg, if_neg (fun h => hp h.1)]
-    · rw [if_neg hp2, if_neg (fun h => hp h.1)]
+      rw [ite_eq_left hp2, ite_eq_right hneg, ite_eq_right (fun h => hp h.1)]
+    · rw [ite_eq_right hp2, ite_eq_right (fun h => hp h.1)]
 
 /-- The zero-to-zero Metropolis coin entry is `sqrt (1 - a)`. -/
 private theorem metropolisCoin_00 (a : ℝ) :
@@ -828,8 +830,8 @@ private theorem leafOp_mul_embed (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i :
   · have hz : ∀ w : Fin D × Fin 2,
         (if u = (thermalKrausRow D i j b, thermalCoinIdx b) ∧ w = (i, 0) ∧ w'.2 = 0 then
           MetropolisCoin (thermalAcceptance E β i j) (thermalCoinIdx b) 0 * ρ i w'.1
-        else 0) = 0 := fun w => if_neg (fun h => hu h.1)
-    rw [Finset.sum_congr rfl (fun w _ => hz w), if_neg (fun h => hu h.1)]
+        else 0) = 0 := fun w => ite_eq_right (fun h => hu h.1)
+    rw [Finset.sum_congr rfl (fun w _ => hz w), ite_eq_right (fun h => hu h.1)]
     simp
 
 /-- Conjugating an embedded input by a thermal leaf leaves only the designated output diagonal
@@ -881,8 +883,8 @@ private theorem leafOp_sandwich (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : 
           MetropolisCoin (thermalAcceptance E β i j) (thermalCoinIdx b) 0
             * (starRingEnd ℂ) (MetropolisCoin (thermalAcceptance E β i j)
                 (thermalCoinIdx b) 0) * ρ i i
-        else 0) = 0 := fun w' => if_neg (fun h => huv ⟨h.1, h.2.1⟩)
-    rw [Finset.sum_congr rfl (fun w' _ => hz w'), if_neg huv]
+        else 0) = 0 := fun w' => ite_eq_right (fun h => huv ⟨h.1, h.2.1⟩)
+    rw [Finset.sum_congr rfl (fun w' _ => hz w'), ite_eq_right huv]
     simp
 
 /-- Each actual thermal branch outputs a single diagonal entry equal to its thermal Kraus weight
@@ -931,14 +933,13 @@ theorem thermalActualBranch_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β
       · intro c hc
         simp [hc]
       · simp [hx]
-    rw [hsingle, hcoin, if_pos hx]
+    rw [hsingle, hcoin, ite_eq_left hx]
     rw [thermalKrausWeight]
     have hDne : ((D:ℝ) : ℂ) ≠ 0 := by exact_mod_cast hD.ne'
     cases b <;>
-      · simp only [eq_self_iff_true, if_true, Bool.false_eq_true, if_false,
+      · simp only [ite_true, Bool.false_eq_true, ite_false,
           Complex.ofReal_div, Complex.ofReal_sub, Complex.ofReal_one]
         field_simp
-        try ring
   · have hzero : ∑ c : Fin 2,
         (if x = thermalKrausRow D i j b ∧ y = thermalKrausRow D i j b
             ∧ c = thermalCoinIdx b then
@@ -952,10 +953,10 @@ theorem thermalActualBranch_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β
             MetropolisCoin (thermalAcceptance E β i j) (thermalCoinIdx b) 0
               * (starRingEnd ℂ) (MetropolisCoin (thermalAcceptance E β i j)
                   (thermalCoinIdx b) 0) * ρ i i
-          else 0) = 0 := fun c => if_neg (fun h => hx ⟨h.1, h.2.1⟩)
+          else 0) = 0 := fun c => ite_eq_right (fun h => hx ⟨h.1, h.2.1⟩)
       rw [Finset.sum_congr rfl (fun c _ => hz c)]
       simp
-    rw [hzero, if_neg hx]
+    rw [hzero, ite_eq_right hx]
     simp
 
 /-- The quantum channel obtained by iterating the thermal instrument's outcome-forgetting
@@ -968,7 +969,7 @@ noncomputable def thermalPowerChannel (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
 
 /-- The complex conjugate of the real square root of a thermal Kraus weight equals that square
 root. -/
-private theorem hreal' (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (b : Bool) :
+private theorem hreal' (D : ℕ) (_hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (b : Bool) :
     star ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ))
       = ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ)) := by simp
 
@@ -999,25 +1000,25 @@ private theorem thermalKraus_conj_entry (D : ℕ) (hD : 0 < D) (E : Fin D → �
     · have hsingle : (if i = i ∧ x = thermalKrausRow D i j b then
           (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) else 0) * ρ i r
           = (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) * ρ i r := by
-        rw [if_pos ⟨rfl, hx⟩]
+        rw [ite_eq_left ⟨rfl, hx⟩]
       refine Eq.trans (Fintype.sum_eq_single i ?_) ?_
       · intro s hs
-        rw [if_neg (fun h => hs h.1)]
+        rw [ite_eq_right (fun h => hs h.1)]
         simp
-      · rw [hsingle, if_pos hx]
+      · rw [hsingle, ite_eq_left hx]
     · have hz : ∀ s : Fin D, (if s = i ∧ x = thermalKrausRow D i j b then
           (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) else 0) * ρ s r = 0 :=
         fun s => by
           rw [show (if s = i ∧ x = thermalKrausRow D i j b then
               (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) else 0) = 0 from
-            if_neg (fun h => hx h.2)]
+            ite_eq_right (fun h => hx h.2)]
           rw [zero_mul]
-      rw [if_neg hx]
+      rw [ite_eq_right hx]
       rw [Finset.sum_congr rfl (fun s _ => hz s)]
       simp
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hkr, thermalKraus_apply]
   by_cases hx : x = thermalKrausRow D i j b
-  · simp only [if_pos hx]
+  · simp only [ite_eq_left hx]
     by_cases hy : y = thermalKrausRow D i j b
     · have hterm : ∀ r : Fin D,
           ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) * ρ i r)
@@ -1026,24 +1027,24 @@ private theorem thermalKraus_conj_entry (D : ℕ) (hD : 0 < D) (E : Fin D → �
           = if r = i then (thermalKrausWeight D E β i j b : ℂ) * ρ i i else 0 := by
         intro r
         by_cases hrn : r = i
-        · rw [hrn, if_pos ⟨rfl, hy⟩, hr, if_pos rfl]
+        · rw [hrn, ite_eq_left ⟨rfl, hy⟩, hr, ite_eq_left rfl]
           linear_combination hq * ρ i i
-        · rw [if_neg (fun h => hrn h.1), star_zero, mul_zero, if_neg hrn]
+        · rw [ite_eq_right (fun h => hrn h.1), star_zero, mul_zero, ite_eq_right hrn]
       simp only [hterm]
       refine (Fintype.sum_eq_single i ?_).trans ?_
       · intro r hrn
-        rw [if_neg hrn]
-      · rw [if_pos rfl, if_pos ⟨hx, hy⟩, mul_one]
+        rw [ite_eq_right hrn]
+      · rw [ite_eq_left rfl, ite_eq_left ⟨hx, hy⟩, mul_one]
     · have hterm : ∀ r : Fin D,
           ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) * ρ i r)
             * star ((if r = i ∧ y = thermalKrausRow D i j b then
               (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) else 0)) = 0 := by
         intro r
         by_cases hrn : r = i
-        · rw [if_neg (fun h => hy h.2), star_zero, mul_zero]
-        · rw [if_neg (fun h => hrn h.1), star_zero, mul_zero]
+        · rw [ite_eq_right (fun h => hy h.2), star_zero, mul_zero]
+        · rw [ite_eq_right (fun h => hrn h.1), star_zero, mul_zero]
       simp only [hterm]
-      rw [Finset.sum_const_zero, if_neg (fun h => hy h.2), mul_zero]
+      rw [Finset.sum_const_zero, ite_eq_right (fun h => hy h.2), mul_zero]
   · have hterm : ∀ r : Fin D,
         ((if x = thermalKrausRow D i j b then
           (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ) * ρ i r else 0))
@@ -1052,7 +1053,7 @@ private theorem thermalKraus_conj_entry (D : ℕ) (hD : 0 < D) (E : Fin D → �
       intro r
       simp [hx]
     simp only [hterm]
-    rw [Finset.sum_const_zero, if_neg (fun h => hx h.1), mul_zero]
+    rw [Finset.sum_const_zero, ite_eq_right (fun h => hx h.1), mul_zero]
 
 /-- The thermal Kraus operators are complete, and both the instrument branches and the realized
 circuit branches agree with their Kraus conjugation maps. -/
@@ -1095,7 +1096,7 @@ private theorem thermalAcceptance_self {D : ℕ} (E : Fin D → ℝ) (β : ℝ) 
 /-- In positive dimension, summing `1 / D` over all indices gives one, viewed as a complex
 number. -/
 private theorem sum_one_div (D : ℕ) (hD : 0 < D) :
-    ∑ j : Fin D, ((1:ℝ)/(D:ℝ) : ℂ) = 1 := by
+    ∑ _j : Fin D, ((1:ℝ)/(D:ℝ) : ℂ) = 1 := by
   have h : ∑ j : Fin D, ((1:ℝ)/(D:ℝ)) = 1 := by
     have hc : ∑ j : Fin D, ((1:ℝ)/(D:ℝ)) = ((D:ℕ) : ℝ) * ((1:ℝ)/(D:ℝ)) := by
       simp [Finset.sum_const]
@@ -1120,7 +1121,7 @@ private theorem sum_one_sub (D : ℕ) (hD : 0 < D) (a : Fin D → ℝ) :
 
 /-- The sum of accepted inflow and rejected mass at an index equals the corresponding
 thermal-kernel weighted population sum. -/
-private theorem forget_diag_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
+private theorem forget_diag_sum (D : ℕ) (_hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ρ : Operator D) (x : Fin D) :
     (∑ i : Fin D, (thermalAcceptance E β i x / (D:ℝ) : ℂ) * ρ i i)
       + (1 - ∑ j : Fin D, (thermalAcceptance E β x j / (D:ℝ) : ℂ)) * ρ x x
@@ -1138,7 +1139,7 @@ private theorem forget_diag_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β :
     show (Complex.ofReal (if x = x then 1 - ∑ j' ∈ Finset.univ.erase x,
           thermalAcceptance E β x j' / (D:ℝ)
         else thermalAcceptance E β x x / (D:ℝ))) = _
-    rw [if_pos rfl, Complex.ofReal_sub, Complex.ofReal_one]
+    rw [ite_eq_left rfl, Complex.ofReal_sub, Complex.ofReal_one]
     have hsumpush : ∀ (s : Finset (Fin D)) (g : Fin D → ℝ),
         ((∑ j' ∈ s, g j' : ℝ) : ℂ) = ∑ j' ∈ s, ((g j' : ℝ) : ℂ) := by
       intro s g
@@ -1155,7 +1156,7 @@ private theorem forget_diag_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β :
     show (Complex.ofReal (if i = x then 1 - ∑ j' ∈ Finset.univ.erase i,
           thermalAcceptance E β i j' / (D:ℝ)
         else thermalAcceptance E β i x / (D:ℝ))) = _
-    rw [if_neg (Finset.ne_of_mem_erase hi), Complex.ofReal_div]
+    rw [ite_eq_right (Finset.ne_of_mem_erase hi), Complex.ofReal_div]
   have hR : ∑ i : Fin D, (thermalKernel D E β i x : ℂ) * ρ i i
       = (1 - ∑ j' ∈ Finset.univ.erase x, (thermalAcceptance E β x j' / (D:ℝ) : ℂ))
           * ρ x x
@@ -1212,7 +1213,7 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
   simp only [Fintype.sum_bool]
   by_cases hxy : x = y
   · subst y
-    rw [Matrix.diagonal_apply, if_pos rfl]
+    rw [Matrix.diagonal_apply, ite_eq_left rfl]
     have hsumb : ∀ i j : Fin D,
         ((thermalKrausWeight D E β i j true : ℂ) * ρ i i
             * (if x = thermalKrausRow D i j true ∧ x = thermalKrausRow D i j true then
@@ -1224,7 +1225,7 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
           + (if x = i then ((1 - thermalAcceptance E β i j) / (D:ℝ) : ℂ) * ρ i i
             else 0)) := by
       intro i j
-      simp only [thermalKrausRow, thermalKrausWeight, Bool.cond_true, Bool.cond_false]
+      simp only [thermalKrausRow, thermalKrausWeight]
       by_cases hj : x = j <;> by_cases hi : x = i <;> simp [hj, hi]
     simp only [hsumb]
 
@@ -1241,22 +1242,22 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
       have h1 : ∑ j : Fin D, (if x = j then
           (thermalAcceptance E β i j / (D:ℝ) : ℂ) * ρ i i else 0)
           = (thermalAcceptance E β i x / (D:ℝ) : ℂ) * ρ i i :=
-        (Fintype.sum_eq_single x (fun j hj => if_neg (fun h => hj h.symm))).trans
-          (if_pos rfl)
+        (Fintype.sum_eq_single x (fun j hj => ite_eq_right (fun h => hj h.symm))).trans
+          (ite_eq_left rfl)
       rw [h1]
       by_cases hi : x = i
       · subst i
-        rw [Finset.sum_congr rfl (fun j _ => if_pos rfl)]
+        rw [Finset.sum_congr rfl (fun j _ => ite_eq_left rfl)]
         rw [show (∑ j : Fin D, ((1 - thermalAcceptance E β x j) / (D:ℝ) : ℂ)
             * ρ x x) = (∑ j : Fin D, ((1 - thermalAcceptance E β x j) / (D:ℝ) : ℂ))
             * ρ x x from (Finset.sum_mul Finset.univ
             (fun j => ((1 - thermalAcceptance E β x j) / (D:ℝ) : ℂ)) (ρ x x)).symm]
         rw [sum_one_sub D hD (fun j => thermalAcceptance E β x j)]
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
       · have hz : ∀ j : Fin D,
             (if x = i then ((1 - thermalAcceptance E β i j) / (D:ℝ) : ℂ) * ρ i i
-              else 0) = 0 := fun j => if_neg (fun h : x = i => hi h)
-        rw [Finset.sum_congr rfl (fun j _ => hz j), if_neg hi, add_zero]
+              else 0) = 0 := fun j => ite_eq_right (fun h : x = i => hi h)
+        rw [Finset.sum_congr rfl (fun j _ => hz j), ite_eq_right hi, add_zero]
         simp
     rw [Finset.sum_congr rfl (fun i _ => hrow i), Finset.sum_add_distrib]
     calc (∑ i : Fin D, (thermalAcceptance E β i x / (D:ℝ) : ℂ) * ρ i i)
@@ -1266,11 +1267,11 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
         = (∑ i : Fin D, (thermalAcceptance E β i x / (D:ℝ) : ℂ) * ρ i i)
           + (1 - ∑ j : Fin D, (thermalAcceptance E β x j / (D:ℝ) : ℂ)) * ρ x x := by
           refine congrArg _ ?_
-          exact (Fintype.sum_eq_single x (fun i hi => if_neg
-            (fun h : x = i => hi h.symm))).trans (if_pos rfl)
+          exact (Fintype.sum_eq_single x (fun i hi => ite_eq_right
+            (fun h : x = i => hi h.symm))).trans (ite_eq_left rfl)
       _ = ∑ i : Fin D, (thermalKernel D E β i x : ℂ) * ρ i i :=
           forget_diag_sum D hD E β ρ x
-  · rw [Matrix.diagonal_apply, if_neg hxy]
+  · rw [Matrix.diagonal_apply, ite_eq_right hxy]
     have hzero : ∀ i j : Fin D,
         ((thermalKrausWeight D E β i j true : ℂ) * ρ i i
             * (if x = thermalKrausRow D i j true ∧ y = thermalKrausRow D i j true then
@@ -1279,8 +1280,8 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
             * (if x = thermalKrausRow D i j false ∧ y = thermalKrausRow D i j false then
               (1:ℂ) else 0)) = 0 := by
       intro i j
-      rw [if_neg (fun h => hxy (h.1.trans h.2.symm)),
-        if_neg (fun h => hxy (h.1.trans h.2.symm))]
+      rw [ite_eq_right (fun h => hxy (h.1.trans h.2.symm)),
+        ite_eq_right (fun h => hxy (h.1.trans h.2.symm))]
       ring
     simp only [hzero]
     simp
@@ -1314,7 +1315,7 @@ theorem measured_metropolis_channel_stationary (D : ℕ) (hD : 0 < D) (E : Fin D
   ext x y
   by_cases hxy : x = y
   · subst y
-    rw [Matrix.diagonal_apply, if_pos rfl]
+    rw [Matrix.diagonal_apply, ite_eq_left rfl]
     have hπ : ∑ i : Fin D, (diagonalGibbsDist D hD E β).prob i
         * thermalKernel D E β i x = (diagonalGibbsDist D hD E β).prob x :=
       (diagonal_metropolis_transition_reversible D hD E β).2.2.1.2.2 x
@@ -1327,17 +1328,16 @@ theorem measured_metropolis_channel_stationary (D : ℕ) (hD : 0 < D) (E : Fin D
             * ((diagonalGibbsDist D hD E β).prob i : ℂ) := by
         push_cast
         refine Finset.sum_congr rfl fun i _ => ?_
-        push_cast
         ring
       rw [← hπ, hcast']
     have hdens : ∀ i : Fin D, diagonalGibbsDensity D hD E β i i
         = ((diagonalGibbsDist D hD E β).prob i : ℂ) := fun i => by
       show (Matrix.diagonal (fun k => ((diagonalGibbsDist D hD E β).prob k : ℂ))) i i = _
-      rw [Matrix.diagonal_apply, if_pos rfl]
+      rw [Matrix.diagonal_apply, ite_eq_left rfl]
     rw [hdens x, Finset.sum_congr rfl (fun i _ => by rw [hdens i]), hcast]
-  · rw [Matrix.diagonal_apply, if_neg hxy]
+  · rw [Matrix.diagonal_apply, ite_eq_right hxy]
     rw [diagonalGibbsDensity]
-    rw [Matrix.diagonal_apply, if_neg hxy]
+    rw [Matrix.diagonal_apply, ite_eq_right hxy]
 
 /-- The complex linear map that reads the input diagonal and forms a diagonal output using a
 real kernel. -/
@@ -1352,14 +1352,14 @@ private theorem conjBranch_single_apply {D : ℕ} (i x : Fin D) (σ : Operator D
   by_cases h1 : x = u
   · by_cases h2 : x = v
     · simp only [conjBranch_apply, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.single,
-        Matrix.of_apply, h1, h2, Finset.sum_ite_eq, Finset.mem_univ, star_one]
+        Matrix.of_apply, h1]
       by_cases huv : u = v <;> simp [huv, Finset.sum_ite_eq]
     · have huv : u ≠ v := by
         intro h
         apply h2
         exact h1.trans h
-      simp [h1, h2, huv, conjBranch_apply]
-  · simp [h1, conjBranch_apply]
+      simp [h1, huv]
+  · simp [h1]
 
 /-- The diagonal-kernel map outputs the diagonal matrix of kernel-weighted input diagonal
 entries. -/
@@ -1376,7 +1376,7 @@ theorem kernelDiagMap_apply {D : ℕ} (w : Fin D → Fin D → ℝ) (σ : Operat
   · subst huv
     simp
   · have hfalse : ∀ a : Fin D, ¬(a = u ∧ a = v) := fun a hh => huv (hh.1.symm.trans hh.2)
-    simp [huv, hfalse, Matrix.diagonal_apply]
+    simp [huv, hfalse]
 
 /-- A kernel with nonnegative entries defines a completely positive diagonal-kernel map. -/
 theorem kernelDiagMap_cp {D : ℕ} {w : Fin D → Fin D → ℝ} (hw : ∀ i x, 0 ≤ w i x) :
@@ -1418,10 +1418,10 @@ theorem traceSmulLeft_eq_kernelDiagMap {D : ℕ} (p : Fin D → ℝ) (σ : Opera
   ext u v
   by_cases huv : u = v
   · subst huv
-    rw [Matrix.smul_apply, Matrix.diagonal_apply, if_pos rfl, smul_eq_mul,
-      Matrix.diagonal_apply, if_pos rfl, ← Finset.mul_sum]
+    rw [Matrix.smul_apply, Matrix.diagonal_apply, ite_eq_left rfl, smul_eq_mul,
+      Matrix.diagonal_apply, ite_eq_left rfl, ← Finset.mul_sum]
     exact mul_comm _ _
-  · simp [huv, Matrix.diagonal_apply]
+  · simp [huv]
 
 /-- The natural powers of a real kernel, starting with the identity kernel and multiplying by
 the kernel recursively. -/
@@ -1443,7 +1443,7 @@ private theorem kernelDiagMap_comp_apply {D : ℕ} (w v : Fin D → Fin D → �
   simp only [Matrix.diagonal_apply]
   by_cases huv : u = v'
   · subst huv
-    rw [if_pos rfl, if_pos rfl]
+    rw [ite_eq_left rfl, ite_eq_left rfl]
     calc (∑ x : Fin D, (w x u : ℂ) * ∑ i : Fin D, (v i x : ℂ) * σ i i)
         = ∑ i : Fin D, ∑ x : Fin D, (w x u : ℂ) * ((v i x : ℂ) * σ i i) := by
           simp only [Finset.mul_sum]
@@ -1454,7 +1454,7 @@ private theorem kernelDiagMap_comp_apply {D : ℕ} (w v : Fin D → Fin D → �
           ring
       _ = ∑ i : Fin D, ((∑ m : Fin D, v i m * w m u : ℝ) : ℂ) * σ i i := by
           simp only [← Finset.sum_mul, ← Complex.ofReal_sum]
-  · rw [if_neg huv, if_neg huv]
+  · rw [ite_eq_right huv, ite_eq_right huv]
 
 /-- Every positive power of the thermal channel is the diagonal-kernel map of the corresponding
 thermal kernel power. -/
@@ -1470,15 +1470,15 @@ theorem thermalPowerChannel_eq_kernelDiagMap (D : ℕ) (hD : 0 < D) (E : Fin D �
         = (thermalInstrument D hD E β).forget.map σ := rfl
     have hkp : ∀ i x : Fin D, kernelPow (thermalKernel D E β) 1 i x = thermalKernel D E β i x := by
       intro i x
-      simp [kernelPow, Finset.sum_ite_eq]
+      simp [kernelPow]
     rw [h1, thermalInstrument_forget_apply, kernelDiagMap_apply]
     ext u v
     simp only [Matrix.diagonal_apply]
     by_cases huv : u = v
     · subst huv
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       exact Finset.sum_congr rfl fun i _ => by rw [hkp i u]
-    · rw [if_neg huv, if_neg huv]
+    · rw [ite_eq_right huv, ite_eq_right huv]
   | succ m ih =>
     apply LinearMap.ext
     intro σ
@@ -1501,8 +1501,8 @@ private theorem kernelPow_nonneg {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : �
     intro i x
     rw [kernelPow_zero]
     by_cases hix : i = x
-    · rw [if_pos hix]; try norm_num
-    · rw [if_neg hix]; try exact le_refl _
+    · rw [ite_eq_left hix]; try norm_num
+    · rw [ite_eq_right hix]
   | succ n ih =>
     intro i x
     refine Finset.sum_nonneg fun m _ => ?_
@@ -1516,7 +1516,7 @@ private theorem kernelPow_row {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : ∀ 
   | zero =>
     intro i
     rw [Finset.sum_congr rfl (fun x _ => kernelPow_zero k i x), Finset.sum_ite_eq,
-      if_pos (Finset.mem_univ i)]
+      ite_eq_left (Finset.mem_univ i)]
   | succ n ih =>
     intro i
     calc ∑ x : Fin D, kernelPow k (n+1) i x
@@ -1533,7 +1533,7 @@ private theorem kernelPow_row {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : ∀ 
 /-- A stationary population vector for a kernel whose rows sum to one remains stationary for all
 natural kernel powers. -/
 private theorem kernelPow_stat {D : ℕ} {q : Fin D → Fin D → ℝ} {p : Fin D → ℝ}
-    (hqrow : ∀ i, ∑ x, q i x = 1) (hpstat : ∀ x, ∑ i, p i * q i x = p x) :
+    (_hqrow : ∀ i, ∑ x, q i x = 1) (hpstat : ∀ x, ∑ i, p i * q i x = p x) :
     ∀ (n : ℕ) (x : Fin D), ∑ i, p i * kernelPow q n i x = p x := by
   intro n
   induction n with
@@ -1541,7 +1541,7 @@ private theorem kernelPow_stat {D : ℕ} {q : Fin D → Fin D → ℝ} {p : Fin 
     intro x
     rw [Finset.sum_congr rfl (fun i _ => by rw [kernelPow_zero])]
     simp only [mul_ite, mul_one, mul_zero]
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ x)]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ x)]
   | succ n ih =>
     intro x
     calc ∑ i : Fin D, p i * kernelPow q (n+1) i x
@@ -1672,13 +1672,13 @@ private theorem kernelDiagMap_two_term {D : ℕ} (u v : Fin D → Fin D → ℝ)
   simp only [Matrix.smul_apply, Matrix.add_apply, Matrix.diagonal_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, if_pos rfl, if_pos rfl]
-    simp only [Matrix.smul_apply, smul_eq_mul, Matrix.add_apply]
+    rw [ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
+    simp only [smul_eq_mul]
     rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
     refine Finset.sum_congr rfl fun i _ => ?_
     push_cast
     ring
-  · rw [if_neg hxy, if_neg hxy, if_neg hxy]
+  · rw [ite_eq_right hxy, ite_eq_right hxy, ite_eq_right hxy]
     simp
 
 /-- For nonnegative inverse temperature and energies in `[0, R]`, a positive number `n` of
@@ -1732,8 +1732,8 @@ theorem measured_gibbs_reference_mixing (D : ℕ) (hD : 0 < D) (r : ℕ) (E : Fi
       simp only [Matrix.diagonal_apply]
       by_cases huv : u = v
       · subst huv
-        rw [if_pos rfl, if_pos rfl, Finset.sum_congr rfl (fun i _ => by rw [hkπ i u])]
-      · rw [if_neg huv, if_neg huv]
+        rw [ite_eq_left rfl, ite_eq_left rfl, Finset.sum_congr rfl (fun i _ => by rw [hkπ i u])]
+      · rw [ite_eq_right huv, ite_eq_right huv]
     have hSS : traceSmulLeft (diagonalGibbsDensity D hD E β)
         = kernelDiagMap (fun _ x => (diagonalGibbsDist D hD E β).prob x) := by
       rw [hdens]
@@ -1760,7 +1760,7 @@ theorem measured_gibbs_reference_mixing (D : ℕ) (hD : 0 < D) (r : ℕ) (E : Fi
             = Matrix.trace σ := kernelDiagMap_tp (fun _ => hpsum) σ
         rw [hstep, ih (by omega), hkdiag, traceSmulLeft_apply, traceSmulLeft_apply, htp]
     rw [hpower, tensorLeft_traceSmulLeft, sub_self, Matrix.traceNorm_zero, hc0]
-    simp [zero_pow (by omega : (0:ℕ) + 1 ≠ 0)]
+    simp
   · have hc : 0 < (1:ℝ) - Real.exp (-β * R) := by
       rcases lt_or_eq_of_le hηle with h | h
       · exact sub_pos.mpr h
@@ -1886,8 +1886,8 @@ theorem thermalPowerChannel_eq_reset {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) 
     simp only [Matrix.diagonal_apply]
     by_cases huv : u = v
     · subst huv
-      rw [if_pos rfl, if_pos rfl, Finset.sum_congr rfl (fun i _ => by rw [hkπ i u])]
-    · rw [if_neg huv, if_neg huv]
+      rw [ite_eq_left rfl, ite_eq_left rfl, Finset.sum_congr rfl (fun i _ => by rw [hkπ i u])]
+    · rw [ite_eq_right huv, ite_eq_right huv]
   have hSS : traceSmulLeft (diagonalGibbsDensity D hD E β)
       = kernelDiagMap (fun _ x => (diagonalGibbsDist D hD E β).prob x) := by
     rw [hdens]
@@ -1992,7 +1992,7 @@ noncomputable def thermalHistoryInstrument (D : ℕ) (hD : 0 < D) (E : Fin D →
         simp)
   | n + 1 =>
       let chain := (thermalInstrument D hD E β).seq (thermalHistoryInstrument D hD E β n)
-      let e := consEquiv' (O := Fin D × Fin D × Bool) n
+      let e := Fin.consEquiv (fun _ : Fin (n + 1) => Fin D × Fin D × Bool)
       { branch := fun hist => chain.branch (e.symm hist)
         cp := fun hist => chain.cp (e.symm hist)
         tni := fun hist => chain.tni (e.symm hist)
@@ -2022,8 +2022,8 @@ private theorem thermalHistoryInstrument_forget (D : ℕ) (hD : 0 < D) (E : Fin 
         Instrument.forget_apply (thermalInstrument D hD E β),
         Instrument.forget_apply (thermalHistoryInstrument D hD E β n)]
       rw [sum_cons]
-      simp only [thermalHistoryInstrument, Instrument.seq, consEquiv',
-        Fin.cons_zero, Fin.cons_succ, LinearMap.comp_apply, map_sum]
+      simp only [thermalHistoryInstrument, Instrument.seq, Fin.consEquiv,
+        LinearMap.comp_apply, map_sum]
       exact Finset.sum_comm
     rw [hsum, ih]
     rfl

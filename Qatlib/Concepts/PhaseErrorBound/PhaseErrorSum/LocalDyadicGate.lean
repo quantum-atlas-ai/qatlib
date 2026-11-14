@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Local dyadic gates and program semantics
@@ -100,10 +104,10 @@ theorem localGateMatrix_h_star (n : ℕ) (a : Fin n) :
   ext x y
   show (starRingEnd ℂ) (localGateMatrix (.h a) y x) = localGateMatrix (.h a) x y
   by_cases hP : ∀ k : Fin n, k ≠ a → y k = x k
-  · rw [localGateMatrix_h, if_pos hP, localGateMatrix_h, if_pos (fun k hk => (hP k hk).symm),
+  · rw [localGateMatrix_h, ite_eq_left hP, localGateMatrix_h, ite_eq_left (fun k hk => (hP k hk).symm),
       hadamard_entry_star (y a) (x a), hadamard_entry_symm (y a) (x a)]
-  · rw [localGateMatrix_h, if_neg hP, localGateMatrix_h,
-      if_neg (fun hQ => hP (fun k hk => (hQ k hk).symm))]
+  · rw [localGateMatrix_h, ite_eq_right hP, localGateMatrix_h,
+      ite_eq_right (fun hQ => hP (fun k hk => (hQ k hk).symm))]
     simp
 
 /-- The complex conjugate of `exp(θi)` is `exp(-θi)` for real `θ`. -/
@@ -135,8 +139,8 @@ theorem localGateMatrix_cp_star (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool) :
       = if x a && x c then Complex.exp (dyadicPhaseAngle k (!neg) * Complex.I) else 1 := by
     intro x
     by_cases hc : x a && x c
-    · rw [if_pos hc, if_pos hc, star_dyadicPhaseAngle]
-    · rw [if_neg hc, if_neg hc, map_one]
+    · rw [ite_eq_left hc, ite_eq_left hc, star_dyadicPhaseAngle]
+    · rw [ite_eq_right hc, ite_eq_right hc, map_one]
   unfold localGateMatrix
   rw [Matrix.diagonal_conjTranspose]
   congr 1
@@ -161,8 +165,8 @@ private theorem star_h_entry (n : ℕ) (a : Fin n) (z x : Reg n) :
       = if ∀ k : Fin n, k ≠ a → z k = x k then Hadamard (x a) (z a) else 0 := by
   rw [localGateMatrix_h]
   by_cases h : ∀ k : Fin n, k ≠ a → z k = x k
-  · rw [if_pos h, if_pos h, hadamard_entry_star (z a) (x a), hadamard_entry_symm (z a) (x a)]
-  · rw [if_neg h, if_neg h, map_zero]
+  · rw [ite_eq_left h, ite_eq_left h, hadamard_entry_star (z a) (x a), hadamard_entry_symm (z a) (x a)]
+  · rw [ite_eq_right h, ite_eq_right h, map_zero]
 
 /-- The two possible intermediate Boolean values sum to the corresponding entry of the squared
 Hadamard matrix. -/
@@ -180,13 +184,13 @@ private def hFlip (n : ℕ) (a : Fin n) (x : Reg n) : Reg n := fun k => if k = a
 private theorem hFlip_apply_self (n : ℕ) (a : Fin n) (x : Reg n) :
     hFlip n a x a = !x a := by
   show (if a = a then !x a else x a) = !x a
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- The bit flip at `a` preserves every bit at a distinct wire. -/
 private theorem hFlip_apply_of_ne (n : ℕ) (a : Fin n) (x : Reg n) (k : Fin n) (h : k ≠ a) :
     hFlip n a x k = x k := by
   show (if k = a then !x k else x k) = x k
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- A register agrees with `x` away from wire `a` exactly when it equals `x` or the register
 with bit `a` flipped. -/
@@ -283,9 +287,9 @@ theorem localGateMatrix_h_unitary (n : ℕ) (a : Fin n) :
       intro z
       rw [star_h_entry, localGateMatrix_h]
       by_cases hz : ∀ k : Fin n, k ≠ a → z k = x k
-      · rw [if_pos hz, if_pos (fun k hk => by rw [hz k hk, hgood k hk]), if_pos hz]
-      · rw [if_neg hz, if_neg (fun hzy => hz (fun k hk => (hzy k hk).trans (hgood k hk).symm)),
-          if_neg hz]
+      · rw [ite_eq_left hz, ite_eq_left (fun k hk => by rw [hz k hk, hgood k hk]), ite_eq_left hz]
+      · rw [ite_eq_right hz, ite_eq_right (fun hzy => hz (fun k hk => (hzy k hk).trans (hgood k hk).symm)),
+          ite_eq_right hz]
         simp
     rw [Finset.sum_congr rfl (fun z _ => key z), h_support_sum, hadamard_mul_self,
       Matrix.one_apply]
@@ -295,7 +299,7 @@ theorem localGateMatrix_h_unitary (n : ℕ) (a : Fin n) :
         by_cases hka : k = a
         · simpa [hka] using h
         · exact hgood k hka)
-      rw [if_neg hne, if_neg hxy']
+      rw [ite_eq_right hne, ite_eq_right hxy']
   · have hne : x ≠ y := fun hxy => hgood (fun k hk => by rw [hxy])
     have hzero : (∑ z : Reg n, (starRingEnd ℂ) (localGateMatrix (.h a) z x)
         * localGateMatrix (.h a) z y) = 0 := by
@@ -312,10 +316,10 @@ theorem localGateMatrix_h_unitary (n : ℕ) (a : Fin n) :
           have h1 := hzy k hka
           have h2 := hz k hka
           exact hk (h2.symm.trans h1)
-        rw [star_h_entry, if_pos hz, localGateMatrix_h, if_neg hz']
+        rw [star_h_entry, ite_eq_left hz, localGateMatrix_h, ite_eq_right hz']
         simp
-      · rw [star_h_entry, if_neg hz, zero_mul]
-    rw [hzero, if_neg hne]
+      · rw [star_h_entry, ite_eq_right hz, zero_mul]
+    rw [hzero, ite_eq_right hne]
 
 /-- Every signed dyadic controlled-phase matrix is unitary. -/
 theorem localGateMatrix_cp_unitary (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool) :
@@ -328,11 +332,11 @@ theorem localGateMatrix_cp_unitary (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool
   show (if x a && x c then Complex.exp (dyadicPhaseAngle k (!neg) * Complex.I) else 1)
     * (if x a && x c then Complex.exp (dyadicPhaseAngle k neg * Complex.I) else 1) = 1
   by_cases h : x a && x c
-  · rw [if_pos h, if_pos h, ← star_dyadicPhaseAngle k neg,
+  · rw [ite_eq_left h, ite_eq_left h, ← star_dyadicPhaseAngle k neg,
       ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
       Complex.norm_exp_ofReal_mul_I]
     norm_num
-  · rw [if_neg h, if_neg h, mul_one]
+  · rw [ite_eq_right h, ite_eq_right h, mul_one]
 
 /-- The matrix semantics of every `LocalQFTGate` instruction is unitary. -/
 theorem localGateMatrix_unitary {n : ℕ} (g : LocalQFTGate n) :

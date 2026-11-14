@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BoolHidShift11.InputModel.BHSPModel.SourceBHSP
+module
+
+public import Qatlib.Papers.BoolHidShift11.InputModel.BHSPModel.SourceBHSP
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,7 +86,7 @@ theorem chi_eq_ite {n : ℕ} (u x : Reg n) :
   have hmod : (Finset.univ.filter fun i => u i && x i).card % 2 < 2 :=
     Nat.mod_lt _ (by norm_num)
   rw [neg_one_pow_eq_pow_mod_two]
-  interval_cases h : (Finset.univ.filter fun i => u i && x i).card % 2 <;> simp [h]
+  interval_cases h : (Finset.univ.filter fun i => u i && x i).card % 2 <;> simp
 
 /-- Every character value is `1` or `-1`. -/
 theorem chi_val {n : ℕ} (u x : Reg n) : chi u x = 1 ∨ chi u x = -1 := by
@@ -96,10 +100,10 @@ theorem chi_eq_neg_iff {n : ℕ} (u x : Reg n) :
   constructor
   · intro h
     by_contra hc
-    rw [if_neg hc] at h
+    rw [ite_eq_right hc] at h
     norm_num at h
   · intro h
-    rw [if_pos h]
+    rw [ite_eq_left h]
 
 /-- The paper's indicator `1_{⟨v,u⟩=1}` written through the character:
 `1_{⟨v,u⟩=1} = (1 - χ_v(u))/2`. -/
@@ -123,12 +127,12 @@ theorem sum_chi {n : ℕ} (z : Reg n) :
   have hinner : ∀ i : Fin n,
       (∑ b : Bool, (if b && z i then (-1 : ℝ) else 1)) = if z i then 0 else 2 := by
     intro i
-    rcases hzi : z i <;> simp [hzi, Fintype.sum_bool]
+    rcases hzi : z i <;> simp
   simp_rw [hinner]
   by_cases hz : z = ZeroStr n
   · subst hz
     simp [ZeroStr, Finset.prod_const]
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     have hne : ∃ i, z i = true := by
       by_contra h
       apply hz
@@ -150,7 +154,7 @@ theorem sum_chi_mul {n : ℕ} (x y : Reg n) :
   by_cases hxy : x = y
   · subst hxy
     simp
-  · rw [if_neg hxy, if_neg (fun h => hxy ((regXor_eq_zero_iff x y).mp h))]
+  · rw [ite_eq_right hxy, ite_eq_right (fun h => hxy ((regXor_eq_zero_iff x y).mp h))]
 
 /-- **Three-character orthogonality:** `Σ_u χ_v(u) χ_u(x) χ_u(y) = 2^n` iff
 `v = x + y`. -/
@@ -182,7 +186,7 @@ theorem uniformWeight_mul {n : ℕ} : uniformWeight n * (2 : ℝ) ^ n = 1 := by
 theorem sum_one {n : ℕ} : (∑ _x : Reg n, (1 : ℝ)) = (2 : ℝ) ^ n := by
   rw [Finset.sum_const, Finset.card_univ]
   have hcard : Fintype.card (Reg n) = 2 ^ n := by
-    simp [Reg, Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+    simp [Reg, Fintype.card_bool, Fintype.card_fin]
   rw [hcard, nsmul_eq_mul, mul_one, Nat.cast_pow]
   norm_num
 
@@ -247,9 +251,9 @@ theorem sum_chi_fourier_mul {n : ℕ} (F : Reg n → ℝ) (v : Reg n) :
       intro y
       by_cases h : y = regXor x v
       · have hv' : v = regXor x y := (hv y).mpr h
-        rw [if_pos hv', if_pos h]
+        rw [ite_eq_left hv', ite_eq_left h]
       · have h' : ¬ (v = regXor x y) := fun hv' => h ((hv y).mp hv')
-        rw [if_neg h', if_neg h]
+        rw [ite_eq_right h', ite_eq_right h]
         ring
     simp_rw [hpt]
     rw [Finset.sum_ite_eq']
@@ -311,7 +315,6 @@ theorem influence_eq_half {n : ℕ} (F : Reg n → ℝ)
   unfold uniformWeight
   have h2 : (2 : ℝ) ^ n ≠ 0 := pow_ne_zero n (by norm_num)
   field_simp
-  try ring
 
 /-! ### Lemma 1 -/
 
@@ -338,9 +341,9 @@ theorem source_lemma1_influence {n : ℕ} (F : Reg n → ℝ)
       intro u
       rw [chi_eq_ite]
       by_cases h : parityDot v u = true
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         ring
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         ring
     simp_rw [hpt]
     rw [Finset.sum_sub_distrib, ← Finset.mul_sum, ← Finset.mul_sum]

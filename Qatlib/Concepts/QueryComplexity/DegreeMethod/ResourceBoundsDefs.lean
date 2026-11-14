@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Foundations.QueryWordCore.HamiltonianQuery
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalCopyQPE
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Foundations.QueryWordCore.HamiltonianQuery
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalCopyQPE
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # Resource ledgers and local allocation

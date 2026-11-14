@@ -22,7 +22,11 @@ exhibited explicitly and its size is shown to be exactly the number of non-root
 nodes of `T`, so the `O(1)` bound is unconditional in `n = |V_G|`.
 -/
 
-import Qatlib.Papers.SpanProgTree13.MainResults.TreeDetectionProgram
+module
+
+public import Qatlib.Papers.SpanProgTree13.MainResults.TreeDetectionProgram
+
+@[expose] public section
 
 /-!
 # PositiveWitness
@@ -122,19 +126,19 @@ theorem sum_edge_apply (t : RootedTree VT) (emb : VT → VG) (u₀ : VG ⊕ Bool
     intro b _
     by_cases hb : t.IsLeaf f₀ ∧ t.Subtree b f₀
     · have hmem : f₀ ∈ vleaf t b := mem_vleaf.mpr hb
-      rw [Pi.sub_apply, vec, vec, if_pos hb]
+      rw [Pi.sub_apply, vec, vec, ite_eq_left hb]
       simp only [hmem]
       by_cases hA : u₀ = gPt (emb (t.parB b)) <;> by_cases hB : u₀ = gPt (emb b) <;>
         simp [hA, hB]
     · have hmem : f₀ ∉ vleaf t b := fun hc => hb (mem_vleaf.mp hc)
-      rw [Pi.sub_apply, vec, vec, if_neg hb]
+      rw [Pi.sub_apply, vec, vec, ite_eq_right hb]
       simp [hmem]
   rw [Finset.sum_apply]
   rw [Finset.sum_congr rfl hterm]
   rw [← Finset.sum_filter]
   rw [Finset.filter_filter]
   by_cases hL : t.IsLeaf f₀
-  · rw [if_pos hL]
+  · rw [ite_eq_left hL]
     have hfilter : Finset.univ.filter (fun b => b ≠ t.root ∧ (t.IsLeaf f₀ ∧ t.Subtree b f₀))
         = Finset.univ.filter (fun b => b ≠ t.root ∧ t.Subtree b f₀) := by
       apply Finset.filter_congr
@@ -152,7 +156,7 @@ theorem sum_edge_apply (t : RootedTree VT) (emb : VT → VG) (u₀ : VG ⊕ Bool
         - (if u₀ = gPt (emb b) then (1 : ℝ) else 0))]
     rw [Finset.sum_congr rfl hshift]
     rw [t.sum_chain f₀ (fun b => if u₀ = gPt (emb b) then (1 : ℝ) else 0)]
-  · rw [if_neg hL]
+  · rw [ite_eq_right hL]
     have hempty : Finset.univ.filter (fun b => b ≠ t.root ∧ (t.IsLeaf f₀ ∧ t.Subtree b f₀)) = ∅ := by
       rw [Finset.filter_eq_empty_iff]
       intro b _ h
@@ -213,7 +217,7 @@ theorem sum_leaf_apply (t : RootedTree VT) (emb : VT → VG) (u₀ : VG ⊕ Bool
         else 0 := by
   rw [Finset.sum_apply]
   by_cases hL : t.IsLeaf f₀
-  · rw [if_pos hL]
+  · rw [ite_eq_left hL]
     have hmem : f₀ ∈ leafSet t := mem_leafSet.mpr hL
     rw [Finset.sum_eq_single f₀]
     · rw [Pi.sub_apply, basis, basis]
@@ -225,11 +229,11 @@ theorem sum_leaf_apply (t : RootedTree VT) (emb : VT → VG) (u₀ : VG ⊕ Bool
       have hne2 : ¬ ((u₀, f₀) = (tPt, b)) := by
         rintro h
         exact hbf (Prod.ext_iff.mp h).2.symm
-      rw [Pi.sub_apply, basis, basis, if_neg hne1, if_neg hne2]
+      rw [Pi.sub_apply, basis, basis, ite_eq_right hne1, ite_eq_right hne2]
       simp
     · intro hnot
       exact absurd hmem hnot
-  · rw [if_neg hL]
+  · rw [ite_eq_right hL]
     apply Finset.sum_eq_zero
     intro b hb
     rw [Pi.sub_apply, basis, basis]
@@ -241,7 +245,7 @@ theorem sum_leaf_apply (t : RootedTree VT) (emb : VT → VG) (u₀ : VG ⊕ Bool
       rintro h
       have hfb : f₀ = b := (Prod.ext_iff.mp h).2
       exact hL (by rw [hfb]; exact mem_leafSet.mp hb)
-    rw [if_neg hne1, if_neg hne2]
+    rw [ite_eq_right hne1, ite_eq_right hne2]
     simp
 
 /-- The edge part of Eq. (11). -/
@@ -278,7 +282,7 @@ theorem sum_edge (t : RootedTree VT) (c : VG → VT) (emb : VT → VG)
     have hno : ¬ ∃ b, b ≠ t.root ∧ emb (t.parB b) = p.1 ∧ emb b = p.2 := by
       rintro ⟨b, hb, h1, h2⟩
       exact hp (Finset.mem_image.mpr ⟨b, by simp [S, hb], by simp [h1, h2]⟩)
-    rw [if_neg hno, zero_smul]
+    rw [ite_eq_right hno, zero_smul]
   rw [← Finset.sum_subset (Finset.subset_univ _) hzero]
   rw [Finset.sum_image]
   · refine Finset.sum_congr rfl ?_
@@ -290,7 +294,7 @@ theorem sum_edge (t : RootedTree VT) (c : VG → VT) (emb : VT → VG)
       rw [h.color, h.color]
       exact leafInter_child hchild
     rw [hci]
-    rw [if_pos ⟨b, hbne, rfl, rfl⟩, one_smul]
+    rw [ite_eq_left ⟨b, hbne, rfl, rfl⟩, one_smul]
     rw [edgeVec]
   · intro a _ b _ hab
     have h2 : emb a = emb b := by
@@ -363,7 +367,7 @@ theorem lemma1_positive (t : RootedTree VT) {G : VG → VG → Prop} {c : VG →
       rw [Finset.mem_filter] at hj
       obtain ⟨-, -, hnf⟩ := hj
       rcases posWitness_zero_or_one t emb j with h0 | h1
-      · rw [h0]; ring
+      · simp [h0]
       · exfalso
         rcases j with u | (⟨f, u⟩ | ⟨u, v⟩)
         · exact hnf (by simp [freeIdx])
@@ -380,12 +384,11 @@ theorem lemma1_positive (t : RootedTree VT) {G : VG → VG → Prop} {c : VG →
       rw [Finset.mem_filter] at hb
       obtain ⟨-, hbne⟩ := hb
       simp only [φ, edgeIdx, posWitness]
-      rw [if_pos ⟨b, hbne, rfl, rfl⟩]
+      rw [ite_eq_left ⟨b, hbne, rfl, rfl⟩]
     have hconst : ∀ x ∈ S.image φ, (posWitness t emb x) ^ 2 = 1 := by
       intro x hx
       obtain ⟨b, hb, rfl⟩ := Finset.mem_image.mp hx
-      rw [hw1 b hb]
-      ring
+      simp [hw1 b hb]
     rw [Finset.sum_congr rfl hconst, Finset.sum_const]
     simp [Finset.card_image_of_injOn hinj, numEdges, S]
 

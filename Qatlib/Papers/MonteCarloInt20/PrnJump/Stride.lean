@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.FrameDecode
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedPreparation
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.FrameDecode
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedPreparation
+
+@[expose] public section
 
 /-!
 # Stride-indexed native PRN computation

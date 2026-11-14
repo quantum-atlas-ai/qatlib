@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.GateSynthesis.ImplementationEffective
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.ImplementationMachine
+module
+
+public import Qatlib.Concepts.CircuitImpl.GateSynthesis.ImplementationEffective
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.ImplementationMachine
+
+@[expose] public section
 
 /-!
 # Definitions for machine implementation ledgers

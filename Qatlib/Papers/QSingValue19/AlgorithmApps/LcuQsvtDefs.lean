@@ -4,39 +4,44 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreAuxiliary
-import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrectedHami
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitSignal
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordGily
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4PCharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4QCharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23InteriorRobustnessGily
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationGily
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseGily
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseGily
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SVTransformSubgoalGily
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.SubtractionRetryTailHami
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
-import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
-import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
-import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreAuxiliary
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrectedHami
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitSignal
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordGily
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4PCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4QCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23InteriorRobustnessGily
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationGily
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseGily
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseGily
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SVTransformSubgoalGily
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.SubtractionRetryTailHami
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
+public import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Definitions for LCU and QSVT applications

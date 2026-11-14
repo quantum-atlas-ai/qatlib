@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
-import Qatlib.Concepts.TensorNetwork.CanonicalMPS
+module
+
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+public import Qatlib.Concepts.TensorNetwork.CanonicalMPS
+
+@[expose] public section
 
 /-!
 # Sequential matrix product amplitude classes
@@ -95,7 +99,7 @@ theorem basisState_amplitude {n d : ℕ} (w : Fin n → Fin d) (x : Fin n → Fi
     seqAmplitude (D := 1) (fun i (x : Fin d) => basisStep (w i) x)
       (fun _ => 1) (fun _ => 1) x = basisState w x := by
   classical
-  haveI : Unique (Fin (n + 1) → Fin 1) := uniqueOfSubsingleton (fun _ => 0)
+  have : Unique (Fin (n + 1) → Fin 1) := uniqueOfSubsingleton (fun _ => 0)
   rw [seqAmplitude, Fintype.sum_unique]
   simp only [basisStep, map_one, one_mul]
   rw [Finset.prod_boole]
@@ -111,7 +115,7 @@ theorem basisStep_isStepIsometry {d : ℕ} (w : Fin d) :
   have hab : a = b := Subsingleton.elim a b
   subst hab
   simp only [Matrix.sum_apply, Matrix.mul_apply, Matrix.conjTranspose_apply,
-    Matrix.one_apply, if_true, basisStep]
+    Matrix.one_apply, ite_true, basisStep]
   rw [Finset.sum_eq_single w]
   · simp
   · intro x _ hx

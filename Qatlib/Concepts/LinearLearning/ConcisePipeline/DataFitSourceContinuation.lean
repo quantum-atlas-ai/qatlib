@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitSourceContinuationDefs
+module
+
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitSourceContinuationDefs
+
+@[expose] public section
 
 /-!
 # Resource bounds for data-fitting continuation

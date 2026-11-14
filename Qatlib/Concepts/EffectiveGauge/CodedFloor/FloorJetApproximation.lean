@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetSyntax
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatApproximation
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorProgramAmplitude
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetSyntax
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatApproximation
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorProgramAmplitude
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

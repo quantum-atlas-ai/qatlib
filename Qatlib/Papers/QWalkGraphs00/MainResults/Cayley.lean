@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
-import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Algebra.Star.BigOperators
+module
+
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Algebra.Star.BigOperators
+
+@[expose] public section
 
 /-!
 # Character decomposition of Cayley walks
@@ -53,6 +57,7 @@ def cayleyStep (C : Matrix ι ι ℂ) (shift : ι → A) : Matrix (ι × A) (ι 
 def twistedCoin (C : Matrix ι ι ℂ) (shift : ι → A) (χ : A → ℂ) : Matrix ι ι ℂ :=
   fun a b => C a b * χ (-(shift b))
 
+omit [DecidableEq ι] in
 /-- On a product of a coin vector and an additive character, the Cayley step acts by the twisted
 coin on the coin factor. See [Aharonov et al., Theorem 3.6][AharonovEtAl2001Walks]. -/
 theorem cayleyStep_mulVec_character
@@ -77,13 +82,13 @@ theorem cayleyStep_mulVec_character
             (c b * χ q)) (v - shift b) = C a b * (c b * χ (v - shift b)) := by
           simp [sub_add_cancel]
         rw [hsingle]
-        simpa [sub_add_cancel] using hf
+        simp [sub_add_cancel]
       · intro q _ hq
         have hvq : v ≠ q + shift b := by
           intro h
           apply hq
           rw [h, add_sub_cancel_right]
-        simp only [if_neg hvq, mul_zero, zero_mul]
+        simp only [ite_eq_right hvq, mul_zero, zero_mul]
       · intro hnotmem
         exact absurd (Finset.mem_univ (v - shift b)) hnotmem
     rw [hcollapse, sub_eq_add_neg, hχadd v (-(shift b))]
@@ -95,6 +100,7 @@ theorem cayleyStep_mulVec_character
   intro b _
   ring
 
+omit [DecidableEq ι] in
 /-- A twisted-coin eigenvector multiplied by its character satisfies the full Cayley-step
 eigenvalue equation with the same eigenvalue. See [Aharonov et al., Theorem
 3.6][AharonovEtAl2001Walks]. -/

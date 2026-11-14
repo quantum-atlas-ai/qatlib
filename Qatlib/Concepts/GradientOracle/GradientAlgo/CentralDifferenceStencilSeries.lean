@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceTensorSeries
-import Mathlib.Analysis.Normed.Group.InfiniteSum
+module
+
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceTensorSeries
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+
+@[expose] public section
 
 /-!
 # Taylor series for central-difference stencils

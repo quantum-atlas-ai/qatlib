@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm.SamplingParameters
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm.SamplingParameters
+
+@[expose] public section
 
 /-!
 # Failure bound for Abelian stabilizer sampling

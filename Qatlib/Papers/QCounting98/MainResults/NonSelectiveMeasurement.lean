@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Discarded measurements and phase-register marginals
@@ -68,6 +72,7 @@ theorem nonselective_basis_marginal (U : Matrix S S ℂ)
   have hparseval := sum_normSq_mulVec_of_mem_unitaryGroup (U := U) hU (fun s => ψ (s, a))
   simpa [Matrix.mulVec, dotProduct, Complex.normSq_eq_norm_sq] using hparseval
 
+omit [DecidableEq A] in
 /-- After any linear gate on the second register, summing over a unitary-basis measurement of
 the first register preserves the second-register event mass. See
 [BrassardHoyerTapp1998Counting]. -/
@@ -79,6 +84,7 @@ theorem nonselective_before_phase_gate (U : Matrix S S ℂ)
           (Finset.univ ×ˢ T) :=
   nonselective_basis_marginal U hU (fun p => ∑ a', Q p.2 a' * ψ (p.1, a')) T
 
+omit [DecidableEq A] in
 /-- For a normalized bipartite state, summing all slice masses after a unitary first-register
 basis change gives one. -/
 theorem nonselective_total_one (U : Matrix S S ℂ)

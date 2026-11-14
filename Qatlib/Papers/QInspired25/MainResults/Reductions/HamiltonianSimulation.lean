@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Reductions.DenseSampling
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Reductions.DenseSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -250,7 +254,8 @@ theorem frobSqMatGen_one_sub {ι : Type*} [Fintype ι] [DecidableEq ι]
           - 2 * ((if x = y then (1 : ℝ) else 0) * U x y) + U x y ^ 2 := by
     intro x y
     rw [Matrix.sub_apply, Matrix.one_apply]
-    by_cases h : x = y <;> simp [h] <;> ring
+    by_cases h : x = y <;> simp [h]
+    all_goals ring
   have hA : (∑ x : ι, ∑ y : ι, (if x = y then (1 : ℝ) else 0))
       = (Fintype.card ι : ℝ) := by
     have hinner : ∀ x : ι, (∑ y : ι, (if x = y then (1 : ℝ) else 0)) = 1 := by

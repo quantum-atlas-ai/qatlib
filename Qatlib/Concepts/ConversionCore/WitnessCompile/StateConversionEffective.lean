@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionEffectiveDefs
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionEffectiveDefs
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+
+@[expose] public section
 
 /-!
 # Rational certificates and native tag-flip identities
@@ -339,11 +343,11 @@ theorem partialPerm_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
       intro s _
       simp only [hr, true_and]
       by_cases hc : P.col r = s
-      · rw [if_pos hc, if_pos hc.symm]
+      · rw [ite_eq_left hc, ite_eq_left hc.symm]
         simp only [one_mul]
-      · rw [if_neg hc, zero_mul, if_neg (fun h => hc h.symm)]
-    rw [h1, sum_ite_single, if_pos hr]
-  · rw [if_neg hr]
+      · rw [ite_eq_right hc, zero_mul, ite_eq_right (fun h => hc h.symm)]
+    rw [h1, sum_ite_single, ite_eq_left hr]
+  · rw [ite_eq_right hr]
     apply Finset.sum_eq_zero
     intro s _
     simp [hr]
@@ -364,15 +368,15 @@ theorem partialPerm_l2_opNorm_le {R S : Type} [Fintype R] [DecidableEq R] [Finty
       intro r
       rw [partialPerm_mulVec]
       by_cases hr : r ∈ P.support
-      · rw [if_pos hr, if_pos hr]
-      · rw [if_neg hr, if_neg hr]
+      · rw [ite_eq_left hr, ite_eq_left hr]
+      · rw [ite_eq_right hr, ite_eq_right hr]
         simp
     rw [Finset.sum_congr rfl (fun r _ => hsq' r)]
     have h1 : (∑ r, (if r ∈ P.support then ‖v (P.col r)‖ ^ 2 else 0))
         = ∑ r ∈ P.support, ‖v (P.col r)‖ ^ 2 := by
       have h := Finset.sum_ite_mem (Finset.univ : Finset R) P.support
         (fun r => ‖v (P.col r)‖ ^ 2)
-      simpa using! h
+      simpa only [Finset.univ_inter] using h
     rw [h1]
     have h2 : (∑ r ∈ P.support, ‖v (P.col r)‖ ^ 2)
         = ∑ y ∈ P.support.image P.col, ‖v y‖ ^ 2 := by
@@ -410,10 +414,10 @@ theorem partialMonomial_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype
       intro s _
       simp only [hr, true_and]
       by_cases hc : P.col r = s
-      · rw [if_pos hc, if_pos hc.symm]
-      · rw [if_neg hc, zero_mul, if_neg (fun h => hc h.symm)]
-    rw [h1, sum_ite_single, if_pos hr]
-  · rw [if_neg hr]
+      · rw [ite_eq_left hc, ite_eq_left hc.symm]
+      · rw [ite_eq_right hc, zero_mul, ite_eq_right (fun h => hc h.symm)]
+    rw [h1, sum_ite_single, ite_eq_left hr]
+  · rw [ite_eq_right hr]
     apply Finset.sum_eq_zero
     intro s _
     simp [hr]
@@ -436,18 +440,18 @@ theorem partialMonomial_l2_opNorm_ge {R S : Type} [Fintype R] [DecidableEq R] [F
     by_cases hr2 : r2 ∈ P.support
     · by_cases heq : r2 = r
       · have hr' : r ∈ P.support := heq ▸ hr2
-        rw [heq, if_pos hr', if_pos rfl]
-        rw [hv, Pi.single_apply, if_pos rfl]
+        rw [heq, ite_eq_left hr', ite_eq_left rfl]
+        rw [hv, Pi.single_apply, ite_eq_left rfl]
         simp
-      · rw [if_neg heq, if_pos hr2]
+      · rw [ite_eq_right heq, ite_eq_left hr2]
         have hne : P.col r2 ≠ P.col r := hcol r2 hr2 heq
-        rw [hv, Pi.single_apply, if_neg hne]
+        rw [hv, Pi.single_apply, ite_eq_right hne]
         simp
-    · rw [if_neg hr2]
+    · rw [ite_eq_right hr2]
       by_cases heq : r2 = r
       · exfalso
         exact hr2 (heq ▸ hr)
-      · rw [if_neg heq]
+      · rw [ite_eq_right heq]
   have hnormv : ‖toEuclidean_fromVec v‖ = 1 := by
     have h : ‖toEuclidean_fromVec v‖ ^ 2 = 1 := by
       rw [norm_toEuclidean_fromVec_sq]
@@ -469,8 +473,8 @@ theorem partialMonomial_l2_opNorm_ge {R S : Type} [Fintype R] [DecidableEq R] [F
         intro r2
         rw [hmul r2]
         by_cases heq : r2 = r
-        · rw [if_pos heq, if_pos heq]
-        · rw [if_neg heq, if_neg heq]
+        · rw [ite_eq_left heq, ite_eq_left heq]
+        · rw [ite_eq_right heq, ite_eq_right heq]
           simp
       rw [Finset.sum_congr rfl (fun r2 _ => h r2)]
       simp
@@ -515,9 +519,9 @@ theorem monomialRectFactorization_certValid {R S : Type} [Fintype R] [DecidableE
     simp only [Fin.sum_univ_one, Fin.sum_univ_one]
     simp only [monomialRectFactorization]
     by_cases hr : r ∈ P.support
-    · simp only [if_pos hr]
+    · simp only [ite_eq_left hr]
       exact_mod_cast hsq r hr
-    · simp only [if_neg hr, mul_zero]
+    · simp only [ite_eq_right hr, mul_zero]
       have : (0 : ℚ) ≤ t * t := by positivity
       exact_mod_cast this
   · intro s
@@ -604,9 +608,9 @@ theorem monomial_value_lower_bound {R S : Type} [Fintype R] [DecidableEq R] [Fin
       (by positivity : (0 : ℝ) ≤ ‖P.complexMonomial (fun r => (amp r : ℂ))‖)).mpr
     intro r
     by_cases hr : r ∈ P.support
-    · rw [if_pos hr]
+    · rw [ite_eq_left hr]
       exact partialMonomial_l2_opNorm_ge P (fun r => (amp r : ℂ)) hinj r hr
-    · rw [if_neg hr]
+    · rw [ite_eq_right hr]
       calc ‖(0 : ℂ)‖ = 0 := by simp
         _ ≤ ‖P.complexMonomial (fun r => (amp r : ℂ))‖ := by positivity
   have hle : ENNReal.ofReal (monomialScaleReal P amp)
@@ -697,7 +701,7 @@ theorem clause90_monomial_near_optimal {R S : Type} [Fintype R] [DecidableEq R] 
     have hle : |(amp r : ℝ)| ≤ monomialScaleReal P amp := by
       have hnorm := norm_le_pi_norm (fun r : R => (if r ∈ P.support then (amp r : ℂ) else 0)) r
       have hval : (if r ∈ P.support then (amp r : ℂ) else 0) = (amp r : ℂ) := by
-        rw [if_pos hr]
+        rw [ite_eq_left hr]
       rw [hval] at hnorm
       simpa [norm_ratCast_complex] using! hnorm
     linarith
@@ -933,11 +937,7 @@ theorem rationalToNativeProgram_matrix (d : SourceRationalProblem) (k : ℕ) (x 
         (localGateMatrix (.cp ⟨tagWire d, nativeTagWire_lt d k⟩ ⟨tagWire d, nativeTagWire_lt d k⟩ 1 true) *
           localGateMatrix (.h ⟨tagWire d, nativeTagWire_lt d k⟩)) := by
   unfold sourceNativeMatrix rationalToNativeProgram nativeFlipWord
-  simp only [List.map_cons, List.map_nil, List.map_reverse, List.reverse_cons,
-    List.reverse_nil, List.nil_append, List.append_nil, List.append_assoc,
-    List.cons_append, List.prod_cons, List.prod_nil,
-    List.prod_singleton,
-    sourceNativeStepMatrix, Matrix.mul_one]
+  simp [sourceNativeStepMatrix]
   rfl
 
 /-- The rational native program changes a clean state's branch tag from false to true while

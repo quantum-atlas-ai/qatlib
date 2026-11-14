@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionDefs
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionDefs
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+@[expose] public section
 
 /-!
 # Specification of orthonormal frame reflections

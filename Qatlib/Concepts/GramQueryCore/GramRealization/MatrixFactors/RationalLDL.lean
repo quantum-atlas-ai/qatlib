@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Init.Data.Vector.OfFn
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
+module
+
+public import Init.Data.Vector.OfFn
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Verified rational LDL factorization
@@ -170,7 +174,7 @@ theorem core_complete (n : ℕ) (K : Matrix (Fin n) (Fin n) ℚ)
       have he : (K i.succ 0 : ℝ) = 0 := hc.trans hr
       exact_mod_cast he
     obtain ⟨F,hF⟩ := ih (schur K) (schur_psd K hK)
-    exact ⟨lift K F,by simp only [core,tableMatrix_materializeData,not_lt.mpr hp,if_false,hz,hF,Option.map_some]⟩
+    exact ⟨lift K F,by simp only [core,tableMatrix_materializeData,not_lt.mpr hp,ite_false,hz,hF,Option.map_some]⟩
 
 /-- The rational matrix `L * diagonal d * Lᵀ` reconstructed from the stored matrix and diagonal
 weights. -/
@@ -289,7 +293,7 @@ theorem compute_complete (n : ℕ) (K : Matrix (Fin n) (Fin n) ℚ)
     have he' : (K i j : ℝ) = (K j i : ℝ) := by simpa [realMatrix] using he
     exact_mod_cast he'
   obtain ⟨F,hF⟩ := core_complete n K hK
-  exact ⟨F,by simp only [compute,tableMatrix_materializeData,if_pos hs,hF]⟩
+  exact ⟨F,by simp only [compute,tableMatrix_materializeData,ite_eq_left hs,hF]⟩
 
 /-- Every successful checked LDL computation reconstructs its input matrix and has nonnegative
 diagonal weights. -/

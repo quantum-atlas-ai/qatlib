@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordWeights
-import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.InstrumentRecordMixture
-import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.RecordForgottenInstrument
+module
+
+public import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordWeights
+public import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.InstrumentRecordMixture
+public import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.RecordForgottenInstrument
+
+@[expose] public section
 
 /-!
 # Accepted record mixtures and conditional error

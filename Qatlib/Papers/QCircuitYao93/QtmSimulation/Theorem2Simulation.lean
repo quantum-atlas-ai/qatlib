@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StandardModel.WindowSim.Theorem2QtmCircuitSimulationQuan
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+module
+
+public import Qatlib.Foundations.StandardDefs.WindowSim.Theorem2QtmCircuitSimulationQuan
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+
+@[expose] public section
 
 /-!
 # QTM circuit simulation endpoints

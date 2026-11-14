@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellSparseTail
-import Qatlib.Concepts.SpinorSampling.Matching.DenseMatchedMoments
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellSparseTail
+public import Qatlib.Concepts.SpinorSampling.Matching.DenseMatchedMoments
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -89,6 +93,7 @@ theorem uniform_product_expect {X Y : Type} [Fintype X] [Fintype Y]
 
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_cohort_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
 theorem uniform_cohort_expect (N : ℕ) (f : (Fin N → S) → ℝ) :
     (cohortLaw (uniformLaw S) N).expect f=(uniformLaw (Fin N → S)).expect f := by
@@ -98,6 +103,7 @@ theorem uniform_cohort_expect (N : ℕ) (f : (Fin N → S) → ℝ) :
   rw [uniform_cohort_address_prob]
   simp [uniformLaw]
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_address_pair_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
 theorem uniform_address_pair_expect (n m : ℕ) (f : (Fin n → S) × (Fin m → S) → ℝ) :
     (productLaw (cohortLaw (uniformLaw S) n) (cohortLaw (uniformLaw S) m)).expect f=
@@ -149,6 +155,7 @@ def addressBlocksEquiv (n m K : ℕ) :
     funext j
     apply Prod.ext <;> funext i <;> simp only [Equiv.symm_apply_apply]
 
+omit [DecidableEq S] in
 /-- Complete original `grouped_address_expect_flat` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
 theorem grouped_address_expect_flat (n m K : ℕ)
     (f : (Fin K → (Fin n → S) × (Fin m → S)) → ℝ) :

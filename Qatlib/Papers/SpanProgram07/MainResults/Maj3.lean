@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgram07.MainResults.SpanProgram
+module
+
+public import Qatlib.Papers.SpanProgram07.MainResults.SpanProgram
+
+@[expose] public section
 
 /-!
 # A span program for three-input majority

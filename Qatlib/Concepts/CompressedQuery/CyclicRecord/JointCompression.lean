@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.TensorCompression
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.DatabaseQuery
-import Mathlib.LinearAlgebra.Matrix.Kronecker
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.TensorCompression
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.DatabaseQuery
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+@[expose] public section
 
 /-!
 # Joint compression and query intertwining

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankMachine
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankMachine
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -83,9 +87,9 @@ theorem emitPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (B : �
     have hout : (emitted replies n).length≤9*B := by nlinarith
     have hm := Nat.mul_le_mul hr hout
     have hpos : 1≤(1+B)^2 := Nat.one_le_pow 2 _ (by omega)
-    rw [emitPrefixBudget,dif_pos hn9]
+    rw [emitPrefixBudget,dite_eq_left hn9]
     have he : emitBudget (remaining replies n) (emitted replies n).reverse ⟨n,hn9⟩≤30*(1+B)^2 := by
-      simp only [emitBudget,remaining,Nat.lt_irrefl,if_false,List.length_reverse]
+      simp only [emitBudget,remaining,Nat.lt_irrefl,ite_false,List.length_reverse]
       nlinarith only [hr2,hr,hm,hpos,Nat.zero_le B]
     nlinarith only [hh,he]
 

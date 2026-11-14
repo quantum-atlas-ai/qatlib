@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ReferenceValue
-import Mathlib.Analysis.Calculus.FDeriv.Symmetric
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ReferenceValue
+public import Mathlib.Analysis.Calculus.FDeriv.Symmetric
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

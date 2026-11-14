@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Rational certificates for rounded SDP witnesses
@@ -36,13 +40,13 @@ set_option synthInstance.maxHeartbeats 400000
 set_option maxHeartbeats 2000000
 open Qatlib.Concepts.SdpDuality.StrongDuality
 
-open Qatlib.Concepts.DyadicFloor.FloorRounding
-open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
+open Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer.ProgramRoundedWitness
 
-open Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace RealInnerProductSpace
 
 section Rational
@@ -75,7 +79,7 @@ theorem hermMatC_eq {I : Type*} [Fintype I] [DecidableEq I]
     {Q : Matrix I I GaussianRational} (hQ : Q.IsHermitian) :
     hermMatC Q = hermMat Q hQ := by
   unfold hermMatC
-  exact dif_pos hQ
+  exact dite_eq_left hQ
 
 /-- For a Hermitian Gaussian-rational matrix, the underlying matrix of the conditional embedding
 is its entrywise complex embedding. -/
@@ -606,14 +610,14 @@ theorem checks_of_certificate {t : ProgramRoundedTable n m} {c : ProgramRoundedC
       tableTraceBound t, t.epsP, t.epsD⟩ := by
   unfold programRoundedCertificate at h
   by_cases hb : programRoundedCheckBool t = true
-  · rw [if_pos hb] at h
+  · rw [ite_eq_left hb] at h
     injection h with h
     subst h
     simp only [programRoundedCheckBool, Bool.and_eq_true, decide_eq_true_eq, psdCheckTable,
       gaussianRationalPsdCheck_correct, gaussianRationalTableMatrix_table] at hb
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := hb
     exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, rfl⟩
-  · rw [if_neg hb] at h
+  · rw [ite_eq_right hb] at h
     exact absurd h (by simp)
 
 /-- The encoded program's dual score on a cast rational vector is the real cast of its rational
@@ -736,7 +740,7 @@ theorem frontier1 {n m : ℕ} (t : ProgramRoundedTable n m)
       rw [Finset.sum_congr rfl (fun j _ => h3 j)]
       simp only [mul_ite, mul_zero, mul_one]
       rw [Finset.sum_ite_eq]
-      simp only [Finset.mem_univ, if_true]
+      simp only [Finset.mem_univ, ite_true]
     rw [h1, h2]
     simp only [tableResidual]
     push_cast

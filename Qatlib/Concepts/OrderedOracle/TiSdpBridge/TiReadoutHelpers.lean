@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSectorHelpers
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSectorHelpers
+
+@[expose] public section
 
 /-!
 # Readout identities for polynomial states and parity sectors
@@ -193,7 +197,7 @@ theorem ti_translated_correct_first (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (
       rw [ti_shift_pow_val]
       simp only [Fin.val_zero,zero_add,Nat.mod_eq_of_lt j.isLt]
       exact hy
-    rw [if_pos hj]
+    rw [ite_eq_left hj]
     change tiPolynomialState n t p (e.symm ⟨(ospFun n j).val,_⟩)=_
     rw [he,ti_state_first]
   · have hy : (ospFun n j).val=j.val-n := by
@@ -212,7 +216,7 @@ theorem ti_translated_correct_first (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (
       rw [show n+j.val=(j.val-n)+2*n by omega,Nat.add_mod_right,
         Nat.mod_eq_of_lt (by have := j.isLt; omega)]
       exact hy
-    rw [if_neg hj]
+    rw [ite_eq_right hj]
     change tiPolynomialState n t p (e.symm ⟨(ospFun n j).val,_⟩)=_
     rw [he,ti_state_second]
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.EuclideanLayer
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.EuclideanLayer
+
+@[expose] public section
 
 /-!
 # Bias meta-gradients of concentrated affine decoders

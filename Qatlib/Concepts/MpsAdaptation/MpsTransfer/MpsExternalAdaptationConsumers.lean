@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationProofs
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationProofs
+
+@[expose] public section
 
 /-!
 # Open-boundary MPS overlaps and examples
@@ -103,8 +107,8 @@ private theorem mpsLeftIdx_eq_cons {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m �
   | zero => simp [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsLeftIdx]
   | succ j =>
       rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsLeftIdx, Fin.cons_succ,
-        if_neg (by rw [Fin.val_succ]; omega),
-        dif_pos (by rw [Fin.val_succ, Nat.succ_sub_one]; have := j.isLt; omega)]
+        ite_eq_right (by rw [Fin.val_succ]; omega),
+        dite_eq_left (by rw [Fin.val_succ, Nat.succ_sub_one]; have := j.isLt; omega)]
       exact congrArg α (Fin.ext (by simp [Fin.val_succ]))
 
 /-- The right bond-index function is the internal-index word suffixed by the zero boundary
@@ -114,11 +118,11 @@ private theorem mpsRightIdx_eq_snoc {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m �
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx (n := m + 1) α i
       = Fin.snoc (α := fun _ => Fin D) α (0 : Fin D) i := by
   by_cases h : (i : ℕ) < m
-  · rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx, dif_pos (by omega)]
+  · rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx, dite_eq_left (by omega)]
     conv_rhs => rw [← Fin.castSucc_castLT i h, Fin.snoc_castSucc]
     rfl
   · have hval : (i : ℕ) = m := by have := i.isLt; omega
-    rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx, dif_neg (by omega), Fin.eq_last_of_not_lt h,
+    rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx, dite_eq_right (by omega), Fin.eq_last_of_not_lt h,
       Fin.snoc_last]
 
 /-- The open-boundary MPS amplitude equals the zero-to-zero entry of the ordered matrix product
@@ -296,10 +300,10 @@ theorem phi_psi_cross : transferWord phiSite psiSite (0, 0) (0, 0) = 0 := by
   by_cases hx0 : (x 0).val = 0
   · have h1 : ¬((x 0).val = 1) := by have := (x 0).isLt; omega
     have hψ : (∏ i, if (x i).val = 1 then (1 : ℂ) else 0) = 0 :=
-      Finset.prod_eq_zero (Finset.mem_univ (0 : Fin 2)) (by rw [if_neg h1])
+      Finset.prod_eq_zero (Finset.mem_univ (0 : Fin 2)) (by rw [ite_eq_right h1])
     rw [hψ, mul_zero]
   · have hφ : (∏ i, if (x i).val = 0 then (1 : ℂ) else 0) = 0 :=
-      Finset.prod_eq_zero (Finset.mem_univ (0 : Fin 2)) (by rw [if_neg hx0])
+      Finset.prod_eq_zero (Finset.mem_univ (0 : Fin 2)) (by rw [ite_eq_right hx0])
     rw [hφ, star_zero, zero_mul]
 
 /-- The zero-boundary overlap of the scalar imaginary-unit tensor with the scalar identity

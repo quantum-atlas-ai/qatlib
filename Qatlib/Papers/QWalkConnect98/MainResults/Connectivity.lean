@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.Lemma3
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.Lemma3
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+
+@[expose] public section
 
 /-!
 # Connectivity bounds for projected graph walks

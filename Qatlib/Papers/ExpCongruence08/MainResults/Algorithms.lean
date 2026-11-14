@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExpCongruence08.MainResults.SolutionCount
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.ExpCongruence08.MainResults.SolutionCount
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Search boxes and costs for exponential congruences
@@ -145,7 +149,7 @@ theorem solutionInBox_mono {F : Type*} [Field F]
 /-- Over a finite field, a solution in the supplied box can be reduced to a box of side lengths
 `orderOf f` and `orderOf g`. -/
 theorem solutionInBox_orders_of_solutionInBox {F : Type*} [Field F] [Fintype F]
-    (a b c f g : Fˣ) (S r : ℕ) (hS : orderOf f ≤ S) (hr : orderOf g ≤ r)
+    (a b c f g : Fˣ) (S r : ℕ) (_hS : orderOf f ≤ S) (_hr : orderOf g ≤ r)
     (h : SolutionInBox a b c f g S r) :
     SolutionInBox a b c f g (orderOf f) (orderOf g) := by
   exact (solutionInBox_iff_not_noSolution a b c f g (orderOf f) (orderOf g)
@@ -212,7 +216,7 @@ theorem orderOf_le_card {F : Type*} [Field F] [Fintype F] (f : Fˣ) :
   le_trans (orderOf_le_card_sub_one f) (Nat.sub_le _ _)
 
 /-- The worst-case scan length is at least its defining real-valued expression. -/
-theorem worstCaseScanLength_ge (C : ℝ) (q S : ℕ) (hC : 0 ≤ C) :
+theorem worstCaseScanLength_ge (C : ℝ) (q S : ℕ) (_hC : 0 ≤ C) :
     C * (q : ℝ) * Real.sqrt (q : ℝ) / (S : ℝ) * Real.log (q : ℝ)
       ≤ (worstCaseScanLength C q S : ℝ) :=
   Nat.le_ceil _
@@ -339,7 +343,7 @@ solvability alternative when its length meets the given lower bound and fits the
 `g`, and its quantum scan cost is at most `√|F|`. See [VanDamShparlinski2008]. -/
 theorem theorem4_large_order_quantum {F : Type*} [Field F] [Fintype F]
     (a b c f g : Fˣ) (K C : ℝ) (hK : 0 < K)
-    (hfg : orderOf g ≤ orderOf f)
+    (_hfg : orderOf g ≤ orderOf f)
     (hbound : ∀ r : ℕ, 1 ≤ r → r ≤ orderOf g →
       |(numSolutions a b c f g (orderOf f) r : ℝ)
           - (r : ℝ) * (orderOf f : ℝ) / ((Fintype.card F : ℝ) - 1)|

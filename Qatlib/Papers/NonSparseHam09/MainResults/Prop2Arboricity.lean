@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+
+@[expose] public section
 
 /-!
 # Arboricity norm-bound proposition
@@ -49,6 +53,7 @@ def prop2Statement (H : Matrix ι ι ℂ) (_hH : H.IsHermitian) {k : ℕ}
   specNorm ((absMatrix H).map Complex.ofReal) ≤ 2 * (k : ℝ) * specNorm H ∧
   specNorm H ≤ 2 * (k : ℝ) * mcnNorm H
 
+omit [Nonempty ι] in
 /-- The spectral norm of a sum of two matrices is at most the sum of their spectral norms
 [ChildsKothari2010]. -/
 theorem specNorm_add_le (A B : Matrix ι ι ℂ) :
@@ -56,6 +61,7 @@ theorem specNorm_add_le (A B : Matrix ι ι ℂ) :
   rw [specNorm_eq_l2, specNorm_eq_l2, specNorm_eq_l2]
   exact norm_add_le A B
 
+omit [Nonempty ι] in
 /-- Multiplication by a nonnegative real scalar multiplies the spectral norm by that scalar
 [ChildsKothari2010]. -/
 lemma specNorm_smul_nonneg {c : ℝ} (hc : 0 ≤ c) (A : Matrix ι ι ℂ) :

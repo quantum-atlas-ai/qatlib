@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Papers.GroverSearch96.MainResults.LocalImplementation
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Papers.GroverSearch96.MainResults.LocalImplementation
+
+@[expose] public section
 
 /-!
 # Local initialization and the workspace bit oracle program

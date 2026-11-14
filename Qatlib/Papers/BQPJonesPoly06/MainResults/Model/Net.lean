@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.ApproxProducts
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.ApproxProducts
+
+@[expose] public section
 
 /-!
 # Stability of represented isometry nets

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantStat
+module
+
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantStat
+
+@[expose] public section
 
 /-!
 # Bipartite discriminant identities
@@ -54,16 +58,16 @@ private theorem frameA_isometry {I J : Type} [Fintype I] [DecidableEq I]
           = if p.1 = x then ((c x p.2 : ℂ)) else 0 := by
       intro p
       by_cases hp : p.1 = x
-      · rw [if_pos hp, if_pos hp, Complex.conj_ofReal, ← Complex.ofReal_mul, ← sq,
+      · rw [ite_eq_left hp, ite_eq_left hp, Complex.conj_ofReal, ← Complex.ofReal_mul, ← sq,
           Real.sq_sqrt (hn x p.2)]
-      · rw [if_neg hp, if_neg hp, map_zero, zero_mul]
+      · rw [ite_eq_right hp, ite_eq_right hp, map_zero, zero_mul]
     rw [Finset.sum_congr rfl (fun p _ => hkey p), Fintype.sum_prod_type,
       Finset.sum_eq_single x]
-    · simp only [if_true]
+    · simp only [ite_true]
       exact_mod_cast hs x
     · intro a _ ha
       refine Finset.sum_eq_zero fun y _ => ?_
-      rw [if_neg (fun e : (a, y).1 = x => ha e)]
+      rw [ite_eq_right (fun e : (a, y).1 = x => ha e)]
     · intro hcon
       exact absurd (Finset.mem_univ x) hcon
   · have hzero : ∀ p : I × J,
@@ -71,10 +75,10 @@ private theorem frameA_isometry {I J : Type} [Fintype I] [DecidableEq I]
             * (if p.1 = x' then ((Real.sqrt (c x' p.2) : ℂ)) else 0) = 0 := by
       intro p
       by_cases hp : p.1 = x
-      · simp only [if_pos hp,
-          if_neg (show ¬(p.1 = x') from fun e => hxx' (hp.symm.trans e)), mul_zero]
-      · simp only [if_neg hp, map_zero, zero_mul]
-    rw [Finset.sum_eq_zero (fun p _ => hzero p), if_neg hxx']
+      · simp only [ite_eq_left hp,
+          ite_eq_right (show ¬(p.1 = x') from fun e => hxx' (hp.symm.trans e)), mul_zero]
+      · simp only [ite_eq_right hp, map_zero, zero_mul]
+    rw [Finset.sum_eq_zero (fun p _ => hzero p), ite_eq_right hxx']
 
 /-- The frame `paperFrameB r` is isometric when `r` has nonnegative entries and every row sums
 to one. -/
@@ -103,7 +107,7 @@ theorem szegedyDefTwoDiscriminant : SzegedyDefTwoDiscriminant := by
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, paperFrameA, paperFrameB,
       Matrix.of_apply, RCLike.star_def]
     rw [Finset.sum_eq_single (i,j)]
-    · simp only [if_true, Complex.conj_ofReal, ← Complex.ofReal_mul,
+    · simp only [ite_true, Complex.conj_ofReal, ← Complex.ofReal_mul,
         ← Real.sqrt_mul (h.1 i j)]
     · intro p _ hp
       by_cases hi : p.1 = i

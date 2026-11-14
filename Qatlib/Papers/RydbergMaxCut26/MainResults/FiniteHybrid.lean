@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.PhysicalRounding
-import Qatlib.Papers.RydbergMaxCut26.StateBounds.Variational
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.PhysicalRounding
+public import Qatlib.Papers.RydbergMaxCut26.StateBounds.Variational
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 /-!
 # Finite hybrid state selection

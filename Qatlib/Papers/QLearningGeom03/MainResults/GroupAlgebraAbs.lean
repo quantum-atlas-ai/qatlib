@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Reindex
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraZN
-import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
-import Qatlib.Papers.QLearningGeom03.MainResults.CriticalMax
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Reindex
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraZN
+public import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
+public import Qatlib.Papers.QLearningGeom03.MainResults.CriticalMax
+
+@[expose] public section
 
 /-!
 # Spectral absolute values in the cyclic group algebra

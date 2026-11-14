@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthStat
-import Mathlib.Data.Nat.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthStat
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Subexponential descent query bounds
@@ -42,10 +46,12 @@ private theorem rootCeil_mono : Monotone rootCeil := by
 
 /-- The power-of-two descent query budget is at most `24000 * (n + 1)^2 * 2^(3 * rootCeil n)`. -/
 theorem sourceQueryBudget_polynomial (n : ℕ) :
-    sourcePowerTwoQueryBudget n ≤ 24000 * (n + 1) ^ 2 * 2 ^ (3 * rootCeil n) := by
+    sourcePowerTwoQueryBudget n ≤
+      24000 * (n + 1) ^ 2 * 2 ^ (3 * Nat.ceil (Real.sqrt (n : ℝ))) := by
   induction n with
   | zero => simp [sourcePowerTwoQueryBudget]
   | succ n ih =>
+    change sourcePowerTwoQueryBudget n ≤ 24000 * (n + 1) ^ 2 * 2 ^ (3 * rootCeil n) at ih
     have hm : 2 ^ (3 * rootCeil n) ≤ 2 ^ (3 * rootCeil (n + 1)) :=
       Nat.pow_le_pow_right (by decide) (Nat.mul_le_mul_left 3 (rootCeil_mono (by omega)))
     have hs : (n + 2) + (n + 1) ^ 2 ≤ (n + 2) ^ 2 := by nlinarith

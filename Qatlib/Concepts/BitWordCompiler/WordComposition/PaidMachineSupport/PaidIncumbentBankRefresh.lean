@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+module
+
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+@[expose] public section
 
 /-!
 # Clocked replacement of an inactive bank
@@ -231,7 +235,7 @@ theorem source_exec (active : Bool) (banks : Bool → Qatlib.Concepts.BitWordCom
       | temp => exact (hj 0 rfl).elim)
   have done : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some .done, (active, none), S3⟩
       ⟨none, (active, none), S3⟩ 1 := ⟨1, rfl, le_rfl⟩
-  simpa only [getIO, putIO, afterTransfer, Bool.false_eq_true, if_false, if_true,
+  simpa only [getIO, putIO, afterTransfer, Bool.false_eq_true, ite_false, ite_true,
     target, S0, S3, budget] using (((start.trans drain).trans transfer).trans restore).trans done
 
 /-- The refresh budget is at most twenty times the square of one plus the old and incoming

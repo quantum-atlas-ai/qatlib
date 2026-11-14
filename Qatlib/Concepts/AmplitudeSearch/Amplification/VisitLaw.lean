@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RankEventBridge
-import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RankEventBridge
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+
+@[expose] public section
 
 /-!
 # Rank visit laws for BBHT minimum search
@@ -164,7 +168,7 @@ theorem bbht_visit_outside {N : ℕ} {α : Type*} [LinearOrder α]
         (sourceBBHTLaw T.indexOfRank hN).runMass T.skip t xs else 0) 0 := by
   obtain ⟨q,hq,hq0,hqb⟩ := bbht_visit_tied_bound T hN t r htN
   have hc : ¬ (1 ≤ r ∧ r ≤ t) := by omega
-  rw [if_neg hc] at hqb
+  rw [ite_eq_right hc] at hqb
   have hz : q = 0 := le_antisymm hqb hq0
   simpa only [hz] using hq
 

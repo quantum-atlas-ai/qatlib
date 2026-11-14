@@ -31,19 +31,23 @@ infrastructure or full reduction syntax beyond the scope of this module.
 
 All objects are concrete matrices and functions over `ZMod 2` index sets.
 -/
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Batteries.Tactic.Exact
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Batteries.Tactic.Exact
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

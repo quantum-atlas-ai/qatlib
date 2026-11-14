@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.WithoutReplacementSetLaw
-import Qatlib.Concepts.SpinorSampling.Matching.OrderedSetAverageBridge
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedConditionalLaw
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.WithoutReplacementSetLaw
+public import Qatlib.Concepts.SpinorSampling.Matching.OrderedSetAverageBridge
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedConditionalLaw
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

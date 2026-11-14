@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Records and costs for noisy ordered search
@@ -297,7 +301,7 @@ noncomputable def noiselessOutput {n : ℕ} (j : Fin n) :
 noncomputable def leafCountWithin {n : ℕ} : ℕ → BoolQueryTree (Fin n) (Fin n) → ℕ
   | 0, .halt _ => 1
   | 0, .ask _ _ _ => 0
-  | d + 1, .halt _ => 1
+  | _d + 1, .halt _ => 1
   | d + 1, .ask _ onFalse onTrue => leafCountWithin d onFalse + leafCountWithin d onTrue
 
 /-- The number of queries on the noiseless path for hidden cell `j`. -/
@@ -474,7 +478,7 @@ noncomputable def crossMartingale {n : ℕ} (p : ℝ) (k i : Fin n) (t : Record 
 adaptive tree under hidden cell `u`. -/
 noncomputable def treeCrossVar {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u k i : Fin n)
     : ℕ → Record n → ℝ
-  | 0, t => 0
+  | 0, _t => 0
   | m + 1, t =>
       ∑ b : Bool, stepWeight hn p ε u t b
         * treeCrossVar hn p ε u k i m (extend hn p ε t b)

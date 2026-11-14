@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Hadamard-test probabilities and sampling bounds
@@ -108,7 +112,7 @@ theorem hadamard_mean (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
   rw [h0, h1]
   simp only [readout]
   have hne : (1 : Fin 2) ≠ 0 := by decide
-  simp only [if_true, if_neg hne]
+  simp only [ite_true, ite_eq_right hne]
   rw [zeroProb_eq U ψ hψ hU]
   ring
 
@@ -125,7 +129,7 @@ theorem hadamard_variance (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
   rw [h0, h1]
   simp only [readout]
   have hne : (1 : Fin 2) ≠ 0 := by decide
-  simp only [if_true, if_neg hne]
+  simp only [ite_true, ite_eq_right hne]
   rw [hmean]
 
   have hμ : (⟪ψ, U ψ⟫_ℂ).re = 2 * zeroProb U ψ - 1 := by

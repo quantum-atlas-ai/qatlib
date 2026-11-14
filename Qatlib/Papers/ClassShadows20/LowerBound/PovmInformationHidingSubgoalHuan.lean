@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingSubgoalStat
-import Qatlib.Papers.ClassShadows20.LowerBound.FiniteMutualInformation
-import QuantumInfo.ForMathlib.HermitianMat.Inner
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingSubgoalStat
+public import Qatlib.Papers.ClassShadows20.LowerBound.FiniteMutualInformation
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite POVM information hiding bound
@@ -146,12 +150,12 @@ theorem povmInformationHidingSubgoal : PovmInformationHidingSubgoal := by
       qstate x i = Uf i * lemma8CodeState d r α (P x) * (Uf i)ᴴ := by
     intro x i h
     rw [hqstate]
-    exact dif_pos h
+    exact dite_eq_left h
   have hqneg : ∀ x i, ¬ 0 < μ.prob i →
       qstate x i = lemma8CodeState d r α (P x) := by
     intro x i h
     rw [hqstate]
-    exact dif_neg h
+    exact dite_eq_right h
   have hqpsd : ∀ x i, (qstate x i).PosSemidef := by
     intro x i
     by_cases hi : 0 < μ.prob i
@@ -354,8 +358,8 @@ theorem povmInformationHidingSubgoal : PovmInformationHidingSubgoal := by
           = (Matrix.trace (F o)).re := by
       intro o _
       by_cases h : 0 < (Matrix.trace (F o)).re
-      · rw [if_pos h]
-      · rw [if_neg h]
+      · rw [ite_eq_left h]
+      · rw [ite_eq_right h]
         exact le_antisymm (htnn o) (not_lt.mp h)
     rw [Finset.sum_congr rfl (fun o ho => hterm' o ho), htsum]
   have hfinal : (∑ o ∈ Finset.univ.filter (fun o => 0 < (finDistMixture ν q).prob o),

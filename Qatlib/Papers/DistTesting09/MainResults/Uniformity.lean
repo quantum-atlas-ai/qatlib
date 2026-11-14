@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistTesting09.MainResults.Defs
+module
+
+public import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Uniformity testing estimates
@@ -372,9 +376,9 @@ theorem lemma5_many_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 
         (if S a ∈ bigSet p M then (1 : ℝ) / (2 * (M : ℝ) ^ 2) else 0) ≤ p.prob (S a) := by
       intro a
       by_cases ha : S a ∈ bigSet p M
-      · simp only [ha, if_true]
+      · simp only [ha, ite_true]
         exact le_of_lt (Finset.mem_filter.mp ha).2
-      · simp only [ha, if_false]
+      · simp only [ha, ite_false]
         exact p.nonneg _
     have hsum_le : (∑ a, (if S a ∈ bigSet p M then (1 : ℝ) / (2 * (M : ℝ) ^ 2) else 0))
         ≤ sampleSum p S := Finset.sum_le_sum fun a _ => hpoint a
@@ -440,7 +444,7 @@ theorem correction_small (ε : ℝ) (hε : 0 < ε) (hM : 0 < M)
   have hεne : ε ≠ 0 := hε.ne'
   have hcube : (ε ^ 5 * (M : ℝ)) ^ 3 = 32 * (ε ^ 11 * (N : ℝ)) := by
     rw [mul_pow, hM3]
-    field_simp [hεne] <;> ring
+    field_simp [hεne]
   have h2 : (1024 : ℝ) ^ 3 ≤ (ε ^ 5 * (M : ℝ)) ^ 3 := by
     rw [hcube]
     have h1024 : (1024 : ℝ) ^ 3 = 2 ^ 30 := by norm_num
@@ -519,7 +523,7 @@ theorem probEvent_avoid_eq (p : Dist N) (B : Finset (Fin N))
       p.prob (S a) = (1 - massOf p B) * (renormalizeOff p B h).prob (S a) := by
     intro S hS a
     have hmem : S a ∉ B := hE S hS a
-    simp only [renormalizeOff, hmem, if_false]
+    simp only [renormalizeOff, hmem, ite_false]
     field_simp
   have hpoint : ∀ S : Fin M → Fin N, E S →
       p.probOf S = (1 - massOf p B) ^ M * (renormalizeOff p B h).probOf S := by
@@ -615,7 +619,7 @@ theorem few_big_threshold (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
 /-- For `0 < ε ≤ 1/2` and `0 ≤ w ≤ ε² / 64`, the ratio `ε^4 / (4 * (1 - w) * (ε - 2 * w)^4)` is
 at most one half. See [Bravyi et al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem few_big_ratio (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
-    (hw0 : 0 ≤ w) (hw : w ≤ ε ^ 2 / 64) :
+    (_hw0 : 0 ≤ w) (hw : w ≤ ε ^ 2 / 64) :
     ε ^ 4 / (4 * (1 - w) * (ε - 2 * w) ^ 4) ≤ 1 / 2 := by
   have hw1 : w ≤ 1 / 256 := by nlinarith
   have h1w : 0 < 1 - w := by linarith
@@ -635,7 +639,7 @@ theorem few_big_ratio (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
 /-- A per-run success probability at least `exp (-α) / 2` yields success probability at least
 `5/6` after `L` repetitions when the stated failure power is at most `1/6`. -/
 theorem theorem2_repetition_bound (α : ℝ) (hα : 0 ≤ α) (L : ℕ) (pper : ℝ)
-    (hpper0 : 0 ≤ pper) (hpper1 : pper ≤ 1)
+    (_hpper0 : 0 ≤ pper) (hpper1 : pper ≤ 1)
     (hpper : (1 : ℝ) / 2 * Real.exp (-α) ≤ pper)
     (hnumeric : (1 - (1 : ℝ) / 2 * Real.exp (-α)) ^ L ≤ (1 : ℝ) / 6) :
     (5 : ℝ) / 6 ≤ 1 - (1 - pper) ^ L := by
@@ -848,7 +852,7 @@ theorem renormalizeOff_probOf_of_not_avoid (p : Dist N) (B : Finset (Fin N))
     (h : massOf p B < 1) (S : Fin M → Fin N) (hS : ¬ ∀ a, S a ∉ B) :
     (renormalizeOff p B h).probOf S = 0 := by
   apply probOf_eq_zero_of_coord_zero
-  push_neg at hS
+  push Not at hS
   obtain ⟨a, ha⟩ := hS
   exact ⟨a, by simp [renormalizeOff, ha]⟩
 

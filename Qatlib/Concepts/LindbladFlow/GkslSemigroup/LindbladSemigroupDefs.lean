@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentBridge
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentBridge
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Mixing interfaces and energy-basis thermal generators
@@ -268,7 +272,7 @@ structure CkGeneratorInterface (D : ℕ) where
     thermalAcceptance energy temp i j * (diagonalGibbsDist D hD energy temp).prob i
       = thermalAcceptance energy temp j i * (diagonalGibbsDist D hD energy temp).prob j
 
-  windowError : ∀ (hD : 0 < D) (h : ℝ) (hh : 0 ≤ h) (hh1 : h ≤ 1) (n : ℕ),
+  windowError : ∀ (hD : 0 < D) (h : ℝ) (_hh : 0 ≤ h) (_hh1 : h ≤ 1) (n : ℕ),
     ‖((gkslEulerMap (ckGenerator energy temp) h)^[n])
         (diagonalGibbsDensity D hD energy temp) - diagonalGibbsDensity D hD energy temp‖
       ≤ (n : ℝ) * (‖gkslDrift (ckGenerator energy temp)‖ ^ 2
@@ -281,14 +285,14 @@ structure CkGeneratorInterface (D : ℕ) where
           + ‖gkslDrift (ckGenerator energy temp)‖ ^ 2) * ((n : ℝ) * h))
         * ‖diagonalGibbsDensity D hD energy temp‖
 
-  acceptTransport : ∀ (hD : 0 < D) (i j : Fin D), i ≠ j →
+  acceptTransport : ∀ (_hD : 0 < D) (i j : Fin D), i ≠ j →
     D * thermalKernel D energy temp i j = thermalAcceptance energy temp i j
 
-  rejectTransport : ∀ (hD : 0 < D) (i : Fin D),
+  rejectTransport : ∀ (_hD : 0 < D) (i : Fin D),
     D * (1 - thermalKernel D energy temp i i)
       = ∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i, thermalAcceptance energy temp i j'
 
-  oneStepAssembly : ∀ (hD : 0 < D) (p : Fin D → ℝ),
+  oneStepAssembly : ∀ (_hD : 0 < D) (p : Fin D → ℝ),
     ∑ j : Fin D, ckOneStepInflow D energy temp p j = ∑ i : Fin D, p i
 
   oneStepGibbs : ∀ (hD : 0 < D) (j : Fin D),
@@ -296,7 +300,7 @@ structure CkGeneratorInterface (D : ℕ) where
         * thermalKernel D energy temp i j
       = (diagonalGibbsDist D hD energy temp).prob j
 
-  recoveryWindow : ∀ (hD : 1 < D) (p : Fin D → ℝ) (N : ℕ) (j : Fin D),
+  recoveryWindow : ∀ (_hD : 1 < D) (p : Fin D → ℝ) (N : ℕ) (j : Fin D),
     ckRecoveryTail D energy temp p j N
       = (ckRejectMass D energy temp j) ^ N * p j / (1 - ckRejectMass D energy temp j)
 

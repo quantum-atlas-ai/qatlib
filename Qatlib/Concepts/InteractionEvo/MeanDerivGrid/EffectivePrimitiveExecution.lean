@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Encoding and execution laws for effective instructions
@@ -96,7 +100,7 @@ theorem effectiveFixedProgram_unitary (p : EffectiveProgram) (E : EffectiveEnvir
     | fixed g => exact finiteCodeMatrix_unitary p.width g hl
     | phase w a b axis =>
       have hw : w<p.width := hl
-      simp only [effectiveStepMatrix,dif_pos hw]
+      simp only [effectiveStepMatrix,dite_eq_left hw]
       apply wireGate_unitary
       cases axis
       · exact rz_unitary _

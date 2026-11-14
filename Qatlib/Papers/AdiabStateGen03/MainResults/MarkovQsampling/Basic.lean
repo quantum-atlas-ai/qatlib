@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.StatDistance
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.StatDistance
+
+@[expose] public section
 
 /-!
 # Stationarity and distribution overlap

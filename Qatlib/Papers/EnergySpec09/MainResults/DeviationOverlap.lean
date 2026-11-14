@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnergySpec09.MainResults.SuccessProbability
+module
+
+public import Qatlib.Papers.EnergySpec09.MainResults.SuccessProbability
+
+@[expose] public section
 
 /-!
 # Deviations of the initial-state overlap
@@ -44,23 +48,27 @@ namespace Qatlib.Papers.EnergySpec09.MainResults
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The inner product is additive in its right state argument. -/
 theorem inner_add_right (ψ φ₁ φ₂ : QState I) :
     Inner ψ (φ₁ + φ₂) = Inner ψ φ₁ + Inner ψ φ₂ := by
   rw [inner_apply, inner_apply, inner_apply]
   simp only [Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+omit [DecidableEq I] in
 /-- The inner product with the zero state in the right argument is zero. -/
 @[simp] theorem inner_zero_right (ψ : QState I) : Inner ψ (0 : QState I) = 0 := by
   rw [inner_apply]
   simp
 
+omit [DecidableEq I] in
 /-- The overlap with a target-plus-deviations state is the sum of the target self-overlap and
 the two deviation overlaps. -/
 theorem overlap_deviation_decomp {ψ0 ψdev ψp : QState I} :
     Inner ψ0 (ψ0 + ψdev + ψp) = Inner ψ0 ψ0 + Inner ψ0 ψdev + Inner ψ0 ψp := by
   rw [inner_add_right, inner_add_right]
 
+omit [DecidableEq I] in
 /-- For a normalized target, the target-plus-deviations overlap is one plus the two deviation
 overlaps. This supplies the overlap expansion used in the initial-guess analysis of
 [WangEtAl2008]. -/
@@ -85,6 +93,7 @@ theorem success_prob_deviation_form {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
   rw [qpe_success_prob_eq_overlap_sq hM U c φ k hOr heig hk n, htrial,
     overlap_eq_one_add_deviation hnorm]
 
+omit [DecidableEq I] in
 /-- A normalized target has unit overlap with itself plus a zero deviation and a component
 orthogonal to it. This gives the no-overlap-error limit of the initial-guess analysis in
 [WangEtAl2008]. -/
@@ -107,7 +116,7 @@ theorem exact_guess_success_prob_one {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
         ({k n} ×ˢ (Finset.univ : Finset I)) = 1 := by
   unfold qpeOutput
   rw [tensorState_sum, qpe_success_prob_eq_coeff_sq hM U c φ k hOr heig hk n, hc n,
-    if_pos rfl]
+    ite_eq_left rfl]
   norm_num
 
 end Qatlib.Papers.EnergySpec09.MainResults

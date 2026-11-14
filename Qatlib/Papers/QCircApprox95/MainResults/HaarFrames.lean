@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
-import Qatlib.Foundations.FrameMeasures.HaarFrames.OuterContent
-import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
-import Mathlib.MeasureTheory.Measure.Comap
+module
+
+public import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
+public import Qatlib.Foundations.FrameMeasures.HaarFrames.OuterContent
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
+public import Mathlib.MeasureTheory.Measure.Comap
+
+@[expose] public section
 
 /-!
 # Haar frame measures and image contents

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.TransportDefs
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.Block
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.TransportDefs
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.Block
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Isometric transport of arrow-block trace norms
@@ -148,7 +152,7 @@ private theorem directional_traceNorm_scaled (l m : ℕ) (hm : 1 ≤ m)
   | succ n =>
     obtain ⟨J, hJ, htransport⟩ :=
         Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.exists_directional_isometry l n u v hu hv
-    letI : DecidableEq (Fin 2 ⊕ Fin n) := Classical.decEq _
+    let : DecidableEq (Fin 2 ⊕ Fin n) := Classical.decEq _
     have hJ' : J.Isometry := by
       ext i j
       have hij := congrFun (congrFun hJ i) j

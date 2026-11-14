@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.FramedBinaryAddition
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.FramedBinaryAddition
+
+@[expose] public section
 
 /-!
 # Binary product loops and span bounds
@@ -72,7 +76,7 @@ does not increase the span. -/
 theorem step_span (a bs acc : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     span (false :: a) bs (if bit then output acc a else acc) ≤ span a (bit :: bs) acc := by
   have h := add_length acc a
-  cases bit <;> simp only [Bool.false_eq_true, if_false, if_true, span, List.length_cons] <;> omega
+  cases bit <;> simp only [Bool.false_eq_true, ite_false, ite_true, span, List.length_cons] <;> omega
 
 /-- The span bounds both the current multiplicand length plus one and the accumulator length
 plus one. -/
@@ -89,7 +93,7 @@ theorem value (a b acc : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
   | nil => simp [loop, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue]
   | cons bit bs ih =>
     rw [loop, ih]
-    cases bit <;> simp only [Bool.false_eq_true, if_false, if_true,
+    cases bit <;> simp only [Bool.false_eq_true, ite_false, ite_true,
       PaidBinaryAddition.output_value, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat.binary_cons, Nat.bit, Bool.cond_false, Bool.cond_true]
     all_goals ring
 

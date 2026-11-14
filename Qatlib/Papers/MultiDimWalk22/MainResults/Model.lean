@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 /-!
 # Multidimensional quantum walks: shared framework model
@@ -222,6 +227,7 @@ structure EffectiveGapModel (P : PhaseEstParams E) where
 
 /-! ## Lemma 3.4: negative analysis -/
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E] in
 /-- **Lemma 3.4 (Negative Analysis)**, arXiv:2208.13492 p. 19.  Fix `δ ≥ 0`
 and `Θ ∈ (0, π)`.  If `(|w_A⟩, |w_B⟩)` is a `δ`-negative witness for
 `(H, |ψ₀⟩, Ψ_A, Ψ_B)`, then
@@ -230,8 +236,12 @@ and `Θ ∈ (0, π)`.  If `(|w_A⟩, |w_B⟩)` is a `δ`-negative witness for
 The proof follows the paper line by line: apply Lemma 3.3 to `Π_A |w_A⟩`,
 split off the `(I - Π_A)` remainder, use `|ψ₀⟩ = |w_A⟩ + |w_B⟩` and
 `|ψ₀⟩ ⟂ B`, and bound both remainders by `√δ`. -/
-theorem lemma3_4_negative_analysis (P : PhaseEstParams E) (M : EffectiveGapModel E P)
-    (δ Θ : ℝ) (hδ : 0 ≤ δ) (hΘ0 : 0 < Θ) (hΘπ : Θ < Real.pi)
+theorem lemma3_4_negative_analysis (E : Type*)
+    [_m19inst0 : NormedAddCommGroup E]
+    [_m19inst1 : InnerProductSpace ℂ E]
+    [_m19inst2 : FiniteDimensional ℂ E]
+    (P : PhaseEstParams E) (M : EffectiveGapModel E P)
+    (δ Θ : ℝ) (_hδ : 0 ≤ δ) (hΘ0 : 0 < Θ) (hΘπ : Θ < Real.pi)
     (wA wB : E) (hw : IsNegativeWitness E P δ wA wB) :
     ‖M.Λ Θ P.psi0‖ ≤ Θ / 2 * ‖wA‖ + 2 * Real.sqrt δ := by
   obtain ⟨hpsi, hA, hB⟩ := hw
@@ -290,7 +300,7 @@ theorem lemma3_4_negative_analysis (P : PhaseEstParams E) (M : EffectiveGapModel
     have hpsi' : P.psi0 = wA + wB := hpsi
     have hPB' : PB P.psi0 = 0 := hPBpsi
     have hrewrite : P.psi0 = (1 - PB) P.psi0 := by
-      rw [ContinuousLinearMap.sub_apply, ContinuousLinearMap.one_apply, hPB', sub_zero]
+      rw [_root_.sub_apply, _root_.one_apply_eq_self, hPB', sub_zero]
     calc ‖L P.psi0‖ = ‖L ((1 - PB) (wA + wB))‖ := by rw [hrewrite, hpsi']
       _ = ‖L ((1 - PB) wA + (1 - PB) wB)‖ := by rw [ContinuousLinearMap.map_add]
       _ = ‖L ((1 - PB) wA) + L ((1 - PB) wB)‖ := by rw [ContinuousLinearMap.map_add]

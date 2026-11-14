@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.Theorem1Stat
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialSoundness
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialAllocatedCost
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationAdaptiveTape
-import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
-import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTapeCounting
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRealBudget
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.Theorem1Stat
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialSoundness
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialAllocatedCost
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationAdaptiveTape
+public import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
+public import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTapeCounting
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRealBudget
+
+@[expose] public section
 
 /-!
 # The corrected combinatorial triangle theorem
@@ -69,8 +73,8 @@ theorem theorem1_answer : Theorem1 := by
       nlinarith [Real.rpow_nonneg hnR.le (1-δ)]
     exact_mod_cast hh
   refine ⟨sourceCombAlg_sound G sgs ets k K c dHi dLo τ tThin,?_,?_⟩
-  · letI:=sgs.seedFin
-    letI:=ets.seedFin n
+  · let:=sgs.seedFin
+    let:=ets.seedFin n
     intro htri
     have hn3 : 3≤n := by
       obtain ⟨⟨a,b,cc⟩,ht⟩ := Finset.one_le_card.mp htri

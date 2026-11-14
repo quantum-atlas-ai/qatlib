@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.FiniteStats.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.BornMetrics.FiniteStats.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Bounds for finite measurement distances
@@ -58,7 +62,7 @@ theorem fiberProb_comp {N A B : ℕ} (q : Fin N → Fin B) (r : Fin B → Fin A)
     have hc : ¬ (r b = a ∧ q i = b) := by
       rintro ⟨-, h2⟩
       exact hb h2.symm
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
   · intro h; exact absurd (Finset.mem_univ (q i)) h
 
 /-- Coarsening an outcome map cannot increase the sum of absolute differences of measurement
@@ -84,7 +88,7 @@ theorem measDist_refine_le {N A B : ℕ} (q : Fin N → Fin B) (r : Fin B → Fi
   · simp
   · intro a _ ha
     have hc : ¬ (r b = a) := fun h => ha h.symm
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
   · intro h; exact absurd (Finset.mem_univ (r b)) h
 
 /-- Summing all fiber masses recovers the sum of squared coordinate norms. -/

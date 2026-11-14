@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceSyntax
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetApproximation
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorReferenceMean
-import Mathlib.Computability.Halting
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceSyntax
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetApproximation
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorReferenceMean
+public import Mathlib.Computability.Halting
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,11 +76,11 @@ theorem floorProgramReferenceMean_floor (c : Nat.Partrec.Code) :
   by_cases hh : (Nat.Partrec.Code.eval c 0).Dom
   · have hpos := (floorProgramAmplitude_pos_iff_dom c).mpr hh
     have hn : (floorProgramAmplitude c : ℝ) ≠ 0 := ne_of_gt (Rat.cast_pos.mpr hpos)
-    simp only [if_pos hh,if_neg hn]
+    simp only [ite_eq_left hh,ite_eq_right hn]
   · have hz : floorProgramAmplitude c=0 := by
       have hn := mt (floorProgramAmplitude_pos_iff_dom c).mp hh
       exact le_antisymm (le_of_not_gt hn) (floorProgramAmplitude_spec c).1
-    simp only [hz,Rat.cast_zero,ite_true,if_neg hh]
+    simp only [hz,Rat.cast_zero,ite_true,ite_eq_right hh]
 
 /-- Original `floorProgramReferenceMean_floor_iff_halts` guarantee for the `FloorProgramSource` construction; the complete source hypotheses are retained. -/
 theorem floorProgramReferenceMean_floor_iff_halts (c : Nat.Partrec.Code) :

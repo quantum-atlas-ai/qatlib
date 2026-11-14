@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
+
+@[expose] public section
 
 /-!
 # Dimension-one states and Bell-state examples
@@ -174,9 +178,9 @@ theorem bell_inner (s t : Bool × Bool) :
     Qatlib.Foundations.PureStateMath.Inner (bell s) (bell t) = if s = t then (1 : ℂ) else 0 := by
   by_cases h : s = t
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact (normalized_iff_inner_self (bell s)).mp (bell_normalized s)
-  · rw [if_neg h, bell_eq s, bell_eq t, inner_two_kets]
+  · rw [ite_eq_right h, bell_eq s, bell_eq t, inner_two_kets]
     fin_cases s <;> fin_cases t
     all_goals
       simp only [ite_true, ite_false, Bool.not_true, Bool.not_false,
@@ -189,7 +193,7 @@ theorem bell_injective : Function.Injective bell := by
   intro s t hst
   by_contra hne
   have h0 : Qatlib.Foundations.PureStateMath.Inner (bell s) (bell t) = 0 := by
-    rw [bell_inner, if_neg hne]
+    rw [bell_inner, ite_eq_right hne]
   have h1 : Qatlib.Foundations.PureStateMath.Inner (bell t) (bell t) = 1 :=
     (normalized_iff_inner_self (bell t)).mp (bell_normalized t)
   rw [hst] at h0

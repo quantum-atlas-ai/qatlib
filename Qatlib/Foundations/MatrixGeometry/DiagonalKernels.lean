@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Eigenspace.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Eigenspace.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Kernels and minima of diagonal matrices

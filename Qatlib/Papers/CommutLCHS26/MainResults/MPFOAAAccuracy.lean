@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAARobust
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFLongTime
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAARobust
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFLongTime
+
+@[expose] public section
 
 /-!
 # Accuracy of amplified multi-product blocks

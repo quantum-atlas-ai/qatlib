@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Schur bounds for grid divided differences
@@ -140,8 +144,8 @@ theorem sum_tail_shift {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : ℕ)
   | succ n ih =>
     rw [Finset.sum_range_succ,ih]
     by_cases hr : r≤n
-    · rw [if_pos hr,show n+1-r=(n-r)+1 by omega,Finset.sum_range_succ]
-    · simp only [if_neg hr,Nat.sub_eq_zero_of_le (by omega : n≤r),
+    · rw [ite_eq_left hr,show n+1-r=(n-r)+1 by omega,Finset.sum_range_succ]
+    · simp only [ite_eq_right hr,Nat.sub_eq_zero_of_le (by omega : n≤r),
         Nat.sub_eq_zero_of_le (by omega : n+1≤r),Finset.range_zero,Finset.sum_empty,add_zero]
 
 /-- Reversing the first `r` indices of a sum over `n` terms gives the sum over `Finset.range r`,
@@ -153,11 +157,11 @@ theorem sum_prefix_reverse {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : 
       symm
       apply Finset.sum_subset (Finset.range_mono hr)
       intro k _ hk
-      exact if_neg (by simpa only [Finset.mem_range] using hk)
+      exact ite_eq_right (by simpa only [Finset.mem_range] using hk)
     _ = ∑ k∈Finset.range r,f (r-1-k) := by
       apply Finset.sum_congr rfl
       intro k hk
-      rw [if_pos (Finset.mem_range.mp hk)]
+      rw [ite_eq_left (Finset.mem_range.mp hk)]
     _ = _ := Finset.sum_range_reflect f r
 
 /-- The sum of the first `n` even powers of `t`, from exponent zero through `2 * (n - 1)` when
@@ -330,20 +334,20 @@ theorem upperKernel_monomial (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1
           (t^((c j).val-1-(r i).val):ℝ)
       else 0 := by
   by_cases hrc : (r i).val<(c j).val
-  · rw [factorKernel,if_pos hrc,Finset.sum_mul]
+  · rw [factorKernel,ite_eq_left hrc,Finset.sum_mul]
     apply Finset.sum_congr rfl
     intro k _
     unfold upperAlpha upperBeta
     by_cases hrk : (r i).val≤k.val
     · by_cases hkc : k.val<(c j).val
-      · simp only [if_pos hrk,if_pos hkc,if_pos (And.intro hrk hkc)]
+      · simp only [ite_eq_left hrk,ite_eq_left hkc,ite_eq_left (And.intro hrk hkc)]
         calc
           _ = d k*((t^(k.val-(r i).val)*t^((c j).val-1-k.val):ℝ):ℂ) := by push_cast; ring
           _ = _ := by
             rw [← pow_add,show k.val-(r i).val+((c j).val-1-k.val)=(c j).val-1-(r i).val by omega]
       · simp [hrk,hkc]
     · simp [hrk]
-  · rw [factorKernel,if_neg hrc]
+  · rw [factorKernel,ite_eq_right hrc]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hrk : (r i).val≤k.val
@@ -366,7 +370,7 @@ theorem upperAction_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
   change (∫ t in (0:ℝ)..1,factorKernel (upperAlpha n r t) (upperBeta n c d t) i j*X i j)=_
   simp_rw [upperKernel_monomial]
   by_cases hrc : (r i).val<(c j).val
-  · simp only [if_pos hrc]
+  · simp only [ite_eq_left hrc]
     rw [intervalIntegral.integral_mul_const,intervalIntegral.integral_const_mul,
       intervalIntegral.integral_ofReal]
     have hp : (∫ t in (0:ℝ)..1,t^((c j).val-1-(r i).val))=
@@ -374,7 +378,7 @@ theorem upperAction_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     rw [hp,show (c j).val-1-(r i).val+1=(c j).val-(r i).val by omega]
     push_cast
     ring
-  · simp only [if_neg hrc,zero_mul,intervalIntegral.integral_zero]
+  · simp only [ite_eq_right hrc,zero_mul,intervalIntegral.integral_zero]
 
 /-- The successive difference `z (k + 1) - z k` on the finite grid. -/
 def gridIncrement (n : ℕ) (z : ℕ → ℂ) (k : Fin n) : ℂ := z (k.val+1)-z k.val
@@ -404,8 +408,8 @@ theorem upperAction_grid_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n
       else 0 := by
   rw [upperAction_apply]
   by_cases hrc : (r i).val<(c j).val
-  · rw [if_pos hrc,if_pos hrc,gridIncrement_sum n z _ _ hrc.le (by have := (c j).isLt; omega)]
-  · rw [if_neg hrc,if_neg hrc]
+  · rw [ite_eq_left hrc,ite_eq_left hrc,gridIncrement_sum n z _ _ hrc.le (by have := (c j).isLt; omega)]
+  · rw [ite_eq_right hrc,ite_eq_right hrc]
 
 /-- The matrix integral over `[0, 1]` of the factored Schur action with the beta and alpha
 factors exchanged. -/
@@ -504,13 +508,13 @@ theorem gridDividedDifference_decomposition (n : ℕ) (r : I → Fin (n+1)) (c :
   · simp [gridDividedDifference,hrc]
   · rcases lt_or_gt_of_ne hrc with hlt | hgt
     · have hnot : ¬(c j).val<(r i).val := by omega
-      simp only [gridDividedDifference,if_neg hrc,if_pos hlt,if_neg hnot,add_zero]
+      simp only [gridDividedDifference,ite_eq_right hrc,ite_eq_left hlt,ite_eq_right hnot,add_zero]
       have he : (((c j).val-(r i).val:ℕ):ℂ)=-(((r i).val:ℂ)-((c j).val:ℂ)) := by
         rw [Nat.cast_sub hlt.le]
         ring
       rw [he,show z (c j).val-z (r i).val=-(z (r i).val-z (c j).val) by ring,neg_div_neg_eq]
     · have hnot : ¬(r i).val<(c j).val := by omega
-      simp only [gridDividedDifference,if_neg hrc,if_pos hgt,if_neg hnot,zero_add]
+      simp only [gridDividedDifference,ite_eq_right hrc,ite_eq_left hgt,ite_eq_right hnot,zero_add]
       rw [Nat.cast_sub hgt.le]
 
 /-- If every grid increment has norm at most nonnegative `D`, the grid divided difference Schur

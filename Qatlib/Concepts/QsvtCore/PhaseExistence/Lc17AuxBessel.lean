@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.Topology.MetricSpace.CauSeqFilter
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.Topology.MetricSpace.CauSeqFilter
+
+@[expose] public section
 
 /-!
 # Bessel integral bounds and Jacobi–Anger expansion
@@ -46,7 +50,7 @@ open NormedSpace
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 /-- The integral of `sin x` to the power `2k` over `[0, π]`. -/
-private noncomputable def lcW (k : ℕ) : ℝ :=
+noncomputable def lcW (k : ℕ) : ℝ :=
   ∫ x in 0..Real.pi, Real.sin x ^ (2 * k)
 
 /-- The even sine-power integral `lcW k` is strictly positive. -/
@@ -110,7 +114,6 @@ private theorem lcWMix_rec (k m : ℕ) :
       - Real.cos 0 ^ (2 * m + 1)
       * (Real.sin 0 ^ (2 * k + 1) * (((2 * k + 1 : ℕ) : ℝ)⁻¹)) = 0 := by
     simp
-  (try simp only [] at hibp)
   have hcc1 : Continuous (fun x : ℝ => (((2 * m + 1 : ℕ) : ℝ) * Real.cos x ^ (2 * m)
       * (-(Real.sin x))) * (Real.sin x ^ (2 * k + 1) * (((2 * k + 1 : ℕ) : ℝ)⁻¹))) := by fun_prop
   have hcc2 : Continuous (fun x : ℝ => (Real.cos x ^ (2 * m + 1))
@@ -147,7 +150,6 @@ private theorem lcWMix_rec (k m : ℕ) :
         rw [pow_add (Real.sin x) (2 * k) 1, pow_one,
           pow_add (Real.sin x) (2 * k) 2]
         field_simp
-        try ring
     rw [hEq, intervalIntegral.integral_const_mul]
     have hEq2 : ∫ x in 0..Real.pi, Real.cos x ^ (2 * m) * Real.sin x ^ (2 * k + 2)
         = lcWMix k m - lcWMix k (m + 1) := by
@@ -369,7 +371,6 @@ private theorem lcSinPowCosEq (k : ℕ) (τ : ℝ) :
   have hconv : ∀ f : ℝ → ℝ, ∫ x in 0..Real.pi, f x = ∫ x, f x ∂μ := by
     intro f
     rw [intervalIntegral.integral_of_le Real.pi_pos.le]
-    try rfl
   have hinteg : MeasureTheory.Integrable (fun x => Real.sin x ^ (2 * k)) μ := by
     have hcont2 : Continuous fun x : ℝ => Real.sin x ^ (2 * k) := by fun_prop
     have hII : IntervalIntegrable (fun x : ℝ => Real.sin x ^ (2 * k))
@@ -937,7 +938,7 @@ theorem lcBesselJacobiAnger (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
       intro k
       rcases eq_or_ne k 0 with rfl | hk0
       · simp
-      · rw [if_neg hk0]
+      · rw [ite_eq_right hk0]
         have hz : (((k : ℕ) : ℂ) * ((θ : ℝ) : ℂ)).im = 0 := by simp
         have hno : ‖((-1 : ℂ) ^ k)‖ = 1 := by
           rw [norm_pow]; norm_num
@@ -952,7 +953,7 @@ theorem lcBesselJacobiAnger (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
     have hshift := Summable.sum_add_tsum_nat_add 1 hw₂sum
     have h0 : ((if (0 : ℕ) = 0 then 0 else lcJAn τ θ 0)) = 0 := by simp
     rw [Finset.sum_range_one, h0, zero_add] at hshift
-    simp only [Nat.succ_ne_zero, if_false] at hshift
+    simp only [Nat.succ_ne_zero, ite_false] at hshift
     exact hshift.symm
   have hP : HasSum (fun k : ℕ => lcJAp τ θ k) (∑' k, lcJAp τ θ k) :=
     (lcJApSummable τ θ hτ).hasSum
@@ -972,7 +973,7 @@ theorem lcBesselJacobiAngerSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
     intro k
     rcases eq_or_ne k 0 with rfl | hk0
     · simp
-    · rw [if_neg hk0]
+    · rw [ite_eq_right hk0]
       have hz : (((k : ℕ) : ℂ) * ((θ : ℝ) : ℂ)).im = 0 := by simp
       have hno : ‖((-1 : ℂ) ^ k)‖ = 1 := by
         rw [norm_pow]; norm_num
@@ -1032,8 +1033,8 @@ theorem lcBesselJacobiAnger_tail (q : ℕ) (τ : ℝ) (θ : ℝ) (hτ0 : 0 ≤ �
     have hib : ‖(if n + q = 0 then (0 : ℂ) else lcJAn τ θ (n + q))‖
         ≤ ‖lcJAn τ θ (n + q)‖ := by
       by_cases h : n + q = 0
-      · rw [if_pos h, norm_zero]; exact norm_nonneg _
-      · rw [if_neg h]
+      · rw [ite_eq_left h, norm_zero]; exact norm_nonneg _
+      · rw [ite_eq_right h]
     show ‖lcJAp τ θ (n + q) + (if n + q = 0 then (0 : ℂ) else lcJAn τ θ (n + q))‖ ≤ _
     exact le_trans (norm_add_le _ _)
       (le_trans (add_le_add (hAp (n + q)) (le_trans hib (hAn (n + q)))) (le_of_eq (by ring)))

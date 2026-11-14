@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalStat
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalStat
+
+@[expose] public section
 
 /-!
 # Failure bounds for finite quantile bisection
@@ -60,10 +64,10 @@ theorem risk_bind_failure {X Y : Type} (p : PMF X) (f : X → PMF Y) (B : X → 
       apply Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_le_of_forall
       intro x
       by_cases hx : B x
-      · rw [if_pos hx]; exact
+      · rw [ite_eq_left hx]; exact
           (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _).trans
           (le_add_right le_rfl)
-      · rw [if_neg hx, zero_add]; exact hgood x hx
+      · rw [ite_eq_right hx, zero_add]; exact hgood x hx
     _ = _ := by rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]; rfl
 
 /-- An event that fails at every point in the support of a PMF has probability zero. -/
@@ -75,7 +79,7 @@ theorem risk_event_zero_support {X : Type} (p : PMF X) (E : X → Prop)
   intro x
   by_cases hx : p x = 0
   · simp [hx]
-  · simp only [if_neg (h x ((PMF.mem_support_iff p x).mpr hx)), mul_zero]
+  · simp only [ite_eq_right (h x ((PMF.mem_support_iff p x).mpr hx)), mul_zero]
 
 /-- Every supported output of `riskBisect` has a call counter at most the supplied fuel. -/
 theorem riskBisect_support_calls (sample : ℚ → PMF ℝ) (xs : List ℚ) (q : ℝ)
@@ -126,14 +130,14 @@ private theorem risk_route_failure (sample : ℚ → PMF ℝ) (xs : List ℚ) (q
   | zero =>
     have hh : lo = hi := by norm_num at hwidth; omega
     simp only [riskBisect, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
-        Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_neg
+        Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_right
         (riskBadIndex_pure xs q eps F lo hi hhi hu hl hh), Nat.cast_zero, zero_mul, le_refl]
   | succ fuel ih =>
     rw [riskBisect]
     split_ifs with hstop
     · have hh : lo = hi := by omega
       simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
-          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_neg
+          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_right
           (riskBadIndex_pure xs q eps F lo hi hhi hu hl hh), zero_le]
     · let mid := (lo+hi)/2
       have hmidlo : lo ≤ mid := by dsimp [mid]; omega

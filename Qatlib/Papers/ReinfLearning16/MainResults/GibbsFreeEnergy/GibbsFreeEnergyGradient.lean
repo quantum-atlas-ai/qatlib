@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
-import Mathlib.Topology.Order.Basic
+module
+
+public import Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
+public import Mathlib.Topology.Order.Basic
+
+@[expose] public section
 
 /-!
 # Polynomial schedules and random-path components

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.NoiseStatistics.NoiseIntensityConsumers
+module
+
+public import Qatlib.Concepts.SpectralReadout.NoiseStatistics.NoiseIntensityConsumers
+
+@[expose] public section
 
 /-!
 # Specification of normalized intensity specializations

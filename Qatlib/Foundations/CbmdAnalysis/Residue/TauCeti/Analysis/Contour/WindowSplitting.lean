@@ -6,15 +6,19 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing.Monotonicity
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing.Windows
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.ExitTime
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing.Monotonicity
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing.Windows
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.ExitTime
+
+@[expose] public section
 
 /-!
 # Splitting truncated contour integrals at exit times
@@ -56,7 +60,7 @@ private theorem integral_truncated_eq_of_ae_gt {γ : ℝ → ℂ} {g : ℂ → �
   refine intervalIntegral.integral_congr_ae ?_
   rw [uIoc_of_le hlu]
   filter_upwards [h_gt] with t ht htm
-  rw [if_pos (ht htm)]
+  rw [ite_eq_left (ht htm)]
 
 /-- A continuous curve with nonzero one-sided derivative limits at a crossing has a smaller
 parameter window where distance from the crossing is strictly increasing to the right and

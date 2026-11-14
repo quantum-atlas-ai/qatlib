@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerExactScaleCamp
-import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+module
+
+public import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerExactScaleCamp
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+
+@[expose] public section
 
 /-!
 # Digit budgets for qDRIFT compilation
@@ -138,7 +142,7 @@ private theorem signed_entry_deficit {L : ℕ} (a : Fin L → ℝ) (q : Fin L �
       rw [hsgn] at h
       simpa using h
     have hc : ¬(false = true) := by simp
-    rw [if_neg hc, abs_of_nonneg (by linarith)]
+    rw [ite_eq_right hc, abs_of_nonneg (by linarith)]
     linarith
   | true =>
     have hpj : -a j = |a j| := by
@@ -146,7 +150,7 @@ private theorem signed_entry_deficit {L : ℕ} (a : Fin L → ℝ) (q : Fin L �
       rw [hsgn] at h
       simpa using h
     have hc : (true = true) := rfl
-    rw [if_pos hc]
+    rw [ite_eq_left hc]
     have he : a j - ((-(q j k) : ℚ) : ℝ) = -(|a j| - (q j k : ℝ)) := by
       rw [Rat.cast_neg]; linarith
     rw [he, abs_neg, abs_of_nonneg (by linarith)]
@@ -236,8 +240,8 @@ theorem digitBudgetQDriftData_spec :
     have hqle : (q j k : ℝ) ≤ |a j| := (hor j k).2.1
     rw [htable j]
     cases hsgn : sgn j with
-    | false => rw [if_neg (by simp), abs_of_nonneg hq0]; exact hqle
-    | true => rw [if_pos rfl, Rat.cast_neg, abs_neg, abs_of_nonneg hq0]; exact hqle
+    | false => rw [ite_eq_right (by simp), abs_of_nonneg hq0]; exact hqle
+    | true => rw [ite_eq_left rfl, Rat.cast_neg, abs_neg, abs_of_nonneg hq0]; exact hqle
   have htabs : (∑ j, |(((digitBudgetQDriftData q sgn t ε).table j : ℝ))|) ≤
       (∑ j, |a j|) := Finset.sum_le_sum (fun j _ => hper j)
   have hlamw : (((weightTotal (dyadicWeights k

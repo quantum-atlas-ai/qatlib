@@ -4,89 +4,93 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.CharP.Two
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Int.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Pi
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Int
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Int
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Int
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.SDiff
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.Perm
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sets
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Order.Basic
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Prod.Basic
-import Mathlib.Data.Subtype
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Tactic
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Zify
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.CharP.Two
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Int.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Pi
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Int
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Int
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.SDiff
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.Perm
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sets
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Order.Basic
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Prod.Basic
+public import Mathlib.Data.Subtype
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Zify
+
+@[expose] public section
 
 /-!
 # Feistel Simon periods and permutation counting
@@ -196,10 +200,10 @@ theorem feistel3_simon_period (P1 P2 : Block n → Block n) (α β : Block n) :
   intro u
   rcases u with ⟨b, a⟩
   cases b
-  · simp only [feistelSimonFun, bxorShift, feistelPeriod, feistelFirstHalf, if_true,
+  · simp only [feistelSimonFun, bxorShift, feistelPeriod, feistelFirstHalf, ite_true,
       Bool.not_false]
     rw [block_add_add_self, block_add_add_self, add_shift_cancel_right]
-  · simp only [feistelSimonFun, bxorShift, feistelPeriod, feistelFirstHalf, if_true,
+  · simp only [feistelSimonFun, bxorShift, feistelPeriod, feistelFirstHalf, ite_true,
       Bool.not_true]
     rw [block_add_add_self, block_add_add_self, add_shift_cancel_left]
 
@@ -251,7 +255,7 @@ noncomputable def extendComplement (p q y z : X) (hpq : p ≠ q) (hyz : y ≠ z)
         simp [Ne.symm hpq, Ne.symm hyz]
       · have hval : (φ ⟨x, ⟨hx, hx'⟩⟩ : X) ≠ y := (φ ⟨x, ⟨hx, hx'⟩⟩).2.1
         have hval' : (φ ⟨x, ⟨hx, hx'⟩⟩ : X) ≠ z := (φ ⟨x, ⟨hx, hx'⟩⟩).2.2
-        simp only [dif_neg hx, dif_neg hx', dif_neg hval, dif_neg hval']
+        simp only [dite_eq_right hx, dite_eq_right hx', dite_eq_right hval, dite_eq_right hval']
         simp [φ.symm_apply_apply]
   right_inv := by
     intro w
@@ -263,7 +267,7 @@ noncomputable def extendComplement (p q y z : X) (hpq : p ≠ q) (hyz : y ≠ z)
         simp [Ne.symm hpq, Ne.symm hyz]
       · have hval : (φ.symm ⟨w, ⟨hw, hw'⟩⟩ : X) ≠ p := (φ.symm ⟨w, ⟨hw, hw'⟩⟩).2.1
         have hval' : (φ.symm ⟨w, ⟨hw, hw'⟩⟩ : X) ≠ q := (φ.symm ⟨w, ⟨hw, hw'⟩⟩).2.2
-        simp only [dif_neg hw, dif_neg hw', dif_neg hval, dif_neg hval']
+        simp only [dite_eq_right hw, dite_eq_right hw', dite_eq_right hval, dite_eq_right hval']
         simp [φ.apply_symm_apply]
 
 /-- The equivalence between permutations mapping `p` to `y` and `q` to `z` and bijections of

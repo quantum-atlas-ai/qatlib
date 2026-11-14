@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Probability.ProbabilityMassFunction.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+
+@[expose] public section
 
 /-!
 # Paper-layer formalisation: Lemma 5 of An–Lin, *Quantum Linear Solver with Time-dependent
@@ -57,8 +61,13 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteS
 (paper notation `|v⟩⟨v|`).  Defined as `InnerProductSpace.rankOne ℂ v v`. -/
 noncomputable def densityMat (v : E) : E →L[ℂ] E := InnerProductSpace.rankOne ℂ v v
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E] in
 /-- `|v⟩⟨v| w = ⟪v, w⟫ • v`. -/
-lemma densityMat_apply (v w : E) : densityMat v w = ⟪v, w⟫_ℂ • v := by
+lemma densityMat_apply {E : Type*}
+    [_q37inst0 : NormedAddCommGroup E]
+    [_q37inst1 : InnerProductSpace ℂ E]
+    [_q37inst2 : CompleteSpace E]
+    (v w : E) : densityMat v w = ⟪v, w⟫_ℂ • v := by
   simp [densityMat, InnerProductSpace.rankOne_apply]
 
 /-- For a unit vector `v`, `|v⟩⟨v| v = v`. -/
@@ -70,7 +79,7 @@ lemma densityMat_apply_self_of_norm_one (v : E) (hv : ‖v‖ = 1) :
 /-- `|v⟩⟨v|` is self-adjoint (paper: `|v⟩⟨v|† = |v⟩⟨v|`). -/
 lemma densityMat_adjoint (v : E) :
     ContinuousLinearMap.adjoint (densityMat v) = densityMat v := by
-  simp [densityMat, InnerProductSpace.adjoint_rankOne]
+  simp [densityMat]
 
 /-- The key operator identity behind Lemma 5 (paper page 5:15, proof of equation (16)):
 for unit vectors `ψ`, `x`, the squared operator norm of `|ψ⟩⟨ψ| - |x⟩⟨x|` equals
@@ -92,19 +101,19 @@ theorem densityMat_sub_norm_sq (ψ x : E) (hψ : ‖ψ‖ = 1) (hx : ‖x‖ = 1
   have hMψ : M ψ = ψ - ⟪x, ψ⟫_ℂ • x := by
     simp [M, densityMat, InnerProductSpace.rankOne_apply, inner_self_eq_norm_sq_to_K, hψ]
   have hψx : ⟪ψ, x⟫_ℂ = star ⟪x, ψ⟫_ℂ := by
-    simpa using congrArg star (inner_conj_symm x ψ)
+    simp
   have hMx : M x = star ⟪x, ψ⟫_ℂ • ψ - x := by
-    simp only [M, densityMat, ContinuousLinearMap.sub_apply, InnerProductSpace.rankOne_apply, inner_self_eq_norm_sq_to_K, hx, hψx, RCLike.ofReal_one, Complex.ofReal_one, one_pow, one_smul]
+    simp only [M, densityMat, _root_.sub_apply, InnerProductSpace.rankOne_apply, inner_self_eq_norm_sq_to_K, hx, hψx, RCLike.ofReal_one, one_pow, one_smul]
   -- The two-dimensional subspace `span{ψ, x}`.
   let K : Submodule ℂ E := Submodule.span ℂ ({ψ, x} : Set E)
   have hψK : ψ ∈ K := Submodule.subset_span (by simp)
   have hxK : x ∈ K := Submodule.subset_span (by simp)
-  haveI : FiniteDimensional ℂ K :=
+  have : FiniteDimensional ℂ K :=
     FiniteDimensional.span_of_finite ℂ ((Set.finite_singleton x).insert ψ)
-  haveI : CompleteSpace K := FiniteDimensional.complete ℂ K
+  have : CompleteSpace K := FiniteDimensional.complete ℂ K
   -- `M` is self-adjoint.
   have hMadj : ContinuousLinearMap.adjoint M = M := by
-    simp [M, densityMat, InnerProductSpace.adjoint_rankOne]
+    simp [M, densityMat]
   -- `M†M = M²` acts as `1 - |c|²` on `span{ψ, x}`.
   have hM2 : ∀ u ∈ K, M (M u) = ((1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2 : ℝ) : ℂ) • u := by
     intro u hu
@@ -147,10 +156,10 @@ theorem densityMat_sub_norm_sq (ψ x : E) (hψ : ‖ψ‖ = 1) (hx : ‖x‖ = 1
     have hsq : ((‖M u‖ ^ 2 : ℝ) : ℂ) =
         (((1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2) * ‖u‖ ^ 2 : ℝ) : ℂ) := by
       calc ((‖M u‖ ^ 2 : ℝ) : ℂ) = ⟪M u, M u⟫_ℂ := by
-              rw [inner_self_eq_norm_sq_to_K]; push_cast; first | rfl | ring
+              rw [inner_self_eq_norm_sq_to_K]; push_cast; rfl
         _ = ((1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2 : ℝ) : ℂ) * ⟪u, u⟫_ℂ := hinnerM
         _ = (((1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2) * ‖u‖ ^ 2 : ℝ) : ℂ) := by
-              rw [inner_self_eq_norm_sq_to_K]; push_cast; first | rfl | ring
+              rw [inner_self_eq_norm_sq_to_K]; push_cast; rfl
     exact Complex.ofReal_inj.mp hsq
   have hnorm : ∀ u ∈ K, ‖M u‖ = Real.sqrt (1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2) * ‖u‖ := by
     intro u hu
@@ -200,10 +209,10 @@ theorem lemma5_infidelity_eq (ψ x b : E) (hψ : ‖ψ‖ = 1) (hx : ‖x‖ = 1
     (hbψ : ⟪b, ψ⟫_ℂ = 0) :
     ‖(1 : ℂ) - ⟪ψ, (densityMat x + densityMat b) ψ⟫_ℂ‖ = 1 - ‖⟪x, ψ⟫_ℂ‖ ^ 2 := by
   have hxψ : ⟪ψ, x⟫_ℂ = star ⟪x, ψ⟫_ℂ := by
-    simpa using congrArg star (inner_conj_symm x ψ)
+    simp
   have hinner : ⟪ψ, (densityMat x + densityMat b) ψ⟫_ℂ =
       ((‖⟪x, ψ⟫_ℂ‖ ^ 2 : ℝ) : ℂ) := by
-    rw [ContinuousLinearMap.add_apply, inner_add_right, densityMat_apply, densityMat_apply,
+    rw [_root_.add_apply, inner_add_right, densityMat_apply, densityMat_apply,
       inner_smul_right, inner_smul_right, hbψ, zero_mul, add_zero, hxψ]
     rw [Complex.star_def, Complex.mul_conj, Complex.normSq_eq_norm_sq]
   have hcs : ‖⟪x, ψ⟫_ℂ‖ ≤ 1 := by
@@ -258,6 +267,6 @@ theorem lemma5 (ψ x b : E) (hψ : ‖ψ‖ = 1) (hx : ‖x‖ = 1) (hbψ : ⟪b
       (∀ η : ℝ, 0 ≤ η →
         ‖(1 : ℂ) - ⟪ψ, (densityMat x + densityMat b) ψ⟫_ℂ‖ ≤ η ^ 2 →
         1 - η ^ 2 ≤ ‖⟪x, ψ⟫_ℂ‖ ^ 2 ∧ ‖densityMat ψ - densityMat x‖ ≤ η) :=
-  ⟨lemma5_part_i ψ x b hψ hx hbψ, fun η hη h => lemma5_part_ii ψ x b hψ hx hbψ hη h⟩
+  ⟨lemma5_part_i ψ x b hψ hx hbψ, fun _η hη h => lemma5_part_ii ψ x b hψ hx hbψ hη h⟩
 
 end Qatlib.Papers.QLinearSolver19.MainResults.Accuracy

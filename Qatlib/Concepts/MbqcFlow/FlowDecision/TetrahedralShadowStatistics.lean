@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowInstrument
-import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowInstrument
+public import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+
+@[expose] public section
 
 /-!
 # Moments and concentration of tetrahedral shadows
@@ -244,7 +248,6 @@ theorem tetrahedral_observable_unbiased (ρ A : Operator 2) (hρ : IsDensityOper
     exact Finset.sum_congr rfl fun a _ => by
       rw [Matrix.mul_smul, Matrix.trace_smul, smul_eq_mul]
   have htr := congrArg (fun M : Operator 2 => Matrix.trace (A * M)) hg3
-  (try simp only [] at htr)
   rw [hstep] at htr
   rw [← htr, Complex.re_sum]
   show ∑ a : Fin 4, (tetraRecordLaw ρ hρ).prob a * tetraStatistic A a = _
@@ -403,7 +406,7 @@ noncomputable def tetraProductDensity {n : ℕ} (ρ : Operator 2) :
   Matrix.of fun x y => ∏ i, ρ (boolEquivFin2 (x i)) (boolEquivFin2 (y i))
 
 /-- The tensor product of the single-qubit tetrahedral Kraus operators specified by a record. -/
-noncomputable def tetraProductRecordKraus {n : ℕ} (ρ : Operator 2) (ω : Fin n → Fin 4) :
+noncomputable def tetraProductRecordKraus {n : ℕ} (_ρ : Operator 2) (ω : Fin n → Fin 4) :
     Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun x y =>
     ∏ i, (tetraKraus (ω i)) (boolEquivFin2 (x i)) (boolEquivFin2 (y i))
@@ -557,7 +560,7 @@ theorem union_bound_single {X : Type*} [Fintype X] [DecidableEq X]
         obtain ⟨z₀, hz₀⟩ := (Finset.mem_filter.mp hω).2
         have h1 : (1 : ℝ) ≤ ∑ z : Z, if E z ω then (1 : ℝ) else 0 := by
           have hz₀' : (1 : ℝ) ≤ (if E z₀ ω then (1 : ℝ) else 0) := by
-            rw [if_pos hz₀]
+            rw [ite_eq_left hz₀]
           exact hz₀'.trans (Finset.single_le_sum
             (f := fun z => if E z ω then (1 : ℝ) else 0)
             (fun z _ => by positivity) (Finset.mem_univ z₀))

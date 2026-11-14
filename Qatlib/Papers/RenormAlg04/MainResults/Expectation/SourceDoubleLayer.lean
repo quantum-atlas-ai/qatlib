@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkCoreDefs
-import Mathlib.Algebra.Star.BigOperators
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkCoreDefs
+public import Mathlib.Algebra.Star.BigOperators
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,8 +68,11 @@ legs extracted from `γ`. -/
 noncomputable def amp (K : ι → σ → ν → ℂ) (ls : (ι → β) → ι → ν) (x : ι → σ) : ℂ :=
   ∑ γ : ι → β, ∏ p : ι, K p (x p) (ls γ p)
 
+omit [Fintype σ] [DecidableEq σ] in
 /-- The complex conjugate amplitude, as a sum over the second layer's bonds. -/
-theorem star_amp (K : ι → σ → ν → ℂ) (ls : (ι → β) → ι → ν) (x : ι → σ) :
+theorem star_amp {ι σ β ν : Type*}
+    [Fintype ι] [_fintypeσ : Fintype σ] [Fintype β]
+    [DecidableEq ι] [_decidableEqσ : DecidableEq σ] (K : ι → σ → ν → ℂ) (ls : (ι → β) → ι → ν) (x : ι → σ) :
     star (amp K ls x) = ∑ γ : ι → β, ∏ p : ι, star (K p (x p) (ls γ p)) := by
   unfold amp
   rw [star_sum]
@@ -94,16 +101,21 @@ def piProdEquiv (ι σ : Type*) [Fintype ι] : (ι → σ × σ) ≃ (ι → σ)
     obtain ⟨a, b⟩ := xx
     rfl
 
+omit [DecidableEq σ] in
 /-- Sum over `ι → σ × σ` as an iterated sum over the two components. -/
-theorem sum_pi_prod (f : (ι → σ × σ) → ℂ) :
+theorem sum_pi_prod {ι σ : Type*}
+    [Fintype ι] [Fintype σ] [DecidableEq ι] [_decidableEqσ : DecidableEq σ] (f : (ι → σ × σ) → ℂ) :
     (∑ q : ι → σ × σ, f q)
       = ∑ x : ι → σ, ∑ x' : ι → σ, f (fun p => (x p, x' p)) := by
   rw [← Fintype.sum_prod_type (f := fun p : (ι → σ) × (ι → σ) => f (fun i => (p.1 i, p.2 i)))]
   exact Fintype.sum_equiv (piProdEquiv ι σ) f
     (fun p : (ι → σ) × (ι → σ) => f (fun i => (p.1 i, p.2 i))) (fun q => rfl)
 
+omit [Fintype ι] [DecidableEq ι] [DecidableEq σ] in
 /-- The site double sum collapses to a single sum over a pair of physical indices. -/
-theorem site_double_sum (K : ι → σ → ν → ℂ) (O : ι → σ → σ → ℂ)
+theorem site_double_sum {ι σ ν : Type*}
+    [_fintypeι : Fintype ι] [Fintype σ]
+    [_decidableEqι : DecidableEq ι] [_decidableEqσ : DecidableEq σ] (K : ι → σ → ν → ℂ) (O : ι → σ → σ → ℂ)
     (q q' : ν) (p : ι) :
     (∑ s : σ, ∑ s' : σ, O p s s' * K p s q * star (K p s' q'))
       = ∑ j : σ × σ, O p j.1 j.2 * K p j.1 q * star (K p j.2 q') := by
@@ -271,7 +283,7 @@ theorem prod_diagFactor_eq_zero {a b d : ℕ} (G : Fin a × Fin b → Fin d → 
     ∏ p : Fin a × Fin b, G p (x p) (x' p) = 0 := by
   obtain ⟨p, hp⟩ : ∃ p, x p ≠ x' p := by
     by_contra h
-    push_neg at h
+    push Not at h
     exact hne (funext h)
   exact Finset.prod_eq_zero (Finset.mem_univ p) (hG p (x p) (x' p) hp)
 

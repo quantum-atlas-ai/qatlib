@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeTrial
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeTrial
+
+@[expose] public section
 
 /-!
 # Clocked randomly sampled amplification trials
@@ -76,12 +80,12 @@ theorem sampledCode_actual_law (cost : I → ℝ) (current : I)
     (b m fuel : ℕ) :
     valueLaw cost current (sampledCode U hU seed S b m fuel)=preparedAASampled U hU seed S b m fuel := by
   rw [sampledCode,valueLaw_bindCode cost current _ (coinCode_noSave I b m fuel),coinCode_actual_law]
-  unfold preparedAASampled finiteCoinThenAttempt
+  rw [ preparedAASampled , finiteCoinThenAttempt]
   congr 1
   funext out
   rcases out with ⟨cfg,bits⟩
   cases cfg with
-  | inl j => rw [valueLaw_mapCode,trialCode_actual_law]; rfl
+  | inl j => rw [valueLaw_mapCode,trialCode_actual_law]
   | inr u => rfl
 
 /-- The clocked sampled amplification experiment contains no save instructions. -/

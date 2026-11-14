@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ def ket {m : ℕ} (z : Idx m) : Idx m → ℝ := Pi.single z 1
 
 /-- `|z⟩` has entry `0` away from `z`. -/
 lemma ket_of_ne {m : ℕ} {z z' : Idx m} (h : z' ≠ z) : ket z z' = 0 := by
-  simp [ket, Pi.single_apply, h]
+  simp [ket, h]
 
 /-- `M` has all entries in the image of `ℤ → ℝ`, i.e. `M` is an integer matrix. -/
 def IsIntegerMat {ι : Type} [Fintype ι] (M : Matrix ι ι ℝ) : Prop :=
@@ -78,7 +82,7 @@ lemma IsIntegerMat.one {ι : Type} [Fintype ι] [DecidableEq ι] :
   intro i j
   by_cases h : i = j
   · subst h; exact ⟨1, by simp⟩
-  · exact ⟨0, by simp [Matrix.one_apply, h]⟩
+  · exact ⟨0, by simp [h]⟩
 
 /-- The zero matrix is an integer matrix. -/
 lemma IsIntegerMat.zero {ι : Type} [Fintype ι] : IsIntegerMat (0 : Matrix ι ι ℝ) :=
@@ -217,14 +221,14 @@ theorem Gamma_yes_exists {m : ℕ} (A : ProofMat m) (ℓ : ℕ)
     (htrace : (2 : ℝ) ^ m * 2 < (A ^ ℓ).trace) :
     ∃ z : Idx m, 2 < Gamma A ℓ z := by
   by_contra h
-  push_neg at h
+  push Not at h
   have hle : (A ^ ℓ).trace ≤ (2 : ℝ) ^ m * 2 := by
     rw [Matrix.trace]
     calc ∑ z, (A ^ ℓ) z z = ∑ z, Gamma A ℓ z := rfl
       _ ≤ ∑ _z : Idx m, 2 := Finset.sum_le_sum (fun z _ => h z)
       _ = (Fintype.card (Idx m) : ℝ) * 2 := by
         rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-      _ = (2 : ℝ) ^ m * 2 := by rw [Fintype.card_fun]; simp [Idx]
+      _ = (2 : ℝ) ^ m * 2 := by rw [Fintype.card_fun]; simp
   linarith
 
 /-! ## The cyclic operator `C_{z,Γ}` and history vector `|Ω_z⟩` (Lemma 3.4) -/
@@ -278,17 +282,12 @@ theorem cyclicOp_fixes_histVec {m : ℕ} (A : ProofMat m) (ℓ : ℕ) (z : Idx m
     rw [Finset.sum_eq_single (Fin.last ℓ)]
     · have e1 : Γ⁻¹ * (ket z w * Γ) = ket z w := by
         rw [mul_comm (ket z w) Γ, ← mul_assoc]
-        first
-          | rw [inv_mul_cancel Γ, one_mul]
-          | rw [inv_mul_cancel₀ hΓ0, one_mul]
-      simp only [Fin.val_last, if_neg (by omega : ¬ (0 : ℕ) = ℓ + 1),
-        if_pos (show (True ∧ (ℓ = ℓ)) by simp), if_pos (show (0 = 0 ∧ ℓ = ℓ) by simp),
-        if_pos (show (True ∧ True) by simp), zero_add, mul_assoc]
+        rw [inv_mul_cancel₀ hΓ0, one_mul]
+      simp only [Fin.val_last, ite_eq_right (by omega : ¬ (0 : ℕ) = ℓ + 1),
+        ite_eq_left (show (True ∧ True) by simp), zero_add, mul_assoc]
       rw [← Finset.mul_sum, ← Finset.mul_sum, hdot, ← Gamma_eq_quadForm, ← hΓ, pow_zero,
         one_mulVec]
-      first
-        | rw [e1]
-        | rw [mul_assoc Γ⁻¹ (ket z w) Γ, e1]
+      rw [e1]
     · intro b _hb hne
       have hbℓ : b.val ≠ ℓ := fun h => hne (Fin.ext h)
       simp [hbℓ]
@@ -296,8 +295,8 @@ theorem cyclicOp_fixes_histVec {m : ℕ} (A : ProofMat m) (ℓ : ℕ) (z : Idx m
   · -- Clock slot `k+1`: only the forward transition from clock `k` contributes.
     have hk : k < ℓ + 1 := by omega
     rw [Finset.sum_eq_single (⟨k, hk⟩ : Fin (ℓ + 1))]
-    · simp only [if_pos (trivial : True), if_pos (show ((k + 1 : ℕ) = k + 1) by omega),
-        if_neg (by simp [Nat.succ_ne_zero] : ¬ ((k + 1 : ℕ) = 0 ∧ k = ℓ)), add_zero]
+    · simp only [ite_eq_left (trivial : True),
+        ite_eq_right (by simp : ¬ ((k + 1 : ℕ) = 0 ∧ k = ℓ)), add_zero]
       have h1 : ∑ w' : Idx m, A w w' * ((A ^ k) *ᵥ ket z) w'
           = (A *ᵥ ((A ^ k) *ᵥ ket z)) w := rfl
       rw [h1, mulVec_mulVec, ← pow_succ']
@@ -305,7 +304,7 @@ theorem cyclicOp_fixes_histVec {m : ℕ} (A : ProofMat m) (ℓ : ℕ) (z : Idx m
       have hb' : b.val ≠ k := fun h => hne (Fin.ext h)
       have hf : ¬ ((k + 1 : ℕ) = b.val + 1) := by omega
       have hb2 : ¬ (k = b.val) := fun h => hb' h.symm
-      simp [hf, hb2, Nat.succ_ne_zero]
+      simp [hb2]
     · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Lemma 3.4(i): on a YES instance, if `Γ_z > 2` and `Γ = Γ_z`, then `|Ω_z⟩ ≠ 0` and

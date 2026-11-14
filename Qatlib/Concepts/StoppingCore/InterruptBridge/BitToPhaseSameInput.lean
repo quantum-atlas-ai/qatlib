@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
+module
+
+public import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
+
+@[expose] public section
 
 /-!
 # Bit-to-phase compilation on the same input
@@ -33,6 +37,7 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 open Qatlib.Concepts.CompressedQuery.CompressOracle
 
 set_option autoImplicit false
+set_option linter.unusedSectionVars false
 noncomputable section
 namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 open Matrix

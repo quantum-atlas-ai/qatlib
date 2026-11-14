@@ -4,43 +4,47 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Bound
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Data.NNReal.Defs
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Bound
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Basic.NNReal.Defs
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+
+@[expose] public section
 
 /-!
 # Finite quantum-search loops
@@ -134,14 +138,14 @@ theorem windowRound_shape {I : Type} [Fintype I] [DecidableEq I]
   rw [windowRound] at hout
   obtain ⟨st, hst, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   by_cases hS : st.1.1 ∈ S
-  · rw [if_pos hS] at hout
+  · rw [ite_eq_left hS] at hout
     have hout' : out = (some st.1.1, 1, 1) := by
       simpa [PMF.mem_support_pure_iff] using! hout
     subst hout'
     intro y hy
     rw [← Option.some.inj hy]
     exact hS
-  · rw [if_neg hS] at hout
+  · rw [ite_eq_right hS] at hout
     obtain ⟨j, hj, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     obtain ⟨st2, hst2, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     have hout' : out = (if st2.1.1 ∈ S then some st2.1.1 else none,
@@ -150,10 +154,10 @@ theorem windowRound_shape {I : Type} [Fintype I] [DecidableEq I]
     subst hout'
     intro y hy
     by_cases h2 : st2.1.1 ∈ S
-    · rw [if_pos h2] at hy
+    · rw [ite_eq_left h2] at hy
       rw [← Option.some.inj hy]
       exact h2
-    · rw [if_neg h2] at hy
+    · rw [ite_eq_right h2] at hy
       exact absurd hy (by simp)
 
 /-- If every round returns only marked indices on success, every supported successful output of

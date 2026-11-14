@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Finite Strang formulas with nested commutator bounds

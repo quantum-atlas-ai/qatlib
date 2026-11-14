@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
-import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
+public import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+
+@[expose] public section
 
 /-!
 # Output-estimate comparisons for cosine query budgets

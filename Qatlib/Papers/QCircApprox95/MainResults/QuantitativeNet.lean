@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
-import Qatlib.Papers.QCircApprox95.MainResults.MeasureBounds
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+module
+
+public import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
+public import Qatlib.Papers.QCircApprox95.MainResults.MeasureBounds
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+
+@[expose] public section
 
 /-!
 # Quantitative unitary nets at small radii

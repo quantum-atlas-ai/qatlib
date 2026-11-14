@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationContracts
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTriangleTrace
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSoundness
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTermination
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationContracts
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTriangleTrace
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSoundness
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTermination
+
+@[expose] public section
 
 /-!
 # Verification of corrected classification

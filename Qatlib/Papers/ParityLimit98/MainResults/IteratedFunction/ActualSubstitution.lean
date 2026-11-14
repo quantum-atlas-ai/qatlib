@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.IteratedFunction.ParityIterateReduction
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.IteratedFunction.ParityIterateReduction
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+
+@[expose] public section
 
 /-!
 # Oracle substitution for hard permutations

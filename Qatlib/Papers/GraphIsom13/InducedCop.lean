@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphIsom13.GiCost
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Qatlib.Papers.GraphIsom13.GiCost
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # A cost function for induced subgraph isomorphism
@@ -162,7 +166,7 @@ theorem sgi_cop_zero_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.A
         simp
       · have hne : (i.val : ℤ) ≠ (j.val : ℤ) :=
           fun hv => h (Fin.ext (by exact_mod_cast hv))
-        rw [if_neg hne, if_neg h]
+        rw [ite_eq_right hne, ite_eq_right h]
     have hfac : (∑ i : Fin n, ∑ j : Fin n,
         Int.natAbs (subgraphMatrix G s β i j - H.adjMatrix ℤ i j)) = 0 := by
       rw [Finset.sum_eq_zero_iff_of_nonneg (fun i _ => Nat.zero_le _)]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNativeDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNativeDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
+
+@[expose] public section
 
 /-!
 # Native arithmetic and finite-precision bounds
@@ -279,13 +283,13 @@ theorem bitMulAux_value : ∀ (x ys acc : Bits),
     by_cases hb : b
     · simp [hb]
       rw [ih, h2, h1, msbValue_cons]
-      simp only [List.length_cons, Nat.pow_succ]
+      simp only [Nat.pow_succ]
       have hbt : bitNat true = 1 := rfl
       rw [hbt]
       ring
     · simp [hb]
       rw [ih, h1, msbValue_cons]
-      simp only [List.length_cons, Nat.pow_succ]
+      simp only [Nat.pow_succ]
       have hbf : bitNat false = 0 := rfl
       rw [hbf]
       ring
@@ -295,7 +299,7 @@ theorem bitMul_value (x y : Bits) :
     binaryValue (bitMul x y) = binaryValue x * binaryValue y := by
   rw [bitMul]
   have h := bitMulAux_value x y.reverse []
-  simp only [List.length_reverse, binaryValue_nil, Nat.mul_zero, Nat.zero_mul, Nat.add_zero] at h
+  simp only [List.length_reverse, binaryValue_nil, Nat.mul_zero] at h
   rw [h]
   have hrev : msbValue y.reverse = binaryValue y := by
     simp [msbValue]
@@ -353,7 +357,7 @@ theorem addProgram_step (c : Bool) (x y out : Bits) :
               ((carryStep c (x.head?.getD false) (y.head?.getD false)).1 :: out)⟩ := by
   cases x <;> cases y <;> cases c <;>
     simp [addProgram, TM2.stepAux, addStacks, addStacks_update_zero,
-      addStacks_update_one, addStacks_update_two, List.head?_cons, AddVar,
+      addStacks_update_one, addStacks_update_two, List.head?_cons,
       Option.getD_none, Option.getD_some]
 
 /-- Dropping `n` bits produces the empty list exactly when the original list has length at most
@@ -364,7 +368,7 @@ theorem drop_eq_nil_iff (l : Bits) (n : ℕ) : l.drop n = [] ↔ l.length ≤ n 
   | cons a l ih =>
     cases n with
     | zero => simp
-    | succ n => simp [ih, Nat.succ_le]
+    | succ n => simp [ih]
 
 /-- Dropping `n + 1` bits is the same as taking the tail after dropping `n` bits. -/
 theorem drop_succ_tail (l : Bits) (n : ℕ) : l.drop (n+1) = (l.drop n).tail := by
@@ -444,13 +448,13 @@ def addCfgAt (k : ℕ) (x y : Bits) : TM2.Cfg (fun _ : Fin 3 => Bool) AddLabel A
 loop configuration. -/
 theorem addCfgAt_eq_loop (x y : Bits) {k : ℕ} (hk : k ≤ max x.length y.length) :
     addCfgAt k x y = addCfgLoop k x y := by
-  rw [addCfgAt, if_pos hk]
+  rw [addCfgAt, ite_eq_left hk]
 
 /-- Beyond the maximum input length, `addCfgAt` is the final configuration. -/
 theorem addCfgAt_eq_final (x y : Bits) {k : ℕ} (hk : max x.length y.length < k) :
     addCfgAt k x y = addCfgFinal x y := by
   have h : ¬ (k ≤ max x.length y.length) := by omega
-  rw [addCfgAt, if_neg h]
+  rw [addCfgAt, ite_eq_right h]
 
 /-- A machine step advances the indexed addition configuration by one while the turn count is at
 most the maximum input length. -/
@@ -464,7 +468,7 @@ theorem addProgram_step_at (x y : Bits) (k : ℕ) (hk : k ≤ max x.length y.len
   by_cases hempty : x.drop k = [] ∧ y.drop k = []
   · have hx := hempty.1
     have hy := hempty.2
-    rw [if_pos hempty]
+    rw [ite_eq_left hempty]
     have hkx : x.length ≤ k := by
       have hz : (x.drop k).length = 0 := by rw [hx]; rfl
       rw [List.length_drop] at hz
@@ -479,7 +483,7 @@ theorem addProgram_step_at (x y : Bits) (k : ℕ) (hk : k ≤ max x.length y.len
       exact addCfgAt_eq_final x y (by omega)
     rw [hcfg1, hkmax]
     rfl
-  · rw [if_neg hempty]
+  · rw [ite_eq_right hempty]
     have hkx : x.length ≤ k → ¬ (y.length ≤ k) := by
       intro hx' hy'
       apply hempty
@@ -603,11 +607,11 @@ theorem stackHeight_addCfgFinal (x y : Bits) :
       = max x.length y.length := by rw [addTurns_os_length]; simp
   cases hb : (addTurns (max x.length y.length) ⟨false, x, y, []⟩).carry with
   | true =>
-    simp [hb]
+    simp
     rw [hos]
     omega
   | false =>
-    simp [hb]
+    simp
     rw [hos]
     omega
 
@@ -636,11 +640,10 @@ theorem native_add_run (x y : Bits) : NativeAddRun x y := by
     cases hb : (addTurns (max x.length y.length) ⟨false, x, y, []⟩).carry with
     | true =>
       simp [hb, List.reverse_cons, List.length_reverse, binaryValue_append,
-        binaryValue_singleton, hos] at hn ⊢
+        hos] at hn ⊢
       exact hn
     | false =>
-      simp [hb, List.reverse_cons, List.length_reverse, binaryValue_append,
-        binaryValue_singleton, hos] at hn ⊢
+      simp [hb] at hn ⊢
       exact hn
   refine ⟨addCfgFinal x y, max x.length y.length + 1, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hstart, ← hfinal]
@@ -682,7 +685,7 @@ theorem RatEnc.ofNat_toRat (n : ℕ) : (RatEnc.ofNat n).toRat = n := by
 /-- The encoding size of a natural number is at most its binary size plus three. -/
 theorem RatEnc.ofNat_size (n : ℕ) : (RatEnc.ofNat n).size ≤ n.size + 3 := by
   rw [RatEnc.size, RatEnc.ofNat]
-  simp only [Int.natAbs_of_nonneg (by norm_num : (0 : ℤ) ≤ n)]
+  simp only []
   norm_num
 
 /-- The fixed denominator encoding of `m` at scale `e` decodes to `m / 2 ^ e`. -/
@@ -727,7 +730,7 @@ def NativeName.exact (q : ℚ) : NativeName where
 def NativeName.rounded (q : ℚ) (hq : 0 ≤ q) : NativeName where
   eval := fun p => RatEnc.fixed (⌊q * (2 : ℚ) ^ p⌋.toNat) p
   value := (q : ℝ)
-  errAt := fun _ => unit _
+  errAt := fun p => unit p
   descBits := q.num.natAbs.size + q.den.size + 2
   sizeSpec := by
     intro p
@@ -924,9 +927,9 @@ theorem nativeSlotKindError_nonneg (s : List NativeParam) (k : ℕ) (kd : Native
     have h1 : (0 : ℚ) ≤ p.name.errAt k := (p.name.errBudget k).1
     simp only [nativeSlotKindError]
     by_cases hk : p.kind = kd
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       linarith
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       linarith
 
 /-- The total slot error multiplied by `2 ^ k` is at most the number of parameters in the slot. -/
@@ -957,9 +960,9 @@ theorem nativeSlotKindError_le (s : List NativeParam) (k : ℕ) (kd : NativePara
     have h2 : (0 : ℚ) ≤ nativeSlotKindError ps k kd := nativeSlotKindError_nonneg ps k kd
     simp only [nativeSlotKindError, nativeSlotError]
     by_cases hk : p.kind = kd
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       linarith
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       linarith
 
 /-- The weighted word error multiplied by `2 ^ k` is at most the public error-unit count. -/
@@ -1173,7 +1176,7 @@ theorem lcuConsumerWord_readCost :
   have hi3 : (Int.sign 3).natAbs.size = 1 := by decide
   have hi5 : (Int.sign 5).natAbs.size = 1 := by decide
   have hi16 : (Int.sign 16).natAbs.size = 1 := by decide
-  simp [nativeReadCost, lcuConsumerWord, lcuWord, NativeName.exact, h1, h3, h5, h16,
+  simp [nativeReadCost, lcuConsumerWord, lcuWord, NativeName.exact, h3, h5, h16,
     hi3, hi5, hi16]
   ring
 
@@ -1584,7 +1587,7 @@ theorem nativeSamplerOut_injective (m : ℕ) :
       = (List.ofFn (fun j : Fin m => if r' j then 1 else 0))[i.val]? := by
     simpa [nativeSamplerOut] using! congrArg (fun l : List ℕ => l[i.val]?) h
   rw [List.getElem?_ofFn, List.getElem?_ofFn] at h'
-  simp only [dif_pos hi, Option.some.injEq] at h'
+  simp only [dite_eq_left hi, Option.some.injEq] at h'
   have h'' : (if r i then 1 else 0) = (if r' i then 1 else 0) := by
     simpa only [show r ⟨i.val, _⟩ = r i from rfl, show r' ⟨i.val, _⟩ = r' i from rfl] using! h'
   by_cases hr : r i = true
@@ -1592,13 +1595,13 @@ theorem nativeSamplerOut_injective (m : ℕ) :
     · simp [hr, hr']
     · have hcontra : (1 : ℕ) = 0 := by
         have h''2 : (if r i = true then 1 else 0) = (if r' i = true then 1 else 0) := h''
-        rw [if_pos hr, if_neg hr'] at h''2
+        rw [ite_eq_left hr, ite_eq_right hr'] at h''2
         exact h''2
       omega
   · by_cases hr' : r' i = true
     · have hcontra : (0 : ℕ) = 1 := by
         have h''2 : (if r i = true then 1 else 0) = (if r' i = true then 1 else 0) := h''
-        rw [if_neg hr, if_pos hr'] at h''2
+        rw [ite_eq_right hr, ite_eq_left hr'] at h''2
         exact h''2
       omega
     · simp [hr, hr']
@@ -1622,7 +1625,7 @@ theorem nativeSamplerProgram_probLaw (m : ℕ) (c : AccessContract 1) (ω : List
     rw [nativeSamplerProgram_out_ofFn]
   rw [hfilter]
   by_cases hex : ∃ r : Fin m → Bool, nativeSamplerOut m r = ω
-  · rw [if_pos hex]
+  · rw [ite_eq_left hex]
     let r₀ : Fin m → Bool := Classical.choose hex
     have hr₀ : nativeSamplerOut m r₀ = ω := Classical.choose_spec hex
     have hcard : (Finset.filter (fun r : Fin m → Bool => nativeSamplerOut m r = ω)
@@ -1639,7 +1642,7 @@ theorem nativeSamplerProgram_probLaw (m : ℕ) (c : AccessContract 1) (ω : List
         simp [hr₀]
     rw [hcard]
     simp [one_div]
-  · rw [if_neg hex]
+  · rw [ite_eq_right hex]
     have hcard : (Finset.filter (fun r : Fin m → Bool => nativeSamplerOut m r = ω)
         Finset.univ).card = 0 := by
       rw [Finset.card_eq_zero]

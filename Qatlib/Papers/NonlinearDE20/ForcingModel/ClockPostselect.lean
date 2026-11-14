@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.ForcingModel.ForcingHistoryBridge
+module
+
+public import Qatlib.Papers.NonlinearDE20.ForcingModel.ForcingHistoryBridge
+
+@[expose] public section
 
 /-!
 # Clock selection and normalized postselection

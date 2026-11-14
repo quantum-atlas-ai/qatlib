@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
-import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiConvolution
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
+public import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiConvolution
+
+@[expose] public section
 
 /-!
 # Explicit ordered-search adversary weights

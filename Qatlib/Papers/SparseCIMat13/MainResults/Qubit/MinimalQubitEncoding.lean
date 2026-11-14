@@ -10,15 +10,19 @@ Source: B. Toloui and P. J. Love, "Quantum Algorithms for Quantum Chemistry base
 sparsity of the CI-matrix", arXiv:1312.2579 (2013), Section II p.5-6, Eqs. (12)-(14) and
 the conclusion (p.9 of the arXiv version).
 -/
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.BitVec
-import Mathlib.Data.FinEnum
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.BitVec
+public import Mathlib.Data.FinEnum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

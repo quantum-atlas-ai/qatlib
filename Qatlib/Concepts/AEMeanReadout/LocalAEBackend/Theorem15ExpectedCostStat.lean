@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostDefs
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostDefs
+
+@[expose] public section
 
 /-!
 # Expected cost specification for approximate counting

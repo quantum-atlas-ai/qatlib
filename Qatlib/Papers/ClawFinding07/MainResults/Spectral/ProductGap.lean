@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductLemmas
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductLemmas
+
+@[expose] public section
 
 /-!
 # Spectral gap bounds for product chains
@@ -60,16 +64,19 @@ def rowMean (V : I × J → ℝ) : I → ℝ :=
 def resid (V : I × J → ℝ) : I × J → ℝ :=
   fun p => V p - colMean V p.2 - rowMean V p.1
 
+omit [Nonempty I] [Nonempty J] in
 /-- The column means sum to zero if the original function on the product sums to zero. -/
 theorem sum_colMean {V : I × J → ℝ} (hV : ∑ p, V p = 0) : ∑ y, colMean V y = 0 := by
   simp only [colMean]
   rw [← Finset.sum_div, sum_snd_fst V, hV, zero_div]
 
+omit [Nonempty I] [Nonempty J] in
 /-- The row means sum to zero if the original function on the product sums to zero. -/
 theorem sum_rowMean {V : I × J → ℝ} (hV : ∑ p, V p = 0) : ∑ x, rowMean V x = 0 := by
   simp only [rowMean]
   rw [← Finset.sum_div, ← Fintype.sum_prod_type V, hV, zero_div]
 
+omit [Nonempty I] in
 /-- If the original function sums to zero, every row of its residual sums to zero. -/
 theorem resid_row_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (x : I) :
     ∑ y, resid V (x, y) = 0 := by
@@ -79,6 +86,7 @@ theorem resid_row_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (x : I) :
   rw [mul_comm, div_mul_cancel₀ _ card_J_ne_zero]
   ring
 
+omit [Nonempty J] in
 /-- If the original function sums to zero, every column of its residual sums to zero. -/
 theorem resid_col_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (y : J) :
     ∑ x, resid V (x, y) = 0 := by
@@ -94,7 +102,7 @@ end Means
 `SpectralGapAtLeast` with the minimum of the two factor parameters. -/
 theorem spectralGap_chainProduct [Nonempty I] [Nonempty J]
     {P : I → I → ℝ} {Q : J → J → ℝ} {δ₁ δ₂ : ℝ}
-    (hδ₁0 : 0 ≤ δ₁) (hδ₁1 : δ₁ ≤ 1) (hδ₂0 : 0 ≤ δ₂) (hδ₂1 : δ₂ ≤ 1)
+    (hδ₁0 : 0 ≤ δ₁) (hδ₁1 : δ₁ ≤ 1) (_hδ₂0 : 0 ≤ δ₂) (hδ₂1 : δ₂ ≤ 1)
     (hP : SpectralGapAtLeast P δ₁) (hQ : SpectralGapAtLeast Q δ₂) :
     SpectralGapAtLeast (chainProduct P Q) (min δ₁ δ₂) := by
   have hPstruct := hP.1

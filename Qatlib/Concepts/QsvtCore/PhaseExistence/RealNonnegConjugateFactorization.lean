@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Conjugate factorization of nonnegative real polynomials

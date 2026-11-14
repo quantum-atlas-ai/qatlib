@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+
+@[expose] public section
 
 /-!
 # Quantum Merlin–Arthur and interactive proof models
@@ -309,8 +313,8 @@ fidelities between the two specified reduced-state sets, as in Proposition 2.1 o
 [MarriottWatrous2005]. -/
 def prop21_max_accept_eq_fidelity_max_statement {k m : ℕ} (hk : 0 < k)
     (P : QipProcedure) (x : List Bool)
-    (hkV : P.verifierQubits x.length = k)
-    (hmV : P.messageQubits x.length = m) : Prop :=
+    (_hkV : P.verifierQubits x.length = k)
+    (_hmV : P.messageQubits x.length = m) : Prop :=
     qipMaxAccept P x =
       sSup { v : ℝ | ∃ ρ ξ : Operator (2 ^ k),
         InReducedStateSet k m
@@ -328,11 +332,11 @@ def prop21_max_accept_eq_fidelity_max_statement {k m : ℕ} (hk : 0 < k)
 /-- The witness-size-preserving QMA amplification proposition with completeness `1 - 2 ^ (-r n)`
 and soundness `2 ^ (-r n)`, corresponding to Theorem 3.3 of [MarriottWatrous2005]. -/
 def thm33_qma_amplification_statement {a b : ℕ → ℝ} {q : ℕ → ℕ}
-    (hq : PolyBounded q)
-    (hgap : ∀ n, 1 / (q n : ℝ) ≤ a n - b n)
-    (ha0 : ∀ n, 0 ≤ a n) (ha1 : ∀ n, a n ≤ 1)
-    (hb0 : ∀ n, 0 ≤ b n) (hb1 : ∀ n, b n ≤ 1)
-    {m r : ℕ → ℕ} (hm : PolyBounded m) (hr : PolyBounded r) : Prop :=
+    (_hq : PolyBounded q)
+    (_hgap : ∀ n, 1 / (q n : ℝ) ≤ a n - b n)
+    (_ha0 : ∀ n, 0 ≤ a n) (_ha1 : ∀ n, a n ≤ 1)
+    (_hb0 : ∀ n, 0 ≤ b n) (_hb1 : ∀ n, b n ≤ 1)
+    {m r : ℕ → ℕ} (_hm : PolyBounded m) (_hr : PolyBounded r) : Prop :=
     QMAm m a b ⊆ QMAm m
       (fun n => 1 - (2 : ℝ) ^ (-(r n) : ℤ))
       (fun n => (2 : ℝ) ^ (-(r n) : ℤ))
@@ -350,11 +354,11 @@ def thm36_qma_log_eq_bqp_statement : Prop :=
 /-- The QAM amplification proposition with exponentially small error under the supplied gap and
 polynomial bounds, corresponding to Theorem 4.2 of [MarriottWatrous2005]. -/
 def thm42_qam_amplification_statement {a b : ℕ → ℝ} {q : ℕ → ℕ}
-    (hq : PolyBounded q)
-    (hgap : ∀ n, 1 / (q n : ℝ) ≤ a n - b n)
-    (ha0 : ∀ n, 0 ≤ a n) (ha1 : ∀ n, a n ≤ 1)
-    (hb0 : ∀ n, 0 ≤ b n) (hb1 : ∀ n, b n ≤ 1)
-    {r : ℕ → ℕ} (hr : PolyBounded r) : Prop :=
+    (_hq : PolyBounded q)
+    (_hgap : ∀ n, 1 / (q n : ℝ) ≤ a n - b n)
+    (_ha0 : ∀ n, 0 ≤ a n) (_ha1 : ∀ n, a n ≤ 1)
+    (_hb0 : ∀ n, 0 ≤ b n) (_hb1 : ∀ n, b n ≤ 1)
+    {r : ℕ → ℕ} (_hr : PolyBounded r) : Prop :=
     QAM a b ⊆ QAM
       (fun n => 1 - (2 : ℝ) ^ (-(r n) : ℤ))
       (fun n => (2 : ℝ) ^ (-(r n) : ℤ))
@@ -553,23 +557,23 @@ fidelity with a reduced state supported in the outcome-one subspace, as in Lemma
 [MarriottWatrous2005]. -/
 def lemma52_measurement_fidelity_bound_statement {k m : ℕ}
     (ρfull : Matrix (Reg k × Reg m) (Reg k × Reg m) ℂ)
-    (hρ : (regPairOperator k m ρfull).PosSemidef)
-    (htr : Matrix.trace (regPairOperator k m ρfull) = 1)
+    (_hρ : (regPairOperator k m ρfull).PosSemidef)
+    (_htr : Matrix.trace (regPairOperator k m ρfull) = 1)
     (Λ0 Λ1 : Matrix (Reg k × Reg m) (Reg k × Reg m) ℂ)
-    (hΛ1proj : Λ1 * Λ1 = Λ1) (hΛ1herm : Matrix.conjTranspose Λ1 = Λ1)
-    (hΛ0proj : Λ0 * Λ0 = Λ0) (hΛ0herm : Matrix.conjTranspose Λ0 = Λ0)
-    (horth1 : Λ1 * Λ0 = 0) (horth0 : Λ0 * Λ1 = 0)
-    (hcomplete : Λ0 + Λ1 = 1)
+    (_hΛ1proj : Λ1 * Λ1 = Λ1) (_hΛ1herm : Matrix.conjTranspose Λ1 = Λ1)
+    (_hΛ0proj : Λ0 * Λ0 = Λ0) (_hΛ0herm : Matrix.conjTranspose Λ0 = Λ0)
+    (_horth1 : Λ1 * Λ0 = 0) (_horth0 : Λ0 * Λ1 = 0)
+    (_hcomplete : Λ0 + Λ1 = 1)
     (σ : Operator (2 ^ k))
-    (hσ : σ = PartialTrace (regPairOperator k m ρfull)) : Prop :=
+    (_hσ : σ = PartialTrace (regPairOperator k m ρfull)) : Prop :=
     ∃ ρ : Operator (2 ^ k), InReducedStateSet k m Λ1 ρ ∧
       (Matrix.trace (Λ1 * ρfull)).re ≤ Froot σ ρ ^ 2
 
 /-- The proposition giving the specified QIP language a single-coin QMAM procedure with perfect
 completeness and soundness at most `1 / 2 + 2 ^ (-r n)`, as in Theorem 5.4 of
 [MarriottWatrous2005]. -/
-def thm54_qip_to_single_coin_qmam_statement {r : ℕ → ℕ} (hr : PolyBounded r)
-    {L : Language} (hL : L ∈ QIP (fun _ => 2 / 3) (fun _ => 1 / 3)) : Prop :=
+def thm54_qip_to_single_coin_qmam_statement {r : ℕ → ℕ} (_hr : PolyBounded r)
+    {L : Language} (_hL : L ∈ QIP (fun _ => 2 / 3) (fun _ => 1 / 3)) : Prop :=
     ∃ A : QmamProcedure,
       (∀ n, A.coinBits n = 1) ∧
       PolyBounded A.m1 ∧ PolyBounded A.m2 ∧ PolyBounded A.aux ∧
@@ -580,13 +584,13 @@ def thm54_qip_to_single_coin_qmam_statement {r : ℕ → ℕ} (hr : PolyBounded 
 
 /-- The proposition embedding standard-threshold QIP into QMAM with perfect completeness and
 soundness `1 / 2 + 2 ^ (-r n)`, corresponding to Corollary 5.5 of [MarriottWatrous2005]. -/
-def cor55_qip_subset_qmam_statement {r : ℕ → ℕ} (hr : PolyBounded r) : Prop :=
+def cor55_qip_subset_qmam_statement {r : ℕ → ℕ} (_hr : PolyBounded r) : Prop :=
     QIP (fun _ => 2 / 3) (fun _ => 1 / 3) ⊆
       QMAM (fun _ => 1) (fun n => 1 / 2 + (2 : ℝ) ^ (-(r n) : ℤ))
 
 /-- The proposition equating standard-threshold QIP with QMAM having perfect completeness and
 soundness `2 ^ (-r n)`, corresponding to Corollary 5.6 of [MarriottWatrous2005]. -/
-def cor56_qip_eq_qmam_statement {r : ℕ → ℕ} (hr : PolyBounded r) : Prop :=
+def cor56_qip_eq_qmam_statement {r : ℕ → ℕ} (_hr : PolyBounded r) : Prop :=
     QIP (fun _ => 2 / 3) (fun _ => 1 / 3) =
       QMAM (fun _ => 1) (fun n => (2 : ℝ) ^ (-(r n) : ℤ))
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.ECDLPResource17.InvalidBorn.ActualFailure
-import Qatlib.Concepts.TensorRegisters.CohGraph.Controlled
-import Qatlib.Concepts.TensorRegisters.CohGraph.GraphOverlap
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.ECDLPResource17.InvalidBorn.ActualFailure
+public import Qatlib.Concepts.TensorRegisters.CohGraph.Controlled
+public import Qatlib.Concepts.TensorRegisters.CohGraph.GraphOverlap
+
+@[expose] public section
 
 /-!
 # Coherent encoded double scalar runs

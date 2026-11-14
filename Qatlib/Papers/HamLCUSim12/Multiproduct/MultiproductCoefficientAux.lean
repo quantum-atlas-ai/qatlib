@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.NatFactorial
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentStat
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormStat
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureStat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.Lagrange
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.NatFactorial
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentStat
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormStat
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureStat
+
+@[expose] public section
 
 /-!
 # Interpolation identities and signs of multiproduct coefficients
@@ -85,7 +89,7 @@ theorem multiproduct_lagrange_basis (k : ℕ) (N : ℝ)
   apply Finset.prod_congr rfl
   intro j hj
   have hjq : j ≠ q := (Finset.mem_erase.mp hj).1
-  rw [if_neg hjq]
+  rw [ite_eq_right hjq]
   have hd : mNode k N q^2-mNode k N j^2 ≠ 0 := by
     apply sub_ne_zero.mpr
     intro he
@@ -164,7 +168,7 @@ theorem multiproduct_last_coefficient_ge_one (k : ℕ) (hk : 1 ≤ k)
   intro j _
   by_cases hj : j=Fin.last k
   · simp [hj]
-  · rw [if_neg hj, mNode_last]
+  · rw [ite_eq_right hj, mNode_last]
     have hjk : j.val < k := by
       have hne : j.val ≠ k := fun he => hj (Fin.ext he)
       omega
@@ -186,13 +190,13 @@ theorem multiproduct_penultimate_negative (k : ℕ) (hk : 1 ≤ k)
     exact_mod_cast (show q.val+1=k by dsimp [q]; omega)
   have hqnode : mNode k N q=(k : ℝ) := (mNode_small k N q hqk).trans hqval
   have hlq : Fin.last k ≠ q := by
-    intro he; have := congrArg Fin.val he; dsimp [q] at this; (try simp at this); omega
+    intro he; have := congrArg Fin.val he; dsimp [q] at this;  omega
   have hk0 : (0:ℝ) < k := by exact_mod_cast (by omega : 0 < k)
   let f : Fin (k+1) → ℝ := fun j => if j=q then 1 else
     mNode k N q^2/(mNode k N q^2-mNode k N j^2)
   have hlast : f (Fin.last k) < 0 := by
     dsimp [f]
-    rw [if_neg hlq, hqnode, mNode_last]
+    rw [ite_eq_right hlq, hqnode, mNode_last]
     apply div_neg_of_pos_of_neg (sq_pos_of_pos hk0)
     nlinarith
   have hrest : 0 < ∏ j ∈ Finset.univ.erase (Fin.last k), f j := by
@@ -205,7 +209,7 @@ theorem multiproduct_penultimate_negative (k : ℕ) (hk : 1 ≤ k)
     dsimp [f]
     by_cases hjq : j=q
     · simp [hjq]
-    · rw [if_neg hjq, hqnode, mNode_small k N j hjk]
+    · rw [ite_eq_right hjq, hqnode, mNode_small k N j hjk]
       have hjq' : j.val ≠ k-1 := fun he => hjq (Fin.ext he)
       have hjk' : (j.val+1 : ℝ) < k := by exact_mod_cast (show j.val+1 < k by omega)
       apply div_pos (sq_pos_of_pos hk0)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
+module
+
+public import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
+
+@[expose] public section
 
 /-!
 # Composition of scheme phase operators

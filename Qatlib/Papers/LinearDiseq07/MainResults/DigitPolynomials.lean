@@ -4,71 +4,75 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Hom
-import Mathlib.Algebra.Algebra.NonUnitalHom
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Finsupp.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.ModEq
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Finsupp
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.MonoidAlgebra.Basic
-import Mathlib.Algebra.MonoidAlgebra.Defs
-import Mathlib.Algebra.MonoidAlgebra.Module
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.Algebra.MvPolynomial.Monad
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.IsEmpty.Defs
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finsupp.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.ModEq
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.LinearDiseq07.MainResults.CarryPolynomial
+module
+
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Hom
+public import Mathlib.Algebra.Algebra.NonUnitalHom
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Finsupp.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.ModEq
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Finsupp
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.MonoidAlgebra.Basic
+public import Mathlib.Algebra.MonoidAlgebra.Defs
+public import Mathlib.Algebra.MonoidAlgebra.Module
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.Algebra.MvPolynomial.Monad
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.IsEmpty.Defs
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finsupp.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.ModEq
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.LinearDiseq07.MainResults.CarryPolynomial
+
+@[expose] public section
 
 /-!
 # Polynomial representation of digits of sums
@@ -123,8 +127,8 @@ def carry (p : ℕ) {T : ℕ} (A : Fin T → ℕ) (t : Fin T) : ℕ :=
 lemma div_eq_zero_or_one {p r : ℕ} (hp : 0 < p) (hr : r < 2 * p) :
     r / p = if r < p then 0 else 1 := by
   by_cases h : r < p
-  · rw [if_pos h, Nat.div_eq_of_lt h]
-  · rw [if_neg h]
+  · rw [ite_eq_left h, Nat.div_eq_of_lt h]
+  · rw [ite_eq_right h]
     have hge : p ≤ r := by omega
     have hlt : r / p < 2 := (Nat.div_lt_iff_lt_mul hp).mpr (by omega)
     have hle : 1 ≤ r / p := (Nat.one_le_div_iff hp).mpr hge
@@ -336,9 +340,9 @@ lemma eval_carryAtPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
       = ![((partSum b t % p : ℕ) : ZMod p), ((b t % p : ℕ) : ZMod p)] := by
     funext s
     fin_cases s
-    · simp only [Fin.mk_zero, if_true, eval_partsumPoly, Matrix.cons_val_zero]
+    · simp only [Fin.mk_zero, ite_true, eval_partsumPoly, Matrix.cons_val_zero]
     · have h10 : (1 : Fin 2) ≠ 0 := by decide
-      simp only [Fin.mk_one, h10, if_false, Matrix.cons_val_one]
+      simp only [Fin.mk_one, h10, ite_false, Matrix.cons_val_one]
       rw [MvPolynomial.eval_X]
       show (((b t / p ^ (0 : Fin (k + 1)).val) % p : ℕ) : ZMod p)
           = ((b t % p : ℕ) : ZMod p)
@@ -349,9 +353,9 @@ lemma eval_carryAtPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
   rw [carryPoly_eval (p := p) (partSum b t % p) (b t % p) ha hb]
   unfold carry
   by_cases h : partSum b t % p + b t % p < p
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     norm_num
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     norm_num
 
 /-- For prime `p`, every local carry polynomial has total degree at most `2 * p - 2`. -/
@@ -363,12 +367,12 @@ lemma totalDegree_carryAtPoly {T k : ℕ} (t : Fin T) :
         else X (t, (0 : Fin (k + 1))))).totalDegree ≤ 1 := by
     intro s
     by_cases hs : s = 0
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       unfold partsumPoly
       apply MvPolynomial.totalDegree_finsetSum_le
       intro i _
       rw [MvPolynomial.totalDegree_X]
-    · rw [if_neg hs, MvPolynomial.totalDegree_X]
+    · rw [ite_eq_right hs, MvPolynomial.totalDegree_X]
   calc (MvPolynomial.bind₁ (fun s : Fin 2 =>
           if s = 0 then partsumPoly (p := p) (k := k) t
           else X (t, (0 : Fin (k + 1)))) (carryPoly p)).totalDegree
@@ -534,13 +538,13 @@ theorem source_lemma5_digit_polynomials (p : ℕ) [hp : Fact p.Prime] (k T : ℕ
                   rw [Fin.addCases_right]
                 rw [hsimp]
                 by_cases h0 : jj.val = 0
-                · rw [if_pos h0, eval_carryAtPoly]
+                · rw [ite_eq_left h0, eval_carryAtPoly]
                   show ((carry p b t : ℕ) : ZMod p)
                       = (((b' (Fin.natAdd T t) / p ^ jj.val) % p : ℕ) : ZMod p)
                   rw [hb'R t, h0, pow_zero, Nat.div_one,
                     Nat.mod_eq_of_lt (lt_of_le_of_lt (carry_le_one p b t)
                       (by have := hp.out.two_le; omega))]
-                · rw [if_neg h0]
+                · rw [ite_eq_right h0]
                   rw [show MvPolynomial.eval (digitEval p b)
                       (0 : MvPolynomial (Fin T × Fin (k + 1)) (ZMod p)) = 0 from by simp]
                   show (0 : ZMod p)

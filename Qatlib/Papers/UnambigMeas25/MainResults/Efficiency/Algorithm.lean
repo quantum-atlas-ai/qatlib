@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,8 +43,8 @@ plus membership in `Γ(S)`); the polynomial-time claims (sampleability of `λ`
 and circuit implementation of the POVM) require a model of quantum computation,
 which this paper block does not contain.  See the comment below for the exact
 gap. -/
-def theorem7 (n : ℕ) (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k)
-    (lam : PrimalFamily n) (hfeas : PrimalFeasible S lam) : Prop :=
+def theorem7 (n : ℕ) (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k)
+    (lam : PrimalFamily n) (_hfeas : PrimalFeasible S lam) : Prop :=
   ∃ M : Measurement n,
       Gamma S M ∧ score S C M = lambdaValue S C lam
   -- Paper: arXiv:2510.07298v2, Theorem 7, p. 8 and p. 27, Equations (4)/(12).

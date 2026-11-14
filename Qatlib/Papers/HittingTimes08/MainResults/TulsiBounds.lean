@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Rotate
-import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
-import Qatlib.Papers.HittingTimes08.MainResults.TulsiSpectrum
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Rotate
+public import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
+public import Qatlib.Papers.HittingTimes08.MainResults.TulsiSpectrum
+
+@[expose] public section
 
 /-!
 # Norm and overlap bounds for the Tulsi construction
@@ -269,7 +273,7 @@ theorem theorem_4_9_constant_overlap {P : Type*} [Fintype P]
     (ha0 : 0 < a0) (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
     (hW : 0 < W p0) (hWt : 0 < Wt p0)
     (hcos : 0 < Real.cos θ)
-    (htan : Real.tan θ = a0 * cot (α / 2) / 10)
+    (_htan : Real.tan θ = a0 * cot (α / 2) / 10)
     (htle : a0 * cot (α / 2) ≤ 10)
     (hproj : (1 - ε) / 2 ≤ a0 ^ 2 * (cot (α / 2)) ^ 2 / W p0)
     (hWtle : Wt p0 ≤ 9 * (Real.cos θ) ^ 2 * W p0)

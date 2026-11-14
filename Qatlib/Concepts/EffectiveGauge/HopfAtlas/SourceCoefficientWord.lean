@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceFrameBounds
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceFrameBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -134,7 +138,7 @@ theorem sourceFrameBoundRun_coefficient_correct (v : SpatialPoint → SpatialPoi
   apply sourceHorizontalQuaternion_word_bound _ (contDiff_unitCoordinateSpin v hv)
   intro z hz
   have hlt : z.length<10 := by omega
-  simpa only [sourceFrameUnitMajorant,dif_pos hlt] using
+  simpa only [sourceFrameUnitMajorant,dite_eq_left hlt] using
     hunit ⟨z.length,hlt⟩ z rfl u hucube
 
 end Qatlib.Concepts.EffectiveGauge.HopfAtlas

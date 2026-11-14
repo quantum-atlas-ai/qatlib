@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchPrimitive.SampledLaw
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchPrimitive.SampledLaw
+
+@[expose] public section
 
 /-!
 # First-success laws for optional results

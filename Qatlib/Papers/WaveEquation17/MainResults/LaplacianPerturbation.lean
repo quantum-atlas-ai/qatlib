@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WaveEquation17.MainResults.PerturbationCore
-import Qatlib.Papers.WaveEquation17.MainResults.SpectralGap
+module
+
+public import Qatlib.Papers.WaveEquation17.MainResults.PerturbationCore
+public import Qatlib.Papers.WaveEquation17.MainResults.SpectralGap
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

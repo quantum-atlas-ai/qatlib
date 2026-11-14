@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.BigOperators.Intervals
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Algebra.BigOperators.Intervals
+
+@[expose] public section
 
 /-!
 # Exact polynomial degree of strict majority
@@ -193,7 +197,7 @@ theorem majority_top_alternating_ne_zero (n : ℕ) (hn : 0 < n) :
       ∑ k ∈ Finset.range (n + 1 - m0),
         (-1 : ℝ) ^ (n - (n / 2 + 1 + k)) * (n.choose (n / 2 + 1 + k) : ℝ) := by
     refine Finset.sum_congr rfl fun k _ => ?_
-    rw [if_pos (Nat.le_add_right m0 k)]
+    rw [ite_eq_left (Nat.le_add_right m0 k)]
   rw [hshift]
   rw [majority_tail_reflect n hn]
   have hval := alternating_choose_partial n (n + 1 - (n / 2 + 1) - 1) (by omega)

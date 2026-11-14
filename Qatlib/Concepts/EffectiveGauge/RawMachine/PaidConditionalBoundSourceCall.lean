@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundZeroCall
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankBudget
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundZeroCall
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankBudget
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

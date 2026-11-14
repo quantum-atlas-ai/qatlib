@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Oracle words with three named sources
@@ -290,6 +294,7 @@ theorem tensorWord_wellFormed (J : Type) [Fintype J] [DecidableEq J]
     (w : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed w) : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.tensorWord J w) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.liftWord_wellFormed _ (fun _ h => Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle_unitary h) w hw
 
+omit [Fintype H] [DecidableEq H] in
 /-- Extending a word by an identity register preserves all source query counts and the gate
 count. -/
 theorem tensorWord_counts (J : Type) [Fintype J] [DecidableEq J] (w : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) :
@@ -314,6 +319,7 @@ theorem relabelWord_wellFormed (e : H ≃ K) (w : List (Qatlib.Concepts.Amplitud
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.relabelWord e w) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.liftWord_wellFormed _ (fun V h => (Qatlib.Concepts.GateVocabulary.GateVocab.relabelGate_mem_unitaryGroup e V).2 h) w hw
 
+omit [Fintype H] [DecidableEq H] [Fintype K] [DecidableEq K] in
 /-- Relabeling a word preserves all source query counts and the explicit gate count. -/
 theorem relabelWord_counts (e : H ≃ K) (w : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) :
     (∀ s, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount s (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.relabelWord e w) = Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount s w) ∧ Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.gateCount (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.relabelWord e w) = Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.gateCount w :=
@@ -351,6 +357,7 @@ theorem projectorHistory_evaluate (O : Qatlib.Concepts.AmplitudeCore.PreparedRea
   simp [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.projectorHistoryWord, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate_append, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate_hamiltonianWord, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate,
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.instructionMatrix, Matrix.mul_assoc]
 
+omit [Fintype H] [DecidableEq H] in
 /-- The history word adds one preparation call and one projector call, preserving the
 Hamiltonian query and explicit gate counts. -/
 theorem projectorHistory_counts (w : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)) :

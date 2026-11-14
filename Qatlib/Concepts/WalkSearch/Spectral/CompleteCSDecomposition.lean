@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Mathlib.Analysis.InnerProductSpace.JointEigenspace
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Mathlib.Analysis.Matrix.PosDef
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Mathlib.Analysis.Matrix.PosDef
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+@[expose] public section
 
 /-!
 # Complete cosine-sine decomposition of two projectors
@@ -184,7 +188,7 @@ theorem cs_projector_frame_range {H : Type} [Fintype H] [DecidableEq H]
     refine hspec.trans ?_
     ext h k
     rw [Matrix.mul_apply]
-    simp only [Matrix.mul_diagonal,Matrix.conjTranspose_apply,csProjectorFrame,Matrix.mul_apply]
+    simp only [Matrix.conjTranspose_apply,csProjectorFrame,Matrix.mul_apply]
     have hsub := Finset.sum_subtype (F:=inferInstance) (p:=fun i : H=>hH.eigenvalues i=1)
       (Finset.univ.filter (fun i=>hH.eigenvalues i=1)) (by intro i; simp)
       (fun i=>U h i*star (U k i))
@@ -195,14 +199,11 @@ theorem cs_projector_frame_range {H : Type} [Fintype H] [DecidableEq H]
       simp [Matrix.diagonal_apply,mul_ite]
     rw [hd]
     rcases cs_projector_eigenvalues_binary P hP i with h0 | h1
-    · simp only [h0,zero_ne_one,if_false,Complex.ofReal_zero,mul_zero,zero_mul]
-    · simp only [h1,if_true,Complex.ofReal_one,mul_one]
+    · simp only [h0,zero_ne_one,ite_false,Complex.ofReal_zero,mul_zero,zero_mul]
+    · simp only [h1,ite_true,Complex.ofReal_one,mul_one]
 
 /-- Matrix multiplication with its finite summation instance made explicit. -/
-private noncomputable abbrev csMatMul {M N K : Type} [Fintype N]
-    (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
-  @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
-    Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
+local notation "csMatMul" => @HMul.hMul
 
 /-- The explicit matrix multiplication operation `csMatMul` is associative. -/
 private theorem csMatMul_assoc {M N K L : Type} [Fintype N] [Fintype K]
@@ -223,7 +224,7 @@ theorem cs_projector_compressed_eigenframe {H : Type} [Fintype H] [DecidableEq H
   have hQi : Q*Q=Q := hQ.1
   have hC : C.IsHermitian := by
     change Cᴴ=C
-    simp only [C,csMatMul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hQs,Matrix.mul_assoc]
+    simp only [C,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hQs,Matrix.mul_assoc]
   let V : Matrix (CSProjectorSupport P hP) (CSProjectorSupport P hP) ℂ := hC.eigenvectorUnitary
   let A := csMatMul F V
   have hV : V∈unitaryGroup (CSProjectorSupport P hP) ℂ := hC.eigenvectorUnitary.property
@@ -233,20 +234,20 @@ theorem cs_projector_compressed_eigenframe {H : Type} [Fintype H] [DecidableEq H
   have hA : IsIsometry A := by
     change Aᴴ*A=1
     calc
-      _ = Vᴴ*(Fᴴ*F)*V := by simp only [A,csMatMul,Matrix.conjTranspose_mul,Matrix.mul_assoc]
+      _ = Vᴴ*(Fᴴ*F)*V := by simp only [A,Matrix.conjTranspose_mul,Matrix.mul_assoc]
       _ = 1 := by rw [hFA,Matrix.mul_one,hV1]
   have hAP : A*Aᴴ=P := by
     calc
-      _ = F*(V*Vᴴ)*Fᴴ := by simp only [A,csMatMul,Matrix.conjTranspose_mul,Matrix.mul_assoc]
+      _ = F*(V*Vᴴ)*Fᴴ := by simp only [A,Matrix.conjTranspose_mul,Matrix.mul_assoc]
       _ = P := by rw [hV2,Matrix.mul_one]; exact hF.2
   have hdiag : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(hC.eigenvalues i : ℂ)) := by
     have hd := hC.conjStarAlgAut_star_eigenvectorUnitary
     have hd' : Vᴴ*C*V=diagonal (fun i=>(hC.eigenvalues i : ℂ)) := by
       simpa only [Unitary.conjStarAlgAut_star_apply,Matrix.star_eq_conjTranspose,Function.comp_def] using! hd
-    convert! hd' using 1 <;> simp only [A,C,csMatMul,Matrix.conjTranspose_mul,Matrix.mul_assoc]
+    convert! hd' using 1; simp only [A,C,Matrix.conjTranspose_mul,Matrix.mul_assoc]
   have hCG : (csMatMul Q F)ᴴ*csMatMul Q F=C := by
     calc
-      _ = Fᴴ*(Qᴴ*Q)*F := by simp only [csMatMul,Matrix.conjTranspose_mul,Matrix.mul_assoc]
+      _ = Fᴴ*(Qᴴ*Q)*F := by simp only [Matrix.conjTranspose_mul,Matrix.mul_assoc]
       _ = C := by rw [hQs,hQi]
   have hpos : C.PosSemidef := by rw [← hCG]; exact Matrix.posSemidef_conjTranspose_mul_self _
   have hQnorm : ‖Q‖ ≤ 1 := IsStarProjection.norm_le Q hQ
@@ -301,9 +302,9 @@ private theorem cs_cross_column {H J : Type} [Fintype H] [Fintype J] [DecidableE
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J→ℝ) (i : J) :
     (fun h=>csCrossRaw Q A t h i)=Q*ᵥ(fun h=>A h i)-(t i : ℂ) • (fun h=>A h i) := by
   funext h
-  simp only [csCrossRaw,csMatMul,Matrix.sub_apply,Matrix.mul_diagonal,Matrix.mul_apply,
+  simp only [csCrossRaw,Matrix.sub_apply,Matrix.mul_apply,
     Matrix.mulVec,dotProduct,Pi.sub_apply,Pi.smul_apply,smul_eq_mul]
-  simp [Matrix.diagonal_apply,mul_ite,mul_comm]
+  simp [Matrix.diagonal_apply,mul_comm]
 
 /-- If the compression of the projector `Q` is diagonal with coefficients `t`, the raw cross
 Gram matrix is diagonal with entries `t i * (1 - t i)`. -/
@@ -322,7 +323,7 @@ theorem cs_cross_raw_gram {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [
     have ht' : csMatMul Aᴴ (csMatMul Q A)=diagonal (fun i=>(t i : ℂ)) := by
       rw [← csMatMul_assoc]; exact ht
     have he := congrFun (congrFun ht' i) j
-    simp only [csMatMul,Matrix.mul_apply,Matrix.conjTranspose_apply,
+    simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,
       Matrix.diagonal_apply] at he
     simpa only [Qatlib.Foundations.PureStateMath.Inner,dotProduct,Pi.star_apply,Matrix.mulVec,dotProduct] using! he
   have hqq (i j : J) : Qatlib.Foundations.PureStateMath.Inner (Q*ᵥa i) (Q*ᵥa j)=if i=j then (t i : ℂ) else 0 := by
@@ -331,7 +332,7 @@ theorem cs_cross_raw_gram {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [
   have hqa (i j : J) : Qatlib.Foundations.PureStateMath.Inner (Q*ᵥa i) (a j)=if i=j then (t i : ℂ) else 0 := by
     rw [← cs_inner_star,hcomp j i]
     by_cases hij : i=j
-    · subst j; simp only [if_true,Complex.star_def,Complex.conj_ofReal]
+    · subst j; simp only [ite_true,Complex.star_def,Complex.conj_ofReal]
     · simp [hij,Ne.symm hij]
   ext i j
   change Qatlib.Foundations.PureStateMath.Inner (fun h=>csCrossRaw Q A t h i)
@@ -340,10 +341,10 @@ theorem cs_cross_raw_gram {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [
     cs_inner_smul_left,cs_inner_smul_left,cs_inner_smul_right,cs_inner_smul_right,hqq,hqa,hcomp,horth]
   by_cases hij : i=j
   · subst j
-    simp only [if_true,Complex.star_def,Complex.conj_ofReal,Matrix.diagonal_apply_eq]
+    simp only [ite_true,Complex.star_def,Complex.conj_ofReal,Matrix.diagonal_apply_eq]
     push_cast
     ring
-  · simp [hij,Matrix.diagonal_apply]
+  · simp [hij]
 
 /-- Scale each raw cross column by the inverse square root of `t i * (1 - t i)`. -/
 noncomputable def csCrossNormalized {H J : Type} [Fintype H] [Fintype J] [DecidableEq J]
@@ -363,7 +364,7 @@ theorem cs_cross_normalized_grams {H J : Type} [Fintype H] [DecidableEq H] [Fint
   have ht' : Aᴴ*Q*A=diagonal (fun i=>(t i : ℂ)) := ht
   have hAR : csMatMul Aᴴ (csCrossRaw Q A t)=0 := by
     change csMatMul Aᴴ (csMatMul Q A-csMatMul A (diagonal (fun i=>(t i : ℂ))))=0
-    simp only [csMatMul,Matrix.mul_sub,← Matrix.mul_assoc]
+    simp only [Matrix.mul_sub,← Matrix.mul_assoc]
     rw [ht',show Aᴴ*A=1 from hA,Matrix.one_mul,sub_self]
   refine ⟨?_,?_⟩
   · change csMatMul Aᴴ (csMatMul (csCrossRaw Q A t) D)=0
@@ -372,7 +373,7 @@ theorem cs_cross_normalized_grams {H J : Type} [Fintype H] [DecidableEq H] [Fint
   · have hR := cs_cross_raw_gram Q hQ A t hA ht
     calc
       _ = Dᴴ*((csCrossRaw Q A t)ᴴ*csCrossRaw Q A t)*D := by
-        simp only [csCrossNormalized,csMatMul,D,Matrix.conjTranspose_mul,Matrix.mul_assoc]
+        simp only [csCrossNormalized,D,Matrix.conjTranspose_mul,Matrix.mul_assoc]
       _ = _ := by
         rw [hR]
         simp only [D,Matrix.diagonal_conjTranspose,Matrix.diagonal_mul_diagonal]
@@ -382,7 +383,7 @@ theorem cs_cross_normalized_grams {H J : Type} [Fintype H] [DecidableEq H] [Fint
         have hs := Real.sq_sqrt hn
         by_cases hi : 0<t i ∧ t i<1
         · have hp : 0<Real.sqrt (t i*(1-t i)) := Real.sqrt_pos.mpr (mul_pos hi.1 (by linarith [hi.2]))
-          simp only [if_pos hi,Pi.star_apply,Complex.star_def,map_inv₀,Complex.conj_ofReal]
+          simp only [ite_eq_left hi,Pi.star_apply,Complex.star_def,map_inv₀,Complex.conj_ofReal]
           have hsC : (Real.sqrt (t i*(1-t i)) : ℂ)^2=Complex.ofReal (t i*(1-t i)) := by
             exact_mod_cast hs
           rw [← hsC]
@@ -400,7 +401,7 @@ private theorem cs_cross_normalized_column {H J : Type} [Fintype H] [Fintype J] 
     (fun h=>csCrossNormalized Q A t h i)=(Real.sqrt (t i*(1-t i)) : ℂ)⁻¹ •
       (fun h=>csCrossRaw Q A t h i) := by
   funext h
-  simp [csCrossNormalized,csMatMul,Matrix.mul_apply,Matrix.diagonal_apply,mul_ite,mul_comm]
+  simp [csCrossNormalized,Matrix.mul_apply,Matrix.diagonal_apply,mul_comm]
 
 /-- For compression coefficients in `[0, 1]`, recover each raw cross column by multiplying its
 normalized column by `sqrt (t i * (1 - t i))`. -/
@@ -469,7 +470,6 @@ theorem cs_cross_Q_actions {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] 
       have hc1 : (s : ℂ)⁻¹*(1-(t i : ℂ))*(t i : ℂ)=(s : ℂ) := by
         field_simp
         all_goals rw [hs2]
-        all_goals ring
       have hc2 : (s : ℂ)⁻¹*(1-(t i : ℂ))*(s : ℂ)=1-(t i : ℂ) := by field_simp
       have hbi : b i=(s : ℂ)⁻¹ • r i := cs_cross_normalized_column Q A t i
       have hqr : Q*ᵥr i=(1-(t i : ℂ)) • (Q*ᵥa i) := by
@@ -482,10 +482,10 @@ theorem cs_cross_Q_actions {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] 
   constructor
   · ext h i
     have he := congrFun (hqa i) h
-    simpa [csMatMul,a,b,Matrix.mul_apply,Matrix.diagonal_apply,mul_ite,mul_comm] using! he
+    simpa [a,b,Matrix.mul_apply,Matrix.diagonal_apply,mul_comm] using! he
   · ext h i
     have he := congrFun (hqb i) h
-    simp only [csMatMul,Matrix.mul_apply,Matrix.mul_diagonal,Matrix.add_apply,Matrix.mulVec,dotProduct,
+    simp only [Matrix.mul_apply,Matrix.add_apply,Matrix.mulVec,dotProduct,
       Pi.add_apply,Pi.smul_apply,smul_eq_mul] at he ⊢
     simp [Matrix.diagonal_apply,mul_ite,Complex.ofReal_sub,mul_comm] at he ⊢
     simpa only [a,b] using! he
@@ -518,13 +518,13 @@ theorem cs_busy_sum_isProjector_and_commutes {H J : Type} [Fintype H] [Decidable
     ext h i
     rw [Matrix.mul_diagonal]
     by_cases hi : 0<t i ∧ t i<1
-    · simp [D,hi]
+    · simp [hi]
     · have he := congrFun (congrFun hGB i) i
-      simp only [D,Matrix.diagonal_apply_eq,if_neg hi] at he
+      simp only [D,Matrix.diagonal_apply_eq,ite_eq_right hi] at he
       change Qatlib.Foundations.PureStateMath.Inner (fun h=>B h i) (fun h=>B h i)=0 at he
       have hz := dotProduct_star_self_eq_zero.mp he
       have hzi : B h i=0 := congrFun hz h
-      simp [D,hi,hzi]
+      simp [hi,hzi]
   have hBproj : IsOrthogonalProjector (B*Bᴴ) := by
     constructor
     · change (B*Bᴴ)*(B*Bᴴ)=B*Bᴴ
@@ -623,7 +623,7 @@ theorem cs_projector_frame_fixed {H : Type} [Fintype H] [DecidableEq H]
   have hgram : (csProjectorFrame P hP)ᴴ*csProjectorFrame P hP=1 := hf.1
   calc
     _ = csMatMul (csProjectorFrame P hP*(csProjectorFrame P hP)ᴴ) (csProjectorFrame P hP) := by rw [hf.2]
-    _ = csProjectorFrame P hP := by simp only [csMatMul,Matrix.mul_assoc,hgram,Matrix.mul_one]
+    _ = csProjectorFrame P hP := by simp only [Matrix.mul_assoc,hgram,Matrix.mul_one]
 
 /-- Concatenating two isometric frames with zero cross Gram matrix gives an isometric frame. -/
 private theorem cs_fromCols_isometry {H J K : Type} [Fintype H] [Fintype J] [Fintype K]
@@ -632,14 +632,14 @@ private theorem cs_fromCols_isometry {H J K : Type} [Fintype H] [Fintype J] [Fin
     IsIsometry (Matrix.fromCols A B) := by
   have hBA : csMatMul Bᴴ A=0 := by
     have hs := congrArg Matrix.conjTranspose hAB
-    simpa only [csMatMul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,
+    simpa only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,
       Matrix.conjTranspose_zero] using! hs
   unfold IsIsometry
   ext i j
   cases i <;> cases j <;>
     simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.fromCols_apply_inl,
       Matrix.fromCols_apply_inr,Matrix.one_apply,Sum.inl.injEq,Sum.inr.injEq,
-      Sum.inl_ne_inr,Sum.inr_ne_inl,if_false]
+      Sum.inl_ne_inr,Sum.inr_ne_inl,ite_false]
   · exact congrFun (congrFun (show Aᴴ*A=1 from hA) _) _
   · exact congrFun (congrFun hAB _) _
   · exact congrFun (congrFun hBA _) _
@@ -659,7 +659,7 @@ private theorem cs_cross_endpoint_zero {H J : Type} [Fintype H] [DecidableEq H]
     (hb : ∀ i,t i∈Set.Icc 0 1) (i : J) (hi : ¬(0<t i ∧ t i<1)) :
     (fun h=>csCrossNormalized Q A t h i)=0 := by
   have hg := congrFun (congrFun (cs_cross_normalized_grams Q hQ A t hA ht hb).2 i) i
-  simp only [Matrix.diagonal_apply_eq,if_neg hi] at hg
+  simp only [Matrix.diagonal_apply_eq,ite_eq_right hi] at hg
   exact dotProduct_star_self_eq_zero.mp hg
 
 /-- Restricting the normalized cross matrix to interior coefficients gives an isometry with the
@@ -682,7 +682,7 @@ theorem cs_interior_partner_isometry {H J : Type} [Fintype H] [DecidableEq H]
     ext i j
     have he := congrFun (congrFun hg i.1) j.1
     simpa only [Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.submatrix_apply,id_eq,
-      Matrix.diagonal_apply,if_pos i.2,Matrix.one_apply,Subtype.val_inj] using! he
+      Matrix.diagonal_apply,ite_eq_left i.2,Matrix.one_apply,Subtype.val_inj] using! he
   · ext h k
     simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.submatrix_apply,id_eq]
     have hs := Finset.sum_subtype (F:=inferInstance) (p:=fun i : J=>0<t i ∧ t i<1)
@@ -769,25 +769,27 @@ theorem cs_complete_reducing_frame {H J : Type} [Fintype H] [DecidableEq H]
       _ = csMatMul Q (csMatMul ((1-T)*Q) D) := by rw [hfixed]
       _ = D := by
         have hQQ : csMatMul Q ((1-T)*Q)=(1-T)*Q := he.2.2.2.2
-        rw [← csMatMul_assoc]
-        exact (congrArg (fun X : Matrix H H ℂ => csMatMul X D) hQQ).trans hfixed
+        calc
+          _ = csMatMul (csMatMul Q ((1-T)*Q)) D := (Matrix.mul_assoc Q ((1-T)*Q) D).symm
+          _ = csMatMul ((1-T)*Q) D := congrArg (fun X : Matrix H H ℂ => csMatMul X D) hQQ
+          _ = D := hfixed
   have hCD : csMatMul Cᴴ D=0 := by
     apply (Matrix.self_mul_conjTranspose_mul_eq_zero C D).mp
     rw [hC.2]
     change csMatMul ((1-T)*(1-Q)) D=0
-    rw [csMatMul_assoc,show csMatMul (1-Q) D=D-csMatMul Q D from by simp [csMatMul,Matrix.sub_mul],
+    rw [csMatMul_assoc,show csMatMul (1-Q) D=D-csMatMul Q D from by simp [Matrix.sub_mul],
       hQD,sub_self]
     exact Matrix.mul_zero _
   have hCBm : csMatMul Cᴴ Bm=0 := by
     have hs := congrArg Matrix.conjTranspose hBC'
     have hh : csMatMul Cᴴ B=0 := by
-      simpa only [csMatMul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
+      simpa only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
     ext i j
     exact congrFun (congrFun hh i) j.1
   have hDBm : csMatMul Dᴴ Bm=0 := by
     have hs := congrArg Matrix.conjTranspose hBD'
     have hh : csMatMul Dᴴ B=0 := by
-      simpa only [csMatMul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
+      simpa only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
     ext i j
     exact congrFun (congrFun hh i) j.1
   have hABm : csMatMul Aᴴ Bm=0 := by
@@ -796,11 +798,11 @@ theorem cs_complete_reducing_frame {H J : Type} [Fintype H] [DecidableEq H]
     exact congrFun (congrFun hh i) j.1
   have hCA : csMatMul Cᴴ A=0 := by
     have hs := congrArg Matrix.conjTranspose hAC
-    simpa only [csMatMul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
+    simpa only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.conjTranspose_zero] using! hs
   have hAX : csMatMul Aᴴ (Matrix.fromCols D Bm)=0 := by
     ext i j
     cases j <;>
-      simp only [csMatMul,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.fromCols_apply_inl,
+      simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.fromCols_apply_inl,
         Matrix.fromCols_apply_inr,Matrix.zero_apply]
     · exact congrFun (congrFun hAD i) _
     · exact congrFun (congrFun hABm i) _
@@ -863,11 +865,11 @@ private noncomputable def csCoordinateEquiv (K0 K1 J : Type)
     rcases z with i | i
     · simp
     · rcases i with i | i
-      · simp only [(e1 i).2,dif_pos]
+      · simp only [(e1 i).2,dite_eq_left]
         change Sum.inr (Sum.inl (e1.symm (e1 i)))=Sum.inr (Sum.inl i)
         rw [e1.symm_apply_apply]
       · rcases i with i | i
-        · simp only [(e0 i).2,zero_ne_one,dif_neg,dif_pos,not_false_eq_true]
+        · simp only [(e0 i).2,zero_ne_one,dite_eq_right,dite_eq_left,not_false_eq_true]
           change Sum.inr (Sum.inr (Sum.inl (e0.symm (e0 i))))=Sum.inr (Sum.inr (Sum.inl i))
           rw [e0.symm_apply_apply]
         · rcases i with i | ⟨i,b⟩
@@ -901,15 +903,15 @@ private theorem cs_canonicalQ_column {H : Type} {a b c d m : ℕ}
             V h (.inr (.inr (.inr (.inr (z.1,false))))) * (t z.1:ℂ) +
             V h (.inr (.inr (.inr (.inr (z.1,true))))) * (Real.sqrt (t z.1*(1-t z.1)):ℂ) := by
   rcases i with i | i
-  · simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,csCanonicalQ,csQEndpoint,ite_mul]
+  · simp [Matrix.mul_apply,csCanonicalQ,csQEndpoint]
   · rcases i with i | i
-    · simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,csCanonicalQ,csQEndpoint,ite_mul]
+    · simp [Matrix.mul_apply,csCanonicalQ,csQEndpoint]
     · rcases i with i | i
-      · simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,csCanonicalQ,csQEndpoint,ite_mul]
+      · simp [Matrix.mul_apply,csCanonicalQ,csQEndpoint]
       · rcases i with i | ⟨i,b⟩
-        · simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,csCanonicalQ,csQEndpoint,ite_mul]
-        · cases b <;> simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,Fintype.sum_prod_type,
-            csCanonicalQ,csQPlane,ite_mul,Complex.ofReal_sub,add_comm]
+        · simp [Matrix.mul_apply,csCanonicalQ,csQEndpoint]
+        · cases b <;> simp [Matrix.mul_apply,Fintype.sum_prod_type,
+            csCanonicalQ,csQPlane,Complex.ofReal_sub,add_comm]
 
 /-- Any two finite-dimensional complex orthogonal projectors have a simultaneous complete
 cosine-sine normal form, with four endpoint sectors and two-dimensional interior blocks. -/
@@ -963,7 +965,7 @@ theorem complete_two_projector_cs_normal_form :
   have hPA : csMatMul P A=A := by
     calc
       _ = csMatMul (A*Aᴴ) A := congrArg (fun X : Matrix H H ℂ => csMatMul X A) hAP.symm
-      _ = A := by simp only [csMatMul,Matrix.mul_assoc,show Aᴴ*A=1 from hA,Matrix.mul_one]
+      _ = A := by simp only [Matrix.mul_assoc,show Aᴴ*A=1 from hA,Matrix.mul_one]
   have hPB : csMatMul P B=0 := by
     calc
       _ = csMatMul (A*Aᴴ) B := congrArg (fun X : Matrix H H ℂ => csMatMul X B) hAP.symm
@@ -1000,7 +1002,7 @@ theorem complete_two_projector_cs_normal_form :
   have hPV : csMatMul P V=csMatMul V (csCanonicalP a b c d m) := by
     ext h i
     change (P *ᵥ (fun k => V k i)) h = _
-    simp only [csMatMul,csCanonicalP,Matrix.mul_diagonal]
+    simp only [csCanonicalP,Matrix.mul_diagonal]
     rcases i with i | i
     · simp only [hVA,csPValue,mul_zero]
       exact congrFun (congrFun hPC h) (eC i)
@@ -1014,9 +1016,9 @@ theorem complete_two_projector_cs_normal_form :
           · simp only [hVA,csPValue,mul_zero]
             exact congrFun (congrFun hPD h) (eD i)
           · cases b
-            · simp only [hVA,csPValue,Bool.false_eq_true,if_false,mul_one]
+            · simp only [hVA,csPValue,Bool.false_eq_true,ite_false,mul_one]
               exact congrFun (congrFun hPA h) (em i).1
-            · simp only [hVA,csPValue,if_true,mul_zero]
+            · simp only [hVA,csPValue,ite_true,mul_zero]
               exact congrFun (congrFun hPB h) (em i).1
   have hQV : csMatMul Q V=csMatMul V (csCanonicalQ a b c d m ti) := by
     ext h i
@@ -1028,23 +1030,23 @@ theorem complete_two_projector_cs_normal_form :
     · rcases i with i | i
       · simp only [hVA]
         have hs := congrFun (congrFun hqa h) (e1 i).1
-        simpa only [csMatMul,Matrix.add_apply,Matrix.mul_diagonal,(e1 i).2,
+        simpa only [Matrix.add_apply,Matrix.mul_diagonal,(e1 i).2,
           Complex.ofReal_one,sub_self,mul_zero,Real.sqrt_zero,Complex.ofReal_zero,mul_one,add_zero] using! hs
       · rcases i with i | i
         · simp only [hVA]
           have hs := congrFun (congrFun hqa h) (e0 i).1
-          simpa only [csMatMul,Matrix.add_apply,Matrix.mul_diagonal,(e0 i).2,
+          simpa only [Matrix.add_apply,Matrix.mul_diagonal,(e0 i).2,
             Complex.ofReal_zero,zero_mul,mul_zero,Real.sqrt_zero,add_zero] using! hs
         · rcases i with i | ⟨i,b⟩
           · simp only [hVA]
             exact congrFun (congrFun hQD h) (eD i)
           · cases b
-            · simp only [hVA,Bool.false_eq_true,if_false,if_true]
+            · simp only [hVA,Bool.false_eq_true,ite_false,ite_true]
               have hs := congrFun (congrFun hqa h) (em i).1
-              simpa only [csMatMul,Matrix.add_apply,Matrix.mul_diagonal,ti] using! hs
-            · simp only [hVA,Bool.false_eq_true,if_false,if_true]
+              simpa only [Matrix.add_apply,Matrix.mul_diagonal,ti] using! hs
+            · simp only [hVA,Bool.false_eq_true,ite_false,ite_true]
               have hs := congrFun (congrFun hqb h) (em i).1
-              simpa only [csMatMul,Matrix.add_apply,Matrix.mul_diagonal,ti,Complex.ofReal_sub,
+              simpa only [Matrix.add_apply,Matrix.mul_diagonal,ti,Complex.ofReal_sub,
                 Complex.ofReal_one] using! hs
   refine ⟨a,b,c,d,m,ti,V,fun i => (em i).2,hV,hVV,?_,?_⟩
   · calc

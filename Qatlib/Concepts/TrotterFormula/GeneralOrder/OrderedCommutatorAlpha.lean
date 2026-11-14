@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+
+@[expose] public section
 
 /-!
 # Ordered composition commutator coefficients

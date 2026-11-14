@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TerminalPhase
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TerminalPhase
+
+@[expose] public section
 
 /-!
 # A real phase primitive from the actual angular derivative
@@ -40,7 +44,11 @@ private def transversePairLinear : ℝ × ℝ →ₗ[ℝ] TransversePoint where
   map_smul' c a := by ext j; fin_cases j <;> rfl
 
 /-- Definition of transverse Pair in the Hopf Atlas construction. -/
-def transversePair : ℝ × ℝ →L[ℝ] TransversePoint := transversePairLinear.toContinuousLinearMap
+def transversePair : ℝ × ℝ →L[ℝ] TransversePoint :=
+  ({ toFun z := WithLp.toLp 2 ![z.1,z.2]
+     map_add' a b := by ext j; fin_cases j <;> rfl
+     map_smul' c a := by ext j; fin_cases j <;> rfl } :
+    ℝ × ℝ →ₗ[ℝ] TransversePoint).toContinuousLinearMap
 
 /-- Definition of circle Angular Rate in the Hopf Atlas construction. -/
 def circleAngularRate (k : TransversePoint → ℍ) (p : TransversePoint) : ℝ :=
@@ -78,11 +86,12 @@ private theorem circle_curve_velocity {k : ℝ → ℍ} {d : ℍ} {t : ℝ}
     linarith
   have hred : (star (k t)*d).re=0 := by
     have h : (star (k t)*d).re=inner ℝ (k t) d := by
-      simp [Quaternion.inner_def, Quaternion.re_mul]
+      simp [Quaternion.inner_def]
     rw [h,hin]
   have hprod : star (k t)*d=(star (k t)*d).imI • iAxis := by
-    simp [Quaternion.re_mul,(hc t).2.1,(hc t).2.2,hdj,hdk] at hred
-    ext <;> simp [iAxis,(hc t).2.1,(hc t).2.2,hdj,hdk] <;> nlinarith [hred]
+    simp [(hc t).2.1,(hc t).2.2,hdj,hdk] at hred
+    ext <;> simp [iAxis,(hc t).2.1,(hc t).2.2,hdj,hdk]
+    all_goals nlinarith [hred]
   have hunit : k t*star (k t)=1 := by
     rw [Quaternion.self_mul_star,(normSq_eq_one_iff _).mpr (hc t).1]; rfl
   calc
@@ -95,7 +104,7 @@ theorem transversePair_hasDerivAt (z y : ℝ) :
     HasDerivAt (fun u : ℝ => transversePair (u,z)) (EuclideanSpace.single 0 1) y := by
   apply (transversePair.hasFDerivAt.comp_hasDerivAt y
     ((hasDerivAt_id y).prodMk (hasDerivAt_const y z))).congr_deriv
-  ext j; fin_cases j <;> simp [transversePair,transversePairLinear]
+  ext j; fin_cases j <;> simp [transversePair]
 
 /-- Original `circle_curve_hasDerivAt` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
 theorem circle_curve_hasDerivAt {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k)

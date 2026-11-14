@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffective
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
-import Qatlib.Concepts.ConversionCore.WitnessCompile.GeneralAdversaryDefs
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffective
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.GeneralAdversaryDefs
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+@[expose] public section
 
 /-!
 # Projective readout and execution models for adversary bounds
@@ -228,11 +232,11 @@ theorem scan_step {a : ℕ} (cfg : Turing.TM0.Cfg (Option (Fin a)) (Fin 1)) :
       else some ⟨default, cfg.Tape.move Turing.Dir.right⟩ := by
   obtain ⟨q, T⟩ := cfg
   by_cases hT : T.head = none
-  · rw [if_pos hT]
+  · rw [ite_eq_left hT]
     have hnone : scanMachine (a := a) q T.head = none := by
       rw [scanMachine_apply]; simp [hT]
     simp [Turing.TM0.step, hnone]
-  · rw [if_neg hT]
+  · rw [ite_eq_right hT]
     have happ : scanMachine (a := a) q T.head =
         some ⟨default, Turing.TM0.Stmt.move Turing.Dir.right⟩ := by
       rw [scanMachine_apply]; simp [hT]
@@ -263,7 +267,7 @@ theorem scan_after_of_noBlank {a : ℕ} {w : List (Option (Fin a))} {t : ℕ}
           (Turing.Tape.mk₁ w)).head = w.getI t := scan_head w t
       rw [scan_step, hhead]
       have hne : w.getI t ≠ none := hnb t (by omega)
-      simp only [hne, if_false]
+      simp only [hne, ite_false]
       rw [← Function.iterate_succ_apply' (Turing.Tape.move Turing.Dir.right) t
         (Turing.Tape.mk₁ w)]
     show (BitMachineAfter (scanMachine (a := a)) w t).bind

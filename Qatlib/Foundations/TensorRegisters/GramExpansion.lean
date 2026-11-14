@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.DotProduct
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Gram expansions for finite tensor registers

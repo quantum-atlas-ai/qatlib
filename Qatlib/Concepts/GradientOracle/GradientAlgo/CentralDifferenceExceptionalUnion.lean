@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Union
+module
+
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Union
+
+@[expose] public section
 
 /-!
 # Union bound for exceptional degrees
@@ -42,7 +46,7 @@ theorem centralDiff_exceptional_union {α : Type*} [Fintype α]
   classical
   let w := fun a : α => if h : E a then (hcover a h).choose else N
   have hw (a : α) (ha : E a) : N≤w a ∧ B (w a) a := by
-    simpa only [w,dif_pos ha] using (hcover a ha).choose_spec
+    simpa only [w,dite_eq_left ha] using (hcover a ha).choose_spec
   let K := Finset.univ.sup w
   let U := (Finset.range (K+1)).biUnion (fun j => Finset.univ.filter (B (N+j)))
   have hsub : Finset.univ.filter E⊆U := by

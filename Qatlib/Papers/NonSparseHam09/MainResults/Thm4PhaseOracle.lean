@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Phase-oracle lower-bound statement

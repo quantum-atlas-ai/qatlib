@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.Connectivity
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
-import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.Connectivity
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+public import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+
+@[expose] public section
 
 /-!
 # A machine interface for regular graph connectivity
@@ -69,9 +73,9 @@ theorem lemma5_acceptance_connected {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance 
     (hk : ((d : ℝ) * ((d : ℝ) + 1) ^ 2 * (InstanceSize I : ℝ) ^ 2 / 8) *
       Real.log (2 * (InstanceSize I : ℝ)) ≤ (k : ℝ)) :
     1 / (4 * (InstanceSize I : ℝ) ^ 2) < walkAcceptProb I k := by
-  letI := I.instFintype
-  letI := I.instDecEq
-  letI := I.instDecRel
+  let := I.instFintype
+  let := I.instDecEq
+  let := I.instDecRel
   have hdR : (2 : ℝ) ≤ (d : ℝ) := by exact_mod_cast hd
   have hreg : RegularDegree I.G (d : ℝ) := fun v => by
     have := I.regular v
@@ -83,9 +87,9 @@ theorem lemma5_acceptance_connected {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance 
 [Watrous1998]. -/
 theorem lemma5_acceptance_disconnected {d : ℕ} (I : GraphInstance d) (k : ℕ)
     (h : ¬ InstanceConnected I) : walkAcceptProb I k = 0 := by
-  letI := I.instFintype
-  letI := I.instDecEq
-  letI := I.instDecRel
+  let := I.instFintype
+  let := I.instDecEq
+  let := I.instDecRel
   have hzero : ((walkQ I.G (d : ℝ) ^ k) (I.t, I.t) (I.s, I.s)) = 0 :=
     corollary4_disconnected I.G (d : ℝ) k I.s I.t h
   have hval : walkAcceptProb I k =
@@ -200,9 +204,9 @@ theorem lemma5_dUSTCON_machine (d : ℕ) (hd : 2 ≤ d)
 /-- Every graph instance of degree at least two satisfies `InstanceSpectralGap`. -/
 private theorem instanceSpectralGap {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance d) :
     InstanceSpectralGap I := by
-  letI := I.instFintype
-  letI := I.instDecEq
-  letI := I.instDecRel
+  let := I.instFintype
+  let := I.instDecEq
+  let := I.instDecRel
   have hdR : (2 : ℝ) ≤ (d : ℝ) := by exact_mod_cast hd
   have hreg : RegularDegree I.G (d : ℝ) := fun v => by
     have := I.regular v

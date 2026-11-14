@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
-import Mathlib.GroupTheory.Perm.Sign
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
+public import Mathlib.GroupTheory.Perm.Sign
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Permutation signs as fermionic phase products

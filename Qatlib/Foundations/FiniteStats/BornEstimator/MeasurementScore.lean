@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.EffectNormalize
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.EffectNormalize
+
+@[expose] public section
 
 /-!
 # Bounding measurement scores by state scores

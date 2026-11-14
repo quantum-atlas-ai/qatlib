@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Data.Nat.BinaryRec
-import Mathlib.Tactic
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
+module
+
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Data.Nat.BinaryRec
+public import Mathlib.Tactic
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+
+@[expose] public section
 
 /-!
 # Nondisturbing retry instruments and execution costs
@@ -87,7 +91,7 @@ noncomputable def nondisturbingRetryInstrument {D : ℕ} (U : Operator D)
       · exact mixed_cp_scale (conjBranch U) (completelyPositive_conjBranch U) p hp)
     (by
       intro X
-      simp only [Fintype.sum_bool, Bool.false_eq_true, if_false, if_true,
+      simp only [Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
         LinearMap.smul_apply, LinearMap.id_apply, Matrix.trace_add, Matrix.trace_smul,
         trace_conjBranch_unitary U hU, smul_eq_mul]
       push_cast
@@ -127,7 +131,7 @@ theorem nondisturbingRetryInstrument_failure_state {D : ℕ} (U : Operator D)
     change (((1-p : ℝ) : ℂ)⁻¹) • (((1-p : ℝ) : ℂ) • ρ.val) = ρ.val
     rw [smul_smul, inv_mul_cancel₀, one_smul]
     have hpq : 0 < 1-p := by simpa only [nondisturbingRetryInstrument_prob, Bool.false_eq_true,
-      if_false] using h
+      ite_false] using h
     exact_mod_cast ne_of_gt hpq
   · rfl
 
@@ -139,8 +143,8 @@ theorem nondisturbingRetryInstrument_success_state {D : ℕ} (U : Operator D)
     (clockConditional (nondisturbingRetryInstrument U hU p hp.le hp1) ρ true).val =
       U * ρ.val * Uᴴ := by
   have h : 0 < instrumentProb (nondisturbingRetryInstrument U hU p hp.le hp1) ρ.val true := by
-    simpa only [nondisturbingRetryInstrument_prob, if_true] using hp
-  rw [clockConditional, dif_pos h]
+    simpa only [nondisturbingRetryInstrument_prob, ite_true] using hp
+  rw [clockConditional, dite_eq_left h]
   (try dsimp only)
   rw [Instrument.conditionalState, nondisturbingRetryInstrument_prob]
   change (p : ℂ)⁻¹ • ((p : ℂ) • (U * ρ.val * Uᴴ)) = _
@@ -175,13 +179,13 @@ theorem mixedRetryEvent_succ {D : ℕ} (U : Operator D)
   classical
   unfold mixedRetryEvent mixedRetryNext
   rw [mixedHaltEvent_succ]
-  simp only [Fintype.sum_bool, Bool.false_eq_true, if_false, if_true,
+  simp only [Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
     nondisturbingRetryInstrument_prob, nondisturbingRetryInstrument_failure_state,
     true_and]
   rw [add_comm]
   congr 1
   by_cases h : good ≤ k
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     by_cases he : k=good
     · simp [he]
     · simp [he, Ne.symm he]
@@ -204,7 +208,7 @@ theorem mixedRetryEvent_exact {D : ℕ} (U : Operator D)
     simp only [Nat.zero_mul, Nat.add_zero, pow_zero, mul_one]
     congr 1
     by_cases hfit : bad ≤ k
-    · rw [if_pos hfit, ih, Finset.mul_sum]
+    · rw [ite_eq_left hfit, ih, Finset.mul_sum]
       apply Finset.sum_congr rfl
       intro h _
       have he : k-bad=good+h*bad ↔ k=good+(h+1)*bad := by
@@ -215,11 +219,11 @@ theorem mixedRetryEvent_exact {D : ℕ} (U : Operator D)
       · rw [pow_succ']
         ring
       · simp
-    · rw [if_neg hfit, mul_zero]
+    · rw [ite_eq_right hfit, mul_zero]
       symm
       apply Finset.sum_eq_zero
       intro h _
-      rw [if_neg (by rw [Nat.add_mul, Nat.one_mul]; omega)]
+      rw [ite_eq_right (by rw [Nat.add_mul, Nat.one_mul]; omega)]
 
 /-- For positive success probability and branch costs, there exists a nondisturbing retry
 instrument with the stated unitary branches and exact finite geometric distribution of
@@ -277,11 +281,11 @@ theorem mixedRetry_supported_state {D : ℕ} (U : Operator D)
     obtain ⟨b, hb, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hv
     cases b with
     | false =>
-      simp only [Bool.false_eq_true, if_false, Sum.map_inr,
+      simp only [Bool.false_eq_true, ite_false, Sum.map_inr,
         nondisturbingRetryInstrument_failure_state] at hw ⊢
       exact ih w hw
     | true =>
-      simp only [if_true, Sum.map_inl, branchCostRun_halted, PMF.mem_support_pure_iff] at hw
+      simp only [ite_true, Sum.map_inl, branchCostRun_halted, PMF.mem_support_pure_iff] at hw
       subst w
       exact nondisturbingRetryInstrument_success_state U hU p hp hp1 ρ
 
@@ -377,8 +381,8 @@ theorem mixedRetry_sequential_unitary_output {D : ℕ} (U V : Operator D)
   · rw [nondisturbingRetryInstrument_success_state V hV 1 (by norm_num) le_rfl,
       nondisturbingRetryInstrument_success_state U hU 1 (by norm_num) le_rfl]
     simp only [Matrix.conjTranspose_mul, Matrix.mul_assoc]
-  · simpa only [if_pos rfl] using! mixedRetry_one_success U hU good₁ bad₁ hg₁ hb₁ ρ 0 good₁
-  · simpa only [if_pos rfl] using! mixedRetry_one_success V hV good₂ bad₂ hg₂ hb₂
+  · simpa only [ite_eq_left rfl] using! mixedRetry_one_success U hU good₁ bad₁ hg₁ hb₁ ρ 0 good₁
+  · simpa only [ite_eq_left rfl] using! mixedRetry_one_success V hV good₂ bad₂ hg₂ hb₂
       (clockConditional (nondisturbingRetryInstrument U hU 1 (by norm_num) le_rfl) ρ true) 0 good₂
 
 end Qatlib.Concepts.MixedInstrument.RetryConsumers

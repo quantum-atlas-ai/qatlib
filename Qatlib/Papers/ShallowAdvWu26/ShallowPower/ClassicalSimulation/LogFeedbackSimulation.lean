@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Basic
+module
+
+public import Mathlib.Data.Nat.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,7 +45,7 @@ namespace Qatlib.Papers.ShallowAdvWu26.ShallowPower.ClassicalSimulation
 /-- The light-cone enumeration cost of the paper: a polynomial description
 factor times `(2^{m+1})^{2^d}` (at most `2^d` inputs per light-cone leaf and at
 most `m + 1` leaves). -/
-def lightConeCost (polyFactor n d m : ℕ) : ℕ := polyFactor * (2 ^ (m + 1)) ^ (2 ^ d)
+def lightConeCost (polyFactor _n d m : ℕ) : ℕ := polyFactor * (2 ^ (m + 1)) ^ (2 ^ d)
 
 /-- **Exponential collapse.**  If the feedback budget satisfies `2^(m+1) ≤ n`
 (this is the `m = O(log n)` regime), then the light-cone exponential factor

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+module
+
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+@[expose] public section
 
 /-!
 # Statement of the joint empirical CDF bound

@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationCommBound
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationCommBound
+
+@[expose] public section
 
 /-!
 # Qudit branch marginals and outcome counts
@@ -112,7 +116,7 @@ theorem qdBranchMarginal_apply {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × 
   simp only [tensorGate_apply, Matrix.one_apply, relabelGate, Matrix.reindex_apply,
     Matrix.submatrix_apply, Equiv.symm_symm, Equiv.prodAssoc_apply]
   simp only [mul_ite, mul_one, mul_zero, star_ite', star_zero, ite_mul, zero_mul]
-  simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- The branch marginal is additive in its input operator. -/
 theorem qdBranchMarginal_add {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
@@ -205,13 +209,13 @@ theorem psd_le_outerProduct {I : Type} [Fintype I] [DecidableEq I] (φ : QState 
     have hv : star φ ⬝ᵥ (star (φ j) • Qatlib.Foundations.PureStateMath.Ket i - star (φ i) • Qatlib.Foundations.PureStateMath.Ket j) = 0 := by
       simp only [dotProduct, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket,
         mul_sub, Finset.sum_sub_distrib, mul_ite, mul_one, mul_zero,
-        Finset.sum_ite_eq', Finset.mem_univ, if_true]
+        Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       show star (φ i) * star (φ j) - star (φ j) * star (φ i) = 0
       ring
     have h0 := congrFun (hker _ hv) k
     simp only [Matrix.mulVec, dotProduct, Pi.sub_apply, Pi.smul_apply, smul_eq_mul,
       Qatlib.Foundations.PureStateMath.Ket, Pi.zero_apply, mul_sub, Finset.sum_sub_distrib, mul_ite,
-      mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true] at h0
+      mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at h0
     have h1 : A k i * star (φ j) = A k j * star (φ i) := sub_eq_zero.mp h0
     exact (mul_comm _ _).trans (h1.trans (mul_comm _ _))
   by_cases hz : ∀ i : I, φ i = 0
@@ -222,7 +226,7 @@ theorem psd_le_outerProduct {I : Type} [Fintype I] [DecidableEq I] (φ : QState 
         simp only [dotProduct]
         exact Finset.sum_eq_zero fun k _ => by simp [hz])) i
       simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, Pi.zero_apply, mul_ite, mul_one,
-        mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true] at h
+        mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at h
       exact h
     ext i j
     simp [hA0]
@@ -459,7 +463,7 @@ theorem qdCard_le_of_perfect {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
       intro k ρ
       rw [qdBranchMarginal_outerProduct_kraus]
       simp only [hB, conjBranch_apply, Matrix.zero_mul, Finset.sum_const_zero]
-    haveI : Nonempty (Fin n) := ⟨⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩⟩
+    have : Nonempty (Fin n) := ⟨⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩⟩
     have hz2 : qdLoccOutput P (outerProduct Ψ) (1 : Operator n) = 0 := by
       show (∑ k, P.corr k (qdBranchMarginal (P.kraus k) (outerProduct Ψ) (1 : Operator n))) = 0
       simp only [hM, map_zero, Finset.sum_const_zero]
@@ -585,9 +589,9 @@ theorem clause4_clause2 : ∀ (n : ℕ) (κ : Type) (_hκ : Fintype κ) (P : QdL
   intro n κ hκ P U Ψ hΨ hU hperf
   rcases Nat.eq_zero_or_pos n with hn | hn
   · subst hn
-    haveI : IsEmpty (Fin 0 × Fin 0) := ⟨fun p => Fin.elim0 p.1⟩
+    have : IsEmpty (Fin 0 × Fin 0) := ⟨fun p => Fin.elim0 p.1⟩
     exact absurd hΨ (qdNormalized_false_empty Ψ)
-  · haveI : NeZero n := ⟨ne_of_gt hn⟩
+  · have : NeZero n := ⟨ne_of_gt hn⟩
     have hcard := qdCard_le_of_perfect P U hU Ψ hperf
     exact ⟨clause4_clause2_msgConsistent n κ hκ P U Ψ hΨ hU hperf, hcard,
       clause4_clause2_counting_reduce n κ hcard,
@@ -605,11 +609,11 @@ theorem clause4_clause5 : ∀ (n k : ℕ) (_hk : 1 ≤ k) (κc : Type) (_hc : Fi
     (Function.Injective P.msgCode → n ^ k * n ^ k ≤ 2 ^ (qdCommCost P + 1)) := by
   intro n k hk κc hc P U Ψ hΨ hU hperf
   rcases Nat.eq_zero_or_pos (n ^ k) with hd | hd
-  · haveI : IsEmpty (Fin (n ^ k) × Fin (n ^ k)) := by
+  · have : IsEmpty (Fin (n ^ k) × Fin (n ^ k)) := by
       rw [hd]
       exact ⟨fun p => Fin.elim0 p.1⟩
     exact absurd hΨ (qdNormalized_false_empty Ψ)
-  · haveI : NeZero (n ^ k) := ⟨ne_of_gt hd⟩
+  · have : NeZero (n ^ k) := ⟨ne_of_gt hd⟩
     have hcard := qdCard_le_of_perfect P U hU Ψ hperf
     exact ⟨hcard, clause4_clause2_counting_reduce (n ^ k) κc hcard,
       qdCommCost_of_card P hcard⟩

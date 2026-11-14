@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.Bounds
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.Bounds
+
+@[expose] public section
 
 /-!
 # Forward-query bounds for ensemble distinguishing

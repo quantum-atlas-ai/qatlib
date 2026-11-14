@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Multivariate
-import Mathlib.Topology.MetricSpace.Lipschitz
-import Mathlib.MeasureTheory.Function.LpSpace.Basic
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
+public import Mathlib.Topology.MetricSpace.Lipschitz
+public import Mathlib.MeasureTheory.Function.LpSpace.Basic
+
+@[expose] public section
 
 /-!
 # Gaussian moments of Lipschitz functions and extensions

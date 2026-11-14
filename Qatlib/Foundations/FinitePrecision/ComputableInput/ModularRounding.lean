@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.ValMinAbs
-import Mathlib.Tactic.Ring
-import Mathlib.Algebra.Order.Group.Unbundled.Int
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.BigOperators
+module
+
+public import Mathlib.Data.ZMod.ValMinAbs
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Algebra.Order.Group.Unbundled.Int
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.BigOperators
+
+@[expose] public section
 
 /-! A public scalar center-and-round bridge for actual modular observations.
 This module proves deterministic integer identities and bounds. It does not

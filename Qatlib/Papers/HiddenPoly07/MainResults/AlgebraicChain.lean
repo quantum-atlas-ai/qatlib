@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Max
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.HiddenPoly07.MainResults.CountingLemmas
-import Qatlib.Papers.HiddenPoly07.MainResults.GoodSetCardinality
-import Qatlib.Papers.HiddenPoly07.MainResults.MeasurementSuccessBound
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.HiddenPoly07.MainResults.CountingLemmas
+public import Qatlib.Papers.HiddenPoly07.MainResults.GoodSetCardinality
+public import Qatlib.Papers.HiddenPoly07.MainResults.MeasurementSuccessBound
+
+@[expose] public section
 
 /-!
 # Algebraic counting bounds for hidden polynomials
@@ -205,7 +209,7 @@ theorem WgoodMin_ge {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     c ≤ ((WgoodMin X W : ℕ) : ℝ) := by
   classical
   unfold WgoodMin
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   obtain ⟨x, hx, hxe⟩ :=
     Finset.mem_image.mp (Finset.min'_mem (X.image fun x => (W x).card) (hne.image _))
   rw [← hxe]

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

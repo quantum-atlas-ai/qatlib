@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Finset.Card
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Finset.Card
+
+@[expose] public section
 
 /-!
 # Weighted interval decoding with comparison counts
@@ -182,7 +186,7 @@ private theorem weightScan_spec_found (l : List (Fin N × ℕ)) (k acc u : ℕ) 
   | cons e t ih =>
       have hlen : (e :: t).length = t.length + 1 := length_cons e t
       rcases p with _ | p'
-      · rw [weightScan, if_pos (cons_stop_head_inv e t acc u hstop)]
+      · rw [weightScan, ite_eq_left (cons_stop_head_inv e t acc u hstop)]
         simp
       · have hp' : p' < t.length := by omega
         have hbefore0 : ¬ (u < acc + e.2) := cons_stop'' e t 0 acc u (hbefore 0 (by omega))
@@ -191,7 +195,7 @@ private theorem weightScan_spec_found (l : List (Fin N × ℕ)) (k acc u : ℕ) 
         have hbefore' : ∀ q, q < p' → ¬ (u < acc + e.2 + pairSum (t.take (q + 1))) := by
           intro q hq
           exact cons_stop'' e t (q + 1) acc u (hbefore (q + 1) (by omega))
-        rw [weightScan, if_neg hbefore0]
+        rw [weightScan, ite_eq_right hbefore0]
         have hi := ih (k := k + 1) (acc := acc + e.2) (p := p') hp' hstop' hbefore'
         have hget : ((e :: t)[p' + 1]).1 = (t[p']).1 := by rw [List.getElem_cons_succ]
         have key : (some (t[p']).1, acc + e.2 + pairSum (t.take (p' + 1)), (k + 1) + p' + 1)
@@ -213,7 +217,7 @@ private theorem weightScan_spec_none (l : List (Fin N × ℕ)) (k acc u : ℕ)
       have hnone' : ∀ p, p < t.length → ¬ (u < acc + e.2 + pairSum (t.take (p + 1))) := by
         intro p hp
         exact cons_stop'' e t (p + 1) acc u (hnone (p + 1) (by simp; omega))
-      rw [weightScan, if_neg hbefore0]
+      rw [weightScan, ite_eq_right hbefore0]
       have hi := ih (k := k + 1) (acc := acc + e.2) hnone'
       have key : ((none : Option (Fin N)), acc + e.2 + pairSum t, (k + 1) + t.length)
           = ((none : Option (Fin N)), acc + pairSum (e :: t), k + (e :: t).length) := by
@@ -234,13 +238,13 @@ private theorem weightScan_found_iff (l : List (Fin N × ℕ)) (acc u : ℕ) :
       have hlen : (e :: t).length = t.length + 1 := length_cons e t
       rw [weightScan]
       by_cases hstop : u < acc + e.2
-      · rw [if_pos hstop]
+      · rw [ite_eq_left hstop]
         constructor
         · intro _
           exact ⟨0, by simp, cons_stop_head e t acc u hstop, by simp⟩
         · rintro ⟨_, _, _, _⟩
           exact Option.some_ne_none e.1
-      · rw [if_neg hstop, ih (acc := acc + e.2) (k + 1)]
+      · rw [ite_eq_right hstop, ih (acc := acc + e.2) (k + 1)]
         constructor
         · rintro ⟨p, hp, hstop', hbefore'⟩
           rcases p with _ | p'
@@ -504,7 +508,22 @@ private def weightTotalCountedAux : List (Fin N × ℕ) → ℕ × ℕ
 
 /-- The total label weight together with the number of additions used by the list-based
 summation. -/
-def weightTotalCounted (w : Fin N → ℕ) : ℕ × ℕ := weightTotalCountedAux (weightList w)
+def weightTotalCounted (w : Fin N → ℕ) : ℕ × ℕ :=
+  let rec total : List (Fin N × ℕ) → ℕ × ℕ
+    | [] => (0, 0)
+    | (_, wj) :: t =>
+        let r := total t
+        (r.1 + wj, r.2 + 1)
+  total (List.ofFn fun j : Fin N => (j, w j))
+
+/-- The two structural counted-sum recursions return the same pair on every list. -/
+private theorem weightTotalCounted_total_eq_aux (l : List (Fin N × ℕ)) :
+    weightTotalCounted.total l = weightTotalCountedAux l := by
+  induction l with
+  | nil => rfl
+  | cons e t ih =>
+      rcases e with ⟨_, wj⟩
+      simp only [weightTotalCounted.total, weightTotalCountedAux, ih]
 
 /-- The counted list summation returns its weight sum and its length as the addition count. -/
 private theorem weightTotalCountedAux_spec : ∀ (l : List (Fin N × ℕ)),
@@ -523,22 +542,45 @@ theorem weightTotalCounted_ofFn (w : Fin N → ℕ) :
     weightTotalCounted w = (weightTotal w, N) := by
   obtain ⟨h1, h2⟩ := weightTotalCountedAux_spec (weightList w)
   have hLen : (weightList w).length = N := List.length_ofFn
-  rw [weightTotalCounted]
+  rw [weightTotalCounted, weightTotalCounted_total_eq_aux]
+  change weightTotalCountedAux (weightList w) = (weightTotal w, N)
   exact Prod.ext (by rw [h1, pairSum_weightList]) (by rw [h2]; simp [hLen])
 
 /-- Decode a natural-number ticket by a cumulative weight scan and return its optional label and
 actual comparison count. -/
 def weightDecodeCounted (w : Fin N → ℕ) (u : ℕ) : Option (Fin N) × ℕ :=
-  let r := weightScan (weightList w) 0 0 u
+  let rec scan : List (Fin N × ℕ) → ℕ → ℕ → ℕ → Option (Fin N) × ℕ × ℕ
+    | [], k, acc, _ => (none, acc, k)
+    | e :: t, k, acc, u =>
+        let upper := acc + e.2
+        if u < upper then (some e.1, upper, k + 1)
+        else scan t (k + 1) upper u
+  let r := scan (List.ofFn fun j : Fin N => (j, w j)) 0 0 u
   (r.1, r.2.2)
+
+/-- The two structural scans agree for every initial index, prefix sum, and ticket. -/
+private theorem weightDecodeCounted_scan_eq (l : List (Fin N × ℕ)) (k acc u : ℕ) :
+    weightDecodeCounted.scan l k acc u = weightScan l k acc u := by
+  induction l generalizing k acc with
+  | nil => rfl
+  | cons e t ih =>
+      simp only [weightDecodeCounted.scan, weightScan, ih]
+
+/-- The decoder projects the same outcome and comparison count as the original list scan. -/
+private theorem weightDecodeCounted_eq_scan (w : Fin N → ℕ) (u : ℕ) :
+    weightDecodeCounted w u = ((weightScan (weightList w) 0 0 u).1,
+      (weightScan (weightList w) 0 0 u).2.2) := by
+  simp only [weightDecodeCounted, weightList, weightDecodeCounted_scan_eq]
 
 /-- The counted decoder's optional output equals the underlying weight scan's optional output. -/
 private theorem weightDecodeCounted_out (w : Fin N → ℕ) (u : ℕ) :
-    (weightDecodeCounted w u).1 = (weightScan (weightList w) 0 0 u).1 := rfl
+    (weightDecodeCounted w u).1 = (weightScan (weightList w) 0 0 u).1 :=
+  congrArg Prod.fst (weightDecodeCounted_eq_scan w u)
 
 /-- The counted decoder's comparison count equals the underlying weight scan's count. -/
 private theorem weightDecodeCounted_cnt (w : Fin N → ℕ) (u : ℕ) :
-    (weightDecodeCounted w u).2 = (weightScan (weightList w) 0 0 u).2.2 := rfl
+    (weightDecodeCounted w u).2 = (weightScan (weightList w) 0 0 u).2.2 :=
+  congrArg Prod.snd (weightDecodeCounted_eq_scan w u)
 
 /-- A successful decoding returns some label `j` after `j.val + 1` comparisons, with the ticket
 in that label's prefix interval. -/
@@ -566,7 +608,7 @@ private theorem weightDecodeCounted_hit (w : Fin N → ℕ) (u : ℕ)
   have hget' : ((weightList w)[p]).1 = ⟨p, hpl⟩ := congrArg Prod.fst hget
   refine ⟨⟨p, hpl⟩, ?_, ?_, ?_⟩
   · have h1 : weightDecodeCounted w u = ((weightScan (weightList w) 0 0 u).1,
-        (weightScan (weightList w) 0 0 u).2.2) := rfl
+        (weightScan (weightList w) 0 0 u).2.2) := weightDecodeCounted_eq_scan w u
     rw [h1, hspec, hget]
     simp
   · have hle : lprefix w p ≤ u := by

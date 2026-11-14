@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+
+@[expose] public section
 
 /-!
 # A counterexample to subgroup-data recovery
@@ -219,7 +223,7 @@ theorem not_subgroup_endpoint (lg : RecoveryLedger) : ¬ SubgroupRecoveryEndpoin
   change (∀ o : Option (DihedralSubgroupData 4),
       o ≠ (if H2 = trivialSubgroup 4 then none else some H2) → run (ZMod 8) f4 o = 0) ∧
       ENNReal.ofReal (2 / 3) ≤ run (ZMod 8) f4 (if H2 = trivialSubgroup 4 then none else some H2) at hB
-  simp only [H0_ne_trivial, H2_ne_trivial, if_false] at hA hB
+  simp only [H0_ne_trivial, H2_ne_trivial, ite_false] at hA hB
   have hzero : run (ZMod 8) f4 (some H2) = 0 :=
     hA.1 (some H2) (fun h => H0_ne_H2 (Option.some.inj h).symm)
   have hle := hB.2

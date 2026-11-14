@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.DiskObstruction
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HopfFibre
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Transport
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.DiskObstruction
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HopfFibre
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Transport
+
+@[expose] public section
 
 /-!
 # Hopf Section Obstruction

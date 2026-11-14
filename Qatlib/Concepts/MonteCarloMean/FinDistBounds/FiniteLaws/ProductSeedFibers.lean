@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Tactic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.CenteredBinomialFibers
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Tactic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.CenteredBinomialFibers
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # Counting product seed fibers

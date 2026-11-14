@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AffineHSP02.MainResults.AffineGroup
-import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+module
+
+public import Qatlib.Papers.AffineHSP02.MainResults.AffineGroup
+public import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+
+@[expose] public section
 
 /-!
 # A phase-permutation representation of the affine group
@@ -82,8 +86,8 @@ noncomputable def affineRep (p : ℕ) [NeZero p] :
         = (ZMod.stdAddChar (g.b * j) : ℂ) *
           (ZMod.stdAddChar (h.b * ((g.a : ZMod p) * j)) : ℂ) := by
       rw [add_mul, AddChar.map_add_eq_mul]
-      push_cast
-      congr 2 <;> ring
+      congr 2
+      ring
     rw [hchar]
     have harg : (((g.a * h.a : (ZMod p)ˣ)) : ZMod p) * j
         = (h.a : ZMod p) * ((g.a : ZMod p) * j) := by
@@ -107,8 +111,8 @@ theorem affineRep_matrix_entry (p : ℕ) [NeZero p] [DecidableEq (ZMod p)] (g : 
   rw [affineRep_apply]
   unfold delta
   by_cases h : k = (g.a : ZMod p) * j
-  · rw [if_pos h, if_pos h.symm, mul_one]
-  · rw [if_neg h, if_neg (fun h' => h h'.symm), mul_zero]
+  · rw [ite_eq_left h, ite_eq_left h.symm, mul_one]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h h'.symm), mul_zero]
 
 /-- A translation acts by multiplying the value at `j` by the additive-character phase at `b *
 j`. -/
@@ -138,13 +142,13 @@ theorem affineRep_mult_delta (p : ℕ) [NeZero p] [DecidableEq (ZMod p)]
       calc j = (((a⁻¹ : (ZMod p)ˣ) : ZMod p) * (a : ZMod p)) * j := by simp
         _ = ((a⁻¹ : (ZMod p)ˣ) : ZMod p) * ((a : ZMod p) * j) := by ring
         _ = ((a⁻¹ : (ZMod p)ˣ) : ZMod p) * k := by rw [h]
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
   · have h' : j ≠ ((a⁻¹ : (ZMod p)ˣ) : ZMod p) * k := by
       intro heq
       apply h
       calc (a : ZMod p) * j
           = (a : ZMod p) * (((a⁻¹ : (ZMod p)ˣ) : ZMod p) * k) := by rw [heq]
         _ = k := by simp
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
 
 end Qatlib.Papers.AffineHSP02.MainResults

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
-import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
-import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+
+@[expose] public section
 
 /-!
 # Dyadic inputs and rational programs for qDRIFT

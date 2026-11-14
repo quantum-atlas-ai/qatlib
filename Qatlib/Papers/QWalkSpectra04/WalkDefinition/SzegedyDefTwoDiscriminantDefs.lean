@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkStat
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+module
+
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkStat
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+@[expose] public section
 
 /-!
 # Stochastic kernels for a bipartite walk

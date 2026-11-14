@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePolynomial
+module
+
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePolynomial
+public import Mathlib.Algebra.MvPolynomial.CommRing
+
+@[expose] public section
 
 /-!
 # Multivariate polynomial representations on the cube
@@ -86,7 +91,7 @@ theorem cube_degree_of_mv_polynomial {n d : ℕ} (P : MvPolynomial (Fin n) ℝ)
     rw [Finset.sum_comm]
     apply Finset.sum_congr rfl
     intro a _
-    simp only [ite_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [ite_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- The real multivariate polynomial formed from coefficients indexed by coordinate sets and the
 corresponding squarefree monomials. -/

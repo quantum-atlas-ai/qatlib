@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
+
+@[expose] public section
 
 /-!
 # Observable associated with a finite POVM payoff

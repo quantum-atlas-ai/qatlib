@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Tactic
-import Qatlib.Concepts.BosonFock.BosonOperators.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Tactic
+public import Qatlib.Concepts.BosonFock.BosonOperators.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -134,7 +138,6 @@ column `L_{:,j}`. -/
 lemma gramHerm_diag_eq_sum_normSq {p' p : ℕ} (L : Matrix (Fin p') (Fin p) ℂ) (j : Fin p) :
     gramHerm p' p L j j = ((∑ l, Complex.normSq (L l j)) : ℂ) := by
   rw [gramHerm_apply]
-  push_cast
   refine Finset.sum_congr rfl fun l _ => ?_
   rw [Complex.normSq_eq_conj_mul_self]
 
@@ -251,7 +254,6 @@ lemma cdot_conj_symm {N : ℕ} (z w : Fin N → ℂ) :
 lemma cdot_self_eq_sum_normSq {N : ℕ} (z : Fin N → ℂ) :
     cdot z z = ((∑ l, Complex.normSq (z l)) : ℂ) := by
   rw [cdot]
-  push_cast
   refine Finset.sum_congr rfl fun l _ => ?_
   rw [Complex.normSq_eq_conj_mul_self, mul_comm]
 

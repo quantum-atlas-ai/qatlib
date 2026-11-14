@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+
+@[expose] public section
 
 /-!
 # Amplification of factoring attempt success
@@ -63,7 +67,7 @@ private theorem fresh_success_bound {A : Type*} [Fintype A] [DecidableEq A]
     intro ω
     by_cases h : ∀ j, ¬ P (ω j)
     · simp [h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       push Not at h
       obtain ⟨j, hj⟩ := h
       exact Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hj])

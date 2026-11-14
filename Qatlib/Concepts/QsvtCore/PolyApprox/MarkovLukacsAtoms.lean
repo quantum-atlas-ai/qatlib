@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Algebraic building blocks for interval sums of squares
@@ -202,10 +206,11 @@ def evenMulOdd {m n : ℕ} {f g : Polynomial ℝ}
   a := u.a * v.a - (1 - X) * u.b * v.b
   b := u.a * v.b + X * u.b * v.a
   identity := (congrArg₂ (· * ·) u.identity v.identity).trans (by ring)
-  degreeA := (degree_sub_le _ _).trans (max_le (degree_mul_bound u.degreeA v.degreeA)
+  degreeA := by exact (degree_sub_le _ _).trans (max_le (degree_mul_bound u.degreeA v.degreeA)
     (degree_mul_bound (degree_linear_mul degree_one_sub_X u.degreeB) v.degreeB))
-  degreeB := degree_add_le_of_degree_le (degree_mul_bound u.degreeA v.degreeB)
-    (degree_mul_bound (degree_linear_mul degree_X_le u.degreeB) v.degreeA)
+  degreeB := by
+    exact degree_add_le_of_degree_le (degree_mul_bound u.degreeA v.degreeB)
+      (degree_mul_bound (degree_linear_mul degree_X_le u.degreeB) v.degreeA)
 
 /-- Multiply two odd interval representations of indices `m` and `n` to obtain an even
 representation at index `m + n + 1`. -/
@@ -221,7 +226,7 @@ def oddMulOdd {m n : ℕ} {f g : Polynomial ℝ}
         degree_mul_bound (degree_mul_bound degree_X_le u.degreeA) v.degreeA
     · simpa only [Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using!
         degree_mul_bound (degree_mul_bound degree_one_sub_X u.degreeB) v.degreeB
-  degreeB := (degree_add_le_of_degree_le (degree_mul_bound u.degreeA v.degreeB)
+  degreeB := by exact (degree_add_le_of_degree_le (degree_mul_bound u.degreeA v.degreeB)
     (degree_mul_bound u.degreeB v.degreeA)).trans_lt (by exact_mod_cast Nat.lt_succ_self (m + n))
 
 /-- Convert an even representation of index `m` into an odd representation of the same
@@ -230,10 +235,12 @@ def evenPad {m : ℕ} {f : Polynomial ℝ} (u : EvenRep m f) : OddRep m f where
   a := u.a + (1 - X) * u.b
   b := u.a - X * u.b
   identity := u.identity.trans (by ring)
-  degreeA := degree_add_le_of_degree_le u.degreeA
-    (degree_linear_mul degree_one_sub_X u.degreeB)
-  degreeB := (degree_sub_le _ _).trans
-    (max_le u.degreeA (degree_linear_mul degree_X_le u.degreeB))
+  degreeA := by
+    exact degree_add_le_of_degree_le u.degreeA
+      (degree_linear_mul degree_one_sub_X u.degreeB)
+  degreeB := by
+    exact (degree_sub_le _ _).trans
+      (max_le u.degreeA (degree_linear_mul degree_X_le u.degreeB))
 
 /-- Convert an odd representation of index `m` into an even representation of the same
 polynomial at index `m + 1`. -/

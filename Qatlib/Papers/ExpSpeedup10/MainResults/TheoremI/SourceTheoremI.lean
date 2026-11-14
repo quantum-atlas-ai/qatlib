@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+module
+
+public import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,9 +44,9 @@ open Model
 quantum algorithm uses 4 queries, and if `C(U) ≥ c·n` then the postselected
 classical query complexity is at least `2^{c·n/7}`. -/
 theorem theorem_I_exponential_separation
-    (n : ℕ) (hn : 1 ≤ n)
+    (n : ℕ) (_hn : 1 ≤ n)
     (U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
-    (c : ℝ) (hc : 0 < c) (hC : c * (n : ℝ) ≤ sourceC U) :
+    (c : ℝ) (_hc : 0 < c) (hC : c * (n : ℝ) ≤ sourceC U) :
     sourceQuantumQueryCost = 4 ∧
       (2 : ℝ) ^ (c * (n : ℝ) / 7) ≤ sourcePostselectedLowerBound U := by
   refine ⟨rfl, ?_⟩

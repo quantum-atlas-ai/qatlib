@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Fair-bit execution laws and weighted sampling bounds
@@ -327,7 +331,7 @@ theorem native_run (p : CoinCode α) (f : α → Bool) (bs : List Bool)
           obtain ⟨j, hj, hat⟩ := nextPosition_some_of_bit p i q r h b
           have hh : coinHalt p.nativeTable ⟨i, T⟩ = false := by
             simp [coinHalt, nativeTable, hj0]
-          rw [coinTapeRunAux, if_neg (by simp [hh]), native_step, hj]
+          rw [coinTapeRunAux, ite_eq_right (by simp [hh]), native_step, hj]
           simp only [Option.map_some, ih, hat, run, Prod.map, id_eq, Nat.add_comm 1]
 
 /-- Native execution from the root agrees with executing the whole coin code, after applying the
@@ -373,7 +377,7 @@ theorem native_transition_count (p : CoinCode α) (bs : List Bool) (i : p.Positi
           obtain ⟨j, hj, hat⟩ := nextPosition_some_of_bit p i q r h b
           have hh : coinHalt p.nativeTable ⟨i, T⟩ = false := by
             simp [coinHalt, nativeTable, hj0]
-          rw [coinTapeTransitionCountAux, if_neg (by simp [hh]), native_step, hj]
+          rw [coinTapeTransitionCountAux, ite_eq_right (by simp [hh]), native_step, hj]
           simp only [Option.map_some, ih, hat, run, Nat.add_comm 1]
 
 /-- The native output and read-count law on a uniform finite tape is the corresponding
@@ -610,7 +614,12 @@ theorem zeroWeight_zeroBit_loop (fuel : ℕ) (BD : ℕ × ℕ) :
   | zero => simp [countedLoop]
   | succ fuel ih =>
       have ht : countedTrialResult (fun _ : Fin 1 => 0) 0 BD (ZeroStr 0) =
-          .inr (BD.1, BD.2 + 1) := rfl
+          .inr (BD.1, BD.2 + 1) := by
+        have hn : (weightDecodeCounted (fun _ : Fin 1 => 0) 0).1 = none :=
+          (weightDecodeCounted_none_iff _ _).mpr (by simp [weightTotal])
+        have hd : weightDecodeCounted (fun _ : Fin 1 => 0) 0 = (none, 1) :=
+          Prod.ext hn ((weightDecodeCounted_bounds _ _).2.1 hn)
+        simp only [countedTrialResult, bitVecEquiv_zeroStr, Fin.val_zero, hd, Nat.add_zero]
       simp only [countedLoop, CoinCode.block, CoinCode.bind, ht, ih]
       simp [Nat.add_assoc, Nat.add_comm 1]
 
@@ -863,8 +872,11 @@ theorem countedLoop_empty_zeroBit (fuel : ℕ) (BD : ℕ × ℕ) :
   | succ fuel ih =>
       simp only [countedLoop,CoinCode.block,CoinCode.bind]
       have hd : countedTrialResult (fun _ : Fin 0 => 1) 0 BD (ZeroStr 0) = .inr BD := by
-        rcases BD with ⟨b,d⟩
-        rfl
+        have hn : (weightDecodeCounted (fun _ : Fin 0 => 1) 0).1 = none :=
+          (weightDecodeCounted_none_iff _ _).mpr (by simp [weightTotal])
+        have hd : weightDecodeCounted (fun _ : Fin 0 => 1) 0 = (none, 0) :=
+          Prod.ext hn ((weightDecodeCounted_bounds _ _).2.1 hn)
+        simp only [countedTrialResult, bitVecEquiv_zeroStr, Fin.val_zero, hd, Nat.add_zero]
       rw [hd,ih]
       simp [CoinCode.bind,Nat.add_comm]
 

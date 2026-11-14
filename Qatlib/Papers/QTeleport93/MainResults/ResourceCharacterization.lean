@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntMarginals
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntCharacterizationTele
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9ResourceTeleportationTele
-import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseTele
-import Qatlib.Concepts.QuditTeleport.ResourceIff.PureResourceConverseConsumer
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntMarginals
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntCharacterizationTele
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9ResourceTeleportationTele
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseTele
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.PureResourceConverseConsumer
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Maximally entangled resources for exact teleportation

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Finite and Haar twirling channels
@@ -67,7 +71,7 @@ theorem sum_mul_right_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddC
 theorem sum_mul_left_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddCommMonoid M]
     (W : G → M) (h : G) : ∑ g, W (h * g) = ∑ k, W k := by
   let e : G ≃ G := ⟨fun x => h * x, fun x => h⁻¹ * x,
-    fun x => by simp [mul_assoc], fun x => by simp [mul_assoc]⟩
+    fun x => by simp, fun x => by simp⟩
   have he : (fun g : G => W (h * g)) = fun g => W (e g) := rfl
   rw [he]
   exact Equiv.sum_comp e W
@@ -119,7 +123,7 @@ theorem familyTwirl_tracePreserving {G : Type} [Group G] [Fintype G] {D : ℕ}
     {U : G → Operator D} (hU : IsUnitaryRep U) : TracePreserving (FamilyTwirl U) := by
   intro A
   have hcard : ((Fintype.card G : ℂ)) ≠ 0 := by
-    haveI : Nonempty G := ⟨1⟩
+    have : Nonempty G := ⟨1⟩
     exact_mod_cast Fintype.card_ne_zero
   have htr : ∀ j : G, Matrix.trace (U j * A * (U j).conjTranspose) = Matrix.trace A :=
     fun j => trace_conj_unitary (hU.1 j) A
@@ -188,7 +192,7 @@ theorem familyTwirl_idempotent {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G
     fun k => sum_mul_right_reindex (fun m : G => U m * ρ * (U m).conjTranspose) k
   simp only [hinner, sum_const_card_smul]
   have hcard : ((Fintype.card G : ℂ)) ≠ 0 := by
-    haveI : Nonempty G := ⟨1⟩
+    have : Nonempty G := ⟨1⟩
     exact_mod_cast Fintype.card_ne_zero
   have hscal : (((Fintype.card G : ℂ)⁻¹) * ((Fintype.card G : ℂ)⁻¹)) * (Fintype.card G : ℂ)
       = ((Fintype.card G : ℂ)⁻¹) := by
@@ -233,10 +237,10 @@ theorem pauli_family_conj_sum (ρ : Operator 2) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.add_apply, Matrix.smul_apply, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.one_apply, px00, px01, px10, px11, py00, py01, py10, py11,
-      pz00, pz01, pz10, pz11, Complex.I_mul_I, Complex.I_sq]
+      px00, px01, px10, px11, py00, py01, py10, py11,
+      pz00, pz01, pz10, pz11]
   all_goals try ring_nf
-  all_goals try simp only [Complex.I_sq, Complex.I_mul_I]
+  all_goals try simp only [Complex.I_sq]
   all_goals ring
 
 /-- The four-element Pauli twirl sends every qubit operator to one half of its trace times the
@@ -275,8 +279,8 @@ theorem clause4_conj1 (D : ℕ) (G : Type) (hG : Fintype G) (hGg : Group G) (U :
       (∀ ρ : Operator D, FamilyTwirl U (FamilyTwirl U ρ) = FamilyTwirl U ρ) ∧
       (∀ (g : G) (ρ : Operator D),
         FamilyTwirl U (U g * ρ * (U g).conjTranspose) = FamilyTwirl U ρ) := by
-  letI := hG
-  letI := hGg
+  let := hG
+  let := hGg
   exact ⟨familyTwirl_completelyPositive U, familyTwirl_tracePreserving hU,
     familyTwirl_idempotent hU, familyTwirl_conj_invariant hU⟩
 
@@ -374,7 +378,7 @@ theorem unitary_entry_norm_le_one {D : ℕ} {V : Operator D} (hV : IsUnitaryMatr
     have h : (V.conjTranspose * V) q q = (1 : Operator D) q q := by rw [hV.1]
     rw [hform] at h
     have hone : ((1 : Operator D) q q : ℂ) = 1 := by
-      simp [Matrix.one_apply]
+      simp
     rw [hone] at h
     exact h
   have hconj : ∀ z : ℂ, star z * z = ((‖z‖ ^ 2 : ℝ) : ℂ) := by
@@ -401,7 +405,7 @@ theorem unitary_entry_norm_le_one {D : ℕ} {V : Operator D} (hV : IsUnitaryMatr
 theorem haar_conjEntry_integrable {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Operator D)
     (i j : Fin D) : MeasureTheory.Integrable
       (fun B : Operator D => (B * ρ * B.conjTranspose) i j) H.μ := by
-  haveI : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
+  have : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
   have hmeas : MeasureTheory.AEStronglyMeasurable
       (fun B : Operator D => (B * ρ * B.conjTranspose) i j) H.μ :=
     (measurable_conjEntry ρ i j).stronglyMeasurable.aestronglyMeasurable
@@ -528,7 +532,6 @@ theorem haar_projection_formula {D : ℕ} (H : HaarUnitaryMeasure D) :
     rw [MeasureTheory.integral_const]
     change (H.μ).real Set.univ • (HaarTwirl H ρ) i j = (HaarTwirl H ρ) i j
     rw [haar_prob_real_univ H]
-    change (1 : ℝ) • (HaarTwirl H ρ) i j = (HaarTwirl H ρ) i j
     rw [one_smul]
   exact hkey.symm
 
@@ -586,14 +589,14 @@ theorem channelAmplification_conjEntry_integrable {D r : ℕ} (H : HaarUnitaryMe
     (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) (u v : Fin r × Fin D) :
     MeasureTheory.Integrable
       (fun M : Operator D => ChannelAmplification (conjBranch M) r A u v) H.μ := by
-  haveI : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
+  have : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
   exact haar_conjEntry_integrable H (fun i j => A (u.1, i) (v.1, j)) u.2 v.2
 
 /-- Every finite blockwise amplification of the Haar twirl preserves positive semidefiniteness. -/
 theorem haarTwirl_amplification_posSemidef {D r : ℕ} (H : HaarUnitaryMeasure D)
     (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) (hA : A.PosSemidef) :
     (ChannelAmplificationFn (HaarTwirl H) r A).PosSemidef := by
-  haveI : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
+  have : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
   have hentry : ∀ u v : Fin r × Fin D,
       (ChannelAmplificationFn (HaarTwirl H) r A) u v
         = MeasureTheory.integral H.μ
@@ -719,7 +722,7 @@ theorem clause4_conj3 (D : ℕ) (H : HaarUnitaryMeasure D) :
       (∀ (W ρ : Operator D), IsUnitaryMatrix W →
         HaarTwirl H (W * ρ * W.conjTranspose) = HaarTwirl H ρ) ∧
       HaarProjectionFormula H :=
-  ⟨⟨fun r A hA => haarTwirl_amplification_posSemidef H A hA, haarTwirl_tracePreserving H⟩,
+  ⟨⟨fun _r A hA => haarTwirl_amplification_posSemidef H A hA, haarTwirl_tracePreserving H⟩,
     haarTwirl_idempotent H, haarTwirl_conj_invariant H, haar_projection_formula H⟩
 
 /-- Finite representation twirls and Haar twirls have the stated channel, invariance, and

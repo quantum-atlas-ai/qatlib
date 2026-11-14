@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedError.CutoffChain
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.CutoffChain
+
+@[expose] public section
 
 /-!
 # Recursive leakage remainders along cutoff chains

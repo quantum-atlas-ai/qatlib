@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Cluster CZ preparation and instrument
@@ -101,14 +105,14 @@ theorem clusterCZInitialFrame_isometry : IsIsometry clusterCZInitialFrame := by
         unfold clusterCZInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = clusterCZRegisterEquiv (teleportOutcomeEquiv.symm i, (false, false))
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply,
         Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ
           (clusterCZRegisterEquiv (teleportOutcomeEquiv.symm i, (false, false)))
           (fun _ => (1 : ℂ)),
-        if_pos (Finset.mem_univ _)]
+        ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Fin 16,
           clusterCZInitialFrameᴴ i r * clusterCZInitialFrame r j = 0 := by
@@ -117,8 +121,8 @@ theorem clusterCZInitialFrame_isometry : IsIsometry clusterCZInitialFrame := by
         unfold clusterCZInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = clusterCZRegisterEquiv (teleportOutcomeEquiv.symm i, (false, false))
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr, star_zero, zero_mul]
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr, star_zero, zero_mul]
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r),
         Finset.sum_const_zero]
       simp [hij]
@@ -427,8 +431,8 @@ theorem clusterCZDecoded (x y : Bool) :
   funext p
   obtain ⟨⟨a', d'⟩, ⟨b, c⟩⟩ := p
   cases x <;> cases y <;> cases a' <;> cases d' <;> cases b <;> cases c <;>
-    simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm, mul_left_comm] <;> ring_nf <;>
-      try (rw [pow_two, sqrt2_inv_sq]) <;> ring_nf
+    simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm, mul_left_comm] <;> ring_nf
+  all_goals norm_num [pow_two, sqrt2_inv_sq]
 
 /-- The logical Kraus matrix extracted at measurement outcomes `a` and `d` after preparation and
 decoding. -/

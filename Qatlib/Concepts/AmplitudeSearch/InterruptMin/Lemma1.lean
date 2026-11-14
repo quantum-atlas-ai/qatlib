@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.VisitLaw
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.VisitLaw
+
+@[expose] public section
 
 /-!
 # The minimum-search rank visit contract

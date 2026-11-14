@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSpecification
-import Qatlib.Concepts.WalkSearch.MainResults.PromisedEdgeSearch
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSpecification
+public import Qatlib.Concepts.WalkSearch.MainResults.PromisedEdgeSearch
+
+@[expose] public section
 
 /-!
 # Triangle coverage under an edge partition

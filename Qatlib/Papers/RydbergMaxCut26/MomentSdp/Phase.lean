@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.MomentSdp.PauliRotation
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.MomentSdp.PauliRotation
+
+@[expose] public section
 
 /-!
 # Phase averaging and the source moment matrix

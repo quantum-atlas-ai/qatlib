@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Pilot and main confidence budgets
@@ -65,7 +69,7 @@ noncomputable def pilotFourthMoment (q : FinDist X) (f : X → ℝ) : ℝ :=
 /-- The product law of `n` independent samples from the finite distribution `q`. -/
 noncomputable def pilotLaw (q : FinDist X) (n : ℕ) : FinDist (Fin n → X) where
   prob ω := q.probOf ω
-  nonneg ω := Finset.prod_nonneg fun i _ => q.nonneg _
+  nonneg _ω := Finset.prod_nonneg fun _i _ => q.nonneg _
   sum_one := q.sum_probOf n
 
 /-- The product probabilities of all `M`-block, length-`L` sample arrays sum to one. -/
@@ -90,7 +94,7 @@ theorem sum_mainBlockMass (q : FinDist X) (M L : ℕ) :
 /-- The product distribution on `M` independent blocks of `L` samples from `q`. -/
 noncomputable def mainLaw (q : FinDist X) (M L : ℕ) : FinDist (MainPhase M L X) where
   prob ω := ∏ m, q.probOf (ω m)
-  nonneg ω := Finset.prod_nonneg fun m _ => Finset.prod_nonneg fun i _ => q.nonneg _
+  nonneg _ω := Finset.prod_nonneg fun _m _ => Finset.prod_nonneg fun _i _ => q.nonneg _
   sum_one := sum_mainBlockMass q M L
 
 /-- The joint distribution of an independent length-`n` pilot sequence and `M` main blocks of

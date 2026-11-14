@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterKickbackFast
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionFast
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutFast
-import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmFast
-import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceFast
-import Qatlib.Concepts.GradientOracle.StepSizes.ClassicalQuantumStepSizesFast
-import Qatlib.Concepts.GradientOracle.GradientAlgo.AlmostAffineGradientOpti
-import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorOpti
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceDirectionalErrorOpti
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorOpti
-import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportOpti
-import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
-import Qatlib.Concepts.GradientOracle.GradientAlgo.GradientOracle
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterKickbackFast
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionFast
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutFast
+public import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmFast
+public import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceFast
+public import Qatlib.Concepts.GradientOracle.StepSizes.ClassicalQuantumStepSizesFast
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.AlmostAffineGradientOpti
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorOpti
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceDirectionalErrorOpti
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorOpti
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportOpti
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.GradientOracle
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+
+@[expose] public section
 
 /-!
 # Specifications of collected gradient guarantees
@@ -120,7 +124,7 @@ def stageB_fourier_gradient_gext3_spec : Prop :=
               (Finset.univ.filter (fun z => ∀ j : Fin d,
                 phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w)) ≥
             1 - 16 * (d : ℝ) / ((M : ℝ) * w)) ∧
-      (∀ (M : ℕ) (φ w : ℝ) (hM : 0 < M) (hw : 0 < w),
+      (∀ (M : ℕ) (φ w : ℝ) (_hM : 0 < M) (_hw : 0 < w),
         (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
           w < phaseDistance φ ((y.val : ℝ) / (M : ℝ))), ‖qpeKernel M φ y‖ ^ 2) ≤
           16 / ((M : ℝ) * w))) ∧
@@ -146,7 +150,7 @@ def stageB_fourier_gradient_gext3_spec : Prop :=
               (Finset.univ.filter (fun z => ∀ j : Fin d,
                 phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w)) ≥
             1 - readoutErrorBudget d M w δ) ∧
-    (∀ (d M : ℕ) (hM : 0 < M) (K k : ℕ),
+    (∀ (d M : ℕ) (_hM : 0 < M) (K k : ℕ),
       IsUnitaryCircuit (fullRangeGradientProgram d M K k) ∧
       QueryCount (fullRangeGradientProgram d M K k) = 1 ∧
       GateCount (fullRangeGradientProgram d M K k) = 2 * d + 1) ∧

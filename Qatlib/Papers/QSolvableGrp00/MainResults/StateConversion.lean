@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Algebra.Group.Subgroup.Pointwise
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Papers.QSolvableGrp00.MainResults.OrderFinding
+module
+
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.QuotientGroup.Defs
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Algebra.Group.Subgroup.Pointwise
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Papers.QSolvableGrp00.MainResults.OrderFinding
+
+@[expose] public section
 
 /-!
 # Coset states and relative orders
@@ -51,26 +55,30 @@ attribute [local instance] Classical.propDecidable
 noncomputable def cosetState (H : Subgroup G) (g : G) : QState G :=
   fun x => uniformSubgroupState H (g⁻¹ * x)
 
+omit [Fintype G] [DecidableEq G] in
 /-- The amplitude of the coset state is 1/√|H| when g⁻¹x lies in H and zero otherwise. -/
 theorem cosetState_apply (H : Subgroup G) (g x : G) :
     cosetState H g x =
       if g⁻¹ * x ∈ H then (((Real.sqrt (Nat.card ↥H) : ℝ)) : ℂ)⁻¹ else 0 := rfl
 
+omit [DecidableEq G] in
 /-- The uniform subgroup amplitude 1/√|H| is nonzero. -/
 theorem cosetAmplitude_ne_zero (H : Subgroup G) :
     (((Real.sqrt (Nat.card ↥H) : ℝ)) : ℂ)⁻¹ ≠ 0 := by
-  haveI : Nonempty ↥H := ⟨⟨1, H.one_mem⟩⟩
+  have : Nonempty ↥H := ⟨⟨1, H.one_mem⟩⟩
   have hpos : (0 : ℝ) < Nat.card ↥H := by exact_mod_cast Nat.card_pos
   have hsqrt : Real.sqrt (Nat.card ↥H) ≠ 0 := (Real.sqrt_pos.mpr hpos).ne'
   exact inv_ne_zero (Complex.ofReal_ne_zero.mpr hsqrt)
 
+omit [Fintype G] [DecidableEq G] in
 /-- The amplitude of the coset state at its representative g is 1/√|H|. -/
 theorem cosetState_apply_self (H : Subgroup G) (g : G) :
     cosetState H g g = (((Real.sqrt (Nat.card ↥H) : ℝ)) : ℂ)⁻¹ := by
   rw [cosetState_apply]
   have h1 : g⁻¹ * g ∈ H := by rw [inv_mul_cancel]; exact H.one_mem
-  rw [if_pos h1]
+  rw [ite_eq_left h1]
 
+omit [Fintype G] [DecidableEq G] in
 /-- The coset state for ag is obtained from the coset state for g by precomposing with left
 multiplication by a⁻¹. -/
 theorem cosetState_left_mul (H : Subgroup G) (a g : G) :
@@ -80,6 +88,7 @@ theorem cosetState_left_mul (H : Subgroup G) (a g : G) :
   congr 1
   group
 
+omit [DecidableEq G] in
 /-- Every uniform coset state is normalized. -/
 theorem normalized_cosetState (H : Subgroup G) (g : G) : Normalized (cosetState H g) := by
   unfold Normalized
@@ -91,11 +100,13 @@ theorem normalized_cosetState (H : Subgroup G) (g : G) : Normalized (cosetState 
   rw [h]
   exact normalized_uniformSubgroupState H
 
+omit [DecidableEq G] in
 /-- A coset state has inner product one with itself. -/
 theorem inner_cosetState_self (H : Subgroup G) (g : G) :
     Inner (cosetState H g) (cosetState H g) = 1 :=
   (normalized_iff_inner_self _).mp (normalized_cosetState H g)
 
+omit [DecidableEq G] in
 /-- Two uniform left coset states are equal exactly when g⁻¹g' lies in H. -/
 theorem cosetState_congr_iff (H : Subgroup G) {g g' : G} :
     cosetState H g = cosetState H g' ↔ g⁻¹ * g' ∈ H := by
@@ -106,7 +117,7 @@ theorem cosetState_congr_iff (H : Subgroup G) {g g' : G} :
     by_cases hmem : (g')⁻¹ * g ∈ H
     · have hinv : ((g')⁻¹ * g)⁻¹ ∈ H := H.inv_mem hmem
       simpa [mul_inv_rev] using hinv
-    · rw [if_neg hmem] at h1
+    · rw [ite_eq_right hmem] at h1
       exact (cosetAmplitude_ne_zero H h1).elim
   · intro hmem
     funext x
@@ -122,18 +133,19 @@ theorem cosetState_congr_iff (H : Subgroup G) {g g' : G} :
         rw [h2]
         exact H.mul_mem hmem hx
     by_cases hx : g⁻¹ * x ∈ H
-    · rw [if_pos hx, if_pos (hiff.mp hx)]
-    · rw [if_neg hx, if_neg (fun h => hx (hiff.mpr h))]
+    · rw [ite_eq_left hx, ite_eq_left (hiff.mp hx)]
+    · rw [ite_eq_right hx, ite_eq_right (fun h => hx (hiff.mpr h))]
 
+omit [DecidableEq G] in
 /-- The inner product of two uniform coset states is one for the same left coset and zero for
 distinct left cosets. See [Watrous2001]. -/
 theorem inner_cosetState_eq (H : Subgroup G) (g g' : G) :
     Inner (cosetState H g) (cosetState H g') =
       if g⁻¹ * g' ∈ H then 1 else 0 := by
   by_cases hmem : g⁻¹ * g' ∈ H
-  · rw [if_pos hmem, (cosetState_congr_iff H).mpr hmem]
+  · rw [ite_eq_left hmem, (cosetState_congr_iff H).mpr hmem]
     exact inner_cosetState_self H g'
-  · rw [if_neg hmem, inner_apply]
+  · rw [ite_eq_right hmem, inner_apply]
     refine Finset.sum_eq_zero fun x _ => ?_
     rcases Classical.em (g⁻¹ * x ∈ H) with hx | hx
     · have hx' : ¬((g')⁻¹ * x ∈ H) := by
@@ -142,21 +154,23 @@ theorem inner_cosetState_eq (H : Subgroup G) (g g' : G) :
         have h2 : g⁻¹ * g' = (g⁻¹ * x) * ((g')⁻¹ * x)⁻¹ := by group
         rw [h2]
         exact H.mul_mem hx (H.inv_mem hc)
-      rw [cosetState_apply, cosetState_apply, if_neg hx']
+      rw [cosetState_apply, cosetState_apply, ite_eq_right hx']
       simp
-    · rw [cosetState_apply, if_neg hx]
+    · rw [cosetState_apply, ite_eq_right hx]
       simp
 
 /-- The left translation action on state amplitudes, given by precomposition with multiplication
 by a⁻¹. -/
 noncomputable def leftMulState (a : G) (ψ : QState G) : QState G := fun y => ψ (a⁻¹ * y)
 
+omit [Fintype G] [DecidableEq G] in
 /-- Left translation by a sends the coset state for gH to the coset state for agH. -/
 theorem leftMulState_cosetState (H : Subgroup G) (a g : G) :
     leftMulState a (cosetState H g) = cosetState H (a * g) := by
   funext y
   exact congrFun (cosetState_left_mul H a g).symm y
 
+omit [DecidableEq G] in
 /-- Right multiplication of a coset representative by an element of H preserves its coset state. -/
 theorem cosetState_mul_mem (H : Subgroup G) (g : G) {x : G} (hx : x ∈ H) :
     cosetState H (g * x) = cosetState H g := by
@@ -165,6 +179,7 @@ theorem cosetState_mul_mem (H : Subgroup G) (g : G) {x : G} (hx : x ∈ H) :
   rw [h]
   exact H.inv_mem hx
 
+omit [Fintype G] [DecidableEq G] in
 /-- If g normalizes H, conjugating an element of H by the inverse of a natural power of g
 remains in H. -/
 theorem conj_pow_mem_of_mem_normalizer (H : Subgroup G) {g : G}
@@ -178,6 +193,7 @@ theorem conj_pow_mem_of_mem_normalizer (H : Subgroup G) {g : G}
     exact this x
   exact (hmem h).mp hh
 
+omit [DecidableEq G] in
 /-- If g normalizes H and h₀ lies in H, left translation by g^j h₀ sends the power coset state
 at a to that at a + j. See [Watrous2001]. -/
 theorem leftMul_cosetState_of_mem_normalizer (H : Subgroup G) {g : G}
@@ -192,6 +208,7 @@ theorem leftMul_cosetState_of_mem_normalizer (H : Subgroup G) {g : G}
 
 section RelOrder
 
+omit [DecidableEq G] in
 /-- Some positive natural power of g belongs to H. -/
 theorem relOrder_exists (H : Subgroup G) (g : G) : ∃ n, 0 < n ∧ g ^ n ∈ H := by
   refine ⟨orderOf g, orderOf_pos g, ?_⟩
@@ -202,30 +219,36 @@ theorem relOrder_exists (H : Subgroup G) (g : G) : ∃ n, 0 < n ∧ g ^ n ∈ H 
 noncomputable def relOrder (H : Subgroup G) (g : G) : ℕ :=
   Nat.find (relOrder_exists H g)
 
+omit [DecidableEq G] in
 /-- The relative order is positive and its corresponding power of g lies in H. -/
 theorem relOrder_spec (H : Subgroup G) (g : G) :
     0 < relOrder H g ∧ g ^ relOrder H g ∈ H :=
   Nat.find_spec (relOrder_exists H g)
 
+omit [DecidableEq G] in
 /-- The relative order is strictly positive. -/
 theorem relOrder_pos (H : Subgroup G) (g : G) : 0 < relOrder H g :=
   (relOrder_spec H g).1
 
+omit [DecidableEq G] in
 /-- Raising g to its relative order gives an element of H. -/
 theorem pow_relOrder_mem (H : Subgroup G) (g : G) : g ^ relOrder H g ∈ H :=
   (relOrder_spec H g).2
 
+omit [DecidableEq G] in
 /-- The relative order is at most every positive exponent whose power of g lies in H. -/
 theorem relOrder_min (H : Subgroup G) (g : G) {k : ℕ} (hk : 0 < k) (hmem : g ^ k ∈ H) :
     relOrder H g ≤ k :=
   Nat.find_min' (relOrder_exists H g) ⟨hk, hmem⟩
 
+omit [DecidableEq G] in
 /-- Every natural multiple of the relative order gives a power of g lying in H. -/
 theorem pow_relOrder_mul_mem (H : Subgroup G) (g : G) (t : ℕ) :
     g ^ (relOrder H g * t) ∈ H := by
   rw [pow_mul]
   exact H.pow_mem (pow_relOrder_mem H g) t
 
+omit [DecidableEq G] in
 /-- Adding a natural multiple of the relative order to a power exponent preserves the coset
 state. -/
 theorem cosetState_pow_add_mul_eq (H : Subgroup G) (g : G) (n t : ℕ) :
@@ -235,6 +258,7 @@ theorem cosetState_pow_add_mul_eq (H : Subgroup G) (g : G) (n t : ℕ) :
   have h : g ^ (relOrder H g * t) ∈ H := pow_relOrder_mul_mem H g t
   simpa [mul_inv_rev, mul_assoc] using H.inv_mem h
 
+omit [DecidableEq G] in
 /-- If r equals the relative order, adding a natural multiple of r to a power exponent preserves
 the coset state. -/
 theorem cosetState_pow_add_mul_eq_of_eq (H : Subgroup G) (g : G) {r : ℕ}
@@ -267,6 +291,7 @@ theorem zmod_val_add_nat_eq (a : ZMod r) (j : ℕ) :
   rw [zmod_val_add_nat]
   exact (Nat.mod_add_div (a.val + j) r).symm
 
+omit [DecidableEq G] in
 /-- When r is the relative order, reducing a.val + j modulo r preserves the corresponding power
 coset state. -/
 theorem cosetState_pow_val_add (H : Subgroup G) (g : G) (hr : r = relOrder H g)
@@ -276,6 +301,7 @@ theorem cosetState_pow_val_add (H : Subgroup G) (g : G) (hr : r = relOrder H g)
   rw [hval]
   exact cosetState_pow_add_mul_eq_of_eq H g hr.symm _ _
 
+omit [DecidableEq G] in
 /-- If g normalizes H and r is its relative order, translation by g^j h₀ multiplies the phase
 state indexed by b by the standard character at −jb. See [Watrous2001]. -/
 theorem leftMul_phaseState_of_mem_normalizer (H : Subgroup G) {g : G}
@@ -333,6 +359,7 @@ theorem leftMul_phaseState_of_mem_normalizer (H : Subgroup G) {g : G}
 
 end Fourier
 
+omit [Fintype G] [DecidableEq G] in
 /-- If g normalizes H, conjugating an element of H by the inverse of any integer power of g
 remains in H. -/
 theorem conj_zpow_mem_of_mem_normalizer (H : Subgroup G) {g : G}
@@ -342,6 +369,7 @@ theorem conj_zpow_mem_of_mem_normalizer (H : Subgroup G) {g : G}
     Subgroup.zpow_mem (Subgroup.normalizer (H : Set G)) hg j
   exact (Subgroup.mem_normalizer_iff''.mp hgpow h).mp hh
 
+omit [Fintype G] [DecidableEq G] in
 /-- If g normalizes H, every element of the subgroup generated by H and g has the form g^j h for
 an integer j and h ∈ H. -/
 theorem mem_sup_zpowers_rep (H : Subgroup G) {g : G}
@@ -369,6 +397,7 @@ theorem mem_sup_zpowers_rep (H : Subgroup G) {g : G}
     exact ⟨j, 1, H.one_mem, by simp⟩
   exact sup_le hHP hGP hx
 
+omit [DecidableEq G] in
 /-- If g normalizes H and r is its relative order, every element of the enlarged subgroup has
 the form g^a.val h for a ∈ `ZMod r` and h ∈ H. -/
 theorem mem_sup_zpowers_rep_mod (H : Subgroup G) {g : G}
@@ -377,7 +406,7 @@ theorem mem_sup_zpowers_rep_mod (H : Subgroup G) {g : G}
     ∃ (a : ZMod r) (h : G), h ∈ H ∧ x = g ^ a.val * h := by
   obtain ⟨j, h, hh, rfl⟩ := mem_sup_zpowers_rep H hg hx
   have hrpos : 0 < r := hr.symm ▸ relOrder_pos H g
-  haveI : NeZero r := ⟨hrpos.ne'⟩
+  have : NeZero r := ⟨hrpos.ne'⟩
   set s : ℤ := j % (r : ℤ) with hsdef
   have hsnonneg : 0 ≤ s := Int.emod_nonneg j (by exact_mod_cast hrpos.ne')
   have hslt : s < (r : ℤ) := by
@@ -413,11 +442,12 @@ noncomputable def cosetRep (H : Subgroup G) (g : G) (r : ℕ) :
     exact show g ^ p.1.val * (p.2 : G) ∈ H ⊔ Subgroup.zpowers g from by
       rw [sup_comm]; exact Subgroup.mul_mem_sup h1 h2⟩
 
+omit [DecidableEq G] in
 /-- The representative map is injective when r equals the relative order of g modulo H. -/
 theorem cosetRep_injective (H : Subgroup G) {g : G} (r : ℕ) (hr : r = relOrder H g) :
     Function.Injective (cosetRep H g r) := by
   have hrpos : 0 < r := hr.symm ▸ relOrder_pos H g
-  haveI : NeZero r := ⟨hrpos.ne'⟩
+  have : NeZero r := ⟨hrpos.ne'⟩
   rintro ⟨a, h⟩ ⟨a', h'⟩ heq
   simp only [cosetRep, Subtype.mk.injEq] at heq
   have hmemH : ∀ {d : ℕ}, 0 < d → d < r → g ^ d ∉ H := by
@@ -470,6 +500,7 @@ theorem cosetRep_injective (H : Subgroup G) {g : G} (r : ℕ) (hr : r = relOrder
       rw [hd]; exact H.inv_mem hmem
     exact (hmemH hpos hlt' this).elim
 
+omit [DecidableEq G] in
 /-- The representative map is surjective when g normalizes H and r equals its relative order. -/
 theorem cosetRep_surjective (H : Subgroup G) {g : G}
     (hg : g ∈ Subgroup.normalizer (H : Set G)) (r : ℕ) (hr : r = relOrder H g) :
@@ -481,6 +512,7 @@ theorem cosetRep_surjective (H : Subgroup G) {g : G}
   simp only [cosetRep]
   exact hx.symm
 
+omit [DecidableEq G] in
 /-- If g normalizes H, the subgroup generated by H and g has cardinality equal to the relative
 order times |H|. See [Watrous2001]. -/
 theorem card_sup_zpowers (H : Subgroup G) {g : G}
@@ -488,7 +520,7 @@ theorem card_sup_zpowers (H : Subgroup G) {g : G}
     Nat.card ↥(H ⊔ Subgroup.zpowers g) = relOrder H g * Nat.card ↥H := by
   set r := relOrder H g with hr
   have hrpos : 0 < r := hr.symm ▸ relOrder_pos H g
-  haveI : NeZero r := ⟨hrpos.ne'⟩
+  have : NeZero r := ⟨hrpos.ne'⟩
   have e : ZMod r × ↥H ≃ ↥(H ⊔ Subgroup.zpowers g) :=
     Equiv.ofBijective (cosetRep H g r)
       ⟨cosetRep_injective H r hr.symm, cosetRep_surjective H hg r hr.symm⟩

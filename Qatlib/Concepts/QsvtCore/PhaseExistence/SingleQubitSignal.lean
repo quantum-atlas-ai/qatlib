@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+@[expose] public section
 
 /-!
 # Single-qubit signal and reflection words

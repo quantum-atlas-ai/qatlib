@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Quantum.CommunicationProtocols
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Quantum.CommunicationProtocols
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ protocol has cost `C · B · log(mn)` (`B` the number of oracle calls, up to the
 player count), then `hard / log(mn) ≤ C · B`.  This is the single step turning
 Theorem 20 into Propositions 21--23. -/
 theorem kappa_over_log_lower_bound (κ hard C B L' : ℝ)
-    (hL : 0 < L') (hC : 0 ≤ C)
+    (hL : 0 < L') (_hC : 0 ≤ C)
     (hhard : hard ≤ C * B * L') (hκ : κ ≤ hard) :
     κ / L' ≤ C * B := by
   have h1 : κ * L'⁻¹ ≤ (C * B * L') * L'⁻¹ :=
@@ -99,7 +103,7 @@ copies of `|b⟩`), where `κ = √n` is the condition number of the constructed
 Here `hard = kn` is the Set-Disjointness communication hardness and the algorithm induces a
 protocol of cost `≤ C·(T+k)·log(qkn)` (Theorem 20). -/
 theorem matrix_inversion_query_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c)
-    (hc : 0 ≤ c) (k n T q m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
+    (hc : 0 ≤ c) (k n T q _m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
     (hkn : 3200 * k ≤ n) (C : ℝ) (hC : 0 ≤ C)
     (p : RandProtocol k (SetDJInput k n))
     (hs : p.Succeeds setDJAnswer (1 - (1 : ℚ) / (k : ℚ) ^ 3))
@@ -129,7 +133,7 @@ theorem matrix_inversion_query_lower_bound (c : ℝ) (hSD : SetDisjointnessHardn
 Set-Disjointness construction `A` is diagonal with `A_ii = a_i` and `t = ½ ln n`, so
 `e^t = √n` (`exp_half_log_eq_sqrt`). -/
 theorem matrix_exponential_query_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c)
-    (hc : 0 ≤ c) (k n T q m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
+    (hc : 0 ≤ c) (k n T q _m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
     (hkn : 3200 * k ≤ n) (t : ℝ) (ht : Real.exp t = Real.sqrt (n : ℝ))
     (C : ℝ) (hC : 0 ≤ C)
     (p : RandProtocol k (SetDJInput k n))
@@ -160,7 +164,7 @@ theorem matrix_exponential_query_lower_bound (c : ℝ) (hSD : SetDisjointnessHar
 /-- **Proposition 23, `κ^d` part (p. 15).**  With `A_ii = 1` or `ε`, `ε^{2d} n = 1`, we have
 `κ^d = √n` for `κ = 1/ε`; preparing `|A^d b⟩` then needs `Ω(κ^d / log(mn))` oracle calls. -/
 theorem matrix_powers_kappa_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c)
-    (hc : 0 ≤ c) (k n T q m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
+    (hc : 0 ≤ c) (k n T q _m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
     (hkn : 3200 * k ≤ n) (κ : ℝ) (d : ℕ) (hκ : κ ^ d ≤ Real.sqrt (n : ℝ))
     (C : ℝ) (hC : 0 ≤ C)
     (p : RandProtocol k (SetDJInput k n))
@@ -187,7 +191,7 @@ theorem matrix_powers_kappa_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness
 `γ = ‖A^d b‖/‖b‖ = 1/√n`, i.e. `1/γ = √n`; preparing `|A^d b⟩` needs `Ω(1/(γ log(mn)))`
 oracle calls. -/
 theorem matrix_powers_gamma_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c)
-    (hc : 0 ≤ c) (k n T q m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
+    (hc : 0 ≤ c) (k n T q _m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
     (hkn : 3200 * k ≤ n) (γ : ℝ) (hγ : γ = 1 / Real.sqrt (n : ℝ))
     (C : ℝ) (hC : 0 ≤ C)
     (p : RandProtocol k (SetDJInput k n))
@@ -215,7 +219,7 @@ theorem matrix_powers_gamma_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness
 /-- **Proposition 23, combined form (p. 15).**  `Ω((κ^d + 1/γ)/log(mn))` lower bound for
 preparing `|A^d b⟩`, obtained by summing the two regimes up to a factor `2` in the constant. -/
 theorem matrix_powers_query_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c)
-    (hc : 0 ≤ c) (k n T q m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
+    (hc : 0 ≤ c) (k n T q _m : ℕ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hq : 0 < q)
     (hkn : 3200 * k ≤ n) (κ γ : ℝ) (d : ℕ)
     (hcomb : κ ^ d + 1 / γ ≤ 2 * (Real.sqrt (n : ℝ)))
     (C : ℝ) (hC : 0 ≤ C)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineWeightBounds
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineWeightBounds
+
+@[expose] public section
 
 /-!
 # Infinite cosine sampling identities

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Mathlib.Data.Nat.Bits
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Mathlib.Data.Nat.Bits
+
+@[expose] public section
 
 /-!
 # Canonical bit-word encodings and emission plans

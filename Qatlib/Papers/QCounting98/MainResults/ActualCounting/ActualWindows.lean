@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem6AmplitudeEstimationQuan
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem6AmplitudeEstimationQuan
+
+@[expose] public section
 
 /-!
 # Counting accuracy for Boolean-oracle circuits

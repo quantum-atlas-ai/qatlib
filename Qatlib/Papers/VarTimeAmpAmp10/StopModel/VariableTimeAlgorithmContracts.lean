@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeProgramDefs
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeProgramDefs
+
+@[expose] public section
 
 /-!
 # Coherent variable-time amplification contract

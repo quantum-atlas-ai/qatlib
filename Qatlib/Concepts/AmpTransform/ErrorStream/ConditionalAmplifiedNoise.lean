@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.DistinctFourierNoise
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.DistinctFourierNoise
+
+@[expose] public section
 
 /-!
 # Conditional noise inclusion laws and Fourier moments
@@ -144,7 +148,7 @@ private theorem conditional_pair_inclusion {X : Type} [DecidableEq X]
       omega
     have hm : conditionalNoiseMean C L (fun S => if x ∈ S ∧ y ∈ S then 1 else 0) = 0 := by
       unfold conditionalNoiseMean
-      rw [Finset.sum_eq_zero (fun S hS => if_neg (he S hS))]
+      rw [Finset.sum_eq_zero (fun S hS => ite_eq_right (he S hS))]
       simp
     rw [hm]
     have hl01 : L = 0 ∨ L = 1 := by omega
@@ -208,7 +212,7 @@ private theorem conditional_fourier_expand {N : ℕ} [NeZero N]
   unfold distinctNoiseFourier
   calc
     _ = ∑ x ∈ S, (if x ∈ S then ZMod.stdAddChar (x*y) else 0) := by
-      exact Finset.sum_congr rfl fun x hx => (if_pos hx).symm
+      exact Finset.sum_congr rfl fun x hx => (ite_eq_left hx).symm
     _ = _ := Finset.sum_subset hS (by intros; simp_all)
 
 /-- For a feasible layer in a set of size at least two, compute the conditional Fourier mean and
@@ -233,7 +237,7 @@ private theorem conditional_fourier_moments (N L : ℕ) [NeZero N]
         if x=w then p else q := by
     by_cases he : x=w
     · subst w; simpa only [and_self, ite_true] using! hp x hx
-    · rw [if_neg he]
+    · rw [ite_eq_right he]
       have hh := congrArg Complex.ofReal (hij x hx w hw he)
       simpa [conditionalComplexMean, conditionalNoiseMean, q] using! hh
   have hu (x : ZMod N) : χ x*star (χ x) = 1 := by
@@ -271,7 +275,7 @@ private theorem conditional_fourier_moments (N L : ℕ) [NeZero N]
         rw [hpq x w hx hw]
         by_cases hh : w=x
         · subst w; simp only [ite_true]; ring
-        · simp only [if_neg hh, if_neg (Ne.symm hh), add_zero]; ring
+        · simp only [ite_eq_right hh, ite_eq_right (Ne.symm hh), add_zero]; ring
       rw [Finset.sum_congr rfl he, Finset.sum_add_distrib, ← Finset.mul_sum]
       simp only [Finset.sum_ite_eq', hx, ite_true, hu, mul_one]
       rw [distinctNoiseFourier, star_sum]

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Prop2Arboricity
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Prop2Arboricity
+
+@[expose] public section
 
 /-!
 # Exact norm estimates for weighted star matrices
@@ -153,6 +157,7 @@ lemma starMatrix_center_sq_bound {c : ι} {w : ι → ℂ} (hc : w c = 0) (v : �
     (Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ.erase c)
       (fun j => ‖w j‖) (fun j => ‖v j‖))
 
+omit [Nonempty ι] in
 /-- With zero center weight, the squared Euclidean norm of the star matrix applied to `v` is at
 most `(∑ i, ‖w i‖²) * (∑ i, ‖v i‖²)` [ChildsKothari2010]. -/
 lemma starMatrix_sum_sq_bound {c : ι} {w : ι → ℂ} (hc : w c = 0) (v : ι → ℂ) :
@@ -195,6 +200,7 @@ lemma starMatrix_sum_sq_bound {c : ι} {w : ι → ℂ} (hc : w c = 0) (v : ι �
       (fun _ _ => sq_nonneg _) (Finset.mem_univ c)
   nlinarith [hcenterbound, hVc_le]
 
+omit [Nonempty ι] in
 /-- With zero center weight, the spectral norm of the star matrix is `√(∑ i, ‖w i‖²)`
 [ChildsKothari2010]. -/
 theorem specNorm_starMatrix {c : ι} {w : ι → ℂ} (hc : w c = 0) :

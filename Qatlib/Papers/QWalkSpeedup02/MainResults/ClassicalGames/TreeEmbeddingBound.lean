@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
-import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Arithmetic for the tree embedding success bound

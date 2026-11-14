@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorHyper20.PhysicalTHC.PhysicalModes
-import Qatlib.Papers.TensorHyper20.MainResults.LambdaTHC
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.OrientedSelect
+module
+
+public import Qatlib.Papers.TensorHyper20.PhysicalTHC.PhysicalModes
+public import Qatlib.Papers.TensorHyper20.MainResults.LambdaTHC
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.OrientedSelect
+
+@[expose] public section
 
 /-!
 # Physical SELECT terms and compression identities

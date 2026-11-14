@@ -4,45 +4,49 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Prod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Prod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Finite measurement apparatus shifts
@@ -102,6 +106,7 @@ omit [Fintype I] [DecidableEq I] [NeZero M] in
 def jointDelta (n : I) (x : ZMod M) : I × ZMod M → ℂ :=
   fun p => if p = (n, x) then 1 else 0
 
+omit [Fintype I] [NeZero M] in
 /-- The controlled translation sends the basis amplitude at `(n, x)` to the basis amplitude at
 `(n, x + E n)`. -/
 theorem jointShift_delta (E : I → ZMod M) (n : I) (x : ZMod M) :
@@ -132,6 +137,7 @@ theorem jointShift_norm (E : I → ZMod M) (Ψ : I × ZMod M → ℂ) :
   unfold jointShift
   exact Equiv.sum_comp (shiftPerm E).symm (fun p => Complex.normSq (Ψ p))
 
+omit [Fintype I] [DecidableEq I] [NeZero M] in
 /-- Translating by `E` and then by `-E` restores the original joint amplitude function. -/
 theorem jointShift_inverse (E : I → ZMod M) (Ψ : I × ZMod M → ℂ) :
     jointShift (fun n => -E n) (jointShift E Ψ) = Ψ := by
@@ -166,6 +172,7 @@ theorem appProb_total (Ψ : I × ZMod M → ℂ) :
   rw [Finset.sum_comm]
   rw [Fintype.sum_prod_type]
 
+omit [DecidableEq I] [NeZero M] in
 /-- After controlled translation, the marginal weight at `x` is the sum of `Complex.normSq (ξ
 n)` over all indices with `x = x0 + E n`. This retains all indices sharing the same pointer
 readout in the finite apparatus model of [LidarWang1999]. -/
@@ -183,6 +190,7 @@ theorem apparatus_marginal (E : I → ZMod M) (ξ : I → ℂ) (x0 x : ZMod M) :
   · rw [ite_eq_right (fun hh => h (hiff.mp hh)), ite_eq_right h]
     simp
 
+omit [DecidableEq I] in
 /-- The total pointer marginal weight after translating `coherentState ξ x0` equals the sum of
 squared system amplitudes `ξ`. -/
 theorem apparatus_marginal_total (E : I → ZMod M) (ξ : I → ℂ) (x0 : ZMod M) :

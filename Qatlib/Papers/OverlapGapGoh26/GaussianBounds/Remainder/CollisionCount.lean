@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
+
+@[expose] public section
 
 /-!
 # Counting repeated tensor indices
@@ -84,7 +88,7 @@ theorem repeated_tuple_card (q N : ℕ) :
   have hb (ab:Fin q×Fin q) : (C ab).card≤N^(q-1) := by
     by_cases h:ab.1=ab.2
     · simp [C,h]
-    · simpa only [C,if_neg h] using collision_card ab.1 ab.2 h
+    · simpa only [C,ite_eq_right h] using collision_card ab.1 ab.2 h
   calc
     _ ≤ (Finset.univ.biUnion C).card := Finset.card_le_card hcover
     _ ≤ ∑ ab∈(Finset.univ:Finset (Fin q×Fin q)),(C ab).card := Finset.card_biUnion_le

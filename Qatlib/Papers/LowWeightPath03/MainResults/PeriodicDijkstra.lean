@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Asymptotics.Defs
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Nat.Cast.Order.Field
-import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryBudgetSuccess
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Asymptotics.Defs
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryBudgetSuccess
+
+@[expose] public section
 
 /-!
 # Periodic quantum Dijkstra work bounds

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.MomentSdp.DensityMoment
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.MomentSdp.DensityMoment
+
+@[expose] public section
 
 /-!
 # Global Pauli rotations and phase conjugation

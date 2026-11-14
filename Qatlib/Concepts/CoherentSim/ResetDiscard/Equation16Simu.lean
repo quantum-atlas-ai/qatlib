@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Simu
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Simu
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Reduced-state bounds for oblivious amplification
@@ -104,7 +108,7 @@ theorem oaa_cubic_contraction {J I : Type*} [Fintype J] [DecidableEq J]
   have hc : BlockCorner O j₀=((3/s : ℝ) : ℂ) • X-((4/s^3 : ℝ) : ℂ) • (X*Xᴴ*X) := by
     ext i j
     have hv := congrArg (fun A : Matrix (J × I) (J × I) ℂ => A (j₀,i) (j₀,j)) he
-    simpa only [fiberEmbed_apply, and_self, if_true] using hv
+    simpa only [fiberEmbed_apply, and_self, ite_true] using hv
   rw [← hc, ← compress_encodingFiber_blockCorner]
   exact l2_norm_compress_le_one (encodingFiber_isIsometry j₀) hO (encodingFiber_isIsometry j₀)
 

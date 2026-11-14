@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoalTigh
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3CorrectedTigh
-import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.NeedleSearch
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoal
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3Corrected
+public import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.NeedleSearch
+
+@[expose] public section
 
 /-!
 # Expected costs for search with an unknown marked count

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceMoment
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceMoment
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

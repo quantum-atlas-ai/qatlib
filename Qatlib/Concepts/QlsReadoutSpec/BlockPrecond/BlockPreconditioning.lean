@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # State-direction scaling for block preconditioning

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultivarMean21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.MultivarMean21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,10 +36,10 @@ Output-error and resource specification corresponding to lemma4.2.
 its output semantics and recorded resource usage. No such implementation or
 existence proof is supplied here; the legacy records alone do not restrict access
 to the full input. -/
-def lemma4_2_statement {d : ℕ} (hd : 0 < d) (ε η : ℝ) (hε : 0 < ε) (hε' : ε < 1)
-    (hη : 0 < η) (hη' : η < 1) (m : ℕ)
-    (hm : ε / (6 * Real.sqrt (d : ℝ)) ≤ (m : ℝ))
-    (r : FinRV d) (hbox : r.InBox (1 / 4))
+def lemma4_2_statement {d : ℕ} (_hd : 0 < d) (ε η : ℝ) (_hε : 0 < ε) (_hε' : ε < 1)
+    (_hη : 0 < η) (_hη' : η < 1) (m : ℕ)
+    (_hm : ε / (6 * Real.sqrt (d : ℝ)) ≤ (m : ℝ))
+    (r : FinRV d) (_hbox : r.InBox (1 / 4))
     (Implemented : PhaseEncoding d → Prop) : Prop :=
     ∃ PE : PhaseEncoding d,
       Implemented PE ∧

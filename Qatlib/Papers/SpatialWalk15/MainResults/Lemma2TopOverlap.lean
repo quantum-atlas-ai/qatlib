@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+module
+
+public import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+
+@[expose] public section
 
 /-!
 # Eigenvector overlap from rank-one concentration
@@ -58,6 +62,8 @@ theorem norm_sq_add_fromVec (x y : QState I) (h : Inner x y = 0) :
   have hsum : toEuclidean_fromVec (x + y) = toEuclidean_fromVec x + toEuclidean_fromVec y := rfl
   rw [hsum, norm_add_sq (𝕜 := ℂ), hinner]
   simp
+
+omit [DecidableEq I] in
 
 /-- The inner product of two normalized states has norm at most one. -/
 theorem norm_inner_le_one (s x : QState I) (hs : Normalized s) (hx : Normalized x) :

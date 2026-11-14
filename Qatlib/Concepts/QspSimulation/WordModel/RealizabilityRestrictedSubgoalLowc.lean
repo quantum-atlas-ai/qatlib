@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.RealizabilityRestrictedSubgoalStat
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.RealizabilityRestrictedSubgoalStat
+
+@[expose] public section
 
 /-!
 # A quadratic QSP realizability example
@@ -37,13 +41,13 @@ theorem phaseRotation_zero : PhaseRotation (0 : ℝ) = 1 := by
   ext a b
   rw [phaseRotation_apply, Matrix.one_apply]
   by_cases hab : a = b
-  · rw [if_pos hab, if_pos hab]
+  · rw [ite_eq_left hab, ite_eq_left hab]
     by_cases ha : a = 0
-    · rw [if_pos ha]
+    · rw [ite_eq_left ha]
       simp
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       simp
-  · rw [if_neg hab, if_neg hab]
+  · rw [ite_eq_right hab, ite_eq_right hab]
 
 /-- The QSP word with phase list `[0, 0]` equals the square of `SignalMatrix x`. -/
 theorem qspWord_zero_zero (x : ℝ) :
@@ -65,8 +69,8 @@ theorem realizabilityRestrictedSubgoal : RealizabilityRestrictedSubgoal := by
     _ = (x : ℂ) * (x : ℂ) + ((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I
           * (((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I) := by
         rw [signalMatrix_apply, signalMatrix_apply, signalMatrix_apply]
-        rw [if_pos rfl, if_neg (by decide : ¬((0 : Fin 2) = 1)),
-          if_neg (by decide : ¬((1 : Fin 2) = 0))]
+        rw [ite_eq_left rfl, ite_eq_right (by decide : ¬((0 : Fin 2) = 1)),
+          ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
     _ = ((2 * x ^ 2 - 1 : ℝ) : ℂ) := by
         have h1 : (((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I)
             * (((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I)

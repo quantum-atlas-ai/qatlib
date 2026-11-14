@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
-import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Walk intersections and spectral multiplicities

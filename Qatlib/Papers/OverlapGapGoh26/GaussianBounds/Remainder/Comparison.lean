@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CubeRounding
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CubeRounding
+
+@[expose] public section
 
 /-!
 # Comparing cube and binary minimum energies
@@ -73,7 +77,7 @@ theorem optimum_gap_inclusion {q N:ℕ} (ε:ℝ) :
     {A:Tensor q N|2*ε<binaryGround A-cubeOpt A}⊆
       {A|∃u∈hilbertCube N,ε≤|tensorEnergy (repeated A) u|} := by
   intro A hA
-  simp only [Set.mem_setOf_eq] at hA ⊢
+  simp only [Set.mem_ofPred_eq] at hA ⊢
   by_contra! hbad
   have h:= (optimum_gap_bound A ε (fun u hu=>(hbad u hu).le)).2
   linarith

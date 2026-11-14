@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+
+@[expose] public section
 
 /-!
 # Proof of the corrected sine-envelope HHL specification
@@ -58,11 +62,11 @@ theorem theorem1ActualProgram : Theorem1ActualProgramCorrected :=
   ⟨⟨sin_envelope_filter_bounded, sin_envelope_filter_branch_values,
      sin_envelope_h_normalized, sin_envelope_flag_rotation_unitary_and_column,
      sin_envelope_state_normalized_and_prep, sin_envelope_word_legality_and_counts⟩,
-   fun D M hM eig V B j d η hV hB hd hη hη1 heig hbudget =>
+   fun _D M hM eig V B j d η hV hB hd hη hη1 heig hbudget =>
      ⟨sin_envelope_hhl_full_workspace_error M hM eig V B j d η hV hB hd hη hη1 heig hbudget,
       sin_envelope_postselection_mass_stability M hM eig V B j d η hV hB hd hη hη1 heig
         hbudget⟩,
-   fun D M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget =>
+   fun _D M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget =>
      ⟨sin_envelope_conditional_well_output_error M hM eig V B j d η hV hB hd h2d hη hη1 heig
          hbudget,
       sin_envelope_well_mass_stability M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget,

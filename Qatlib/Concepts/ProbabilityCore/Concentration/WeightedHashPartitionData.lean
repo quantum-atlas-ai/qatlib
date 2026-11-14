@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVectorData
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVectorData
+
+@[expose] public section
 
 /-!
 # Hash partitions and side information weights

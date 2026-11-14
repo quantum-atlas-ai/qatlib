@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramStatePreparationSubgoalStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramStatePreparationSubgoalStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+@[expose] public section
 
 /-!
 # Finite reflection preparation of Gram states

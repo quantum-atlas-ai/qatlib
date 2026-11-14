@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMatchingFlow05.QueryBounds.FlowLowerBound
+module
+
+public import Qatlib.Papers.QMatchingFlow05.QueryBounds.FlowLowerBound
+
+@[expose] public section
 
 /-!
 # Transfer of matching query lower bounds

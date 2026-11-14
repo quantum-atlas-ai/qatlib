@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.InvariantSubspaceSubgoal
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.InvariantSubspaceSubgoal
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+@[expose] public section
 
 /-!
 # LCU Invariant Plane Construction

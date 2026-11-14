@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Finite-precision contract checks and counterexamples
@@ -586,7 +590,7 @@ theorem constOutMachine_script (W : List Bool) {i : ℕ}
         (constOutScript W).getD i (Turing.TM0.Stmt.write none)) := by
   have h0 : ¬ (i + 1 : ℕ) = 0 := by omega
   have hi' : (i + 1 : ℕ) ≤ (constOutScript W).length := by omega
-  simp [constOutMachine, h0, hi']
+  simp [constOutMachine, hi']
 
 /-- The final state of `constOutMachine W` has no outgoing transition, regardless of the current
 tape symbol. -/
@@ -594,7 +598,7 @@ theorem constOutMachine_halt (W : List Bool) (g : Option Bool) :
     constOutMachine W ⟨(constOutScript W).length + 1, by omega⟩ g = none := by
   have h0 : ¬ ((constOutScript W).length + 1 : ℕ) = 0 := by omega
   have h1 : ¬ ((constOutScript W).length + 1 : ℕ) ≤ (constOutScript W).length := by omega
-  simp [constOutMachine, h0, h1]
+  simp [constOutMachine, h1]
 
 /-- A machine transition returning state `q'` and instruction `st` yields the configuration with
 state `q'` and tape `stmtApply st T`. -/
@@ -1118,7 +1122,7 @@ theorem foldl_probStep_out_length {w L : ℕ} (c : AccessContract L) (s : ProbSt
   | nil => simp
   | cons x l ih =>
     rw [List.foldl_cons, ih, probStep_out_length, List.filter_cons]
-    cases hx : isEmit x <;> simp [hx] <;> omega
+    cases hx : isEmit x <;> simp; omega
 
 /-- The output length of a probabilistic program equals the number of `emit` instructions,
 independently of the access contract and coin record. -/

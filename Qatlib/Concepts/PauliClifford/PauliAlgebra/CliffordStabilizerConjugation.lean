@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Clifford covariance of stabilizer projectors

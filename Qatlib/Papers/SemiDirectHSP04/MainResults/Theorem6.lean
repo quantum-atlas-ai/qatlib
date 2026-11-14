@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition4
-import Mathlib.Data.Fin.VecNotation
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition4
+public import Mathlib.Data.Fin.VecNotation
+
+@[expose] public section
 
 /-!
 # Five classes of prime-power cyclic actions
@@ -228,7 +232,7 @@ theorem exhaust (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) (hu : u ^ q = 1) :
     ∃ i : Fin 5, classVec p q r u i := by
   classical
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
   have hdvd : orderOf u ∣ q := orderOf_dvd_iff_pow_eq_one.mpr hu
   rcases (Nat.dvd_prime hq).mp hdvd with h1 | hq'
   · have hu1 : u = 1 := orderOf_eq_one_iff.mp h1

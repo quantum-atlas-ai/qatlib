@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
+module
+
+public import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
+
+@[expose] public section
 
 /-!
 # Alternating parity identities for controlled gates
@@ -62,13 +66,13 @@ theorem prod_bitSign_eq_pow {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) 
   | insert a S ha ih =>
     rw [Finset.prod_insert ha, ih, Finset.filter_insert]
     by_cases hxa : x a = true
-    · rw [if_pos hxa]
+    · rw [ite_eq_left hxa]
       have hmem : a ∉ S.filter (fun i => x i) := by
         simp only [Finset.mem_filter]
         exact fun h => ha h.1
       rw [Finset.card_insert_of_notMem hmem, pow_succ]
       simp [bitSign, hxa]
-    · rw [if_neg hxa]
+    · rw [ite_eq_right hxa]
       simp [bitSign, hxa]
 
 /-- The subset sign equals `-1` raised to the cardinality of the true coordinates in the subset. -/
@@ -95,11 +99,11 @@ theorem prod_one_sub_bitSign {m : ℕ} (x : Fin m → Bool) :
       if (∀ i, x i = true) then (2 : ℚ) ^ m else 0 := by
   classical
   by_cases h : ∀ i, x i = true
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h2 : ∀ i, bitSign (x i) = -1 := fun i => by simp [bitSign, h i]
     simp only [h2, show (1 : ℚ) - (-1) = 2 by norm_num]
     rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     push Not at h
     obtain ⟨i, hi⟩ := h
     apply Finset.prod_eq_zero (Finset.mem_univ i)
@@ -205,11 +209,11 @@ theorem altSum_identity {m : ℕ} (hm : 1 ≤ m) (x : Fin m → Bool) :
   have hprod := prod_one_sub_bitSign x
   rw [hprod]
   by_cases hall : ∀ i, x i = true
-  · rw [if_pos hall, if_pos hall]
+  · rw [ite_eq_left hall, ite_eq_left hall]
     have hp : (2 : ℚ) ^ m = 2 ^ (m - 1) * 2 := by
       rw [← pow_succ, Nat.sub_add_cancel hm]
     rw [hp]; ring
-  · rw [if_neg hall, if_neg hall]; ring
+  · rw [ite_eq_right hall, ite_eq_right hall]; ring
 
 /-- There are exactly `2^m - 1` nonempty subsets of `Fin m`. -/
 theorem card_nonempty_subsets (m : ℕ) :

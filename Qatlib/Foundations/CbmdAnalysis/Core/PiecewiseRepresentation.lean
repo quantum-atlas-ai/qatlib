@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.FastLCU
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxSeriesIdentity
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.FastLCU
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxSeriesIdentity
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Evolutions from finite piecewise-continuous inputs
@@ -227,7 +231,7 @@ theorem lPiece_positive (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a
     simpa only [Matrix.IsHermitian, Matrix.star_eq_conjTranspose] using!
       (isClosed_eq (continuous_star : Continuous (fun M : Matrix I I ℂ => star M)) continuous_id)
   have hc : IsClosed {M : Matrix I I ℂ | M.PosSemidef} := by
-    simp only [Matrix.posSemidef_iff_dotProduct_mulVec, Set.setOf_and, Set.setOf_forall]
+    simp only [Matrix.posSemidef_iff_dotProduct_mulVec, Set.ofPred_and, Set.ofPred_forall]
     apply hherm.inter
     apply isClosed_iInter
     intro x
@@ -235,7 +239,7 @@ theorem lPiece_positive (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a
       simp only [dotProduct, Matrix.mulVec]
       fun_prop
     have hz : IsClosed {z : ℂ | 0 ≤ z} := by
-      simp only [Complex.nonneg_iff, Set.setOf_and]
+      simp only [Complex.nonneg_iff, Set.ofPred_and]
       exact (isClosed_le continuous_const Complex.continuous_re).inter
         (isClosed_eq continuous_const Complex.continuous_im)
     exact hz.preimage hq

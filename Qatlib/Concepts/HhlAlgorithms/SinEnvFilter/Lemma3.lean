@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.FilterBounds
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.FilterBounds
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+
+@[expose] public section
 
 /-!
 # Corrected relative stability of HHL filters

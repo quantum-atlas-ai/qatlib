@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.PhaseOracle.ActualRun
+module
+
+public import Qatlib.Papers.QGradient20.PhaseOracle.ActualRun
+
+@[expose] public section
 
 /-!
 # Phase estimation on unit vector inputs
@@ -46,6 +50,7 @@ open Qatlib.Papers.QGradient20.PhaseOracle Qatlib.Papers.QGradient20.PhaseOracle
 namespace Qatlib.Papers.QGradient20.PhaseOracle.UnitInput
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The coordinate function of a unit Euclidean vector is a normalized pure state. -/
 theorem unit_input_normalized (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) : Normalized (WithLp.ofLp x) := by
   rw [normalized_iff_inner_self,← inner_euclidean_fromVec]

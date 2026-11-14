@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.SignedBridge.RealCoefficientFairBitSubgoalStat
-import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+module
+
+public import Qatlib.Concepts.DiamondQdrift.SignedBridge.RealCoefficientFairBitSubgoalStat
+public import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+
+@[expose] public section
 
 /-!
 # Finite coin qDRIFT for real coefficients

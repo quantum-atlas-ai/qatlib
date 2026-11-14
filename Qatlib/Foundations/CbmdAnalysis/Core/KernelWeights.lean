@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightAlgebra
-import Mathlib.Topology.Algebra.InfiniteSum.Real
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightAlgebra
+public import Mathlib.Topology.Algebra.InfiniteSum.Real
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 /-!
 # Summability of integer sampling weights

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Stat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Stat
+
+@[expose] public section
 
 /-!
 # Generalized amplitude amplification phase action

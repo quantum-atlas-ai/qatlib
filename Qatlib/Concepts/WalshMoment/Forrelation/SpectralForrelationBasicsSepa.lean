@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsStat
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsStat
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Bounds and optimal witnesses for spectral forrelation
@@ -51,9 +55,9 @@ private theorem charProjector_norm_le_one (n : ℕ) (f : Reg n → Bool) :
   rw [charProjector, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg zero_le_one]
   intro i
   by_cases h : f i
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     norm_num
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     norm_num
 
 /-- The product `charProjector n U * HadamardN n * charProjector n S` has Euclidean operator

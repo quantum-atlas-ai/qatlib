@@ -4,185 +4,189 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Rat
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.Rat
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Rat
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.Group.Unbundled.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.IsBotOne
-import Mathlib.Algebra.Order.Monoid.Canonical.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Ring.Rat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Pow
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Order.Lattice
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Arcosh
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.NNRat.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Field
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Rat.Defs
-import Mathlib.Data.Rat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Insert
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.ZMod.Defs
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Logic.Function.Defs
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.MeasureTheory.Measure.Restrict
-import Mathlib.MeasureTheory.OuterMeasure.AE
-import Mathlib.Order.Basic
-import Mathlib.Order.Bounds.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.AtTopBot.Archimedean
-import Mathlib.Order.Filter.AtTopBot.Defs
-import Mathlib.Order.Filter.AtTopBot.Field
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Filter.Tendsto
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Order.Lattice
-import Mathlib.Order.Monotone.Basic
-import Mathlib.Order.Monotone.Defs
-import Mathlib.Order.Notation
-import Mathlib.Order.RelClasses
-import Mathlib.RingTheory.Etale.Weakly
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.TotallySplit
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.GroupWithZero
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Basic
-import Mathlib.Topology.Constructions.SumProd
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.ContinuousOn
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Topology.Instances.Rat
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
-import Mathlib.Topology.Neighborhoods
-import Mathlib.Topology.Order.Basic
-import Mathlib.Topology.Order.OrderClosed
-import Mathlib.Topology.UniformSpace.Defs
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Rat
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Basic
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.Rat
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Rat
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.Group.Unbundled.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.IsBotOne
+public import Mathlib.Algebra.Order.Monoid.Canonical.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Ring.Rat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Convex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Order.Lattice
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Arcosh
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.NNRat.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Data.Rat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Insert
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.MeasureTheory.Measure.Restrict
+public import Mathlib.MeasureTheory.OuterMeasure.AE
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Bounds.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.AtTopBot.Archimedean
+public import Mathlib.Order.Filter.AtTopBot.Defs
+public import Mathlib.Order.Filter.AtTopBot.Field
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Filter.Tendsto
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.Monotone.Basic
+public import Mathlib.Order.Monotone.Defs
+public import Mathlib.Order.Notation
+public import Mathlib.Order.RelClasses
+public import Mathlib.RingTheory.Etale.Weakly
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.TotallySplit
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.GroupWithZero
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Basic
+public import Mathlib.Topology.Constructions.SumProd
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.ContinuousOn
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.Defs.Filter
+public import Mathlib.Topology.Instances.Rat
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
+public import Mathlib.Topology.Neighborhoods
+public import Mathlib.Topology.Order.Basic
+public import Mathlib.Topology.Order.OrderClosed
+public import Mathlib.Topology.UniformSpace.Defs
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+
+@[expose] public section
 
 /-!
 # Symmetric costs, spike barriers, and bush Hamiltonians
@@ -318,16 +322,16 @@ theorem spinSx_isHermitian (n : ℕ) : (spinSx n).IsHermitian := by
   · have h2 : ¬ ((j : ℕ) + 1 = (i : ℕ)) := by omega
     have hcast : (j : ℝ) = (i : ℝ) + 1 := by
       rw [← h1]; push_cast; ring
-    simp only [h1, h2, if_true, if_false]
+    simp only [h1, h2, ite_true, ite_false]
     rw [hcast]
     ring_nf
   · by_cases h2 : ((j : ℕ) + 1 = (i : ℕ))
     · have hcast : (i : ℝ) = (j : ℝ) + 1 := by
         rw [← h2]; push_cast; ring
-      simp only [h1, h2, if_true, if_false]
+      simp only [h1, h2, ite_true, ite_false]
       rw [hcast]
       ring_nf
-    · simp only [h1, h2, if_false]
+    · simp only [h1, h2, ite_false]
 
 /-- The scaled transverse-field matrix `((n - 1) / 2) • ((n / 2) • 1 - spinSx n)`. -/
 def spinH0 (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
@@ -574,25 +578,25 @@ theorem cost13_full (q n : ℕ) :
 [FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_spike (n : ℕ) (_hn : 4 ∣ n) : spikeCost n (n / 4) = (n : ℝ) := by
   unfold spikeCost
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- Away from weight `n / 4`, the spike cost equals the Hamming weight
 [FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_off (n w : ℕ) (h : w ≠ n / 4) : spikeCost n w = (w : ℝ) := by
   unfold spikeCost
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- For length `4 * m`, the spike cost at weight `m` equals `4 * m` [FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_four_mul (m : ℕ) : spikeCost (4 * m) m = ((4 * m : ℕ) : ℝ) := by
   unfold spikeCost
-  rw [if_pos]
+  rw [ite_eq_left]
   exact (Nat.mul_div_cancel_left m (by norm_num : 0 < 4)).symm
 
 /-- For length `4 * m`, the spike cost at weight `m + 1` equals `m + 1`. -/
 theorem spikeCost_four_mul_succ (m : ℕ) :
     spikeCost (4 * m) (m + 1) = ((m + 1 : ℕ) : ℝ) := by
   unfold spikeCost
-  rw [if_neg]
+  rw [ite_eq_right]
   rw [Nat.mul_div_cancel_left m (by norm_num : 0 < 4)]
   omega
 
@@ -1114,7 +1118,7 @@ weight [FarhiGoldstoneGutmann2002]. -/
 theorem spikeWeight_eq_plain (n w : ℕ) (τ : ℝ) (h : w ≠ n / 4) :
     spikeBoltzmannWeight n τ w = plainWeight n τ w := by
   unfold spikeBoltzmannWeight plainWeight boltzmannWeight plainCost spikeCost
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- At length `4 * m` and weight `m`, the consecutive-weight ratio is `(3 * m / (m + 1)) *
 Real.exp (-(1 / τ))`. -/
@@ -1245,7 +1249,7 @@ theorem bushCost_eq_scaled (n : ℕ) (z0 : Bool) (w : ℕ) (hn : 0 < n) :
     bushCost n z0 w
       = (n : ℝ) * bushScaledCost z0 ((w : ℝ) / (n : ℝ)) + (if z0 then 0 else 1) := by
   cases z0 <;>
-    simp only [bushCost, bushScaledCost, if_true, if_false, Bool.false_eq_true]
+    simp only [bushCost, bushScaledCost, ite_true, ite_false, Bool.false_eq_true]
   · ring
   · have h : (n : ℝ) * (1 - (w : ℝ) / (n : ℝ)) + 0 = (n : ℝ) - (w : ℝ) := by
       field_simp [hn.ne']
@@ -1255,8 +1259,9 @@ theorem bushCost_eq_scaled (n : ℕ) (z0 : Bool) (w : ℕ) (hn : 0 < n) :
 /-- The bush entropy contribution equals `-τ * Real.binEntropy u` [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy0_eq (τ u : ℝ) :
     bushFreeEnergy0 τ u = -τ * Real.binEntropy u := by
-  unfold bushFreeEnergy0 Real.binEntropy
-  rw [Real.log_inv, Real.log_inv]
+  unfold bushFreeEnergy0
+  rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   ring
 
 /-- At positive temperature, the bush entropy contribution attains a global minimum at `u = 1 /
@@ -1323,7 +1328,7 @@ theorem hasDerivAt_gSym (q u : ℝ) :
     have h3 : HasDerivAt (fun x : ℝ => 4 * q * x) (4 * q) u := by
       simpa using (hasDerivAt_id u).const_mul (4 * q)
     have h4 := h3.mul h2
-    convert! h4 using 1 <;> ring
+    convert! h4 using 1; ring
   have hB : HasDerivAt (fun x : ℝ => 4 * x ^ 2 * (1 - x)) (8 * u * (1 - u) - 4 * u ^ 2) u := by
     have h1 : HasDerivAt (fun x : ℝ => 1 - x) (-1) u := by
       simpa using! (hasDerivAt_const (x := u) (c := (1 : ℝ))).sub (hasDerivAt_id u)
@@ -1332,7 +1337,7 @@ theorem hasDerivAt_gSym (q u : ℝ) :
     have h3 : HasDerivAt (fun x : ℝ => 4 * x ^ 2) (4 * (2 * u ^ (2 - 1) * 1)) u :=
       h2.const_mul 4
     have h4 := h3.mul h1
-    convert! h4 using 1 <;> ring
+    convert! h4 using 1; ring
   have hC : HasDerivAt (fun x : ℝ => (4 / 3) * x ^ 3) ((4 / 3) * (3 * u ^ (3 - 1) * 1)) u :=
     ((hasDerivAt_id u).pow 3).const_mul (4 / 3)
   have h := hA.add (hB.add hC)
@@ -1370,8 +1375,9 @@ theorem gSym_pos (q : ℝ) (hq : 0 ≤ q) (u : ℝ) (hu0 : 0 < u) (hu1 : u < 1) 
 [FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_eq (q a u : ℝ) :
     freeEnergySym q a u = gSym q u - a * Real.binEntropy u := by
-  unfold freeEnergySym Real.binEntropy
-  rw [Real.log_inv, Real.log_inv]
+  unfold freeEnergySym
+  rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   ring
 
 /-- The scaled symmetric cost at one half equals `q / 2 + 2 / 3`. -/
@@ -1601,8 +1607,9 @@ def entropyTerm (u : ℝ) : ℝ := (1 - u) * Real.log (1 - u) + u * Real.log u
 /-- The logarithmic entropy term is the negative of `Real.binEntropy u`
 [FarhiGoldstoneGutmann2002]. -/
 theorem entropyTerm_eq_neg_binEntropy (u : ℝ) : entropyTerm u = - Real.binEntropy u := by
-  unfold entropyTerm Real.binEntropy
-  rw [Real.log_inv, Real.log_inv]
+  unfold entropyTerm
+  rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   ring
 
 /-- The symmetric free energy splits as `gSym q u + a * entropyTerm u`

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
+
+@[expose] public section
 
 /-!
 # A gap in uniform sinh moment bounds

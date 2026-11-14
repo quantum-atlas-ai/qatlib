@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Self-tomography with an inverse-cubic copy bound

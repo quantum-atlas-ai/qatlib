@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -60,7 +64,7 @@ if `gcd(a, N) ≠ 1` then `gcd(a, N)` is a nontrivial factor of `N`, i.e.
 
 Here `a < N` encodes the paper's range `a ∈ {2, …, N−1}`; without it the gcd
 could equal `N`. -/
-theorem theorem1_classical_gcd_yields_factor (N a : ℕ) (hN : 1 < N)
+theorem theorem1_classical_gcd_yields_factor (N a : ℕ) (_hN : 1 < N)
     (ha2 : 2 ≤ a) (haN : a < N) (hgcd : Nat.gcd a N ≠ 1) :
     1 < Nat.gcd a N ∧ Nat.gcd a N < N ∧ Nat.gcd a N ∣ N := by
   have hpos : 0 < Nat.gcd a N := Nat.gcd_pos_of_pos_left N (by omega)
@@ -104,7 +108,7 @@ leaves `p ≤ 1`).
 Uses the theorem
 `Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.factorTreeOf_complete`. -/
 theorem theorem1_finds_all_factors (split : ∀ n, Option (ProperDivisor n)) :
-    ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
+    ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOf split n).complete :=
   factorTreeOf_complete split
 
@@ -117,8 +121,8 @@ The hypotheses are the paper's setting rather than soundness conditions: the
 divisor property itself holds unconditionally (see
 `theorem1_attempt_yields_nontrivial_factor`); the hypotheses are what makes the
 retry loop of Lemma 1 terminate with probability at least `1/2`. -/
-theorem theorem1_miller (N M : ℕ) [NeZero N] (hN : 1 < N) (hodd : Odd N)
-    (hk : 2 ≤ N.primeFactors.card) (t : AttemptOutcome N M) (d : ℕ)
+theorem theorem1_miller (N M : ℕ) [NeZero N] (_hN : 1 < N) (_hodd : Odd N)
+    (_hk : 2 ≤ N.primeFactors.card) (t : AttemptOutcome N M) (d : ℕ)
     (h : attemptOutcomeFactor N M t = some d) :
     1 < d ∧ d < N ∧ d ∣ N :=
   attemptOutcomeFactor_sound N M t d h

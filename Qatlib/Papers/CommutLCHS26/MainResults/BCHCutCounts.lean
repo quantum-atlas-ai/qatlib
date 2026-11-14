@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordCuts
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHEulerian
-import Mathlib.Data.List.Sort
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordCuts
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHEulerian
+public import Mathlib.Data.List.Sort
+
+@[expose] public section
 
 /-!
 # Cut counts and Eulerian logarithm coefficients
@@ -72,7 +76,7 @@ theorem wordCoefficient_reduced (xs w : List α) (hxs : xs.Pairwise (· < ·))
     (hw : w.Nodup) (hsub : w ⊆ xs) (hne : w ≠ []) :
     wordCoefficient (reducedWord xs) w = if w.Pairwise (· < ·) then 1 else 0 := by
   rw [reducedWord, wordCoefficient_sub, wordCoefficient_word_sublist xs w hxs.nodup hw,
-    wordCoefficient_one, if_neg hne, sub_zero]
+    wordCoefficient_one, ite_eq_right hne, sub_zero]
   simp only [sublist_iff_pairwise xs w hxs hsub]
 
 /-- A prefix containing the first two letters is strictly increasing exactly when the first
@@ -107,7 +111,7 @@ theorem wordCoefficient_pow_gap (xs : List α) (hxs : xs.Pairwise (· < ·))
   rw [wordCoefficient_pow_succ _ (reducedWord_graded xs) (reducedWord_constant xs)]
   have hsub' : (b :: w) ⊆ xs := fun _ hc => hsub (List.mem_cons_of_mem a hc)
   by_cases hab : a < b
-  · rw [if_pos hab]
+  · rw [ite_eq_left hab]
     apply Finset.sum_congr rfl
     intro i hi
     have hn : ((a :: b :: w).take (i + 2)) ≠ [] := by simp
@@ -119,7 +123,7 @@ theorem wordCoefficient_pow_gap (xs : List α) (hxs : xs.Pairwise (· < ·))
       (fun _ hc => hsub' (List.mem_of_mem_take hc)) hn']
     simp only [List.take_succ_cons, List.pairwise_cons_cons_iff_of_trans, hab, true_and,
       List.drop_succ_cons]
-  · rw [if_neg hab]
+  · rw [ite_eq_right hab]
     apply Finset.sum_eq_zero
     intro i hi
     have hn : ((a :: b :: w).take (i + 2)) ≠ [] := by simp
@@ -165,7 +169,7 @@ theorem wordCoefficient_reduced_pow (xs : List α) (hxs : xs.Pairwise (· < ·))
   | nil => simp only [wordCoefficient_pow_empty, cutPolynomial, Polynomial.coeff_one]
   | cons a w ih =>
     cases k with
-    | zero => rw [pow_zero, wordCoefficient_one, if_neg (by simp), cutPolynomial_zero]
+    | zero => rw [pow_zero, wordCoefficient_one, ite_eq_right (by simp), cutPolynomial_zero]
     | succ k =>
       cases w with
       | nil =>

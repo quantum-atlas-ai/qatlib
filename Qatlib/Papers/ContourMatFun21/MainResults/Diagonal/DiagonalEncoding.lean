@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContourMatFun21.MainResults.Common.BlockEncodingDefs
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.ContourMatFun21.MainResults.Common.BlockEncodingDefs
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,7 +45,7 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 namespace Qatlib.Papers.ContourMatFun21.MainResults
 
-variable {M : Type*} [Fintype M] [DecidableEq M]
+variable {M : Type*} [instFintypeM : Fintype M] [DecidableEq M]
 
 /-- `R_y(ϕ) = e^{i(ϕ/2)σ_y} = [[cos(ϕ/2), sin(ϕ/2)], [−sin(ϕ/2), cos(ϕ/2)]]`. -/
 def Ry (ϕ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
@@ -111,8 +115,11 @@ private lemma rz_unitary (φ : ℝ) : Rz φ ∈ Matrix.unitaryGroup (Fin 2) ℂ 
       push_cast; ring] at h
     exact h
 
+omit instFintypeM in
 /-- `blockDiag2` is Mathlib's `Matrix.blockDiagonal` (Proposition 12, p. 12). -/
-private lemma blockDiag2_eq_blockDiagonal (B : M → Matrix (Fin 2) (Fin 2) ℂ) :
+private lemma blockDiag2_eq_blockDiagonal {M : Type*}
+    [_instFintypeM : Fintype M]
+    [_instDecidableEqM : DecidableEq M] (B : M → Matrix (Fin 2) (Fin 2) ℂ) :
     blockDiag2 B = Matrix.blockDiagonal B := rfl
 
 /-- The `(0,0)` entry of `R_z(φ) R_y(ϕ)` is `e^{iφ/2} cos(ϕ/2)`
@@ -133,7 +140,7 @@ condition `e^{iφ_k/2}·‖d_k‖ = d_k`. -/
 theorem proposition12
     (d : M → ℂ) (dmax : ℝ) (ϕ φ : M → ℝ)
     (hdmax : 0 < dmax)
-    (hmax : ∀ k, ‖d k‖ ≤ dmax)
+    (_hmax : ∀ k, ‖d k‖ ≤ dmax)
     (hcos : ∀ k, Real.cos (ϕ k / 2) = ‖d k‖ / dmax)
     (hexp : ∀ k, Complex.exp (Complex.I * (φ k / 2)) * ((‖d k‖ : ℝ) : ℂ) = d k) :
     IsApproxBlockEncoding (blockDiag2 (fun k => Rz (φ k) * Ry (ϕ k))) (0 : Fin 2)

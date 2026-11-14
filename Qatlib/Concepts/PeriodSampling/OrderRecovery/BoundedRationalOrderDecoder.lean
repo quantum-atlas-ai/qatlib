@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.ModularOrderPhaseReadout
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.ModularOrderPhaseReadout
+
+@[expose] public section
 
 /-!
 # Bounded rational decoding for modular orders
@@ -221,7 +225,7 @@ theorem bounded_rational_actual_decoder_unique_recovery :
   have hwZ := (boundedRational_window_iff M y p q hM hq).mp hw
   refine ⟨?_, boundedRationalDecode_count B M y⟩
   unfold boundedRationalDecode
-  rw [if_neg hM.ne']
+  rw [ite_eq_right hM.ne']
   apply boundedRationalScan_unique
   · exact (mem_boundedRationalPairs B p q).mpr ⟨hq, hqB, hpq⟩
   · exact decide_eq_true ⟨hc, hwZ⟩

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiracEquation16.SpinGates.Spin
+module
+
+public import Qatlib.Papers.DiracEquation16.SpinGates.Spin
+
+@[expose] public section
 
 /-!
 # Ordered alternating-direction Dirac steps

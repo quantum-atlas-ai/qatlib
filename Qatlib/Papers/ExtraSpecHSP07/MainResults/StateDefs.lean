@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.WeylDefs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.WeylDefs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Sheet coordinates and hiding-state functions
@@ -89,7 +93,7 @@ theorem z_pow_congr {A B : ℕ} (h : (A : ZMod p) = (B : ZMod p)) :
 /-- An integer power of the central generator equals the natural power given by its residue
 modulo `p`. -/
 theorem zpow_eq_pow_val (k : ℤ) : S.z ^ k = S.z ^ ((k : ZMod p).val) := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   have hpos : (0 : ℤ) < (p : ℤ) := by
     have : 0 < p := S.prime.pos
     exact_mod_cast this
@@ -194,7 +198,7 @@ theorem leftCosetN_mul_iff {a x s : G} (hs : s ∈ S.HZ) :
 its central translate in the `S.H` coset. -/
 theorem exists_sheet {a x : G} (hx : x ∈ S.leftCosetN a) :
     ∃ i : ZMod p, a⁻¹ * (x * S.z ^ (-((i.val : ℕ) : ℤ))) ∈ S.H := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   obtain ⟨h, hh, k, hk⟩ := hx
   refine ⟨(k : ZMod p), ?_⟩
   have hz : S.z ^ (k - (((k : ZMod p).val : ℕ) : ℤ)) = 1 := by
@@ -231,13 +235,13 @@ element of `S.H`. -/
 theorem ezOf_spec {x : G} (hx : x ∈ S.HZ) :
     ∃ h : G, h ∈ S.H ∧ x = h * S.z ^ (((S.ezOf x).val : ℕ) : ℤ) := by
   unfold ezOf
-  rw [dif_pos hx]
+  rw [dite_eq_left hx]
   exact Classical.choose_spec (S.exists_ez hx)
 
 /-- The central coordinate of `h * S.z^k`, with `h ∈ S.H`, is the residue of `k` modulo `p`. -/
 theorem ezOf_eq_of_decomp {x h : G} (hh : h ∈ S.H) {k : ℤ}
     (hx : x = h * S.z ^ k) : S.ezOf x = (k : ZMod p) := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   have hxN : x ∈ S.HZ := ⟨h, hh, k, hx⟩
   obtain ⟨h', hh', hx'⟩ := S.ezOf_spec hxN
 
@@ -420,7 +424,7 @@ theorem state_apply {u : ZMod p} {a x : G} :
 theorem state_apply_some {u : ZMod p} {a x : G} (hx : x ∈ S.leftCosetN a) :
     S.state u a x = some (-(u * S.sheetOf a x)) := by
   classical
-  rw [S.state_apply, if_pos hx]
+  rw [S.state_apply, ite_eq_left hx]
 
 /-- The state function has a nonempty value exactly on the `S.HZ` coset represented by `a`. -/
 theorem state_ne_none_iff {u : ZMod p} {a x : G} :
@@ -428,7 +432,7 @@ theorem state_ne_none_iff {u : ZMod p} {a x : G} :
   classical
   by_cases hx : x ∈ S.leftCosetN a
   · rw [S.state_apply_some hx]; simp [hx]
-  · rw [S.state_apply, if_neg hx]; simp [hx]
+  · rw [S.state_apply, ite_eq_right hx]; simp [hx]
 
 /-- Right translation of a function, evaluated at `x` as `φ (x * b⁻¹)`. -/
 def shift (φ : G → Option (ZMod p)) (b : G) : G → Option (ZMod p) :=
@@ -467,14 +471,14 @@ theorem shift_state {u : ZMod p} {a b : G} (hb : b ∈ S.HZ) :
       rw [he]
       exact S.HZ.mul_mem h hb
     rw [show shift (S.state u a) b x = S.state u a (x * b⁻¹) from rfl,
-      S.state_apply, if_neg hxb, S.state_apply, if_neg hx]
+      S.state_apply, ite_eq_right hxb, S.state_apply, ite_eq_right hx]
     simp
 
 /-- A Weyl automorphism scales the central coordinate of `S.z^n` by the square of its unit
 parameter. -/
 theorem ezOf_phi_zpow {W : WeylData G p} (hz : S.z = W.z) (j : (ZMod p)ˣ) (n : ℤ) :
     S.ezOf (W.phi j (S.z ^ n)) = (j : ZMod p) ^ 2 * (n : ZMod p) := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   have h : W.phi j (S.z ^ n) = S.z ^ ((((j : ZMod p) ^ 2).val : ℕ) * n) := by
     rw [map_zpow, hz, W.phi_z, ← zpow_natCast, ← zpow_mul, ← hz]
   rw [h, S.ezOf_zpow_self]
@@ -487,7 +491,7 @@ theorem ezOf_phi_h {W : WeylData G p} (hz : S.z = W.z) {h : G} (hh : h ∈ S.H)
     (hℓ : W.phi j h =
       h ^ (j : ZMod p).val * W.z ^ ((((j : ZMod p) - (j : ZMod p) ^ 2) * ℓ).val)) :
     S.ezOf (W.phi j h) = ((j : ZMod p) - (j : ZMod p) ^ 2) * ℓ := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   have hmem : h ^ (j : ZMod p).val ∈ S.H := S.H.pow_mem hh _
   have hk : W.phi j h = h ^ (j : ZMod p).val *
       S.z ^ (((((j : ZMod p) - (j : ZMod p) ^ 2) * ℓ).val : ℕ) : ℤ) := by
@@ -601,7 +605,7 @@ theorem PsiParam_mul {a : Fin 4 → G} {u : Fin 4 → ZMod p} {b b' : Fin 4 → 
   rw [S.PsiParam_apply, S.PsiParam_apply]
   by_cases hx : ∀ i, S.state (u i) (a i) (x i * (b i)⁻¹) ≠ none
   · have hx' : ∀ i, S.state (u i) (a i) (x i * (b' i)⁻¹) ≠ none := hall.mpr hx
-    rw [if_pos hx', if_pos hx]
+    rw [ite_eq_left hx', ite_eq_left hx]
     congr 1
     have hterm : ∀ i, -(u i * S.sheetOf (a i) (x i * (b' i)⁻¹)) =
         -(u i * S.sheetOf (a i) (x i * (b i)⁻¹)) - u i * S.ezOf (b i * (b' i)⁻¹) := by
@@ -628,7 +632,7 @@ theorem PsiParam_mul {a : Fin 4 → G} {u : Fin 4 → ZMod p} {b b' : Fin 4 → 
       _ = ∑ i, -(u i * S.sheetOf (a i) (x i * (b i)⁻¹)) := by rw [hsum, sub_zero]
   · have hx' : ¬ ∀ i, S.state (u i) (a i) (x i * (b' i)⁻¹) ≠ none :=
       fun h => hx (hall.mp h)
-    rw [if_neg hx', if_neg hx]
+    rw [ite_eq_right hx', ite_eq_right hx]
 
 /-- Two parameter functions differ if some coordinate difference lies outside `S.HZ`. -/
 theorem PsiParam_ne {a : Fin 4 → G} {u : Fin 4 → ZMod p} {b b' : Fin 4 → G}
@@ -645,7 +649,7 @@ theorem PsiParam_ne {a : Fin 4 → G} {u : Fin 4 → ZMod p} {b b' : Fin 4 → G
     rw [hx]
     exact S.HZ.one_mem
   have hval_b : S.PsiParam a u b x ≠ none := by
-    rw [S.PsiParam_apply, if_pos hsupp_b]
+    rw [S.PsiParam_apply, ite_eq_left hsupp_b]
     simp
   have hsupp_b' : ¬ ∀ i, S.state (u i) (a i) (x i * (b' i)⁻¹) ≠ none := by
     intro hall
@@ -655,7 +659,7 @@ theorem PsiParam_ne {a : Fin 4 → G} {u : Fin 4 → ZMod p} {b b' : Fin 4 → G
     have hx : (a i₀)⁻¹ * (x i₀ * (b' i₀)⁻¹) = b i₀ * (b' i₀)⁻¹ := by dsimp [x]; group
     rwa [hx] at hi
   rw [heq] at hval_b
-  rw [S.PsiParam_apply, if_neg hsupp_b'] at hval_b
+  rw [S.PsiParam_apply, ite_eq_right hsupp_b'] at hval_b
   exact hval_b rfl
 
 /-- The parameterized four-coordinate state function with translations given by the Weyl images
@@ -705,7 +709,7 @@ element of `S.HZ`. -/
 theorem appropriate_of_witness {W : WeylData G p} (hz : S.z = W.z)
     {u : Fin 4 → ZMod p} {j : Fin 4 → (ZMod p)ˣ} (hwit : IsWitness p u j) :
     ∀ g ∈ S.HZ, ∑ i, u i * S.ezOf (W.phi (j i) g) = 0 := by
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   obtain ⟨hw1, hw2⟩ := hwit
   intro g hg
   obtain ⟨h, hh, he⟩ := S.ezOf_spec hg

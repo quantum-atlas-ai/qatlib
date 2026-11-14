@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -110,7 +114,7 @@ theorem basisProj_eq_pauliExpansion (k : ℕ) (q : Fin k → Bool) :
     Matrix.sum_apply, smul_eq_mul]
   by_cases hab : a = b
   · subst hab
-    simp only [if_true]
+    simp only [ite_true]
     have hterm : ∀ s : Fin k → Bool,
         pauliCoeff k q s * pauliDiag k s a =
           ∏ i, (if s i then ((if q i then (-1 : ℂ) else 1) * (if a i then (-1 : ℂ) else 1))
@@ -137,14 +141,14 @@ theorem basisProj_eq_pauliExpansion (k : ℕ) (q : Fin k → Bool) :
     simp only [hfac]
     by_cases haq : a = q
     · subst haq
-      simp only [if_true]
+      simp only [ite_true]
       simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
       field_simp
     · have hzero : (∏ i : Fin k, (if a i = q i then (2 : ℂ) else 0)) = 0 := by
         obtain ⟨i, hi⟩ := Function.ne_iff.mp haq
-        exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
-      rw [hzero, if_neg haq]
+        exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
+      rw [hzero, ite_eq_right haq]
       simp
-  · simp only [if_neg hab, mul_zero, Finset.sum_const_zero, mul_zero]
+  · simp only [ite_eq_right hab, mul_zero, Finset.sum_const_zero, mul_zero]
 
 end Qatlib.Papers.QuantumPCPs25.MainResults.Algebra

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.PaidRetryExecution
-import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordMixture
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.PaidRetryExecution
+public import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordMixture
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+@[expose] public section
 
 /-!
 # Conditioning after bounded fresh state retries
@@ -122,7 +126,7 @@ theorem accepted_branch (I : Instrument (R × Bool) N D) (P : QuantumChannel D N
   induction n generalizing A with
   | zero => simp [stopped_zero, retryWeight]
   | succ n ih =>
-    rw [stopped_succ, if_pos rfl, ih, hP A, map_smul, map_smul,
+    rw [stopped_succ, ite_eq_left rfl, ih, hP A, map_smul, map_smul,
       trace_smul, trace_branch_eq (forgetRecord I) hρ.1 false]
     rw [← add_smul]
     congr 1
@@ -139,7 +143,7 @@ theorem exhausted_trace (I : Instrument (R × Bool) N D) (P : QuantumChannel D N
   induction n generalizing A with
   | zero => simp [stopped_zero]
   | succ n ih =>
-    rw [stopped_succ, if_neg Bool.false_ne_true, zero_add, ih, hP A, map_smul,
+    rw [stopped_succ, ite_eq_right Bool.false_ne_true, zero_add, ih, hP A, map_smul,
       trace_smul, trace_branch_eq (forgetRecord I) hρ.1 false, pow_succ]
     ring
 

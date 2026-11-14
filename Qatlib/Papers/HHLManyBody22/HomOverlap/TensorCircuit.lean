@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.HomOverlap.BellCircuit
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.HHLManyBody22.HomOverlap.BellCircuit
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Tensor Bell circuits and the parity swap identity
@@ -61,10 +65,10 @@ theorem hom_prod_delta {I B : Type} [Fintype I] [DecidableEq B] (x y : I→B) :
   by_cases h : x=y
   · subst y
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hn : ¬∀i,x i=y i := fun heq => h (funext heq)
     obtain ⟨i,hi⟩ := not_forall.mp hn
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- The columns of the tensor real Bell circuit matrix are orthonormal. -/
 theorem homTensorReal_orthogonal (n : ℕ) (x y : HomBits n) :

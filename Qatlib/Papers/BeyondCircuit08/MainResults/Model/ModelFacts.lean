@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+
+@[expose] public section
 
 /-!
 # Fibonacci coefficients and the four-strand block
@@ -131,14 +135,13 @@ theorem starStarElA_ne_starStarElB : starStarElA ≠ starStarElB := by decide
 theorem starStarGen_four_zero_A :
     starStarGen 4 0 starStarElA starStarElA = fibb := by
   simp [starStarGen, blockGen, fibRepEntry, starStarElA,
-    starStarStrA, starStarStrB, Subtype.coe_mk]
+    starStarStrA,  Subtype.coe_mk]
 
 /-- The first four-strand generator has entry `fiba` at the diagonal position indexed by
 `starStarElB`. -/
 theorem starStarGen_four_zero_B :
     starStarGen 4 0 starStarElB starStarElB = fiba := by
-  simp [starStarGen, blockGen, fibRepEntry, starStarElB,
-    starStarStrA, starStarStrB, Subtype.coe_mk]
+  simp [starStarGen, blockGen, fibRepEntry, starStarElB, starStarStrB, Subtype.coe_mk]
 
 /-- The two off-diagonal entries of the first four-strand generator in the explicit star-star
 basis are zero. -/
@@ -163,15 +166,13 @@ private lemma starStarStrB_eq_update :
 `starStarElA`. -/
 theorem starStarGen_four_one_A :
     starStarGen 4 1 starStarElA starStarElA = fibc := by
-  simp [starStarGen, blockGen, fibRepEntry, starStarElA, starStarElB,
-    starStarStrA, starStarStrB, Subtype.coe_mk]
+  simp [starStarGen, blockGen, fibRepEntry, starStarElA, starStarStrA, Subtype.coe_mk]
 
 /-- The second four-strand generator has entry `fibe` at the diagonal position indexed by
 `starStarElB`. -/
 theorem starStarGen_four_one_B :
     starStarGen 4 1 starStarElB starStarElB = fibe := by
-  simp [starStarGen, blockGen, fibRepEntry, starStarElA, starStarElB,
-    starStarStrA, starStarStrB, Subtype.coe_mk]
+  simp [starStarGen, blockGen, fibRepEntry, starStarElB, starStarStrB, Subtype.coe_mk]
 
 /-- The second four-strand generator has entry `fibd` in row `starStarElA` and column
 `starStarElB` [Jordan2008]. -/

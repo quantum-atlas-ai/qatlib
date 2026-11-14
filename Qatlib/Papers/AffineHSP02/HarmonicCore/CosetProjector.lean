@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Projection
-import Mathlib.LinearAlgebra.Trace
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Projection
+public import Mathlib.LinearAlgebra.Trace
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Subgroup averaging and coset Fourier factors
@@ -42,12 +46,14 @@ variable {G V : Type*} [Group G] [Fintype G]
 noncomputable def avg (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H] : V →ₗ[ℂ] V :=
   ((Fintype.card H : ℂ)⁻¹) • ∑ h : H, ρ (h : G)
 
+omit [Fintype G] in
 /-- Applying the subgroup average to `v` gives the normalized sum of `ρ h v` over `h ∈ H`. -/
 theorem avg_apply (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H] (v : V) :
     avg ρ H v = ((Fintype.card H : ℂ)⁻¹) • ∑ h : H, ρ (h : G) v := by
   unfold avg
   rw [LinearMap.smul_apply, LinearMap.sum_apply]
 
+omit [Fintype G] in
 /-- Left composition with the representation of any element of `H` leaves the subgroup average
 unchanged. -/
 theorem rho_comp_avg_eq (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H]
@@ -62,6 +68,7 @@ theorem rho_comp_avg_eq (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintyp
   rw [← map_mul]
   simp
 
+omit [Fintype G] in
 /-- The subgroup average is idempotent under composition. -/
 theorem avg_idem (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H] :
     (avg ρ H).comp (avg ρ H) = avg ρ H := by
@@ -106,6 +113,7 @@ def invariants (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) : Submodule ℂ 
     intro c x hx h
     rw [map_smul, hx h]
 
+omit [Fintype G] in
 /-- The subgroup average fixes every vector in the invariant submodule. -/
 theorem avg_eq_self_of_mem_invariants (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G)
     [Fintype H] {v : V} (hv : v ∈ invariants ρ H) : avg ρ H v = v := by
@@ -120,12 +128,14 @@ theorem avg_eq_self_of_mem_invariants (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgr
   field_simp
   simp
 
+omit [Fintype G] in
 /-- The subgroup average of any vector belongs to the invariant submodule. -/
 theorem avg_mem_invariants (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H]
     (v : V) : avg ρ H v ∈ invariants ρ H := by
   intro k
   rw [← LinearMap.comp_apply, rho_comp_avg_eq]
 
+omit [Fintype G] in
 /-- Subgroup averaging is a linear projection onto the submodule of `H`-invariant vectors. -/
 theorem isProj_avg (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H] :
     LinearMap.IsProj (invariants ρ H) (avg ρ H) where
@@ -134,6 +144,7 @@ theorem isProj_avg (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H] 
     intro x hx
     exact avg_eq_self_of_mem_invariants ρ H hx
 
+omit [Fintype G] in
 /-- Left composition of a finite sum of linear maps equals the sum of their left compositions. -/
 theorem comp_sum_eq {H : Subgroup G} [Fintype H] (g : V →ₗ[ℂ] V)
     (F : H → V →ₗ[ℂ] V) :
@@ -147,6 +158,7 @@ noncomputable def cosetAvg (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fin
     (c : G) : V →ₗ[ℂ] V :=
   ((Fintype.card H : ℂ)⁻¹) • ∑ h : H, ρ (c * (h : G))
 
+omit [Fintype G] in
 /-- The average over the left coset `cH` equals `ρ c` composed with the subgroup average. -/
 theorem cosetAvg_eq_comp (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H]
     (c : G) : cosetAvg ρ H c = (ρ c).comp (avg ρ H) := by
@@ -167,6 +179,7 @@ theorem fhat_coset_eq (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype 
         • (ρ c).comp (avg ρ H) := by
   rw [cosetAvg_eq_comp]
 
+omit [Fintype G] in
 /-- In finite dimension, the trace of the subgroup average equals the complex cast of the
 dimension of its range. -/
 theorem trace_avg_eq_finrank (ρ : G →* (V →ₗ[ℂ] V)) (H : Subgroup G) [Fintype H]

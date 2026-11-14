@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -168,7 +172,6 @@ theorem matrixPrecision_entryError
       _ = ε / (8 * precisionCoefficient k M d * Δt) := by
           rw [hYdef]
           field_simp
-          try ring
   have hπ : 1 + 2 * Real.pi ≤ 8 := by
     have := Real.pi_lt_d2
     linarith
@@ -184,7 +187,6 @@ theorem matrixPrecision_entryError
         positivity
     _ = ε / (precisionCoefficient k M d * Δt) := by
         field_simp
-        try ring
 
 /-- Appendix A, Eq. (A13): a per-exponential error of at most `2ε/(B Δt)` distributed over
 a total exponential duration of at most `B Δt/4` accumulates to at most `ε/2`, where

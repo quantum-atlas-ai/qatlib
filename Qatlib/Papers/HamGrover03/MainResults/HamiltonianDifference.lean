@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Concepts.LchsSimulation.TimeLchs
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Concepts.LchsSimulation.TimeLchs
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Hamiltonian Perturbation Bound

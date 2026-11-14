@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonPropagator
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonPropagator
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Constant-field Dyson evolutions

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
-import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+public import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+
+@[expose] public section
 
 /-!
 # Trace error of record mixtures
@@ -78,9 +82,9 @@ theorem bad_record_budget (w : R → ℝ) (hw : ∀ r, 0 ≤ w r) (hs : ∑ r, w
   apply (Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtureTraceError.weighted_error w hw hs σ ρ).trans
   have hp (r : R) : w r*(Matrix.traceNorm (σ r-ρ)/2) ≤ w r*η+(if r ∈ good then 0 else w r) := by
     by_cases hr : r ∈ good
-    · rw [if_pos hr,add_zero]
+    · rw [ite_eq_left hr,add_zero]
       exact mul_le_mul_of_nonneg_left (hgood r hr) (hw r)
-    · rw [if_neg hr]
+    · rw [ite_eq_right hr]
       have hd :=
           Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtureTraceError.density_distance
           (σ r) ρ (hσ r).1 hρ.1 (hσ r).2 hρ.2

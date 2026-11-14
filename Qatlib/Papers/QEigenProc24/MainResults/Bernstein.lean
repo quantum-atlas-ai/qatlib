@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QEigenProc24.MainResults.SourceModel
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Qatlib.Papers.QEigenProc24.MainResults.SourceModel
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 /-!
 # Recursive Bernstein Inequality on Compact Intervals (Corollary 30)
 

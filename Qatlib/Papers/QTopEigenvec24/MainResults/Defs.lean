@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -264,7 +268,7 @@ def pushforwardTo {Ω : Type*} [Fintype Ω] (Ω' : Type*) [Fintype Ω']
       intro ω
       rw [Finset.sum_eq_single (f ω)]
       · simp
-      · intro y _ hy; rw [if_neg (Ne.symm hy)]
+      · intro y _ hy; rw [ite_eq_right (Ne.symm hy)]
       · intro hmem; exact absurd (Finset.mem_univ (f ω)) hmem
     rw [Finset.sum_congr rfl (fun ω _ => h ω), p.sum_one]
 
@@ -277,7 +281,7 @@ def condLaw {Ω : Type*} [Fintype Ω]
   prob ω := if A ω then p.prob ω / pr p A else 0
   nonneg ω := by
     by_cases h : A ω
-    · simp only [h, if_true]; exact div_nonneg (p.nonneg ω) (le_of_lt hA)
+    · simp only [h, ite_true]; exact div_nonneg (p.nonneg ω) (le_of_lt hA)
     · simp [h]
   sum_one := by
     have h1 : ∑ ω, (if A ω then p.prob ω / pr p A else 0)

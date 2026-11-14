@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCryptanal15.MainResults.Complexity.GroverBudget
-import Qatlib.Papers.QCryptanal15.MainResults.Linear.Matsui2Q1
+module
+
+public import Qatlib.Papers.QCryptanal15.MainResults.Complexity.GroverBudget
+public import Qatlib.Papers.QCryptanal15.MainResults.Linear.Matsui2Q1
+
+@[expose] public section
 
 /-!
 # Matsui Algorithm 2 in the Q2 model

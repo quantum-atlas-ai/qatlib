@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.FiniteSelection
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Addition
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.FiniteSelection
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Addition
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Counted normalization of rational vectors
@@ -125,7 +129,7 @@ theorem normalizeFamily_column {c m : ℕ} (a : Vector (Vector ℚ m) c)
   have hj := hz j
   simp only [Vector.getElem_map] at hj
   simp only [Vector.getElem_ofFn, Vector.getElem_map]
-  simp only [normalize, if_neg hj]
+  simp only [normalize, ite_eq_right hj]
 
 /-- Rational vector normalization returns `none` exactly when the sum of the entries is zero. -/
 theorem normalize_none_iff {m : ℕ} (a : Vector ℚ m) :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUContracts
-import Qatlib.Papers.HamLCUSim12.Multiproduct.NearbyLCUDiagnostics
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUContracts
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.NearbyLCUDiagnostics
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # A counterexample to the legacy deferred LCU output

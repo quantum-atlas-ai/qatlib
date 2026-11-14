@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+
+@[expose] public section
 
 /-!
 # From source words to adaptive computations

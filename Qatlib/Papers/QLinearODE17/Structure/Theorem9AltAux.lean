@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux
-import Qatlib.Papers.QLinearODE17.Structure.TaylorReadoutCorrected
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux
+public import Qatlib.Papers.QLinearODE17.Structure.TaylorReadoutCorrected
+
+@[expose] public section
 
 /-!
 # Stability and guards for Taylor readout probabilities

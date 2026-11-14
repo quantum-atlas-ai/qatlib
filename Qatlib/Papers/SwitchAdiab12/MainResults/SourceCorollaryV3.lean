@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Tactic.IntervalCases
-import Qatlib.Papers.SwitchAdiab12.MainResults.SourceCorollaryV2
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Tactic.IntervalCases
+public import Qatlib.Papers.SwitchAdiab12.MainResults.SourceCorollaryV2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

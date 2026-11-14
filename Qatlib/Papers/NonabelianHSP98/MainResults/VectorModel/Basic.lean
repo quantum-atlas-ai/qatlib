@@ -4,53 +4,57 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Prod
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Prod
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Notation.Prod
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.BilinearForm.Properties
-import Mathlib.LinearAlgebra.BilinearMap
-import Mathlib.LinearAlgebra.SesquilinearForm.Basic
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic
-import Mathlib.Tactic.Abel
-import Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Prod
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Prod
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Notation.Prod
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.BilinearForm.Properties
+public import Mathlib.LinearAlgebra.BilinearMap
+public import Mathlib.LinearAlgebra.SesquilinearForm.Basic
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Abel
+public import Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup
+
+@[expose] public section
 
 /-!
 # Binary vector coordinates for the wreath product
@@ -101,12 +105,12 @@ def phiInv (v : Vec n) : Wreath n :=
 
 /-- For final coordinate zero, `phi` keeps both vector blocks in their original order. -/
 @[simp] lemma phi_of_a_zero {g : Wreath n} (h : g.a = 0) :
-    phi g = (g.x, g.y, 0) := if_pos h
+    phi g = (g.x, g.y, 0) := ite_eq_left h
 
 /-- For nonzero final coordinate, `phi` swaps the vector blocks and sets the final coordinate to
 one. -/
 @[simp] lemma phi_of_a_one {g : Wreath n} (h : g.a ≠ 0) :
-    phi g = (g.y, g.x, 1) := if_neg h
+    phi g = (g.y, g.x, 1) := ite_eq_right h
 
 /-- Applying `phiInv` after `phi` recovers the wreath-product element. -/
 lemma phi_phiInv (g : Wreath n) : phiInv (phi g) = g := by
@@ -213,7 +217,7 @@ lemma blin_separatingLeft : blin (n := n).SeparatingLeft := by
     by_contra hne
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hne
     have h := hx (fun j => if j = i then (1 : ZMod 2) else 0, 0, 0)
-    simp only [blin_apply, dot, Pi.zero_apply, zero_mul, mul_zero,
+    simp only [blin_apply, dot, Pi.zero_apply,  mul_zero,
       Finset.sum_const_zero, add_zero] at h
     have hsum : (∑ j, x.1 j * (if j = i then (1 : ZMod 2) else 0)) = x.1 i := by
       rw [Finset.sum_eq_single i]
@@ -226,7 +230,7 @@ lemma blin_separatingLeft : blin (n := n).SeparatingLeft := by
     by_contra hne
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hne
     have h := hx (0, fun j => if j = i then (1 : ZMod 2) else 0, 0)
-    simp only [blin_apply, dot, Pi.zero_apply, zero_mul, mul_zero,
+    simp only [blin_apply, dot, Pi.zero_apply, mul_zero,
       Finset.sum_const_zero, add_zero] at h
     have hsum : (∑ j, x.2.1 j * (if j = i then (1 : ZMod 2) else 0)) = x.2.1 i := by
       rw [Finset.sum_eq_single i]

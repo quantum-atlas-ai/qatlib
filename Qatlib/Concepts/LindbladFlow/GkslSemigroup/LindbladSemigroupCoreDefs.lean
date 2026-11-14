@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+
+@[expose] public section
 
 /-!
 # Definitions for finite GKSL evolution and mixing

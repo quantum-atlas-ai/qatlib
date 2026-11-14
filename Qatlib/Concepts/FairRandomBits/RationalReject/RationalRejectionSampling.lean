@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.Order.MonotoneConvergence
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.Order.MonotoneConvergence
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Rational rejection sampling with counted resources
@@ -233,13 +237,24 @@ noncomputable def rationalRejectMass (w : Fin N → ℕ) (b : ℕ) : ℝ≥0∞ 
 /-- The transition law obtained by drawing fair bits and applying the weighted decoder. -/
 noncomputable def rationalRejectionNext (w : Fin N → ℕ) (b : ℕ) :
     Unit → PMF (RandomizedExecution.Configuration Unit (Fin N)) :=
-  fun _ => ((fairBitsCosted b).map Prod.fst).map (weightStep w b)
+  fun _ => ((fairBitsCosted b).map Prod.fst).map (fun bits =>
+    match (weightDecodeCounted w (bitVecEquiv b bits).val).1 with
+    | some j => Sum.inl j
+    | none => Sum.inr ())
 
 /-- The rejection transition law is the pushforward of the uniform bit-register law under
 `weightStep`. -/
 theorem rationalRejectionNext_eq (w : Fin N → ℕ) (b : ℕ) :
-    rationalRejectionNext w b () = (PMF.uniformOfFintype' (Reg b)).map (weightStep w b) := by
+    rationalRejectionNext w b () = (PMF.uniformOfFintype' (Reg b)).map (fun bits =>
+      match (weightDecodeCounted w (bitVecEquiv b bits).val).1 with
+      | some j => Sum.inl j
+      | none => Sum.inr ()) := by
   simp only [rationalRejectionNext, fairBitsCosted_output]
+
+/-- The explicit transition map is definitionally the original private weighted step. -/
+private theorem rationalRejectionNext_eq_weightStep (w : Fin N → ℕ) (b : ℕ) :
+    rationalRejectionNext w b () = (PMF.uniformOfFintype' (Reg b)).map (weightStep w b) := by
+  exact rationalRejectionNext_eq w b
 
 /-- When the total weight fits in the bit space, accepted fibers have cardinalities `w j`, each
 label has mass `w j / 2 ^ b`, and the remaining tickets give the rejection mass. -/
@@ -279,45 +294,43 @@ theorem rational_fair_bit_step_distribution :
     rw [card_filter_ge (2 ^ b) (weightTotal w) hb]
   refine ⟨fiberSome, fiberNone, ?_, ?_⟩
   · intro j
-    rw [rationalRejectionNext_eq, PMF.map_apply]
+    rw [rationalRejectionNext_eq_weightStep, PMF.map_apply]
     rw [tsum_congr (g := fun bits : Reg b =>
       ((2^b : ℕ) : ℝ≥0∞)⁻¹ * (if weightStep w b bits = Sum.inl j then (1 : ℝ≥0∞) else 0))
       (fun bits => by
-        beta_reduce
         have hun := hu bits
         by_cases hc : weightStep w b bits = Sum.inl j
-        · rw [if_pos (show Sum.inl j = weightStep w b bits from hc.symm), hun, if_pos hc,
+        · rw [ite_eq_left (show Sum.inl j = weightStep w b bits from hc.symm), hun, ite_eq_left hc,
             mul_one]
-        · rw [if_neg (fun h => hc h.symm), if_neg hc, mul_zero])]
+        · rw [ite_eq_right (fun h => hc h.symm), ite_eq_right hc, mul_zero])]
     rw [ENNReal.tsum_mul_left]
     rw [tsum_eq_filter_sum (fun bits => (if weightStep w b bits = Sum.inl j then (1 : ℝ≥0∞) else 0))
       (fun bits => (weightDecodeCounted w (bitVecEquiv b bits).val).1 = some j)]
-    · rw [Finset.sum_congr rfl (fun bits hbits => if_pos
+    · rw [Finset.sum_congr rfl (fun bits hbits => ite_eq_left
         ((weightStep_inl w b bits j).mpr (by
           simp [Finset.mem_filter, Finset.mem_univ] at hbits; exact hbits))),
         Finset.sum_const, fiberSome j, Nat.smul_one_eq_cast, div_eq_mul_inv, mul_comm]
     · intro bits hnot
-      rw [if_neg fun hc => hnot ((weightStep_inl w b bits j).mp hc)]
-  · rw [rationalRejectionNext_eq, PMF.map_apply]
+      rw [ite_eq_right fun hc => hnot ((weightStep_inl w b bits j).mp hc)]
+  · rw [rationalRejectionNext_eq_weightStep, PMF.map_apply]
     rw [tsum_congr (g := fun bits : Reg b =>
       ((2^b : ℕ) : ℝ≥0∞)⁻¹ * (if weightStep w b bits = Sum.inr () then (1 : ℝ≥0∞) else 0))
       (fun bits => by
-        beta_reduce
         have hun := hu bits
         by_cases hc : weightStep w b bits = Sum.inr ()
-        · rw [if_pos (show Sum.inr () = weightStep w b bits from hc.symm), hun, if_pos hc,
+        · rw [ite_eq_left (show Sum.inr () = weightStep w b bits from hc.symm), hun, ite_eq_left hc,
             mul_one]
-        · rw [if_neg (fun h => hc h.symm), if_neg hc, mul_zero])]
+        · rw [ite_eq_right (fun h => hc h.symm), ite_eq_right hc, mul_zero])]
     rw [ENNReal.tsum_mul_left]
     rw [tsum_eq_filter_sum (fun bits => (if weightStep w b bits = Sum.inr () then (1 : ℝ≥0∞) else 0))
       (fun bits => (weightDecodeCounted w (bitVecEquiv b bits).val).1 = none)]
-    · rw [Finset.sum_congr rfl (fun bits hbits => if_pos
+    · rw [Finset.sum_congr rfl (fun bits hbits => ite_eq_left
         ((weightStep_inr w b bits).mpr (by
           simp [Finset.mem_filter, Finset.mem_univ] at hbits; exact hbits))),
         Finset.sum_const, fiberNone, Nat.smul_one_eq_cast,
         rationalRejectMass, coinRejectMass, div_eq_mul_inv, mul_comm]
     · intro bits hnot
-      rw [if_neg fun hc => hnot ((weightStep_inr w b bits).mp hc)]
+      rw [ite_eq_right fun hc => hnot ((weightStep_inr w b bits).mp hc)]
 
 end OneTrial
 
@@ -383,7 +396,7 @@ point. -/
 private theorem event_point {α : Type} (p : PMF α) (a : α) :
     CostedLaw.event p (fun z => z = a) = p a := by
   show ∑' z, p z * (if z = a then (1 : ℝ≥0∞) else 0) = p a
-  rw [tsum_eq_single a (fun z hz => by rw [if_neg hz, mul_zero])]
+  rw [tsum_eq_single a (fun z hz => by rw [ite_eq_right hz, mul_zero])]
   simp
 
 end RunHelpers
@@ -420,7 +433,11 @@ private theorem trialStep_inr (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) (�
 /-- The weighted rejection transition law retaining accumulated bit and comparison counters. -/
 noncomputable def rationalCountedNext (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) :
     PMF (RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :=
-  (fairBitsCosted b).map (trialStep w b BD)
+  (fairBitsCosted b).map (fun ω =>
+    let decoded := weightDecodeCounted w (bitVecEquiv b ω.1).val
+    match decoded.1 with
+    | some j => Sum.inl (j, BD.1 + ω.2, BD.2 + decoded.2)
+    | none => Sum.inr (BD.1 + ω.2, BD.2 + decoded.2))
 
 /-- Discard bit and comparison counters, retaining only the returned label or pending status. -/
 def rejectionOutcome
@@ -478,8 +495,8 @@ private theorem expectation_fairBitsCosted {b : ℕ} (G : Reg b × ℕ → ℝ�
   rw [tsum_prod_type' (F := fun x : Reg b × ℕ => fairBitsCosted b x * G x)]
   refine tsum_congr fun ω => ?_
   rw [tsum_eq_single b (fun n hn => by
-    rw [fair_bit_program_joint_distribution b n ω, if_neg hn, zero_mul])]
-  rw [fair_bit_program_joint_distribution b b ω, if_pos rfl,
+    rw [fair_bit_program_joint_distribution b n ω, ite_eq_right hn, zero_mul])]
+  rw [fair_bit_program_joint_distribution b b ω, ite_eq_left rfl,
     PMF.uniformOfFintype'_apply, card_reg]
 
 /-- The probability of a fixed output in a joint output-cost law is the sum of its point masses
@@ -492,14 +509,12 @@ private theorem event_fst_point {X : Type} (p : PMF (X × ℕ)) (a : X) :
     (fun x => by
       by_cases h : x = a
       · rw [h]
-        beta_reduce
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         rw [tsum_congr (g := fun k : ℕ => p (a, k)) (fun k => by simp)]
-      · beta_reduce
-        rw [if_neg h]
+      · rw [ite_eq_right h]
         rw [tsum_congr (g := fun _ : ℕ => (0 : ℝ≥0∞)) (fun k => by simp [h])]
         exact tsum_zero),
-    tsum_eq_single a (fun x hx => by rw [if_neg hx]), if_pos rfl]
+    tsum_eq_single a (fun x hx => by rw [ite_eq_right hx]), ite_eq_left rfl]
 
 /-- Payoffs agreeing on a probability law's support have equal expectations. -/
 private theorem expectation_congr_support {α : Type} (p : PMF α) (f g : α → ℝ≥0∞)
@@ -705,7 +720,7 @@ private theorem fairBits_cost_mem {b : ℕ} {ω : Reg b × ℕ}
     (h : ω ∈ (fairBitsCosted b).support) : ω.2 = b := by
   by_contra hne
   exact absurd (show fairBitsCosted b ω = 0 from by
-    rw [fair_bit_program_joint_distribution b ω.2 ω.1]; exact if_neg hne)
+    rw [fair_bit_program_joint_distribution b ω.2 ω.1]; exact ite_eq_right hne)
     ((PMF.mem_support_iff _ _).mp h)
 
 /-- Every supported run uses at most its fuel, adds `b` bits per attempt, and satisfies the
@@ -914,7 +929,7 @@ private theorem plain_pending_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTot
   induction fuel with
   | zero =>
       show CostedLaw.event (CostedLaw.ret (Sum.inr ())) (fun z => z.1 = Sum.inr ()) = _
-      rw [CostedLaw.event_ret, if_pos rfl, pow_zero]
+      rw [CostedLaw.event_ret, ite_eq_left rfl, pow_zero]
   | succ fuel ih =>
       have hstep : CostedLaw.event (runFor (rationalRejectionNext w b) (fuel + 1)
           (Sum.inr ())) (fun z => z.1 = Sum.inr ())
@@ -953,7 +968,7 @@ private theorem plain_halt_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal 
   | zero =>
       intro k j
       show CostedLaw.event (CostedLaw.ret (Sum.inr ())) (fun z => z = (Sum.inl j, k)) = _
-      rw [CostedLaw.event_ret, if_neg (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by simp)]
+      rw [CostedLaw.event_ret, ite_eq_right (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by simp)]
       split
       · rename_i hk; exact absurd hk.2 (by omega)
       · rfl
@@ -982,13 +997,13 @@ private theorem plain_halt_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal 
         subst hj'
         subst hk1
         rw [runFor_halted, CostedLaw.event_ret,
-          if_pos (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by simp)]
+          ite_eq_left (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by simp)]
       have hhalt_zero : ∀ j' : Fin N, ¬(j' = j ∧ k = 1) →
           CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inl j'))
             (fun y => (y.1, 1 + y.2) = (Sum.inl j, k)) = (0 : ℝ≥0∞) := by
         intro j' h
         rw [runFor_halted, CostedLaw.event_ret,
-          if_neg (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by
+          ite_eq_right (t := (1 : ℝ≥0∞)) (e := (0 : ℝ≥0∞)) (by
             intro hc
             exact h ⟨by simpa using (Prod.ext_iff.mp hc).1, by
               have h2 := (Prod.ext_iff.mp hc).2; simp only [add_zero] at h2; omega⟩)]
@@ -1030,8 +1045,8 @@ private theorem plain_halt_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal 
               refine ENNReal.tsum_le_tsum fun z => ?_
               (try dsimp only)
               by_cases hz : z = (Sum.inl j, (0:ℕ))
-              · rw [if_pos hz, if_pos (by rw [hz]; exact ⟨⟨j, rfl⟩, rfl⟩)]
-              · rw [if_neg hz, mul_zero]
+              · rw [ite_eq_left hz, ite_eq_left (by rw [hz]; exact ⟨⟨j, rfl⟩, rfl⟩)]
+              · rw [ite_eq_right hz, mul_zero]
                 exact zero_le
             exact le_antisymm (le_trans h1
               (le_of_eq (runFor_no_halt_at_cost_zero _ fuel ()))) (by simp)
@@ -1049,21 +1064,21 @@ private theorem plain_halt_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal 
             Finset.sum_const_zero, zero_add, next_inr_mass w b hb,
             hpend k (by omega), ih (k - 1) j]
           by_cases hk0 : 1 ≤ k - 1 ∧ k - 1 ≤ fuel
-          · rw [if_pos (t := (rationalRejectMass w b ^ (k - 1 - 1) *
+          · rw [ite_eq_left (t := (rationalRejectMass w b ^ (k - 1 - 1) *
                 ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)))) (e := (0 : ℝ≥0∞)) hk0]
             by_cases hk2 : 1 ≤ k ∧ k ≤ fuel + 1
-            · rw [if_pos (t := (rationalRejectMass w b ^ (k - 1) *
+            · rw [ite_eq_left (t := (rationalRejectMass w b ^ (k - 1) *
                   ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)))) (e := (0 : ℝ≥0∞)) hk2]
               have hexp : (k - 1 : ℕ) = (k - 2) + 1 := by omega
               rw [hexp, Nat.add_sub_cancel, pow_succ', mul_assoc]
             · exact absurd hk2 (by omega)
-          · rw [if_neg (t := (rationalRejectMass w b ^ (k - 1 - 1) *
+          · rw [ite_eq_right (t := (rationalRejectMass w b ^ (k - 1 - 1) *
                 ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)))) (e := (0 : ℝ≥0∞)) hk0]
             by_cases hk2 : 1 ≤ k ∧ k ≤ fuel + 1
-            · rw [if_pos (t := (rationalRejectMass w b ^ (k - 1) *
+            · rw [ite_eq_left (t := (rationalRejectMass w b ^ (k - 1) *
                   ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)))) (e := (0 : ℝ≥0∞)) hk2]
               exact absurd (show 1 ≤ k - 1 ∧ k - 1 ≤ fuel from by omega) hk0
-            · rw [if_neg (t := (rationalRejectMass w b ^ (k - 1) *
+            · rw [ite_eq_right (t := (rationalRejectMass w b ^ (k - 1) *
                   ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)))) (e := (0 : ℝ≥0∞)) hk2, mul_zero]
 
 end PlainMasses
@@ -1195,12 +1210,10 @@ private theorem plain_pending_point (w : Fin N → ℕ) (b fuel k : ℕ)
               exact hz
             have hcost : z.2 = fuel := plain_pending_support_cost w b fuel hz'
             have heq : z = (Sum.inr (), fuel) := Prod.ext hp hcost
-            (try dsimp only)
             simp [heq]
           · have hne : z ≠ (Sum.inr (), fuel) := by
               intro heq
               exact hp (congrArg Prod.fst heq)
-            (try dsimp only)
             simp [hne, hp])
     rw [← event_point p (Sum.inr (), fuel), hev,
       plain_pending_mass w b hb fuel]
@@ -1209,7 +1222,7 @@ private theorem plain_pending_point (w : Fin N → ℕ) (b fuel k : ℕ)
       by_contra hne
       have hz : (Sum.inr (), k) ∈ p.support := (PMF.mem_support_iff _ _).mpr hne
       exact hk (plain_pending_support_cost w b fuel hz)
-    simp only [if_neg hk]
+    simp only [ite_eq_right hk]
     simpa [p] using hzero
 
 /-- When total weight fits the bit space, the counted run's pending probability is the rejection
@@ -1273,7 +1286,7 @@ private theorem counted_return_mass (w : Fin N → ℕ) (b : ℕ) (hW : 0 < weig
     ← event_counted_eq_plain_inl w b fuel (0, 0) j, event_fst_point,
     tsum_eq_zero_add' ENNReal.summable,
     ← event_point (p := runFor (rationalRejectionNext w b) fuel (Sum.inr ())),
-    plain_halt_mass w b hb fuel 0 j, if_neg (by simp)]
+    plain_halt_mass w b hb fuel 0 j, ite_eq_right (by simp)]
   rw [tsum_congr (g := fun t : ℕ => if t < fuel then
     (rationalRejectMass w b) ^ t * ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)) else 0)
     (fun t => by
@@ -1284,17 +1297,17 @@ private theorem counted_return_mass (w : Fin N → ℕ) (b : ℕ) (hW : 0 < weig
         (if t < fuel then (rationalRejectMass w b) ^ t *
           ((w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞)) else 0))
       by_cases ht : t < fuel
-      · rw [if_pos (c := (1 ≤ t + 1 ∧ t + 1 ≤ fuel)) (by omega),
-          if_pos (c := (t < fuel)) (by omega), Nat.add_sub_cancel]
-      · rw [if_neg (c := (1 ≤ t + 1 ∧ t + 1 ≤ fuel)) (by omega),
-          if_neg (c := (t < fuel)) (by omega)]),
+      · rw [ite_eq_left (c := (1 ≤ t + 1 ∧ t + 1 ≤ fuel)) (by omega),
+          ite_eq_left (c := (t < fuel)) (by omega), Nat.add_sub_cancel]
+      · rw [ite_eq_right (c := (1 ≤ t + 1 ∧ t + 1 ≤ fuel)) (by omega),
+          ite_eq_right (c := (t < fuel)) (by omega)]),
     tsum_eq_range_sum _ _ (by
       intro k hk
       have hnf : ¬ k < fuel := Nat.not_lt_of_ge hk
       simp [hnf]),
     Finset.sum_congr rfl (fun t hmem => by
       have ht : t < fuel := Finset.mem_range.mp hmem
-      rw [if_pos ht]),
+      rw [ite_eq_left ht]),
     hswap]
   rw [div_eq_mul_inv, mul_comm (∑ t ∈ Finset.range fuel, (rationalRejectMass w b) ^ t)
         ((w j : ℝ≥0∞) * ((2^b : ℕ) : ℝ≥0∞)⁻¹)]
@@ -1325,7 +1338,7 @@ private theorem counted_first_stop (w : Fin N → ℕ) (b : ℕ) (hb : weightTot
   rw [show rationalRejectionRun w b fuel
         = runFor (rationalCountedNext w b) fuel (Sum.inr (0, 0)) from rfl,
     ← event_counted_eq_plain_inl_cost w b fuel (0, 0) j t, hpt,
-    plain_halt_mass w b hb fuel (t + 1) j, if_pos (by omega), Nat.add_sub_cancel,
+    plain_halt_mass w b hb fuel (t + 1) j, ite_eq_left (by omega), Nat.add_sub_cancel,
     mul_div_assoc]
 
 /-- When total weight fits the bit space, the counted run remains pending with probability
@@ -1439,7 +1452,6 @@ theorem rational_finite_three_resource_expectations (N : ℕ) (w : Fin N → ℕ
   · rw [expectation_congr_support (rationalRejectionRun w b fuel)
       (fun z => (rejectionBits z.1 : ℝ≥0∞)) (fun z => ((b * z.2 : ℕ) : ℝ≥0∞))
       (fun z hz => by
-        change (rejectionBits z.1 : ℝ≥0∞) = ((b * z.2 : ℕ) : ℝ≥0∞)
         exact congrArg (fun n : ℕ => (n : ℝ≥0∞)) (hpaths z hz).2.1)]
     simp_rw [Nat.cast_mul]
     rw [CostedLaw.expectation_const_mul]
@@ -1480,7 +1492,6 @@ theorem rational_finite_three_resource_expectations (N : ℕ) (w : Fin N → ℕ
         (fun z => (rejectionComparisons z.1 : ℝ≥0∞))
         (fun z => compsOf (N := N) (rejectionOutcome z.1) z.2)
         (fun z hz => by
-          (try simp only)
           by_cases hp : rejectionOutcome z.1 = Sum.inr ()
           · have hnat : rejectionComparisons z.1 = N * z.2 := (hpaths z hz).2.2.2.1 hp
             simpa [compsOf, hp] using congrArg (fun n : ℕ => (n : ℝ≥0∞)) hnat
@@ -1523,12 +1534,12 @@ theorem rational_finite_three_resource_expectations (N : ℕ) (w : Fin N → ℕ
       rw [tsum_eq_range_sum _ _ (by
         intro t ht
         have hnot : ¬ t < fuel := Nat.not_lt_of_ge ht
-        rw [hpoint t, if_neg hnot]
+        rw [hpoint t, ite_eq_right hnot]
         simp)]
       apply Finset.sum_congr rfl
       intro t hmem
       have ht : t < fuel := Finset.mem_range.mp hmem
-      rw [hpoint t, if_pos ht]
+      rw [hpoint t, ite_eq_left ht]
       change ((rationalRejectMass w b) ^ t *
           ((w j : ℝ≥0∞) / ((2 ^ b : ℕ) : ℝ≥0∞))) *
           (((N * ((t + 1) - 1) + j.val + 1 : ℕ) : ℝ≥0∞)) = _

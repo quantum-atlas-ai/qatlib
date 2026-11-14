@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.EigenbasisReadoutSamplingSubgoalStat
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.EigenbasisReadoutSamplingSubgoalStat
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Born probabilities for exact eigenbasis readout
@@ -59,8 +63,8 @@ theorem eigenbasisReadoutSamplingSubgoal : EigenbasisReadoutSamplingSubgoal := b
     change (∑ j : I, ‖(fun j => (∑ i, c i • TensorState (Ket (k i)) (ψ i)) (z,j)) j‖^2)=_
     rw [hz, sum_norm_sq_orthonormal ψ _ (fun i j => by
       by_cases he : i=j
-      · simpa only [if_pos he] using horth i j
-      · simpa only [if_neg he] using horth i j)]
+      · simpa only [ite_eq_left he] using horth i j
+      · simpa only [ite_eq_right he] using horth i j)]
     apply Finset.sum_congr rfl
     intro i _
     by_cases he : k i=z <;> simp [Ket, he, Ne.symm]

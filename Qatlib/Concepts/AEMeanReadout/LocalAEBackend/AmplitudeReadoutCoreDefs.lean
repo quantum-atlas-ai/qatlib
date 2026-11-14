@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchDefs
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Stat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchDefs
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Stat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+
+@[expose] public section
 
 /-!
 # Specifications for rational amplitude readout

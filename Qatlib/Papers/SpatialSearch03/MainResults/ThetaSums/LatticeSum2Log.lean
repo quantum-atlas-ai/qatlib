@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # Logarithmic second lattice-sum bound

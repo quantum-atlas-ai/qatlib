@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimizedTunableConsumerStat
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimalThresholdAllocationLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimizedTunableConsumerStat
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimalThresholdAllocationLows
+
+@[expose] public section
 
 /-!
 # Optimized tunable amplification with weighted costs
@@ -1142,12 +1146,12 @@ private theorem preAmplitude_pos_of_sched {H : Type} [Fintype H] [DecidableEq H]
       · rw [ha0]
         show 0 < gainLoss (2*rs (i+1)+1) 0
         unfold gainLoss
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         norm_num
       · have ha : 0 < preAmplitude (extendClock m P) bad ω U rs i :=
           lt_of_le_of_ne (norm_nonneg _) (Ne.symm ha0)
         show 0 < (if preAmplitude (extendClock m P) bad ω U rs i = 0 then 1 else _)
-        rw [if_neg ha0]
+        rw [ite_eq_right ha0]
         have hsin : 0 < Real.sin ((2*rs (i+1)+1 : ℕ) * Real.arcsin
             (preAmplitude (extendClock m P) bad ω U rs i)) := by
           have hx0 : 0 < ((2*rs (i+1)+1 : ℕ) : ℝ) * Real.arcsin
@@ -1312,9 +1316,9 @@ private theorem gainLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     0 < gainLoss (2*rs (j+1)+1) (preAmplitude (extendClock m P) bad ω U rs j) := by
   unfold gainLoss
   by_cases ha : preAmplitude (extendClock m P) bad ω U rs j = 0
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     norm_num
-  · rw [if_neg ha]
+  · rw [ite_eq_right ha]
     set a := preAmplitude (extendClock m P) bad ω U rs j with haa
     have ha0 : 0 < a := lt_of_le_of_ne (norm_nonneg _) (Ne.symm ha)
     have hno := noOvershoot_tun m P bad U ω α rs htun habove hj
@@ -1749,7 +1753,7 @@ private theorem postAmplitude_sin {H : Type} [Fintype H] [DecidableEq H] (m : �
           * Real.arcsin (preAmplitude (extendClock m P) bad ω U rs (m-1)))
         / preAmplitude (extendClock m P) bad ω U rs (m-1) := by
     unfold lam gainLoss
-    rw [if_neg (ne_of_gt hprepos), cast21]
+    rw [ite_eq_right (ne_of_gt hprepos), cast21]
     field_simp
   have hpre : preAmplitude (extendClock m P) bad ω U rs (m-1)
       = (∏ k : Fin (m-1), lam (extendClock m P) bad U ω rs k)
@@ -1852,17 +1856,17 @@ theorem OptimizedTunableOptimizedTunableConsumer_answer : OptimizedTunableOptimi
       if k = m then 1/2 else
       if h : k-1 < m-1 then (1/2)*(w ⟨k-1, h⟩).rpow (2/3)
         /(∑ i : Fin (m-1), (w i).rpow (2/3)) else 0 := ⟨_, fun _ => rfl⟩
-  have hα0eq : α 0 = 1 := by rw [hα_def, if_pos rfl]
+  have hα0eq : α 0 = 1 := by rw [hα_def, ite_eq_left rfl]
   have hαm : α m = 1/2 := by
-    rw [hα_def, if_neg (by omega : ¬(m = 0)), if_pos rfl]
+    rw [hα_def, ite_eq_right (by omega : ¬(m = 0)), ite_eq_left rfl]
   have hαint : ∀ j : Fin (m-1), α (j.val+1)
       = (1/2)*(w j).rpow (2/3)/(∑ i : Fin (m-1), (w i).rpow (2/3)) := by
     intro j
     have hkey : α (j.val+1)
         = (1/2)*(w ⟨j.val, by omega⟩).rpow (2/3)
           /(∑ i : Fin (m-1), (w i).rpow (2/3)) := by
-      rw [hα_def, if_neg (by omega : ¬(j.val+1 = 0)),
-        if_neg (by omega : ¬(j.val+1 = m)), dif_pos (show j.val+1-1 < m-1 by omega)]
+      rw [hα_def, ite_eq_right (by omega : ¬(j.val+1 = 0)),
+        ite_eq_right (by omega : ¬(j.val+1 = m)), dite_eq_left (show j.val+1-1 < m-1 by omega)]
       rfl
     exact hkey
   have hWnn : (0:ℝ) ≤ ∑ i : Fin (m-1), (w i).rpow (2/3) :=

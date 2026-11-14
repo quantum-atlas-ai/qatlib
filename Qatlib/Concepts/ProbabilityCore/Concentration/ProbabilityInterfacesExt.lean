@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Probability laws of observed finite records
@@ -57,6 +61,8 @@ function. -/
 theorem observe_toPMF (r : FinDist R) (read : R → Y) :
     toPMF (observe r read) = (toPMF r).map read := toPMF_ofPMF _
 
+omit [DecidableEq R] in
+
 /-- An observed value has probability equal to the sum of the record probabilities in its
 reading fiber. -/
 theorem observe_mass (r : FinDist R) (read : R → Y) (y : Y) :
@@ -67,11 +73,15 @@ theorem observe_mass (r : FinDist R) (read : R → Y) (y : Y) :
     rw [toPMF_unique r μ hμ, hmap, toPMF_unique q ν hν]
   rw [observe, he, ofPMF_toPMF_prob, hq]
 
+omit [DecidableEq R] in
+
 /-- Expectation under the observed law equals expectation of the composed reading statistic
 under the record law. -/
 theorem observe_expect (r : FinDist R) (read : R → Y) (f : Y → ℝ) :
     (observe r read).expect f = r.expect (fun z => f (read z)) :=
   (Qatlib.Concepts.SketchArith.TransposeAccess.FinDist.expect_eq_of_pushforward r) (observe r read) read f (observe_mass r read)
+
+omit [DecidableEq R] in
 
 /-- Variance under the observed law equals variance of the composed reading statistic under the
 record law. -/
@@ -85,6 +95,8 @@ omit [DecidableEq R] in
 private theorem eventMass_expect (r : FinDist R) (E : R → Prop) [DecidablePred E] :
     eventMass r E = r.expect (fun z => if E z then 1 else 0) := by
   simp [eventMass, FinDist.expect, Finset.sum_filter]
+
+omit [DecidableEq R] in
 
 /-- The mass of an observed event equals the record mass of its preimage under the reading
 function. -/
@@ -100,7 +112,7 @@ corresponding finite record event mass. -/
 theorem statistic_event (r : FinDist R) (stat : R → ℝ) (E : Set ℝ) (hE : MeasurableSet E) :
     letI : MeasurableSpace R := ⊤
     (statisticLaw r stat).toMeasure E = ENNReal.ofReal (eventMass r (fun z => stat z ∈ E)) := by
-  letI : MeasurableSpace R := ⊤
+  let _ : MeasurableSpace R := ⊤
   classical
   rw [statisticLaw, PMF.toMeasure_map_apply _ _ _ (measurable_of_countable stat) hE]
   exact eventMass_toMeasure r _
@@ -111,7 +123,7 @@ theorem statistic_integral (r : FinDist R) (stat : R → ℝ) (f : ℝ → ℝ)
     (hf : Measurable f) :
     letI : MeasurableSpace R := ⊤
     ∫ x, f x ∂(statisticLaw r stat).toMeasure = r.expect (fun z => f (stat z)) := by
-  letI : MeasurableSpace R := ⊤
+  let _ : MeasurableSpace R := ⊤
   rw [statisticLaw, ← PMF.toMeasure_map stat (toPMF r) (measurable_of_countable stat),
     integral_map (measurable_of_countable stat).aemeasurable hf.aestronglyMeasurable]
   exact integral_eq_expect r _
@@ -159,6 +171,8 @@ prescribed coordinate probabilities. -/
 def ProductRecord (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i)) : Prop :=
   ∀ ω, (∑ z, if read z = ω then r.prob z else 0) = ∏ i, (p i).prob (ω i)
 
+omit [DecidableEq R] in
+
 /-- A reading satisfying `ProductRecord` has exactly the specified independent product law. -/
 theorem product_observe (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
     (hjoint : ProductRecord r read p) : observe r read = independent p := by
@@ -166,6 +180,8 @@ theorem product_observe (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, Fi
   intro ω
   rw [observe_mass]
   exact hjoint ω
+
+omit [DecidableEq R] in
 
 /-- The measure of a product record reading is the product of the marginal PMF measures. -/
 theorem product_measure (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
@@ -175,6 +191,8 @@ theorem product_measure (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, Fi
   rw [← observe_toPMF, product_observe r read p hjoint]
   exact independent_toMeasure p
 
+omit [DecidableEq R] in
+
 /-- Coordinate projections of a product record reading are mutually independent under its output
 measure. -/
 theorem product_independent (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
@@ -183,6 +201,8 @@ theorem product_independent (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i
     ProbabilityTheory.iIndepFun (fun i (ω : ∀ i, X i) => ω i) ((toPMF r).map read).toMeasure := by
   rw [← observe_toPMF, product_observe r read p hjoint]
   exact independent_coordinates p
+
+omit [DecidableEq R] in
 
 /-- The coordinate readings are mutually independent on the original finite record probability
 space. -/
@@ -201,12 +221,16 @@ theorem product_raw_independent (r : FinDist R) (read : R → ∀ i, X i) (p : �
   simp_rw [he] at ht
   simpa only [Set.preimage_iInter, Set.preimage_preimage, Function.comp_def] using! ht
 
+omit [DecidableEq R] in
+
 /-- For a product record, expectation of a function of the reading equals expectation under the
 specified independent law. -/
 theorem product_expect (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
     (hjoint : ProductRecord r read p) (f : (∀ i, X i) → ℝ) :
     r.expect (fun z => f (read z)) = (independent p).expect f := by
   rw [← observe_expect, product_observe r read p hjoint]
+
+omit [DecidableEq R] in
 
 /-- For a product record, variance of a function of the reading equals variance under the
 specified independent law. -/
@@ -215,12 +239,16 @@ theorem product_variance (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, F
     r.variance (fun z => f (read z)) = (independent p).variance f := by
   rw [← observe_variance, product_observe r read p hjoint]
 
+omit [DecidableEq R] in
+
 /-- For a product record, event masses of reading predicates equal their masses under the
 specified independent law. -/
 theorem product_event (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
     (hjoint : ProductRecord r read p) (E : (∀ i, X i) → Prop) [DecidablePred E] :
     eventMass r (fun z => E (read z)) = eventMass (independent p) E := by
   rw [← observe_event, product_observe r read p hjoint]
+
+omit [DecidableEq R] in
 
 /-- A product record has the prescribed joint PMF, weighted mean and variance formulas, and the
 same weighted central moments as the independent law. -/
@@ -244,6 +272,8 @@ theorem frontier1 (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist 
     rw [hm]
     exact product_expect r read p hjoint (fun ω =>
       (weightedSum w f ω - (independent p).expect (weightedSum w f)) ^ k)
+
+omit [DecidableEq R] in
 
 /-- A bounded weighted statistic read from a product record satisfies the two sided Hoeffding
 bound with squared weighted interval widths. -/
@@ -273,6 +303,8 @@ theorem product_output_hoeffding (r : FinDist R) (read : R → ∀ i, X i) (p : 
   rw [statistic_event r _ _ (by measurability)]
   exact ENNReal.ofReal_le_ofReal (product_hoeffding r read p hjoint w f a b u hab hf hu hS)
 
+omit [DecidableEq R] in
+
 /-- If the total squared weighted interval width is zero, a product record weighted statistic
 has zero probability of any positive centered deviation. -/
 theorem product_zero_width (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
@@ -288,6 +320,8 @@ theorem product_zero_width (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i,
 
 end ProductRecord
 
+omit [DecidableEq R] in
+
 /-- A function of a product record reading satisfies the bounded differences tail bound for its
 coordinate sensitivities. -/
 theorem record_bounded_differences {X : Type} [Fintype X] [DecidableEq X]
@@ -300,6 +334,8 @@ theorem record_bounded_differences {X : Type} [Fintype X] [DecidableEq X]
   rw [product_expect r read p hjoint f,
     product_event r read p hjoint (fun ω => u ≤ |f ω - (independent p).expect f|)]
   exact bounded_differences_tail n p f c u hc hS hu hd
+
+omit [DecidableEq R] in
 
 /-- Under the product record condition and block variance bound, a median of means reading has
 error probability at most `3 ^ (M / 2) / 2 ^ M`. -/

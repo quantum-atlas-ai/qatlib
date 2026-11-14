@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
-import Mathlib.Data.Nat.Factorization.PrimePow
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
+public import Mathlib.Data.Nat.Factorization.PrimePow
+
+@[expose] public section
 
 /-!
 # Soundness of factoring preprocessing

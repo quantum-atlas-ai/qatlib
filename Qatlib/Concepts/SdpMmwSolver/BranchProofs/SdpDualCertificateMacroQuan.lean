@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroStat
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualPayoffRangeQuan
-import Qatlib.Concepts.MatrixWeights.LambdaMin
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroStat
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualPayoffRangeQuan
+public import Qatlib.Concepts.MatrixWeights.LambdaMin
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Dual certificates from matrix multiplicative weights
@@ -53,7 +57,7 @@ private theorem dualOutputEval (m T : ℕ) (delta alpha R : ℝ) (j0 : Fin m)
     (∑ i, sdpDualCertificate m delta alpha R j0 y T i * f i) =
       delta * alpha / (2 * R) * f j0 + (∑ t ∈ Finset.range T, ∑ i, y t i * f i) / T := by
   simp only [sdpDualCertificate, add_mul, div_mul_eq_mul_div, Finset.sum_add_distrib,
-    ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   congr 1
   simp only [Finset.sum_mul, ← Finset.sum_div]
   rw [Finset.sum_comm]

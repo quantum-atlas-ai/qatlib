@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+@[expose] public section
 
 /-!
 # Counted Access to the Original Matrix Oracle

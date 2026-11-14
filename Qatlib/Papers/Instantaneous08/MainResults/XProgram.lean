@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # X-program circuits and sums over paths
@@ -153,7 +157,7 @@ theorem pathSum_succ {n k : ℕ} (p : Fin (k + 1) → F2Vec n) (θ : Fin (k + 1)
     have htag : ∀ y : F2Vec n, pathSample p (Fin.cons true rest) = y ↔
         pathSample (fun i => p i.succ) rest = y + p 0 := by
       intro y
-      simp only [pathSample, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, if_true]
+      simp only [pathSample, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, ite_true]
       constructor
       · intro h
         have h2 : (p 0 + ∑ i, if rest i then p i.succ else 0) + p 0 = y + p 0 :=
@@ -179,7 +183,7 @@ theorem circuit_eq_pathSum {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → �
         by_cases hx : x = 0
         · simp [pathSum, pathWeight, pathSample, hx]
         · simp [pathSum, pathWeight, pathSample]
-          rw [if_neg hx, if_neg (Ne.symm hx)]
+          rw [ite_eq_right hx, ite_eq_right (Ne.symm hx)]
       rw [h]
       by_cases hx : x = 0
       · simp [circuit, hx]

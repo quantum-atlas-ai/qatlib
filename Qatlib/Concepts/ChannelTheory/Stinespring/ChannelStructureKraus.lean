@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Choi matrices and finite Kraus representations
@@ -79,15 +83,15 @@ theorem trace_mul_matrixUnit {n : ℕ} (X : Operator n) (i j : Fin n) :
   rw [Finset.sum_comm]
   rw [Finset.sum_eq_single i]
   · rw [Finset.sum_eq_single j]
-    · exact if_pos (And.intro rfl rfl)
+    · exact ite_eq_left (And.intro rfl rfl)
     · intro b _ hb
-      exact if_neg (fun h => hb h.2.symm)
+      exact ite_eq_right (fun h => hb h.2.symm)
     · intro hj
       exact absurd (Finset.mem_univ j) hj
   · intro l _ hl
     apply Finset.sum_eq_zero
     intro k _
-    exact if_neg (fun h => hl h.1.symm)
+    exact ite_eq_right (fun h => hl h.1.symm)
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
@@ -509,7 +513,7 @@ theorem choi_transposeMap_apply {D : ℕ} (x y : Fin D × Fin D) :
     intro a b c d
     exact matrixUnit_apply a b c d
   by_cases h1 : x.1 = y.2 <;> by_cases h2 : y.1 = x.2 <;>
-    simp [ChoiMatrix, transposeMap, h, h1, h2, ne_comm, eq_comm]
+    simp [ChoiMatrix, transposeMap, h, h1, h2]
 
 /-- The quadratic form of the qubit transpose Choi matrix at `wAnti` equals `-2`. -/
 theorem transposeMap_two_quadratic :

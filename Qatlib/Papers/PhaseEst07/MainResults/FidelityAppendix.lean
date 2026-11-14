@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PhaseEst07.MainResults.VarianceState
-import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
+module
+
+public import Qatlib.Papers.PhaseEst07.MainResults.VarianceState
+public import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
+
+@[expose] public section
 
 /-!
 # Fidelity cost and its sine-state optimum

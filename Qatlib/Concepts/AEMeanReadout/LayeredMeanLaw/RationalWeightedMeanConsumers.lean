@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalPreparedLCU
-import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalPreparedLCU
+public import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+
+@[expose] public section
 
 /-!
 # Amplitude estimation of rationally weighted means
@@ -140,7 +144,7 @@ theorem rational_weight_actual_ae_original_mean : ∀ (n k M : ℕ)
     have ht := abs_sub_le (aeEstimate M z)
       (∑ a, BornProb (rationalWeightPrepare w k *ᵥ Ket none) a*(f a : ℝ))
       (∑ a, ((w a/rationalWeightMass w : ℚ) : ℝ)*(f a : ℝ))
-    have he : 64/(2 : ℝ)^k+64*(n : ℝ)/2^k=64*(n+1 : ℝ)/2^k := by push_cast; ring
+    have he : 64/(2 : ℝ)^k+64*(n : ℝ)/2^k=64*(n+1 : ℝ)/2^k := by ring
     linarith
   · intro z _ _
     exact (aeLaw M _ (none,false) _ hB hM').nonneg z

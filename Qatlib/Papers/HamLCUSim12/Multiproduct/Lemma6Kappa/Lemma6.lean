@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureHami
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureHami
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -83,7 +87,7 @@ theorem lemma6_kappa_bound (k : ℕ) (hk : 1 ≤ k) (γ η : ℝ)
     nlinarith
   have hN : (k : ℝ) < N := by
     by_contra h
-    push_neg at h
+    push Not at h
     have hle : N ^ 2 ≤ (k : ℝ) ^ 2 := by
       have hsqle := mul_self_le_mul_self hNpos.le h
       simpa [sq] using hsqle

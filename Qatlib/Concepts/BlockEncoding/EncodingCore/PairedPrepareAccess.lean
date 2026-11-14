@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Paired state preparation for block encodings
@@ -114,6 +118,7 @@ theorem paired_prepare_columns_l1_bound : ∀ (PL PR : Matrix J J ℂ) (j0 : J),
   rw [hsq PL hPL,hsq PR hPR] at h
   nlinarith [Finset.sum_nonneg (fun j (_ : j ∈ Finset.univ) => mul_nonneg (norm_nonneg (PL j j0)) (norm_nonneg (PR j j0)))]
 
+omit [Fintype J] in
 /-- The paired frame is the tagged embedding of the block encoding fiber. -/
 theorem pairedFrame_eq_tagFrame (j0 : J) (k0 : K) :
     pairedFrame (I := I) j0 k0 = tagFrame j0 (encodingFiber k0) := by

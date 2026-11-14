@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaDefs
+module
+
+public import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaDefs
+
+@[expose] public section
 
 /-!
 # Shared Frame Defect and Leakage Bounds
@@ -90,7 +94,7 @@ theorem shared_defect_identity {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Ma
 under the stated Gram defect, compression mismatch, and target norm bounds. -/
 theorem shared_defect_bound_le {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Matrix H I ℂ)
     (hF : IsIsometry F) (hU : U ∈ Matrix.unitaryGroup H ℂ)
-    (α ε ζ Γ : ℝ) (hζ : 0 ≤ ζ) (hΓ : 0 ≤ Γ)
+    (α ε ζ Γ : ℝ) (_hζ : 0 ≤ ζ) (hΓ : 0 ≤ Γ)
     (hgram : ‖(1 : Matrix I I ℂ) - Aᴴ * A‖ ≤ ζ)
     (hmismatch : ‖A - compress F U F‖ ≤ |1 - α| + ε)
     (hA : ‖A‖ ≤ Γ) :

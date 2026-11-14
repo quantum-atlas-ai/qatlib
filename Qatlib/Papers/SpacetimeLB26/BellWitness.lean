@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.Entanglement.BellWitness.Separable
-import Qatlib.Concepts.Entanglement.Separability.EntanglementBoundaryConsumers
+module
+
+public import Qatlib.Foundations.Entanglement.BellWitness.Separable
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementBoundaryConsumers
+
+@[expose] public section
 
 /-!
 # A Bell-state witness for separable states

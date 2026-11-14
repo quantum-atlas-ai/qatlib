@@ -4,72 +4,76 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.Group.Subsemigroup.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.Order.Basic
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.Group.Subsemigroup.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.Order.Basic
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # The MacWilliams identity for finite linear codes
@@ -133,6 +137,7 @@ lemma weightEnumProd_eq_subtype (C : Submodule (ZMod q) (ι → ZMod q)) (x y : 
   exact Finset.sum_subtype (Finset.univ.filter (fun v => v ∈ C)) (by intro x; simp)
     (fun u => ∏ i, coordFactor x y (u i))
 
+omit [Fintype ι] [NeZero q] in
 /-- A product of coordinate factors splits into powers of `x` and `y` counting zero and nonzero
 coordinates in `s`. -/
 lemma prod_coordFactor (s : Finset ι) (v : ι → ZMod q) (x y : ℂ) :
@@ -146,11 +151,11 @@ lemma prod_coordFactor (s : Finset ι) (v : ι → ZMod q) (x y : ℂ) :
       by_cases h : v a = 0
       · have h0 : ((insert a s).filter (fun i => v i = 0)).card
             = (s.filter (fun i => v i = 0)).card + 1 := by
-          rw [Finset.filter_insert, if_pos h, Finset.card_insert_of_notMem]
+          rw [Finset.filter_insert, ite_eq_left h, Finset.card_insert_of_notMem]
           simp [ha]
         have hn : ((insert a s).filter (fun i => v i ≠ 0)).card
             = (s.filter (fun i => v i ≠ 0)).card := by
-          rw [Finset.filter_insert, if_neg (fun hc => hc h)]
+          rw [Finset.filter_insert, ite_eq_right (fun hc => hc h)]
         rw [h0, hn]
         have hca : coordFactor x y (v a) = x := by simp [coordFactor, h]
         rw [hca, pow_succ]
@@ -158,16 +163,17 @@ lemma prod_coordFactor (s : Finset ι) (v : ι → ZMod q) (x y : ℂ) :
       · have hne : v a ≠ 0 := h
         have h0 : ((insert a s).filter (fun i => v i = 0)).card
             = (s.filter (fun i => v i = 0)).card := by
-          rw [Finset.filter_insert, if_neg h]
+          rw [Finset.filter_insert, ite_eq_right h]
         have hn : ((insert a s).filter (fun i => v i ≠ 0)).card
             = (s.filter (fun i => v i ≠ 0)).card + 1 := by
-          rw [Finset.filter_insert, if_pos hne, Finset.card_insert_of_notMem]
+          rw [Finset.filter_insert, ite_eq_left hne, Finset.card_insert_of_notMem]
           simp [ha]
         rw [h0, hn]
         have hca : coordFactor x y (v a) = y := by simp [coordFactor, h]
         rw [hca, pow_succ]
         ring
 
+omit [DecidableEq ι] [NeZero q] in
 /-- The number of zero coordinates equals the word length minus its Hamming weight. -/
 lemma card_zero_eq (v : ι → ZMod q) :
     (univ.filter (fun i => v i = 0)).card = Fintype.card ι - hammingWeight v := by
@@ -216,12 +222,14 @@ def dualCode (C : Submodule (ZMod q) (ι → ZMod q)) : Submodule (ZMod q) (ι �
       ring
     rw [h, hu c hc, mul_zero]
 
+omit [DecidableEq ι] [NeZero q] in
 /-- Membership in the dual code means that the dot product with every member of the original
 code vanishes. -/
 @[simp]
 lemma mem_dualCode {C : Submodule (ZMod q) (ι → ZMod q)} {u : ι → ZMod q} :
     u ∈ dualCode C ↔ ∀ c ∈ C, dot c u = 0 := Iff.rfl
 
+omit [DecidableEq ι] [NeZero q] in
 /-- Dual-code membership is equivalent to vanishing dot product with every element of the code
 subtype. -/
 lemma mem_dualCode_iff {C : Submodule (ZMod q) (ι → ZMod q)} {u : ι → ZMod q} :
@@ -271,13 +279,13 @@ lemma sum_codeChar (C : Submodule (ZMod q) (ι → ZMod q)) (u : ι → ZMod q) 
       if (∀ c : C, dot c.val u = 0) then (Fintype.card C : ℂ) else 0 := by
   classical
   by_cases h : ∀ c : C, dot c.val u = 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h1 : ∀ c : C, ZMod.stdAddChar (dot c.val u) = 1 := by
       intro c
       rw [h c, AddChar.map_zero_eq_one]
     rw [Finset.sum_congr rfl (fun c _ => h1 c), Finset.sum_const, nsmul_eq_mul, mul_one]
     norm_cast
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hne : codeChar C u ≠ (1 : AddChar C ℂ) := by
       intro heq
       apply h
@@ -336,7 +344,7 @@ lemma coordSum_ne_zero {b : ZMod q} (hb : b ≠ 0) (x y : ℂ) :
     have h := AddChar.sum_mulShift (R' := ℂ) (b := b)
       (ψ := ZMod.stdAddChar (N := q)) (ZMod.isPrimitive_stdAddChar q)
     have hzero : (∑ a : ZMod q, ZMod.stdAddChar (a * b)) = 0 := by
-      rw [h, if_neg hb]
+      rw [h, ite_eq_right hb]
       simp
     rw [← hzero]
     exact Finset.sum_congr rfl (fun a _ => by rw [mul_comm])
@@ -375,7 +383,7 @@ lemma sum_char_weight (c : ι → ZMod q) (x y : ℂ) :
   intro i _
   by_cases hi : c i = 0
   · rw [hi, coordSum_zero]
-    simp [coordFactor, hi]
+    simp [coordFactor]
   · rw [coordSum_ne_zero hi]
     simp [coordFactor, hi]
 
@@ -396,8 +404,8 @@ theorem macWilliams (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     intro u
     rw [sum_codeChar]
     by_cases hu : u ∈ dualCode C
-    · rw [if_pos ((mem_dualCode_iff).mp hu), if_pos hu]
-    · rw [if_neg (fun h => hu ((mem_dualCode_iff).mpr h)), if_neg hu]
+    · rw [ite_eq_left ((mem_dualCode_iff).mp hu), ite_eq_left hu]
+    · rw [ite_eq_right (fun h => hu ((mem_dualCode_iff).mpr h)), ite_eq_right hu]
 
   have hcommon :
       (∑ c : C, ∑ u : ι → ZMod q,

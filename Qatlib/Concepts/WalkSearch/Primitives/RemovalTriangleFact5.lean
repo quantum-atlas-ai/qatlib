@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleFact5
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleFact5
+
+@[expose] public section
 
 /-!
 # Triangle counting along an edge-removal order

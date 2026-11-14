@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticQLS23.MainResults.BlockEncoding
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.AdiabaticQLS23.MainResults.BlockEncoding
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Unitary gates for the adiabatic QLS circuit

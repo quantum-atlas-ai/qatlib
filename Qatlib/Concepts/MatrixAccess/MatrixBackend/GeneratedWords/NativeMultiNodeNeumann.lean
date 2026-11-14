@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeMultiNodeBody
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.SharedOriginalOracle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.UniformEncoding
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeMultiNodeBody
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.SharedOriginalOracle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.UniformEncoding
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -77,6 +81,7 @@ private theorem multinode_lift_one (b : ℕ) :
   ext x y
   simp [Matrix.one_apply]
 
+omit [DecidableEq J] [DecidableEq H] in
 /-- The finite construction in `NativeMultiNodeNeumann` satisfies `multinode_lift_mul` under the displayed hypotheses. -/
 private theorem multinode_lift_mul (b : ℕ)
     (U V : Matrix (J × (Reg 6 × H)) (J × (Reg 6 × H)) ℂ) :
@@ -84,6 +89,7 @@ private theorem multinode_lift_mul (b : ℕ)
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, tensorGate_mul, Matrix.one_mul,
     parallelOracle, parallel_select_mul]
 
+omit [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H] in
 /-- The finite construction in `NativeMultiNodeNeumann` satisfies `multinode_lift_adjoint` under the displayed hypotheses. -/
 private theorem multinode_lift_adjoint (b : ℕ)
     (U : Matrix (J × (Reg 6 × H)) (J × (Reg 6 × H)) ℂ) :

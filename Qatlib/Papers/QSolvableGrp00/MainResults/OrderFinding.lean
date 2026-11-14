@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Index
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Data.Nat.Log
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Subgroup states and order output annotations
@@ -48,12 +52,13 @@ noncomputable def uniformSubgroupState (H : Subgroup G) : QState G := by
   classical
   exact fun g => if g ∈ H then ((Real.sqrt (Nat.card ↥H) : ℝ) : ℂ)⁻¹ else 0
 
+omit [DecidableEq G] in
 /-- The uniform state of a subgroup is normalized. See [Watrous2001]. -/
-theorem normalized_uniformSubgroupState (H : Subgroup G) :
+theorem normalized_uniformSubgroupState {G : Type*} [_inst0 : Group G] [_inst1 : Fintype G] [_inst2 : DecidableEq G] (H : Subgroup G) :
     Normalized (uniformSubgroupState H) := by
   classical
-  haveI : Fintype ↥H := Fintype.ofFinite ↥H
-  haveI : Nonempty ↥H := ⟨⟨1, H.one_mem⟩⟩
+  have : Fintype ↥H := Fintype.ofFinite ↥H
+  have : Nonempty ↥H := ⟨⟨1, H.one_mem⟩⟩
   have hcard : Nat.card ↥H = Fintype.card ↥H := Nat.card_eq_fintype_card
   have hpos : (0 : ℝ) < (Fintype.card ↥H : ℝ) := by exact_mod_cast Fintype.card_pos
   have hsqrt : (0 : ℝ) < Real.sqrt (Fintype.card ↥H) := Real.sqrt_pos_of_pos hpos
@@ -82,9 +87,10 @@ theorem inner_uniformSubgroupState_self (H : Subgroup G) :
     Inner (uniformSubgroupState H) (uniformSubgroupState H) = 1 :=
   (normalized_iff_inner_self _).mp (normalized_uniformSubgroupState H)
 
+omit [DecidableEq G] in
 /-- For an increasing subgroup chain starting at the trivial subgroup, the final subgroup
 cardinality is the product of consecutive relative indices. -/
-private theorem card_eq_prod_relIndex_aux (m : ℕ) (H : ℕ → Subgroup G)
+private theorem card_eq_prod_relIndex_aux {G : Type*} [_inst0 : Group G] [_inst1 : Fintype G] [_inst2 : DecidableEq G] (m : ℕ) (H : ℕ → Subgroup G)
     (hbot : H 0 = ⊥) (hmono : ∀ j < m, H j ≤ H (j + 1)) :
     Nat.card ↥(H m) = ∏ j ∈ Finset.range m, (H j).relIndex (H (j + 1)) := by
   induction m with
@@ -102,7 +108,7 @@ private theorem card_eq_prod_relIndex_aux (m : ℕ) (H : ℕ → Subgroup G)
     have hcardm1 : Nat.card ↥(H (m + 1)) * (H (m + 1)).index = Nat.card G :=
       Subgroup.card_mul_index (H (m + 1))
     have hGpos : 0 < Nat.card G := by
-      haveI : Nonempty G := ⟨1⟩
+      have : Nonempty G := ⟨1⟩
       exact Nat.card_pos
     have hidx : 0 < (H (m + 1)).index := by
       rcases Nat.eq_zero_or_pos (H (m + 1)).index with h0 | hpos
@@ -167,7 +173,7 @@ def OrderOutputAnnotation.PolyBounded (A : OrderOutputAnnotation G) : Prop :=
 
 /-- A finite solvable group possesses a correct order and state output annotation with a
 polynomial bound on its declared gate cost. See [Watrous2001]. -/
-theorem solvable_order_output_annotation (hG : IsSolvable G) :
+theorem solvable_order_output_annotation (hG : Group.IsSolvable G) :
     ∃ A : OrderOutputAnnotation G, A.Correct ∧ A.PolyBounded := by
   classical
   obtain ⟨n, hn⟩ := hG.solvable

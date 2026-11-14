@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+module
+
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+
+@[expose] public section
 
 /-!
 # Data and specifications for gate-level QSP simulation

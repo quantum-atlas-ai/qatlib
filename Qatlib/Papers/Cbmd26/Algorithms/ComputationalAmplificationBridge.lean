@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
-import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+
+@[expose] public section
 
 /-!
 # Amplification on computational workspace events
@@ -79,7 +83,7 @@ def ComputationalAmplificationResult (e : W ≃ Aux × I) (a₀ : Aux)
     (i₀ : I) (ψ : QState I) (target : Matrix I I ℂ) (ε η : ℝ) : Prop :=
   let m := staticAmplificationWindow η
   ∃ hm : NeZero m,
-  letI := hm
+  let _ := hm
   let Bin := computationalWorkspaceInput e B
   let zero := e.symm (a₀,i₀)
   let S := computationalWorkspaceEvent e a₀
@@ -134,7 +138,7 @@ theorem computational_amplification (e : W ≃ Aux × I) (a₀ : Aux)
   let m := staticAmplificationWindow η
   have hw := static_chosen_window η hη hη1
   have hm : NeZero m := ⟨hw.1.ne'⟩
-  letI := hm
+  let _ := hm
   have hBin := computationalWorkspaceInput_unitary e B hB
   have hinit := computationalWorkspaceInput_prepare e B a₀ i₀ ψ hprepare
   have hproj := computationalWorkspaceFrame_rangeProjector e a₀

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
-import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
-import Mathlib.NumberTheory.DiophantineApproximation.Basic
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+public import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
+public import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+@[expose] public section
 
 /-!
 # Fresh noise tests for amplified period candidates
@@ -77,7 +81,7 @@ theorem aq_envelope_bound_m1_open {N : ℕ} {L : ℝ} (h : aqM1OpenWindow N L) :
 
 /-- For positive `N`, the one-mark envelope is strictly increasing on its open window. -/
 theorem aq_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂ : ℝ}
-    (h₁ : aqM1OpenWindow N L₁) (h₂ : aqM1OpenWindow N L₂) (hlt : L₁ < L₂) :
+    (_h₁ : aqM1OpenWindow N L₁) (h₂ : aqM1OpenWindow N L₂) (hlt : L₁ < L₂) :
     aqM1Envelope (N : ℝ) L₁ < aqM1Envelope (N : ℝ) L₂ := by
   have hN1 : (1 : ℝ) ≤ (N : ℝ) := by exact_mod_cast hN
   have hpos₂ : 0 < (N : ℝ) - L₂ - 1 := by linarith [h₂.2]
@@ -353,9 +357,9 @@ theorem aq_bernoulli_all_marked (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 
         (if j ∈ D then (if b then 1 else 0) else 1)) = if j ∈ D then p else 1 := by
     by_cases hj : j ∈ D
     · rw [Fintype.sum_bool]
-      simp [bernoulliSiteLaw, hj] <;> linarith
+      simp [bernoulliSiteLaw, hj]
     · rw [Fintype.sum_bool]
-      simp [bernoulliSiteLaw, hj] <;> linarith
+      simp [bernoulliSiteLaw, hj]
   have h := aq_bernoulli_stream_independent N p hp hp1
     (fun j b => if j ∈ D then (if b then 1 else 0) else 1)
   calc

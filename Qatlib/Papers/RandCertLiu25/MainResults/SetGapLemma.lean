@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,8 +84,8 @@ theorem lemma13_set_gap_indicator {Ω : Type*} [Fintype Ω] [DecidableEq Ω]
     (hdelta : 0 < (delta : ℝ)) (ha0 : 0 < (a0 : ℝ))
     (hle : (a0 : ℝ) ≤ 1)
     (hlt : (a0 : ℝ) + (delta : ℝ) / 2 < 1)
-    (hsum : (a1 : ℝ) = (a0 : ℝ) + (delta : ℝ))
-    (hratio : (a1 : ℝ) ≤ (1 + (eps : ℝ) / 8) * (a0 : ℝ))
+    (_hsum : (a1 : ℝ) = (a0 : ℝ) + (delta : ℝ))
+    (_hratio : (a1 : ℝ) ≤ (1 + (eps : ℝ) / 8) * (a0 : ℝ))
     (hX0 : ∀ ω, X0 ω = 0 ∨ X0 ω = 1)
     (hX1 : ∀ ω, X1 ω = 0 ∨ X1 ω = 1)
     (hE : (1 + (eps : ℝ)) * P.expect X0 ≤ P.expect X1) :

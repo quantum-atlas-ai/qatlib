@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.SupportedSeries
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Weights
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.SupportedSeries
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Weights
+
+@[expose] public section
 
 /-!
 # Local imaginary-time conjugation and leakage

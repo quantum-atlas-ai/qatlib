@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualReadout
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualReadout
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic
@@ -74,8 +78,11 @@ private theorem norm_sum_sq_le_card {I : Type} (s : Finset I) (v : I → ℂ) :
       have h := Finset.sum_mul_sq_le_sq_mul_sq s (fun _ => (1 : ℝ)) (fun i => ‖v i‖)
       simpa using h
 
+omit [DecidableEq G] in
 /-- The actual finite-label construction satisfies `fourier_support_bound` with all displayed hypotheses. -/
-private theorem fourier_support_bound (v : QState G) (η : AddChar G ℂ)
+private theorem fourier_support_bound {G : Type}
+    [_instAddCommGroupG : AddCommGroup G] [_instFintypeG : Fintype G]
+    [_instDecidableEqG : DecidableEq G] (v : QState G) (η : AddChar G ℂ)
     (s : Finset G) (hs : ∀ y, y ∉ s → v y = 0) :
     BornProb (fourier v) η ≤
       (Fintype.card G : ℝ)⁻¹ * (s.card : ℝ) * ∑ y : G, BornProb v y := by
@@ -309,7 +316,7 @@ private theorem fallback_mass_le_difference (f : K → G × C) (guess : G × C �
   apply Finset.sum_le_sum
   intro k _
   by_cases hk : (f k).2 ∈ kept
-  · simp only [if_pos hk]
+  · simp only [ite_eq_left hk]
     by_cases hg : guess (f k) = 0
     · have hn : guess (f k) ≠ k := by
         intro h

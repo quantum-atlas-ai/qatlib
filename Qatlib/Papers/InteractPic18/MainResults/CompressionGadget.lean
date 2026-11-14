@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveCompressionGadget
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+module
+
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveCompressionGadget
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+@[expose] public section
 
 /-!
 # CompressionGadget — Lemma 13 of InteractPic18
@@ -56,7 +60,7 @@ theorem lemma13_compression_block_offdiagonal (ns nb K : ℕ)
       (fun i : Fin nb => y ⟨ns + i.val, by omega⟩)) :
     effectiveCompressionBlock ns nb K B x y = 0 := by
   simp only [effectiveCompressionBlock]
-  rw [if_neg]
+  rw [ite_eq_right]
   intro h
   exact hne h.1
 
@@ -76,8 +80,8 @@ theorem lemma13_compression_block_entry (ns nb K : ℕ)
       else 0) := by
   simp only [effectiveCompressionBlock]
   by_cases hK : effectiveRegNat (fun i : Fin nb => y ⟨ns + i.val, by omega⟩) ≤ K
-  · rw [if_pos ⟨hxy, hK⟩, if_pos hK]
-  · rw [if_neg (by intro h; exact hK h.2), if_neg hK]
+  · rw [ite_eq_left ⟨hxy, hK⟩, ite_eq_left hK]
+  · rw [ite_eq_right (by intro h; exact hK h.2), ite_eq_right hK]
 
 /-- **Lemma 13, Eq. (B3)** (fixed arXiv:1805.00675v2, Appendix C p. 26): all
 counter values above `K` are truncated away. -/
@@ -86,7 +90,7 @@ theorem lemma13_compression_block_above (ns nb K : ℕ)
     (hK : K < effectiveRegNat (fun i : Fin nb => y ⟨ns + i.val, by omega⟩)) :
     effectiveCompressionBlock ns nb K B x y = 0 := by
   simp only [effectiveCompressionBlock]
-  rw [if_neg]
+  rw [ite_eq_right]
   intro h
   exact absurd h.2 (not_le.mpr hK)
 
@@ -104,7 +108,7 @@ theorem lemma13_compression_block_zero (ns nb K : ℕ)
   have hzero : effectiveRegNat (fun i : Fin nb => y ⟨ns + i.val, by omega⟩) = 0 := by
     rw [hy]
     simp [effectiveRegNat]
-  rw [hzero, if_pos (Nat.zero_le K)]
+  rw [hzero, ite_eq_left (Nat.zero_le K)]
   simp only [List.range_zero, List.map_nil, List.reverse_nil, List.prod_nil]
   exact Matrix.one_apply
 

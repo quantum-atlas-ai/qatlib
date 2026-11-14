@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunStat
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessQuan
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunStat
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessQuan
+
+@[expose] public section
 
 /-!
 # Primal witnesses from a failed oracle round

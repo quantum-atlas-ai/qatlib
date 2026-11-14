@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.CssCodes
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.CssCodesSupplement
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Subsystem
+module
+
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.CssCodes
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.CssCodesSupplement
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Subsystem
+
+@[expose] public section
 
 /-! # Scalar support retained from the original SpacetimeLB26 contribution
 

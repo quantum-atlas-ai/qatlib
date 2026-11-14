@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFRootStep
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFRootStep
+
+@[expose] public section
 
 /-!
 # Root-based segment counts and local budgets

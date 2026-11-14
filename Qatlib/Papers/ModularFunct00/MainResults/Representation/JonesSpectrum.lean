@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spectrum of a Jones generator from an idempotent
@@ -112,7 +116,7 @@ theorem eigenspace_jonesGen_q (q : ℂ) (e : Module.End ℂ V) (hq : q ≠ -1) :
 
 /-- If `e` is idempotent and `q ≠ -1`, the `-1` eigenspace of `jonesGen q e` is the fixed
 subspace `LinearMap.ker (e - 1)`; see [FreedmanLarsenWang2000]. -/
-theorem eigenspace_jonesGen_neg_one (q : ℂ) (e : Module.End ℂ V) (he : e * e = e)
+theorem eigenspace_jonesGen_neg_one (q : ℂ) (e : Module.End ℂ V) (_he : e * e = e)
     (hq : q ≠ -1) :
     eigenspace (jonesGen q e) (-1) = LinearMap.ker (e - 1) := by
   have hq' : (1 + q) ≠ 0 := by
@@ -200,7 +204,7 @@ theorem jonesGen_hasEigenvalue_both (q : ℂ) (e : Module.End ℂ V) (he : e * e
   constructor
   · obtain ⟨x, hx⟩ : ∃ x : V, e x ≠ x := by
       by_contra h
-      push_neg at h
+      push Not at h
       exact hne1 (by ext x; exact h x)
     have hne : x - e x ≠ 0 := by
       intro hzero
@@ -213,7 +217,7 @@ theorem jonesGen_hasEigenvalue_both (q : ℂ) (e : Module.End ℂ V) (he : e * e
     rw [hker, smul_zero, sub_zero]
   · obtain ⟨x, hx⟩ : ∃ x : V, e x ≠ 0 := by
       by_contra h
-      push_neg at h
+      push Not at h
       exact hne0 (by ext x; exact h x)
     refine Module.End.hasEigenvalue_of_hasEigenvector
       (Module.End.hasEigenvector_iff.mpr ⟨?_, hx⟩)

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
-import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
+public import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
+
+@[expose] public section
 
 /-!
 # Collision-search endpoints and compact memory specifications

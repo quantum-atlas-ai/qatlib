@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HidShiftQuad09.MainResults.Defs
-import Qatlib.Papers.HidShiftQuad09.MainResults.FindCloseQuadratic
-import Qatlib.Papers.HidShiftQuad09.MainResults.ShiftedLargeU3
+module
+
+public import Qatlib.Papers.HidShiftQuad09.MainResults.Defs
+public import Qatlib.Papers.HidShiftQuad09.MainResults.FindCloseQuadratic
+public import Qatlib.Papers.HidShiftQuad09.MainResults.ShiftedLargeU3
+
+@[expose] public section
 
 /-!
 # Bent hidden-shift recovery and coefficient counts

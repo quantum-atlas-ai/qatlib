@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.Calculus.MeanValue
-import Qatlib.Papers.LatticeHam18.MainResults.Model.LatticeModel
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Qatlib.Papers.LatticeHam18.MainResults.Model.LatticeModel
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

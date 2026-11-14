@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+
+@[expose] public section
 
 /-!
 # Kraus factorization for cluster measurement patterns
@@ -49,7 +53,7 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns
 
 /-- Assembles a register whose measured coordinates are `z` and whose output coordinates are the
 bit vector represented by `xp`. -/
-private def readoutRow {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) : Reg (w + m) :=
+def readoutRow {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) : Reg (w + m) :=
   fun t => if h : (t : ℕ) < w then z ⟨t, h⟩
     else (bitVecEquiv m).symm xp ⟨(t : ℕ) - w, by omega⟩
 
@@ -110,7 +114,7 @@ theorem flipRow_meas {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
   have hlt : (↑(Fin.castLE (by omega : w ≤ w + m) j) : ℕ) < w := by
     rw [Fin.val_castLE]; exact j.isLt
   simp only [flipRow]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
 
 /-- Applying `flipRow` XORs output coordinate `k` with `P.xCorr k s`. -/
 theorem flipRow_out {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
@@ -119,11 +123,11 @@ theorem flipRow_out {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
   have hlt : ¬ (↑(Fin.natAdd w k) : ℕ) < w := by
     rw [Fin.val_natAdd]; omega
   simp only [flipRow]
-  rw [dif_neg hlt]
+  rw [dite_eq_right hlt]
   congr 1
   congr 1
   ext
-  simp [Fin.val_natAdd, Nat.add_sub_cancel_left]
+  simp [Fin.val_natAdd]
 
 /-- Defines the corrected core by contracting the entangled loaded state against the conjugate
 measurement vectors and enforcing the corrected output bits. -/
@@ -153,11 +157,11 @@ theorem readout_mul {w m : ℕ} (z : Fin w → Bool) {ρ : Type*} [Fintype ρ]
   rw [Matrix.mul_apply]
   simp only [mpReadout, Matrix.of_apply]
   rw [Finset.sum_eq_single (readoutRow z xp)]
-  · rw [if_pos, one_mul]
+  · rw [ite_eq_left, one_mul]
     exact ⟨fun j => readoutRow_meas z xp j,
       by simp only [readoutRow_out]; exact Equiv.apply_symm_apply (bitVecEquiv m) xp⟩
   · intro u _ hne
-    rw [if_neg, zero_mul]
+    rw [ite_eq_right, zero_mul]
     intro hc
     exact hne (readoutRow_eq z xp u hc.1 hc.2)
   · intro h; exact absurd (Finset.mem_univ _) h
@@ -180,8 +184,8 @@ theorem corr_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : 
         = xor (P.xCorr k s) (flipRow P s u (Fin.natAdd w k)) := by
       intro k
       rw [flipRow_out P s u k]
-      simp [← Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
-    rw [if_pos hmeas0, if_pos hout0]
+      simp
+    rw [ite_eq_left hmeas0, ite_eq_left hout0]
   · intro u' _ hne
     by_cases hmeas : ∀ j : Fin w, u (Fin.castLE (by omega : w ≤ w + m) j)
         = u' (Fin.castLE (by omega) j)
@@ -195,10 +199,10 @@ theorem corr_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : 
         · intro k
           have hx : xor (P.xCorr k s) (u (Fin.natAdd w k)) = u' (Fin.natAdd w k) := by
             rw [hout k]
-            simp [← Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
+            simp
           exact hx.symm.trans (flipRow_out P s u k).symm
-      · rw [if_pos hmeas, if_neg hout, zero_mul]
-    · rw [if_neg hmeas, zero_mul]
+      · rw [ite_eq_left hmeas, ite_eq_right hout, zero_mul]
+    · rw [ite_eq_right hmeas, zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Expands left multiplication by the measurement projector into measurement-vector coordinates
@@ -239,11 +243,11 @@ theorem proj_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : 
     rw [hdist]
     by_cases h : ∀ v : Fin m, a (Fin.natAdd w v) = b (Fin.natAdd w v)
     · have h' : ∀ v : Fin m, b (Fin.natAdd w v) = a (Fin.natAdd w v) := fun v => (h v).symm
-      rw [if_pos h, if_pos h']
+      rw [ite_eq_left h, ite_eq_left h']
       ring
     · have h' : ¬ ∀ v : Fin m, b (Fin.natAdd w v) = a (Fin.natAdd w v) :=
         fun hh => h (fun v => (hh v).symm)
-      rw [if_neg h, if_neg h']
+      rw [ite_eq_right h, ite_eq_right h']
       ring
   simp_rw [hterm]
   rw [← Finset.mul_sum]

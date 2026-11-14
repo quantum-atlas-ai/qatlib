@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.NativeCapture
-import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellFlat
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.NativeCapture
+public import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellFlat
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

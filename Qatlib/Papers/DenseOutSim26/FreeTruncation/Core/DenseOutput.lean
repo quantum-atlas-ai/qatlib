@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Shared objects for `DenseOutSim26.FreeTruncation`
@@ -83,7 +87,7 @@ lemmas below are the shared analytic skeleton. -/
 /-- `∫₀^T t dt = T²/2`. -/
 theorem integral_id_eq (T : ℝ) : ∫ t in (0 : ℝ)..T, t = T ^ 2 / 2 := by
   have h := integral_rpow (a := (0 : ℝ)) (b := T) (r := 1) (Or.inl (by norm_num))
-  simpa [Real.rpow_one, Real.zero_rpow (by norm_num : (2 : ℝ) ≠ 0)] using h
+  simp
 
 /-- `∫₀^T t dt ≤ T²` for `T ≥ 0`. -/
 theorem integral_id_le_sq {T : ℝ} (_hT : 0 ≤ T) : ∫ t in (0 : ℝ)..T, t ≤ T ^ 2 := by

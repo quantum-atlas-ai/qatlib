@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Mathlib.Topology.Algebra.InfiniteSum.Real
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Mathlib.Topology.Algebra.InfiniteSum.Real
+
+@[expose] public section
 
 /-!
 # Checked updates and clocked prefixes
@@ -56,7 +60,7 @@ theorem checkedUpdate_nonincrease (T : I → α) (old candidate : I) :
 theorem checkedUpdate_preserves_minimum (T : I → α) (old candidate : I)
     (hmin : ∀ i, T old ≤ T i) :
     checkedUpdate T old candidate = old := by
-  exact if_neg (not_lt_of_ge (hmin candidate))
+  exact ite_eq_right (not_lt_of_ge (hmin candidate))
 
 /-- A list of candidate indices paired with real-valued call durations. -/
 abbrev ClockedTrace (I : Type*) := List (I × ℝ)
@@ -120,7 +124,7 @@ theorem budgetPrefixIndex_complete (T : I → α) (xs : ClockedTrace I)
   | cons x xs ih =>
     have htail := traceClock_nonneg xs (fun y hy => hc y (by simp [hy]))
     have hx : x.2 ≤ budget := by simp only [traceClock] at hb; linarith
-    rw [budgetPrefixIndex, if_pos hx, finalCheckedIndex]
+    rw [budgetPrefixIndex, ite_eq_left hx, finalCheckedIndex]
     apply ih (fun y hy => hc y (by simp [hy]))
     simp only [traceClock] at hb
     linarith

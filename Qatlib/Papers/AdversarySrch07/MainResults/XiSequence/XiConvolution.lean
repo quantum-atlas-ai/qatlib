@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiBasic
-import Mathlib.RingTheory.Binomial
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiBasic
+public import Mathlib.RingTheory.Binomial
+
+@[expose] public section
 
 /-!
 # Convolution identity for the ordered-search sequence

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisProgram
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisProgram
+
+@[expose] public section
 
 /-!
 # Floor Complex Code

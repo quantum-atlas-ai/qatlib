@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Search Rotations and Oracle Circuits
@@ -66,7 +70,7 @@ def planeState (α : ℝ) : QState Bool :=
 theorem normalized_planeState (α : ℝ) : Normalized (planeState α) := by
   unfold Normalized planeState
   rw [Fintype.sum_bool]
-  simp only [eq_self, Bool.false_eq_true, if_true, if_false, Complex.norm_real,
+  simp only [eq_self, Bool.false_eq_true, ite_true, ite_false, Complex.norm_real,
     Real.norm_eq_abs, sq_abs]
   nlinarith [Real.sin_sq_add_cos_sq α]
 
@@ -296,7 +300,7 @@ private theorem applyGate_tensorGate_one_left {I J : Type} [Fintype I] [Decidabl
   rw [Finset.sum_eq_single i]
   · simp
   · intro k _ hk
-    rw [Matrix.one_apply, if_neg (Ne.symm hk)]
+    rw [Matrix.one_apply, ite_eq_right (Ne.symm hk)]
     simp
   · intro hi
     exact (hi (Finset.mem_univ i)).elim

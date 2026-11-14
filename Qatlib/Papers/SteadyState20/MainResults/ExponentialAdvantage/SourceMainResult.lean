@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

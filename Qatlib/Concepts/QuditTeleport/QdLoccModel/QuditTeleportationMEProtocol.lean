@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+@[expose] public section
 
 /-!
 # A complete measurement for maximally entangled teleportation
@@ -92,7 +96,7 @@ theorem clause4Aux_quditAdd_sum_one (n : ℕ) [NeZero n] (a c : Fin n) :
       = ∑ x : Fin n, (if a = x then (1 : ℂ) else 0) :=
     Equiv.sum_comp (quditShiftEquiv n ((ZMod.finEquiv n) c))
       (fun x => if a = x then (1 : ℂ) else 0)
-  rw [hcomp, Finset.sum_ite_eq, if_pos (Finset.mem_univ a)]
+  rw [hcomp, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ a)]
 
 /-- The sum of two modular-shift indicators is one when their target indices agree and zero
 otherwise. -/
@@ -102,7 +106,7 @@ theorem clause4Aux_quditAdd_cross_sum (n : ℕ) [NeZero n] (a a' c : Fin n) :
       = if a = a' then (1 : ℂ) else 0 := by
   by_cases haa' : a = a'
   · subst haa'
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have h : ∀ o2 : Fin n, (if a = quditAdd n o2 c then (1 : ℂ) else 0)
         * (if a = quditAdd n o2 c then (1 : ℂ) else 0)
         = (if a = quditAdd n o2 c then (1 : ℂ) else 0) := by
@@ -110,7 +114,7 @@ theorem clause4Aux_quditAdd_cross_sum (n : ℕ) [NeZero n] (a a' c : Fin n) :
       by_cases hq : a = quditAdd n o2 c <;> simp [hq]
     rw [Finset.sum_congr rfl (fun o2 _ => h o2)]
     exact clause4Aux_quditAdd_sum_one n a c
-  · rw [if_neg haa']
+  · rw [ite_eq_right haa']
     apply Finset.sum_eq_zero
     intro o2 _
     by_cases hq : a = quditAdd n o2 c
@@ -156,7 +160,7 @@ theorem clause4Aux_rowKraus_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n
       intro a
       by_cases ha : a = q <;> simp [ha, mul_comm]
     rw [Finset.sum_congr rfl (fun a _ => h2 a), Finset.sum_ite_eq',
-      if_pos (Finset.mem_univ q)]
+      ite_eq_left (Finset.mem_univ q)]
   have hR : quditResourceBranchKraus n Ψ o i c = M * Ψ (q, i) := by
     rw [quditResourceBranchKraus_entry]
   rw [hL, Matrix.smul_apply, smul_eq_mul, hR]
@@ -183,14 +187,14 @@ theorem clause4Aux_branch_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n))
     intro u
     by_cases hu : u = (0, 0)
     · subst hu
-      simp only [if_true]
-      rw [clause4Aux_rowKraus_me, if_pos rfl, one_smul]
-    · simp only [hu, if_false]
-      rw [clause4Aux_rowKraus_me, if_neg hu, zero_smul]
+      simp only [ite_true]
+      rw [clause4Aux_rowKraus_me, ite_eq_left rfl, one_smul]
+    · simp only [hu, ite_false]
+      rw [clause4Aux_rowKraus_me, ite_eq_right hu, zero_smul]
       simp only [conjBranch_apply]
       simp
   rw [Finset.sum_congr rfl (fun u _ => hkey u), Finset.sum_ite_eq',
-    if_pos (Finset.mem_univ _)]
+    ite_eq_left (Finset.mem_univ _)]
 
 /-- The row Gram sum of `clause4Aux_meKraus` reduces to the product of its two Fourier-and-shift
 coefficients. -/
@@ -211,7 +215,7 @@ private theorem clause4Aux_meKraus_rowGram (n : ℕ) [NeZero n] (o : Fin n × Fi
   rw [Finset.sum_congr rfl (fun u _ => h u)]
   rw [← Finset.sum_mul]
   have hsum : (∑ u : Fin n × Fin n, (if u = (0, 0) then (1 : ℂ) else 0)) = 1 := by
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
   rw [hsum, one_mul]
 
 /-- The Alice-side Kraus family `clause4Aux_meKraus` satisfies `∑ o, K oᴴ * K o = 1`. -/
@@ -261,9 +265,9 @@ theorem clause4Aux_meKraus_complete (n : ℕ) [NeZero n] :
     rw [h4]
   rw [h3, clause4Aux_qft_col_orth n p.1 q.1, Matrix.one_apply]
   by_cases hc : p.1 = q.1
-  · rw [hc, if_pos rfl, one_mul, clause4Aux_quditAdd_cross_sum n p.2 q.2 q.1]
+  · rw [hc, ite_eq_left rfl, one_mul, clause4Aux_quditAdd_cross_sum n p.2 q.2 q.1]
     by_cases ha : p.2 = q.2
-    · rw [if_pos ha, if_pos (show p = q by exact Prod.ext hc ha)]
-    · rw [if_neg ha, if_neg (fun h => ha (congrArg Prod.snd h))]
-  · rw [if_neg hc, zero_mul, if_neg (fun h => hc (congrArg Prod.fst h))]
+    · rw [ite_eq_left ha, ite_eq_left (show p = q by exact Prod.ext hc ha)]
+    · rw [ite_eq_right ha, ite_eq_right (fun h => ha (congrArg Prod.snd h))]
+  · rw [ite_eq_right hc, zero_mul, ite_eq_right (fun h => hc (congrArg Prod.fst h))]
 end Qatlib.Concepts.QuditTeleport.QdLoccModel

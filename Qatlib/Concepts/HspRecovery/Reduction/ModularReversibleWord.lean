@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGThreshold
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSelectFour
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.WireContext
-import Mathlib.Data.Nat.ModEq
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGThreshold
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSelectFour
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.WireContext
+public import Mathlib.Data.Nat.ModEq
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+
+@[expose] public section
 
 /-!
 # Reversible modular word arithmetic
@@ -874,15 +878,15 @@ theorem raw_input (w k : ℕ) (a m x : Reg w) :
   funext j
   by_cases ha : j.val < w
   · have hs : j.val < 2*w := by omega
-    simp only [rawSource,dif_pos ha,constants,constant_wire_value,input,dif_pos hs,
+    simp only [rawSource,dite_eq_left ha,constants,constant_wire_value,input,dite_eq_left hs,
       booleanWordAdderInput]
   · by_cases hs : j.val < 2*w
-    · simp only [rawSource,dif_neg ha,dif_pos hs,inputWire,input_wire,input,
+    · simp only [rawSource,dite_eq_right ha,dite_eq_left hs,inputWire,input_wire,input,
         booleanWordAdderInput]
     · by_cases hm : j.val-2*w < w
-      · simp only [rawSource,dif_neg ha,dif_neg hs,dif_pos hm,constants,constant_wire_value,
+      · simp only [rawSource,dite_eq_right ha,dite_eq_right hs,dite_eq_left hm,constants,constant_wire_value,
           input,extend]
-      · simp only [rawSource,dif_neg ha,dif_neg hs,dif_neg hm,constants,constant_wire_value,
+      · simp only [rawSource,dite_eq_right ha,dite_eq_right hs,dite_eq_right hm,constants,constant_wire_value,
           input,extend]
 
 /-- The raw graph with constant first operand and modulus, and a variable second operand. -/
@@ -946,8 +950,8 @@ theorem cmp_input {w k : ℕ} (p : Raw w k) (a m x : Reg w) :
       booleanWordAdderInput w x m := by
   funext j
   by_cases hj : j.val < w
-  · simp only [cmpSource,dif_pos hj,inputWire,input_wire,booleanWordAdderInput]
-  · simp only [cmpSource,dif_neg hj,curried_constant,booleanWordAdderInput]
+  · simp only [cmpSource,dite_eq_left hj,inputWire,input_wire,booleanWordAdderInput]
+  · simp only [cmpSource,dite_eq_right hj,curried_constant,booleanWordAdderInput]
 
 /-- The comparison flag agrees with the final flag of conditional subtraction on the input and
 modulus. -/
@@ -1053,7 +1057,6 @@ theorem inverse_coefficient_spec (a m : ℕ) (hm : 0 < m) (hc : a.Coprime m) :
     inverseCoefficient a m < m ∧ a * inverseCoefficient a m % m = 1 % m := by
   have hm' : (m : ℤ) ≠ 0 := Int.ofNat_ne_zero.mpr hm.ne'
   have key := congrArg (fun z : ℤ => (z % (m : ℤ)).toNat) (Nat.gcd_eq_gcd_ab a m)
-  (try dsimp only at key)
   rw [Int.add_mul_emod_self_left,← Int.natCast_mod,Int.toNat_natCast,hc.gcd_eq_one] at key
   refine ⟨?_, (Int.ofNat_inj.mp ?_).trans key.symm⟩
   · dsimp [inverseCoefficient]
@@ -1179,9 +1182,9 @@ theorem add_value (w : ℕ) (a m x : Reg w) :
   by_cases hx : booleanWordLSBValue w x < booleanWordLSBValue w m
   · have hm : 0 < booleanWordLSBValue w m := by omega
     have hb := (Nat.mod_lt (booleanWordLSBValue w a+booleanWordLSBValue w x) hm).trans (lsb_lt w m)
-    rw [if_pos hx,Nat.mod_eq_of_lt hb] at hf
+    rw [ite_eq_left hx,Nat.mod_eq_of_lt hb] at hf
     simpa only [totalAdd,hm,hx,and_self,ite_true,Nat.add_comm] using! hf
-  · simpa only [if_neg hx,totalAdd,hx,and_false,ite_false] using! hf
+  · simpa only [ite_eq_right hx,totalAdd,hx,and_false,ite_false] using! hf
 
 /-- The guarded multiplication graph represents total modular multiplication of the input by the
 fixed operand. -/
@@ -1201,9 +1204,9 @@ theorem mul_value (w : ℕ) (a m x : Reg w) :
   by_cases hx : booleanWordLSBValue w x < booleanWordLSBValue w m
   · have hm : 0 < booleanWordLSBValue w m := by omega
     have hb := (Nat.mod_lt (booleanWordLSBValue w a*booleanWordLSBValue w x) hm).trans (lsb_lt w m)
-    rw [if_pos hx,Nat.mod_eq_of_lt hb] at hf
+    rw [ite_eq_left hx,Nat.mod_eq_of_lt hb] at hf
     simpa only [totalMul,hm,hx,and_self,ite_true] using! hf
-  · simpa only [if_neg hx,totalMul,hx,and_false,ite_false] using! hf
+  · simpa only [ite_eq_right hx,totalMul,hx,and_false,ite_false] using! hf
 
 /-- The guarded graph node count equals `p.nodes + 13 * w + 5`. -/
 theorem nodes_eq {w k : ℕ} (p : Raw w k) : nodes p = p.nodes+13*w+5 := by

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateTransfer03.MainResults.Source.HypercubeConstantTime
-import Qatlib.Papers.StateTransfer03.MainResults.Source.HypercubeDistance
-import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
-import Qatlib.Papers.StateTransfer03.MainResults.Source.ColumnGraph
-import Qatlib.Papers.StateTransfer03.MainResults.Source.HittingTimeSeparation
+module
+
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.HypercubeConstantTime
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.HypercubeDistance
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.ColumnGraph
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.HittingTimeSeparation
+
+@[expose] public section
 
 /-!
 # Collected state transfer results

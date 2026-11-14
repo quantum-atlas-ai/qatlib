@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MarkovChains.ReverseKernel.Discriminant
-import Qatlib.Foundations.MatrixGeometry.StochasticFrame.SwapCompression
-import Qatlib.Foundations.MatrixGeometry.StochasticFrame.Reflection
+module
+
+public import Qatlib.Foundations.MarkovChains.ReverseKernel.Discriminant
+public import Qatlib.Foundations.MatrixGeometry.StochasticFrame.SwapCompression
+public import Qatlib.Foundations.MatrixGeometry.StochasticFrame.Reflection
+
+@[expose] public section
 
 /-!
 # Forward and reverse stochastic frames

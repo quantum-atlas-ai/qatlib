@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Transition kernels and Szegedy walk primitives

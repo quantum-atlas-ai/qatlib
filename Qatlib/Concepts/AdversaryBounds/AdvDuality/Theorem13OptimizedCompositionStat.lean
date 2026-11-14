@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+module
+
+public import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+@[expose] public section
 
 /-!
 # Statement of optimized adversary composition
@@ -30,7 +34,7 @@ The proposition formalizes the composition principle associated with Theorem 13 
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
@@ -42,10 +46,10 @@ input-length, and coordinate-cost assumptions. See [Hoyer, Lee, and Spalek, Theo
 13][HoyerLeeSpalek2007]. -/
 def Theorem13OptimizedComposition : Prop :=
   ∀ (k : ℕ) (X : Fin k → Type) [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
-    (n : Fin k → ℕ) (hne : ∀ i, 0 < n i)
-    (g : ∀ i, X i → Bool) (hnc : ∀ i, ∃ u v, g i u ≠ g i v)
+    (n : Fin k → ℕ) (_hne : ∀ i, 0 < n i)
+    (g : ∀ i, X i → Bool) (_hnc : ∀ i, ∃ u v, g i u ≠ g i v)
     (f : (Fin k → Bool) → Bool) (gin : ∀ i, X i → Fin (n i) → Bool)
-    (α : (i : Fin k) × Fin (n i) → ℝ) (hα : ∀ c, 0 ≤ α c)
+    (α : (i : Fin k) × Fin (n i) → ℝ) (_hα : ∀ c, 0 ≤ α c)
     (β : Fin k → ℝ),
     (∀ i, ENNReal.ofReal (β i) ≤ advPlus (gin i) (g i) (fun q => α ⟨i, q⟩)) →
     advPlus (weightedAdvInput gin) (fun x => f (fun i => g i (x i))) α ≥

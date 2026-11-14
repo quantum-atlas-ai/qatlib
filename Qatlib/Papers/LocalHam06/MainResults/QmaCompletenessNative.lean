@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessGates
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeLocality
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessGates
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeLocality
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
+
+@[expose] public section
 
 /-!
 # Semantics of native gate coefficients
@@ -60,7 +64,7 @@ theorem oneTag_sound : taggedValue oneTag = 1 := by
 theorem identityTag_sound {n : ℕ} (x y : Reg n) :
     taggedValue (identityTag x y) = (1 : Matrix (Reg n) (Reg n) ℂ) x y := by
   by_cases h : x = y
-  · rw [identityTag, if_pos ((regEq_true_iff x y).mpr h), oneTag_sound]
+  · rw [identityTag, ite_eq_left ((regEq_true_iff x y).mpr h), oneTag_sound]
     exact (Matrix.one_apply_eq _).symm.trans (by subst y; rfl)
   · have hb : ¬ regEq x y = true := fun hh => h ((regEq_true_iff x y).mp hh)
     simp [identityTag, hb, h, zeroTag_sound]
@@ -108,17 +112,17 @@ theorem oneWireTag_sound (n w : ℕ) (cell : Bool → Bool → Tag)
     taggedValue (oneWireTag n w cell x y) =
       (if hw : w < n then wireGate n ⟨w, hw⟩ U else 1) x y := by
   by_cases hw : w < n
-  · simp only [oneWireTag, dif_pos hw]
+  · simp only [oneWireTag, dite_eq_left hw]
     rw [wireGate_apply]
     by_cases hs : ∀ j : Fin n, j ≠ ⟨w, hw⟩ → x j = y j
     · have hb := (outsideEq_true_iff ⟨w, hw⟩ x y).mpr hs
-      rw [if_pos hb, if_pos hs]
+      rw [ite_eq_left hb, ite_eq_left hs]
       exact hc _ _
     · have hb : ¬ outsideEq ⟨w, hw⟩ x y = true :=
         fun hh => hs ((outsideEq_true_iff ⟨w, hw⟩ x y).mp hh)
-      rw [if_neg hb, if_neg hs]
+      rw [ite_eq_right hb, ite_eq_right hs]
       exact zeroTag_sound
-  · simp only [oneWireTag, dif_neg hw]
+  · simp only [oneWireTag, dite_eq_right hw]
     exact identityTag_sound x y
 
 /-- Interpreting `rawTag` gives the matrix entry specified by the finite gate code. -/
@@ -135,19 +139,19 @@ theorem rawTag_sound (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       exact oneWireTag_sound n w tdgCell tGateAdj tdgCell_sound x y
   | cx c t =>
       by_cases h : c < n ∧ t < n ∧ c ≠ t
-      · simp only [rawTag, finiteCodeMatrix, dif_pos h,
+      · simp only [rawTag, finiteCodeMatrix, dite_eq_left h,
           cnotGate, permMatrix, Matrix.of_apply]
         by_cases he : x = Function.update y ⟨t, h.2.1⟩
             (y ⟨t, h.2.1⟩ ^^ y ⟨c, h.1⟩)
         · have hb := (regEq_true_iff x _).mpr he
-          rw [if_pos hb, if_pos he]
+          rw [ite_eq_left hb, ite_eq_left he]
           exact oneTag_sound
         · have hb : ¬ regEq x (Function.update y ⟨t, h.2.1⟩
               (y ⟨t, h.2.1⟩ ^^ y ⟨c, h.1⟩)) = true :=
             fun hh => he ((regEq_true_iff x _).mp hh)
-          rw [if_neg hb, if_neg he]
+          rw [ite_eq_right hb, ite_eq_right he]
           exact zeroTag_sound
-      · simp only [rawTag, finiteCodeMatrix, dif_neg h]
+      · simp only [rawTag, finiteCodeMatrix, dite_eq_right h]
         exact identityTag_sound x y
 
 /-- Rounding the complex value of two atoms gives the dyadic value of their integer numerators. -/
@@ -193,19 +197,19 @@ theorem propagationCoeff_interpret {m : ℕ} (n b : ℕ) (i : Fin m) (g : Finite
   have hf : dyadicValue b f.1 f.2=
       hop i p.1 q.1*qmaRoundedGate n b g p.2 q.2 := by
     by_cases h : hopBool i p.1 q.1=true
-    · simp only [f,if_pos h,rawCoeff_interpret,hop,
-        if_pos ((hopBool_iff i p.1 q.1).mp h),one_mul]
+    · simp only [f,ite_eq_left h,rawCoeff_interpret,hop,
+        ite_eq_left ((hopBool_iff i p.1 q.1).mp h),one_mul]
     · have hn : ¬(Post i p.1 ∧ Pre i q.1 ∧ Outside i p.1 q.1) :=
         fun hh => h ((hopBool_iff i p.1 q.1).mpr hh)
-      simp only [f,if_neg h,dyadic_zero,hop,if_neg hn,zero_mul]
+      simp only [f,ite_eq_right h,dyadic_zero,hop,ite_eq_right hn,zero_mul]
   have hr : dyadicValue b r.1 r.2=
       hop i q.1 p.1*qmaRoundedGate n b g q.2 p.2 := by
     by_cases h : hopBool i q.1 p.1=true
-    · simp only [r,if_pos h,rawCoeff_interpret,hop,
-        if_pos ((hopBool_iff i q.1 p.1).mp h),one_mul]
+    · simp only [r,ite_eq_left h,rawCoeff_interpret,hop,
+        ite_eq_left ((hopBool_iff i q.1 p.1).mp h),one_mul]
     · have hn : ¬(Post i q.1 ∧ Pre i p.1 ∧ Outside i q.1 p.1) :=
         fun hh => h ((hopBool_iff i q.1 p.1).mpr hh)
-      simp only [r,if_neg h,dyadic_zero,hop,if_neg hn,zero_mul]
+      simp only [r,ite_eq_right h,dyadic_zero,hop,ite_eq_right hn,zero_mul]
   have hd : dyadicValue b d 0=
       postProjector i p.1 q.1*(1:Matrix (Reg n) (Reg n) ℂ) p.2 q.2+
       preProjector i p.1 q.1*(1:Matrix (Reg n) (Reg n) ℂ) p.2 q.2 := by
@@ -245,9 +249,9 @@ theorem propagationTerm_value {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateC
 
   rw [propagationCoeff_interpret] at he
   by_cases ho : outside (propSites n i g) x=outside (propSites n i g) y
-  · rw [if_pos ho] at he ⊢
+  · rw [ite_eq_left ho] at he ⊢
     exact he.symm
-  · rw [if_neg ho] at he ⊢
+  · rw [ite_eq_right ho] at he ⊢
     rw [dyadic_zero] at he
     exact he.symm
 

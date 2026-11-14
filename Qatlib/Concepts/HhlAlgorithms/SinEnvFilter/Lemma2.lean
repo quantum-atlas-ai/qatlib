@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.FilterBounds
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.FilterBounds
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # HHL filter distance and Lipschitz continuity
@@ -73,7 +77,7 @@ theorem source_lemma2_distance_eq (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) :
 
 /-- For positive `κ` and distinct phases, the three-state filter distance is at most `2 * κ *
 |lam₁ - lam₂|`, as in [Harrow et al., Lemma 2][HarrowHassidimLloyd2009]. -/
-theorem source_lemma2_lipschitz (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) (hne : lam₁ ≠ lam₂) :
+theorem source_lemma2_lipschitz (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) (_hne : lam₁ ≠ lam₂) :
     Real.sqrt (∑ s : Fin 3, ‖sinEnvelopeHVector (1 / (2 * κ)) lam₁ s -
         sinEnvelopeHVector (1 / (2 * κ)) lam₂ s‖ ^ 2) ≤ 2 * κ * |lam₁ - lam₂| := by
   have h := source_filter_lipschitz κ lam₁ lam₂ hκ

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+module
+
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+@[expose] public section
 
 /-!
 # Finite rational phase synthesis

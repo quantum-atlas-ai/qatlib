@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.MarketPayoffLoading
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.MarketPayoffLoading
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+
+@[expose] public section
 
 /-!
 # Rational market payoff loading bounds
@@ -120,7 +124,7 @@ theorem marketPayoffLoading : MarketPayoffLoading := by
       (riskTailPayoff loss t) payoffBits hn.2.1 htail
     have hprep := rationalWeight_prepare_payoff_bias w bits hw hZ
       (fun a => (riskTailPayoff loss t a : ℝ))
-      (fun a => by (try dsimp only); exact ⟨by exact_mod_cast (htail a).1, by exact_mod_cast (htail a).2⟩)
+      (fun a => by  exact ⟨by exact_mod_cast (htail a).1, by exact_mod_cast (htail a).2⟩)
     have htri := abs_sub_le
       (∑ i, BornProb (rationalWeightPrepare w bits *ᵥ Ket none) i *
         (rationalPayoffValue (riskTailPayoff loss t i) payoffBits : ℝ))

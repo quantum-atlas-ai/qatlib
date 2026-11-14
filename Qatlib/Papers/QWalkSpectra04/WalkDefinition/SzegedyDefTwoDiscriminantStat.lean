@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkStat
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantDefs
+module
+
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkStat
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantDefs
+
+@[expose] public section
 
 /-!
 # Statement of the bipartite discriminant correspondence

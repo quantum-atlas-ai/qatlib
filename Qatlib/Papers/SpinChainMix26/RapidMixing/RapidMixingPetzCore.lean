@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzDefs
-import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+module
+
+public import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzDefs
+public import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+
+@[expose] public section
 
 /-!
 # Two-site counterexamples for the encoded Petz generator

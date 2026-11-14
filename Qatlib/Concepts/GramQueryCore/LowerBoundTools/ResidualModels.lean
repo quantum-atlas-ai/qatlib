@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 /-!
 # Models for Gram witnesses and state conversion

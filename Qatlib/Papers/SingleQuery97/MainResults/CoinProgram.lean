@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
-import Qatlib.Papers.SingleQuery97.MainResults.CoinWeighing
-import Qatlib.Papers.SingleQuery97.MainResults.ParityRecovery
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+public import Qatlib.Papers.SingleQuery97.MainResults.CoinWeighing
+public import Qatlib.Papers.SingleQuery97.MainResults.ParityRecovery
+
+@[expose] public section
 
 /-!
 # An explicit one-query coin-weighing circuit

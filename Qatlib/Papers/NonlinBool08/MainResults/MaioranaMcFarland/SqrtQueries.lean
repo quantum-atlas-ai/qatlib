@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
-import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.ClassicalQueries
-import Mathlib.Logic.Equiv.Fintype
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+public import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.ClassicalQueries
+public import Mathlib.Logic.Equiv.Fintype
+
+@[expose] public section
 
 /-!
 # Nonadaptive query bounds for a permutation oracle
@@ -157,7 +161,7 @@ theorem sqrt_lower_bound {m : ℕ} (A : NonAdaptiveAlg m)
     omega
   obtain ⟨s, hs⟩ : ∃ s : BVec m, s ∉ diffSet Dv := by
     by_contra h
-    push_neg at h
+    push Not at h
     exact hne_univ (Finset.eq_univ_of_forall h)
 
   have hne_univ' : diffSet Dv ∪ {s} ≠ Finset.univ := by
@@ -169,7 +173,7 @@ theorem sqrt_lower_bound {m : ℕ} (A : NonAdaptiveAlg m)
     omega
   obtain ⟨s', hs'⟩ : ∃ s' : BVec m, s' ∉ diffSet Dv ∪ {s} := by
     by_contra h
-    push_neg at h
+    push Not at h
     exact hne_univ' (Finset.eq_univ_of_forall h)
   have hs'1 : s' ∉ diffSet Dv := fun h => hs' (Finset.mem_union_left _ h)
   have hs'ne : s' ≠ s := by
@@ -179,7 +183,7 @@ theorem sqrt_lower_bound {m : ℕ} (A : NonAdaptiveAlg m)
   have hcond : ∀ t : BVec m, t ∉ diffSet Dv ↔ ∀ y ∈ Dv, y + t ∉ Dv := by
     intro t
     rw [mem_diffSet_iff]
-    push_neg
+    push Not
     exact Iff.rfl
   have hDs' : ∀ y ∈ Dv, y + s' ∉ Dv := (hcond s').mp hs'1
   have hDs : ∀ y ∈ Dv, y + s ∉ Dv := (hcond s).mp hs
@@ -207,7 +211,7 @@ lemma mmGs_basis_apply {m : ℕ} (π : Equiv.Perm (BVec m)) (s : BVec m × BVec 
     (y : BVec m) (i : Fin m) :
     mmGs π s (Pi.single i (1 : ZMod 2), y)
       = (π (y + s.2)) i + dot s.1 (π (y + s.2)) := by
-  simp only [mmGs, mm, Prod.fst_add, Prod.snd_add, Pi.zero_apply, zero_add, add_zero]
+  simp only [mmGs, mm, Prod.fst_add, Prod.snd_add, Pi.zero_apply, add_zero]
   have hdot : dot (Pi.single i (1 : ZMod 2) + s.1) (π (y + s.2))
       = dot (Pi.single i (1 : ZMod 2)) (π (y + s.2)) + dot s.1 (π (y + s.2)) := by
     show dotProduct (Pi.single i (1 : ZMod 2) + s.1) (π (y + s.2))

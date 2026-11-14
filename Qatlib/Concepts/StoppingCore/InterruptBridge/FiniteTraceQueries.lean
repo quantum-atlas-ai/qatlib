@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # A first-query bound for finite traces
@@ -81,7 +85,7 @@ theorem finite_trace_first_query_lower {I H : Type} [Fintype I] [DecidableEq I] 
     have hp₀ := finiteTraceMass_nonneg O₀ code psi h
     have hp₁ := finiteTraceMass_nonneg O₁ code psi h
     by_cases hd : decode h = t₀
-    · simp only [hd,if_true]
+    · simp only [hd,ite_true]
       by_cases hq : QueryCount (code h) = 0
       · rw [finiteTraceMass_zero_query O₀ O₁ code psi h hq,hq,Nat.cast_zero,mul_zero,add_zero]
       · have hq1 : (1 : ℝ) ≤ (QueryCount (code h) : ℝ) := by
@@ -90,7 +94,7 @@ theorem finite_trace_first_query_lower {I H : Type} [Fintype I] [DecidableEq I] 
             finiteTraceMass O₀ code psi h*(QueryCount (code h) : ℝ) := by
           simpa only [mul_one] using mul_le_mul_of_nonneg_left hq1 hp₀
         linarith
-    · simp only [hd,if_false,zero_add]
+    · simp only [hd,ite_false,zero_add]
       exact mul_nonneg hp₀ (Nat.cast_nonneg _)
   have hd : finiteTraceSuccess O₁ code psi decode t₀+finiteTraceSuccess O₁ code psi decode t₁ ≤
       ∑ h, finiteTraceMass O₁ code psi h := by
@@ -100,10 +104,10 @@ theorem finite_trace_first_query_lower {I H : Type} [Fintype I] [DecidableEq I] 
     intro h _
     by_cases h0 : decode h = t₀
     · have h1 : decode h ≠ t₁ := fun e => hne (h0.symm.trans e)
-      rw [if_pos h0,if_neg h1,add_zero]
+      rw [ite_eq_left h0,ite_eq_right h1,add_zero]
     · by_cases h1 : decode h = t₁
-      · rw [if_neg h0,if_pos h1,zero_add]
-      · simp only [h0,h1,if_false,add_zero]
+      · rw [ite_eq_right h0,ite_eq_left h1,zero_add]
+      · simp only [h0,h1,ite_false,add_zero]
         exact finiteTraceMass_nonneg O₁ code psi h
   linarith [hd.trans htotal]
 

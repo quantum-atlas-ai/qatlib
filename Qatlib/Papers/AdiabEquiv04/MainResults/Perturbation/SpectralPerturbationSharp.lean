@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.EigenRayleigh
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
-import Qatlib.Papers.AdiabEquiv04.MainResults.Perturbation.SpectralPerturbation
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.EigenRayleigh
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Perturbation.SpectralPerturbation
+
+@[expose] public section
 
 /-!
 # A sharp ground-energy perturbation bound
@@ -161,7 +165,7 @@ theorem rayleigh_abs_le {κ : Type} [Fintype κ] [DecidableEq κ] (M : Matrix κ
     |rayleigh M y| ≤ K * normSq y := by
   by_cases hy : y = 0
   · subst hy
-    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero, zero_dotProduct]
+    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero]
   · calc |rayleigh M y| = |normSq y * rayleigh M (unitVec y)| := by
           rw [rayleigh_unitVec M hy]
       _ = normSq y * |rayleigh M (unitVec y)| := by
@@ -180,7 +184,7 @@ theorem rayleigh_range_ge_ground {κ ν : Type} [Fintype κ] [DecidableEq κ]
   rw [← rayleigh_isometry V hV H₁ c, normSq_isometry V hV c]
   by_cases hc : c = 0
   · subst hc
-    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero, zero_dotProduct]
+    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero]
   · have hpos : 0 < normSq c := normSq_pos_aux hc
     rw [rayleigh_unitVec (restrict V H₁ hV).mat hc]
     exact mul_le_mul_of_nonneg_left
@@ -196,7 +200,7 @@ theorem rayleigh_H2_ge {κ ν : Type} [Fintype κ] [DecidableEq κ] [Fintype ν]
     J * normSq y ≤ rayleigh H₂.mat y := by
   by_cases hy : y = 0
   · subst hy
-    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero, zero_dotProduct]
+    simp [rayleigh, normSq, Matrix.mulVec_zero, dotProduct_zero]
   · have hposy : 0 < normSq y := normSq_pos_aux hy
     have hVyu : Vᴴ *ᵥ unitVec y = 0 := by
       unfold unitVec
@@ -222,11 +226,11 @@ theorem quad_min (A K t : ℝ) (hA : 0 < A) :
 two-component quadratic expression is at least `gS - K² / (J - 2 * K)`. -/
 theorem core_bound (gS J K u s ux sy : ℝ)
     (hux : ux ^ 2 = u) (hsy : sy ^ 2 = s) (hu : u + s = 1)
-    (hu0 : 0 ≤ u) (hs0 : 0 ≤ s) (hux0 : 0 ≤ ux) (hsy0 : 0 ≤ sy)
+    (_hu0 : 0 ≤ u) (hs0 : 0 ≤ s) (hux0 : 0 ≤ ux) (hsy0 : 0 ≤ sy)
     (hK0 : 0 ≤ K) (hgSK : gS ≤ K) (hJ : 2 * K < J) :
     gS - K ^ 2 / (J - 2 * K) ≤ u * gS - K * s - 2 * K * ux * sy + J * s := by
   have hA : 0 < J - 2 * K := by linarith
-  have hux1 : ux ≤ 1 := by nlinarith [hux, hux0, hu0, hu, hs0]
+  have hux1 : ux ≤ 1 := by nlinarith [hux, hux0, _hu0, hu, hs0]
   have hq : -(K ^ 2 / (J - 2 * K)) ≤ (J - 2 * K) * sy ^ 2 - 2 * K * sy :=
     quad_min (J - 2 * K) K sy hA
   have h1 : (J - 2 * K) * s ≤ (J - K - gS) * s := by
@@ -244,12 +248,12 @@ theorem core_bound (gS J K u s ux sy : ℝ)
     linarith [hq]
   have stepA : 0 ≤ s * (J - K - gS) - 2 * K * ux * sy + K ^ 2 / (J - 2 * K) := by
     nlinarith [hsa, h1, h2]
-  nlinarith [stepA, hu, hu0, hs0]
+  nlinarith [stepA, hu, _hu0, hs0]
 
 /-- For a Hermitian matrix and orthogonal vectors `x` and `y`, the Rayleigh expression of their
 sum is the sum of their Rayleigh expressions plus twice the real cross term. -/
 theorem rayleigh_add_orth {κ : Type} [Fintype κ] {M : Matrix κ κ ℂ} (hM : M.IsHermitian)
-    {x y : κ → ℂ} (hxy : (star x) ⬝ᵥ y = 0) :
+    {x y : κ → ℂ} (_hxy : (star x) ⬝ᵥ y = 0) :
     rayleigh M (x + y) =
       rayleigh M x + rayleigh M y + 2 * ((star x) ⬝ᵥ (M *ᵥ y)).re := by
   unfold rayleigh

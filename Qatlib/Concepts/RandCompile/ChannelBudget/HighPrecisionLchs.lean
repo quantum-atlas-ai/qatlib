@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.HighPrecisionLchsDefs
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.HighPrecisionLchsDefs
+
+@[expose] public section
 
 /-!
 # High precision LCHS analytic and quadrature bounds
@@ -86,7 +90,7 @@ theorem clause30_actual_kernel_closed_continuous (β : ℝ) :
 
 /-- For `0 < β < 1`, the contour kernel is both complex differentiable and continuous on the
 closed lower half-plane. -/
-theorem clause30_contour_consumes_closed_differentiability (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
+theorem clause30_contour_consumes_closed_differentiability (β : ℝ) (_hβ : 0 < β) (_hβ1 : β < 1) :
     DifferentiableOn ℂ (highKernelF β) lowerClosedHalfPlane ∧
       ContinuousOn (highKernelF β) lowerClosedHalfPlane :=
   ⟨clause30_actual_kernel_closed_differentiable β, clause30_actual_kernel_closed_continuous β⟩
@@ -206,7 +210,6 @@ theorem clause31_composite_coefficient_mass {Q M : ℕ} (K : ℕ) (β : ℝ)
         simp only [compositeCellWidth]
         have hM0 : (M : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hM)
         field_simp [hM0, hcpos.ne']
-        <;> ring
 
 /-- For fixed `0 < β < 1` and positive `K`, the composite node count times `log 4` is bounded by
 a constant plus `|log(1 / ε)|` for every positive `ε`. -/
@@ -241,7 +244,8 @@ theorem clause31_node_count_polylog_in_precision (β K : ℝ) (hβ : 0 < β) (h�
       Real.log_div (by positivity) (by positivity)
     have h2 : Real.log (1 / ε) = -Real.log ε := by
       have hh := Real.log_div (x := 1) (y := ε) (by norm_num) (by positivity)
-      simpa using! hh
+      convert hh using 1
+      norm_num
     rw [h1, h2]
     ring
   have htri : |Real.log ((8 / (3 * highKernelC β)) * K / ε)|
@@ -286,7 +290,7 @@ theorem clause31_propagator_evaluation_count (β T Λ : ℝ) (K : ℕ) (ε : ℝ
 /-- A finite nonempty Gibbs input at positive temperature has strictly positive partition
 function. -/
 theorem clause32_partition_function_positive {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X)
-    (hT : 0 < g.temperature) :
+    (_hT : 0 < g.temperature) :
     0 < partitionFunction g := by
   refine Finset.sum_pos ?_ ?_
   · intro x hx

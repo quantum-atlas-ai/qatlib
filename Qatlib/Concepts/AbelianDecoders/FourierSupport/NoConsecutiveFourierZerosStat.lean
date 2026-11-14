@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Specification of cyclic Fourier nonvanishing

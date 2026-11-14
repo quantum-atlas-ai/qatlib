@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.GridGradient.GradientSourceContinuationDefs
+module
+
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.GradientSourceContinuationDefs
+
+@[expose] public section
 
 /-!
 # Value kickback and Fourier gradient continuation
@@ -90,7 +94,7 @@ private theorem tensorGate_one_diag_ket {I J : Type*} [Fintype I] [Fintype J]
   | mk i j =>
     simp only [TensorState, Pi.smul_apply, smul_eq_mul]
     by_cases hx : i = x <;> by_cases hy : j = y <;>
-      simp [hx, hy, Qatlib.Foundations.PureStateMath.Ket, Matrix.diag_apply, Prod.ext_iff]
+      simp [hx, hy, Qatlib.Foundations.PureStateMath.Ket]
 
 /-- The modular value phase gate is unitary. -/
 private theorem valuePhaseGate_unitary (Q : ℕ) [NeZero Q] :
@@ -135,7 +139,7 @@ theorem value_compute_kickback_uncompute_actual :
       = (gradientValueOracle Q v)ᴴ *
         (TensorGate (1 : Matrix (GradientGrid d M) (GradientGrid d M) ℂ) (valuePhaseGate Q) *
           (gradientValueOracle Q v)) := by
-    simp [evaluate, instructionMatrix, valueComputeKickbackUncomputeWord, Matrix.mul_one]
+    simp [evaluate, instructionMatrix, valueComputeKickbackUncomputeWord]
   have hO : gradientValueOracle Q v = AddOracle v := gradientValueOracle_eq_addOracle Q v
   have hOh : (gradientValueOracle Q v)ᴴ = AddOracle (-v) := by
     rw [hO, addOracle_conjTranspose]
@@ -185,8 +189,8 @@ theorem gradientPhase_int_shift (d M : ℕ) (φ : GradientGrid d M → ℝ)
 difference by `2 * π * δ`. -/
 theorem value_compute_kickback_uncompute_operator_error :
     ∀ (d M Q : ℕ) [NeZero Q] (v : GradientGrid d M → ZMod Q)
-      (φ : GradientGrid d M → ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
-      (herror : ∀ x, ∃ k : ℤ, |gradientValuePhase Q v x - φ x - k| ≤ δ),
+      (φ : GradientGrid d M → ℝ) (δ : ℝ) (_hδ : 0 ≤ δ)
+      (_herror : ∀ x, ∃ k : ℤ, |gradientValuePhase Q v x - φ x - k| ≤ δ),
       ‖gradientPhase d M (gradientValuePhase Q v) - gradientPhase d M φ‖ ≤ 2 * Real.pi * δ := by
   intro d M Q _ v φ δ hδ herror
   let κ : GradientGrid d M → ℤ := fun x => Classical.choose (herror x)
@@ -215,8 +219,8 @@ theorem value_compute_kickback_uncompute_operator_error :
 least `1 - 16 * d / (M * w) - 4 * π * B` under the stated positivity conditions. -/
 theorem stationary_phase_window_transport :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
-      (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
-      (herror : ∀ x, |stationaryPhaseResidual d M φ g x - (c : ℝ)| ≤ B),
+      (_hM2 : 2 ≤ M) (_hw : 0 < w) (_hB : 0 ≤ B)
+      (_herror : ∀ x, |stationaryPhaseResidual d M φ g x - (c : ℝ)| ≤ B),
       MeasureProb (gradientReadout d M hM φ)
         (Finset.univ.filter (fun z => ∀ j : Fin d,
           phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w))
@@ -238,10 +242,10 @@ theorem stationary_phase_window_transport :
 /-- A good modular window sample gives centered coordinate errors at most `w` when the gradient
 and window satisfy the stated bounds. -/
 theorem centered_output_estimate_error :
-    ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
-      (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
+    ∀ (d M : ℕ) (_hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
+      (_hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (_hw : w ≤ 1 / 8)
       (z : GradientGrid d M)
-      (hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
+      (_hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
       ∀ j : Fin d, |gradientEstimate d M z j - g j| ≤ w := by
   intro d M hM g w hg hw z hgood j
   have h := gradient_signed_decode_window M hM (z j) (g j) w (hg j) hw (hgood j)

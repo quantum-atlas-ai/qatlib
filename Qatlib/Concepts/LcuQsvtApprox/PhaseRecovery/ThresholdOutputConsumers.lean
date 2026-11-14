@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+
+@[expose] public section
 
 /-!
 # Threshold postselection and concrete outputs
@@ -150,7 +154,6 @@ private theorem squared_singularValues_of_idempotent_gram
     rw [hz, norm_zero] at hn
     norm_num at hn
   have he := congrArg (fun T : Matrix I I ℂ => T.toEuclideanLin (rightSingularBasis A i)) hP
-  (try dsimp only at he)
   change (Matrix.toLpLin 2 2 ((Aᴴ * A) * (Aᴴ * A))) (rightSingularBasis A i) = _ at he
   rw [Matrix.toLpLin_mul_same, LinearMap.comp_apply, gram_apply_rightSingularBasis,
     map_smul, gram_apply_rightSingularBasis, smul_smul] at he

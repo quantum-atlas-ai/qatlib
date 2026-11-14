@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.Reductions.ActualMarking
-import Qatlib.Papers.AmpInvReqTang26.TraceConcent.ActualMixture
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.GoodEvent
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.Reductions.ActualMarking
+public import Qatlib.Papers.AmpInvReqTang26.TraceConcent.ActualMixture
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.GoodEvent
+
+@[expose] public section
 
 /-!
 # Reducing trace discrimination to amplitude estimation
@@ -102,8 +106,8 @@ theorem traceEstimator_branch0 {d anc : ℕ} {S : Type} (eps : ℝ) (he : 0<eps)
   apply Finset.sum_le_sum
   intro x _
   by_cases ha : |Alg.value x-‖normTrace phi U‖|<0.05*eps
-  · rw [if_pos ha,if_pos (decision_zero eps (Alg.value x) _ he (norm_nonneg _) ht ha)]
-  · rw [if_neg ha]
+  · rw [ite_eq_left ha,ite_eq_left (decision_zero eps (Alg.value x) _ he (norm_nonneg _) ht ha)]
+  · rw [ite_eq_right ha]
     split_ifs <;> positivity
 
 /-- With the specified estimator, start, and marking, normalized trace magnitude at least `0.2 *
@@ -117,8 +121,8 @@ theorem traceEstimator_branch1 {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d)
   apply Finset.sum_le_sum
   intro x _
   by_cases ha : |Alg.value x-‖normTrace phi U‖|<0.05*eps
-  · rw [if_pos ha,if_pos (decision_one eps (Alg.value x) _ ht ha)]
-  · rw [if_neg ha]
+  · rw [ite_eq_left ha,ite_eq_left (decision_one eps (Alg.value x) _ ht ha)]
+  · rw [ite_eq_right ha]
     split_ifs <;> positivity
 
 /-- There is an absolute cutoff such that, in the stated root-order and dimension regime, any

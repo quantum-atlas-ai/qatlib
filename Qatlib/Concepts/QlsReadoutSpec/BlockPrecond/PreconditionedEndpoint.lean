@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedEncoding
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedEncoding
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
+
+@[expose] public section
 
 /-!
 # Completed preconditioned reciprocal encoding

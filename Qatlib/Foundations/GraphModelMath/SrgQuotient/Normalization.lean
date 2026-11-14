@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphModelMath.SrgQuotient.Defs
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Foundations.GraphModelMath.SrgQuotient.Defs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Euclidean normalization of strongly regular graph cells

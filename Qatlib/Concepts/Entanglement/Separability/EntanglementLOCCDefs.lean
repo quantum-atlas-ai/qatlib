@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
-import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
+public import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
+
+@[expose] public section
 
 /-!
 # Schmidt-basis instruments and LOCC bookkeeping

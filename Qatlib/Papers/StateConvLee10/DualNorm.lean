@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
+
+@[expose] public section
 
 /-!
 # Semidefinite formulations of the dual filtered norm

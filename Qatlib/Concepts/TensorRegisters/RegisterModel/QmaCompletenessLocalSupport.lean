@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Mathlib.Data.Finset.Sort
-import Mathlib.Logic.Equiv.Prod
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Logic.Equiv.Prod
+
+@[expose] public section
 
 /-!
 # Splitting a qubit register by its support
@@ -133,14 +137,14 @@ theorem outside_fill {N : ℕ} (S : Finset (Fin N)) (u : Reg S.card) :
 theorem fill_mask_on {N : ℕ} (S : Finset (Fin N)) (x : Reg N)
     (i : Fin N) (hi : i∈S) : fill S (mask S x) i=x i := by
   change merge S (mask S x) (fun _ => false) i=x i
-  rw [merge_apply,dif_pos hi]
+  rw [merge_apply,dite_eq_left hi]
   exact congrArg x (congrArg Subtype.val ((S.orderIsoOfFin rfl).apply_symm_apply ⟨i,hi⟩))
 
 /-- A filled register has value false at every wire outside `S`. -/
 theorem fill_off {N : ℕ} (S : Finset (Fin N)) (u : Reg S.card)
     (i : Fin N) (hi : i∉S) : fill S u i=false := by
   change merge S u (fun _ => false) i=false
-  rw [merge_apply,dif_neg hi]
+  rw [merge_apply,dite_eq_right hi]
 
 /-- A lifted matrix has local entry `M (mask S x) (mask S y)` when the complementary coordinates
 agree, and zero otherwise. -/

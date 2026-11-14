@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
-import Mathlib.LinearAlgebra.Matrix.Kronecker
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+@[expose] public section
 
 /-!
 # Haar averages of conjugated states
@@ -112,7 +116,7 @@ theorem conjugation_trace_average {n : Type*} [Fintype n] [DecidableEq n]
   simp_rw [integral_finsetSum _ (fun j _ => hterm _ j), integral_const_mul,
     conjugation_average]
   simp only [mul_ite, mul_zero]
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   rw [← Finset.sum_mul]
   simp only [Matrix.trace, Matrix.diag_apply, div_eq_mul_inv, mul_assoc]
 
@@ -212,7 +216,7 @@ theorem qubit_pure_entry_second : PureEntrySecondMoment 2 0 := by
     rw [show P = Matrix.kroneckerMap (· * ·) (seed (0 : Fin 2)) (seed (0 : Fin 2)) from rfl,
       qubit_pure_tensor]
     rfl
-  try dsimp only at h
+
   rw [hleft] at h
   rw [h]
   fin_cases i <;> fin_cases j <;> fin_cases k <;> fin_cases l <;>

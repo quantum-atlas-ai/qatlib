@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterPrefixCounting
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterPrefixCounting
+
+@[expose] public section
 
 /-!
 # Left generators of exponential words
@@ -61,7 +65,7 @@ theorem pfLeftGenerator_contDiff (xs : List (Matrix I I ℂ)) : ContDiff ℝ ∞
 the word. -/
 theorem pf_word_hasDerivAt_left_generator (xs : List (Matrix I I ℂ)) (t : ℝ) :
     HasDerivAt (suzukiExponentialWord xs) (pfLeftGenerator xs t*suzukiExponentialWord xs t) t := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   induction xs with
   | nil => simpa only [suzukiExponentialWord,List.map_nil,List.prod_nil,pfLeftGenerator,zero_mul] using! hasDerivAt_const t (1 : Matrix I I ℂ)
   | cons X xs ih =>
@@ -90,7 +94,7 @@ theorem pf_word_series_one (xs : List (Matrix I I ℂ)) : suzukiSeries xs 1=xs.s
 
 /-- The exponential word is a unit at every real time. -/
 theorem pf_word_isUnit (xs : List (Matrix I I ℂ)) (t : ℝ) : IsUnit (suzukiExponentialWord xs t) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   apply List.prod_isUnit
   intro Y hY
   obtain ⟨X,_hX,rfl⟩ := List.mem_map.mp hY

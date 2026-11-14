@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeAutoPrep
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeAutoPrep
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+@[expose] public section
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 open Qatlib.Foundations.QueryWordCore.Circuit

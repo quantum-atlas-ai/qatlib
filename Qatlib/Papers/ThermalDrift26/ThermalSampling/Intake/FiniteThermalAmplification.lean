@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalLCU
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalLCU
+
+@[expose] public section
 
 /-!
 # Finite Thermal Amplitude Amplification
@@ -148,7 +152,8 @@ theorem thermalUniformBranch_sum (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b
     · have hZ : ¬(w0+w1+pad≤thermalBitValue (List.ofFn u) ∧ thermalBitValue (List.ofFn u)<2^b) := by omega
       simp [thermalUniformBranch,hY,hZ]
     · by_cases hZ : w0+w1+pad≤thermalBitValue (List.ofFn u) ∧ thermalBitValue (List.ofFn u)<2^b
-      all_goals simp [thermalUniformBranch,hY,hZ] <;> ring
+      all_goals fin_cases s <;> fin_cases t <;>
+          norm_num [thermalUniformBranch,hY,hZ,Matrix.one_apply,Matrix.ofNat_apply]
   ext s t
   rw [Matrix.sum_apply]
   simp_rw [hbranch]
@@ -402,7 +407,7 @@ theorem thermalActualOAA_split_corner (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
             thermalUniformLCU b w0 (w0+w1) (w0+w1+pad) (2^b))) s 0 := by
   have h := congrFun (congrFun (thermalActualOAA_intertwine b w w0 w1 pad hcap htotal)
     (thermalEncoded b w (Qatlib.Foundations.PureStateMath.ZeroStr b,s))) (Qatlib.Foundations.PureStateMath.ZeroStr b,0)
-  rw [thermalWorkspaceEmbed_left,thermalWorkspaceEmbed_right,thermalEncoded_equiv,if_pos rfl] at h
+  rw [thermalWorkspaceEmbed_left,thermalWorkspaceEmbed_right,thermalEncoded_equiv,ite_eq_left rfl] at h
   change Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix _ _ (thermalEncoded b w (Qatlib.Foundations.PureStateMath.ZeroStr b,s))
     (thermalEncoded b w (Qatlib.Foundations.PureStateMath.ZeroStr b,0))=_ at h
   rw [thermalEncoded_target,thermalEncoded_zero] at h

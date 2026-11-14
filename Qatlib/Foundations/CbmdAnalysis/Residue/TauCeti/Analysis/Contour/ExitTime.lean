@@ -6,12 +6,16 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Topology.Order.LeftRightNhds
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Topology.Order.IntermediateValue
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Topology.Order.LeftRightNhds
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 /-!
 # First exit times from distance balls

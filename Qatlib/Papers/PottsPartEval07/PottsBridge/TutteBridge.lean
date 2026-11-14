@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
-import Qatlib.Papers.PottsPartEval07.PottsBridge.KernelComponents
+module
+
+public import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
+public import Qatlib.Papers.PottsPartEval07.PottsBridge.KernelComponents
+
+@[expose] public section
 
 /-!
 # The Potts subset expansion
@@ -72,12 +76,12 @@ theorem potts_fk_expansion {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] 
         = (if (∀ e ∈ A, σ (ends e).1 = σ (ends e).2) then (1 : ℝ) else 0) := by
     intro σ
     by_cases h : ∀ e ∈ A, σ (ends e).1 = σ (ends e).2
-    · rw [if_pos h]
-      exact Finset.prod_eq_one (fun e he => if_pos (h e he))
-    · rw [if_neg h]
-      push_neg at h
+    · rw [ite_eq_left h]
+      exact Finset.prod_eq_one (fun e he => ite_eq_left (h e he))
+    · rw [ite_eq_right h]
+      push Not at h
       obtain ⟨e, heA, hne⟩ := h
-      exact Finset.prod_eq_zero heA (if_neg hne)
+      exact Finset.prod_eq_zero heA (ite_eq_right hne)
   have hfilter : (Finset.univ.filter fun σ : V → ZMod q => ∀ e ∈ A, σ (ends e).1 = σ (ends e).2)
       = (Finset.univ.filter fun σ : V → ZMod q => coboundary q (subEnds ends A) σ = 0) := by
     apply Finset.filter_congr
@@ -94,8 +98,7 @@ theorem potts_fk_expansion {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] 
   simp only [hprod]
   rw [show (∑ σ : V → ZMod q, if (∀ e ∈ A, σ (ends e).1 = σ (ends e).2) then (1 : ℝ) else 0)
         = ((Finset.univ.filter fun σ : V → ZMod q => ∀ e ∈ A, σ (ends e).1 = σ (ends e).2).card : ℝ) from by
-    simpa using
-        Finset.sum_boole (fun σ : V → ZMod q => ∀ e ∈ A, σ (ends e).1 = σ (ends e).2) Finset.univ]
+    simp]
   rw [hfilter]
   rw [show (Finset.univ.filter fun σ : V → ZMod q => coboundary q (subEnds ends A) σ = 0).card
         = kernelSize q (subEnds ends A) from rfl]
@@ -105,7 +108,7 @@ theorem potts_fk_expansion {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] 
 /-- When `1 + v` is nonzero, the Potts sum at `(1 + v)⁻¹` equals the edge-subset sum weighted by
 `v ^ card A` and `q` to the component count [GeraciLidar2008]. -/
 theorem pottsZ_inv_fk {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] (v : ℝ)
-    (hv : (1 + v) ≠ 0) :
+    (_hv : (1 + v) ≠ 0) :
     pottsZ q ends ((1 + v)⁻¹)
       = ∑ A ∈ (Finset.univ : Finset E).powerset,
           v ^ A.card * (q : ℝ) ^ componentCount (subEnds ends A) := by

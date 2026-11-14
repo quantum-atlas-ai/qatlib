@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma24Stat
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedQuan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Quan
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma24Stat
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedQuan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Quan
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Expected stage bound for the Bayesian learner
@@ -197,7 +202,7 @@ private theorem selected_cut_band {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε
     exact ⟨hklo, hkhi⟩
   have hmem : stageTwoCut hn a ε ∈ cutSet a ε := by
     unfold stageTwoCut
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
     exact Finset.min'_mem _ _
   exact (Finset.mem_filter.mp hmem).2
 
@@ -248,11 +253,11 @@ private theorem learner_preserves_valid {n : ℕ} (hn : 0 < n) (p ε : ℝ)
     have hband := selected_cut_band hn a ε ha hε (by linarith) hsmall
     have hupdates := bounded_posteriors a (stageTwoCut hn a ε) p ε ha hp hp1 hε6 hsmall hband
     have hnext : learnerNext hn p ε a =
-        (PMF.bernoulli (clampProb (normTrue a (stageTwoCut hn a ε) p)) (clampProb_le _)).map
+        (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (clampProb (normTrue a (stageTwoCut hn a ε) p)) (clampProb_le _)).map
           (fun bit => Sum.inr (if bit then updateTrue a (stageTwoCut hn a ε) p
             else updateFalse a (stageTwoCut hn a ε) p)) := by
       unfold learnerNext
-      rw [dif_neg hheavy]
+      rw [dite_eq_right hheavy]
       rfl
     have hsupp := (PMF.mem_support_iff _ _).2 hprob
     rw [hnext] at hsupp
@@ -291,11 +296,11 @@ private theorem learner_entropy_expectation {n : ℕ} (hn : 0 < n) (a : Fin n �
     unfold normTrue
     ring
   unfold learnerNext
-  rw [dif_neg hheavy, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
+  rw [dite_eq_right hheavy, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
   simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, Sum.elim_inr]
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_fintype, Fintype.sum_bool]
-  simp only [PMF.bernoulli_apply, Bool.cond_true, Bool.cond_false, ↓reduceIte, ENNReal.coe_sub]
+  simp only [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply, Bool.cond_true, Bool.cond_false, ↓reduceIte, ENNReal.coe_sub]
   change ((clampProb (normTrue a i p) : ℝ≥0) : ℝ≥0∞) * ENNReal.ofReal (entropy (updateTrue a i p)) +
     (((1 : ℝ≥0) - clampProb (normTrue a i p)) : ℝ≥0∞) * ENNReal.ofReal (entropy (updateFalse a i p)) = _
   rw [hcoinF, hcoin, ← ENNReal.ofReal_mul hT.le, ← ENNReal.ofReal_mul hF.le,

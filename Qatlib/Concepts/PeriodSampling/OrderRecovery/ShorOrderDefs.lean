@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.ContinuedFractionOrderConsumers
-import Qatlib.Concepts.WalshMoment.Forrelation.FiniteAbelian
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.ModularOrderPhaseReadout
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFraming
-import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Totient
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.ContinuedFractionOrderConsumers
+public import Qatlib.Concepts.WalshMoment.Forrelation.FiniteAbelian
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.ModularOrderPhaseReadout
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFraming
+public import Mathlib.Data.Nat.Factorization.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Definitions for order-based factoring

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Physical
-import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Physical
+public import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
+
+@[expose] public section
 
 /-!
 # Physical product words and scalar center shifts

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Data.List.Sublists
-import Mathlib.Algebra.BigOperators.Ring.List
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Data.List.Sublists
+public import Mathlib.Algebra.BigOperators.Ring.List
+
+@[expose] public section
 
 /-!
 # Dyson prefixes and strict grid expansions

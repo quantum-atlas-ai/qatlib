@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceAlgebra
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceAlgebra
+
+@[expose] public section
 
 /-!
 # Polynomial exactness of central differences
@@ -32,7 +36,7 @@ theorem centralDiffCoeff_neg (m : ℕ) (ℓ : ℤ) :
     centralDiffCoeff m (-ℓ) = -centralDiffCoeff m ℓ := by
   by_cases hℓ : ℓ = 0
   · simp [hℓ, centralDiffCoeff]
-  · simp only [centralDiffCoeff, neg_ne_zero.mpr hℓ, hℓ, if_false,
+  · simp only [centralDiffCoeff, neg_ne_zero.mpr hℓ, hℓ, ite_false,
       Int.natAbs_neg, Int.cast_neg]
     ring
 
@@ -93,7 +97,7 @@ theorem centralDiff_positive_weight (m l : ℕ) (hl : 0<l) (hlm : l≤m) :
   have hlr : (l : ℝ)≠0 := by exact_mod_cast hl.ne'
   have hc : centralDiffCoeff m (l : ℤ)*(l : ℝ)=
       (-1 : ℝ)^(l-1)*((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ)) := by
-    simp only [centralDiffCoeff,if_neg hlz,Int.natAbs_natCast,Int.cast_natCast]
+    simp only [centralDiffCoeff,ite_eq_right hlz,Int.natAbs_natCast,Int.cast_natCast]
     field_simp
   rw [hc,centralDiff_choose_ratio m l hlm]
   have hs : (-1 : ℝ)^(l-1)=-(-1 : ℝ)^l := by
@@ -113,12 +117,12 @@ theorem centralDiff_binomial_weight (m r : ℕ) (hr : r≤2*m) :
         (if r=m then 1 else 0) := by
   by_cases he : r=m
   · subst r
-    simp only [sub_self,centralDiffCoeff,if_true,mul_zero]
+    simp only [sub_self,centralDiffCoeff,ite_true,mul_zero]
     have hC : (Nat.choose (2*m) m : ℝ)≠0 := by
       exact_mod_cast (Nat.choose_pos (by omega : m≤2*m)).ne'
     field_simp
     nlinarith [centralDiff_neg_one_self m]
-  · rw [if_neg he,add_zero]
+  · rw [ite_eq_right he,add_zero]
     by_cases hmr : m≤r
     · let l := r-m
       have hl : 0<l := by dsimp [l]; omega
@@ -204,10 +208,10 @@ theorem centralDifferenceExactness : CentralDifferenceExactness := by
     simp only [ite_mul,one_mul,zero_mul]
     rw [Finset.sum_ite_eq']
     have hmem : m∈Finset.range (2*m+1) := Finset.mem_range.mpr (by omega)
-    rw [if_pos hmem,sub_self]
+    rw [ite_eq_left hmem,sub_self]
     by_cases hj1 : j=1
     · subst j; simp [p]
     · have hp : p≠0 := by dsimp [p]; omega
-      simp only [zero_pow hp,if_neg hj1]
+      simp only [zero_pow hp,ite_eq_right hj1]
 
 end Qatlib.Concepts.GradientOracle.CentralDiff

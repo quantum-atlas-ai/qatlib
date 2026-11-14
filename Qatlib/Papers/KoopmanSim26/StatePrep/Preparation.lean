@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.StatePrep.UnknownProbability
+module
+
+public import Qatlib.Papers.KoopmanSim26.StatePrep.UnknownProbability
+
+@[expose] public section
 
 /-!
 # Observable preparation cost and output guarantees

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+@[expose] public section
 
 /-!
 # Products of purification vectors
@@ -59,6 +63,7 @@ private theorem sum_pi_prod {A : ι → Type*} [∀ j, Fintype (A j)]
   rw [Fintype.piFinset_univ] at h
   exact h.symm
 
+omit [∀ j, DecidableEq (S j)] [∀ j, DecidableEq (E j)] in
 /-- The inner product of two purification products equals the product of their component inner
 products. -/
 theorem inner_purificationProduct (ψ φ : (j : ι) → QState (S j × E j)) :
@@ -85,6 +90,7 @@ theorem inner_purificationProduct (ψ φ : (j : ι) → QState (S j × E j)) :
       intro j _
       rw [inner_apply, Fintype.sum_prod_type]
 
+omit [∀ j, DecidableEq (S j)] [∀ j, DecidableEq (E j)] in
 /-- A product of normalized purification vectors is normalized. -/
 theorem normalized_purificationProduct {ψ : (j : ι) → QState (S j × E j)}
     (hψ : ∀ j, Normalized (ψ j)) : Normalized (PurificationProduct ψ) := by

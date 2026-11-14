@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
-import Mathlib.Algebra.Polynomial.Eval.Degree
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Analysis.Complex.Norm
+module
+
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+public import Mathlib.Algebra.Polynomial.Eval.Degree
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Analysis.Complex.Norm
+
+@[expose] public section
 
 /-!
 # Phase synthesis for normalized polynomial pairs
@@ -256,7 +260,7 @@ theorem halfPhase_spec {u : ℂ} (hu : IsPhase u) :
       apply hm
       linear_combination he
     have hr : ‖1 + u‖ ≠ 0 := norm_ne_zero_iff.mpr hc
-    simp only [halfPhase, if_neg hm]
+    simp only [halfPhase, ite_eq_right hm]
     constructor
     · apply isPhase_iff_normSq.mpr
       rw [Complex.normSq_div, Complex.normSq_ofReal, Complex.normSq_eq_norm_sq,
@@ -288,7 +292,7 @@ theorem alignPhase_spec {a b : ℂ} (h : Complex.normSq a = Complex.normSq b) :
       apply isPhase_iff_normSq.mpr
       rw [Complex.normSq_div, h, div_self (mt Complex.normSq_eq_zero.mp hb)]
     obtain ⟨hz, he⟩ := halfPhase_spec hu
-    simp only [alignPhase, if_neg hb]
+    simp only [alignPhase, ite_eq_right hb]
     refine ⟨hz, ?_⟩
     have he' := congrArg (fun w : ℂ => w * b) he
     simpa only [mul_assoc, div_mul_cancel₀ _ hb] using he'
@@ -364,7 +368,7 @@ theorem CompletedPair.leading_normSq {n : ℕ} {P Q : Polynomial ℂ}
     unfold responsePairNorm
     ring
   rw [hexpand] at hn
-  (try dsimp only at hn)
+
   rw [coeff_sub, coeff_add, hpp, hhigh] at hn
   have hshift : (X ^ 2 * (Q * conjugatePolynomial Q)).coeff ((n + 1) + (n + 1)) =
       (Q * conjugatePolynomial Q).coeff (n + n) := by

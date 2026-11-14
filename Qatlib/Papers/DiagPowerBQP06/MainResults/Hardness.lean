@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spectral moment separation for diagonal entries
@@ -81,7 +85,7 @@ theorem mass1_eq_mass0_rev (M : ℕ) (l : Fin (halfIdx M)) :
       unfold halfIdx at hl
       unfold halfIdx
       omega
-    rw [if_pos h, if_pos h0]
+    rw [ite_eq_left h, ite_eq_left h0]
   · have h0 : ¬ (halfIdx M - ((l : ℕ) + 1) = 0) := by
       intro hc
       have hl := l.isLt
@@ -89,7 +93,7 @@ theorem mass1_eq_mass0_rev (M : ℕ) (l : Fin (halfIdx M)) :
       have hle : (M - 1) / 2 + 1 ≤ (l : ℕ) + 1 := by omega
       have hl2 : (l : ℕ) ≤ (M - 1) / 2 := by omega
       omega
-    rw [if_neg h, if_neg h0]
+    rw [ite_eq_right h, ite_eq_right h0]
 
 /-- For odd `M`, the second cosine spectrum equals the negative of the first spectrum with
 reversed indices. See [JanzingWocjan2006a]. -/

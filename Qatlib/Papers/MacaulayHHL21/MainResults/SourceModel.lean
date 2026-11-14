@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.LinearAlgebra.Matrix.DotProduct
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,31 +73,51 @@ def IsZeroOne (v : ι → ℂ) : Prop := ∀ i, v i = 0 ∨ v i = 1
 /-- Hamming weight of a 0/1 vector: the number of entries equal to `1`. -/
 def hammingWeight (v : ι → ℂ) : ℕ := (univ.filter (fun i => v i = 1)).card
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The ℓ2 norm is the square root of the squared ℓ2 norm. -/
-theorem l2Norm_def (v : ι → ℂ) : l2Norm v = Real.sqrt (l2NormSq v) := rfl
+theorem l2Norm_def {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    (v : ι → ℂ) : l2Norm v = Real.sqrt (l2NormSq v) := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The squared ℓ2 norm is nonnegative. -/
-theorem l2NormSq_nonneg (v : ι → ℂ) : 0 ≤ l2NormSq v := by
+theorem l2NormSq_nonneg {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    (v : ι → ℂ) : 0 ≤ l2NormSq v := by
   unfold l2NormSq
   exact Finset.sum_nonneg (fun i _ => sq_nonneg _)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The ℓ2 norm is nonnegative. -/
-theorem l2Norm_nonneg (v : ι → ℂ) : 0 ≤ l2Norm v := Real.sqrt_nonneg _
+theorem l2Norm_nonneg {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    (v : ι → ℂ) : 0 ≤ l2Norm v := Real.sqrt_nonneg _
 
 /-- The squared ℓ2 norm is the ℓ2 norm squared. -/
 theorem l2Norm_sq (v : ι → ℂ) : l2Norm v ^ 2 = l2NormSq v :=
   Real.sq_sqrt (l2NormSq_nonneg v)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- For a 0/1 vector, each entry contributes `1` to the squared ℓ2 norm exactly
 when it equals `1`. -/
-theorem zeroOne_normSq_entry {v : ι → ℂ} (h : IsZeroOne v) (i : ι) :
+theorem zeroOne_normSq_entry {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    {v : ι → ℂ} (h : IsZeroOne v) (i : ι) :
     ‖v i‖ ^ 2 = if v i = 1 then (1 : ℝ) else 0 := by
   rcases h i with h0 | h1
   · simp [h0]
   · simp [h1]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- A complex number that is `0` or `1` vanishes iff it is not `1`. -/
-theorem zeroOne_ne_zero_iff {v : ι → ℂ} (h : IsZeroOne v) (i : ι) :
+theorem zeroOne_ne_zero_iff {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    {v : ι → ℂ} (h : IsZeroOne v) (i : ι) :
     v i ≠ 0 ↔ v i = 1 := by
   constructor
   · intro hne
@@ -121,8 +145,12 @@ theorem zeroOne_l2NormSq_eq_hammingWeight {v : ι → ℂ} (h : IsZeroOne v) :
     zeroOne_normSq_entry h
   simp only [hstep, Finset.sum_boole]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The ℓ1 norm of a 0/1 vector equals its Hamming weight. -/
-theorem zeroOne_l1Norm_eq_hammingWeight {v : ι → ℂ} (h : IsZeroOne v) :
+theorem zeroOne_l1Norm_eq_hammingWeight {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    {v : ι → ℂ} (h : IsZeroOne v) :
     l1Norm v = (hammingWeight v : ℝ) := by
   unfold l1Norm hammingWeight
   have hstep : ∀ i : ι, ‖v i‖ = if v i = 1 then (1 : ℝ) else 0 := by
@@ -132,8 +160,12 @@ theorem zeroOne_l1Norm_eq_hammingWeight {v : ι → ℂ} (h : IsZeroOne v) :
     · simp [h1]
   simp only [hstep, Finset.sum_boole]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The entry sum of a 0/1 vector equals its Hamming weight, as a complex number. -/
-theorem zeroOne_sum_eq_hammingWeight {v : ι → ℂ} (h : IsZeroOne v) :
+theorem zeroOne_sum_eq_hammingWeight {ι : Type*}
+    [_m19inst0 : Fintype ι]
+    [_m19inst1 : DecidableEq ι]
+    {v : ι → ℂ} (h : IsZeroOne v) :
     (∑ i, v i) = (hammingWeight v : ℂ) := by
   unfold hammingWeight
   have hstep : ∀ i : ι, v i = if v i = 1 then (1 : ℂ) else 0 := by

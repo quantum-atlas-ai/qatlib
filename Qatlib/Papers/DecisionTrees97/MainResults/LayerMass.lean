@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DecisionTrees97.MainResults.ClassicalMass
+module
+
+public import Qatlib.Papers.DecisionTrees97.MainResults.ClassicalMass
+
+@[expose] public section
 
 /-!
 # Endpoint transfer from a layer of targets

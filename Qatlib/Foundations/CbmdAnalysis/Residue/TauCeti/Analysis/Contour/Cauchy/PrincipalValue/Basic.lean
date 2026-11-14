@@ -6,14 +6,18 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Topology.Order.Compact
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Topology.Order.Compact
+
+@[expose] public section
 
 /-!
 # Distance-truncated contour principal values
@@ -168,7 +172,7 @@ theorem ae_logDeriv_sub_eq_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a b ε : �
         (if ε < ‖γ s - z₀‖ then (γ s - z₀)⁻¹ * deriv γ s else 0) := by
   filter_upwards [MeasureTheory.volume.ae_ne b] with s hs_ne hmem
   rw [Set.uIoc_of_le hab] at hmem
-  rw [if_pos (hfar s ⟨hmem.1, hmem.2.lt_of_ne hs_ne⟩), deriv_sub_const, inv_mul_eq_div]
+  rw [ite_eq_left (hfar s ⟨hmem.1, hmem.2.lt_of_ne hs_ne⟩), deriv_sub_const, inv_mul_eq_div]
 
 /-- If the curve lies within the cutoff almost everywhere, the truncated integrand is interval
 integrable and its integral is zero. -/
@@ -180,7 +184,7 @@ theorem intervalIntegrable_truncated_and_integral_truncated_eq_zero_of_norm_le {
       ∫ s in a..b, (if ε < ‖γ s - z₀‖ then g s else 0) = 0 := by
   have hae : ∀ᵐ s ∂MeasureTheory.volume, s ∈ Set.uIoc a b →
       (if ε < ‖γ s - z₀‖ then g s else 0) = 0 := by
-    filter_upwards [hnear] with s hs hmem using if_neg (not_lt.mpr (hs hmem))
+    filter_upwards [hnear] with s hs hmem using ite_eq_right (not_lt.mpr (hs hmem))
   exact ⟨(intervalIntegrable_const : IntervalIntegrable (fun _ : ℝ => (0 : E)) MeasureTheory.volume a b).congr_ae
       (((MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr hae).mono fun _ hs => hs.symm),
     intervalIntegral.integral_zero_ae hae⟩
@@ -206,7 +210,7 @@ theorem HasCauchyPVAt.of_dist_lower_bound {γ : ℝ → ℂ} {z₀ : ℂ} {f : �
       =ᶠ[𝓝[>] (0 : ℝ)] fun _ => ∫ t in a..b, f (γ t) * deriv γ t := by
     filter_upwards [Ioo_mem_nhdsGT hm_pos] with ε hε
     refine intervalIntegral.integral_congr fun t ht => ?_
-    rw [if_pos (lt_of_lt_of_le hε.2 (h_far t ht))]
+    rw [ite_eq_left (lt_of_lt_of_le hε.2 (h_far t ht))]
   exact HasCauchyPVAt.intro h_int_tr (Tendsto.congr' h_ev.symm tendsto_const_nhds)
 
 /-- A principal-value statement gives convergence of the distance-truncated contour integrals. -/
@@ -277,7 +281,7 @@ private theorem truncated_integrand_congr_ae {γ₁ γ₂ : ℝ → ℂ} {a b : 
     (fun t => if ‖γ₂ t - z₀‖ > ε then f (γ₂ t) * deriv γ₂ t else 0) := by
   filter_upwards [h_eq, h_deriv] with t ht htd
   by_cases hz : γ₁ t = z₀
-  · rw [if_neg, if_neg] <;> simp [hz, ← ht, hε.not_gt]
+  · rw [ite_eq_right, ite_eq_right] <;> simp [hz, ← ht, hε.not_gt]
   · simp only [ht, htd hz]
 
 /-- Transfers a principal value between almost everywhere equal curves whose derivatives agree
@@ -433,7 +437,7 @@ theorem HasCauchyPVAt.of_avoidance {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → �
   refine .of_dist_lower_bound hpos (fun t ht => ht₀_min ht) ?_
   filter_upwards [Ioo_mem_nhdsGT hpos] with ε hε
   refine (intervalIntegrable_congr fun t ht => ?_).mpr hf_int
-  exact if_pos (hε.2.trans_le (ht₀_min (Set.uIoc_subset_uIcc ht)))
+  exact ite_eq_left (hε.2.trans_le (ht₀_min (Set.uIoc_subset_uIcc ht)))
 
 /-- Principal values add when adjacent parameter intervals are concatenated. -/
 theorem HasCauchyPVAt.concat {γ : ℝ → ℂ} {a b c : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L₁ L₂ : ℂ}

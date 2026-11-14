@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
+module
+
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
+
+@[expose] public section
 
 /-!
 # Approximate state-conversion costs and output frames

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdderData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAG
-import Mathlib.Data.Fin.Rev
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdderData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAG
+public import Mathlib.Data.Fin.Rev
+
+@[expose] public section
 
 /-!
 # Correctness of a reversible word adder

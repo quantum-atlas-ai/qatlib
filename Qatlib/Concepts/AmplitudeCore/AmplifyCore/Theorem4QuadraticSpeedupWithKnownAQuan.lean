@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAStat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAStat
+
+@[expose] public section
 
 /-!
 # Exact amplification with known success probability
@@ -120,7 +124,7 @@ lemma block {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
   apply Prod.ext <;> dsimp [operator, -Complex.coe_smul] <;>
     simp only [inner_sub_right, inner_smul_right] <;>
     match_scalars <;>
-    (try simp only [halg, ← A.inner_map_eq_flip]) <;>
+    (try simp only [ ← A.inner_map_eq_flip]) <;>
     solve | ring | linear_combination hcs | linear_combination -hcs |
       linear_combination 2*hcs
 
@@ -362,7 +366,7 @@ theorem zoo_amplitude_amplification_known_a_exact :
       (zoo_amplitude_amplification_known_a_exact.angle a)
       (zoo_amplitude_amplification_known_a_exact.iterations a)
       hψ hproj.1 ha.symm (by rw [ha]; exact hproj.2.1) hr0 hr1 hd0 hd1 hra hm
-    simp only [zoo_amplitude_amplification_known_a_exact.design, if_neg ha1]
+    simp only [zoo_amplitude_amplification_known_a_exact.design, ite_eq_right ha1]
     refine ⟨hr0,hr1,hstate.1,hstate.2,?_,?_⟩
     · simpa only [zoo_amplitude_amplification_known_a_exact.program_calls,
         Nat.cast_add, Nat.cast_mul, Nat.cast_ofNat, Nat.cast_one] using hlo

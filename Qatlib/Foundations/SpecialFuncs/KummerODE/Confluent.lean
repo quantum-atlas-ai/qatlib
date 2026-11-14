@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Module.Basic
+module
+
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+
+@[expose] public section
 
 /-!
 # Confluent hypergeometric coefficients and convergence

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockSpectral
+module
+
+public import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockSpectral
+
+@[expose] public section
 
 /-!
 # Clock weights and scaled integer entries

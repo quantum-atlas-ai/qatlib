@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+@[expose] public section
 
 /-!
 # Specification of the Szegedy spectral rotation

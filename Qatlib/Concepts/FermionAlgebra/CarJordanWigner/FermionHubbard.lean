@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
+
+@[expose] public section
 
 /-!
 # Hubbard Hamiltonian product-formula bounds
@@ -87,7 +91,7 @@ private noncomputable def wordInterp {n : ℕ} (word : List (Matrix (Reg n) (Reg
 /-- A register update takes the assigned value at the updated coordinate. -/
 theorem upd_self {n : ℕ} (x : Reg n) (i : Fin n) (b : Bool) :
     Function.update x i b i = b := by
-  rw [Function.update_apply, if_pos rfl]
+  rw [Function.update_apply, ite_eq_left rfl]
 
 /-- Updating a register coordinate to its existing value leaves the register unchanged. -/
 theorem upd_eq_self {n : ℕ} {x : Reg n} {i : Fin n} {b : Bool} (h : x i = b) :
@@ -170,15 +174,15 @@ theorem creation_eq_conjTranspose {n : ℕ} (i : Fin n) :
   · by_cases hx : x = Function.update y i false
     · have hxi : x i = false := by rw [hx, upd_self]
       have hyx : y = Function.update x i true := by rw [hx, upd_upd_self, upd_eq_self hyi]
-      rw [if_pos ⟨by simp [hxi], hyx⟩, if_pos ⟨hyi, hx⟩, jwSign_real]
+      rw [ite_eq_left ⟨by simp [hxi], hyx⟩, ite_eq_left ⟨hyi, hx⟩, jwSign_real]
     · have hLneg : ¬(¬ x i ∧ y = Function.update x i true) := by
         rintro ⟨hne, hy'⟩
         by_cases hxi : x i = true
         · exact hne hxi
         · refine hx ?_
           rw [hy', upd_upd_self, upd_eq_self (by simpa using! hxi)]
-      rw [if_neg hLneg, if_neg (fun h => hx h.2), map_zero]
-  · rw [if_neg (fun h => hyi (by rw [h.2, upd_self])), if_neg (fun h => hyi h.1), map_zero]
+      rw [ite_eq_right hLneg, ite_eq_right (fun h => hx h.2), map_zero]
+  · rw [ite_eq_right (fun h => hyi (by rw [h.2, upd_self])), ite_eq_right (fun h => hyi h.1), map_zero]
 
 /-- The number operator equals `creation i * annihilation i`. -/
 theorem numberOp_eq {n : ℕ} (i : Fin n) :
@@ -189,7 +193,7 @@ theorem numberOp_eq {n : ℕ} (i : Fin n) :
   · rw [Finset.sum_eq_single (Function.update x i false)]
     · have hcondA : x i ∧ (Function.update x i false) = Function.update x i false :=
         ⟨hxi, rfl⟩
-      rw [ann_apply i (Function.update x i false) x, if_pos hcondA,
+      rw [ann_apply i (Function.update x i false) x, ite_eq_left hcondA,
         cre_apply i y _]
       have hzi : ¬ (Function.update x i false) i = true := by rw [upd_self]; simp
       by_cases hy : y = Function.update (Function.update x i false) i true
@@ -197,22 +201,22 @@ theorem numberOp_eq {n : ℕ} (i : Fin n) :
         have hcondL : x = y ∧ x i := ⟨hyx.symm, hxi⟩
         have hcondR : ¬ (Function.update x i false) i = true
             ∧ y = Function.update (Function.update x i false) i true := ⟨hzi, hy⟩
-        rw [if_pos hcondL, if_pos hcondR, hyx, jwSign_sq]
+        rw [ite_eq_left hcondL, ite_eq_left hcondR, hyx, jwSign_sq]
       · have hcondR : ¬ (¬ (Function.update x i false) i = true
             ∧ y = Function.update (Function.update x i false) i true) :=
           fun h => hy h.2
         have hcondL : ¬ (x = y ∧ x i) := by
           intro h
           exact hy (by rw [← h.1, upd_upd_self, upd_eq_self hxi])
-        rw [if_neg hcondR, zero_mul, if_neg hcondL]
+        rw [ite_eq_right hcondR, zero_mul, ite_eq_right hcondL]
     · intro z _ hz
-      rw [ann_apply i z x, if_neg (fun h => hz h.2), mul_zero]
+      rw [ann_apply i z x, ite_eq_right (fun h => hz h.2), mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · have hsum : ∑ z : Reg n, creation i y z * annihilation i z x = 0 := by
       refine Finset.sum_eq_zero fun z _ => ?_
-      rw [ann_apply i z x, if_neg (fun h => absurd h.1 (by simp [hxi])), mul_zero]
-    rw [hsum, if_neg (fun h => absurd h.2 (by simp [hxi]))]
+      rw [ann_apply i z x, ite_eq_right (fun h => absurd h.1 (by simp [hxi])), mul_zero]
+    rw [hsum, ite_eq_right (fun h => absurd h.2 (by simp [hxi]))]
 
 /-- Each number operator is idempotent. -/
 theorem numberOp_idem {n : ℕ} (i : Fin n) :
@@ -223,16 +227,16 @@ theorem numberOp_idem {n : ℕ} (i : Fin n) :
   · rw [Finset.sum_eq_single x]
     · rw [num_apply i x x]
       have hx : (if x = x ∧ x i then (1 : ℂ) else 0) = 1 := by
-        rw [if_pos ⟨rfl, hxi⟩]
+        rw [ite_eq_left ⟨rfl, hxi⟩]
       rw [hx, mul_one]
     · intro z _ hz
-      rw [num_apply i z x, if_neg (fun h => hz h.1.symm), mul_zero]
+      rw [num_apply i z x, ite_eq_right (fun h => hz h.1.symm), mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · have hsum : ∑ z : Reg n, numberOp i y z * numberOp i z x = 0 := by
       refine Finset.sum_eq_zero fun z _ => ?_
-      rw [num_apply i z x, if_neg (fun h => absurd h.2 (by simp [hxi])), mul_zero]
-    rw [hsum, num_apply i y x, if_neg (fun h => absurd h.2 (by simp [hxi]))]
+      rw [num_apply i z x, ite_eq_right (fun h => absurd h.2 (by simp [hxi])), mul_zero]
+    rw [hsum, num_apply i y x, ite_eq_right (fun h => absurd h.2 (by simp [hxi]))]
 
 /-- Relabeling basis indices preserves the identity matrix. -/
 private theorem relabel_one {I K : Type*} [Fintype I] [DecidableEq I]
@@ -272,7 +276,7 @@ private theorem relabel_sub {I K : Type*} [Fintype I] [DecidableEq I]
 private theorem relabel_exp {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (X : Matrix I I ℂ) :
     relabelGate e (NormedSpace.exp X) = NormedSpace.exp (relabelGate e X) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   exact NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e)
     (Matrix.reindexAlgEquiv ℂ ℂ e).toLinearMap.continuous_of_finiteDimensional X
 
@@ -325,26 +329,26 @@ private theorem numberOp_mul_apply {n : ℕ} (i j : Fin n) (y x : Reg n) :
     · rw [num_apply i y x, num_apply j x x]
       by_cases hxi : x i = true
       · have hc2 : x = x ∧ x j := ⟨rfl, hxj⟩
-        rw [if_pos hc2, mul_one]
+        rw [ite_eq_left hc2, mul_one]
         by_cases hxy : x = y
         · have hc1 : x = y ∧ x i := ⟨hxy, hxi⟩
           have hcr : x = y ∧ x i ∧ x j := ⟨hxy, hxi, hxj⟩
-          rw [if_pos hc1, if_pos hcr]
+          rw [ite_eq_left hc1, ite_eq_left hcr]
         · have hn1 : ¬(x = y ∧ x i) := fun h => hxy h.1
           have hnr : ¬(x = y ∧ x i ∧ x j) := fun h => hxy h.1
-          rw [if_neg hn1, if_neg hnr]
+          rw [ite_eq_right hn1, ite_eq_right hnr]
       · have hc2 : x = x ∧ x j := ⟨rfl, hxj⟩
         have hn1 : ¬(x = y ∧ x i) := fun h => hxi h.2
         have hnr : ¬(x = y ∧ x i ∧ x j) := fun h => hxi h.2.1
-        rw [if_neg hn1, if_pos hc2, mul_one, if_neg hnr]
+        rw [ite_eq_right hn1, ite_eq_left hc2, mul_one, ite_eq_right hnr]
     · intro z _ hz
-      rw [num_apply j z x, if_neg (fun h => hz h.1.symm), mul_zero]
+      rw [num_apply j z x, ite_eq_right (fun h => hz h.1.symm), mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · have hsum : ∑ z : Reg n, numberOp i y z * numberOp j z x = 0 := by
       refine Finset.sum_eq_zero fun z _ => ?_
-      rw [num_apply j z x, if_neg (fun h => hxj h.2), mul_zero]
-    rw [hsum, if_neg (fun h => hxj h.2.2)]
+      rw [num_apply j z x, ite_eq_right (fun h => hxj h.2), mul_zero]
+    rw [hsum, ite_eq_right (fun h => hxj h.2.2)]
 
 /-- Any two number operators commute. -/
 private theorem numberOp_mul_comm {n : ℕ} (i j : Fin n) :
@@ -352,8 +356,8 @@ private theorem numberOp_mul_comm {n : ℕ} (i j : Fin n) :
   ext y x
   rw [numberOp_mul_apply, numberOp_mul_apply]
   by_cases h : x = y ∧ x i ∧ x j
-  · rw [if_pos h, if_pos ⟨h.1, h.2.2, h.2.1⟩]
-  · rw [if_neg h, if_neg (fun h' => h ⟨h'.1, h'.2.2, h'.2.1⟩)]
+  · rw [ite_eq_left h, ite_eq_left ⟨h.1, h.2.2, h.2.1⟩]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h ⟨h'.1, h'.2.2, h'.2.1⟩)]
 
 /-- If every image list has length at most `K`, flat-mapping a list gives length at most its
 original length times `K`. -/
@@ -439,10 +443,10 @@ private theorem numberOp_herm {n : ℕ} (i : Fin n) : (numberOp i).IsHermitian :
   rw [Matrix.conjTranspose_apply, num_apply i x y, num_apply i y x]
   simp only [RCLike.star_def]
   by_cases h : y = x ∧ y i
-  · have hl : (if y = x ∧ y i then (1 : ℂ) else 0) = 1 := if_pos h
-    rw [hl, map_one, if_pos ⟨h.1.symm, by rw [← h.1]; exact h.2⟩]
-  · have hl : (if y = x ∧ y i then (1 : ℂ) else 0) = 0 := if_neg h
-    rw [hl, map_zero, if_neg (fun h' => h ⟨h'.1.symm, by rw [← h'.1]; exact h'.2⟩)]
+  · have hl : (if y = x ∧ y i then (1 : ℂ) else 0) = 1 := ite_eq_left h
+    rw [hl, map_one, ite_eq_left ⟨h.1.symm, by rw [← h.1]; exact h.2⟩]
+  · have hl : (if y = x ∧ y i then (1 : ℂ) else 0) = 0 := ite_eq_right h
+    rw [hl, map_zero, ite_eq_right (fun h' => h ⟨h'.1.symm, by rw [← h'.1]; exact h'.2⟩)]
 
 /-- The conjugate transpose of a creation operator is its annihilation operator. -/
 private theorem cre_conjTranspose {n : ℕ} (i : Fin n) :
@@ -693,11 +697,11 @@ private theorem pfCommSum_pair_le {D m : ℕ} (G : Fin m → Operator D) (C : �
         + (if j = k then ‖pfComm (G j) (G k)‖ else 0) := by
     intro j k
     rcases lt_trichotomy j k with hlt | heq | hgt
-    · rw [if_pos hlt, if_neg (lt_asymm hlt), if_neg (ne_of_lt hlt), add_zero, add_zero]
+    · rw [ite_eq_left hlt, ite_eq_right (lt_asymm hlt), ite_eq_right (ne_of_lt hlt), add_zero, add_zero]
     · subst heq
-      rw [hdiag j, if_neg (lt_irrefl j)]
+      rw [hdiag j, ite_eq_right (lt_irrefl j)]
       simp
-    · rw [if_neg (lt_asymm hgt), if_pos hgt, if_neg (ne_of_gt hgt), zero_add, add_zero]
+    · rw [ite_eq_right (lt_asymm hgt), ite_eq_left hgt, ite_eq_right (ne_of_gt hgt), zero_add, add_zero]
   have hS3 : ∑ j, ∑ k, (if j = k then ‖pfComm (G j) (G k)‖ else 0) = 0 := by
     have hinner : ∀ j : Fin m, ∑ k, (if j = k then ‖pfComm (G j) (G k)‖ else 0)
         = ‖pfComm (G j) (G j)‖ := by
@@ -711,8 +715,8 @@ private theorem pfCommSum_pair_le {D m : ℕ} (G : Fin m → Operator D) (C : �
         = (if k < j then ‖pfComm (G k) (G j)‖ else 0) := by
       intro j k
       by_cases h : k < j
-      · rw [if_pos h, if_pos h, hsym j k]
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_left h, ite_eq_left h, hsym j k]
+      · rw [ite_eq_right h, ite_eq_right h]
     calc ∑ j, ∑ k, (if k < j then ‖pfComm (G j) (G k)‖ else 0)
         = ∑ j, ∑ k, (if k < j then ‖pfComm (G k) (G j)‖ else 0) :=
           Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun k _ => hp j k
@@ -881,31 +885,77 @@ private theorem hubbardWord_mem {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
 stated term decomposition, and its evolution at time `τ` has a repeated product-formula
 approximation within `ε` satisfying the explicit polynomial size bounds. Each term label
 occurs exactly once per repetition [ChildsEtAl2021Trotter]. -/
-theorem g2 : ∀ (n : ℕ) (t μ U : ℂ) (τ ε : ℝ),
-    t.im = 0 → μ.im = 0 → U.im = 0 → 0 < ε →
+theorem g2 :
+  let hubbardHamiltonian {n : ℕ} (t μ U : ℂ) :
+      Matrix (Reg n) (Reg n) ℂ :=
+    ((hubbardJWTerms (n := n) t μ U).map fun term => term.1 • term.2).sum
+  let hubbardTermCount (n : ℕ) : ℕ := n + 2 * (fermionPairs n).length
+  let hubbardTermVec {n : ℕ} (t μ U : ℂ) :
+      Fin (hubbardTermCount n) → Matrix (Reg n) (Reg n) ℂ :=
+    fun j =>
+      let e : ℂ × Matrix (Reg n) (Reg n) ℂ :=
+        (hubbardJWTerms (n := n) t μ U).getD j.val (0, 0)
+      e.1 • e.2
+  let hubbardCoeffSqBound (t μ U : ℂ) : ℝ :=
+    max (Complex.normSq t) (max (Complex.normSq μ) (Complex.normSq U))
+  let hubbardWord {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ) :
+      List (Matrix (Reg n) (Reg n) ℂ × ℕ) :=
+    (List.replicate r
+      (List.ofFn fun j : Fin (hubbardTermCount n) =>
+        (HamiltonianEvolution (hubbardTermVec t μ U j) (τ / (r : ℝ)), j.val))).flatten
+  let wordInterp {n : ℕ} (word : List (Matrix (Reg n) (Reg n) ℂ × ℕ)) :
+      Matrix (Reg n) (Reg n) ℂ :=
+    word.foldl (fun V e => e.1 * V) 1
+  ∀ (n : ℕ) (t μ U : ℂ) (τ ε : ℝ),
+      t.im = 0 → μ.im = 0 → U.im = 0 → 0 < ε →
 
-  (hubbardHamiltonian (n := n) t μ U).IsHermitian ∧
+    (hubbardHamiltonian (n := n) t μ U).IsHermitian ∧
 
-  (hubbardHamiltonian (n := n) t μ U = ∑ j : Fin (hubbardTermCount n), hubbardTermVec (n := n) t μ U j) ∧
+    (hubbardHamiltonian (n := n) t μ U = ∑ j : Fin (hubbardTermCount n), hubbardTermVec (n := n) t μ U j) ∧
 
-  (∃ r : ℕ, 1 ≤ r ∧
-    ‖wordInterp (hubbardWord (n := n) t μ U τ r)
-        - HamiltonianEvolution (hubbardHamiltonian (n := n) t μ U) τ‖ ≤ ε
-      ∧ ((hubbardWord (n := n) t μ U τ r).length : ℝ)
-        ≤ 16 * ((n : ℝ) + 1) ^ 6
-            * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
-      ∧ ((2 * (n + 1) * (n + 1) * (hubbardWord (n := n) t μ U τ r).length : ℕ) : ℝ)
-        ≤ 32 * ((n : ℝ) + 1) ^ 8
-            * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
-      ∧ ((4 * (n + 1) * (n + 1) : ℕ) : ℝ)
-        ≤ 16 * ((n : ℝ) + 1) ^ 2
-            * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)) ∧
+    (∃ r : ℕ, 1 ≤ r ∧
+      ‖wordInterp (hubbardWord (n := n) t μ U τ r)
+          - HamiltonianEvolution (hubbardHamiltonian (n := n) t μ U) τ‖ ≤ ε
+        ∧ ((hubbardWord (n := n) t μ U τ r).length : ℝ)
+          ≤ 16 * ((n : ℝ) + 1) ^ 6
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
+        ∧ ((2 * (n + 1) * (n + 1) * (hubbardWord (n := n) t μ U τ r).length : ℕ) : ℝ)
+          ≤ 32 * ((n : ℝ) + 1) ^ 8
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
+        ∧ ((4 * (n + 1) * (n + 1) : ℕ) : ℝ)
+          ≤ 16 * ((n : ℝ) + 1) ^ 2
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)) ∧
 
-  (∀ r : ℕ, 1 ≤ r →
-    (∀ e ∈ hubbardWord (n := n) t μ U τ r, ∃ j : Fin (hubbardTermCount n),
-        e.1 = HamiltonianEvolution (hubbardTermVec (n := n) t μ U j) (τ / (r : ℝ)))
-      ∧ ∀ j : Fin (hubbardTermCount n),
-          ((hubbardWord (n := n) t μ U τ r).filter (fun e => e.2 = j.val)).length = r) := by
+    (∀ r : ℕ, 1 ≤ r →
+      (∀ e ∈ hubbardWord (n := n) t μ U τ r, ∃ j : Fin (hubbardTermCount n),
+          e.1 = HamiltonianEvolution (hubbardTermVec (n := n) t μ U j) (τ / (r : ℝ)))
+        ∧ ∀ j : Fin (hubbardTermCount n),
+            ((hubbardWord (n := n) t μ U τ r).filter (fun e => e.2 = j.val)).length = r) := by
+  change ∀ (n : ℕ) (t μ U : ℂ) (τ ε : ℝ),
+      t.im = 0 → μ.im = 0 → U.im = 0 → 0 < ε →
+
+    (hubbardHamiltonian (n := n) t μ U).IsHermitian ∧
+
+    (hubbardHamiltonian (n := n) t μ U = ∑ j : Fin (hubbardTermCount n), hubbardTermVec (n := n) t μ U j) ∧
+
+    (∃ r : ℕ, 1 ≤ r ∧
+      ‖wordInterp (hubbardWord (n := n) t μ U τ r)
+          - HamiltonianEvolution (hubbardHamiltonian (n := n) t μ U) τ‖ ≤ ε
+        ∧ ((hubbardWord (n := n) t μ U τ r).length : ℝ)
+          ≤ 16 * ((n : ℝ) + 1) ^ 6
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
+        ∧ ((2 * (n + 1) * (n + 1) * (hubbardWord (n := n) t μ U τ r).length : ℕ) : ℝ)
+          ≤ 32 * ((n : ℝ) + 1) ^ 8
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)
+        ∧ ((4 * (n + 1) * (n + 1) : ℕ) : ℝ)
+          ≤ 16 * ((n : ℝ) + 1) ^ 2
+              * (1 + τ ^ 2 * hubbardCoeffSqBound t μ U / ε)) ∧
+
+    (∀ r : ℕ, 1 ≤ r →
+      (∀ e ∈ hubbardWord (n := n) t μ U τ r, ∃ j : Fin (hubbardTermCount n),
+          e.1 = HamiltonianEvolution (hubbardTermVec (n := n) t μ U j) (τ / (r : ℝ)))
+        ∧ ∀ j : Fin (hubbardTermCount n),
+            ((hubbardWord (n := n) t μ U τ r).filter (fun e => e.2 = j.val)).length = r)
   intro n t μ U τ ε ht hμ hU hε
   refine ⟨hubbardHamiltonian_herm t μ U ht hμ hU, hubbardHamiltonian_sum t μ U, ?_, ?_⟩
   · have hC0 : (0 : ℝ) ≤ hubbardCoeffSqBound t μ U :=

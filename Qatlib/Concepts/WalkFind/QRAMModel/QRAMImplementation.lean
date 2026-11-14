@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
+
+@[expose] public section
 
 /-!
 # Bit-register semantics of the value oracle
@@ -79,7 +83,7 @@ theorem addressValue_bits_injective {b : ℕ} (ψ φ : Reg b) (a w : ℕ)
     have heq : readBit ψ (a+w) = readBit φ (a+w) := by
       simp only [addressValue, Finset.sum_range_succ] at h
       cases hψ : readBit ψ (a+w) <;> cases hφ : readBit φ (a+w) <;>
-        simp only [hψ,hφ, Bool.false_eq_true, if_false, if_true, add_zero] at h ⊢
+        simp only [hψ,hφ, Bool.false_eq_true, ite_false, ite_true, add_zero] at h ⊢
       · change addressValue ψ a w = addressValue φ a w+2^w at h
         omega
       · change addressValue ψ a w+2^w = addressValue φ a w at h
@@ -139,17 +143,17 @@ theorem sourceValueAction_answer {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMo
   have hcap := Nat.le_pow_clog (by decide : 1 < 2) (M+1)
   unfold sourceValueAction
   (try dsimp only)
-  rw [dif_pos ha,if_pos hb,addressValue_written ψ _ _ _ (by unfold nativeWidth; omega)]
+  rw [dite_eq_left ha,ite_eq_left hb,addressValue_written ψ _ _ _ (by unfold nativeWidth; omega)]
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ hM) (by omega))
 
 /-- For positive `M`, the source value action is injective on physical registers. -/
 theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M) :
     Function.Injective (sourceValueAction (k:=k) (w:=w) x) := by
-  letI : NeZero M := ⟨hM.ne'⟩
+  let : NeZero M := ⟨hM.ne'⟩
   intro ψ φ heq
   have had : addressValue ψ 0 (Nat.clog 2 (N+1)) = addressValue φ 0 (Nat.clog 2 (N+1)) := by
     have hh := congrArg (fun z => addressValue z 0 (Nat.clog 2 (N+1))) heq
-    (try dsimp only at hh)
+
     simpa only [sourceValueAction_address] using! hh
   have houtside : ∀ i : Fin (nativeWidth N M k w), ¬((Nat.clog 2 (N+1)) ≤ i.val ∧ i.val < (Nat.clog 2 (N+1))+(Nat.clog 2 (M+1))) → ψ i = φ i := by
     intro i hi
@@ -161,7 +165,7 @@ theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → 
     · by_cases hbφ : addressValue φ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) < M
       · have hans : addressValue ψ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) = addressValue φ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) := by
           have hh := congrArg (fun z => addressValue z (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1))) heq
-          (try dsimp only at hh)
+
           rw [sourceValueAction_answer hM x ψ ha hb, sourceValueAction_answer hM x φ haφ hbφ] at hh
           have hval : (x ⟨addressValue ψ 0 (Nat.clog 2 (N+1)),ha⟩).val = (x ⟨addressValue φ 0 (Nat.clog 2 (N+1)),haφ⟩).val := by
             congr 2
@@ -181,7 +185,7 @@ theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → 
         · exact houtside i hi
       · have hfix := sourceValueAction_invalid x φ (Or.inr (by omega))
         have hh := congrArg (fun z => addressValue z (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1))) heq
-        (try dsimp only at hh)
+
         rw [sourceValueAction_answer hM x ψ ha hb,hfix] at hh
         have hm :=
             Nat.mod_lt (addressValue ψ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1))+(x ⟨addressValue ψ 0 (Nat.clog 2 (N+1)),ha⟩).val) hM
@@ -189,7 +193,7 @@ theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → 
     · have hfix := sourceValueAction_invalid x ψ (Or.inr (by omega))
       by_cases hbφ : addressValue φ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) < M
       · have hh := congrArg (fun z => addressValue z (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1))) heq
-        (try dsimp only at hh)
+
         rw [hfix,sourceValueAction_answer hM x φ haφ hbφ] at hh
         have hm :=
             Nat.mod_lt (addressValue φ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1))+(x ⟨addressValue φ 0 (Nat.clog 2 (N+1)),haφ⟩).val) hM

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Born readout distributions and moments

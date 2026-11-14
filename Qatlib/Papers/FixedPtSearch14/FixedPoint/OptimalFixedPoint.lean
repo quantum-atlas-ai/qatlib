@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointExt
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Mathlib.Algebra.Polynomial.Eval.Degree
-import Mathlib.Algebra.Polynomial.Degree.Operations
-import Mathlib.RingTheory.RootsOfUnity.Complex
-import Mathlib.Algebra.BigOperators.Intervals
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointExt
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Mathlib.Algebra.Polynomial.Eval.Degree
+public import Mathlib.Algebra.Polynomial.Degree.Operations
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+public import Mathlib.Algebra.BigOperators.Intervals
+
+@[expose] public section
 
 /-!
 # Polynomial response and marked fixed-point search

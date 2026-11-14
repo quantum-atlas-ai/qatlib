@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprCodec
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCutoffBudgetCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprCodec
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCutoffBudgetCode
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,12 +73,12 @@ theorem floorExprBoundFrom_correct (n : ℕ) :
     have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
     have hb := (Nat.unpair_right_le (n-1).unpair.2).trans_lt hp
     unfold floorExprBoundFrom
-    rw [if_neg hn]
+    rw [ite_eq_right hn]
     simp only [floorExprHistory_getD _ n _ hp,floorExprHistory_getD _ n _ ha,
       floorExprHistory_getD _ n _ hb]
     conv_rhs =>
       unfold floorExprCodeBound
-      rw [floorExprDecode,dif_neg hn]
+      rw [floorExprDecode,dite_eq_right hn]
     dsimp only
     generalize ht : (n-1).unpair.1=tag
     by_cases htag : tag<9
@@ -89,8 +93,8 @@ theorem floorExprBoundFrom_correct (n : ℕ) :
       have h6 : tag≠6 := by omega
       have h7 : tag≠7 := by omega
       have h8 : tag≠8 := by omega
-      simp only [if_neg h0,if_neg h1,if_neg h2,if_neg h3,if_neg h4,if_neg h5,
-        if_neg h6,if_neg h7,if_neg h8,floorJetBound,Int.natAbs_zero]
+      simp only [ite_eq_right h0,ite_eq_right h1,ite_eq_right h2,ite_eq_right h3,ite_eq_right h4,ite_eq_right h5,
+        ite_eq_right h6,ite_eq_right h7,ite_eq_right h8,floorJetBound,Int.natAbs_zero]
       exact List.getD_eq_default _ _ (by simp; omega)
 
 /-- Original `primrec_floorExprLiteralCode` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/

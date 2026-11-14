@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.ActualDiagonalization
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.ActualDiagonalization
+
+@[expose] public section
 
 /-!
 # Spectral formulas for finite Gibbs states

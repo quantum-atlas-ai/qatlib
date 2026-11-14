@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
-import Mathlib.Analysis.Calculus.FDeriv.Comp
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+public import Mathlib.Analysis.Calculus.FDeriv.Comp
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Calculus of lifted residual dynamics
@@ -192,9 +196,9 @@ theorem lifted_residual_duhamel_on_interval {E : Type*} [NormedAddCommGroup E] [
     simpa only [M,zero_sub,neg_one_smul,Matrix.mul_neg] using! h
   have hcM : Continuous M := continuous_iff_continuousAt.mpr (fun s => (hdM s).continuousAt)
   have hprod : ContinuousOn (fun s => M s *ᵥ liftResidual A x f g Dg s) (Set.Icc 0 T) := by
-    rw [continuousOn_iff_continuous_restrict]
+    rw [continuousOn_iff_continuous_domRestrict]
     exact (hcM.comp continuous_subtype_val).matrix_mulVec
-        (continuousOn_iff_continuous_restrict.mp hr)
+        (continuousOn_iff_continuous_domRestrict.mp hr)
   have hint : IntervalIntegrable (fun s => M s *ᵥ liftResidual A x f g Dg s) volume 0 T :=
     hprod.intervalIntegrable_of_Icc hT
   have hd (s : ℝ) (hs : s ∈ Set.Icc 0 T) :
@@ -264,9 +268,9 @@ theorem lifted_residual_norm_bound_on_interval {E : Type*} [NormedAddCommGroup E
       ((hasDerivAt_const (x:=s) T).sub (hasDerivAt_id s))
     exact h.continuousAt
   have hprod : ContinuousOn (fun s => M s *ᵥ liftResidual A x f g Dg s) (Set.Icc 0 T) := by
-    rw [continuousOn_iff_continuous_restrict]
+    rw [continuousOn_iff_continuous_domRestrict]
     exact (hcM.comp continuous_subtype_val).matrix_mulVec
-        (continuousOn_iff_continuous_restrict.mp hr)
+        (continuousOn_iff_continuous_domRestrict.mp hr)
   have hint : IntervalIntegrable (fun s => M s *ᵥ liftResidual A x f g Dg s) volume 0 T :=
     hprod.intervalIntegrable_of_Icc hT
   let e : QState I →L[ℝ] EuclideanSpace ℂ I :=

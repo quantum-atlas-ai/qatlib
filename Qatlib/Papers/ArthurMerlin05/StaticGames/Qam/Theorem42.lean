@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Qam.BinomialTail
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Qam.BinomialTail
+
+@[expose] public section
 
 /-!
 # Theorem 4.2 — error reduction for QAM

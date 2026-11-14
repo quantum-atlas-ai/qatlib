@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalQuan
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -131,7 +135,7 @@ theorem oracleWalk_diff_norm_le {E : Type*} [NormedAddCommGroup E] [NormedSpace 
       have hdecomp : oracleWalk O (k + 1) ψ₀ - oracleWalk O' (k + 1) ψ₀ =
           O k (oracleWalk O k ψ₀ - oracleWalk O' k ψ₀) +
             (O k - O' k) (oracleWalk O' k ψ₀) := by
-        rw [oracleWalk_succ, oracleWalk_succ, map_sub, ContinuousLinearMap.sub_apply]
+        rw [oracleWalk_succ, oracleWalk_succ, map_sub, _root_.sub_apply]
         abel
       rw [hdecomp]
       calc ‖O k (oracleWalk O k ψ₀ - oracleWalk O' k ψ₀) +

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+@[expose] public section
 
 /-!
 # Actual and ideal dihedral sieve laws
@@ -80,7 +84,7 @@ private theorem dihedral_half_phase_succ (n : ℕ) (s : ZMod (2^(n+1))) :
   · rw [h]
     norm_num
   · rw [h]
-    simpa only [Nat.cast_one,mul_one,if_pos rfl] using! Complex.exp_pi_mul_I
+    simpa only [Nat.cast_one,mul_one,ite_eq_left rfl] using! Complex.exp_pi_mul_I
 
 /-- The dihedral phase at label `2^(n-1)` modulo `2^n` is determined by the parity of `s.val`. -/
 private theorem dihedral_half_phase (n : ℕ) (s : ZMod (2^n)) :
@@ -89,7 +93,7 @@ private theorem dihedral_half_phase (n : ℕ) (s : ZMod (2^n)) :
   cases n with
   | zero =>
     change ZMod 1 at s
-    letI : Subsingleton (ZMod 1) := ZMod.subsingleton_iff.2 rfl
+    let : Subsingleton (ZMod 1) := ZMod.subsingleton_iff.2 rfl
     have hs : s=0 := Subsingleton.elim _ _
     subst s
     simp [dihedralQubitPhase_eq_stdAddChar]
@@ -112,9 +116,9 @@ theorem dihedralParityReadoutPure (n : ℕ) (s : ZMod (2^n)) :
       Ket (decide (s.val%2=1)) := by
     rw [hfamily]
     by_cases h : s.val%2=1
-    · rw [if_pos h,← applyGate_hadamard_ket_true,← applyGate_mul,hadamard_mul_self,applyGate_one]
+    · rw [ite_eq_left h,← applyGate_hadamard_ket_true,← applyGate_mul,hadamard_mul_self,applyGate_one]
       simp [h]
-    · rw [if_neg h,← applyGate_hadamard_ket_false,← applyGate_mul,hadamard_mul_self,applyGate_one]
+    · rw [ite_eq_right h,← applyGate_hadamard_ket_false,← applyGate_mul,hadamard_mul_self,applyGate_one]
       simp [h]
   ext b
   simp only [parityReadout,bornDistribution_apply,hread,bornProb_ket,PMF.pure_apply]
@@ -179,10 +183,10 @@ theorem dihedralActualRecordLabelLaw (n : ℕ) {S : Type*} [Fintype S] [Decidabl
       (∑ t : Bool, ∑ z : S, if k=a then ENNReal.ofReal (BornProb (dihedralRecordJoint (2^n) f) ((a,t),z)) else 0) =
         if k=a then ENNReal.ofReal (1/(2^n : ℝ)) else 0 := by
     by_cases h : k=a
-    · simp only [if_pos h]
+    · simp only [ite_eq_left h]
       exact hmass a
     · simp [h]
-  simp only [he,Finset.sum_ite_eq,Finset.mem_univ,if_true]
+  simp only [he,Finset.sum_ite_eq,Finset.mem_univ,ite_true]
   rw [dihedralIdealRecordLaw,PMF.uniformOfFintype'_apply]
   simp
 
@@ -260,7 +264,7 @@ private theorem sievePairWith_class_count (n : ℕ) {α : Type} [DecidableEq α]
       have hpos : 0 < rest.countP (fun a => decide (sieveWindowKey label w t a=u)) :=
         List.countP_pos_iff.2 ⟨r',hm,by simp [hu']⟩
       rw [List.countP_cons,List.countP_cons,ih u,List.countP_erase]
-      simp only [hu,hu',decide_true,if_true,hm,and_self]
+      simp only [hu,hu',decide_true,ite_true,hm,and_self]
       omega
     · have hu' : sieveWindowKey label w t r' ≠ u := fun he' => hu (he.trans he')
       rw [List.countP_cons,List.countP_cons,ih u,List.countP_erase]
@@ -348,7 +352,7 @@ private theorem clause3_neg_half (n : ℕ) :
         rw [h, ZMod.val_zero] at hv
         omega
       apply ZMod.val_injective
-      rw [ZMod.neg_val, if_neg hne, ZMod.val_cast_of_lt hlt]
+      rw [ZMod.neg_val, ite_eq_right hne, ZMod.val_cast_of_lt hlt]
       omega
 
 /-- Iterated negation fixes the half-period label. -/
@@ -397,7 +401,7 @@ private theorem clause3_conditionalState_smul {I : Type*} [Fintype I] [Decidable
     {c : ℂ} (hc : c ≠ 0) {β : QState I} (hm : 0 < MeasureProb β Finset.univ) :
     ConditionalState (c • β) = some ((c / ‖c‖) • PostMeasure β Finset.univ) := by
   unfold ConditionalState
-  rw [clause3_measureProb_smul, if_pos (mul_pos (pow_pos (norm_pos_iff.mpr hc) 2) hm),
+  rw [clause3_measureProb_smul, ite_eq_left (mul_pos (pow_pos (norm_pos_iff.mpr hc) 2) hm),
     clause3_postMeasure_smul hc hm]
 
 /-- Multiplication by a scalar of norm one transports the actual normalized record state by the
@@ -411,7 +415,7 @@ private theorem clause3_recordState_smul (c : ℂ) (hc : ‖c‖ = 1) (β : QSta
     rw [h0] at hc; norm_num at hc
   have hpm : PostMeasure β Finset.univ = ξ := by
     have hsome : ConditionalState β = some (PostMeasure β Finset.univ) := by
-      unfold ConditionalState; rw [if_pos hβ]
+      unfold ConditionalState; rw [ite_eq_left hβ]
     have h2 := actualRecordState_eq_of_some β (PostMeasure β Finset.univ)
       (normalized_postMeasure hβ) hsome
     rw [h] at h2
@@ -478,8 +482,8 @@ uniform Boolean outcome. -/
 theorem dihedralExtraction_fair (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' : ℂ)
     (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) :
     (dihedralExtraction (u • dihedralQubitState N s k) (u' • dihedralQubitState N s ℓ)
-        (clause3_unit_norm hu (normalized_dihedralQubitState N s k))
-        (clause3_unit_norm hu' (normalized_dihedralQubitState N s ℓ))).map Prod.fst
+        (by exact clause3_unit_norm hu (normalized_dihedralQubitState N s k))
+        (by exact clause3_unit_norm hu' (normalized_dihedralQubitState N s ℓ))).map Prod.fst
       = PMF.uniformOfFintype' Bool := by
   have hc : ‖u * u'‖ = 1 := clause3_norm_mul hu hu'
   have hgate : ApplyGate CNOT (TensorState (u • dihedralQubitState N s k)
@@ -529,34 +533,34 @@ theorem dihedralExtraction_fair (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' : 
   | false =>
       have hmain : @ite ENNReal (false = ((false, ⟨xiPlus, hPlus⟩) : Bool × NormQ).1)
           (Classical.propDecidable _) (E (false, ⟨xiPlus, hPlus⟩)) 0 = 1 / 2 := by
-        rw [if_pos rfl, hEr false ⟨xiPlus, hPlus⟩, if_pos (Or.inl ⟨rfl, rfl⟩)]
+        rw [ite_eq_left rfl, hEr false ⟨xiPlus, hPlus⟩, ite_eq_left (Or.inl ⟨rfl, rfl⟩)]
       have hrest : ∀ q : Bool × NormQ, q ≠ ((false, ⟨xiPlus, hPlus⟩) : Bool × NormQ) →
           @ite ENNReal (false = q.1) (Classical.propDecidable (false = q.1)) (E q) 0 = 0 := by
         intro q hq
         have hqe : q = (q.1, q.2) := (Prod.eta q).symm
         by_cases hb : q.1 = false
-        · rw [hqe, hb, if_pos rfl, hEr false q.2, if_neg]
+        · rw [hqe, hb, ite_eq_left rfl, hEr false q.2, ite_eq_right]
           intro hcond
           rcases hcond with ⟨_, he⟩ | ⟨hf, _⟩
           · exact hq (Prod.ext hb (Subtype.ext he))
           · exact Bool.noConfusion hf
-        · rw [if_neg (fun h => hb h.symm)]
+        · rw [ite_eq_right (fun h => hb h.symm)]
       exact (tsum_eq_single ((false, ⟨xiPlus, hPlus⟩) : Bool × NormQ) hrest).trans hmain
   | true =>
       have hmain : @ite ENNReal (true = ((true, ⟨xiMinus, hMinus⟩) : Bool × NormQ).1)
           (Classical.propDecidable _) (E (true, ⟨xiMinus, hMinus⟩)) 0 = 1 / 2 := by
-        rw [if_pos rfl, hEr true ⟨xiMinus, hMinus⟩, if_pos (Or.inr ⟨rfl, rfl⟩)]
+        rw [ite_eq_left rfl, hEr true ⟨xiMinus, hMinus⟩, ite_eq_left (Or.inr ⟨rfl, rfl⟩)]
       have hrest : ∀ q : Bool × NormQ, q ≠ ((true, ⟨xiMinus, hMinus⟩) : Bool × NormQ) →
           @ite ENNReal (true = q.1) (Classical.propDecidable (true = q.1)) (E q) 0 = 0 := by
         intro q hq
         have hqe : q = (q.1, q.2) := (Prod.eta q).symm
         by_cases hb : q.1 = true
-        · rw [hqe, hb, if_pos rfl, hEr true q.2, if_neg]
+        · rw [hqe, hb, ite_eq_left rfl, hEr true q.2, ite_eq_right]
           intro hcond
           rcases hcond with ⟨hf, _⟩ | ⟨_, he⟩
           · exact Bool.noConfusion hf
           · exact hq (Prod.ext hb (Subtype.ext he))
-        · rw [if_neg (fun h => hb h.symm)]
+        · rw [ite_eq_right (fun h => hb h.symm)]
       exact (tsum_eq_single ((true, ⟨xiMinus, hMinus⟩) : Bool × NormQ) hrest).trans hmain
 
 /-- The mass of an input point is bounded by the mass of its image under a mapped probability
@@ -564,7 +568,7 @@ mass function. -/
 private theorem clause3_map_single_le {α β : Type} (p : PMF α) (f : α → β) (x : α) :
     p x ≤ (p.map f) (f x) := by
   classical
-  calc p x = (if f x = f x then p x else 0) := (if_pos rfl).symm
+  calc p x = (if f x = f x then p x else 0) := (ite_eq_left rfl).symm
     _ = (fun a => if f x = f a then p a else 0) x := rfl
     _ ≤ ∑' a, (fun a => if f x = f a then p a else 0) a := ENNReal.le_tsum (f := fun a => if f x = f a then p a else 0) x
     _ = (p.map f) (f x) := (PMF.map_apply f p (f x)).symm
@@ -578,9 +582,9 @@ private theorem clause3_map_pos_witness {α β : Type} (p : PMF α) (f : α → 
   have hterm : ∀ x : α, (if y = f x then p x else 0) = 0 := by
     intro x
     by_cases h : y = f x
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact le_antisymm (hcon x (by rw [h])) (by simp)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
   rw [PMF.map_apply, ENNReal.tsum_eq_zero.2 hterm] at hy
   simp at hy
 
@@ -598,9 +602,9 @@ private theorem clause3_bind_map_pos_witness {α β γ : Type} (p : PMF α) (q :
     · have hinner : (q.map (g a)) z = 0 := by
         rw [PMF.map_apply, ENNReal.tsum_eq_zero.2 (fun b => by
           by_cases h : z = g a b
-          · rw [if_pos h]
+          · rw [ite_eq_left h]
             refine le_antisymm (hcon a b (by rw [h]) hpa) (by simp)
-          · rw [if_neg h])]
+          · rw [ite_eq_right h])]
       rw [hinner, mul_zero]
     · have hpz : p a = 0 := le_antisymm (not_lt.1 hpa) (by simp)
       rw [hpz, zero_mul]
@@ -614,7 +618,7 @@ private theorem clause3_postMeasure_self {I : Type*} [Fintype I] [DecidableEq I]
     unfold MeasureProb BornProb
     simpa using! hψ
   funext i
-  simp only [PostMeasure, collapse_apply, if_pos (Finset.mem_univ i), hm]
+  simp only [PostMeasure, collapse_apply, ite_eq_left (Finset.mem_univ i), hm]
   simp
 
 /-- Every positive-probability extraction record is, up to a scalar of norm one, the dihedral
@@ -623,8 +627,8 @@ theorem dihedralExtraction_family (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' 
     (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) (q : Bool × NormQ)
     (hq : 0 < (dihedralExtraction (u • dihedralQubitState N s k)
         (u' • dihedralQubitState N s ℓ)
-        (clause3_unit_norm hu (normalized_dihedralQubitState N s k))
-        (clause3_unit_norm hu' (normalized_dihedralQubitState N s ℓ))) q) :
+        (by exact clause3_unit_norm hu (normalized_dihedralQubitState N s k))
+        (by exact clause3_unit_norm hu' (normalized_dihedralQubitState N s ℓ))) q) :
     ∃ w : ℂ, ‖w‖ = 1 ∧
       q.2.1 = w • dihedralQubitState N s (if q.1 then k - ℓ else k + ℓ) := by
   classical
@@ -689,7 +693,7 @@ theorem dihedralExtraction_family (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' 
   have hcond : ConditionalState (fun a => χ (a, q₀.2))
       = some (PostMeasure (fun a => χ (a, q₀.2)) Finset.univ) := by
     unfold ConditionalState
-    rw [if_pos hbranchmass]
+    rw [ite_eq_left hbranchmass]
   have harss : actualRecordState (fun a => χ (a, q₀.2))
       = ⟨PostMeasure (fun a => χ (a, q₀.2)) Finset.univ,
         normalized_postMeasure hbranchmass⟩ :=
@@ -745,17 +749,17 @@ theorem dihedralExtraction_family (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' 
   by_cases hsel : (q₀.2 = false ∧
       PostMeasure (fun a => χ (a, q₀.2)) Finset.univ = xiPlus) ∨
     (q₀.2 = true ∧ PostMeasure (fun a => χ (a, q₀.2)) Finset.univ = xiMinus)
-  · rw [if_pos hsel] at hbasepos
+  · rw [ite_eq_left hsel] at hbasepos
     rcases hsel with ⟨hq₂f, heq⟩ | ⟨hq₂t, heq⟩
     · refine ⟨(u * u') * uPlus, by
         rw [norm_mul, clause3_norm_mul hu hu', hup]; norm_num, ?_⟩
-      rw [hq1, hq₂f, if_neg (by decide)]
+      rw [hq1, hq₂f, ite_eq_right (by decide)]
       rw [hq21, heq, hxip, smul_smul]
     · refine ⟨(u * u') * uMinus, by
         rw [norm_mul, clause3_norm_mul hu hu', hum]; norm_num, ?_⟩
-      rw [hq1, hq₂t, if_pos rfl]
+      rw [hq1, hq₂t, ite_eq_left rfl]
       rw [hq21, heq, hxim, smul_smul]
-  · rw [if_neg hsel] at hbasepos
+  · rw [ite_eq_right hsel] at hbasepos
     simp at hbasepos
 
 /-- Every positive-probability actual record of a reflection-hiding oracle has its label's
@@ -819,7 +823,7 @@ theorem dihedralActualRecord_family (n : ℕ) {S : Type} [Fintype S] [DecidableE
       = some (PostMeasure
           (fun t => dihedralRecordJoint (2 ^ n) f ((q₀.1.1, t), q₀.2)) Finset.univ) := by
     unfold ConditionalState
-    rw [if_pos hbranchmass]
+    rw [ite_eq_left hbranchmass]
   have hψmass : 0 < MeasureProb (dihedralQubitState (2 ^ n) s q₀.1.1) Finset.univ := by
     have hm : MeasureProb (dihedralQubitState (2 ^ n) s q₀.1.1) Finset.univ = 1 := by
       have hψ := normalized_dihedralQubitState (2 ^ n) s q₀.1.1
@@ -865,7 +869,7 @@ theorem actualFreshRecords_family (n : ℕ) {S : Type} [Fintype S] [DecidableEq 
       · subst hEq
         intro r hr
         exact absurd hr (by simp)
-      · rw [if_neg hEq] at hL
+      · rw [ite_eq_right hEq] at hL
         simp at hL
   | succ i ih =>
       rw [actualFreshRecords] at hL
@@ -942,7 +946,7 @@ private theorem clause3_neg_zeroBits (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n
   by_cases hk0 : k = 0
   · subst hk0
     simp
-  · rw [ZMod.neg_val, if_neg hk0, Nat.mod_eq_zero_of_dvd]
+  · rw [ZMod.neg_val, ite_eq_right hk0, Nat.mod_eq_zero_of_dvd]
     exact Nat.dvd_sub (Nat.pow_dvd_pow _ ht) (Nat.dvd_of_mod_eq_zero hk)
 
 /-- For a label with `t` zero low bits, the quotient of its negative by `2^t` is the modular
@@ -975,7 +979,7 @@ private theorem clause3_neg_div (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n))
         show (2 ^ n : ℕ) = 2 ^ (n - t) * 2 ^ t from by
           rw [← pow_add, Nat.sub_add_cancel ht]]
       exact (Nat.sub_mul (2 ^ (n - t)) (v / 2 ^ t) (2 ^ t)).symm
-    rw [ZMod.neg_val, if_neg hk0, hsub, Nat.mul_div_cancel _ hp,
+    rw [ZMod.neg_val, ite_eq_right hk0, hsub, Nat.mul_div_cancel _ hp,
       Nat.mod_eq_of_lt (by omega)]
 
 /-- Simultaneously negating two labels preserves and reflects window agreement when their lowest
@@ -1024,7 +1028,7 @@ private theorem clause3_val_sub_mod (n : ℕ) (k ℓ : ZMod (2 ^ n)) :
   by_cases hℓ : ℓ = 0
   · subst hℓ
     simp
-  · rw [if_neg hℓ]
+  · rw [ite_eq_right hℓ]
 
 /-- Subtracting labels whose lowest `c` bits vanish preserves that property when `c ≤ n`. -/
 private theorem clause3_zmod_sub_zeroBits (n c : ℕ) (hc : c ≤ n) (k ℓ : ZMod (2 ^ n))
@@ -1433,13 +1437,13 @@ private theorem clause3_layerAux_transport (n j : ℕ) (s : ZMod (2 ^ n))
             = (if q.1 = true then (negPow n j ℓ - negPow n j k)
                 :: List.map (fun r => negPow n (j + 1) r.1) T
               else List.map (fun r => negPow n (j + 1) r.1) T)
-          rw [if_pos hq, if_pos hq, List.map_cons, negPow_sub_succ n j k ℓ]
+          rw [ite_eq_left hq, ite_eq_left hq, List.map_cons, negPow_sub_succ n j k ℓ]
         · show List.map (fun r => negPow n (j + 1) r.1)
                 ((if q.1 = true then (k - ℓ, q.2) :: T else T))
             = (if q.1 = true then (negPow n j ℓ - negPow n j k)
                 :: List.map (fun r => negPow n (j + 1) r.1) T
               else List.map (fun r => negPow n (j + 1) r.1) T)
-          rw [if_neg hq, if_neg hq]
+          rw [ite_eq_right hq, ite_eq_right hq]
       have hcs := clause3_coin_split (dihedralExtraction χ.1 χ'.1 χ.2 χ'.2) hfair
           (fun c : Bool => (idealLayerAux n (ps.map
             (fun p => (negPow n j p.1.1, negPow n j p.2.1)))).map
@@ -1548,7 +1552,7 @@ private theorem clause3_layerAux_fam (n : ℕ) (s : ZMod (2 ^ n))
       · subst hEq
         intro r hr
         exact absurd hr (by simp)
-      · rw [if_neg hEq] at hB
+      · rw [ite_eq_right hEq] at hB
         simp at hB
   | cons p ps ih =>
       obtain ⟨⟨k, χ⟩, ℓ, χ'⟩ := p
@@ -1564,7 +1568,7 @@ private theorem clause3_layerAux_fam (n : ℕ) (s : ZMod (2 ^ n))
       cases hq1 : q.1 with
       | true =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_pos (rfl : (true : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_left (rfl : (true : Bool) = true)] at hBdef
           subst hBdef
           have hχe : (χ : NormQ) = ⟨u • dihedralQubitState (2 ^ n) s k,
               clause3_unit_norm hu (normalized_dihedralQubitState (2 ^ n) s k)⟩ := Subtype.ext hχ
@@ -1573,11 +1577,11 @@ private theorem clause3_layerAux_fam (n : ℕ) (s : ZMod (2 ^ n))
             Subtype.ext hχ'
           rw [hχe, hχ'e] at hqe
           obtain ⟨w, hw, hwfam⟩ := dihedralExtraction_family (2 ^ n) s k ℓ u u' hu hu' q hqe
-          rw [hq1, if_pos (rfl : (true : Bool) = true)] at hwfam
+          rw [hq1, ite_eq_left (rfl : (true : Bool) = true)] at hwfam
           exact FamilyList.cons ⟨w, hw, hwfam⟩ (hih T hT)
       | false =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_neg (by simp : ¬(false : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_right (by simp : ¬(false : Bool) = true)] at hBdef
           subst hBdef
           exact hih T hT
 
@@ -1642,7 +1646,7 @@ private theorem clause3_layerAux_tail_wpos (n w t : ℕ) (htw : t + w ≤ n)
       · subst hEq
         intro r hr
         exact absurd hr (by simp)
-      · rw [if_neg hEq] at hB
+      · rw [ite_eq_right hEq] at hB
         simp at hB
   | cons p ps ih =>
       obtain ⟨⟨k, χ⟩, ℓ, χ'⟩ := p
@@ -1662,7 +1666,7 @@ private theorem clause3_layerAux_tail_wpos (n w t : ℕ) (htw : t + w ≤ n)
       cases hq1 : q.1 with
       | true =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_pos (rfl : (true : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_left (rfl : (true : Bool) = true)] at hBdef
           subst hBdef
           intro r hr
           rcases List.mem_cons.1 hr with he | he
@@ -1671,7 +1675,7 @@ private theorem clause3_layerAux_tail_wpos (n w t : ℕ) (htw : t + w ≤ n)
           · exact hih T hT r he
       | false =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_neg (by simp : ¬(false : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_right (by simp : ¬(false : Bool) = true)] at hBdef
           subst hBdef
           exact hih T hT
 
@@ -1692,7 +1696,7 @@ private theorem clause3_layerAux_tail_w0 (n c : ℕ) (hc : c ≤ n)
       · subst hEq
         intro r hr
         exact absurd hr (by simp)
-      · rw [if_neg hEq] at hB
+      · rw [ite_eq_right hEq] at hB
         simp at hB
   | cons p ps ih =>
       obtain ⟨⟨k, χ⟩, ℓ, χ'⟩ := p
@@ -1710,7 +1714,7 @@ private theorem clause3_layerAux_tail_w0 (n c : ℕ) (hc : c ≤ n)
       cases hq1 : q.1 with
       | true =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_pos (rfl : (true : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_left (rfl : (true : Bool) = true)] at hBdef
           subst hBdef
           intro r hr
           rcases List.mem_cons.1 hr with he | he
@@ -1719,7 +1723,7 @@ private theorem clause3_layerAux_tail_w0 (n c : ℕ) (hc : c ≤ n)
           · exact hih T hT r he
       | false =>
           have hBdef : (if q.1 = true then (k - ℓ, q.2) :: T else T) = B := hTB
-          rw [hq1, if_neg (by simp : ¬(false : Bool) = true)] at hBdef
+          rw [hq1, ite_eq_right (by simp : ¬(false : Bool) = true)] at hBdef
           subst hBdef
           exact hih T hT
 
@@ -1804,7 +1808,7 @@ private theorem clause3_sieve_rec_support (n m : ℕ) {S : Type} [Fintype S] [De
       change 0 < (PMF.pure A) B at hB
       have hBA : B = A := by
         by_contra hne
-        rw [PMF.pure_apply, if_neg hne] at hB
+        rw [PMF.pure_apply, ite_eq_right hne] at hB
         simp at hB
       subst hBA
       refine ⟨hfam, fun r _ => Nat.mod_one _⟩
@@ -2180,15 +2184,15 @@ private theorem exists_of_map_ne_zero {α β : Type} {p : PMF α} {f : α → β
   apply ENNReal.tsum_eq_zero.2
   intro a
   by_cases hb : b = f a
-  · rw [if_pos hb]
+  · rw [ite_eq_left hb]
     by_contra ha0
     exact hcon ⟨a, ha0, hb.symm⟩
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
 
 /-- A point with nonzero mass in a pure distribution equals its distinguished value. -/
 private theorem eq_of_pure_ne_zero {α : Type} {a b : α} (h : PMF.pure a b ≠ 0) : b = a := by
   by_contra hab
-  rw [PMF.pure_apply, if_neg hab] at h
+  rw [PMF.pure_apply, ite_eq_right hab] at h
   exact h rfl
 
 /-- Subtracting window-agreeing labels with `t` zero low bits gives `t+w` zero low bits when the
@@ -2221,7 +2225,7 @@ private theorem zeroBitsGE_sub_of_windowAgree {n t w : ℕ} {r r' : ZMod (2 ^ n)
         have h1 : r = r' := sub_eq_zero.mp h0
         subst h1
         exact absurd hlt (lt_irrefl _)
-      haveI : NeZero (r - r') := ⟨hne⟩
+      have : NeZero (r - r') := ⟨hne⟩
       have hval : (r' - r).val = 2 ^ n - (r.val - r'.val) := by
         rw [show r' - r = -(r - r') from (neg_sub r r').symm,
           ZMod.val_neg_of_ne_zero (r - r'), ZMod.val_sub (Nat.le_of_lt hlt)]
@@ -2291,13 +2295,13 @@ private theorem idealLayerAux_mem {n : ℕ} :
     subst hL
     have hrec : ∀ k ∈ tail, ∃ p ∈ ps, k = p.2 - p.1 := ih htail
     by_cases hb : b = 1
-    · rw [if_pos hb] at hk
+    · rw [ite_eq_left hb] at hk
       rw [List.mem_cons] at hk
       rcases hk with hk | hk
       · exact ⟨(r, r'), List.mem_cons_self, by rw [hk]⟩
       · obtain ⟨p', hp', hk'⟩ := hrec k hk
         exact ⟨p', List.mem_cons_of_mem _ hp', hk'⟩
-    · rw [if_neg hb] at hk
+    · rw [ite_eq_right hb] at hk
       obtain ⟨p', hp', hk'⟩ := hrec k hk
       exact ⟨p', List.mem_cons_of_mem _ hp', hk'⟩
 
@@ -2325,9 +2329,9 @@ private theorem idealLayerAux_len_le {n : ℕ} :
     subst hL
     have hrec : tail.length ≤ ps.length := ih htail
     by_cases hb : b = 1
-    · rw [if_pos hb, List.length_cons, List.length_cons]
+    · rw [ite_eq_left hb, List.length_cons, List.length_cons]
       omega
-    · rw [if_neg hb, List.length_cons]
+    · rw [ite_eq_right hb, List.length_cons]
       omega
 
 /-- Every label in a nonzero-probability ideal recursive output has at least the stage's capped
@@ -2446,7 +2450,7 @@ private def coinLift {k : ℕ} (c : Fin k → Fin 2) : ℕ → Fin 2 :=
 
 /-- The extended tape agrees with the original finite tape at every in-range index. -/
 private theorem coinLift_lt {k : ℕ} (c : Fin k → Fin 2) {i : ℕ} (hi : i < k) :
-    coinLift c i = c ⟨i, hi⟩ := dif_pos hi
+    coinLift c i = c ⟨i, hi⟩ := dite_eq_left hi
 
 /-- The two successor-index representations give the same sum of binary keep indicators. -/
 private theorem sum_succ_shift_eq {P : ℕ} (c : ℕ → Fin 2) :
@@ -2478,9 +2482,9 @@ private theorem layerRunGen_length {α : Type} (child : α × α → α) :
     rw [sum_succ_shift_eq c]
     by_cases h1 : c 0 = 1
     · have h1' : c ((0 : Fin (ps.length + 1)) : ℕ) = 1 := h1
-      rw [if_pos h1, if_pos h1', List.length_singleton]
+      rw [ite_eq_left h1, ite_eq_left h1', List.length_singleton]
     · have h1' : ¬c ((0 : Fin (ps.length + 1)) : ℕ) = 1 := h1
-      rw [if_neg h1, if_neg h1', List.length_nil]
+      rw [ite_eq_right h1, ite_eq_right h1', List.length_nil]
 
 /-- The real-valued deterministic layer output length equals the sum of its real-valued keep
 indicators. -/
@@ -2546,7 +2550,7 @@ private theorem uniform_fin_succ_split (X : Type) [Fintype X] [Nonempty X] (k : 
         apply hx
         have h1 : ω 0 = x := congrFun hcon 0
         exact h1.symm
-      simp only [hne2, if_false]
+      simp only [hne2, ite_false]
     rw [hm, mul_zero])]
   rw [PMF.map_apply, tsum_eq_single (Fin.tail ω) (fun ω' hne => by
     have hne2 : ¬ ω = consFn (ω 0) ω' := by
@@ -2555,8 +2559,8 @@ private theorem uniform_fin_succ_split (X : Type) [Fintype X] [Nonempty X] (k : 
       funext i
       have h1 : ω i.succ = ω' i := congrFun hcon i.succ
       exact h1.symm
-    rw [if_neg hne2])]
-  · rw [if_pos (consFn_self_tail ω).symm, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply,
+    rw [ite_eq_right hne2])]
+  · rw [ite_eq_left (consFn_self_tail ω).symm, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply,
       PMF.uniformOfFintype'_apply]
     have hcard : Fintype.card (Fin (k + 1) → X) = Fintype.card X * Fintype.card (Fin k → X) := by
       rw [Fintype.card_fun, Fintype.card_fun, Fintype.card_fin, Fintype.card_fin, pow_succ,
@@ -2587,12 +2591,12 @@ private theorem idealLayerAux_eq_map_run {n : ℕ} :
           if ([] : List (ZMod (2^n))) = [] then (PMF.uniformOfFintype' (Fin 0 → Fin 2)) ω
             else 0)
           = ∑' ω : Fin 0 → Fin 2, (PMF.uniformOfFintype' (Fin 0 → Fin 2)) ω
-        from tsum_congr fun ω => if_pos rfl]
+        from tsum_congr fun ω => ite_eq_left rfl]
       rw [PMF.tsum_coe]
-    · rw [PMF.pure_apply, if_neg h]
+    · rw [PMF.pure_apply, ite_eq_right h]
       rw [show (∑' ω : Fin 0 → Fin 2,
           if L = [] then (PMF.uniformOfFintype' (Fin 0 → Fin 2)) ω else 0) = 0
-        from ENNReal.tsum_eq_zero.2 fun ω => if_neg h]
+        from ENNReal.tsum_eq_zero.2 fun ω => ite_eq_right h]
   | cons p ps ih =>
     obtain ⟨r, r'⟩ := p
     change (PMF.uniformOfFintype' (Fin 2)).bind (fun b =>
@@ -2626,8 +2630,8 @@ private theorem idealLayerAux_eq_map_run {n : ℕ} :
         · rw [coinLift_lt _ (by omega : i + 1 < ps.length + 1), coinLift_lt _ hi]
           exact consFn_succ b ω ⟨i, hi⟩
         · have e1 : coinLift (consFn b ω) (i + 1) = 0 :=
-            dif_neg (by omega : ¬ i + 1 < ps.length + 1)
-          have e2 : coinLift ω i = 0 := dif_neg hi
+            dite_eq_right (by omega : ¬ i + 1 < ps.length + 1)
+          have e2 : coinLift ω i = 0 := dite_eq_right hi
           rw [e1, e2]
       rw [h0, hrest]
       show (if b = 1 then [r' - r] else []) ++
@@ -2648,33 +2652,33 @@ private theorem pmf_map_event {α β : Type} (μ : PMF α) (f : α → β) (Q : 
       ∑' a, if Q b then (if b = f a then μ a else 0) else 0 := by
     intro b
     by_cases hQ : Q b
-    · rw [if_pos hQ, PMF.map_apply]
+    · rw [ite_eq_left hQ, PMF.map_apply]
       apply tsum_congr
       intro a
       by_cases hb : b = f a
-      · rw [if_pos hb, if_pos hQ]
-      · rw [if_neg hb, if_pos hQ]
-    · rw [if_neg hQ]
-      exact (ENNReal.tsum_eq_zero.2 fun a => if_neg hQ).symm
+      · rw [ite_eq_left hb, ite_eq_left hQ]
+      · rw [ite_eq_right hb, ite_eq_left hQ]
+    · rw [ite_eq_right hQ]
+      exact (ENNReal.tsum_eq_zero.2 fun a => ite_eq_right hQ).symm
   rw [tsum_congr step, ENNReal.tsum_comm]
   apply tsum_congr
   intro a
   by_cases ha : Q (f a)
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     rw [tsum_eq_single (f a) (fun b hb => by
       by_cases hQ : Q b
-      · rw [if_pos hQ, if_neg hb]
-      · rw [if_neg hQ])]
-    rw [if_pos ha, if_pos rfl]
-  · rw [if_neg ha]
+      · rw [ite_eq_left hQ, ite_eq_right hb]
+      · rw [ite_eq_right hQ])]
+    rw [ite_eq_left ha, ite_eq_left rfl]
+  · rw [ite_eq_right ha]
     apply ENNReal.tsum_eq_zero.2
     intro b
     by_cases hb : b = f a
     · have h1 : ¬ Q b := fun h => ha (hb ▸ h)
-      rw [if_neg h1]
+      rw [ite_eq_right h1]
     · by_cases hQb : Q b
-      · rw [if_pos hQb, if_neg hb]
-      · rw [if_neg hQb]
+      · rw [ite_eq_left hQb, ite_eq_right hb]
+      · rw [ite_eq_right hQb]
 
 /-- For `b > 0`, the probability that an ideal auxiliary layer keeps at most `(1-b)` times half
 the input pairs is at most `exp(-b^2*ps.length/2)`. -/
@@ -2692,11 +2696,11 @@ private theorem layer_len_tail {n : ℕ} (ps : List (ZMod (2^n) × ZMod (2^n))) 
       funext L
       by_cases hL : L = []
       · subst hL
-        rw [if_pos (by simp), if_pos rfl]
+        rw [ite_eq_left (by simp), ite_eq_left rfl]
         rfl
-      · rw [if_neg hL, if_neg (show ¬ (L.length : ℝ) ≤ 0 from fun hle =>
+      · rw [ite_eq_right hL, ite_eq_right (show ¬ (L.length : ℝ) ≤ 0 from fun hle =>
           hL (List.length_eq_zero_iff.mp (Nat.cast_nonpos.mp hle)))]]
-    rw [tsum_eq_single ([] : List (ZMod (2^n))) (fun L hL => by rw [if_neg hL]), if_pos rfl,
+    rw [tsum_eq_single ([] : List (ZMod (2^n))) (fun L hL => by rw [ite_eq_right hL]), ite_eq_left rfl,
       PMF.pure_apply_self]
     rw [neg_zero, Real.exp_zero, ENNReal.ofReal_one]
   · have hP1 : 1 ≤ ps.length := Nat.one_le_iff_ne_zero.mpr hP
@@ -3113,9 +3117,9 @@ private theorem idealLayer_survival (n m j : ℕ) (hm1 : 1 ≤ m) (hj : j ≤ m 
           then idealLayerAux n ps L' else 0) := by
     intro L'
     by_cases hg : Tg ≤ (L'.length : ℝ)
-    · rw [if_pos hg]
+    · rw [ite_eq_left hg]
       exact le_self_add
-    · rw [if_neg hg]
+    · rw [ite_eq_right hg]
       push Not at hg
       have hbadL : (L'.length : ℝ) ≤ (1 - b) * ((ps.length : ℝ) / 2) := by
         have hb0 : (0:ℝ) ≤ 1 - b := by linarith [hb1]
@@ -3128,7 +3132,7 @@ private theorem idealLayer_survival (n m j : ℕ) (hm1 : 1 ≤ m) (hj : j ≤ m 
               = (1 - b) * (((24 * (2:ℝ)^(3*m - 2*j)) * ρ - (2:ℝ)^w) / 4) := by ring
             _ ≤ (1 - b) * ((ps.length : ℝ) / 2) := mul_le_mul_of_nonneg_left hinner hb0
         linarith [hg, hTg, h1]
-      rw [if_pos hbadL]
+      rw [ite_eq_left hbadL]
       simp
   have htot : (∑' L' : List (ZMod (2^n)), idealLayerAux n ps L') = 1 := PMF.tsum_coe _
   have hsum_le : (1 : ENNReal) ≤
@@ -3154,15 +3158,15 @@ private theorem pmf_bind_event {α β : Type} (μ : PMF α) (F : α → PMF β) 
     funext b
     rw [PMF.bind_apply]
     by_cases hQ : Q b
-    · rw [if_pos hQ]
+    · rw [ite_eq_left hQ]
       apply tsum_congr
       intro a
-      rw [if_pos hQ]
-    · rw [if_neg hQ]
+      rw [ite_eq_left hQ]
+    · rw [ite_eq_right hQ]
       rw [show (∑' a, μ a * (if Q b then F a b else 0)) = ∑' a, (0 : ENNReal) from by
         apply tsum_congr
         intro a
-        rw [if_neg hQ, mul_zero]]
+        rw [ite_eq_right hQ, mul_zero]]
       rw [tsum_zero]
   rw [step1, ENNReal.tsum_comm]
   apply tsum_congr
@@ -3215,8 +3219,8 @@ private theorem idealSieve_size_chain (n m : ℕ) (hm1 : 1 ≤ m) :
           = fun L => (idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m 0) L from by
         funext L
         by_cases hE : (24 * (2:ℝ)^(3*m - 2*0)) * ρChain n m 0 ≤ (L.length : ℝ)
-        · rw [if_pos hE]
-        · rw [if_neg hE]
+        · rw [ite_eq_left hE]
+        · rw [ite_eq_right hE]
           have h0 : ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m 0)) L = 0 := by
             by_contra hne
             exact hE (hlen L hne)
@@ -3295,9 +3299,9 @@ private theorem idealSieve_size_chain (n m : ℕ) (hm1 : 1 ≤ m) :
           apply ENNReal.tsum_le_tsum
           intro L
           by_cases hE : (24 * (2:ℝ)^(3*m - 2*j)) * ρChain n m j ≤ (L.length : ℝ)
-          · rw [if_pos hE]
+          · rw [ite_eq_left hE]
             exact (mul_le_mul' (hstep L hE) (le_refl _)).trans_eq (mul_comm _ _)
-          · rw [if_neg hE]
+          · rw [ite_eq_right hE]
             simp
 
 /-- For `m ≥ 1`, the final retention threshold `ρChain n m m` is at least `1/24`. -/
@@ -3336,8 +3340,8 @@ private theorem idealSieve_size_final (n m : ℕ) (hm1 : 1 ≤ m) :
     have h2m : (2^m : ℕ) ≤ L.length := by
       have hc' : ((2^m : ℕ) : ℝ) ≤ (L.length : ℝ) := le_trans hB hc
       exact_mod_cast hc'
-    rw [if_pos hc, if_pos h2m]
-  · rw [if_neg hc]
+    rw [ite_eq_left hc, ite_eq_left h2m]
+  · rw [ite_eq_right hc]
     simp
 
 /-- For `m ≥ 1`, the assumed top-bit success estimate and the final size bound imply half-period
@@ -3374,7 +3378,7 @@ private theorem idealHit_of_topbit (n m : ℕ) (hm1 : 1 ≤ m)
 
 /-- The extension of a finite binary tape is zero outside its original range. -/
 private theorem coinLift_ge {k : ℕ} (c : Fin k → Fin 2) {i : ℕ} (hi : ¬ i < k) :
-    coinLift c i = 0 := dif_neg hi
+    coinLift c i = 0 := dite_eq_right hi
 
 /-- A bijection between nonempty finite types maps the uniform distribution to the uniform
 distribution. -/
@@ -3386,11 +3390,11 @@ private theorem uni_bij {α β : Type} [Fintype α] [Fintype β] [Nonempty α] [
   rw [PMF.map_apply]
   obtain ⟨a, ha⟩ := hf.2 b
   rw [tsum_eq_single a (fun a' ha' => by
-    refine if_neg ?_
+    refine ite_eq_right ?_
     intro hcon
     rw [hcon] at ha
     exact ha' (hf.1 ha.symm))]
-  rw [if_pos ha.symm, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply, hcard]
+  rw [ite_eq_left ha.symm, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply, hcard]
 
 /-- Independent uniform samples from two nonempty finite types give the uniform distribution on
 their product. -/
@@ -3407,17 +3411,17 @@ private theorem uni_bind_prod {A B : Type} [Fintype A] [Fintype B] [Nonempty A] 
       rw [PMF.map_apply]
       apply ENNReal.tsum_eq_zero.2
       intro b'
-      refine if_neg ?_
+      refine ite_eq_right ?_
       intro hcon
       simp only [Prod.mk.injEq] at hcon
       exact ha' hcon.1.symm
     rw [hmap, mul_zero])]
   rw [PMF.map_apply, tsum_eq_single b (fun b' hb' => by
-    refine if_neg ?_
+    refine ite_eq_right ?_
     intro hcon
     simp only [Prod.mk.injEq] at hcon
     exact hb' hcon.2.symm)]
-  rw [if_pos rfl, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply,
+  rw [ite_eq_left rfl, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply,
     PMF.uniformOfFintype'_apply, Fintype.card_prod, Nat.cast_mul]
   exact (ENNReal.mul_inv (Or.inl hA) (Or.inl hAT)).symm
 
@@ -3446,12 +3450,12 @@ private def glueTape {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) : 
 
 /-- A concatenated tape reads from its first component at indices below `N`. -/
 private theorem glue_apply_lt {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) {j : Fin (N + K)}
-    (hj : (j : ℕ) < N) : glueTape c c' j = c ⟨(j : ℕ), hj⟩ := dif_pos hj
+    (hj : (j : ℕ) < N) : glueTape c c' j = c ⟨(j : ℕ), hj⟩ := dite_eq_left hj
 
 /-- A concatenated tape reads from its second component, with index shifted by `N`, at indices
 at least `N`. -/
 private theorem glue_apply_ge {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) {j : Fin (N + K)}
-    (hj : ¬ (j : ℕ) < N) : glueTape c c' j = c' ⟨(j : ℕ) - N, by omega⟩ := dif_neg hj
+    (hj : ¬ (j : ℕ) < N) : glueTape c c' j = c' ⟨(j : ℕ) - N, by omega⟩ := dite_eq_right hj
 
 /-- Taking the prefix of a concatenated tape recovers the first tape. -/
 private theorem take_glue {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) :
@@ -3638,8 +3642,8 @@ private theorem layerRunGen_length_le {α : Type} (child : α × α → α) :
     have hrec := ih (fun i => c (i + 1))
     have hlen1 : (if c 0 = 1 then [child p] else []).length ≤ 1 := by
       by_cases h : c 0 = 1
-      · rw [if_pos h]; simp
-      · rw [if_neg h]; simp
+      · rw [ite_eq_left h]; simp
+      · rw [ite_eq_right h]; simp
     show ((if c 0 = 1 then [child p] else []) ++
       layerRunGen child ps (fun i => c (i + 1))).length ≤ ps.length + 1
     rw [List.length_append]
@@ -4225,10 +4229,10 @@ private theorem layerRunGen_map {α β : Type} (child : α × α → α) (child�
       layerRunGen child ps (fun i => C (i + 1))).map g = _
     rw [List.map_append]
     by_cases h : C 0 = 1
-    · simp only [h, if_true, hg p, ih (fun i => C (i + 1)),
+    · simp only [h, ite_true, hg p, ih (fun i => C (i + 1)),
       List.map_cons, layerRunGen]
       rfl
-    · simp only [h, if_false, List.map_nil, ih (fun i => C (i + 1)),
+    · simp only [h, ite_false, List.map_nil, ih (fun i => C (i + 1)),
       List.map_cons, layerRunGen, List.nil_append]
 
 /-- Every deterministic layer output is the child of some input pair. -/
@@ -4244,10 +4248,10 @@ private theorem layerRunGen_mem {α : Type} (child : α × α → α) :
     rw [List.mem_append] at hx
     rcases hx with hx | hx
     · by_cases h : C 0 = 1
-      · rw [if_pos h] at hx
+      · rw [ite_eq_left h] at hx
         rw [List.mem_singleton] at hx
         exact ⟨p, List.mem_cons_self, hx⟩
-      · rw [if_neg h] at hx; simp at hx
+      · rw [ite_eq_right h] at hx; simp at hx
     · obtain ⟨p', hp', hx'⟩ := ih _ x hx
       exact ⟨p', List.mem_cons_of_mem _ hp', hx'⟩
 
@@ -4268,7 +4272,7 @@ private theorem layerRunGen_nodup {α : Type} (child : α × α → α) :
     show ((if C 0 = 1 then [child p] else []) ++
       layerRunGen child ps (fun i => C (i + 1))).Nodup
     by_cases h : C 0 = 1
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       refine List.Nodup.append (by simp) hrec ?_
       intro x hx hy
       rw [List.mem_singleton] at hx
@@ -4276,7 +4280,7 @@ private theorem layerRunGen_nodup {α : Type} (child : α × α → α) :
       obtain ⟨q, hq, hxy'⟩ := layerRunGen_mem child ps (fun i => C (i + 1)) (child p) hy
       have hpq : p = q := hinj p List.mem_cons_self q (List.mem_cons_of_mem _ hq) hxy'
       exact (List.nodup_cons.1 hnodup).1 (hpq ▸ hq)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact hrec
 
 /-- Distinct pairs selected from a list without duplicates share no component. -/
@@ -4981,7 +4985,7 @@ private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
           ∃ j' : Fin (2 ^ m), u j' = 1 ∧ i ∈ ancIdx a c j' ∧ ∀ i' ∈ ancIdx a c j', i ≤ i')
           = if u j = 1 then {((E[↑j]'(hj j)).2.1 ∪ (E[↑j]'(hj j)).2.2).min' hne₀} else ∅ := by
         by_cases hu : u j = 1
-        · rw [if_pos hu]
+        · rw [ite_eq_left hu]
           ext i
           simp only [Finset.mem_filter, Finset.mem_singleton]
           constructor
@@ -5000,7 +5004,7 @@ private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
             subst hi
             exact ⟨Finset.min'_mem _ _, ⟨j, hu, (hanc j).symm ▸ Finset.min'_mem _ _,
               fun i' hi' => Finset.min'_le _ _ ((hanc j) ▸ hi')⟩⟩
-        · rw [if_neg hu, Finset.filter_eq_empty_iff]
+        · rw [ite_eq_right hu, Finset.filter_eq_empty_iff]
           intro i hiS hD
           obtain ⟨j', huj', hiA, hleast⟩ := hD
           have hij : i ∈ (E[↑j']'(hj j')).2.1 ∪ (E[↑j']'(hj j')).2.2 := (hanc j') ▸ hiA
@@ -5016,9 +5020,9 @@ private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
           ).card = (u j).val := by
         rw [hfilt]
         by_cases hu : u j = 1
-        · rw [if_pos hu, Finset.card_singleton, hu]
+        · rw [ite_eq_left hu, Finset.card_singleton, hu]
           decide
-        · rw [if_neg hu, Finset.card_empty]
+        · rw [ite_eq_right hu, Finset.card_empty]
           have h0 : u j = 0 := by
             rcases (by omega : u j = 0 ∨ u j = 1) with h | h
             · exact h
@@ -5033,9 +5037,9 @@ private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
             ∧ ∀ i' ∈ ancIdx a c j', i ≤ i') then (1 : Fin 2) else (0 : Fin 2)).val = _
         by_cases h : (∃ j' : Fin (2 ^ m), u j' = 1 ∧ i ∈ ancIdx a c j'
             ∧ ∀ i' ∈ ancIdx a c j', i ≤ i')
-        · rw [if_pos h, if_pos h]
+        · rw [ite_eq_left h, ite_eq_left h]
           decide
-        · rw [if_neg h, if_neg h]
+        · rw [ite_eq_right h, ite_eq_right h]
           decide
       have hsumv : ∀ s : Finset (Fin R), (∑ i ∈ s, (flipTop a c u i).val)
           = (s.filter (fun i => ∃ j' : Fin (2 ^ m), u j' = 1 ∧ i ∈ ancIdx a c j'
@@ -5345,13 +5349,13 @@ private theorem htop_main (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sq
     intro L
     by_cases hEL : (2^m : ℕ) ≤ L.length
     · by_cases hν : ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L = 0
-      · rw [if_pos hEL, hν]
+      · rw [ite_eq_left hEL, hν]
         exact zero_le
       · obtain ⟨fr, _, hfr⟩ := exists_of_bind_ne_zero hν
         have hzh := idealSieveRec_zero_or_half hnn hmm hfr
         by_cases hZ : ∀ k ∈ L, k = 0
         · have hQz : (2^m : ℕ) ≤ L.length ∧ ∀ k ∈ L, k = 0 := ⟨hEL, hZ⟩
-          rw [if_pos hEL, if_pos hQz]
+          rw [ite_eq_left hEL, ite_eq_left hQz]
           calc ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L
               = 0 + ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L :=
                 (zero_add _).symm
@@ -5369,7 +5373,7 @@ private theorem htop_main (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sq
           have hmem : ((2^(n-1):ℕ) : ZMod (2^n)) ∈ L := by
             rw [← hhalf]
             exact hkL
-          rw [if_pos hEL, if_pos hmem]
+          rw [ite_eq_left hEL, ite_eq_left hmem]
           calc ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L
               = ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L + 0 :=
                 (add_zero _).symm
@@ -5377,7 +5381,7 @@ private theorem htop_main (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sq
                 + (if (2^m : ℕ) ≤ L.length ∧ ∀ k ∈ L, k = 0
                   then ((idealFreshRecords n (24 * 2^(3*m))).bind (idealSieveRec n m m)) L else 0) :=
                 add_le_add (le_refl _) (zero_le : (0:ENNReal) ≤ _)
-    · rw [if_neg hEL]
+    · rw [ite_eq_right hEL]
       exact zero_le
   have hE : (∑' L : List (ZMod (2^n)),
         if (2^m : ℕ) ≤ L.length

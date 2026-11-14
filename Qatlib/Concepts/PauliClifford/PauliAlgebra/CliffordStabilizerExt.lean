@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerMeasurement
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerCanonical
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerMeasurement
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerCanonical
+
+@[expose] public section
 
 /-!
 # Combined guarantees for Clifford stabilizer evolution

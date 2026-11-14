@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.List.FinRange
-import Mathlib.Data.Fintype.Basic
-import Init.Data.Vector.InsertIdx
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Data.List.FinRange
+public import Mathlib.Data.Fintype.Basic
+public import Init.Data.Vector.InsertIdx
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Data and collection counts for saved tables

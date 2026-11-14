@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.WeightedNested
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.WeightedNested
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
+
+@[expose] public section
 
 /-!
 # Leakage bounds for nested commutator products

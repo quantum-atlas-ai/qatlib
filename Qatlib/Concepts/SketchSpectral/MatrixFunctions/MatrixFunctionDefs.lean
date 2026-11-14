@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
-import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
-import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometryStat
-import Qatlib.Concepts.SketchSpectral.EvenSVT.ThresholdRankRetentionStat
-import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometrySamp
-import Qatlib.Concepts.SketchSpectral.EvenSVT.ThresholdRankRetentionSamp
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmetic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+public import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometryStat
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.ThresholdRankRetentionStat
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometrySamp
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.ThresholdRankRetentionSamp
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmetic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Matrix-function sample and cost expressions

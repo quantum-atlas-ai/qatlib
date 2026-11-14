@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A zero-mask counterexample to the Simon promise
@@ -80,7 +84,7 @@ theorem zeroMaskCounter_twoToOne_mass :
     (@PMF.uniformOfFintype' _ (Fintype.ofFinite _) hne)
   have hlink : simonTwoToOneDist (0 : BooleanVec 3) = law := by
     unfold simonTwoToOneDist
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
     simp [law, PMF.map, Function.comp_def, PMF.monad_map_eq_map]
   rw [hlink]
   apply (PMF.mem_support_iff law zeroMaskCounter).mp

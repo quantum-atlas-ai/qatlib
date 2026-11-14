@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
+
+@[expose] public section
 
 /-!
 # Dual payoff range contract

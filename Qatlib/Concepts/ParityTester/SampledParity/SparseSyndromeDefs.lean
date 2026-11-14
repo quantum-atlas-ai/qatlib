@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Sparse parity scans and read accounting

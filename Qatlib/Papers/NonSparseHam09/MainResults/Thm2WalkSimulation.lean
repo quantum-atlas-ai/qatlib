@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Matrix evolution and zero-time walk simulation
@@ -101,6 +105,7 @@ theorem timeEvolution_unitary (H : Matrix ι ι ℂ) (hH : H.IsHermitian) (t : �
       _ = 1 := NormedSpace.exp_zero
   simpa [hAdef] using h
 
+omit [Nonempty ι] in
 /-- The time evolution of a Hermitian matrix belongs to `Matrix.unitaryGroup`. See
 [ChildsKothari2010]. -/
 theorem timeEvolution_mem_unitaryGroup (H : Matrix ι ι ℂ) (hH : H.IsHermitian) (t : ℝ) :
@@ -108,6 +113,7 @@ theorem timeEvolution_mem_unitaryGroup (H : Matrix ι ι ℂ) (hH : H.IsHermitia
   rw [Matrix.mem_unitaryGroup_iff]
   exact timeEvolution_unitary H hH t
 
+omit [Nonempty ι] in
 /-- Zero walk steps simulate evolution for time zero with any nonnegative error tolerance. See
 [ChildsKothari2010]. -/
 theorem walkSimulates_zero (H : Matrix ι ι ℂ) {δ : ℝ} (hδ : 0 ≤ δ) :

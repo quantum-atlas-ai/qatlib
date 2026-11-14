@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.LchsDefs
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.LchsDefs
+
+@[expose] public section
 
 /-!
 # Refined resource identities for LCHS
@@ -94,6 +98,7 @@ theorem lchs32_source_label_count (M Mt : ℕ) :
       (Finset.univ : Finset (Fin (M + 1) × Fin (Mt + 1))).card :=
   lchs2d_source_label_count M Mt
 
+omit [DecidableEq I] in
 /-- For `s ≤ t`, the two-dimensional coefficient mass factors as the kernel mass times one plus
 the source mass. -/
 theorem lchs32_coefficient_mass (b : ℝ → QState I) (s t : ℝ) (K M Mt : ℕ)
@@ -158,12 +163,14 @@ theorem lchs33_native_order_spec (m : ℕ) :
       lchs33HamTOrder m ≤ 2 * m + 1 := by
   exact lchsHamTNativeOrder_spec m
 
+omit [DecidableEq J] in
 /-- The Taylor word-label set fits in the number of binary states specified by
 `lchs33AncillaBits`. -/
 theorem lchs33_ancilla_bits_spec (K : ℕ) :
     (Finset.univ : Finset (TaylorWordLabel J K)).card ≤ 2 ^ (lchs33AncillaBits J K) := by
   exact taylorAncillaBits_spec K
 
+omit [DecidableEq J] in
 /-- The phase-gate count equals the number of Taylor word labels. -/
 theorem lchs33_phase_gate_count (K : ℕ) :
     lchs33PhaseGateCount J K = (Finset.univ : Finset (TaylorWordLabel J K)).card := by

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.FieldTheory.Finite.Trace
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.FieldTheory.Perfect
-import Mathlib.RingTheory.Trace.Basic
-import Mathlib.RingTheory.IntegralDomain
-import Mathlib.GroupTheory.Coset.Card
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Algebra.Algebra.Subalgebra.Lattice
-import Mathlib.Algebra.Group.Pointwise.Set.Basic
+module
+
+public import Mathlib.FieldTheory.Finite.Trace
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.FieldTheory.Perfect
+public import Mathlib.RingTheory.Trace.Basic
+public import Mathlib.RingTheory.IntegralDomain
+public import Mathlib.GroupTheory.Coset.Card
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Algebra.Algebra.Subalgebra.Lattice
+public import Mathlib.Algebra.Group.Pointwise.Set.Basic
+
+@[expose] public section
 
 /-!
 # Finite-field trace representations of codes
@@ -67,8 +71,8 @@ def unitSet (v : Eˣ) : Set E := (fun x : Eˣ => (x : E)) '' (Subgroup.zpowers v
 lemma adjoin_powers_eq_top
     [Fintype F] [Finite E] [FiniteDimensional F E]
     (α : E) (hα : α ≠ 0)
-    (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
-    (hmul : n * N = Nat.card E - 1)
+    (n N : ℕ) (_hn : 0 < n) (hN : 0 < N)
+    (_hmul : n * N = Nat.card E - 1)
     (hord : orderOf (Units.mk0 α hα) = n * N)
     (hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
     Submodule.span F (unitSet ((Units.mk0 α hα) ^ N)) = ⊤ := by
@@ -109,9 +113,9 @@ lemma adjoin_powers_eq_top
   have hSspan : Subalgebra.toSubmodule S = Submodule.span F s :=
     Algebra.adjoin_eq_span_of_subset F hcl
 
-  haveI : Finite ↥S := Finite.of_injective (Subtype.val) Subtype.val_injective
-  haveI : IsDomain ↥S := inferInstance
-  letI : Field ↥S := IsField.toField (Finite.isField_of_domain ↥S)
+  have : Finite ↥S := Finite.of_injective (Subtype.val) Subtype.val_injective
+  have : IsDomain ↥S := inferInstance
+  let : Field ↥S := IsField.toField (Finite.isField_of_domain ↥S)
 
   have hvS : (v : E) ∈ (S : Set E) := by
     have : (v : E) ∈ s := ⟨v, Subgroup.mem_zpowers v, rfl⟩
@@ -145,7 +149,7 @@ lemma adjoin_powers_eq_top
     rw [Nat.card_units] at h
     rwa [hordw] at h
 
-  haveI : Module.Finite F ↥S := inferInstance
+  have : Module.Finite F ↥S := inferInstance
   have hcardS : Nat.card ↥S = Nat.card F ^ Module.finrank F ↥S :=
     Module.natCard_eq_pow_finrank
 
@@ -157,7 +161,7 @@ lemma adjoin_powers_eq_top
       have : (1 : E) ∈ (⊥ : Submodule F E) := by
         rw [← hbot]
         exact Subalgebra.one_mem S
-      simpa using this
+      simp at this
     exact Nat.pos_of_ne_zero (fun hz => hne (Submodule.finrank_eq_zero.mp hz))
   have hfin_eq : Module.finrank F ↥S = Module.finrank F E := by
     by_contra hne

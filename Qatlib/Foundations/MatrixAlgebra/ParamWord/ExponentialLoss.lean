@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.HermitianSlots
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordSmooth
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.LossBounds
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.HermitianSlots
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordSmooth
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.LossBounds
+
+@[expose] public section
 
 /-!
 # Exponential circuit words, states, and expectation losses

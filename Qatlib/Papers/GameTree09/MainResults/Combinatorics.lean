@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GameTree09.MainResults.Composition
-import Mathlib.Data.Fin.SuccPred
+module
+
+public import Qatlib.Papers.GameTree09.MainResults.Composition
+public import Mathlib.Data.Fin.SuccPred
+
+@[expose] public section
 
 /-!
 # Comb formulas and maximal-false inputs

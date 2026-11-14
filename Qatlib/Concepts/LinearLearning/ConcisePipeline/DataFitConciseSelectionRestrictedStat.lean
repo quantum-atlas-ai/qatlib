@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+module
+
+public import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+
+@[expose] public section
 
 /-!
 # Specification of restricted concise fitting

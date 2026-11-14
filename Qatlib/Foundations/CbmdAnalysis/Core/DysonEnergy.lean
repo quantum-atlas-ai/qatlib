@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Energy estimates for Dyson trajectories
@@ -90,7 +94,7 @@ theorem dyson_trajectory_norm_le
     (hv : ∀ u, HasDerivAt v ((-Complex.I) • (H u (v u) + z • L u (v u))) u)
     (s t : ℝ) (hst : s ≤ t) :
     ‖v t‖ ≤ Real.exp (max z.im 0 * ∫ u in s..t, ‖L u‖) * ‖v s‖ := by
-  letI := InnerProductSpace.rclikeToReal ℂ E
+  let := InnerProductSpace.rclikeToReal ℂ E
   let c : ℝ := max z.im 0
   let R : ℝ → ℝ := fun r => ∫ u in s..r, ‖L u‖
   have hR (u : ℝ) : HasDerivAt R ‖L u‖ u :=

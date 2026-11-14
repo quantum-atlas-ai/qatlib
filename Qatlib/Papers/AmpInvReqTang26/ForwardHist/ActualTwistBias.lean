@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualBias
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.TwistedCircuit
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualBias
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.TwistedCircuit
+
+@[expose] public section
 
 /-!
 # Bounds for phase-twisted ensemble discrimination

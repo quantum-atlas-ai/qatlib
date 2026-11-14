@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.MeasureTheory.Function.Floor
-import Mathlib.MeasureTheory.Integral.Bochner.Set
+module
+
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.MeasureTheory.Function.Floor
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+
+@[expose] public section
 
 /-!
 # Risk Grid
@@ -33,7 +37,7 @@ def riskCell {Y : Type*} (K : ℕ) (c : Y → Fin 3 → ℝ)
 lemma riskCell_measurable {Y : Type*} [MeasurableSpace Y] (K : ℕ)
     (c : Y → Fin 3 → ℝ) (hc : ∀ i, Measurable (fun y => c y i))
     (b : Fin 3 → Fin (K+1)) : MeasurableSet (riskCell K c b) := by
-  simp only [riskCell, Set.setOf_forall]
+  simp only [riskCell, Set.ofPred_forall]
   apply MeasurableSet.iInter
   intro i
   exact (measurableSet_singleton ((b i).val)).preimage

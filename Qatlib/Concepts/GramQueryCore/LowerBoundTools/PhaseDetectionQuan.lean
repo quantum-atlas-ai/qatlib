@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionPhaseProgram
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionPhaseProgram
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Phase detection by source words
@@ -297,7 +301,7 @@ theorem sourcePhaseLowCoefficients {H : Type} [Fintype H] [DecidableEq H]
   rw [Matrix.mulVec_mulVec _ Vᴴ V,hVhV,Matrix.one_mulVec,Matrix.mulVec_zero] at hz
   intro j hj
   have hh := congrFun hz j
-  simpa only [Matrix.mulVec_diagonal,if_pos hj,one_mul,Pi.zero_apply] using! hh
+  simpa only [Matrix.mulVec_diagonal,ite_eq_left hj,one_mul,Pi.zero_apply] using! hh
 
 /-- Outside the low-phase subspace, a clock satisfying `2*π ≤ M*Θ` bounds the phase reflection's
 error from sign reversal by `2*(1/2)^k` times the state norm. -/

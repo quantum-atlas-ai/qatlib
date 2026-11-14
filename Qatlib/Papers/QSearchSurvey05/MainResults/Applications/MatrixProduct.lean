@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Prod
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Prod
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Matrix product witnesses and subset sampling

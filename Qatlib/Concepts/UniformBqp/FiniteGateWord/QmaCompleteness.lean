@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Mathlib.Order.Interval.Finset.Fin
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Mathlib.Order.Interval.Finset.Fin
+
+@[expose] public section
 
 /-!
 # Unary clocks and history-space propagation

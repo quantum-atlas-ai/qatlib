@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+
+@[expose] public section
 
 /-!
 # A seven-gate relative Toffoli word
@@ -61,7 +65,7 @@ private theorem relative_factor (θ : ℝ) (a b : Bool) :
     if a && b then PauliX else if a then qubitEulerRotation (-4*θ)*PauliX else 1 := by
   rw [qubitEulerRotation_conjTranspose]
   cases a <;> cases b <;> simp only [Bool.false_and, Bool.true_and, Bool.false_eq_true,
-    if_true, if_false, Matrix.mul_one, Matrix.one_mul]
+    ite_true, ite_false, Matrix.mul_one]
   · rw [qubitEulerRotation_mul, qubitEulerRotation_mul, qubitEulerRotation_mul,
       show -θ+-θ+θ+θ=0 from by ring, qubitEulerRotation_zero]
   · rw [rotation_x_rotation, pauliX_mul_qubitEulerRotation,
@@ -117,7 +121,7 @@ theorem sourceRelativeToffoliSteps_fibre {N : ℕ} (a b t : Fin N)
   have hZ : qubitEulerRotation Real.pi * PauliX = PauliZ := by
     ext i j
     cases i <;> cases j <;>
-      simp [Matrix.mul_apply, Fintype.sum_bool, qubitEulerRotation_apply, PauliX,
+      simp [Matrix.mul_apply,  qubitEulerRotation_apply, PauliX,
         PauliZ, permMatrix, Real.cos_pi_div_two, Real.sin_pi_div_two]
   simp only [sourceRelativeToffoliSteps, reflectionCompile, List.map_cons, List.map_nil,
     run_gate, run_nil, reflectionGateMatrix, multiWireState_single,
@@ -153,8 +157,8 @@ theorem sourceRelativeToffoliSteps_ket {N : ℕ} (a b t : Fin N)
   rw [multiWireState_ket] at h
   rw [h]
   cases ha : x a <;> cases hb : x b <;>
-    simp only [ha, hb, Bool.false_and, Bool.true_and, Bool.not_true, Bool.not_false,
-      Bool.false_eq_true, if_true, if_false, applyGate_one,
+    simp only [ Bool.false_and, Bool.true_and, Bool.not_true, Bool.not_false,
+      Bool.false_eq_true, ite_true, ite_false, applyGate_one,
       applyGate_pauliX_ket, z_basis, multiWireState_smul, fibre_basis,
       Bool.xor_false, Bool.xor_true, Function.update_eq_self, one_smul]
 

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Multiset.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Nat.Find
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Multiset.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Nat.Find
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,8 +49,10 @@ allowed.  The `q = 0` sum is the empty sum `0`. -/
 def SumOf (q : ℕ) (Λ : Finset V) (s : V) : Prop :=
   ∃ m : Multiset V, m.card = q ∧ (∀ x ∈ m, x ∈ Λ) ∧ m.sum = s
 
+omit [DecidableEq V] in
+
 /-- The `q = 0` sumset is `{0}` (paper Eq. (S9), page S4). -/
-theorem sumOf_zero_iff {Λ : Finset V} {s : V} : SumOf 0 Λ s ↔ s = 0 := by
+theorem sumOf_zero_iff {V : Type*} [_scopeInst0 : AddCommGroup V] [_scopeInst1 : DecidableEq V] {Λ : Finset V} {s : V} : SumOf 0 Λ s ↔ s = 0 := by
   constructor
   · rintro ⟨m, hm, -, hs⟩
     rw [Multiset.card_eq_zero.mp hm] at hs
@@ -54,8 +60,10 @@ theorem sumOf_zero_iff {Λ : Finset V} {s : V} : SumOf 0 Λ s ↔ s = 0 := by
   · rintro rfl
     exact ⟨0, rfl, by simp, by simp⟩
 
+omit [DecidableEq V] in
+
 /-- Adding one more element of `Λ` moves `Σ_q(Λ)` into `Σ_{q+1}(Λ)`. -/
-theorem sumOf_succ {Λ : Finset V} {q : ℕ} {s : V} (a : V) (ha : a ∈ Λ)
+theorem sumOf_succ {V : Type*} [_scopeInst0 : AddCommGroup V] [_scopeInst1 : DecidableEq V] {Λ : Finset V} {q : ℕ} {s : V} (a : V) (ha : a ∈ Λ)
     (h : SumOf q Λ s) : SumOf (q + 1) Λ (s + a) := by
   obtain ⟨m, hm, hmem, hs⟩ := h
   refine ⟨m + {a}, ?_, ?_, ?_⟩
@@ -75,7 +83,7 @@ def KappaWitness (Λ : Finset V) (q : ℕ) : Prop :=
 
 /-- The centre `c = ∑_{λ∈Λ} λ` makes every `c − λ` a sum of `#Λ − 1` eigenvalues
 (the `c = ΣΛ` choice used for `κ(Λ) ≤ #Λ − 1` in Theorem S2, page S7). -/
-theorem kappaWitness_card_sub_one {Λ : Finset V} (hne : Λ.Nonempty) :
+theorem kappaWitness_card_sub_one {Λ : Finset V} (_hne : Λ.Nonempty) :
     KappaWitness Λ (Λ.card - 1) := by
   classical
   refine ⟨∑ x ∈ Λ, x, ?_⟩

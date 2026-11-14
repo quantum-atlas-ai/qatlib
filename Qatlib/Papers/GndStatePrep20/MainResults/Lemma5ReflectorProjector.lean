@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GndStatePrep20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GndStatePrep20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,7 +85,7 @@ the encoded unitary per QSVT evaluation; each such application in turn calls
 with constants `Cq` and `Cq`. -/
 theorem lemma5_query_gate_cost
     {ℓ m : ℕ} {α Δ ε Cq : ℝ}
-    (hCq : 0 ≤ Cq) (hm : 0 ≤ (m : ℝ))
+    (_hCq : 0 ≤ Cq) (hm : 0 ≤ (m : ℝ))
     (hdeg : (ℓ + 1 : ℝ) ≤ Cq * (α / Δ) * Real.log (1 / ε)) :
     (ℓ + 1 : ℝ) ≤ Cq * (α / Δ) * Real.log (1 / ε) ∧
       (m : ℝ) * (ℓ + 1) ≤ Cq * (m : ℝ) * (α / Δ) * Real.log (1 / ε) := by

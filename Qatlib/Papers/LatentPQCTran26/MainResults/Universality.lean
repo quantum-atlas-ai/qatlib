@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
-import Qatlib.Papers.LatentPQCTran26.MainResults.FiniteCatalog
-import Qatlib.Papers.LatentPQCTran26.MainResults.LatentUniversal
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
+public import Qatlib.Papers.LatentPQCTran26.MainResults.FiniteCatalog
+public import Qatlib.Papers.LatentPQCTran26.MainResults.LatentUniversal
+
+@[expose] public section
 
 /-!
 # A coupling bound for latent distribution approximation

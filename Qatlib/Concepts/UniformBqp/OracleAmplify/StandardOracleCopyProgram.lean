@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStat
+module
+
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStat
+
+@[expose] public section
 
 /-!
 # Routing sequential copies through one oracle
@@ -38,7 +42,7 @@ variable {n k : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
 /-- The permutation exchanging the shared oracle register with the oracle register of copy `j`,
 while retaining that copy's workspace. -/
-private def copySwap (j : Fin k)
+def copySwap (j : Fin k)
     (z : (Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   ((z.2 j).1, Function.update z.2 j (z.1, (z.2 j).2))
 
@@ -57,7 +61,7 @@ private theorem copySwap_involutive (j : Fin k) : Function.Involutive (copySwap 
 
 /-- The permutation matrix routing the oracle register of copy `j` to the shared query
 interface. -/
-private noncomputable def copySwapGate (j : Fin k) := permMatrix (copySwap (n := n) (W := W) j)
+noncomputable def copySwapGate (j : Fin k) := permMatrix (copySwap (n := n) (W := W) j)
 
 /-- The copy-routing permutation matrix is unitary. -/
 private theorem copySwapGate_unitary (j : Fin k) :
@@ -164,6 +168,7 @@ private theorem copies_list_unitary {C : Circuit ((Fin n × Bool) × W)}
     simp only [List.flatMap_cons, isUnitaryCircuit_append]
     exact ⟨standardCopyCircuit_unitary j hC, ih⟩
 
+omit [Fintype W] in
 /-- The query count of a list of routed copies equals the list length times the original query
 count. -/
 private theorem copies_list_queries (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :
@@ -172,6 +177,7 @@ private theorem copies_list_queries (C : Circuit ((Fin n × Bool) × W)) (L : Li
   | nil => simp
   | cons j L ih => simp [queryCount_append, standardCopyCircuit_queries, ih, Nat.succ_mul, Nat.add_comm]
 
+omit [Fintype W] in
 /-- The gate count of a list of routed copies is `L.length * (GateCount C + 2 * QueryCount C)`. -/
 private theorem copies_list_gates (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :
     GateCount (L.flatMap fun j => StandardCopyCircuit j C) =

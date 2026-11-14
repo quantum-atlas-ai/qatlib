@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ def ThetaEquivalent (x y : ℝ) : Prop :=
   ∃ c₁ c₂ : ℝ, 0 < c₁ ∧ 0 < c₂ ∧ c₁ * y ≤ x ∧ x ≤ c₂ * y
 
 /-- `Θ`-equivalence is symmetric: Eq. (33) may be read in either direction. -/
-theorem thetaEquivalent_symm {x y : ℝ} (hy : 0 < y) (h : ThetaEquivalent x y) :
+theorem thetaEquivalent_symm {x y : ℝ} (_hy : 0 < y) (h : ThetaEquivalent x y) :
     ThetaEquivalent y x := by
   obtain ⟨c₁, c₂, hc₁, hc₂, hle₁, hle₂⟩ := h
   refine ⟨c₂⁻¹, c₁⁻¹, by positivity, by positivity, ?_, ?_⟩

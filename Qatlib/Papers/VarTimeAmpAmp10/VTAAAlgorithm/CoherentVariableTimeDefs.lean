@@ -4,13 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAmplification
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationVari
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAmplification
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationVari
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSectionVars false
 
 /-!
 # Coherent variable-time frames and source amplification

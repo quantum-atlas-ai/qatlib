@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.RingEstimate.PrimitiveEigenphase
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Data.Nat.Totient
-import Mathlib.Algebra.Group.Prod
+module
+
+public import Qatlib.Papers.GaussSumEst02.RingEstimate.PrimitiveEigenphase
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Algebra.Group.Prod
+
+@[expose] public section
 
 /-!
 # Unit groups and Dirichlet-character conductors

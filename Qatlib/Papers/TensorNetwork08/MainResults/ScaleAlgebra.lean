@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Algebra of tensor-network scales and Potts weights
@@ -155,10 +159,10 @@ theorem potts_max (q : ℕ) [NeZero q] (hq : 2 ≤ q) (β J : ℝ) :
         intro hh
         have hv1 := congrArg Fin.val hh
         simp at hv1
-      rw [if_neg hv, max_eq_right h]
+      rw [ite_eq_right hv, max_eq_right h]
     · refine ⟨0, ?_⟩
       unfold pottsW
-      rw [if_pos rfl, max_eq_left h]
+      rw [ite_eq_left rfl, max_eq_left h]
 
 /-- When `β * J > 0`, the maximum of `exp (β * J)` and one is the exponential. -/
 theorem potts_ferro (q : ℕ) [NeZero q] (β J : ℝ) (hJ : 0 < β * J) :

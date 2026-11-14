@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -152,12 +156,14 @@ lemma E2_norm : ‖E2 n‖ = 1 := by
   have hn : 0 ≤ ‖E2 n‖ := norm_nonneg _
   nlinarith
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- The graph embedding decomposes as `E₁ * I + E₂ * Q`. -/
-lemma graph_eq_E1_add_E2 (Q : Sq n) :
+lemma graph_eq_E1_add_E2
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (Q : Sq n) :
     graph Q = E1 n * (1 : Sq n) + E2 n * Q := by
   ext i j
   rcases i with i | i <;>
-    simp [graph, blockCol, E1, E2, Matrix.mul_apply, Fintype.sum_sum_type, Matrix.one_apply]
+    simp [graph, blockCol, E1, E2, Matrix.mul_apply, Matrix.one_apply]
 
 /-- Operator-norm bound `‖[I; Q]‖ ≤ 1 + ‖Q‖` for the graph embedding.  This is the
 `√(1+‖Q‖²) ≤ 1+‖Q‖` input factor used in Proposition E.8's error budget (E.28). -/
@@ -168,13 +174,15 @@ lemma graph_norm_le (Q : Sq n) : ‖graph Q‖ ≤ 1 + ‖Q‖ := by
         add_le_add (Matrix.l2_opNorm_mul _ _) (Matrix.l2_opNorm_mul _ _)
     _ = 1 + ‖Q‖ := by rw [E1_norm, E2_norm]; simp
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- The block row `[I G]` decomposes as `I * E₁* + G * E₂*`. -/
-lemma blockRow_eq (G : Sq n) :
+lemma blockRow_eq
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (G : Sq n) :
     blockRow (1 : Sq n) G = (1 : Sq n) * (E1 n)ᴴ + G * (E2 n)ᴴ := by
   ext i j
   rcases j with j | j <;>
     simp [blockRow, blockCol, E1, E2, Matrix.mul_apply, Matrix.conjTranspose_apply,
-      Fintype.sum_sum_type, Matrix.one_apply, eq_comm]
+      Matrix.one_apply, eq_comm]
 
 /-- Operator-norm bound `‖[I G]‖ ≤ 1 + ‖G‖` for the block row. -/
 lemma blockRow_norm_le (G : Sq n) : ‖blockRow (1 : Sq n) G‖ ≤ 1 + ‖G‖ := by

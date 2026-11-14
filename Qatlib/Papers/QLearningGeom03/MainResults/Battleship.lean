@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraZN
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraZN
+
+@[expose] public section
 
 /-!
 # Cyclic battleship learning matrices
@@ -59,6 +63,7 @@ lemma shipWindow_injOn {r : ℕ} (h : 2 * r + 1 ≤ N) :
   have hmod := (ZMod.natCast_eq_natCast_iff t t' N).mp hcast
   exact Nat.ModEq.eq_of_lt_of_lt hmod (lt_of_lt_of_le ht h) (lt_of_lt_of_le ht' h)
 
+omit [NeZero N] in
 /-- If 2r + 1 ≤ N, the cyclic ship window contains exactly 2r + 1 elements. -/
 lemma shipWindow_card {r : ℕ} (h : 2 * r + 1 ≤ N) : (shipWindow (N := N) r).card = 2 * r + 1 := by
   rw [shipWindow, Finset.card_image_of_injOn]
@@ -96,6 +101,7 @@ lemma shipWindow_neg (r : ℕ) (k : ZMod N) :
 /-- The battleship phase function, equal to -1 on `shipWindow r` and 1 outside it. -/
 noncomputable def epsBS (r : ℕ) (k : ZMod N) : ℂ := if k ∈ shipWindow (N := N) r then -1 else 1
 
+omit [NeZero N] in
 /-- The battleship phase function is invariant under negation. -/
 lemma epsBS_neg (r : ℕ) (k : ZMod N) : epsBS (N := N) r (-k) = epsBS (N := N) r k := by
   unfold epsBS

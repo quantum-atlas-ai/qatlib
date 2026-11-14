@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.BothOrderedClaw.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.BothOrderedClaw.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Unfolding ordered claw cost recurrences
@@ -66,7 +70,7 @@ def iterR (r : ℕ → ℕ) (k N : ℕ) : ℕ := (r^[k]) N
 /-- If `r` maps every number greater than one to a positive smaller number, iteration from any
 `N` eventually reaches a value at most one. See [Buhrman et al., 2005, Theorem
 7][BuhrmanEtAl2005]. -/
-theorem exists_iterR_le_one (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
+theorem exists_iterR_le_one (r : ℕ → ℕ) (_hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrlt : ∀ N, 1 < N → r N < N) :
     ∀ N, ∃ k, iterR r k N ≤ 1 := by
   intro N
@@ -169,7 +173,7 @@ theorem telescope (r : ℕ → ℕ) (T : ℕ → ℝ) (a : ℝ) (ha : 0 ≤ a)
 `N` is at most `a^(depth r hr hrlt N) * sqrt N * b`. See [Buhrman et al., 2005, Theorem
 7][BuhrmanEtAl2005]. -/
 theorem recursion_bound (r : ℕ → ℕ) (T : ℕ → ℝ) (a b : ℝ)
-    (ha : 0 ≤ a) (hb : 0 ≤ b) (hT : ∀ N, 0 ≤ T N)
+    (ha : 0 ≤ a) (hb : 0 ≤ b) (_hT : ∀ N, 0 ≤ T N)
     (hr : ∀ N, 1 < N → 1 ≤ r N) (hrpos : ∀ N, 1 < N → 0 < r N)
     (hrlt : ∀ N, 1 < N → r N < N)
     (hstep : ∀ N, 1 < N → T N ≤ a * Real.sqrt ((N : ℝ) / (r N : ℝ)) * T (r N))

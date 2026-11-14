@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Diagonal moments as differences of walk counts
@@ -116,7 +120,7 @@ lemma gammaBlock_flip (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1) (s t : Fin 2) 
     gammaBlock a (flipFin s) (flipFin t) = gammaBlock a s t := by
   rcases ha with rfl | rfl | rfl
   · simp [gammaBlock]
-  · fin_cases s <;> fin_cases t <;> simp [gammaBlock, Matrix.one_apply, flipFin]
+  · fin_cases s <;> fin_cases t <;> simp [gammaBlock,  flipFin]
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock, flipFin]
 
 /-- The block conversion of a signed matrix is invariant under conjugation by `pairFlip`. -/
@@ -166,7 +170,7 @@ theorem gammaBlock_symm (a : ℤ) (s t : Fin 2) : gammaBlock a s t = gammaBlock 
     simp [gammaBlock]
   · by_cases h1 : a = 1
     · rw [h1]
-      fin_cases s <;> fin_cases t <;> simp [gammaBlock, Matrix.one_apply]
+      fin_cases s <;> fin_cases t <;> simp [gammaBlock]
     · have hσ : gammaBlock a = !![0, 1; 1, 0] := by
         simp [gammaBlock, h0, h1]
       rw [hσ]
@@ -235,7 +239,7 @@ theorem blockConvert_pow_mulVec_lift {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (blockConvert A) ^ m *ᵥ liftVec phiMinus v =
       liftVec phiMinus (((realCast A) ^ m) *ᵥ v) := by
   induction m generalizing v with
-  | zero => simp [liftVec]
+  | zero => simp []
   | succ m ih =>
       calc (blockConvert A) ^ (m + 1) *ᵥ liftVec phiMinus v
           = ((blockConvert A) ^ m * blockConvert A) *ᵥ liftVec phiMinus v := by
@@ -277,7 +281,7 @@ theorem dot_psiMinus_lift {N : ℕ} (w : Fin N → ℝ) (j : Fin N) :
   rw [Finset.sum_eq_single j]
   · simp
   · intro i _ hi
-    simp [Pi.single_apply, hi]
+    simp [ hi]
   · intro h
     exact absurd (Finset.mem_univ j) h
 

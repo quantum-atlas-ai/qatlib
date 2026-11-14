@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+
+@[expose] public section
 
 /-!
 # Basic laws of the rectangular filtered norm

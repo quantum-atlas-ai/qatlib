@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
-import Mathlib.Analysis.Normed.Ring.InfiniteSum
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
+public import Mathlib.Analysis.Normed.Ring.InfiniteSum
+
+@[expose] public section
 
 /-!
 # Power series for exponential-word generators
@@ -67,8 +71,8 @@ theorem operatorGenerator_one (ks : List A) (t : ℝ) :
   induction ks with
   | nil => rfl
   | cons K ks ih =>
-    simp only [operatorGenerator, generator, ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.mul_apply, left_apply, mul_one, ih, exp_ad_apply]
+    simp only [operatorGenerator, generator, _root_.add_apply,
+      _root_.mul_apply_eq_comp, left_apply, mul_one, ih, exp_ad_apply]
 omit [CompleteSpace A] in
 
 /-- Evaluating an operator coefficient at one recovers the corresponding algebra-valued
@@ -78,10 +82,10 @@ theorem operatorCoefficient_one (ks : List A) (n : ℕ) :
   induction ks generalizing n with
   | nil => rfl
   | cons K ks ih =>
-    simp only [operatorCoefficient, generatorCoefficient, ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.sum_apply, ContinuousLinearMap.mul_apply,
-      ContinuousLinearMap.smul_apply, adMap_pow_apply, ih]
-    split_ifs <;> simp only [left_apply, mul_one, ContinuousLinearMap.zero_apply, zero_add]
+    simp only [operatorCoefficient, generatorCoefficient, _root_.add_apply,
+      _root_.sum_apply, _root_.mul_apply_eq_comp,
+      _root_.smul_apply, adMap_pow_apply, ih]
+    split_ifs <;> simp only [left_apply, mul_one, _root_.zero_apply, zero_add]
 
 /-- The operator generator is the sum of its power series, whose term norms form a summable
 sequence for every real time. -/
@@ -132,7 +136,7 @@ theorem operatorGenerator_series (ks : List A) (t : ℝ) :
         intro ij hij
         apply ContinuousLinearMap.ext
         intro X
-        simp only [f, g, ContinuousLinearMap.smul_apply, ContinuousLinearMap.mul_apply,
+        simp only [f, g, _root_.smul_apply, _root_.mul_apply_eq_comp,
           map_smul, smul_smul, div_eq_mul_inv]
         congr 1
         rw [← Finset.mem_antidiagonal.mp hij, pow_add]
@@ -151,6 +155,6 @@ exponential-word generator at every real time. -/
 theorem generator_hasSum (ks : List A) (t : ℝ) :
     HasSum (fun n : ℕ => t^n • generatorCoefficient ks n) (generator ks t) := by
   have h := (ContinuousLinearMap.apply ℝ A (1 : A)).hasSum (operatorGenerator_series ks t).2
-  simpa only [ContinuousLinearMap.apply_apply, ContinuousLinearMap.smul_apply,
+  simpa only [ContinuousLinearMap.apply_apply, _root_.smul_apply,
     operatorCoefficient_one, operatorGenerator_one] using h
 end Qatlib.Foundations.MatrixAlgebra.CommutatorExp

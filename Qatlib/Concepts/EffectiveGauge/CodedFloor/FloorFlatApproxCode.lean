@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatPolynomialCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFullNegativeExpCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatPolynomialCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFullNegativeExpCode
+
+@[expose] public section
 
 /-!
 # Floor Flat Approx Code
@@ -38,9 +42,9 @@ theorem floorFlatApproxCode_value (n : ℕ) (p t : FloorRationalCode) :
     rw [floorRationalCodeLE_value,floorRationalCodeNat_value,Nat.cast_zero]
   unfold floorFlatApproxCode
   by_cases h : floorRationalCodeLE p (floorRationalCodeNat 0)
-  · rw [if_pos h,floorRationalCodeNat_value,floorFlatApproximation,if_pos (hg.mp h)]
+  · rw [ite_eq_left h,floorRationalCodeNat_value,floorFlatApproximation,ite_eq_left (hg.mp h)]
     rfl
-  · rw [if_neg h,floorRationalCodeMul_value,floorFlatApproximation,if_neg (mt hg.mpr h)]
+  · rw [ite_eq_right h,floorRationalCodeMul_value,floorFlatApproximation,ite_eq_right (mt hg.mpr h)]
     have he := congrArg RationalScalarResult.value (floorRationalNegativeExpCode_value
       (floorRationalCodeInv p,floorRationalCodeMul t
         (floorRationalCodeInv (floorRationalCodeAdd

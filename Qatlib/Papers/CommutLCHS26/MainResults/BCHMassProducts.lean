@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHPerturbation
-import Mathlib.Algebra.Order.Antidiag.Pi
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHPerturbation
+public import Mathlib.Algebra.Order.Antidiag.Pi
+
+@[expose] public section
 
 /-!
 # Products of commutator mass series

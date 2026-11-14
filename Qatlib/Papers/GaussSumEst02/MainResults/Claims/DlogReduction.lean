@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+@[expose] public section
 
 /-!
 # Discrete logarithms from Gauss-sum phases
@@ -144,7 +148,7 @@ theorem lemma2_dlogReduction {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
       = (Real.sqrt (Fintype.card K) : ℂ) * Complex.exp (γ β * Complex.I) := by
     intro β hβ
     have hchoice : γ β = Classical.choose (hex β hβ) := by
-      simp only [γ, dif_neg hβ]
+      simp only [γ, dite_eq_right hβ]
     rw [hchoice]
     exact Classical.choose_spec (hex β hβ)
   obtain ⟨ℓ, hℓ, hxℓ⟩ := hgen x hx

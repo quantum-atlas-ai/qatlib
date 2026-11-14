@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Algebra.BigOperators.Fin
-import QuantumInfo.ForMathlib.Matrix
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Algebra.BigOperators.Fin
+public import QuantumInfo.ForMathlib.Matrix
+
+@[expose] public section
 
 /-!
 # Matrices and encodings for tensor registers

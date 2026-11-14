@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.DressedUpdate.Encoding
-import Qatlib.Papers.QGradient20.Polynomial.Scaling
-import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
+module
+
+public import Qatlib.Papers.QGradient20.DressedUpdate.Encoding
+public import Qatlib.Papers.QGradient20.Polynomial.Scaling
+public import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
+
+@[expose] public section
 
 /-!
 # Decoding the dressed gradient update

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,7 +78,7 @@ theorem unitCube_complex_partial_lipschitz (f : SpatialPoint → ℂ) (hf : Cont
     have hline := (((hasDerivAt_const t (1 : ℝ)).sub (hasDerivAt_id t)).smul_const a).add
       ((hasDerivAt_id t).smul_const b)
     have hd : HasDerivAt path (b-a) t := by
-      convert hline using 1 <;> first | rfl | simp [path,sub_eq_add_neg,add_comm]
+      convert hline using 1 <;> first | rfl | simp [sub_eq_add_neg,add_comm]
     exact ((hf.differentiable (by simp) (path t)).hasFDerivAt.comp_hasDerivAt t hd)
   have hbound (t : ℝ) (ht : t ∈ Ico (0 : ℝ) 1) :
       ‖fderiv ℝ f (path t) (b-a)‖ ≤ D*meanTensorDistance p q := by

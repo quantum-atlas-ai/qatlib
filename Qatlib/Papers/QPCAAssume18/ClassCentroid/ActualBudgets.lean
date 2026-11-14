@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualSampler
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualSampler
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # Explicit budgets for centroid estimation

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Interrupting search circuits at query boundaries

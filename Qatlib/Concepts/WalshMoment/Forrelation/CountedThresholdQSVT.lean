@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
+
+@[expose] public section
 
 /-!
 # Counted QSVT words for singular value thresholds
@@ -70,7 +74,7 @@ set_option autoImplicit false
 3^k` whose response has real part `thresholdPolynomial τ k` on the real line. The response
 plus its coefficientwise conjugate is twice that real polynomial embedded into the complex
 coefficients. -/
-private theorem exists_threshold_phases (τ : ℝ) (k : ℕ)
+theorem exists_threshold_phases (τ : ℝ) (k : ℕ)
     (hτ : τ ∈ Set.Icc (0 : ℝ) 1) :
     ∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧
       zs.length = 2 * 3 ^ k ∧
@@ -108,7 +112,7 @@ theorem threshold_phase_word_response (τ : ℝ) (k : ℕ)
       ∀ x : ℝ, ((responseP (thresholdBase τ k) (thresholdPhases τ k)).eval (x : ℂ)).re =
         (thresholdPolynomial τ k).eval x := by
   have hs := Classical.choose_spec (Classical.choose_spec (exists_threshold_phases τ k hτ))
-  simp only [thresholdBase, thresholdPhases, dif_pos hτ]
+  simp only [thresholdBase, thresholdPhases, dite_eq_left hτ]
   exact ⟨hs.1, hs.2.1, hs.2.2.1, hs.2.2.2.2⟩
 
 /-- The adjoint circuit word obtained by compiling real-part QSVT with the range projectors of

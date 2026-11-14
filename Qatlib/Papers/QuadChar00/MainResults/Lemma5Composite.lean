@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
-import Qatlib.Papers.QuadChar00.MainResults.Lemma5GaussSums
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.NumberTheory.LegendreSymbol.ZModChar
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma5GaussSums
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.NumberTheory.LegendreSymbol.ZModChar
+
+@[expose] public section
 
 /-!
 # Quadratic Gauss sums for composite moduli

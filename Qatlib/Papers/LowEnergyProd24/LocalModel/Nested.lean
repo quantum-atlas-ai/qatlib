@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
+
+@[expose] public section
 
 /-!
 # Supports and norms of nested local commutators
@@ -105,7 +109,7 @@ theorem grouped_commutator (h : Hamiltonian N R M k d J) (m : Fin M) (s : Finset
   by_cases hn:i∈h.neighbors s
   · simp [hn]
   · have hc:=h.nonneighbor_commute s B hB i hn
-    simp only [hn,if_false,hc.eq,sub_self]
+    simp only [hn,ite_false,hc.eq,sub_self]
 
 /-- For nonnegative `J`, the commutator of a grouped Hamiltonian with an operator supported on
 `s` has norm at most `s.card * d * J * ‖B‖`. -/

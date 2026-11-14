@@ -4,42 +4,46 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Index
-import Mathlib.Tactic
-import Mathlib.Tactic.Abel
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Abel
+
+@[expose] public section
 
 /-!
 # Potts partition sums and cocycle weight enumerators
@@ -82,6 +86,7 @@ def coboundary : (V → ZMod q) →+ (E → ZMod q) where
     simp only [Pi.add_apply]
     abel
 
+omit [Fintype V] [DecidableEq V] [Fintype E] [DecidableEq E] [NeZero q] in
 /-- The coboundary at an edge is the color at its first endpoint minus the color at its second
 endpoint. -/
 @[simp] lemma coboundary_apply (σ : V → ZMod q) (e : E) :
@@ -95,6 +100,7 @@ def hammingWeight (w : E → ZMod q) : ℕ :=
 def monochromatic (σ : V → ZMod q) : Finset E :=
   Finset.univ.filter fun e => σ (ends e).1 = σ (ends e).2
 
+omit [Fintype V] [DecidableEq V] [DecidableEq E] [NeZero q] in
 /-- The Hamming weight of a coloring's coboundary plus its number of monochromatic edges equals
 the total number of edges [GeraciLidar2008]. -/
 theorem weight_add_monochromatic (σ : V → ZMod q) :
@@ -120,6 +126,7 @@ noncomputable def kernelSize : ℕ :=
 noncomputable def codeWeightEnum (y : ℝ) : ℝ :=
   ∑ w ∈ Finset.univ.image (coboundary q ends), y ^ hammingWeight q w
 
+omit [DecidableEq E] in
 /-- Every nonempty fiber of the graph coboundary has cardinality equal to its kernel size. -/
 theorem fiber_card_eq_kernelSize (w : E → ZMod q)
     (hw : w ∈ Finset.univ.image (coboundary q ends)) :
@@ -132,6 +139,7 @@ theorem fiber_card_eq_kernelSize (w : E → ZMod q)
   have h := AddMonoidHom.card_fiber_eq_of_mem_range (coboundary q ends) hx hy
   simpa [kernelSize] using h
 
+omit [DecidableEq E] in
 /-- The sum of weight monomials over vertex colorings is the kernel size times the weight sum
 over coboundary image words [GeraciLidar2008]. -/
 theorem sum_coboundary_eq (y : ℝ) :
@@ -155,6 +163,7 @@ monochromatic edges. -/
 noncomputable def pottsZ (y : ℝ) : ℝ :=
   ∑ σ : V → ZMod q, (y ^ (monochromatic q ends σ).card)⁻¹
 
+omit [DecidableEq E] in
 /-- For nonzero `y`, multiplying the Potts partition sum by `y` to the edge count gives the
 kernel size times the code weight enumerator [GeraciLidar2008]. -/
 theorem potts_weight_enumerator (y : ℝ) (hy : y ≠ 0) :

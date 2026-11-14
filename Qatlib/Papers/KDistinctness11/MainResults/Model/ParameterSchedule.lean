@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KDistinctness11.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.KDistinctness11.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -107,7 +111,8 @@ theorem rho_antitone (k : ℕ) : Antitone (rho k) := by
   intro a b hab
   simp only [rho]
   have hpow : (2 : ℝ) ^ a ≤ (2 : ℝ) ^ b := by
-    gcongr <;> norm_num
+    gcongr
+    norm_num
   have hstep : 2 / (2 : ℝ) ^ b ≤ 2 / (2 : ℝ) ^ a := by
     apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
     exact hpow

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundStat
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundStat
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Spectral formulas and a Gibbs trace lower bound
@@ -67,7 +71,7 @@ theorem hermitian_frobenius_sq {I : Type} [Fintype I] [DecidableEq I]
   rw [Matrix.mul_assoc, hd] at hb
   rw [← hb, spectralFrobenius_sq]
   simp only [Matrix.diagonal_apply, apply_ite Complex.normSq, Complex.normSq_zero,
-    Complex.normSq_ofReal, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    Complex.normSq_ofReal, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   simp only [pow_two]
 
 /-- If a Hermitian matrix has squared Frobenius norm at most one quarter of its dimension, its

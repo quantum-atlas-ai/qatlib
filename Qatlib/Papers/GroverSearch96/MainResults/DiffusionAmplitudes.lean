@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Theorem2Afas
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21CorrectedAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22Afas
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedAfas
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Theorem2
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21Corrected
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestricted
+
+@[expose] public section
 
 /-!
 # Diffusion updates for marked register amplitudes

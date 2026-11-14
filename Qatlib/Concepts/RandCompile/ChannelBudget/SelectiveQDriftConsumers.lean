@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
-import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
-import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+module
+
+public import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+public import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+
+@[expose] public section
 
 /-!
 # Selected-output stability for fair-bit qDRIFT

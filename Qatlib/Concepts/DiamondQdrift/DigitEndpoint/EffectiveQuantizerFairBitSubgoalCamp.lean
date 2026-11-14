@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.EffectiveQuantizerFairBitSubgoalStat
-import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
-import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+module
+
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.EffectiveQuantizerFairBitSubgoalStat
+public import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
+public import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+
+@[expose] public section
 
 /-!
 # Certified quantization for finite coin qDRIFT
@@ -143,10 +147,10 @@ private theorem signed_flag_scalar {L : ℕ} (a : Fin L → ℝ) (sgn : Fin L �
     (((|a j| : ℝ) : ℂ))*(if sgn j then (-1 : ℂ) else 1) = ((a j : ℝ) : ℂ) := by
   have hp := hpromise j
   by_cases hb : sgn j = true
-  · rw [if_pos hb] at hp
-    rw [if_pos hb, mul_neg_one, ← hp, Complex.ofReal_neg, neg_neg]
-  · rw [if_neg hb] at hp
-    rw [if_neg hb, mul_one, ← hp]
+  · rw [ite_eq_left hb] at hp
+    rw [ite_eq_left hb, mul_neg_one, ← hp, Complex.ofReal_neg, neg_neg]
+  · rw [ite_eq_right hb] at hp
+    rw [ite_eq_right hb, mul_one, ← hp]
 
 /-- Multiplication by a sign flag preserves Hermitianity and the operator norm bound of a
 Hermitian contraction. -/
@@ -157,9 +161,9 @@ private theorem signed_flag_contract {L D : ℕ} (K : Fin L → Operator D)
     (Ks j).IsHermitian ∧ ‖Ks j‖ ≤ 1 := by
   rw [hKs j]
   by_cases hb : sgn j = true
-  · rw [if_pos hb]
+  · rw [ite_eq_left hb]
     exact ⟨by simpa using! (hK j).1.neg, by simpa using! (hK j).2⟩
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     simpa using! hK j
 
 /-- Magnitude sampling with correctly sign flagged terms reproduces the original signed

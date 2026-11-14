@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.PrescribedEstimate
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.PrescribedEstimate
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 /-!
 # Fresh-register amplitude-estimation circuits

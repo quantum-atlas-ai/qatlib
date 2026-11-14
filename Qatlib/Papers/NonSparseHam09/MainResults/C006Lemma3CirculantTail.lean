@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import QuantumInfo.Channels.Unbundled
-import Mathlib.Topology.Algebra.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.ODE.Gronwall
-import QuantumInfo.ForMathlib.HermitianMat.Inner
-import QuantumInfo.Entropy.DPI
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import QuantumInfo.Channels.Unbundled
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.ODE.Gronwall
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+public import QuantumInfo.Entropy.DPI
+
+@[expose] public section
 
 /-!
 # Finite-dimensional Lindblad semigroup setup

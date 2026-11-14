@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+
+@[expose] public section
 
 /-!
 # Finite source problems and native oracle programs

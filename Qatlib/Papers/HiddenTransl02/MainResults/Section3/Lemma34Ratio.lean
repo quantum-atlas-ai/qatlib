@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.HiddenTranslationElementaryAbelian
-import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.HiddenTranslationElementaryAbelian
+public import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting polynomial constraints within dot-product fibers
@@ -64,7 +68,7 @@ def projAlong (y0 : Fin n → ZMod p) (i : Fin n) : (Fin n → ZMod p) →+ ZMod
 itself is one. -/
 theorem projAlong_self (hp : p.Prime) {y0 : Fin n → ZMod p} {i : Fin n}
     (hi : y0 i ≠ 0) : projAlong y0 i y0 = 1 := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   show y0 i * (y0 i)⁻¹ = 1
   exact mul_inv_cancel₀ hi
 
@@ -132,7 +136,7 @@ def RProd (y0 : Fin n → ZMod p) (i : Fin n) (u : Fin n → ZMod p)
 theorem VSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
     (hi : y0 i ≠ 0) (hy0u : dotU u y0 = 0) (k : ZMod p) :
     (VSet u k).card = (TSet y0 i u k).card * p := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hπ : projAlong y0 i y0 = 1 := projAlong_self hp hi
   have hcard := Finset.card_nbij'
     (s := VSet u k) (t := (TSet y0 i u k) ×ˢ (univ : Finset (ZMod p)))
@@ -176,7 +180,7 @@ theorem RSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
     (hi : y0 i ≠ 0) (hy0u : dotU u y0 = 0)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) (k : ZMod p) :
     (RSet u W k).card = (RProd y0 i u W k).card := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hπ : projAlong y0 i y0 = 1 := projAlong_self hp hi
   have hcard := Finset.card_nbij'
     (s := RSet u W k) (t := RProd y0 i u W k)
@@ -226,7 +230,7 @@ theorem RSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
 fiber at one ([Lemma 3.4][FriedlEtAl2014]). -/
 theorem VSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p) {k : ZMod p}
     (hk : k ≠ 0) : (VSet u k).card = (VSet u 1).card := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hk1 : k⁻¹ * k = 1 := inv_mul_cancel₀ hk
   have h1k : k * k⁻¹ = 1 := mul_inv_cancel₀ hk
   have hcard := Finset.card_nbij'
@@ -259,7 +263,7 @@ cardinality as the constrained fiber at one ([Lemma 3.4][FriedlEtAl2014]). -/
 theorem RSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) {k : ZMod p}
     (hk : k ≠ 0) : (RSet u W k).card = (RSet u W 1).card := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hk1 : k⁻¹ * k = 1 := inv_mul_cancel₀ hk
   have h1k : k * k⁻¹ = 1 := mul_inv_cancel₀ hk
   have hcard := Finset.card_nbij'

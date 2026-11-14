@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
+
+@[expose] public section
 
 /-!
 # Root fidelity and the commuting-state reduction
@@ -96,7 +100,7 @@ private noncomputable def completeFrootG {I : Type} [Fintype I] [DecidableEq I]
 compare [Uhlmann1976] and [Jozsa, mixed-state fidelity][Jozsa1994]. -/
 theorem clause1_complete :
   (∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
-    (completeFrootG ρ σ = Froot ρ σ) ∧
+    (Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ) = Froot ρ σ) ∧
     (0 ≤ Froot ρ σ ∧ Froot ρ σ ≤ 1 ∧
       0 ≤ traceDistance ρ σ ∧ traceDistance ρ σ ≤ 1) ∧
     (Froot ρ σ = Froot σ ρ) ∧
@@ -114,8 +118,9 @@ theorem clause1_complete :
       Froot (U * ρ * Uᴴ) (U * σ * Uᴴ) = Froot ρ σ ∧
       traceDistance (U * ρ * Uᴴ) (U * σ * Uᴴ) = traceDistance ρ σ) ∧
     (∀ (E : ℕ) (τ ω : Operator E), IsDensityOperator τ → IsDensityOperator ω →
-      completeFrootG (TensorGate ρ τ) (TensorGate σ ω) =
-        completeFrootG ρ σ * completeFrootG τ ω)) ∧
+      Matrix.traceNorm (CFC.sqrt (TensorGate ρ τ) * CFC.sqrt (TensorGate σ ω)) =
+        Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ) *
+          Matrix.traceNorm (CFC.sqrt τ * CFC.sqrt ω))) ∧
   (∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
     ρ * σ = σ * ρ → CommutesToClassical ρ σ) := by
   refine ⟨?_, ?_⟩

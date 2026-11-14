@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,7 +85,7 @@ Formalised with `dev a` the inner `sup_{|z|≤β}‖A_a(z) − A_a‖` and `site
 `A_a`; the hypothesis is the pointwise Lemma 3.4 bound, and the conclusion is the maximum
 bound. Proved by `sup'_le`/`le_sup'` and the triangle inequality. -/
 theorem source_corollary_3_6 [NeZero n] (g : InteractionGraph n E) (CC : Finset (Finset E))
-    (β : ℝ) (hβ : 0 ≤ β) {P : Type} [Fintype P] [Nonempty P]
+    (β : ℝ) (_hβ : 0 ≤ β) {P : Type} [Fintype P] [Nonempty P]
     (siteOf : P → Fin n) (dev : P → ℝ)
     (hdev : ∀ a, dev a
       ≤ ∑ F ∈ CC.filter (fun F => siteOf a ∈ g.supportOf F),

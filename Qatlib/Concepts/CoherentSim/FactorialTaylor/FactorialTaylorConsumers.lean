@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
-import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
-import Qatlib.Concepts.OperatorErrors.Robustness
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+public import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+public import Qatlib.Concepts.OperatorErrors.Robustness
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Factorial Taylor simulation consumers

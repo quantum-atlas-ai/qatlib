@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GeneralBov
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEnergy
-import Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalRatios
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GeneralBov
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEnergy
+public import Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalRatios
+
+@[expose] public section
 
 /-!
 # Gaussian kernel for physical rounding

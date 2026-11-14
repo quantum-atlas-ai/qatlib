@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
-import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
+
+@[expose] public section
 
 /-!
 # Consumers of counted rational rejection sampling
@@ -284,7 +288,7 @@ private theorem map_point_mass {X Y : Type} (p : PMF X) (f : X → Y) (y : Y) :
   intro x
   by_cases h : f x = y
   · simp [h]
-  · simp only [if_neg h, if_neg (Ne.symm h), mul_zero]
+  · simp only [ite_eq_right h, ite_eq_right (Ne.symm h), mul_zero]
 
 /-- The expectation of a terminal-label observable is the sum of its values weighted by the
 terminal-label event masses. -/

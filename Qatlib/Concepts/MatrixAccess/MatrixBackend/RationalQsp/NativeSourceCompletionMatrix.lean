@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceStoredResponse
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeStandardPhaseStability
-import Mathlib.Analysis.Fourier.AddCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceStoredResponse
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeStandardPhaseStability
+public import Mathlib.Analysis.Fourier.AddCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -201,7 +205,7 @@ open scoped BigOperators
 /-- Construction for source Completion Frequency in the native source completion matrix model. -/
 def sourceCompletionFrequency {d : ℕ} (j : Fin (d+1)) : ℤ := 2*(j.val : ℤ)-(d : ℤ)
 /-- Construction for character in the native source completion matrix model. -/
-private def character (k : ℤ) (theta : ℝ) : ℂ :=
+def character (k : ℤ) (theta : ℝ) : ℂ :=
   Complex.exp ((k : ℂ)*((theta : ℂ)*Complex.I))
 /-- Construction for laurent Value in the native source completion matrix model. -/
 private def laurentValue {d : ℕ} (a : Fin (d+1) → ℂ) (theta : ℝ) : ℂ :=
@@ -352,11 +356,11 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped BigOperators Matrix.Norms.L2Operator
 
 /-- Construction for qscale in the native source completion matrix model. -/
-private def qscale (a : ℚ) (v : ℚ×ℚ) : ℚ×ℚ := (a*v.1,a*v.2)
+def qscale (a : ℚ) (v : ℚ×ℚ) : ℚ×ℚ := (a*v.1,a*v.2)
 /-- Construction for qconj in the native source completion matrix model. -/
-private def qconj (v : ℚ×ℚ) : ℚ×ℚ := (v.1,-v.2)
+def qconj (v : ℚ×ℚ) : ℚ×ℚ := (v.1,-v.2)
 /-- Construction for qraw in the native source completion matrix model. -/
-private def qraw (a : ℚ) (v w : ℚ×ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
+def qraw (a : ℚ) (v w : ℚ×ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
   let C := qscale (1/2) (v+w)
   let S := gaussianRatMul (0,-1/2) (v-w)
   let upper := (a,0)+gaussianRatMul (0,1) C
@@ -367,7 +371,7 @@ private def qraw (a : ℚ) (v w : ℚ×ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
     | _,_ => gaussianRatMul (0,1) S
 
 /-- Construction for raw Entry in the native source completion matrix model. -/
-private def rawEntry (a v w : ℂ) : Matrix Bool Bool ℂ :=
+def rawEntry (a v w : ℂ) : Matrix Bool Bool ℂ :=
   fun i j => match i,j with
     | false,false => Complex.I*a-(v+w)/2
     | true,true => -Complex.I*a-(v+w)/2
@@ -474,7 +478,7 @@ local instance spectralFourierPeriodPositive : Fact (0<2*Real.pi) := ⟨Real.two
 variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V]
 
 /-- Construction for circle Value in the native source completion matrix model. -/
-private def circleValue {d : ℕ} (a : Fin (d+1) → V) (t : AddCircle (2*Real.pi)) : V :=
+def circleValue {d : ℕ} (a : Fin (d+1) → V) (t : AddCircle (2*Real.pi)) : V :=
   ∑ j, fourier (sourceCompletionFrequency j) t • a j
 
 /-- The finite construction in `NativeSourceCompletionMatrix` satisfies `frequency_injective` under the displayed hypotheses. -/
@@ -563,7 +567,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Matrix.Norms.L2Operator
 
 /-- Construction for round Matrix in the native source completion matrix model. -/
-private def roundMatrix (a : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
+def roundMatrix (a : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
   fun i j => rootGridPoint (a i j) (eta/8)
 
 /-- Construction for source Decode Completion Matrix in the native source completion matrix model. -/
@@ -821,7 +825,7 @@ private theorem sourceIdealArray_circle (cs : List ℚ) (N : ℕ) (E : ℚ) (hE 
     simp only [circleValue,sourceCompletionLaurentMatrix,fourier_character]
   have ha : circleValue (fun j => (sourceRealArray cs N E j : ℂ)) (theta : AddCircle (2*Real.pi))=
       (sourceCompletionResponseA cs N E theta : ℂ) := by
-    simp only [circleValue,fourier_character,smul_eq_mul,mul_comm]
+    rw [scalar_coe]
     exact sourceRealArray_value cs N E hparity hd theta
   rw [hm,sourceIdealArray_value cs N E hE htail hparity hd hnorm theta]
   unfold sourceIdealCompletionCircle sourceIdealCompletionPhase

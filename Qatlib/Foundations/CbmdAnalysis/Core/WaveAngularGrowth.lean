@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonEnergy
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonEnergy
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
+
+@[expose] public section
 
 /-!
 # Angular growth of wave propagators
@@ -91,7 +95,7 @@ theorem wave_pair_trajectory_norm_le (B D : E →L[ℂ] E) (hB : B.IsSymmetric) 
     (hv : ∀ s, HasDerivAt v (-(r • B (u s)) - r⁻¹ • D (u s)) s)
     (hv0 : v 0 = 0) (t : ℝ) (ht : 0 ≤ t) :
     ‖u t‖ ≤ Real.exp (t * (|r.im| * ‖B‖ + ‖r‖⁻¹ * ‖D‖)) * ‖u 0‖ := by
-  letI := InnerProductSpace.rclikeToReal ℂ E
+  let := InnerProductSpace.rclikeToReal ℂ E
   let c := |r.im| * ‖B‖ + ‖r‖⁻¹ * ‖D‖
   let S : ℝ → ℝ := fun s => ‖u s‖ ^ 2 + ‖v s‖ ^ 2
   have hS (s : ℝ) : HasDerivAt S
@@ -177,7 +181,7 @@ theorem wavePropagator_angular_of_square (L B C : E →L[ℂ] E)
     dsimp only [v]
     rw [map_smul, smul_smul, mul_inv_cancel₀ hr, one_smul]
     change (B * C) (deriv W s x) = _
-    rw [hBC, ContinuousLinearMap.one_apply]
+    rw [hBC, _root_.one_apply_eq_self]
   have hv (s : ℝ) : HasDerivAt v (-(r • B (u s)) - r⁻¹ • (C * L) (u s)) s := by
     have h :=
         ((ContinuousLinearMap.apply ℂ E x).restrictScalars ℝ).hasFDerivAt.comp_hasDerivAt s (hW2 s)
@@ -188,7 +192,7 @@ theorem wavePropagator_angular_of_square (L B C : E →L[ℂ] E)
       r⁻¹ • C (-(A (W s x)))
     rw [map_neg]
     change _ = r⁻¹ • (-((C * A) (W s x)))
-    rw [hCA, ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply,
+    rw [hCA, _root_.add_apply, _root_.smul_apply,
       smul_neg, smul_add, smul_smul]
     have hr2 : r⁻¹ * r ^ 2 = r := by field_simp
     rw [hr2]
@@ -198,7 +202,7 @@ theorem wavePropagator_angular_of_square (L B C : E →L[ℂ] E)
     simp [v, hd]
   have h := wave_pair_trajectory_norm_le B (C * L) hB r u v hu hv hv0 t ht
   simpa only [u, W, Complex.ofReal_zero, wavePropagator_zero,
-    ContinuousLinearMap.one_apply] using h
+    _root_.one_apply_eq_self] using h
 
 end ActualOperator
 

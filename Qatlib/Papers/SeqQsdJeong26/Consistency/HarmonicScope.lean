@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DecisionRisk.HarmonicError.TrineGeometry
+module
+
+public import Qatlib.Foundations.DecisionRisk.HarmonicError.TrineGeometry
+
+@[expose] public section
 
 /-! Auxiliary risk comparisons from OQ #145@ac56ca3b5a8d35d29577588aeeafe08967be6c91.
 These three-state/first-copy results are separately attributed research extensions.

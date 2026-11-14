@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ReferenceModel.LocalRationalPauliQDrift
+module
+
+public import Qatlib.Concepts.RandCompile.ReferenceModel.LocalRationalPauliQDrift
+
+@[expose] public section
 
 /-!
 # A rational XZ qDRIFT example
@@ -83,7 +87,7 @@ theorem localXZ_qdrift_gateCount (N R k : ℕ) (t : ℚ)
       N + 2*(Finset.univ.filter (fun i : Fin N =>
         (fairQdriftPick (dyadicWeights 2 localXZCoefficients) 0 R (ω i)).1 = 0)).card := by
   have hc := (localPauliQdrift_path_gates 1 2 N R k localXZCoefficients 0 localXZLabels t ω).2.2.1
-  rw [localXZ_dyadic_table.2.2,if_neg (by decide)] at hc
+  rw [localXZ_dyadic_table.2.2,ite_eq_right (by decide)] at hc
   rw [hc]
   simp only [localXZ_gateCost]
   rw [Finset.sum_add_distrib,← Finset.mul_sum]

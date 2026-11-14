@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite data processing for the L1 distance
@@ -130,14 +134,14 @@ theorem event_prob_pushLaw_le (p q : α → ℝ) (K : α → β → ℝ) (hK : I
       if E b then ∑ a, c a * K a b else 0 := by
     intro b
     by_cases hb : E b
-    · rw [if_pos hb, if_pos hb, if_pos hb]
+    · rw [ite_eq_left hb, ite_eq_left hb, ite_eq_left hb]
       unfold pushLaw
       rw [← Finset.sum_sub_distrib]
       apply Finset.sum_congr rfl
       intro a _
       simp only [hc]
       ring
-    · rw [if_neg hb, if_neg hb, if_neg hb]
+    · rw [ite_eq_right hb, ite_eq_right hb, ite_eq_right hb]
       ring
   have hdiff : (∑ b, if E b then pushLaw p K b else 0) -
       (∑ b, if E b then pushLaw q K b else 0) =
@@ -155,7 +159,7 @@ theorem event_prob_pushLaw_le (p q : α → ℝ) (K : α → β → ℝ) (hK : I
           apply Finset.sum_le_sum
           intro b _
           by_cases hb : E b
-          · rw [if_pos hb, if_pos hb]
+          · rw [ite_eq_left hb, ite_eq_left hb]
             calc |∑ a, c a * K a b| ≤ ∑ a, |c a * K a b| := Finset.abs_sum_le_sum_abs _ _
               _ = ∑ a, |c a| * K a b := by
                   apply Finset.sum_congr rfl
@@ -166,8 +170,8 @@ theorem event_prob_pushLaw_le (p q : α → ℝ) (K : α → β → ℝ) (hK : I
           apply Finset.sum_le_sum
           intro b _
           by_cases hb : E b
-          · rw [if_pos hb]
-          · simp only [hb, if_false]
+          · rw [ite_eq_left hb]
+          · simp only [hb, ite_false]
             exact Finset.sum_nonneg (fun a _ => mul_nonneg (abs_nonneg _) (hK0 a b))
     _ = ∑ a, |c a| * ∑ b, K a b := by
           rw [Finset.sum_comm]

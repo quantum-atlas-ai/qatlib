@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryConstruction
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryConstruction
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+
+@[expose] public section
 
 /-!
 # The initial circuit history vector
@@ -78,7 +82,7 @@ theorem gamma_zero (n L : ℕ) (gates : GateSeq n) :
       simp [zeroBasis, hp]
     · have hp : p ≠ ((fun _ => 0), (fun _ => 0)) := by
         intro h; exact h2 (congrArg Prod.snd h)
-      simp [zeroBasis, h2, hp]
+      simp [ h2, hp]
   · have hp : p ≠ ((fun _ => 0), (fun _ => 0)) := by
       intro h; exact h1 (congrArg Prod.fst h)
     simp [zeroBasis, h1, hp]

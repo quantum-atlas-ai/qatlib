@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 /-!
 # Simulation of commuting Hamiltonian sums
@@ -66,11 +70,11 @@ theorem commute_smul_of_commute {A B : Op n} (c : ℂ) (h : A * B = B * A) :
   show (c • A) * (c • B) = (c • B) * (c • A)
   apply ContinuousLinearMap.ext
   intro x
-  simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply, map_smul,
+  simp only [_root_.mul_apply_eq_comp, _root_.smul_apply, map_smul,
     smul_smul]
   have hx : A (B x) = B (A x) := by
     have h' := congrArg (fun f : Op n => f x) h
-    simpa only [ContinuousLinearMap.mul_apply] using h'
+    simpa only [_root_.mul_apply_eq_comp] using h'
   rw [hx]
 
 /-- Real scalar multiplication of a complex operator agrees with multiplication by the
@@ -78,7 +82,7 @@ corresponding complex scalar. -/
 @[simp] theorem real_smul_op (r : ℝ) (X : Op n) : r • X = ((r : ℂ)) • X := by
   apply ContinuousLinearMap.ext
   intro x
-  simp only [ContinuousLinearMap.smul_apply]
+  simp only [_root_.smul_apply]
   simp
 
 /-- The evolution of a sum of commuting Hamiltonians equals the product of their evolutions at
@@ -153,8 +157,8 @@ theorem simulatable_add_of_commute {H₁ H₂ : Ham n}
         + (timeEvolution H₁ t - C₁.unitary).comp
             (C₂.unitary - timeEvolution H₂ t) := by
     ext ψ
-    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.mul_apply,
-      ContinuousLinearMap.add_apply, ContinuousLinearMap.sub_apply, map_sub]
+    simp only [ContinuousLinearMap.comp_apply, _root_.mul_apply_eq_comp,
+      _root_.add_apply, _root_.sub_apply, map_sub]
     abel
   rw [hsplit]
   have hC₁ : ‖C₁.unitary‖ ≤ 1 := Circuit.norm_unitary_le_one C₁

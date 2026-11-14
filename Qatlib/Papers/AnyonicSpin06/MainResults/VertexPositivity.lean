@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Positivity of modified vertex factors
@@ -139,13 +143,13 @@ theorem ThetaHat_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2) :
   have hp_le : p ≤ m + n + p := by
     have h1 : p ≤ n + p := Nat.le_add_left p n
     have h2 : n + p ≤ m + n + p := by
-      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (n + p) m
+      simp [ Nat.add_comm, Nat.add_left_comm]
     exact le_trans h1 h2
   have hmn_le : m + n ≤ m + n + p := Nat.le_add_right (m + n) p
   have hnp_le : n + p ≤ m + n + p := by
-    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (n + p) m
+    simp [ Nat.add_comm, Nat.add_left_comm]
   have hpm_le : p + m ≤ m + n + p := by
-    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (p + m) n
+    simp [ Nat.add_comm, Nat.add_left_comm]
   have hsum_le : m + n + p ≤ r - 1 := le_r_sub_one_of_le_sub_two h
   have h1 : 0 < qfac r (m + n + p + 1) := by
     apply qfac_pos hr
@@ -186,10 +190,10 @@ theorem vertexFactor_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2
     0 < vertexFactor r m n p := by
   unfold vertexFactor
   have hmp_le : m + p ≤ m + n + p := by
-    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (m + p) n
+    simp [Nat.add_comm, Nat.add_left_comm]
   have hmn_le : m + n ≤ m + n + p := Nat.le_add_right (m + n) p
   have hnp_le : n + p ≤ m + n + p := by
-    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (n + p) m
+    simp [ Nat.add_comm, Nat.add_left_comm]
   have hq : 0 < DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p)
       / ThetaHat r m n p := by
     rw [DeltaRoot_prod_eq]
@@ -211,10 +215,10 @@ theorem vertexFactor_pow_four {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ 
   have hq : 0 ≤ DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p)
       / ThetaHat r m n p := by
     have hmp_le : m + p ≤ m + n + p := by
-      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (m + p) n
+      simp [Nat.add_comm, Nat.add_left_comm]
     have hmn_le : m + n ≤ m + n + p := Nat.le_add_right (m + n) p
     have hnp_le : n + p ≤ m + n + p := by
-      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using Nat.le_add_right (n + p) m
+      simp [ Nat.add_comm, Nat.add_left_comm]
     have hpos : 0 < DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p)
         / ThetaHat r m n p := by
       rw [DeltaRoot_prod_eq]

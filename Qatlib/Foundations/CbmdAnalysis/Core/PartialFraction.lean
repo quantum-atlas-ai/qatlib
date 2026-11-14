@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.LinearAlgebra.Lagrange
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Partial fractions for finite simple pole sets

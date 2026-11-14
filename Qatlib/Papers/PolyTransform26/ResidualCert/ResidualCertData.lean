@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponseData
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.LinearAlgebra.Matrix.ToLin
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponseData
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+
+@[expose] public section
 
 /-!
 # Residual representation and certificate data
@@ -61,6 +65,32 @@ noncomputable def matrixWord {r : ℕ} (Ares : J → Matrix (Fin r) (Fin r) ℂ)
   | [] => 1
   | j :: w => Ares j * matrixWord Ares w
 
+/--
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.nilpotent`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.q_const`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.q_tail`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.toResidualData`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A residual representation equipped with the constant and tail-coefficient identities and
 vanishing of all residual matrix products of length `D`. -/
 structure ResidualCert (J : Type) [Fintype J] extends ResidualData J where
@@ -68,15 +98,33 @@ structure ResidualCert (J : Type) [Fintype J] extends ResidualData J where
   q_tail : ∀ j w, q (j :: w) = ∑ t : Fin r, pRow j t * residualCoeff a0 Ares w t
   nilpotent : ∀ w : List J, w.length = D → matrixWord Ares w = 0
 
+/--
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.responseT`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The residual matrices of a certificate, viewed as its response transition matrices. -/
 def ResidualCert.responseT (cert : ResidualCert J) : J → Matrix (Fin cert.r) (Fin cert.r) ℂ :=
   cert.Ares
 
+/--
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.responseH`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The word-indexed residual coefficients of a certificate, viewed as its response vectors. -/
 noncomputable def ResidualCert.responseH (cert : ResidualCert J) :
     List J → EuclideanSpace ℂ (Fin cert.r) :=
   residualCoeff cert.a0 cert.Ares
 
+/--
+error: The namespace `ResidualCert` is duplicated in the declaration `Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCert.responseC`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The collection rows of a residual certificate. -/
 def ResidualCert.responseC (cert : ResidualCert J) : J → Fin cert.r → ℂ :=
   cert.pRow

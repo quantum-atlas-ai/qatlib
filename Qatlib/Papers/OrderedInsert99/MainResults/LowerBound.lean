@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Lower bounds for invariant insertion
@@ -53,7 +57,7 @@ lemma queryAmp_norm_odd {N : ℕ} (_hN : 0 < N) {p q : Idx N}
     (hpq : ((p : ℕ) + (q : ℕ)) % 2 = 1) :
     ‖queryAmp N p q‖ = (1 / (N : ℝ)) * |Real.sin (momAngle N p q)|⁻¹ := by
   unfold queryAmp
-  rw [if_pos hpq]
+  rw [ite_eq_left hpq]
   simp only [norm_div, norm_mul, Complex.norm_I, one_mul,
     Complex.norm_exp_ofReal_mul_I, Complex.norm_natCast, Complex.norm_real,
     Real.norm_eq_abs]
@@ -64,7 +68,7 @@ lemma queryAmp_norm_odd {N : ℕ} (_hN : 0 < N) {p q : Idx N}
 lemma queryAmp_eq_zero {N : ℕ} {p q : Idx N}
     (h : ((p : ℕ) + (q : ℕ)) % 2 ≠ 1) : queryAmp N p q = 0 := by
   unfold queryAmp
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- Reflects `p` to `q − p` modulo `2 * N`. -/
 def reflect (N : ℕ) (q : Idx N) (p : Idx N) : Idx N :=
@@ -179,7 +183,7 @@ lemma sum_qnorm_zero (N : ℕ) (hN : 0 < N) :
       else 0 := by
     intro p
     by_cases hp : p.val % 2 = 1
-    · rw [if_pos hp]
+    · rw [ite_eq_left hp]
       have hcond : ((p : ℕ) + (zidx N hN : ℕ)) % 2 = 1 := by
         rw [zidx_val, Nat.add_zero]; exact hp
       rw [queryAmp_norm_odd hN hcond]
@@ -200,7 +204,7 @@ lemma sum_qnorm_zero (N : ℕ) (hN : 0 < N) :
         rw [harg, Real.sin_neg, abs_neg,
           abs_of_pos (Real.sin_pos_of_pos_of_lt_pi hpos hlt)]
       rw [habs]
-    · rw [if_neg hp]
+    · rw [ite_eq_right hp]
       have hfalse : ((p : ℕ) + (zidx N hN : ℕ)) % 2 ≠ 1 := by
         rw [zidx_val, Nat.add_zero]; exact hp
       rw [queryAmp_eq_zero hfalse]
@@ -274,7 +278,7 @@ lemma startState_l1 (N : ℕ) (hN : 0 < N) :
   rw [Finset.sum_eq_single (zidx N hN)]
   · rw [zidx_val]; simp
   · intro b _ hb
-    rw [if_neg]
+    rw [ite_eq_right]
     intro h; exact hb (Fin.ext (by rw [zidx_val, h]))
   · intro h; exact absurd (Finset.mem_univ _) h
 

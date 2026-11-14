@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,20 +49,20 @@ condition in radius variables).  Assume the uniform acceptance property
 `R_k ≥ ρ R*`.
 -/
 theorem lemma9_accepted_radius_lower_bound
-    (c ρ Rstar : ℝ) (hc : 0 < c) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
-    (hRstar0 : 0 < Rstar) (hRstar1 : Rstar < 1)
+    (c ρ Rstar : ℝ) (_hc : 0 < c) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (_hRstar0 : 0 < Rstar) (hRstar1 : Rstar < 1)
     (Phi : ℕ → ℝ → ℝ) (m : ℕ → ℕ)
     (hPhi : ∀ k R, 0 ≤ R → R ≤ Rstar → 2 * c * R ≤ Phi k R)
     (hMin : ∀ k j, j < m k → ¬ (2 * c * ρ ^ j ≤ Phi k (ρ ^ j))) :
     ∀ k, ρ ^ (m k) ≥ ρ * Rstar := by
   intro k
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   rcases Nat.eq_zero_or_pos (m k) with h0 | hpos
   · -- `m_k = 0`: the radius is `1`, which already exceeds `ρ R*` since `R* < 1`.
     rw [h0] at hcon
     simp only [pow_zero] at hcon
-    nlinarith [hcon, hRstar1, hρ1, hρ0, hRstar0]
+    nlinarith [hcon, hRstar1, hρ1, hρ0, _hRstar0]
   · -- `m_k ≥ 1`: the previous trial radius lies in `[0,R*]` and is therefore accepted.
     obtain ⟨j, hj⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.pos_iff_ne_zero.mp hpos)
     have hlt : ρ ^ j < Rstar := by

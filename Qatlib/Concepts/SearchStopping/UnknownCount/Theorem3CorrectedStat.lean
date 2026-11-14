@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+
+@[expose] public section
 
 /-!
 # Statement of corrected unknown-count search guarantees

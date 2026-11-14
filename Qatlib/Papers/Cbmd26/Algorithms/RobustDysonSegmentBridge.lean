@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+@[expose] public section
 
 /-!
 # Robust Amplification of Dyson Segments

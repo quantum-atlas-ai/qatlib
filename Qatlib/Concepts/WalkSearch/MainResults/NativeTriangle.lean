@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.NativeTriangleDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.NativeTriangleDefs
+
+@[expose] public section
 
 /-!
 # Finite triangle selection and its specification
@@ -56,7 +60,7 @@ theorem triangleSearch_sound {n : ℕ} (E : triangleEdges n)
     have heq : Classical.choose hne = t := Option.some.inj h
     rw [heq] at hmem
     exact (Finset.mem_filter.mp hmem).2
-  next hne => exact absurd h (by simp [hne])
+  next _hne => exact absurd h (by simp)
 
 /-- The existence of any triple satisfying `triangleOf E` implies that `triangleSearch E`
 returns a value. -/
@@ -66,7 +70,7 @@ theorem triangleSearch_complete {n : ℕ} (E : triangleEdges n)
   have hmem : t ∈ Finset.univ.filter (triangleOf E) := by
     simp [Finset.mem_filter, h]
   unfold triangleSearch
-  rw [dif_pos ⟨t, hmem⟩]
+  rw [dite_eq_left ⟨t, hmem⟩]
   rfl
 
 /-- The selector returns a value exactly when some triple satisfies `triangleOf E`. -/
@@ -79,7 +83,7 @@ theorem triangleSearch_iff {n : ℕ} (E : triangleEdges n) :
     next hne =>
       refine ⟨Classical.choose hne, ?_⟩
       exact (Finset.mem_filter.mp (Classical.choose_spec hne)).2
-    next hne => exact absurd h (by simp [hne])
+    next _hne => exact absurd h (by simp)
   · rintro ⟨t, ht⟩
     exact triangleSearch_complete E t ht
 
@@ -120,7 +124,7 @@ theorem clause20_complete (n : ℕ) (E : triangleEdges n) : TriangleNativeAccoun
   · exact triangleSearch_resources n
 
 /-- The triangle cost and its threefold multiple satisfy the assigned cubic identities. -/
-theorem clause19_complete (n : ℕ) (E : triangleEdges n) :
+theorem clause19_complete (n : ℕ) (_E : triangleEdges n) :
     triangleSearchCost n = n ^ 3 ∧ 3 * triangleSearchCost n = 3 * n ^ 3 :=
   triangleSearch_resources n
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftSubgoalStat
+module
+
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftSubgoalStat
+
+@[expose] public section
 
 /-!
 # Digit budget qDRIFT endpoint
@@ -68,11 +72,11 @@ theorem digitBudgetQDriftSubgoal : DigitBudgetQDriftSubgoal := by
   by_cases hW : W = 0
   · have hW' : weightTotal r.weights = 0 := hW
     have hcir : fairQdriftCircuit r.weights j0 r.steps r.fuel terms r.baseTime ω = [] := by
-      rw [fairQdriftCircuit, if_pos hW']
+      rw [fairQdriftCircuit, ite_eq_left hW']
     have hzero := fairQdrift_zero_protocol r.weights j0 r.steps r.fuel terms r.baseTime ω
       0 (0 : Matrix (Fin D × Fin 0) (Fin D × Fin 0) ℂ) hW'
     refine ⟨by rw [hcir]; exact isUnitaryCircuit_nil, by rw [hcir]; rfl,
-      by rw [hcir, if_pos hW]; rfl, ?_, ?_⟩
+      by rw [hcir, ite_eq_left hW]; rfl, ?_, ?_⟩
     · rw [hW]
       simpa using hzero.2.1
     · rw [hzero.2.2.1]
@@ -83,7 +87,7 @@ theorem digitBudgetQDriftSubgoal : DigitBudgetQDriftSubgoal := by
       Nat.pos_of_ne_zero (fun h => hW h)
     have hcounts := fair_bit_qdrift_actual_quantum_and_classical_path_counts L D
       r.steps r.fuel r.weights j0 terms r.baseTime ω hWpos hKterms
-    exact ⟨hcounts.1, hcounts.2.1, by rw [if_neg hW]; exact hcounts.2.2.1,
+    exact ⟨hcounts.1, hcounts.2.1, by rw [ite_eq_right hW]; exact hcounts.2.2.1,
       hcounts.2.2.2.1, hcounts.2.2.2.2⟩
 
 end Qatlib.Concepts.DiamondQdrift.DigitEndpoint

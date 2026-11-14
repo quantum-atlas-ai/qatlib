@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalStat
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalStat
+
+@[expose] public section
 
 /-!
 # Born probabilities for the eigenphase Hadamard test

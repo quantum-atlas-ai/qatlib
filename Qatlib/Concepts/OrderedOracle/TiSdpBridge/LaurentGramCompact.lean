@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
-import QuantumInfo.ForMathlib.HermitianMat.Inner
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+
+@[expose] public section
 
 /-!
 # Compactness of Gram representation sets
@@ -46,9 +50,9 @@ theorem continuous_genTrace (j : ℤ) : Continuous (fun A : Matrix (Fin n) (Fin 
   apply continuous_finsetSum
   intro i' _
   by_cases h : ((i' : ℕ) : ℤ)-((i : ℕ) : ℤ)=j
-  · simp only [h,if_true]
+  · simp only [h,ite_true]
     exact (continuous_apply i').comp (continuous_apply i)
-  · simp only [h,if_false]
+  · simp only [h,ite_false]
     exact continuous_const
 
 /-- The set of nonnegative Hermitian matrices having the same generalized traces as `A` is
@@ -56,7 +60,7 @@ closed. -/
 theorem isClosed_gramFace (A : Matrix (Fin n) (Fin n) ℂ) :
     IsClosed {B : HermitianMat (Fin n) ℂ | 0≤B ∧ ∀ j : ℤ,genTrace B.mat j=genTrace A j} := by
   have hc : IsClosed {B : HermitianMat (Fin n) ℂ | ∀ j : ℤ,genTrace B.mat j=genTrace A j} := by
-    rw [Set.setOf_forall]
+    rw [Set.ofPred_forall]
     apply isClosed_iInter
     intro j
     exact isClosed_eq ((continuous_genTrace j).comp HermitianMat.continuous_mat) continuous_const

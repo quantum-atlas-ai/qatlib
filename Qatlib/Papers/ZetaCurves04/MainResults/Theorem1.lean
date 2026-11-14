@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
+module
+
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
+
+@[expose] public section
 
 /-!
 # Zeta numerator reconstruction lemmas

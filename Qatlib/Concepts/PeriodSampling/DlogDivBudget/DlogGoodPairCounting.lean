@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingAnsw
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingAnsw
+
+@[expose] public section
 
 /-!
 # Good-pair counting for discrete-logarithm recovery

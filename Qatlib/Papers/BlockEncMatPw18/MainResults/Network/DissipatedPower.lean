@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,8 +45,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def theorem43_estimate_dissipated_power_statement
     (ε wmax lam d α a TC T_i δ : ℝ)
-    (hε : 0 < ε) (hε1 : ε < 1) (hwmax : 1 ≤ wmax) (hlam : 0 < lam) (hd : 1 ≤ d)
-    (hα : 0 < α) (hTC : 0 ≤ TC) (hTi : 0 ≤ T_i) (hδ : 0 < δ)
+    (_hε : 0 < ε) (_hε1 : ε < 1) (_hwmax : 1 ≤ wmax) (_hlam : 0 < lam) (_hd : 1 ≤ d)
+    (_hα : 0 < α) (_hTC : 0 ≤ TC) (_hTi : 0 ≤ T_i) (_hδ : 0 < δ)
     (Realizes : PowerEstimate → Prop) : Prop :=
     ∃ (pe : PowerEstimate) (C : ℝ), Realizes pe ∧ 0 < C ∧ pe.relativeError ≤ ε ∧
       pe.successProb ≥ 2 / 3 ∧
@@ -58,8 +62,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def cor44_sparse_access_statement
     (ε wmax lam d N : ℝ)
-    (hε : 0 < ε) (hε1 : ε < 1) (hwmax : 1 ≤ wmax) (hlam : 0 < lam) (hd : 1 ≤ d)
-    (hN : 1 ≤ N)
+    (_hε : 0 < ε) (_hε1 : ε < 1) (_hwmax : 1 ≤ wmax) (_hlam : 0 < lam) (_hd : 1 ≤ d)
+    (_hN : 1 ≤ N)
     (Realizes : PowerEstimate → Prop) : Prop :=
     ∃ (pe : PowerEstimate) (C deg : ℝ), Realizes pe ∧ 0 < C ∧ 0 < deg ∧ pe.relativeError ≤ ε ∧
       pe.successProb ≥ 2 / 3 ∧
@@ -73,8 +77,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def cor45_data_structure_statement
     (ε wmax lam d N μCG : ℝ)
-    (hε : 0 < ε) (hε1 : ε < 1) (hwmax : 1 ≤ wmax) (hlam : 0 < lam) (hd : 1 ≤ d)
-    (hN : 1 ≤ N) (hμ : 0 < μCG)
+    (_hε : 0 < ε) (_hε1 : ε < 1) (_hwmax : 1 ≤ wmax) (_hlam : 0 < lam) (_hd : 1 ≤ d)
+    (_hN : 1 ≤ N) (_hμ : 0 < μCG)
     (Realizes : PowerEstimate → Prop) : Prop :=
     ∃ (pe : PowerEstimate) (C deg : ℝ), Realizes pe ∧ 0 < C ∧ 0 < deg ∧ pe.relativeError ≤ ε ∧
       pe.successProb ≥ 2 / 3 ∧
@@ -88,8 +92,8 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def cor46_data_structure_weights_statement
     (ε wmax lam d N μBG : ℝ)
-    (hε : 0 < ε) (hε1 : ε < 1) (hwmax : 1 ≤ wmax) (hlam : 0 < lam) (hd : 1 ≤ d)
-    (hN : 1 ≤ N) (hμ : 0 < μBG)
+    (_hε : 0 < ε) (_hε1 : ε < 1) (_hwmax : 1 ≤ wmax) (_hlam : 0 < lam) (_hd : 1 ≤ d)
+    (_hN : 1 ≤ N) (_hμ : 0 < μBG)
     (Realizes : PowerEstimate → Prop) : Prop :=
     ∃ (pe : PowerEstimate) (C deg : ℝ), Realizes pe ∧ 0 < C ∧ 0 < deg ∧ pe.relativeError ≤ ε ∧
       pe.successProb ≥ 2 / 3 ∧

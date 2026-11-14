@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+
+@[expose] public section
 
 /-!
 # Nonnegative matrix from a stoquastic Hamiltonian
@@ -50,7 +54,7 @@ theorem pptMatrix_nonneg {n : ℕ} (H : QMatrix n) (q : ℚ) (hq : 0 < q)
   have key : (0 : ℚ) ≤ (1 / 2) * ((if x = y then 1 else 0) - H x y / q) := by
     by_cases hxy : x = y
     · subst hxy
-      have hit : (if x = x then (1 : ℚ) else 0) = 1 := if_pos rfl
+      have hit : (if x = x then (1 : ℚ) else 0) = 1 := ite_eq_left rfl
       rw [hit]
       have hle : H x x / q ≤ 1 := by
         rw [div_le_one hq']
@@ -58,7 +62,7 @@ theorem pptMatrix_nonneg {n : ℕ} (H : QMatrix n) (q : ℚ) (hq : 0 < q)
       have h1 : (0 : ℚ) ≤ 1 - H x x / q := by linarith
       have hpos : (0 : ℚ) < 1 / 2 := by norm_num
       nlinarith [h1, hpos]
-    · rw [if_neg hxy]
+    · rw [ite_eq_right hxy]
       have hHq : H x y / q ≤ 0 :=
         div_nonpos_of_nonpos_of_nonneg (hoff x y hxy) hq'.le
       have h1 : (0 : ℚ) ≤ - H x y / q := by

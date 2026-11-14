@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalSpectral
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalSpectral
+
+@[expose] public section
 
 /-!
 # Positive-group bounds for physical Hamiltonians

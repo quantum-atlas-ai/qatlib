@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
-import Qatlib.Foundations.ResourceBounds.LogBudgets
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
+public import Qatlib.Foundations.ResourceBounds.LogBudgets
+
+@[expose] public section
 
 /-!
 # Grover circuits and priced preimage-search budgets

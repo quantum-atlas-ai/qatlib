@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupTasks.SourceSemigroupTasks
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupTasks.SourceSemigroupTasks
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

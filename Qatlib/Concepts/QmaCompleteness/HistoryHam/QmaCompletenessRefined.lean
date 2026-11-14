@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefinedDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessVerifier
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessCounterexamples
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefinedDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessVerifier
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessCounterexamples
+
+@[expose] public section
 
 /-!
 # Refined history bounds and injective Hamiltonian encodings
@@ -433,9 +437,9 @@ theorem clause2Aux_in_energy_zero (C : QmaHistoryCircuit) (φ : QState (Reg C.qu
         simp only [List.take_zero, finiteWordMatrix, Matrix.one_mulVec]
       rw [h0, hφ0]
       norm_num
-    rw [if_pos hy, hhist]
+    rw [ite_eq_left hy, hhist]
     norm_num
-  · rw [if_neg hy]
+  · rw [ite_eq_right hy]
 
 /-- For a normalized input, the history state's output energy equals its rejection weight
 divided by the clock length. -/
@@ -505,8 +509,8 @@ theorem clause2Aux_out_energy_eq (C : QmaHistoryCircuit) (φ : QState (Reg C.qub
               ‖(finiteWordMatrix C.qubits C.gates).mulVec φ y‖ ^ 2 else (0 : ℝ)) := by
       intro y
       by_cases hy : y C.outputWire
-      · rw [if_pos hy, if_pos hy, hslast y, hsq y, hlastpt y]
-      · rw [if_neg hy, if_neg hy]
+      · rw [ite_eq_left hy, ite_eq_left hy, hslast y, hsq y, hlastpt y]
+      · rw [ite_eq_right hy, ite_eq_right hy]
         ring
     rw [Finset.sum_congr rfl (fun y _ => hstep y), ← Finset.mul_sum]
     have happ := g13n_accept_eq C φ
@@ -722,27 +726,27 @@ theorem clause2Aux_propTerm_isDyadicC (n m b : ℕ) (U : Fin m → Matrix (Reg n
     qmaIsDyadicC (b + 1) (qmaPropTerm n m U i p q) := by
   rw [qmaPropTerm_entry]
   by_cases c1 : p.1 = i.succ ∧ q.1 = i.succ
-  · rw [if_pos c1, Matrix.one_apply]
+  · rw [ite_eq_left c1, Matrix.one_apply]
     by_cases h : p.2 = q.2
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact clause2Aux_isDyadicC_half (clause2Aux_isDyadicC_one b)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact clause2Aux_isDyadicC_half (clause2Aux_isDyadicC_zero b)
   by_cases c2 : p.1 = i.castSucc ∧ q.1 = i.castSucc
-  · rw [if_neg c1, if_pos c2, Matrix.one_apply]
+  · rw [ite_eq_right c1, ite_eq_left c2, Matrix.one_apply]
     by_cases h : p.2 = q.2
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact clause2Aux_isDyadicC_half (clause2Aux_isDyadicC_one b)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact clause2Aux_isDyadicC_half (clause2Aux_isDyadicC_zero b)
   by_cases c3 : p.1 = i.succ ∧ q.1 = i.castSucc
-  · rw [if_neg c1, if_neg c2, if_pos c3]
+  · rw [ite_eq_right c1, ite_eq_right c2, ite_eq_left c3]
     exact clause2Aux_isDyadicC_neg (clause2Aux_isDyadicC_half (hU i p.2 q.2))
   by_cases c4 : p.1 = i.castSucc ∧ q.1 = i.succ
-  · rw [if_neg c1, if_neg c2, if_neg c3, if_pos c4]
+  · rw [ite_eq_right c1, ite_eq_right c2, ite_eq_right c3, ite_eq_left c4]
     exact clause2Aux_isDyadicC_neg
         (clause2Aux_isDyadicC_half (clause2Aux_isDyadicC_star (hU i q.2 p.2)))
-  rw [if_neg c1, if_neg c2, if_neg c3, if_neg c4]
+  rw [ite_eq_right c1, ite_eq_right c2, ite_eq_right c3, ite_eq_right c4]
   exact clause2Aux_isDyadicC_zero (b + 1)
 
 /-- Every input penalty entry is complex dyadic at every precision. -/
@@ -752,25 +756,25 @@ theorem clause2Aux_inTerm_isDyadicC (n m b : ℕ) (j : Fin n) (p q : Fin (m + 1)
   have h1 : Ket 0 p.1 = 0 ∨ Ket 0 p.1 = 1 := by
     by_cases h : p.1 = 0
     · right
-      rw [ket_apply, if_pos h]
+      rw [ket_apply, ite_eq_left h]
     · left
-      rw [ket_apply, if_neg h]
+      rw [ket_apply, ite_eq_right h]
   have h2 : Ket 0 q.1 = 0 ∨ Ket 0 q.1 = 1 := by
     by_cases h : q.1 = 0
     · right
-      rw [ket_apply, if_pos h]
+      rw [ket_apply, ite_eq_left h]
     · left
-      rw [ket_apply, if_neg h]
+      rw [ket_apply, ite_eq_right h]
   have h3 : (if p.2 = q.2 then (if p.2 j then (1 : ℂ) else 0) else 0) = 0
       ∨ (if p.2 = q.2 then (if p.2 j then (1 : ℂ) else 0) else 0) = 1 := by
     by_cases h : p.2 = q.2
     · by_cases h' : p.2 j
       · right
-        rw [if_pos h, if_pos h']
+        rw [ite_eq_left h, ite_eq_left h']
       · left
-        rw [if_pos h, if_neg h']
+        rw [ite_eq_left h, ite_eq_right h']
     · left
-      rw [if_neg h]
+      rw [ite_eq_right h]
   exact clause2Aux_isDyadicC_mul_zero_one h1 h2 h3
 
 /-- Every output penalty entry is complex dyadic at every precision. -/
@@ -780,25 +784,25 @@ theorem clause2Aux_outTerm_isDyadicC (n m b : ℕ) (out : Fin n) (p q : Fin (m +
   have h1 : Ket (Fin.last m) p.1 = 0 ∨ Ket (Fin.last m) p.1 = 1 := by
     by_cases h : p.1 = Fin.last m
     · right
-      rw [ket_apply, if_pos h]
+      rw [ket_apply, ite_eq_left h]
     · left
-      rw [ket_apply, if_neg h]
+      rw [ket_apply, ite_eq_right h]
   have h2 : Ket (Fin.last m) q.1 = 0 ∨ Ket (Fin.last m) q.1 = 1 := by
     by_cases h : q.1 = Fin.last m
     · right
-      rw [ket_apply, if_pos h]
+      rw [ket_apply, ite_eq_left h]
     · left
-      rw [ket_apply, if_neg h]
+      rw [ket_apply, ite_eq_right h]
   have h3 : (if p.2 = q.2 then (if p.2 out then (0 : ℂ) else 1) else 0) = 0
       ∨ (if p.2 = q.2 then (if p.2 out then (0 : ℂ) else 1) else 0) = 1 := by
     by_cases h : p.2 = q.2
     · by_cases h' : p.2 out
       · left
-        rw [if_pos h, if_pos h']
+        rw [ite_eq_left h, ite_eq_left h']
       · right
-        rw [if_pos h, if_neg h']
+        rw [ite_eq_left h, ite_eq_right h']
     · left
-      rw [if_neg h]
+      rw [ite_eq_right h]
   exact clause2Aux_isDyadicC_mul_zero_one h1 h2 h3
 
 /-- If the rounded gate entries are complex dyadic at precision `b`, every rounded history term
@@ -1348,11 +1352,11 @@ theorem clause3Aux_initState_shape (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w
         funext j
         show qmaOutputBit w a p = false
         exact h
-      rw [if_pos heq, if_pos h]
+      rw [ite_eq_left heq, ite_eq_left h]
     · have hne : ¬ (fun _ : Fin 1 => qmaOutputBit w a p) = ZeroStr 1 := by
         intro heq
         exact h (congrFun heq 0)
-      rw [if_neg hne, if_neg h]
+      rw [ite_eq_right hne, ite_eq_right h]
   rw [qmaInitialState, clause3Aux_regSplit w a p]
   simp only [tensorState_apply]
   rw [hket1, hket2]
@@ -1361,7 +1365,7 @@ theorem clause3Aux_initState_shape (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w
 theorem clause3Aux_initState_zero_ancilla (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1))
     (h : qmaAncillaBits w a p ≠ ZeroStr a) : qmaInitialState w a ψ p = 0 := by
   rw [clause3Aux_initState_shape]
-  rw [if_neg h]
+  rw [ite_eq_right h]
   ring
 
 /-- An initialized verifier amplitude vanishes when its output bit is true. -/
@@ -1372,9 +1376,9 @@ theorem clause3Aux_initState_zero_output (w a : ℕ) (ψ : QState (Reg w)) (p : 
     rw [h]
     simp
   by_cases h1 : qmaAncillaBits w a p = ZeroStr a
-  · rw [if_pos h1, if_neg hne]
+  · rw [ite_eq_left h1, ite_eq_right hne]
     ring
-  · rw [if_neg h1, if_neg hne]
+  · rw [ite_eq_right h1, ite_eq_right hne]
     ring
 
 /-- Every ancilla bit of a basis register with nonzero initialized verifier amplitude is false. -/

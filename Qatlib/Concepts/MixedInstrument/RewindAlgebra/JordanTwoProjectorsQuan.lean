@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.JordanTwoProjectorsStat
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
-import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.JordanTwoProjectorsStat
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
+public import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Jordan decomposition for two projectors
@@ -63,7 +67,7 @@ theorem jordanTwoProjectors_false : ¬ JordanTwoProjectorsLegacy := by
     have huu := hu 0 0
     have hvv := hv 0 0
     have huv0 := huv 0 0
-    simp only [inner_apply, Fin.sum_univ_one, if_true] at huu hvv huv0
+    simp only [inner_apply, Fin.sum_univ_one, ite_true] at huu hvv huv0
     have hune : (starRingEnd ℂ) (u 0 0) ≠ 0 := by
       intro hz
       rw [hz,zero_mul] at huu
@@ -182,7 +186,7 @@ theorem jordan_range_state_coordinates (D : ℕ) (P Q : Operator D)
   unfold Normalized at hn
   rw [he, sum_norm_sq_orthonormal u (fun i => Qatlib.Foundations.PureStateMath.Inner (u i) ψ) (fun i j => by
     by_cases h : i=j
-    · simpa only [if_pos h] using hu i j
-    · simpa only [if_neg h] using hu i j)] at hn
+    · simpa only [ite_eq_left h] using hu i j
+    · simpa only [ite_eq_right h] using hu i j)] at hn
   exact hn
 end Qatlib.Concepts.MixedInstrument.RewindAlgebra.Temme2011

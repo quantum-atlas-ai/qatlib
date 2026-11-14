@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.MinimumCode
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.MinimumCode
+
+@[expose] public section
 
 /-!
 # Risk bounds for initialized descent
@@ -54,7 +58,7 @@ theorem initialized_risk_union {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) →
   apply Tree.all_of_forall
   intro tr
   by_cases hb : tr.oracleBad=true
-  · simp only [hb,true_or,if_true,badIndicator]
+  · simp only [hb,true_or,ite_true,badIndicator]
     have h : 0≤overflowIndicator B initialFee tr := by
       unfold overflowIndicator
       split_ifs <;> norm_num

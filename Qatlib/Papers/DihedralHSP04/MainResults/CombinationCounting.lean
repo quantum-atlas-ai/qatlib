@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCorrectness
+module
+
+public import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCorrectness
+
+@[expose] public section
 
 /-!
 # Counting fibers of mask label maps
@@ -64,7 +68,7 @@ theorem natCard_outcome (l : ℕ) : Nat.card (ZMod (2 ^ l)) = 2 ^ l := by
 theorem exists_true_of_ne_zero {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
     ∃ j : Fin (l + 4), b j = true := by
   by_contra h
-  push_neg at h
+  push Not at h
   apply hb
   funext j
   cases hbj : b j
@@ -82,7 +86,7 @@ theorem linForm_surjective {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
   rw [Finset.sum_eq_single j]
   · simp [hj]
   · intro j' _ hjne
-    simp [Function.update_of_ne hjne, hjne]
+    simp [ hjne]
   · intro hjnot
     exact absurd (Finset.mem_univ j) hjnot
 

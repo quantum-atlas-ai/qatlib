@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversionDefs
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
-import Mathlib.Analysis.Calculus.Deriv.Star
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversionDefs
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.LebesgueDifferentiationThm
+public import Mathlib.Analysis.Calculus.Deriv.Star
+
+@[expose] public section
 
 /-!
 # Fractional queries and state-conversion certificates
@@ -354,7 +359,7 @@ private theorem fractionalPhaseOracle_cert_pos {X W : Type}
     rw [he]
     by_cases h : input x j = input y j
     · simp [gramFilterDelta, h]
-    · simp only [gramFilterDelta, h, if_false, one_mul, a]
+    · simp only [gramFilterDelta, h, ite_false, one_mul, a]
 
 /-- The fractional phase oracle at parameter zero is the identity matrix. -/
 @[simp] theorem fractionalPhaseOracle_zero {W : Type} [DecidableEq W]
@@ -657,8 +662,8 @@ theorem continuousConversionTangent_cert {X H A : Type} [Fintype H] [DecidableEq
     rw [← continuousConversionTangent_pair]
     change _ = (if input x j = input y j then 0 else 1) * _
     by_cases h : input x j = input y j
-    · rw [if_pos h, zero_mul, continuousConversionTangent_pair, hlocal x y j h, sub_self, mul_zero]
-    · rw [if_neg h, one_mul]
+    · rw [ite_eq_left h, zero_mul, continuousConversionTangent_pair, hlocal x y j h, sub_self, mul_zero]
+    · rw [ite_eq_right h, one_mul]
       rfl
 
 section ContinuousAnalytic
@@ -802,9 +807,11 @@ theorem continuousConversion_primitive_ae_deriv {g : ℝ → ℂ} {a b : ℝ}
     ⟨Complex.reCLM.integrable_comp hg.1,Complex.reCLM.integrable_comp hg.2⟩
   have hgim : IntervalIntegrable (fun t => (g t).im) volume a b :=
     ⟨Complex.imCLM.integrable_comp hg.1,Complex.imCLM.integrable_comp hg.2⟩
-  filter_upwards [hgre.ae_hasDerivAt_integral,hgim.ae_hasDerivAt_integral,
-    (show ∀ᵐ t : ℝ, t ≠ a from by simp [ae_iff]), (show ∀ᵐ t : ℝ, t ≠ b from by simp [ae_iff])]
-    with t hr hi hta htb ht
+  filter_upwards [IntervalIntegrable.ae_hasDerivAt_integral hgre,
+    IntervalIntegrable.ae_hasDerivAt_integral hgim,
+    (show ∀ᵐ t : ℝ, t ≠ a from by simp [ae_iff]),
+    (show ∀ᵐ t : ℝ, t ≠ b from by simp [ae_iff])]
+    with t hr hmem hi hne ht
   have hinner : t ∈ Ioo (min a b) (max a b) := by
     constructor <;> rcases le_total a b with hab | hba <;> simp_all [lt_iff_le_and_ne, ne_comm]
   have heqRe : (fun u => (c + ∫ s in a..u, g s).re) =ᶠ[𝓝 t]
@@ -829,7 +836,7 @@ theorem continuousConversion_primitive_ae_deriv {g : ℝ → ℂ} {a b : ℝ}
     exact congrArg (fun r : ℝ => c.im + r) he.symm
   exact continuousConversion_complex_derivative
     (((hr ht a (by simp)).const_add c.re).congr_of_eventuallyEq heqRe)
-    (((hi ht a (by simp)).const_add c.im).congr_of_eventuallyEq heqIm)
+    (((hmem ht a (by simp)).const_add c.im).congr_of_eventuallyEq heqIm)
 
 /-- A Hermitian matrix can be moved between the two arguments of the finite-dimensional inner
 product. -/
@@ -938,7 +945,7 @@ theorem continuousConversion_mulVec_continuousOn {H : Type} [Fintype H]
     {A : ℝ → Matrix H H ℂ} {ψ : ℝ → QState H} {S : Set ℝ}
     (hA : ContinuousOn A S) (hψ : ContinuousOn ψ S) :
     ContinuousOn (fun t => A t *ᵥ ψ t) S := by
-  rw [continuousOn_iff_continuous_restrict] at hA hψ ⊢
+  rw [continuousOn_iff_continuous_domRestrict] at hA hψ ⊢
   exact hA.matrix_mulVec hψ
 
 end ContinuousAnalytic

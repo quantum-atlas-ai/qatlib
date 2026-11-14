@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ abbrev State (ι : Type*) : Type _ := EuclideanSpace ℂ ι
 
 namespace State
 
-variable {ι : Type*} [Fintype ι]
+variable {ι : Type*} [instFintypeIota : Fintype ι]
 
 omit [Fintype ι] in
 /-- Extensionality for finite states, by coordinates. -/
@@ -80,36 +84,46 @@ theorem norm_projMask_le (P : ι → Prop) [DecidablePred P] (x : State ι) :
     _ ≤ Real.sqrt (‖x‖ ^ 2) := Real.sqrt_le_sqrt hsq
     _ = ‖x‖ := Real.sqrt_sq (norm_nonneg _)
 
+omit instFintypeIota in
 /-- The `projMask_true` result for the DistinctLB26 paper model. -/
-@[simp] theorem projMask_true (x : State ι) :
+@[simp] theorem projMask_true {ι : Type*}
+    [_instFintypeIota : Fintype ι] (x : State ι) :
     projMask (fun _ => True) x = x := by
   apply State.ext
   intro i
   simp [projMask_apply]
 
+omit instFintypeIota in
 /-- The `projMask_false` result for the DistinctLB26 paper model. -/
-@[simp] theorem projMask_false (x : State ι) :
+@[simp] theorem projMask_false {ι : Type*}
+    [_instFintypeIota : Fintype ι] (x : State ι) :
     projMask (fun _ => False) x = 0 := by
   apply State.ext
   intro i
   simp [projMask_apply]
 
+omit instFintypeIota in
 /-- The `projMask_zero` result for the DistinctLB26 paper model. -/
-@[simp] theorem projMask_zero (P : ι → Prop) [DecidablePred P] :
+@[simp] theorem projMask_zero {ι : Type*}
+    [_instFintypeIota : Fintype ι] (P : ι → Prop) [DecidablePred P] :
     projMask P (0 : State ι) = 0 := by
   apply State.ext
   intro i
   simp [projMask_apply]
 
+omit instFintypeIota in
 /-- The `projMask_idem` result for the DistinctLB26 paper model. -/
-@[simp] theorem projMask_idem (P : ι → Prop) [DecidablePred P] (x : State ι) :
+@[simp] theorem projMask_idem {ι : Type*}
+    [_instFintypeIota : Fintype ι] (P : ι → Prop) [DecidablePred P] (x : State ι) :
     projMask P (projMask P x) = projMask P x := by
   apply State.ext
   intro i
   by_cases h : P i <;> simp [projMask_apply, h]
 
+omit instFintypeIota in
 /-- Masks commute. -/
-theorem projMask_comm (P Q : ι → Prop) [DecidablePred P] [DecidablePred Q]
+theorem projMask_comm {ι : Type*}
+    [_instFintypeIota : Fintype ι] (P Q : ι → Prop) [DecidablePred P] [DecidablePred Q]
     (x : State ι) :
     projMask P (projMask Q x) = projMask Q (projMask P x) := by
   apply State.ext
@@ -144,7 +158,7 @@ theorem sum_normSq_projMask_of_partition {κ : Type*} [Fintype κ]
         Finset.sum_eq_single_of_mem k (Finset.mem_univ k) (fun b _ hb => by
           have hPb : ¬ P b i := fun h => hdisj i b k hb ⟨h, hk⟩
           simp [hPb])
-      rw [hsingle, if_pos hk, if_pos ⟨k, hk⟩]
+      rw [hsingle, ite_eq_left hk, ite_eq_left ⟨k, hk⟩]
     · have h0 : ∀ k, ¬ P k i := fun k hk => hne ⟨k, hk⟩
       simp [h0]
   simp_rw [normSq_projMask]

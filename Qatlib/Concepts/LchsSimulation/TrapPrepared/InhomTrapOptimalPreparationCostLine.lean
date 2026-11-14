@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapOptimalPreparationCostStat
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapOptimalPreparationCostStat
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+
+@[expose] public section
 
 /-!
 # Preparation-window bound for trapezoidal forced evolution

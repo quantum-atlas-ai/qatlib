@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

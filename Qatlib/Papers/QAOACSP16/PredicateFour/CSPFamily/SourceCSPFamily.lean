@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOACSP16.PredicateFour.CSPModel.SourceCSPModel
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Papers.QAOACSP16.PredicateFour.CSPModel.SourceCSPModel
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.dupNamespace false
+set_option linter.unusedSectionVars false
 
 /-!
 # Random CSP families

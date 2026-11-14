@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Spectrum
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+
+@[expose] public section
 
 /-!
 # Eigenvalue comparison from quadratic form bounds
@@ -69,7 +73,7 @@ theorem inner_eq_zero_of_mem_span
   refine Submodule.span_induction ?_ ?_ ?_ ?_ hx
   · rintro _ ⟨i, hi, rfl⟩
     have hne : j ≠ i := by rintro rfl; exact hj hi
-    rw [orthonormal_iff_ite.mp horth j i, if_neg hne]
+    rw [orthonormal_iff_ite.mp horth j i, ite_eq_right hne]
   · simp
   · intro p q _ _ hp hq
     rw [inner_add_right, hp, hq, add_zero]

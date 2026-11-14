@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapStat
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapSubgoal
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapStat
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqScheduleOverlapSubgoal
+
+@[expose] public section
 
 /-!
 # Correctly normalized Gibbs overlap bound

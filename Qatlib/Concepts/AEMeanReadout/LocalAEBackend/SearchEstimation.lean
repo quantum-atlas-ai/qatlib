@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimationDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.ComparativeStrictBounds
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.EffectiveIntegerReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimationDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.ComparativeStrictBounds
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.EffectiveIntegerReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Search and estimation endpoint guarantees

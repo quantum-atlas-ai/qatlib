@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockCoordinateFrame
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockCoordinateFrame
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+
+@[expose] public section
 
 /-!
 # Projector readout of a binary clock history
@@ -101,9 +105,9 @@ theorem fiber_apply {X Y : Type} [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (encodingFiber a *ᵥ v) x = if x.1 = a then v x.2 else 0 := by
   by_cases h : x.1 = a
   · simp only [encodingFiber, Matrix.of_apply, Matrix.mulVec, dotProduct, h, true_and,
-      ite_mul, one_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+      ite_mul, one_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   · simp only [encodingFiber, Matrix.of_apply, Matrix.mulVec, dotProduct, h, false_and,
-      if_false, zero_mul, Finset.sum_const_zero]
+      ite_false, zero_mul, Finset.sum_const_zero]
 
 /-- Applying an isometry to a normalized state preserves normalization. -/
 theorem normalized_isometry_apply {X Y : Type} [Fintype X] [DecidableEq X]
@@ -131,6 +135,7 @@ purification amplitude. -/
 theorem logicalState_apply (q : ℕ) (ψ : QState (E × I)) (z : Reg q) (i : I) (r : E) :
     logicalState q ψ ((z,i),r) = Uniform (Reg q) z * ψ (r,i) := rfl
 
+omit [DecidableEq I] [DecidableEq E] in
 /-- The logical history input is normalized whenever the purification is normalized. -/
 theorem logicalState_normalized (q : ℕ) (ψ : QState (E × I)) (hψ : Normalized ψ) :
     Normalized (logicalState q ψ) :=

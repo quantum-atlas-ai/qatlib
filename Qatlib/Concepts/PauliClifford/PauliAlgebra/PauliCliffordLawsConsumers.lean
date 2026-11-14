@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+
+@[expose] public section
 
 /-!
 # Clifford circuits and Bell state stabilizers
@@ -129,8 +133,8 @@ theorem mulVec_ket {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (z : Reg n) :
   funext b
   simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
   rw [Finset.sum_eq_single z
-    (fun c _ hc => by rw [if_neg hc]; simp)
-    (fun h => absurd (Finset.mem_univ _) h), if_pos rfl, mul_one]
+    (fun c _ hc => by rw [ite_eq_right hc]; simp)
+    (fun h => absurd (Finset.mem_univ _) h), ite_eq_left rfl, mul_one]
 
 /-- For distinct control and target sites, CNOT acts on amplitudes by precomposition with the
 involution `cnotT i j`. -/
@@ -140,9 +144,9 @@ theorem cnot_mulVec {n : ℕ} (i j : Fin n) (hij : i ≠ j) (v : QState (Reg n))
   simp only [Matrix.mulVec, dotProduct, cliffordGateOp_CNOT_apply i j hij]
   rw [Finset.sum_eq_single (cnotT i j b)
     (fun c _ hc => by
-      rw [if_neg (fun he => hc (by rw [he, cnotT_involutive i j c]))]
+      rw [ite_eq_right (fun he => hc (by rw [he, cnotT_involutive i j c]))]
       simp)
-    (fun h => absurd (Finset.mem_univ _) h), if_pos ((cnotT_involutive i j b).symm),
+    (fun h => absurd (Finset.mem_univ _) h), ite_eq_left ((cnotT_involutive i j b).symm),
     one_mul]
 
 /-- A phase-zero Pauli word containing only Z and identity fixes the all-zero computational
@@ -158,13 +162,13 @@ theorem op_ZI_stabilizes_ket_zero {n : ℕ} (w : PauliWord n)
     intro k
     rcases hw k with h | h <;> rw [h] <;> cases b k <;> simp [P1, ZeroStr]
   by_cases hb : b = ZeroStr n
-  · rw [if_pos hb]
+  · rw [ite_eq_left hb]
     refine Finset.prod_eq_one fun k _ => ?_
     rw [hf k]
     have hk : b k = false := by rw [hb]; rfl
     rw [hk]
     simp
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     obtain ⟨k, hk⟩ := Classical.not_forall.mp fun hall => hb (funext hall)
     have hbt : b k = true := by
       cases hh : b k with
@@ -276,7 +280,7 @@ theorem bell_state :
           omega)
         rw [hj1, hb1]
         rfl
-      rw [if_pos hcond]
+      rw [ite_eq_left hcond]
       have hz : (ZeroStr 2 : Reg 2) 0 = false := rfl
       rw [hz, hb1]
       cases b 0 <;> simp [Hadamard]
@@ -284,10 +288,10 @@ theorem bell_state :
         intro hall
         have h1 : b 1 = (ZeroStr 2 : Reg 2) 1 := hall 1 (by decide)
         exact absurd (show b 1 = false from h1) hb1
-      rw [if_neg hcond]
+      rw [ite_eq_right hcond]
       have hbt : b 1 = true := by
         cases hh : b 1 <;> simp_all
-      rw [if_pos hbt]
+      rw [ite_eq_left hbt]
   rw [Uword_H_CNOT, ← mulVec_mulVec, cnot_mulVec (0 : Fin 2) 1 (by decide), hH]
   funext b
   have hT : (cnotT (0 : Fin 2) 1 b) 1 = (b 1 ^^ b 0) := by
@@ -302,15 +306,15 @@ theorem bell_state :
   · subst hb
     have hx : ((ZeroStr 2 : Reg 2) 1 ^^ (ZeroStr 2 : Reg 2) 0) = false := by
       simp [ZeroStr]
-    rw [hx, if_neg (by simp), if_pos rfl, if_neg hzt]
+    rw [hx, ite_eq_right (by simp), ite_eq_left rfl, ite_eq_right hzt]
     simp
   · by_cases hb2 : b = (fun _ => true)
     · subst hb2
       have hx : ((fun _ => true : Reg 2) 1 ^^ (fun _ => true : Reg 2) 0) = false := by
         simp
-      rw [hx, if_neg (by simp), if_neg (fun he => hzt he.symm), if_pos rfl]
+      rw [hx, ite_eq_right (by simp), ite_eq_right (fun he => hzt he.symm), ite_eq_left rfl]
       simp
-    · rw [if_neg hb, if_neg hb2, add_zero, mul_zero]
+    · rw [ite_eq_right hb, ite_eq_right hb2, add_zero, mul_zero]
       have hx : (b 1 ^^ b 0) = true := by
         cases hh0 : b 0
         · cases hh1 : b 1
@@ -389,7 +393,7 @@ theorem h_state :
   have hcond : ∀ j : Fin 1, j ≠ (0 : Fin 1) → b j = (ZeroStr 1 : Reg 1) j := by
     intro j hj
     exact absurd (Fin.ext (Nat.lt_one_iff.mp j.isLt)) hj
-  rw [if_pos hcond]
+  rw [ite_eq_left hcond]
   have hz : (ZeroStr 1 : Reg 1) 0 = false := rfl
   rw [hz]
   cases b 0 <;> simp [Hadamard]

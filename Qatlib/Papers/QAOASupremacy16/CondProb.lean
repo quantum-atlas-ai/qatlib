@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.Conditioning
-import Qatlib.Papers.QAOASupremacy16.LocalGadget.Native
+module
+
+public import Qatlib.Foundations.ProbabilityCore.Conditioning
+public import Qatlib.Papers.QAOASupremacy16.LocalGadget.Native
+
+@[expose] public section
 
 /-!
 # Relative conditioning for the actual gadget output

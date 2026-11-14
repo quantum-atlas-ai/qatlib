@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodCMarginalStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityAnsw
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodCMarginalStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityAnsw
+
+@[expose] public section
 
 /-!
 # Discrete-logarithm marginal probability imports

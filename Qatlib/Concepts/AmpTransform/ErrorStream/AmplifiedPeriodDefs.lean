@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
-import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmpl
-import Qatlib.Concepts.AmpTransform.FullLayerCF.WrapUnknownMRecovery
-import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNAmpl
-import Qatlib.Concepts.QftPreparation.LocalQft
-import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmpl
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
+public import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmplification
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.WrapUnknownMRecovery
+public import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNAmplification
+public import Qatlib.Concepts.QftPreparation.LocalQft
+public import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmplification
+
+@[expose] public section
 
 /-!
 # Statements for amplified period-recovery completion
@@ -91,8 +95,8 @@ def aqCompletionFixedNoiseEndpoint : Prop :=
 verification call. -/
 def aqCompletionWrapEndpoint : Prop :=
   (∀ (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
-      (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
-      (hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
+      (_hM : 2 ≤ M) (_hP : 0 < P) (_hMP : M * P ≤ N) (G : Finset (Fin N))
+      (_hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
         (⟨(s + r * P) % N, Nat.mod_lt _ hN⟩ : Fin N))) ∪ G)),
       aqCyclicVerify N hN h s M P = (true, 3)) ∧
   (∀ (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ),
@@ -102,7 +106,7 @@ def aqCompletionWrapEndpoint : Prop :=
 and the local QFT gate count. -/
 def aqCompletionHaarEndpoint : Prop :=
   HaarGeneralWN ∧
-  (∀ (C fuel : ℕ) (hC : 0 < C),
+  (∀ (C fuel : ℕ) (_hC : 0 < C),
       ∀ j : Fin C,
         CostedLaw.event (aqFairLabelSampler C fuel)
             (fun z => z.1 = Sum.inl j) =
@@ -120,8 +124,8 @@ def aqCompletionFreshAccessEndpoint : Prop :=
       (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
         (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
         = p ^ (aqCandidateSeparation N s M P P')) ∧
-  (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (hP : P ∈ cands) (σ : Fin N → Bool)
-      (hrefute : ∀ P' ∈ cands \ {P},
+  (∀ (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ) (_hP : P ∈ cands) (σ : Fin N → Bool)
+      (_hrefute : ∀ P' ∈ cands \ {P},
         ¬ aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ)),
       aqFreshDisambiguate N s M cands p (aqFreshMarked N s M P σ) = some P)
 

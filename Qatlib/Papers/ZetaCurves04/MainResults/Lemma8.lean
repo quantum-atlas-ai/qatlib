@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+module
+
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+
+@[expose] public section
 
 /-!
 # Near-uniform samplers from finite families
@@ -87,7 +91,7 @@ theorem sampling_uniformity
             ((Fintype.card F : ℝ)⁻¹ *
               ∑ f : F, (if y ∈ S f then ((S f).card : ℝ)⁻¹ else 0))) := by
   classical
-  haveI : Nonempty F := Fintype.card_pos_iff.mp hF
+  have : Nonempty F := Fintype.card_pos_iff.mp hF
   set M : ℕ := Fintype.card F with hM
   have hMpos : (0 : ℝ) < (M : ℝ) := by exact_mod_cast hF
   have hMne : (M : ℝ) ≠ 0 := ne_of_gt hMpos

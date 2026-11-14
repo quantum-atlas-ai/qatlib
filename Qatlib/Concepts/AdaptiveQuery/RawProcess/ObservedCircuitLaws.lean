@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Mass and query bounds for observed circuits

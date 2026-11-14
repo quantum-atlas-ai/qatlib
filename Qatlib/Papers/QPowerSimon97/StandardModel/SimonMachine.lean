@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.StandardModel.SimonMachineDefs
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+module
+
+public import Qatlib.Papers.QPowerSimon97.StandardModel.SimonMachineDefs
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+
+@[expose] public section
 
 /-!
 # Machine cost bounds for verified Simon retries
@@ -89,7 +93,7 @@ lemma find?_first {α : Type} {p : α → Bool} {l : List α} {b : α}
 /-- If the oracle machine is halted at its selected spending time, every earlier time within the
 budget has a false halt flag. -/
 theorem simonOracleSpend_first {n m : ℕ} (M : SimonOracleMachine n m) (x : BooleanVec n)
-    (Tf : ℕ) (h : simonOracleHaltedB M x (simonOracleSpend M x Tf) = true) :
+    (Tf : ℕ) (_h : simonOracleHaltedB M x (simonOracleSpend M x Tf) = true) :
     ∀ j, j < simonOracleSpend M x Tf → j ≤ Tf → simonOracleHaltedB M x j = false := by
   classical
   have hkey : ∀ j, j < simonOracleSpend M x Tf → j ≤ Tf →
@@ -439,7 +443,7 @@ theorem simon_verified_path_expected_quantum_queries {n m : ℕ} (f : BooleanVec
       ac_rfl
     _ ≤ (simonAttemptQuantumSteps (n := n).1 : ℝ≥0∞) * 2 :=
       mul_le_mul_right (hround ▸ hfinite) _
-    _ = _ := by push_cast; rw [mul_comm]
+    _ = _ := by rw [mul_comm]
 
 /-- Under the Simon promise and the oracle realization bound, expected unified history cost is
 at most `simonStandardModelG n m Tf`. -/
@@ -585,7 +589,7 @@ theorem simon_sequential_peak_space {n : ℕ} (f : BooleanVec n → BooleanVec n
     | zero => rfl
     | succ i ih =>
         rw [simonSequentialAmplifiedAux]
-        simp only [max_eq_left, ih]
+        simp only [ih]
         by_cases hi : i = 0
         · simp [hi]
         · simp [hi]

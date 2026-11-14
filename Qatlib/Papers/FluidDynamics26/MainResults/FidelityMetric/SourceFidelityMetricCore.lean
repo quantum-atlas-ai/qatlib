@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ theorem norm_inner_le_one {I : Type} [Fintype I] [DecidableEq I]
           refine Finset.sum_congr rfl fun i _ => ?_
           rw [norm_mul]
           congr 1
-          simpa using norm_star (u i)
+          simp
   have hcs : (∑ i, ‖u i‖ * ‖v i‖) ^ 2 ≤
       (∑ i, ‖u i‖ ^ 2) * (∑ i, ‖v i‖ ^ 2) :=
     Finset.sum_mul_sq_le_sq_mul_sq Finset.univ _ _

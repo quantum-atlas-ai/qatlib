@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import QuantumInfo.Measurements.POVM
+module
+
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import QuantumInfo.Measurements.POVM
+
+@[expose] public section
 
 /-!
 # Finite quantum instruments and their probability laws

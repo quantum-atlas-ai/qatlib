@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.GroupTheory.Abelianization.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.GroupTheory.Abelianization.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Commutator quotients and extra-special group data

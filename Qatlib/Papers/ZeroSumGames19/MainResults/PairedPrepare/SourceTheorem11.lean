@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,7 +46,7 @@ open Qatlib.Papers.ZeroSumGames19.MainResults.GameModel
     `ln(nm/δ)^{5/2} ≤ ln(2 + nm/(δε))³`. -/
 theorem source_theorem11
     {n m s : ℕ} (hn : 0 < n) (hm : 0 < m) (hs : 0 < s)
-    (A : PayoffMatrix n m) {ε δ : ℝ}
+    (_A : PayoffMatrix n m) {ε δ : ℝ}
     (hε0 : 0 < ε) (hε1 : ε < 1) (hδ0 : 0 < δ) (hδ1 : δ < 1 / 3) :
     ∃ impl : QuantumImplementation n m,
       impl.rounds = fixedAccuracyRounds n m ε δ ∧

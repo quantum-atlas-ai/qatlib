@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.RegularEncoding
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.RegularEncoding
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
+
+@[expose] public section
 
 /-!
 # Collision finding over arbitrary finite codomains

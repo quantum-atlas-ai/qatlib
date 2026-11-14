@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.UniformSelectedQSVT
-import Qatlib.Papers.Cbmd26.Algorithms.PreparedPredicateFlatten
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.UniformSelectedQSVT
+public import Qatlib.Papers.Cbmd26.Algorithms.PreparedPredicateFlatten
+
+@[expose] public section
 
 /-!
 # Compiled second-order words with separate matrix access

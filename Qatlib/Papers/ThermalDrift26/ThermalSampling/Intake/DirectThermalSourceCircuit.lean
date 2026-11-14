@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+
+@[expose] public section
 
 /-!
 # Direct Thermal Source Circuit
@@ -111,24 +115,24 @@ theorem ancillaRotation_isometry (d : ℕ) (c s : ℝ) (hcs : c ^ 2 + s ^ 2 = 1)
       simp only [Matrix.fromBlocks_apply₁₁, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
         Matrix.one_apply]
       by_cases h : i = k
-      · simp only [h, if_true, mul_one]
+      · simp only [h, ite_true, mul_one]
         exact_mod_cast (show c * c + s * s = 1 by nlinarith [hcs])
       · simp [h]
     | inr k =>
       simp only [Matrix.fromBlocks_apply₁₂, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
-        Matrix.one_apply, Sum.inl_ne_inr, if_false]
+        Matrix.one_apply, Sum.inl_ne_inr, ite_false]
       ring
   | inr i =>
     cases k with
     | inl k =>
       simp only [Matrix.fromBlocks_apply₂₁, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
-        Matrix.one_apply, Sum.inr_ne_inl, if_false]
+        Matrix.one_apply, Sum.inr_ne_inl, ite_false]
       ring
     | inr k =>
       simp only [Matrix.fromBlocks_apply₂₂, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
         Matrix.one_apply]
       by_cases h : i = k
-      · simp only [h, if_true, mul_one]
+      · simp only [h, ite_true, mul_one]
         have hc : (c : ℂ) ^ 2 + (s : ℂ) ^ 2 = 1 := by exact_mod_cast hcs
         calc
           _ = (c : ℂ) ^ 2 + (s : ℂ) ^ 2 := by ring

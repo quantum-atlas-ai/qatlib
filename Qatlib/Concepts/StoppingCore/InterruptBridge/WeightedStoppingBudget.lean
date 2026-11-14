@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+@[expose] public section
 
 /-!
 # Expected weighted costs and online budgets
@@ -82,6 +86,7 @@ omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
     (B : ℕ) (o : O) : weightedBudgetRun next c B (.inl o) = CostedLaw.ret (.inl o) := by
   rw [weightedBudgetRun]
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 /-- A zero budget returns the initial configuration without additional cost. -/
 @[simp] theorem weightedBudgetRun_zero (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : weightedBudgetRun next c 0 cfg = CostedLaw.ret cfg := by
@@ -110,6 +115,7 @@ theorem weightedBudgetRun_paid (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedBudgetRun next c (B-c s) d)) := by
   rw [weightedBudgetRun, dite_eq_left h]
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 /-- Every supported accumulated cost of budgeted execution is at most its initial budget. -/
 theorem weightedBudgetRun_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (cfg : O ⊕ S) : CostedLaw.BoundedBy (weightedBudgetRun next c B cfg) B := by
@@ -154,6 +160,7 @@ theorem weightedOccupation_eq_expectation (next : S → PMF (O ⊕ S)) (c : S �
   rw [tsum_sum_type']
   simp [weightedStateCharge, tsum_fintype]
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- The expected cost of one additional weighted step equals the previous expected cost plus the
 weighted occupation at that time. -/
 theorem weightedRunFor_expectedCost_succ (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -166,6 +173,7 @@ theorem weightedRunFor_expectedCost_succ (next : S → PMF (O ⊕ S)) (c : S →
   rw [← CostedLaw.expectation_map _ Prod.fst, weightedRunFor_marginal,
     weightedOccupation_eq_expectation]
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- The expected cost of a finite weighted run is the sum of its weighted occupations before the
 fuel cutoff. -/
 theorem weightedRunFor_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -176,6 +184,7 @@ theorem weightedRunFor_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   | zero => simp
   | succ n ih => rw [weightedRunFor_expectedCost_succ, ih, Finset.sum_range_succ]
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- The unbounded expected weighted cost is the supremum of the finite weighted-run expected
 costs. -/
 theorem weightedExpectedCost_eq_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -272,6 +281,7 @@ theorem weighted_bounded_charge_geometric_consumer :
     _ ≤ (C : ℝ≥0∞) * (1-q)⁻¹ := mul_le_mul_right hg.2.2 _
     _ = _ := rfl
 
+omit [DecidableEq S] in
 /-- Under positive state costs, the budgeted mass of a halted pair with cost at most the budget
 equals its weighted halting joint mass. -/
 theorem weightedBudgetRun_halt_point (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -342,6 +352,7 @@ theorem weightedHaltedCharge_expectation (p : CostedLaw (O ⊕ S)) :
   rw [tsum_prod_type', tsum_sum_type']
   simp [weightedHaltedCharge, mul_comm]
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 /-- For a prefix bounded by `D`, its expected cost is at most the continuation's expected halted
 charge plus `D` times its pending probability. -/
 theorem weighted_prefix_expense_le (p : CostedLaw (O ⊕ S)) (f : O ⊕ S → CostedLaw (O ⊕ S))
@@ -396,6 +407,7 @@ theorem weightedRunFor_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
         exact hc s
     simpa [weightedRunFor, Nat.add_mul, Nat.add_comm] using ht.bind ih
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- With positive state costs, the supremum of finite expected halted charges equals the
 cost-weighted eventual halting joint mass. -/
 theorem weightedHaltedCharge_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -496,6 +508,7 @@ theorem weighted_law_halt_pending_partition (p : CostedLaw (O ⊕ S)) :
   rw [he, ← tsum_sum_type' (F := fun d : O ⊕ S => ∑' k : ℕ, p (d,k)),
     ← tsum_prod_type' (F := fun z : (O ⊕ S) × ℕ => p z), PMF.tsum_coe]
 
+omit [DecidableEq S] in
 /-- With positive state costs, halted joint masses through the budget plus the budgeted pending
 probability sum to one. -/
 theorem weightedBudgetRun_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)

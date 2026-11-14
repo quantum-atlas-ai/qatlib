@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.QmaCompletenessNoBound
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
+module
+
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.QmaCompletenessNoBound
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
+
+@[expose] public section
 
 /-!
 # Physical realization of the history Hamiltonian

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -109,10 +113,13 @@ def sampledInstance (m : ℕ) (hm : 0 < m) {P : Type}
   hm := hm
   con := fun l => sel l (ω l)
 
+omit [DecidableEq V] in
 /-- The `l`-th constraint of `sampledInstance` is the selected predicate. -/
-@[simp] theorem sampledInstance_con (m : ℕ) (hm : 0 < m) {P : Type}
+theorem sampledInstance_con (m : ℕ) (hm : 0 < m) {P : Type}
     (sel : Fin m → P → Predicate V) (ω : Fin m → P) (l : Fin m) :
     (sampledInstance m hm sel ω).con l = sel l (ω l) := rfl
+
+attribute [simp] sampledInstance_con
 
 /-- A constant has its constant as uniform mean. -/
 theorem uniformExpect_const (c : ℝ) : uniformExpect (fun _ : V → Bool => c) = c := by
@@ -134,11 +141,13 @@ theorem uniformExpect_smul (c : ℝ) (f : (V → Bool) → ℝ) :
   unfold uniformExpect
   rw [← Finset.mul_sum, mul_div_assoc]
 
+omit [DecidableEq V] in
 /-- Total satisfaction is nonnegative when all predicates are nonnegative. -/
 theorem satValue_nonneg (X : CSPInstance V) (z : V → Bool)
     (h : ∀ l : Fin X.m, ∀ z, 0 ≤ (X.con l).val z) : 0 ≤ satValue X z :=
   Finset.sum_nonneg fun l _ => h l z
 
+omit [DecidableEq V] in
 /-- Total satisfaction is at most `m` when every predicate is bounded by one. -/
 theorem satValue_le_m (X : CSPInstance V) (z : V → Bool)
     (h : ∀ l : Fin X.m, ∀ z, (X.con l).val z ≤ 1) : satValue X z ≤ (X.m : ℝ) := by
@@ -147,6 +156,7 @@ theorem satValue_le_m (X : CSPInstance V) (z : V → Bool)
       Finset.sum_le_sum fun l _ => h l z
     _ = (X.m : ℝ) := by simp
 
+omit [DecidableEq V] in
 /-- The satisfied fraction lies in `[0,1]` for Boolean predicates. -/
 theorem satFraction_mem_unit (X : CSPInstance V) (z : V → Bool)
     (h0 : ∀ l : Fin X.m, ∀ z, 0 ≤ (X.con l).val z)

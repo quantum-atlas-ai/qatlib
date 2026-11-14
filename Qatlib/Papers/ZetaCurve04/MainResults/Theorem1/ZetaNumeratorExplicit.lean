@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurve04.MainResults.Theorem1.NumeratorReconstruction
-import Qatlib.Papers.ZetaCurve04.MainResults.Cost
+module
+
+public import Qatlib.Papers.ZetaCurve04.MainResults.Theorem1.NumeratorReconstruction
+public import Qatlib.Papers.ZetaCurve04.MainResults.Cost
+
+@[expose] public section
 
 /-!
 # Explicit zeta-numerator reconstruction from oracle data

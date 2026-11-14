@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDefs
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDefs
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
+
+@[expose] public section
 
 /-!
 # Lindblad mixing, entropy bounds, and thermal jumps
@@ -634,10 +638,10 @@ theorem ckRankOne_mul (a b c d : Fin D) :
   ext R C
   rw [Matrix.mul_apply, ckRankOne_mul_entry]
   by_cases h3 : a = d
-  · rw [if_pos h3]
+  · rw [ite_eq_left h3]
     simp only [ckRankOne_apply]
     simp [h3]
-  · rw [if_neg h3]
+  · rw [ite_eq_right h3]
     simp [h3]
 
 /-- Right multiplication of a rank-one transition by a diagonal matrix scales it by the source
@@ -749,7 +753,7 @@ theorem ckAcceptJump_dissipator (E : Fin D → ℝ) (β : ℝ) (p : Fin D → �
         _ = ((Real.sqrt (thermalAcceptance E β i j) : ℂ)
             * (Real.sqrt (thermalAcceptance E β i j) : ℂ))
             • ((p i : ℂ) • ckRankOne j j) := by
-              rw [ckRankOne_mul, if_pos rfl]
+              rw [ckRankOne_mul, ite_eq_left rfl]
         _ = ((thermalAcceptance E β i j : ℂ) * (p i : ℂ)) • ckRankOne j j := by
               rw [smul_smul, hsq]
     have h2 : (ckAcceptJump E β i j)ᴴ * ckAcceptJump E β i j
@@ -767,7 +771,7 @@ theorem ckAcceptJump_dissipator (E : Fin D → ℝ) (β : ℝ) (p : Fin D → �
         _ = ((Real.sqrt (thermalAcceptance E β i j) : ℂ)
             * (Real.sqrt (thermalAcceptance E β i j) : ℂ))
             • ((p i : ℂ) • ckRankOne i i) := by
-              rw [ckRankOne_mul, if_pos rfl, ckRankOne_mul_diagonal]
+              rw [ckRankOne_mul, ite_eq_left rfl, ckRankOne_mul_diagonal]
         _ = ((thermalAcceptance E β i j : ℂ) * (p i : ℂ)) • ckRankOne i i := by
               rw [smul_smul, hsq]
     have h3 : Matrix.diagonal (fun t => (p t : ℂ)) * (ckAcceptJump E β i j)ᴴ
@@ -785,7 +789,7 @@ theorem ckAcceptJump_dissipator (E : Fin D → ℝ) (β : ℝ) (p : Fin D → �
         _ = ((Real.sqrt (thermalAcceptance E β i j) : ℂ)
             * (Real.sqrt (thermalAcceptance E β i j) : ℂ))
             • ((p i : ℂ) • ckRankOne i i) := by
-              rw [ckRankOne_mul, if_pos rfl, diagonal_mul_ckRankOne]
+              rw [ckRankOne_mul, ite_eq_left rfl, diagonal_mul_ckRankOne]
         _ = ((thermalAcceptance E β i j : ℂ) * (p i : ℂ)) • ckRankOne i i := by
               rw [smul_smul, hsq]
     rw [h1, h2, h3]
@@ -965,7 +969,7 @@ theorem ckRejectRecovery_transport (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (�
     D * (1 - thermalKernel D E β i i)
       = ∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i, thermalAcceptance E β i j' := by
   have hDpos : (0 : ℝ) < D := by exact_mod_cast hD
-  rw [thermalKernel, if_pos rfl, sub_sub_cancel]
+  rw [thermalKernel, ite_eq_left rfl, sub_sub_cancel]
   rw [(Finset.sum_div (Finset.univ.erase i) (fun j' => thermalAcceptance E β i j')
     (D : ℝ)).symm]
   field_simp
@@ -981,7 +985,7 @@ theorem ckRejectMass_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
       = 1 - ∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
           thermalAcceptance E β i j' / (D : ℝ) := by
   unfold ckRejectMass
-  rw [thermalKernel, if_pos rfl]
+  rw [thermalKernel, ite_eq_left rfl]
 
 /-- In dimension greater than one, removing a single index from the full index set leaves a
 nonempty set. -/
@@ -1033,7 +1037,7 @@ theorem ckRejectMass_one (E : Fin 1 → ℝ) (β : ℝ) (i : Fin 1) :
   have hi : i = 0 := Fin.ext (Nat.lt_one_iff.mp i.isLt)
   subst hi
   unfold ckRejectMass
-  rw [thermalKernel, if_pos rfl]
+  rw [thermalKernel, ite_eq_left rfl]
   simp
 
 /-- In dimension one, the off-diagonal acceptance inflow is zero. -/
@@ -1435,7 +1439,7 @@ theorem thermalKernel_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     thermalKernel D E 0 i j = 1 / (D : ℝ) := by
   by_cases hij : i = j
   · subst hij
-    rw [thermalKernel, if_pos rfl]
+    rw [thermalKernel, ite_eq_left rfl]
     have hsum : (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
         thermalAcceptance E 0 i j' / (D : ℝ)) = 1 - 1 / (D : ℝ) := by
       have h1 : (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
@@ -1455,7 +1459,7 @@ theorem thermalKernel_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
       linarith
     rw [hsum]
     ring
-  · rw [thermalKernel, if_neg hij, thermalAcceptance_highTemperature E i j]
+  · rw [thermalKernel, ite_eq_right hij, thermalAcceptance_highTemperature E i j]
 
 /-- At zero inverse temperature and in positive dimension, the rejection mass is `1 / D`. -/
 theorem ckRejectMass_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (j : Fin D) :

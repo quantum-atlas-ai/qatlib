@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.StrongDistributionAuxiliary
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
-import Qatlib.Concepts.WalshMoment.Forrelation.StrongYesInstancePropertyDefs
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.StrongDistributionAuxiliary
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+public import Qatlib.Concepts.WalshMoment.Forrelation.StrongYesInstancePropertyDefs
+
+@[expose] public section
 
 /-!
 # Strong yes instance probability bound

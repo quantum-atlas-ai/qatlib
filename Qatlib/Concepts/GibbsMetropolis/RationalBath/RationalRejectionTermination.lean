@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
+module
+
+public import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
+
+@[expose] public section
 
 /-!
 # Termination and expected costs of rational rejection sampling
@@ -167,7 +171,7 @@ noncomputable def rationalStopLaw (w : Fin N → ℕ) (b : ℕ)
       rw [tsum_eq_zero_add' ENNReal.summable]
       simp [mass, rationalStopMass, rationalTerminalMass]
     rw [Finset.sum_congr rfl (fun j _ => hinner j)]
-    exact rational_stop_masses_sum_one w b hW hb
+    exact (by exact rational_stop_masses_sum_one w b hW hb)
   have hs : HasSum mass 1 := by
     have hs' : HasSum mass (∑' z : Fin N × ℕ, mass z) := ENNReal.summable.hasSum
     simpa [hmass] using hs'
@@ -320,8 +324,8 @@ theorem rationalStopLaw_expectation (w : Fin N → ℕ) (b : ℕ)
   apply Finset.sum_congr rfl
   intro j _
   rw [tsum_eq_zero_add' ENNReal.summable]
-  simp only [rationalStopLaw_apply, rationalStopMass, if_true, zero_mul, zero_add,
-    Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, if_false, Nat.add_sub_cancel,
+  simp only [rationalStopLaw_apply, rationalStopMass, ite_true, zero_mul, zero_add,
+    Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, ite_false, Nat.add_sub_cancel,
     rational_first_stop_formula w b _ j hW hb]
 
 /-- The expected affine cost in the rejection count and terminal label is the stated one-trial

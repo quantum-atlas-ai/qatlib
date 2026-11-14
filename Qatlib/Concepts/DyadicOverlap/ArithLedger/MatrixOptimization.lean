@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationError
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationError
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
+
+@[expose] public section
 
 /-!
 # Stopped sampling laws for dual vectors

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.ActualReadout
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.ActualReadout
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+
+@[expose] public section
 
 /-!
 # Actual phase-estimation window mass and a sufficient extra-bit budget

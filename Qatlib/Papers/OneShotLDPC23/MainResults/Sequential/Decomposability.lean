@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneShotLDPC23.MainResults.Model.TannerStructure
-import Qatlib.Papers.OneShotLDPC23.MainResults.Sequential.MismatchDecomposition
+module
+
+public import Qatlib.Papers.OneShotLDPC23.MainResults.Model.TannerStructure
+public import Qatlib.Papers.OneShotLDPC23.MainResults.Sequential.MismatchDecomposition
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

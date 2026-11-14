@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
+
+@[expose] public section
 
 /-!
 # Padded history-Hamiltonian energy separation

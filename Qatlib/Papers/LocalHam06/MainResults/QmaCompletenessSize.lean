@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
+
+@[expose] public section
 
 /-!
 # Bit length bounds for history Hamiltonian encodings

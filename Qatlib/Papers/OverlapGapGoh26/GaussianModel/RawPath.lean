@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.RawMoments
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.UniformRotation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.RawMoments
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.UniformRotation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+@[expose] public section
 
 /-!
 # Interpolated Gaussian inputs for raw dynamics

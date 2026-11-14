@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.SimQdriftDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefined
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SimQdriftDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefined
+
+@[expose] public section
 
 /-!
 # qDRIFT input programs and compiled simulation resources
@@ -32,6 +36,9 @@ retain the control-cross-block obstruction for the blockwise lifted map.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unnecessarySeqFocus false
 open Qatlib.Concepts.RandCompile.EffectiveInput
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject

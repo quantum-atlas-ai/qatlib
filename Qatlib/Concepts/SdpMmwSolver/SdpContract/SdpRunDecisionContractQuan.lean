@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpRunDecisionContractStat
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputQuan
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunQuan
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroQuan
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWeakDuality
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpRunDecisionContractStat
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputQuan
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunQuan
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroQuan
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWeakDuality
+
+@[expose] public section
 
 /-!
 # Primal and dual outcomes of the SDP run

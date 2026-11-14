@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
+
+@[expose] public section
 
 /-!
 # Fast linear combinations of Dyson propagators

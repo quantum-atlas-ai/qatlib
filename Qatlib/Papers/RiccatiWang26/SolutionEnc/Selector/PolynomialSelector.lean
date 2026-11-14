@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,6 +52,7 @@ def selectorMat (q : Polynomial ℂ) (sgn : ℂ) (H : Sq n) : Sq n :=
 def sensitivityCoeff (c : ℕ → ℝ) (dS : ℕ) : ℝ :=
   (1 / 2) * ∑ m ∈ Finset.Icc 1 dS, (m : ℝ) * c m
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Proposition C.4 (p. 70), Eq. (C.11).  With a selector error `εsel`, a
 `(1, aH, εH)` block-encoding of `Ĥ`, an `(αR, aR, εR)` block-encoding of `R` (`‖R‖ ≤ αR`), and
 a circuit error `εcirc` relative to `Sχ,r(Ĥ)/α_{Sχ,r}`, the composed block-encoding has
@@ -55,8 +60,9 @@ normalization `α_{Sχ,r} αR` and decoded error
 `εbranch ≤ εsel + αR Lχ,r εH + αR α_{Sχ,r} εcirc + α_{Sχ,r} εR`;
 the factors `αR` may be replaced by `‖R‖`. -/
 theorem proposition_C_4_branch_block_error
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
     (Eout Ecirc Eapprox Esel : Sq n) (αR L εH εcirc εR εsel εbranch : ℝ)
-    (hαR : 0 ≤ αR) (hL : 0 ≤ L)
+    (_hαR : 0 ≤ αR) (_hL : 0 ≤ L)
     (hsel : ‖Esel‖ ≤ εsel)
     (hH : ‖Eapprox - Esel‖ ≤ αR * L * εH)
     (hcirc : ‖Ecirc - Eapprox‖ ≤ αR * εcirc)

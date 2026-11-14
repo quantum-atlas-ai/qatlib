@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ the Fourier-diagonal sum; the last line replaces `F_H = ∑_y F_{H,y}` by the
 individual `F_{H,y}`.  The statement is the paper's displayed identity with
 `sSup` encoding the maximum (the paper does not discuss whether the maximum is
 attained; `sSup` is the faithful order-theoretic reading). -/
-def theorem1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k) : Prop :=
+def theorem1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k) : Prop :=
   rho S C = thm1Value S C
   -- Paper: arXiv:2510.07298v2, Theorem 1, p. 15.
   -- Key steps: (i) Lemma 1 replaces the average over x by the value at ψ_0;
@@ -87,7 +91,7 @@ def theorem1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C 
 
 Source: Proposition 7, p. 12.  Proof: Lemma 1 (`ρ = ρ₂` on `Γ_s`) plus Lemma 2
 (every `Γ(S)` element symmetrises into `Γ_s(S)` with the same `ρ₂` value). -/
-def proposition7 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k) : Prop :=
+def proposition7 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k) : Prop :=
   rho S C = rho2Max S C
   -- Paper: arXiv:2510.07298v2, Proposition 7, p. 12.
   -- Key steps: Γ_s(S) ⊆ Γ(S) gives ≥; Lemma 2 gives the reverse inequality.
@@ -101,7 +105,7 @@ Source: Lemma 1, p. 12.  Proof: change variables in the average over `x`,
 using `X_x F_{H,y} X_x = F_{H,y+Hx}` and summing over `a = y + Hx`; for each
 `(H,y)` this produces `2^{n-k}` copies, cancelling the `2^{-n}` factor. -/
 def lemma1 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (M : Measurement n)
-    (hM : GammaS S M) : Prop :=
+    (_hM : GammaS S M) : Prop :=
   score S C M = rho2 S C M
   -- Paper: arXiv:2510.07298v2, Lemma 1, p. 12.
   -- Key steps: Tr(X_x F X_x |ψ_0⟩⟨ψ_0|) = Tr(F |ψ_x⟩⟨ψ_x|) (cyclicity);
@@ -118,7 +122,7 @@ Source: Lemma 2, p. 13.  Proof: positive semidefiniteness is preserved by
 conjugation and convex combinations; completeness follows from `∑ X_a X_a = 2^n I`;
 unambiguity uses `H(x+a) ≠ y+Ha`; the covariance identity uses the change of
 variable `a' = a + b`. -/
-def lemma2 {n : ℕ} (S : SymFamily n) (M : Measurement n) (hM : Gamma S M) : Prop :=
+def lemma2 {n : ℕ} (S : SymFamily n) (M : Measurement n) (_hM : Gamma S M) : Prop :=
   GammaS S (symmetrize M)
   -- Paper: arXiv:2510.07298v2, Lemma 2, p. 13.
   -- Key steps: PosSemidef of `X_a F X_a` and of finite sums; `X_a = X_aᴴ`;
@@ -140,7 +144,7 @@ Source: Proposition 8, p. 14.  Proof: write `y = Hb` and average
 `F_{H,Ha} = X_{a+b} F_{H,y} X_{a+b}` over `a`; the phase sum
 `∑_a (-1)^{(a+b)·(i+j)}` vanishes unless `i = j`, where it equals `2^n`. -/
 def proposition8 {n : ℕ} (S : SymFamily n) (M : Measurement n)
-    (hM : GammaS S M) (k : ℕ) (H : Lam n k) (y : Fin k → ZMod 2)
+    (_hM : GammaS S M) (k : ℕ) (H : Lam n k) (y : Fin k → ZMod 2)
     (i j : F2 n) : Prop :=
   opFourier (FHSum M k H) i j =
       if i = j then (2 : ℂ) ^ k * opFourier (M.w k H y) i i else 0
@@ -158,7 +162,7 @@ independent, so its span has dimension `|T|`.
 
 Source: Proposition 9, p. 16.  Proof: `∑_x (-1)^{x·y_0}|ψ_x⟩ = 2^n α̂_{y_0}|b_{y_0}⟩`;
 since `α̂_{y_0} ≠ 0`, every Fourier basis vector lies in the span. -/
-def proposition9 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S) : Prop :=
+def proposition9 {n : ℕ} (S : SymFamily n) (_hfull : FullDualSupport S) : Prop :=
   Module.finrank ℂ (Submodule.span ℂ (Set.range S.ψ)) = 2 ^ n ∧
       ∀ T : Finset (F2 n),
         Module.finrank ℂ (Submodule.span ℂ (S.ψ '' (T : Set (F2 n)))) = T.card
@@ -181,8 +185,8 @@ rank-one projectors whose vectors lie in `W_{H,y}`.
 Source: Proposition 10, p. 16.  Proof: take the spectral decomposition of the
 positive semidefinite `F_{H,y}`; the unambiguity condition forces each
 eigenvector to be orthogonal to every `|ψ_x⟩` with `Hx ≠ y`. -/
-def proposition10 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S)
-    (M : Measurement n) (hM : Gamma S M) (k : ℕ) (H : Lam n k)
+def proposition10 {n : ℕ} (S : SymFamily n) (_hfull : FullDualSupport S)
+    (M : Measurement n) (_hM : Gamma S M) (k : ℕ) (H : Lam n k)
     (y : Fin k → ZMod 2) : Prop :=
   ∃ (m : ℕ), m ≤ 2 ^ (n - k) ∧
       ∃ (mu : Fin m → ℝ) (B : Fin m → StateVec n),
@@ -209,10 +213,10 @@ Source: Proposition 11, p. 17, Equation (8).  Proof: distinct `s` give disjoint
 supports, hence orthogonality; the scalar product with `|ψ_x⟩` is
 `(-1)^{x·v_s} ∑_u (-1)^{(Hx+y)·u} = 0` when `Hx ≠ y`; dimension counting gives a
 basis. -/
-def proposition11 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S)
+def proposition11 {n : ℕ} (S : SymFamily n) (_hfull : FullDualSupport S)
     (k : ℕ) (H : Lam n k) (y : Fin k → ZMod 2)
     (G : MatZ (n - k) n) (v : (Fin (n - k) → ZMod 2) → F2 n)
-    (hv : ∀ s, {x : F2 n | matVec G x = s} =
+    (_hv : ∀ s, {x : F2 n | matVec G x = s} =
       Set.range (fun u : Fin k → ZMod 2 => transposeVec H.1 u + v s)) : Prop :=
   (∀ s s', s ≠ s' → braKet (AHVec S H y v s) (AHVec S H y v s') = 0) ∧
       (∀ s, AHVec S H y v s ∈ WSet S H y) ∧

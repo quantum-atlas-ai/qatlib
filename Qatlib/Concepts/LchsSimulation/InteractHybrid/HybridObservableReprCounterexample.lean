@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
+module
+
+public import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
+
+@[expose] public section
 
 /-!
 # A backward-time obstruction to hybrid observables
@@ -140,7 +144,7 @@ theorem hybridObservableRepresentation_counterexample : ¬ HybridObservableRepre
   have hinner : Qatlib.Foundations.PureStateMath.Inner ((Complex.exp 1) • Qatlib.Foundations.PureStateMath.Ket (0 : Fin 1)) ((Complex.exp 1) • Qatlib.Foundations.PureStateMath.Ket 0) =
       Complex.ofReal (Real.exp 2) := by
     simp only [inner_apply, Fin.sum_univ_one, Pi.smul_apply, smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket,
-      if_true, mul_one]
+      ite_true, mul_one]
     have hexp : Complex.exp 1 = Complex.ofReal (Real.exp 1) :=
       (Complex.ofReal_exp 1).symm
     rw [hexp]

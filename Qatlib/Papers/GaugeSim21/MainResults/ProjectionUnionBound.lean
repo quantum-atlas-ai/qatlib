@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaugeSim21.MainResults.TruncationModel
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Papers.GaugeSim21.MainResults.TruncationModel
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

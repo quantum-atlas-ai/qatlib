@@ -4,13 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
+
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -201,7 +208,7 @@ theorem rx_arccos_components (a d α x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     simp [Rx, symVec, Matrix.mulVec, dotProduct, Fin.sum_univ_three,
       Real.cos_two_mul, Real.sin_two_mul, Real.cos_arccos hx1 hx2,
       Real.sin_arccos] <;>
-    ring_nf <;>
+    ring_nf;
     simp
 
 /-- Componentwise form of the full step `Rz(2φ) · Rx(2 arccos x)` on

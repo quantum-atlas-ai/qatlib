@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CorrWalkSim16.MainResults.CoeffFunctional
+module
+
+public import Qatlib.Papers.CorrWalkSim16.MainResults.CoeffFunctional
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -91,14 +95,14 @@ theorem walkSymmetric_signedExtension (d : ℕ → ℂ) :
     have hneg : ¬ 0 ≤ n := by omega
     have hnn : (-n).natAbs = n.natAbs := Int.natAbs_neg n
     simp only [signedExtension]
-    rw [if_pos hpos, if_neg hneg, hnn, ← mul_assoc, neg_one_zpow_mul_pow_natAbs hn, one_mul]
+    rw [ite_eq_left hpos, ite_eq_right hneg, hnn, ← mul_assoc, neg_one_zpow_mul_pow_natAbs hn, one_mul]
   · subst hn
     simp [signedExtension]
   · have hneg : ¬ 0 ≤ -n := by omega
     have hpos : 0 ≤ n := le_of_lt hn
     have hnn : (-n).natAbs = n.natAbs := Int.natAbs_neg n
     simp only [signedExtension]
-    rw [if_neg hneg, if_pos hpos, hnn, neg_one_pow_natAbs hpos]
+    rw [ite_eq_right hneg, ite_eq_left hpos, hnn, neg_one_pow_natAbs hpos]
 
 /-- Sums of symmetric coefficient families are symmetric. -/
 theorem walkSymmetric_add {c d : ℤ → ℂ} (hc : WalkSymmetric c) (hd : WalkSymmetric d) :
@@ -126,8 +130,8 @@ theorem walkSymmetric_coeffTrunc (N : ℕ) {c : ℤ → ℂ} (hc : WalkSymmetric
   simp only [coeffTrunc]
   rw [abs_neg]
   by_cases h : |n| ≤ (N : ℤ)
-  · rw [if_pos h, if_pos h, hc n]
-  · rw [if_neg h, if_neg h, mul_zero]
+  · rw [ite_eq_left h, ite_eq_left h, hc n]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 
 /-- Eq. (64): products of symmetric coefficient families are symmetric. -/
 theorem walkSymmetric_coeffMul {c d : ℤ → ℂ} (hc : WalkSymmetric c) (hd : WalkSymmetric d) :

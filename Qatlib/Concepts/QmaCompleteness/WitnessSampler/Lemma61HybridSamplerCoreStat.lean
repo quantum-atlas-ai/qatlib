@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+module
+
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+
+@[expose] public section
 
 /-!
 # Hybrid witness-sampler specification

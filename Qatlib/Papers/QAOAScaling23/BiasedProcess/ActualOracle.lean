@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.JointPayload
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.JointPayload
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
+
+@[expose] public section
 
 /-!
 # Actual search oracles as completed descent rows

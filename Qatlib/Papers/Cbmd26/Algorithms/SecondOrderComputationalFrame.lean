@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderDecodedWord
-import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderDecodedWord
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+
+@[expose] public section
 
 /-!
 # Computational Success Frames for Second-Order Circuits

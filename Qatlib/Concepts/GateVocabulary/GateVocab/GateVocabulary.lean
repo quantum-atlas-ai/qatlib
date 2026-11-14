@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabularyDefs
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabularyDefs
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Gate identities and tensor coherence
@@ -189,15 +193,15 @@ theorem pauliFin_legacy : pauliFin 1 = pauliX ∧ pauliFin 2 = pauliY ∧ pauliF
   constructor
   · gate_matrix <;>
       norm_num [pauliFin, toFinGate, pauliBool, PauliX, permMatrix, pauliX,
-        Matrix.reindexAlgEquiv_apply, Matrix.reindex_apply, boolEquivFin2]
+        Matrix.coe_reindexAlgEquiv, Matrix.reindex_apply, boolEquivFin2]
   constructor
   · gate_matrix <;>
       norm_num [pauliFin, toFinGate, pauliBool, pauliYBool, pauliY,
-        Matrix.reindexAlgEquiv_apply, Matrix.reindex_apply, boolEquivFin2]
+        Matrix.coe_reindexAlgEquiv, Matrix.reindex_apply, boolEquivFin2]
   · ext i j
     fin_cases i <;> fin_cases j <;>
       norm_num [pauliFin, toFinGate, pauliBool, PauliZ, pauliZ,
-        Matrix.diagonal_apply, Matrix.reindexAlgEquiv_apply, Matrix.reindex_apply, boolEquivFin2]
+        Matrix.diagonal_apply, Matrix.coe_reindexAlgEquiv, Matrix.reindex_apply, boolEquivFin2]
 
 /-- The axis-indexed Pauli matrix agrees with the existing `pauliMatrix` convention. -/
 theorem pauliAxis_legacy (a : Fin 3) : pauliAxis a = pauliMatrix a := by
@@ -284,8 +288,8 @@ theorem pauli_shadow_reconstruction_kernel (x y u v : Fin 2) :
           (1 : Matrix (Fin 2) (Fin 2) ℂ) u v +
         (1/2 : ℂ) * (pauliAxis a y x * pauliAxis a u v) := by
     rw [pauliAxis_legacy]
-    simp only [Fintype.sum_bool, PauliProjector, PauliShadow, if_true,
-      Bool.false_eq_true, if_false, Matrix.smul_apply, smul_eq_mul,
+    simp only [Fintype.sum_bool, PauliProjector, PauliShadow, ite_true,
+      Bool.false_eq_true, ite_false, Matrix.smul_apply, smul_eq_mul,
       Matrix.add_apply, Matrix.sub_apply, one_mul, neg_one_mul]
     ring
   rw [Fintype.sum_prod_type]

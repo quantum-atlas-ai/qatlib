@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PositiveGap
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PositiveGap
+
+@[expose] public section
 
 /-!
 # Spectral separation for tuple-deletion adjacency

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.Logic.Equiv.Fintype
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.Logic.Equiv.Fintype
+
+@[expose] public section
 
 /-!
 # Finite permutation families and reversible implementations
@@ -314,7 +318,7 @@ theorem booleanFeistel_word {N : ℕ} (c t : Fin N) (hct : c ≠ t) (f : Bool �
       (Run 1 (finiteCodeCircuit N toggle) (Qatlib.Foundations.PureStateMath.Ket x)) = _
     rw [htogglesem, hswapsem]
     simp only [finiteControlPattern,
-      Function.update_self, IsEmpty.forall_iff, if_true, Function.update_idem]
+      Function.update_self, IsEmpty.forall_iff, ite_true, Function.update_idem]
     congr 1
     ext j
     by_cases hjc : j = c
@@ -423,7 +427,7 @@ theorem finiteTruthTableVector_word (m : ℕ) (hm : 0 < m) (f : Reg m → Reg m)
       finiteControlPattern c m (tripleBinaryRegister m a b work) = a := by
     ext i
     simp only [finiteControlPattern, c, Nat.mod_eq_of_lt i.isLt,
-      tripleBinaryRegister, i.isLt, dif_pos]
+      tripleBinaryRegister, i.isLt, dite_eq_left]
   have hpartial (S : Finset (Fin m)) :
       ∃ word : List FiniteGateCode, finiteWordLegal (3*m) word = true ∧
         word.length ≤ S.card*(2^m*(62*m+1)) ∧
@@ -483,7 +487,7 @@ theorem finiteTruthTableVector_word (m : ℕ) (hm : 0 < m) (f : Reg m → Reg m)
   obtain ⟨word, hword, hlen, hsem⟩ := hpartial Finset.univ
   refine ⟨word, hword, by simpa [Nat.mul_assoc] using! hlen, ?_⟩
   intro a b work
-  simpa only [Finset.mem_univ, if_true] using! hsem a b work
+  simpa only [Finset.mem_univ, ite_true] using! hsem a b work
 
 /-- A Boolean Feistel update with constant false round function swaps the `j`th bits of the
 first two blocks of `tripleBinaryRegister`. -/
@@ -558,13 +562,13 @@ theorem tripleBinaryRegister_swap_word (m : ℕ) :
         change Qatlib.Foundations.PureStateMath.Ket (booleanFeistelAction (⟨j.val, by omega⟩ : Fin (3*m))
           (⟨m+j.val, by omega⟩ : Fin (3*m)) (fun _ => false) _) = _
         rw [tripleBinaryRegister_swap_bit]
-        simp only [hj, if_false]
+        simp only [hj, ite_false]
         congr 2 <;> ext i <;> by_cases hij : i = j <;>
           simp [hij, hj, Function.update]
   obtain ⟨word, hword, hlen, hsem⟩ := hpartial Finset.univ
   refine ⟨word, hword, by simpa [Nat.mul_comm] using! hlen, ?_⟩
   intro a b work
-  simpa only [Finset.mem_univ, if_true] using! hsem a b work
+  simpa only [Finset.mem_univ, ite_true] using! hsem a b work
 
 /-- For positive `m`, any permutation of `m`-bit registers and its inverse have exact legal
 implementations using two zero-initialized auxiliary blocks. Their combined length is at
@@ -662,7 +666,7 @@ theorem uniformAllPermutation_probability {q m : ℕ}
           (by intro σ _; exact Finset.mem_univ (F σ))
       _ = _ := by simp only [hcount, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, Nat.cast_id]
   have hcardTarget : Fintype.card (Fin m ↪ Fin q) = q.descFactorial m := by simp
-  letI : Nonempty (Fin m ↪ Fin q) := ⟨inputEmbedding⟩
+  let : Nonempty (Fin m ↪ Fin q) := ⟨inputEmbedding⟩
   have hG : (Fintype.card (Equiv.Perm (Fin q)) : ℝ) ≠ 0 := by
     exact_mod_cast Fintype.card_ne_zero
   have hY : (q.descFactorial m : ℝ) ≠ 0 := by
@@ -859,12 +863,12 @@ theorem tripleBinaryRegister_outer_swap_word (m : ℕ) :
         change Qatlib.Foundations.PureStateMath.Ket (booleanFeistelAction (⟨j.val, by omega⟩ : Fin (3*m))
           (⟨2*m+j.val, by omega⟩ : Fin (3*m)) (fun _ => false) _) = _
         rw [tripleBinaryRegister_outer_swap_bit]
-        simp only [hj, if_false]
+        simp only [hj, ite_false]
         congr 2 <;> ext i <;> by_cases hij : i = j <;> simp [hij, hj, Function.update]
   obtain ⟨word, hword, hlen, hsem⟩ := hpartial Finset.univ
   refine ⟨word, hword, by simpa [Nat.mul_comm] using! hlen, ?_⟩
   intro a b work
-  simpa only [Finset.mem_univ, if_true] using! hsem a b work
+  simpa only [Finset.mem_univ, ite_true] using! hsem a b work
 
 /-- For positive `m`, any permutation and its inverse can act exactly on the third block with
 the first two blocks initialized and returned to zero. The legal forward and inverse words

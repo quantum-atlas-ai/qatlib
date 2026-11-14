@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+
+@[expose] public section
 
 /-!
 # Source remainder and diagonal matrix identities
@@ -105,18 +109,18 @@ theorem diag_pow (D : Matrix N N ℂ) (hd : ∀ i j : N, i ≠ j → D i j = 0) 
     rw [pow_succ, Matrix.mul_apply]
     by_cases hij : i = j
     · rw [hij]
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       rw [Finset.sum_eq_single_of_mem j (Finset.mem_univ j) (fun c _ hc => by
-        rw [ih j c, if_neg (Ne.symm hc)]
+        rw [ih j c, ite_eq_right (Ne.symm hc)]
         ring)]
-      rw [ih j j, if_pos rfl, pow_succ]
-    · rw [if_neg hij]
+      rw [ih j j, ite_eq_left rfl, pow_succ]
+    · rw [ite_eq_right hij]
       apply Finset.sum_eq_zero
       intro c _
       by_cases h1 : i = c
       · rw [← h1, hd i j hij]
         ring
-      · rw [ih i c, if_neg h1]
+      · rw [ih i c, ite_eq_right h1]
         ring
 
 /-- Under the stated two-sided inverse hypotheses, similarity by `V` commutes with natural

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.SmoothPayoff
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.StepPayoff
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.SmoothPayoff
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.StepPayoff
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+
+@[expose] public section
 
 /-!
 # Native decoding and payoff bounds for finite QAE readout
@@ -129,7 +133,7 @@ theorem actual_linear_payoff_error {I : Type} [Fintype I] [DecidableEq I]
   have h := actual_smooth_payoff_error M hM A j S hA θ hθ0 hθ1 ha D
     (fun x => x) (fun _ => 1) 0
     (by intro x; convert! (hasDerivAt_id x) using 1)
-    (by simpa using (LipschitzWith.const (1 : ℝ)))
+    (by exact LipschitzWith.const (1 : ℝ))
   simpa using h
 
 /-- The affine payoff consumer has the same physical `|α D| / M` error,
@@ -145,7 +149,7 @@ theorem actual_affine_payoff_error {I : Type} [Fintype I] [DecidableEq I]
     (fun x => α*x + β) (fun _ => α) 0
     (by intro x
         simpa using ((hasDerivAt_id x).const_mul α).add_const β)
-    (by simpa using (LipschitzWith.const (α : ℝ)))
+    (by exact LipschitzWith.const (α : ℝ))
   simpa [abs_mul, mul_assoc, mul_left_comm, mul_comm] using h
 
 end Qatlib.Papers.MonteCarloInt20.QaeLaw.Actual

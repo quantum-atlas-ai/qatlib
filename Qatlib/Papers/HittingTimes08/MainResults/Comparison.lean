@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Detect
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Detect
+
+@[expose] public section
 
 /-!
 # Comparisons of spectral hitting laws
@@ -156,7 +160,7 @@ theorem corollary_3_13 (S : PhaseSpectrum J) (v1 ε : ℝ) (j0 : J)
       exact add_nonneg (Finset.sum_nonneg fun i _ => (S.law.val_pos i).le) zero_le_one
     · intro y hy
       by_contra hlt
-      push_neg at hlt
+      push Not at hlt
       have hmem : j0 ∈ Finset.univ.filter (fun j => y < S.law.val j) := by
         simp only [Finset.mem_filter, Finset.mem_univ, true_and]
         rw [hval]; exact hlt
@@ -192,7 +196,7 @@ theorem lemma_3_12_exists {Z : Type*} [Fintype Z] [Nonempty Z]
     (a0 a1 : Z → ℝ) (hsum : ∑ z, a0 z ^ 2 = ∑ z, a1 z ^ 2) :
     ∃ z, a0 z ^ 2 ≤ a1 z ^ 2 := by
   by_contra h
-  push_neg at h
+  push Not at h
   have hlt : ∑ z, a1 z ^ 2 < ∑ z, a0 z ^ 2 :=
     Finset.sum_lt_sum (fun z _ => (h z).le) (by
       obtain ⟨z⟩ := ‹Nonempty Z›

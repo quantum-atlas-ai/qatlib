@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.BatchProbability
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.BatchProbability
+
+@[expose] public section
 
 /-!
 # Sampling protocols for actual PCA vectors
@@ -118,7 +122,7 @@ theorem pca_actual_protocol_output_law {n d q : ℕ} (A : Matrix (Fin n) (Fin d)
       (∑j,Complex.normSq (sqLinearEnvelope (pcaOutputCoefficients W i)
         (pcaConjugateRows (pcaRowSketch A hA q rows)) j)) := by
     intro j
-    simp only [pcaActualProposal,dif_pos hw]
+    simp only [pcaActualProposal,dite_eq_left hw]
     exact pcaVectorProposal_probability A hA hd hq rows _ hw j
   have hc : ∀j,(pcaActualCoin A hA rows W i j).prob true=
       sqRatio (sqLinearValue (pcaOutputCoefficients W i) (pcaConjugateRows (pcaRowSketch A hA q rows)))
@@ -153,7 +157,7 @@ theorem pca_actual_protocol_failure {n d q : ℕ} (A : Matrix (Fin n) (Fin d) �
   have hp : ∀j,prop.prob j=Complex.normSq (env j)/(∑j,Complex.normSq (env j)) := by
     intro j
     have hw := (pca_output_envelope A hA rows W i hu).2
-    simp only [prop,pcaActualProposal,dif_pos hw]
+    simp only [prop,pcaActualProposal,dite_eq_left hw]
     exact pcaVectorProposal_probability A hA hd hq rows c _ j
   have hc : ∀j,(coin j).prob true=sqRatio u env j := by
     intro j

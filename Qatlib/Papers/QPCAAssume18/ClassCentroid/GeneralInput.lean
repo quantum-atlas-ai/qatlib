@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassCentroid.NearestCentroid
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassCentroid.NearestCentroid
+
+@[expose] public section
 
 /-!
 # Normalizing general centroid inputs
@@ -70,7 +74,7 @@ theorem normalizeInput_energy {d : ℕ} (anchor v : Fin d → ℂ)
   · have hs : Complex.normSq (Real.sqrt (vectorEnergy v) : ℂ) = vectorEnergy v := by
       rw [Complex.normSq_ofReal, ← sq]
       exact Real.sq_sqrt (vectorEnergy_nonneg v)
-    rw [normalizeInput, if_neg hv]
+    rw [normalizeInput, ite_eq_right hv]
     simp only [vectorEnergy, Complex.normSq_mul, Complex.normSq_inv, ← Finset.mul_sum]
     change (Complex.normSq (Real.sqrt (vectorEnergy v) : ℂ))⁻¹ * vectorEnergy v = 1
     rw [hs, inv_mul_cancel₀ hv]

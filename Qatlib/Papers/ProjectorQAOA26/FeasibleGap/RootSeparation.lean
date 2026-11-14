@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+
+@[expose] public section
 
 /-!
 # Separation of uniform secular roots

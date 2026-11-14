@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.FieldTheory.Finite.Basic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.FieldTheory.Finite.Basic
+
+@[expose] public section
 
 /-!
 # Finite-field characters and Gauss-sum phases
@@ -328,7 +332,7 @@ theorem gaussSum_polar {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : 
 /-- The multiplicative character equal to one on nonzero elements and zero at zero. -/
 def trivialMultChar (K : Type*) [Field K] : MultChar K where
   toFun := fun x => by classical exact (if x = 0 then 0 else 1)
-  map_zero' := by classical exact if_pos rfl
+  map_zero' := by classical exact ite_eq_left rfl
   map_one' := by classical simp
   map_mul' x y := by
     classical
@@ -368,9 +372,9 @@ theorem gaussSum_trivial_zero {K : Type*} [Field K] [Fintype K] (e : AddChar K) 
     · simp [trivialMultChar, hx]
   simp_rw [hpt]
   rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one,
-    Finset.sum_ite_eq', if_pos (Finset.mem_univ (0 : K))]
+    Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (0 : K))]
   have hc : 1 ≤ Fintype.card K := by
-    haveI : Nonempty K := ⟨0⟩
+    have : Nonempty K := ⟨0⟩
     exact Fintype.card_pos
   rw [Nat.cast_sub hc]
   push_cast
@@ -395,9 +399,9 @@ theorem gaussSum_trivial_ne {K : Type*} [Field K] [Fintype K] (e : AddChar K) {�
     rw [← Finset.sum_erase_add (Finset.univ : Finset K)
       (fun x : K => if x = 0 then (0 : ℂ) else e.toFun (β * x))
       (Finset.mem_univ (0 : K))]
-    rw [if_pos rfl, add_zero]
+    rw [ite_eq_left rfl, add_zero]
     refine Finset.sum_congr rfl fun x hx => ?_
-    rw [if_neg (Finset.mem_erase.mp hx).1]
+    rw [ite_eq_right (Finset.mem_erase.mp hx).1]
   rw [hleft]
   have hfull : (∑ x : K, e.toFun (β * x)) = 0 := e.sum_mul_eq_zero hβ
   have hsplit : (∑ x : K, e.toFun (β * x))
@@ -433,7 +437,7 @@ def fourierChi {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar 
 amplitudes by `χ(y)²` yields `chiState` scaled by the Gauss sum divided by `√(card K)`
 [VanDamSeroussi2002]. -/
 theorem algorithm1_phase_change {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
-    (e : AddChar K) (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0) :
+    (e : AddChar K) (_hnt : χ.IsNontrivial) {β : K} (_hβ : β ≠ 0) :
     (fun y => (χ.toFun y) ^ 2 * fourierChi χ e β y)
       = (gaussSum χ.toFun e β / ((Real.sqrt (Fintype.card K : ℝ)) : ℂ)) • chiState χ := by
   have hcard : 2 ≤ Fintype.card K := by

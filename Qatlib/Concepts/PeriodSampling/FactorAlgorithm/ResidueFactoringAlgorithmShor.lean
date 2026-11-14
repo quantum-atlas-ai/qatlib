@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFactoringAlgorithmStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFactoringAlgorithmStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+
+@[expose] public section
 
 /-!
 # Amplified residue factoring algorithm
@@ -64,7 +68,7 @@ private theorem residue_fresh_success_bound {A : Type*} [Fintype A] [DecidableEq
     intro ω
     by_cases h : ∀ j, ¬ P (ω j)
     · simp [h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       push Not at h
       obtain ⟨j, hj⟩ := h
       exact Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hj])

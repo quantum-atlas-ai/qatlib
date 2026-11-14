@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessStateConversionAlgorithmStat
-import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessConversionPhysicalProgram
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ResidualEntry
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessStateConversionAlgorithmStat
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessConversionPhysicalProgram
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ResidualEntry
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Counted state conversion from filtered witnesses

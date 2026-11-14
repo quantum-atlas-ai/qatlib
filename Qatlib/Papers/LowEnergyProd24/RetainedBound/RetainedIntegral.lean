@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.ProjectedDefect
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.ProjectedDefect
+
+@[expose] public section
 
 /-!
 # Duhamel integrals for retained product-formula error

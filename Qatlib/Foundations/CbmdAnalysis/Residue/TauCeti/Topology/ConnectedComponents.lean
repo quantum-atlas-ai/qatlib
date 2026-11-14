@@ -6,19 +6,23 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.Algebra.ConstMulAction
-import Mathlib.Topology.Connected.TotallyDisconnected
-import Mathlib.Topology.Connected.Clopen
-import Mathlib.Topology.Connected.LocallyConnected
-import Mathlib.Topology.Irreducible
-import Mathlib.SetTheory.Cardinal.Finite
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.PathComponent
-import Mathlib.Topology.Order.OrderClosed
-import Mathlib.Topology.DiscreteSubset
-import Mathlib.Topology.Homeomorph.Lemmas
-import Mathlib.Topology.Order.IntermediateValue
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.Algebra.ConstMulAction
+public import Mathlib.Topology.Connected.TotallyDisconnected
+public import Mathlib.Topology.Connected.Clopen
+public import Mathlib.Topology.Connected.LocallyConnected
+public import Mathlib.Topology.Irreducible
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.PathComponent
+public import Mathlib.Topology.Order.OrderClosed
+public import Mathlib.Topology.DiscreteSubset
+public import Mathlib.Topology.Homeomorph.Lemmas
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 /-!
 # Connected components and finite decompositions
@@ -331,7 +335,7 @@ theorem isPreconnected_compl_of_isDiscrete [PreconnectedSpace X] {s : Set X} (hs
     IsPreconnected sᶜ := by
   have hV : ∀ x ∈ s, ∃ V ∈ 𝓝 x, V \ {x} ⊆ sᶜ ∧ IsConnected (V \ {x}) := by
     intro x hx
-    obtain ⟨u, hu, hus⟩ := isDiscrete_iff_forall_exists_isOpen.1 hd x hx
+    obtain ⟨u, hu, hus⟩ := isDiscrete_iff_forall_mem_exists_isOpen.1 hd x hx
     have hxu : x ∈ u := (hus.symm ▸ mem_singleton x : x ∈ u ∩ s).1
     obtain ⟨V, hV, hVu, hc⟩ := h x hx u (hu.mem_nhds hxu)
     refine ⟨V, hV, fun y hy hys ↦ hy.2 ?_, hc⟩
@@ -441,7 +445,7 @@ theorem isClopen_of_finite_pairwiseDisjoint_closed_cover {ι : Type*} [Finite ι
     (hclosed : ∀ i, IsClosed (U i)) (hdisj : Pairwise (Disjoint on U))
     (hunion : ⋃ i, U i = univ) (i : ι) : IsClopen (U i) := by
   refine ⟨hclosed i, ?_⟩
-  rw [← isClosed_compl_iff, compl_eq_univ_diff, ← hunion, iUnion_diff]
+  rw [← isClosed_compl_iff, compl_eq_univ_sdiff, ← hunion, iUnion_sdiff]
   refine isClosed_iUnion_of_finite fun j ↦ ?_
   rcases eq_or_ne j i with rfl | hne
   · simp

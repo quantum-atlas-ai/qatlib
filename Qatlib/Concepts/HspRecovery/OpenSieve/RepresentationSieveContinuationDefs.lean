@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
-import Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieve
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
-import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+public import Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieve
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+public import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+
+@[expose] public section
 
 /-!
 # Actual sieve records and decorated skeletons

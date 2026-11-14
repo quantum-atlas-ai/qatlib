@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QIntegration00.MainResults.Defs
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
-import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+module
+
+public import Qatlib.Papers.QIntegration00.MainResults.Defs
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+@[expose] public section
 
 /-!
 # Randomized quantum mean estimation bounds

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ResolventQPE24.MainResults.Prelude
+module
+
+public import Qatlib.Papers.ResolventQPE24.MainResults.Prelude
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,9 +52,9 @@ The constant is `1` because the ledger of Eq. (35) is exactly this expression;
 the displayed `O(·)` suppresses constants that the formal statement keeps
 implicit in the choice of `C`. -/
 theorem expectation_estimation_query_bound
-    (αA εeig pfail εstate : ℝ) (hαA : 0 < αA) (hεeig : 0 < εeig)
-    (hpf : 0 < pfail) (hpf1 : pfail < 1)
-    (hstate : εstate ≤ εeig / (2 * αA)) :
+    (αA εeig pfail εstate : ℝ) (_hαA : 0 < αA) (_hεeig : 0 < εeig)
+    (_hpf : 0 < pfail) (_hpf1 : pfail < 1)
+    (_hstate : εstate ≤ εeig / (2 * αA)) :
     ∃ C : ℝ, 0 < C ∧
       expectationEstimationQueryBound αA εeig pfail ≤
         C * (αA / εeig * Real.log (1 / pfail)) := by

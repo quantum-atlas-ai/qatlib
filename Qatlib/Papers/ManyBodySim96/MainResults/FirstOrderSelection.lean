@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodySim96.MainResults.Basic
+module
+
+public import Qatlib.Papers.ManyBodySim96.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # First-order segment selection and error bounds

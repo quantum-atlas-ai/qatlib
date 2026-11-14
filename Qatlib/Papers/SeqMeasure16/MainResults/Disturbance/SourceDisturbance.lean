@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 set_option backward.isDefEq.respectTransparency false
 
 /-!

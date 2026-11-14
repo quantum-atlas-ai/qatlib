@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteCounts.OffsetWord.BinaryWord
+module
+
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.BinaryWord
+
+@[expose] public section
 
 /-!
 # Transport of checked translation words

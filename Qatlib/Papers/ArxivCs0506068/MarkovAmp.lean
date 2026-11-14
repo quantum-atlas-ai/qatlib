@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Push
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Push
+
+@[expose] public section
 
 /-!
 # Finite Markov bounds for QAM amplification

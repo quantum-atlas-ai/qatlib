@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Module.Normalize
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Topology.Compactification.OnePoint.ProjectiveLine
-import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeProjection
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+module
+
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Module.Normalize
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Topology.Compactification.OnePoint.ProjectiveLine
+public import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeProjection
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+
+@[expose] public section
 
 /-!
 # Coordinate selection for concise least-squares fits
@@ -476,7 +480,7 @@ theorem conciseFit_histogram_markov :
     intro l
     by_cases h : E l
     · simp [h]
-    · simp only [if_pos h, mul_one]
+    · simp only [ite_eq_left h, mul_one]
       rw [mul_comm (ENNReal.ofReal μ)]
       apply mul_le_mul_right
       apply ENNReal.ofReal_le_ofReal

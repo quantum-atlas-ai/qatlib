@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceSum
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceSum
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+
+@[expose] public section
 
 /-!
 # Summing inner products of pair slices

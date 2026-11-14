@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Divisibility.Basic
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.Units.Fintype
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Divisibility.Basic
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.Units.Fintype
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting elements of prescribed order modulo a prime
@@ -50,8 +54,8 @@ namespace Qatlib.Foundations.OrderPrimality.GeneratorCount
 theorem card_units_orderOf_eq_totient {p d : ℕ} [NeZero p] (hp : p.Prime)
     (hd : d ∣ p - 1) :
     #{a : (ZMod p)ˣ | orderOf a = d} = Nat.totient d := by
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : IsCyclic (ZMod p)ˣ := ZMod.isCyclic_units_prime hp
+  have : Fact p.Prime := ⟨hp⟩
+  have : IsCyclic (ZMod p)ˣ := ZMod.isCyclic_units_prime hp
   refine IsCyclic.card_orderOf_eq_totient ?_
   rw [ZMod.card_units_eq_totient, Nat.totient_prime hp]
   exact hd
@@ -67,7 +71,7 @@ theorem order_pred_fraction {N : ℕ} [NeZero N] (hN : N.Prime) :
     ((#{a : (ZMod N)ˣ | orderOf a = N - 1} : ℕ) : ℚ) /
         ((Fintype.card (ZMod N)ˣ : ℕ) : ℚ)
       = (Nat.totient (N - 1) : ℚ) / (((N - 1 : ℕ)) : ℚ) := by
-  haveI : Fact N.Prime := ⟨hN⟩
+  have : Fact N.Prime := ⟨hN⟩
   rw [card_order_pred_eq_totient hN, ZMod.card_units_eq_totient, Nat.totient_prime hN]
 
 end Qatlib.Foundations.OrderPrimality.GeneratorCount

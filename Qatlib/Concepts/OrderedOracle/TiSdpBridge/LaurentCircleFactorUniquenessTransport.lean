@@ -1,0 +1,86 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorUniquenessStat
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentFactorUniqueness
+
+@[expose] public section
+
+/-!
+# Uniqueness of closed-disk Laurent factors
+
+This module proves `LaurentCircleFactorUniqueness` using the nonzero highest Laurent coefficient
+to establish each factor's exact degree and nonzero constant term.
+`laurentCircleFactorUniqueness` then applies polynomial phase uniqueness to obtain
+coefficientwise equality up to a unit scalar, within the circle-factor framework used by
+[ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `circle_factor_actual_degree`: a circle factor has degree `n - 1` and a nonzero value at zero
+  when the highest Laurent coefficient is nonzero.
+* `laurentCircleFactorUniqueness`: closed-disk factors are unique up to multiplication by a
+  complex scalar of norm one.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
+set_option backward.isDefEq.respectTransparency false
+
+set_option autoImplicit false
+noncomputable section
+namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
+open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
+open scoped Classical BigOperators ComplexOrder
+
+/-- For positive `n`, a square-norm factor `laurentCoefficientPolynomial p` with `p : Fin n → ℂ`
+has degree exactly `n - 1` and nonzero value at zero if the Laurent family's highest
+coefficient is nonzero. -/
+private theorem circle_factor_actual_degree (n : ℕ) [NeZero n] (a p : Fin n → ℂ)
+    (htop : a ⟨n-1,by have := NeZero.pos n; omega⟩≠0)
+    (hc : ∀ z : ℂ, ‖z‖=1 → complexLaurentEval a z=
+      ((‖(laurentCoefficientPolynomial p).eval z‖^2 : ℝ) : ℂ)) :
+    (laurentCoefficientPolynomial p).natDegree=n-1 ∧
+      (laurentCoefficientPolynomial p).eval 0≠0 := by
+  let top : Fin n := ⟨n-1,by have := NeZero.pos n; omega⟩
+  have hcoeff := gramOuter_positive_coeff_of_circle_factor a p hc top
+  rw [gramOuter_highest_trace] at hcoeff
+  have hprod : star (p 0)*p top≠0 := by rw [hcoeff]; exact htop
+  have hp0 : p 0≠0 := by intro h; apply hprod; simp [h]
+  have hpt : p top≠0 := by intro h; apply hprod; simp [h]
+  have hc0 : (laurentCoefficientPolynomial p).coeff 0=p 0 := by
+    rw [laurentCoefficientPolynomial_coeff,dite_eq_left (NeZero.pos n)]
+    rfl
+  have hct : (laurentCoefficientPolynomial p).coeff (n-1)=p top := by
+    rw [laurentCoefficientPolynomial_coeff,dite_eq_left (by have := NeZero.pos n; omega)]
+  refine ⟨le_antisymm (laurentCoefficientPolynomial_degree p)
+    (Polynomial.le_natDegree_of_ne_zero (by rwa [hct])),?_⟩
+  rw [← Polynomial.coeff_zero_eq_eval_zero,hc0]
+  exact hp0
+
+/-- Proves `LaurentCircleFactorUniqueness`: the two closed-disk factors have full degree and
+their coefficients differ by a single complex scalar of norm one. -/
+theorem laurentCircleFactorUniqueness : LaurentCircleFactorUniqueness := by
+  intro n _ a p q _ htop hP hQ hPr hQr
+  obtain ⟨hPd,hPc⟩ := circle_factor_actual_degree n a p htop hP
+  obtain ⟨hQd,hQc⟩ := circle_factor_actual_degree n a q htop hQ
+  have hnorm (z : ℂ) (hz : ‖z‖=1) :
+      ‖(laurentCoefficientPolynomial p).eval z‖=‖(laurentCoefficientPolynomial q).eval z‖ := by
+    have he := (hP z hz).symm.trans (hQ z hz)
+    exact (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp (Complex.ofReal_injective he)
+  obtain ⟨u,hu,he⟩ := closed_disk_polynomial_phase_unique (laurentCoefficientPolynomial p)
+    (laurentCoefficientPolynomial q) (hQd.trans hPd.symm) hPc hQc hPr hQr hnorm
+  refine ⟨hPd,hQd,u,hu,?_⟩
+  intro i
+  have hc := congrArg (fun P : Polynomial ℂ => P.coeff i.val) he
+  simp only [coeff_C_mul,laurentCoefficientPolynomial_coeff,dite_eq_left i.isLt] at hc
+  exact hc
+
+end Qatlib.Concepts.OrderedOracle.TiSdpBridge

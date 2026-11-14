@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.ParityPromise
-import Qatlib.Papers.QAlgorithms97.MainResults.AffineCoefficients
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.ParityPromise
+public import Qatlib.Papers.QAlgorithms97.MainResults.AffineCoefficients
+
+@[expose] public section
 
 /-!
 # The parity promise: actual run of the generalised Fig. 4 network (Sect. 3)
@@ -44,7 +48,7 @@ theorem all_output_character {m : ℕ} (y : Reg m) :
   rw [← bit_character, binaryCharacter_dot]
   change ZMod.stdAddChar (bitVal (boolParity y)) = _
   rw [bitVal_boolParity]
-  simp only [bitVal, if_true, one_mul]
+  simp only [bitVal, ite_true, one_mul]
 
 /-- The actual full-output XOR word reduces to the parity DJ state, retaining all m answer qubits. -/
 theorem parityPromise_actual_run {n m : ℕ} (f : Reg n → Reg m) :

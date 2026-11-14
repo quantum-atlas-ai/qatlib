@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
+
+@[expose] public section
 
 /-!
 # Actual product words and repeated-step errors

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+
+@[expose] public section
 
 /-!
 # Fourier laws for the discrete-logarithm state
@@ -90,10 +94,10 @@ theorem dlog_state_normalized (p q : ℕ) [NeZero p] (g x : ZMod p)
     by_cases h : f z = t.2.2
     · have hi : (1 : Matrix (ZMod p) (ZMod p) ℂ) t.2.2 (f z) = 1 := by
         rw [h]; simp
-      simp only [if_pos h, hi, mul_one]
+      simp only [ite_eq_left h, hi, mul_one]
     · have hi : (1 : Matrix (ZMod p) (ZMod p) ℂ) t.2.2 (f z) = 0 := by
-        simp only [Matrix.one_apply, if_neg (Ne.symm h)]
-      simp only [if_neg h, hi, mul_zero]
+        simp only [Matrix.one_apply, ite_eq_right (Ne.symm h)]
+      simp only [ite_eq_right h, hi, mul_zero]
   have hstate : dlogTwoDimState p q g x = ∑ z : Fin P × Fin P, ((P : ℂ)⁻¹) • v z := by
     funext t
     simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, hvalue, Fintype.sum_prod_type]
@@ -102,8 +106,8 @@ theorem dlog_state_normalized (p q : ℕ) [NeZero p] (g x : ZMod p)
   unfold Normalized
   rw [sum_norm_sq_orthonormal v (fun _ => (P : ℂ)⁻¹) (fun z w => by
     by_cases h : z = w
-    · simpa only [if_pos h] using hv z w
-    · simpa only [if_neg h] using hv z w)]
+    · simpa only [ite_eq_left h] using hv z w
+    · simpa only [ite_eq_right h] using hv z w)]
   simp only [Finset.sum_const, Finset.card_univ, Fintype.card_prod, Fintype.card_fin,
     nsmul_eq_mul, norm_inv, Complex.norm_natCast]
   have hPc : (P : ℝ) ≠ 0 := by exact_mod_cast hP.ne'

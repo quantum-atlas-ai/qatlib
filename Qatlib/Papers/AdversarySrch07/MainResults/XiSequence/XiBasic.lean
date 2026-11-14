@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Basic bounds for the central-binomial sequence

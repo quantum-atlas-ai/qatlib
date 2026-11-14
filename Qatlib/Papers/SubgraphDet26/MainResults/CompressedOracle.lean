@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SubgraphDet26.MainResults.GraphModel
-import Qatlib.Papers.SubgraphDet26.MainResults.CertificateSearch
-import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Papers.SubgraphDet26.MainResults.GraphModel
+public import Qatlib.Papers.SubgraphDet26.MainResults.CertificateSearch
+public import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -225,14 +229,14 @@ unitary `V` on the workspace that is independent of the input.
 Proof: both sides are `V ⊗ T_C` by Kronecker multiplicativity
 (`tensorGate_mul`, `Matrix.one_mul`, `Matrix.mul_one`); the identity `I_{D_C}` is
 represented here by the ambient identity, which agrees on the image of `T_C`. -/
-theorem lemma35_gate_intertwining (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (C : Finset I)
+theorem lemma35_gate_intertwining (p : ℝ) (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (C : Finset I)
     (V : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) :
     TensorGate (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) (conditioningMap C p) *
         TensorGate V (1 : Matrix (I → Bool) (I → Bool) ℂ)
       = TensorGate V (1 : Matrix (I → Bool) (I → Bool) ℂ) *
         TensorGate (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) (conditioningMap C p) := by
   rw [tensorGate_mul, tensorGate_mul]
-  simp [Matrix.one_mul, Matrix.mul_one]
+  simp
 
 /-! ## Lemma 3.6: progress across a threshold
 
@@ -270,21 +274,21 @@ theorem lemma37_conditioning_norm_below_threshold
     intro d S
     have hL : (lowProjector low C) S S =
         if databaseSupport S ∩ C ∈ low C then (1 : ℂ) else 0 := by
-      simp [lowProjector, Matrix.diagonal_apply]
+      simp [lowProjector]
     have hL0 : ∀ S' : I → Bool, S' ≠ S → (lowProjector low C) S' S = 0 := by
       intro S' hS'
-      simp [lowProjector, Matrix.diagonal_apply, hS']
+      simp [lowProjector, hS']
     rw [Matrix.mul_apply,
       Finset.sum_eq_single S (fun b _ hb => by rw [hL0 b hb, mul_zero])
         (fun h => absurd (Finset.mem_univ S) h), hL]
     by_cases hmem : databaseSupport S ∩ C ∈ low C
-    · rw [if_pos hmem, mul_one]
+    · rw [ite_eq_left hmem, mul_one]
       show (if d = removeCoord C S
           then (((-(eta p) : ℝ)) : ℂ) ^ (databaseSupport S ∩ C).card else 0) = _
       by_cases hd : removeCoord C S = d
-      · rw [if_pos hd.symm, if_pos ⟨hd, hmem⟩]
-      · rw [if_neg (fun h => hd h.symm), if_neg (fun h => hd h.1)]
-    · rw [if_neg hmem, mul_zero, if_neg (fun h => hmem h.2)]
+      · rw [ite_eq_left hd.symm, ite_eq_left ⟨hd, hmem⟩]
+      · rw [ite_eq_right (fun h => hd h.symm), ite_eq_right (fun h => hd h.1)]
+    · rw [ite_eq_right hmem, mul_zero, ite_eq_right (fun h => hmem h.2)]
   -- the square of a real entry, as a real power of `(1-p)/p`
   have hsq : ∀ n : ℕ,
       (((-(eta p) : ℝ) : ℂ) ^ n) * (star (((-(eta p) : ℝ) : ℂ) ^ n))
@@ -317,11 +321,11 @@ theorem lemma37_conditioning_norm_below_threshold
               then (((1 - p) / p : ℝ) : ℂ) ^ (databaseSupport S ∩ C).card else 0) := by
         intro S
         by_cases hS : removeCoord C S = d ∧ databaseSupport S ∩ C ∈ low C
-        · simp only [if_pos hS, hsq]
+        · simp only [ite_eq_left hS, hsq]
         · simp [hS]
       rw [Finset.sum_congr rfl fun S _ => hterm S]
       by_cases hd : ∀ j ∈ C, d j = false
-      · rw [if_pos hd]
+      · rw [ite_eq_left hd]
         -- the bijection `S ↦ databaseSupport S ∩ C` onto `low C`
         have hfil : ∑ S ∈ Finset.univ.filter
             (fun S => removeCoord C S = d ∧ databaseSupport S ∩ C ∈ low C),
@@ -372,18 +376,18 @@ theorem lemma37_conditioning_norm_below_threshold
             have hrc : removeCoord C (fun j => if j ∈ A then true else d j) = d := by
               funext j
               by_cases hj : j ∈ C
-              · simp only [removeCoord, if_pos hj, hd j hj]
+              · simp only [removeCoord, ite_eq_left hj, hd j hj]
               · by_cases hja : j ∈ A
                 · exact absurd (hlow A hA hja) hj
-                · simp only [removeCoord, if_neg hj, hja, if_false]
+                · simp only [removeCoord, ite_eq_right hj, hja, ite_false]
             exact ⟨fun j => if j ∈ A then true else d j,
               Finset.mem_filter.mpr ⟨Finset.mem_univ _, hrc, hdb.symm ▸ hA⟩, hdb⟩
           · intro S hS
             rfl
         rw [← Finset.sum_filter, hfil, Complex.ofReal_sum]
         exact Finset.sum_congr rfl fun A _ => (Complex.ofReal_pow _ _).symm
-      · rw [if_neg hd]
-        push_neg at hd
+      · rw [ite_eq_right hd]
+        push Not at hd
         obtain ⟨j₀, hj₀, hdj⟩ := hd
         have hnone : ∀ S : I → Bool,
             ¬(removeCoord C S = d ∧ databaseSupport S ∩ C ∈ low C) := by
@@ -393,16 +397,16 @@ theorem lemma37_conditioning_norm_below_threshold
           exact absurd h1 hdj
         simp [hnone]
     · simp only [Matrix.diagonal_apply]
-      rw [if_neg hdd]
+      rw [ite_eq_right hdd]
       simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hentry]
       refine Finset.sum_eq_zero fun S _ => ?_
       by_cases h1 : removeCoord C S = d ∧ databaseSupport S ∩ C ∈ low C
-      · rw [if_pos h1]
+      · rw [ite_eq_left h1]
         by_cases h2 : removeCoord C S = d' ∧ databaseSupport S ∩ C ∈ low C
-        · rw [if_pos h2]
+        · rw [ite_eq_left h2]
           exact absurd ((h2.1.symm.trans h1.1).symm) hdd
-        · rw [if_neg h2]; simp
-      · rw [if_neg h1]; simp
+        · rw [ite_eq_right h2]; simp
+      · rw [ite_eq_right h1]; simp
   -- take operator norms
   have hS0nn : 0 ≤ ∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ) :=
     Finset.sum_nonneg fun A _ => pow_nonneg (le_of_lt hrp) _
@@ -416,19 +420,19 @@ theorem lemma37_conditioning_norm_below_threshold
   rw [hM2, hdiag, Matrix.l2_opNorm_diagonal]
   refine le_antisymm ((pi_norm_le_iff_of_nonneg hS0nn).mpr fun d => ?_) ?_
   · by_cases hd : ∀ j ∈ C, d j = false
-    · rw [if_pos hd]
+    · rw [ite_eq_left hd]
       have hEq : ‖(Complex.ofReal (∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ)))‖
           = ∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ) := by
         exact_mod_cast abs_of_nonneg hS0nn
       rw [hEq]
-    · rw [if_neg hd, norm_zero]
+    · rw [ite_eq_right hd, norm_zero]
       exact hS0nn
   · have hle := norm_le_pi_norm
       (fun d : I → Bool =>
         if (∀ j ∈ C, d j = false)
         then Complex.ofReal (∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ)) else 0)
       (fun _ => false)
-    rw [if_pos (by simp)] at hle
+    rw [ite_eq_left (by simp)] at hle
     have hEq : ‖(Complex.ofReal (∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ)))‖
         = ∑ A ∈ low C, ((1 - p) / p) ^ (A.card : ℕ) := by
       exact_mod_cast abs_of_nonneg hS0nn

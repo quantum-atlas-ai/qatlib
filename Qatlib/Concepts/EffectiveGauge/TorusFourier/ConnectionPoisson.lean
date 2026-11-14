@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceFourierCoefficient
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonBounds
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMean
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTruncation
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceFourierCoefficient
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonBounds
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMean
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTruncation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

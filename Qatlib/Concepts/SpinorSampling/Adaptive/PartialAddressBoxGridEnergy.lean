@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressMatchedGrid
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressBoxPoincare
-import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellLowMean
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressMatchedGrid
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressBoxPoincare
+public import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellLowMean
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

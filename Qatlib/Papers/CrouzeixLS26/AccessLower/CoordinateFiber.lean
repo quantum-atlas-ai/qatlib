@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,11 +69,15 @@ selecting data basis `i` inside the `j₀`-labeled sector. -/
 def encodingFiber (j₀ : J) : Matrix (J × I) I ℂ :=
   Matrix.of fun x i => if x.1 = j₀ ∧ x.2 = i then 1 else 0
 
+omit [Fintype J] [Fintype I] in
+
 /-- Pointwise form of the single-register fiber. -/
 theorem encodingFiber_apply (j₀ : J) (x : J × I) (i : I) :
     encodingFiber j₀ x i = if x = (j₀, i) then 1 else 0 := by
   obtain ⟨a, b⟩ := x
   by_cases h1 : a = j₀ <;> by_cases h2 : b = i <;> simp [encodingFiber, h1, h2]
+
+omit [Fintype J] [Fintype I] in
 
 /-- Pointwise form of the fiber's adjoint. -/
 theorem encodingFiber_conjTranspose (j₀ : J) (i : I) (x : J × I) :

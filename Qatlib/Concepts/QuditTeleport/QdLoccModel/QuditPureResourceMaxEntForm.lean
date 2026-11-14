@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+
+@[expose] public section
 
 /-!
 # The pure qudit teleportation resource contract

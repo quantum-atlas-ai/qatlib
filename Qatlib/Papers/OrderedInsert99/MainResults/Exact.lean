@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.LowerBound
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.LowerBound
+
+@[expose] public section
 
 /-!
 # Normalized exact stages for ordered insertion

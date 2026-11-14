@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoGlobalSym14.ParamFacts
-import Qatlib.Papers.NoGlobalSym14.ScalarModels.Perturbation
-import Mathlib.Combinatorics.SimpleGraph.Maps
+module
+
+public import Qatlib.Papers.NoGlobalSym14.ParamFacts
+public import Qatlib.Papers.NoGlobalSym14.ScalarModels.Perturbation
+public import Mathlib.Combinatorics.SimpleGraph.Maps
+
+@[expose] public section
 
 /-!
 # Strongly regular graph scalar-model consequences

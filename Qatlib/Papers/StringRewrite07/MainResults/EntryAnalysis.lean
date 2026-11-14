@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StringRewrite07.MainResults.Source
+module
+
+public import Qatlib.Papers.StringRewrite07.MainResults.Source
+
+@[expose] public section
 
 /-!
 # Execution sectors and replacement adjacency
@@ -113,29 +117,29 @@ theorem execOp_entries {σ : Type} [DecidableEq σ] (sector : σ → Option (Fin
     (i j : σ) : ExecEntry (execOp sector AT AS AH i j) := by
   unfold execOp
   by_cases h0 : sector i = some 0
-  · rw [if_pos h0]
+  · rw [ite_eq_left h0]
     by_cases h0' : sector j = some 0
-    · rw [if_pos h0']; exact execEntry_of_ham (hT i j)
-    · rw [if_neg h0']; exact Or.inl rfl
-  · rw [if_neg h0]
+    · rw [ite_eq_left h0']; exact execEntry_of_ham (hT i j)
+    · rw [ite_eq_right h0']; exact Or.inl rfl
+  · rw [ite_eq_right h0]
     by_cases h1 : sector i = some 1
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       by_cases h1' : sector j = some 1
-      · rw [if_pos h1']; exact execEntry_of_ham (hS i j)
-      · rw [if_neg h1']; exact Or.inl rfl
-    · rw [if_neg h1]
+      · rw [ite_eq_left h1']; exact execEntry_of_ham (hS i j)
+      · rw [ite_eq_right h1']; exact Or.inl rfl
+    · rw [ite_eq_right h1]
       by_cases h2 : sector i = some 2
-      · rw [if_pos h2]
+      · rw [ite_eq_left h2]
         by_cases h2' : sector j = some 2
-        · rw [if_pos h2']; exact execEntry_of_ham (hH i j)
-        · rw [if_neg h2']; exact Or.inl rfl
-      · rw [if_neg h2]
+        · rw [ite_eq_left h2']; exact execEntry_of_ham (hH i j)
+        · rw [ite_eq_right h2']; exact Or.inl rfl
+      · rw [ite_eq_right h2]
         by_cases h3 : sector i = some 3
-        · rw [if_pos h3]; exact Or.inl rfl
-        · rw [if_neg h3]
+        · rw [ite_eq_left h3]; exact Or.inl rfl
+        · rw [ite_eq_right h3]
           by_cases hij : i = j
-          · rw [if_pos hij]; exact execEntry_one
-          · rw [if_neg hij]; exact Or.inl rfl
+          · rw [ite_eq_left hij]; exact execEntry_one
+          · rw [ite_eq_right hij]; exact Or.inl rfl
 
 /-- A row of the execution matrix in sector zero uses the corresponding `AT` entry for columns
 in sector zero and vanishes on other columns. -/
@@ -143,15 +147,15 @@ theorem execOp_apply_sector_zero {σ : Type} [DecidableEq σ] (sector : σ → O
     (AT AS AH : Matrix σ σ ℝ) {i : σ} (hi : sector i = some 0) (j : σ) :
     execOp sector AT AS AH i j = if sector j = some 0 then AT i j else 0 := by
   unfold execOp
-  rw [if_pos hi]
+  rw [ite_eq_left hi]
 
 /-- Every row of the execution matrix in sector three is zero. -/
 theorem execOp_apply_sector_three {σ : Type} [DecidableEq σ] (sector : σ → Option (Fin 4))
     (AT AS AH : Matrix σ σ ℝ) {i : σ} (hi : sector i = some 3) (j : σ) :
     execOp sector AT AS AH i j = 0 := by
   unfold execOp
-  rw [if_neg (by rw [hi]; simp), if_neg (by rw [hi]; simp),
-    if_neg (by rw [hi]; simp), if_pos hi]
+  rw [ite_eq_right (by rw [hi]; simp), ite_eq_right (by rw [hi]; simp),
+    ite_eq_right (by rw [hi]; simp), ite_eq_left hi]
 
 /-- A row of the execution matrix in the rest sector is the corresponding row of the identity
 matrix. -/
@@ -159,8 +163,8 @@ theorem execOp_apply_rest {σ : Type} [DecidableEq σ] (sector : σ → Option (
     (AT AS AH : Matrix σ σ ℝ) {i : σ} (hi : sector i = none) (j : σ) :
     execOp sector AT AS AH i j = if i = j then 1 else 0 := by
   unfold execOp
-  rw [if_neg (by rw [hi]; simp), if_neg (by rw [hi]; simp),
-    if_neg (by rw [hi]; simp), if_neg (by rw [hi]; simp)]
+  rw [ite_eq_right (by rw [hi]; simp), ite_eq_right (by rw [hi]; simp),
+    ite_eq_right (by rw [hi]; simp), ite_eq_right (by rw [hi]; simp)]
 
 /-- The condition that each row has exactly one entry equal to one and every matrix entry is
 zero or one. -/

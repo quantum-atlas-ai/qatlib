@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.DatabaseDefs
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.DatabaseDefs
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+
+@[expose] public section
 
 /-!
 # Parity answers and single-query database recovery

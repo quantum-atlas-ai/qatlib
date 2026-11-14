@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsStat
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsStat
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Unitary semantics of alphabet query words

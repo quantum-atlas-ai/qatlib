@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.GeneralNoise
+module
+
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.GeneralNoise
+
+@[expose] public section
 
 /-! # Scalar support retained from the original SpacetimeLB26 contribution
 

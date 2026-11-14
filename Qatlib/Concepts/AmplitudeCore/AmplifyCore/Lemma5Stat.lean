@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Span.Defs
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Defs
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Defs
+
+@[expose] public section
 
 /-!
 # Specification of the general phase component action

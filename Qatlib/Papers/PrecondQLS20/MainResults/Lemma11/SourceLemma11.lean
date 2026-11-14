@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.PrecondQLS20.MainResults.Foundation.PrecondModel
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.PrecondQLS20.MainResults.Foundation.PrecondModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -142,8 +146,8 @@ theorem opNorm_le_of_act_le (M : Matrix (Fin n) (Fin n) ℂ) {C : ℝ} (hC : 0 �
 In the form "`W` expands": for every `y`, `‖y‖ ≤ (1 + ‖(A+B)⁻¹‖‖B‖)‖W y‖`. -/
 theorem lemma11_lower
     (A B : Matrix (Fin n) (Fin n) ℂ)
-    (hA_left : A * A⁻¹ = 1) (hA_right : A⁻¹ * A = 1)
-    (hAB_left : (A + B) * (A + B)⁻¹ = 1) (hAB_right : (A + B)⁻¹ * (A + B) = 1) :
+    (hA_left : A * A⁻¹ = 1) (_hA_right : A⁻¹ * A = 1)
+    (_hAB_left : (A + B) * (A + B)⁻¹ = 1) (hAB_right : (A + B)⁻¹ * (A + B) = 1) :
     ∀ x : EuclideanSpace ℂ (Fin n),
       ‖x‖ ≤ (1 + ‖(A + B)⁻¹‖ * ‖B‖) * ‖act (1 + A⁻¹ * B) x‖ := by
   intro x

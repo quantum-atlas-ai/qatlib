@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.Algebra.MvPolynomial.CommRing
-import Mathlib.Data.ZMod.Basic
-import Mathlib.FieldTheory.Finite.Basic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.Algebra.MvPolynomial.CommRing
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.FieldTheory.Finite.Basic
+
+@[expose] public section
 
 /-!
 # Hyperplane polynomials over a prime field

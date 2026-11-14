@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.HomOverlap.BornReadout
-import Mathlib.Data.Finset.Max
+module
+
+public import Qatlib.Papers.HHLManyBody22.HomOverlap.BornReadout
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Greedy conditional fixing of clock bits

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.HhlAlgorithms.RationalProgram
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.HhlAlgorithms.RationalProgram
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+
+@[expose] public section
 
 /-!
 # Quantization and implementation contracts

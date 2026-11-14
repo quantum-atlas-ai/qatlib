@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
-import Qatlib.Concepts.ClassicalTape.TapeBoundary
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
+public import Qatlib.Concepts.ClassicalTape.TapeBoundary
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
+
+@[expose] public section
 
 /-!
 # Tape invariants for classical majority amplification
@@ -69,14 +73,14 @@ and is blank otherwise. -/
 theorem majInputCell_ofNat (input : List Bool) (m : ℕ) :
     majInputCell input m = if m < input.length then some (input.getI m) else none := by
   unfold majInputCell
-  rw [if_neg (by omega : ¬((m : ℤ) < 0)), Int.toNat_natCast]
+  rw [ite_eq_right (by omega : ¬((m : ℤ) < 0)), Int.toNat_natCast]
   rw [standardBitEncode_getI]
 
 /-- Every negative integer position of `majInputCell` is blank. -/
 theorem majInputCell_negSucc (input : List Bool) (m : ℕ) :
     majInputCell input (Int.negSucc m) = (none : Option Bool) := by
   unfold majInputCell
-  rw [if_pos (Int.negSucc_lt_zero m)]
+  rw [ite_eq_left (Int.negSucc_lt_zero m)]
 
 /-- Evaluation of the track encoding at a given track yields an input bit only on track zero and
 within the input length. -/
@@ -86,16 +90,16 @@ theorem tracksEncode_getI_apply (m : ℕ) (input : List Bool) (x : ℕ) (t : Fin
       else none := by
   rw [tracksEncode_getI]
   by_cases hx : x < input.length
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     show (if t.val = 0 then some (input.getI x) else none) = _
     by_cases ht : t.val = 0
-    · rw [if_pos ht, if_pos ht, if_pos hx]
-    · rw [if_neg ht, if_neg ht]
-  · rw [if_neg hx]
+    · rw [ite_eq_left ht, ite_eq_left ht, ite_eq_left hx]
+    · rw [ite_eq_right ht, ite_eq_right ht]
+  · rw [ite_eq_right hx]
     show (none : Option Bool) = _
     by_cases ht : t.val = 0
-    · rw [if_pos ht, if_neg hx]
-    · rw [if_neg ht]
+    · rw [ite_eq_left ht, ite_eq_right hx]
+    · rw [ite_eq_right ht]
 
 /-- At a nonnegative position, the majority input cell is the input bit precisely when the index
 lies within the input. -/
@@ -112,21 +116,21 @@ theorem init_majorityEncode_nth {Q r : ℕ}
       if t.val = 0 then majInputCell input x else none := by
   rw [init_nth]
   by_cases hx : x < 0
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     show (none : Option Bool) = _
     by_cases ht : t.val = 0
-    · rw [if_pos ht, majInputCell, if_pos hx]
-    · rw [if_neg ht]
-  · rw [if_neg hx]
+    · rw [ite_eq_left ht, majInputCell, ite_eq_left hx]
+    · rw [ite_eq_right ht]
+  · rw [ite_eq_right hx]
     rw [show (majorityEncode r input) = tracksEncode (2 * r + 2) input from rfl,
       tracksEncode_getI_apply]
     have hxc : majInputCell input x =
         if x.toNat < input.length then some (input.getI x.toNat) else none := by
-      rw [majInputCell, if_neg hx]
+      rw [majInputCell, ite_eq_right hx]
       exact standardBitEncode_getI input x.toNat
     by_cases ht : t.val = 0
-    · rw [if_pos ht, if_pos ht, hxc]
-    · rw [if_neg ht, if_neg ht]
+    · rw [ite_eq_left ht, ite_eq_left ht, hxc]
+    · rw [ite_eq_right ht, ite_eq_right ht]
 
 /-- The majority machine starts in the first copy-write state with zero tally and zero position. -/
 theorem init_majorityEncode_zero {Q r : ℕ} (input : List Bool) :
@@ -148,22 +152,22 @@ theorem majRunCell_zero (input : List Bool) (x : ℤ) :
   unfold majRunCell
   rw [Int.natCast_zero]
   by_cases hx : x < (0 : ℤ)
-  · rw [if_pos hx, majInputCell, if_pos hx]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, majInputCell, ite_eq_left hx]
+  · rw [ite_eq_right hx]
 
 /-- After copying the full input length, the working-track cell agrees with the input cell
 everywhere. -/
 theorem majRunCell_end (input : List Bool) (x : ℤ) :
     majRunCell input input.length x = majInputCell input x := by
   by_cases hx : x < (input.length : ℤ)
-  · rw [majRunCell, if_pos hx]
-  · rw [majRunCell, if_neg hx]
+  · rw [majRunCell, ite_eq_left hx]
+  · rw [majRunCell, ite_eq_right hx]
     by_cases h0 : x < 0
-    · rw [majInputCell, if_pos h0]
+    · rw [majInputCell, ite_eq_left h0]
     · have hle : (input.length : ℤ) ≤ x := by omega
       have hx0 : 0 ≤ x := by omega
-      rw [majInputCell, if_neg h0]
-      rw [standardBitEncode_getI, if_neg (by omega)]
+      rw [majInputCell, ite_eq_right h0]
+      rw [standardBitEncode_getI, ite_eq_right (by omega)]
 
 /-- Advancing the copy boundary by one replaces exactly the cell at the old boundary with its
 input cell. -/
@@ -172,12 +176,12 @@ theorem majRunCell_succ (input : List Bool) (pos : ℕ) (x : ℤ) :
       if x = (pos : ℤ) then majInputCell input x else majRunCell input pos x := by
   by_cases he : x = (pos : ℤ)
   · subst he
-    rw [majRunCell, if_pos (show (pos : ℤ) < ((pos + 1 : ℕ) : ℤ) from by omega)]
-    rw [if_pos rfl]
-  · rw [if_neg he]
+    rw [majRunCell, ite_eq_left (show (pos : ℤ) < ((pos + 1 : ℕ) : ℤ) from by omega)]
+    rw [ite_eq_left rfl]
+  · rw [ite_eq_right he]
     by_cases h : x < (pos : ℤ)
-    · rw [majRunCell, majRunCell, if_pos h, if_pos (by omega)]
-    · rw [majRunCell, majRunCell, if_neg h, if_neg (by omega)]
+    · rw [majRunCell, majRunCell, ite_eq_left h, ite_eq_left (by omega)]
+    · rw [majRunCell, majRunCell, ite_eq_right h, ite_eq_right (by omega)]
 
 /-- A simulation working track has an index distinct from the input track zero. -/
 theorem runTrackIdx_ne_zero {r : ℕ} (j : Fin (2 * r + 1)) :
@@ -222,7 +226,7 @@ theorem maj_copyW_tab_write {Q r : ℕ}
           .write fun t => if t = runTrackIdx r j then some (input.getI pos) else T.head t) := by
   intro c
   have hsym : T.head ⟨0, by omega⟩ = some (input.getI pos) := by
-    rw [maj_sym_zero h0, majInputCell_ofNat, if_pos hpos]
+    rw [maj_sym_zero h0, majInputCell_ofNat, ite_eq_left hpos]
   show (match T.head ⟨0, by omega⟩ with
     | some b => some (MajCtrl.copyM j tally pos,
         Turing.TM0.Stmt.write fun t => if t = runTrackIdx r j then some b else T.head t)
@@ -242,7 +246,7 @@ theorem maj_copyW_tab_blank {Q r : ℕ}
       = some (.copyHome j tally pos, .write T.head) := by
   intro c
   have hsym : T.head ⟨0, by omega⟩ = (none : Option Bool) := by
-    rw [maj_sym_zero h0, majInputCell_ofNat, if_neg (by omega)]
+    rw [maj_sym_zero h0, majInputCell_ofNat, ite_eq_right (by omega)]
   show (match T.head ⟨0, by omega⟩ with
     | some b => some (MajCtrl.copyM j tally pos,
         Turing.TM0.Stmt.write fun t => if t = runTrackIdx r j then some b else T.head t)
@@ -257,7 +261,7 @@ theorem maj_copyW_write {Q r : ℕ}
     (tally pos : ℕ) (hpos : pos < input.length)
     (T : Turing.Tape (Tracks (2 * r + 2)))
     (h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i))
-    (hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input pos ((pos : ℤ) + i)) :
+    (_hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input pos ((pos : ℤ) + i)) :
     ∀ c : Bool, Turing.TM0.step (majorityTable Q r M acceptM c)
         (⟨.copyW j tally pos, T⟩ : Turing.TM0.Cfg (Tracks (2 * r + 2)) (MajCtrl Q r))
       = some (⟨.copyM j tally pos,
@@ -283,26 +287,26 @@ theorem maj_write_inv {input : List Bool} {r : ℕ} {j : Fin (2 * r + 1)} {pos :
     rw [Turing.Tape.write_nth]
     by_cases hi : i = 0
     · subst hi
-      rw [if_pos rfl, Int.add_zero]
+      rw [ite_eq_left rfl, Int.add_zero]
       have hne := runTrackIdx_ne_zero' j
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       exact h0 0
-    · rw [if_neg hi]
+    · rw [ite_eq_right hi]
       exact h0 i
   · intro i
     rw [Turing.Tape.write_nth]
     by_cases hi : i = 0
     · subst hi
-      rw [if_pos rfl, if_pos rfl, Int.add_zero, majRunCell_succ]
-      rw [if_pos rfl, majInputCell_ofNat, if_pos hpos]
-    · rw [if_neg hi]
+      rw [ite_eq_left rfl, ite_eq_left rfl, Int.add_zero, majRunCell_succ]
+      rw [ite_eq_left rfl, majInputCell_ofNat, ite_eq_left hpos]
+    · rw [ite_eq_right hi]
       erw [hj i]
       rw [majRunCell_succ]
       by_cases he : (pos : ℤ) + i = (pos : ℤ)
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         have : i = 0 := by omega
         exact absurd this hi
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
 
 /-- The copy-move transition moves right and increments the input position. -/
 theorem maj_copyM_tab {Q r : ℕ}
@@ -350,8 +354,8 @@ theorem maj_copyHome_run {Q r : ℕ}
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
     (tally : ℕ) :
     ∀ (pos : ℕ) (T : Turing.Tape (Tracks (2 * r + 2)))
-      (h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i))
-      (hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input input.length ((pos : ℤ) + i))
+      (_h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i))
+      (_hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input input.length ((pos : ℤ) + i))
       (coins : List Bool), pos + 1 ≤ coins.length →
     ∃ T' : Turing.Tape (Tracks (2 * r + 2)),
       coinTapeRunAux (majorityTable Q r M acceptM) (majorityAccept Q r) coins
@@ -455,8 +459,8 @@ theorem maj_copyW_loop {Q r : ℕ}
     (tally : ℕ) :
     ∀ (d pos : ℕ), d = input.length - pos → pos ≤ input.length →
     ∀ (T : Turing.Tape (Tracks (2 * r + 2)))
-      (h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i))
-      (hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input pos ((pos : ℤ) + i))
+      (_h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i))
+      (_hj : ∀ i : ℤ, (T.nth i) (runTrackIdx r j) = majRunCell input pos ((pos : ℤ) + i))
       (coins : List Bool), 2 * d ≤ coins.length →
     ∃ T' : Turing.Tape (Tracks (2 * r + 2)),
       coinTapeRunAux (majorityTable Q r M acceptM) (majorityAccept Q r) coins
@@ -594,7 +598,7 @@ theorem maj_copy_run {Q r : ℕ}
     maj_copyW_blank M acceptM input j tally T₁ h0₁
   rw [hr₁]
   obtain ⟨c, cs, hsplit⟩ : ∃ c cs, coins.drop (2 * input.length) = c :: cs :=
-    List.exists_cons_of_ne_nil (fun h => by simp [h] at hlen3 <;> omega)
+    List.exists_cons_of_ne_nil (fun h => by simp [h] at hlen3)
   rw [hsplit, coinTapeRunAux_cons_of_step_some _ _ c cs _ _ hch (hst c)]
   have hwrite : T₁.write T₁.head = T₁ := Turing.Tape.write_self T₁
   rw [hwrite]
@@ -700,8 +704,8 @@ theorem maj_sim_step_some {Q r : ℕ}
     by_cases hi : i = 0
     · subst hi
       show (if runTrackIdx r j = runTrackIdx r j then a else T.head (runTrackIdx r j)) = a
-      rw [if_pos rfl]
-    · simp only [Turing.Tape.write_nth, if_neg hi]
+      rw [ite_eq_left rfl]
+    · simp only [Turing.Tape.write_nth, ite_eq_right hi]
       exact hcorr i
   | move d =>
     have h2 : majorityTable Q r M acceptM c (.simQ j q tally off) T.head
@@ -732,6 +736,6 @@ theorem maj_sim_step_some {Q r : ℕ}
       | right =>
         rw [Turing.Tape.move_right_nth T i, Turing.Tape.move_right_nth T_d i]
         exact hcorr (i + 1)
-    · cases d <;> simp [dirShift] <;> tauto
+    · cases d <;> simp [dirShift]
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

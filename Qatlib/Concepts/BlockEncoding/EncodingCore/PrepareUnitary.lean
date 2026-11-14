@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
-import Mathlib.LinearAlgebra.Matrix.RowCol
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.LCU
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
+public import Mathlib.LinearAlgebra.Matrix.RowCol
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.LCU
+
+@[expose] public section
 
 /-!
 # Explicit preparation unitaries for linear combinations

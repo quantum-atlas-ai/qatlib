@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnitaryDigraph.MainResults.Specular
-import Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph.Theorem2
+module
+
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Specular
+public import Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph.Theorem2
+
+@[expose] public section
 
 /-!
 # Unitary realizations of strongly quadrangular line digraphs

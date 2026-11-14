@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
-import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
+public import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+@[expose] public section
 
 /-!
 # Error budgets for dynamic kernel grid targets

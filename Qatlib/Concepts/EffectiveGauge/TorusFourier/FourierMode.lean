@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.Fourier.AddCircleMulti
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.Fourier.AddCircleMulti
+
+@[expose] public section
 
 /-! # Actual normalized Fourier modes and their spatial derivatives -/
 set_option autoImplicit false
@@ -63,7 +67,7 @@ theorem unitFourierMode_first (k : SpatialFrequency) (i : Fin 3) :
   change HasFDerivAt (unitFourierMode k) _ x at hd
   change fderiv ℝ (unitFourierMode k) x (EuclideanSpace.single i 1)=_
   rw [hd.fderiv]
-  simp only [ContinuousLinearMap.smul_apply,smul_eq_mul,fourierModeExponent,
+  simp only [_root_.smul_apply,smul_eq_mul,fourierModeExponent,
     ContinuousLinearMap.comp_apply,Complex.ofRealCLM_apply,frequencyLinear_axis,
     Complex.ofReal_intCast,unitFourierMode]
   ring
@@ -97,7 +101,7 @@ theorem unitFourierMode_eq_mFourier (k : SpatialFrequency) (x : SpatialPoint) :
   simp only [UnitAddTorus.mFourier,ContinuousMap.coe_mk,fourier_coe_apply]
   rw [← Complex.exp_sum]
   apply congrArg Complex.exp
-  simp only [fourierModeExponent,ContinuousLinearMap.smul_apply,smul_eq_mul,
+  simp only [fourierModeExponent,_root_.smul_apply,smul_eq_mul,
     ContinuousLinearMap.comp_apply,Complex.ofRealCLM_apply,frequencyLinear_apply,
     Complex.ofReal_sum,Complex.ofReal_mul,Complex.ofReal_intCast]
   dsimp only [physicalPeriod]

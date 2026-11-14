@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
-import Mathlib.Analysis.Normed.Lp.WithLp
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+public import Mathlib.Analysis.Normed.Lp.WithLp
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
 
 /-!
 # Rectangle polynomials from sign approximations

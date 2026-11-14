@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Field.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Arithmetic schedule for affine point addition
@@ -79,7 +83,7 @@ theorem alg1_ctrl_true {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
     (run true x2 y2 x1 y1).y1 =
       addY x1 y1 (addX x1 x2 (slope x1 y1 x2 y2)) (slope x1 y1 x2 y2) := by
   unfold run slope addX addY
-  simp only [if_true]
+  simp only [ite_true]
   have h' : x1 - x2 ≠ 0 := sub_ne_zero.mpr h
   constructor <;> field_simp <;> ring
 
@@ -87,7 +91,7 @@ theorem alg1_ctrl_true {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
 theorem alg1_ctrl_false {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
     (run false x2 y2 x1 y1).x1 = x1 ∧ (run false x2 y2 x1 y1).y1 = y1 := by
   unfold run
-  simp only [Bool.false_eq_true, if_false]
+  simp only [Bool.false_eq_true, ite_false]
   have h' : x1 - x2 ≠ 0 := sub_ne_zero.mpr h
   constructor
   · ring
@@ -100,7 +104,7 @@ theorem alg1_ancillas_cleared {x1 y1 x2 y2 : K} (h : x1 ≠ x2)
     (hx : x2 ≠ addX x1 x2 (slope x1 y1 x2 y2)) :
     (run true x2 y2 x1 y1).lam = 0 ∧ (run true x2 y2 x1 y1).t0 = 0 := by
   unfold run slope addX at *
-  simp only [if_true, sub_zero, sub_self]
+  simp only [ite_true, sub_zero, sub_self]
   rw [div_eq_mul_inv] at hx
   have h' : x1 - x2 ≠ 0 := sub_ne_zero.mpr h
   set D := x1 - x2 with hD
@@ -119,6 +123,6 @@ theorem alg1_ancillas_cleared {x1 y1 x2 y2 : K} (h : x1 ≠ x2)
     rw [mul_comm (X⁻¹) (S * X), mul_assoc, mul_comm X X⁻¹, inv_mul_cancel₀ hX0, mul_one]
   constructor
   · rw [h5, sub_zero, hXinv, sub_self]
-  · first | ring | trivial
+  ·  trivial
 
 end Qatlib.Concepts.CurveGroups.AffineAdd

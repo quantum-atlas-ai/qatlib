@@ -18,7 +18,11 @@ This file establishes the Fourier facts used by the main results:
 * Fourier kets are simultaneous eigenvectors of all shift operators
   (`prop5_eigenvector`), the eigenvalue form of Proposition 5.
 -/
-import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -84,13 +88,13 @@ if `w = 0` and vanishes otherwise (orthogonality of characters, §2.2). -/
 theorem char_sum_full {n : ℕ} (w : F2Vec n) :
     ∑ z, phase (dotF2 w z) = if w = 0 then ((2 ^ n : ℕ) : ℂ) else 0 := by
   by_cases hw : w = 0
-  · rw [if_pos hw, hw]
+  · rw [ite_eq_left hw, hw]
     have hz : ∀ z : F2Vec n, dotF2 (0 : F2Vec n) z = 0 := by
       intro z
       simp [dotF2]
     rw [Finset.sum_congr rfl (fun z _ => by rw [hz z, phase_zero])]
     simp
-  · rw [if_neg hw]
+  · rw [ite_eq_right hw]
     have hwi : ∃ i, w i ≠ 0 := by
       by_contra h
       push Not at h
@@ -105,9 +109,9 @@ theorem char_sum_full {n : ℕ} (w : F2Vec n) :
     have hd : dotF2 w (fun j => if j = i then (1 : ZMod 2) else 0) = 1 := by
       simp only [dotF2]
       rw [Finset.sum_eq_single i]
-      · rw [if_pos rfl, h1, one_mul]
+      · rw [ite_eq_left rfl, h1, one_mul]
       · intro j _ hj
-        rw [if_neg hj, mul_zero]
+        rw [ite_eq_right hj, mul_zero]
       · intro h
         exact absurd (Finset.mem_univ _) h
     exact char_sum_zero_of w (fun j => if j = i then (1 : ZMod 2) else 0) hd
@@ -149,13 +153,13 @@ theorem qft_sq (n : ℕ) : qftMat n * qftMat n = 1 := by
     ring
   rw [Finset.sum_congr rfl (fun z _ => hterm z), ← Finset.mul_sum, char_sum_full (x + y)]
   by_cases hxy : x + y = 0
-  · rw [if_pos hxy, if_pos (add_eq_zero_iff_eq x y |>.mp hxy)]
+  · rw [ite_eq_left hxy, ite_eq_left (add_eq_zero_iff_eq x y |>.mp hxy)]
     rw [qft_coeff_sq_coe]
     exact inv_two_pow_mul_two_pow n
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     by_cases hxdy : x = y
     · exact absurd (by rw [hxdy, addSelf_zero]) hxy
-    · rw [if_neg hxdy]
+    · rw [ite_eq_right hxdy]
       ring
 
 /-- Conjugation fixes the phase `(−1)^z`, which is real. -/
@@ -198,13 +202,13 @@ theorem prop5_eigenvector {n : ℕ} (b x : F2Vec n) :
   have h1 : (shiftX b *ᵥ hatKet x) i = hatKet x (i + b) := by
     simp only [Matrix.mulVec, dotProduct, shiftX]
     rw [Finset.sum_eq_single (i + b)]
-    · rw [if_pos (by rw [add_assoc, addSelf_zero, add_zero]), one_mul]
+    · rw [ite_eq_left (by rw [add_assoc, addSelf_zero, add_zero]), one_mul]
     · intro j _ hjne
       have hi : ¬(i = j + b) := by
         intro h
         apply hjne
         rw [h, add_assoc, addSelf_zero, add_zero]
-      rw [if_neg hi, zero_mul]
+      rw [ite_eq_right hi, zero_mul]
     · intro h
       exact absurd (Finset.mem_univ _) h
   rw [h1, hatKet_apply x (i + b), hatKet_apply x i]
@@ -229,12 +233,12 @@ theorem innerVec_hatKet {n : ℕ} (x y : F2Vec n) :
     fun i => by rw [dotF2_comm i (x + y)]
   rw [Finset.sum_congr rfl (fun i _ => hflip i), char_sum_full (x + y)]
   by_cases hxy : x + y = 0
-  · rw [if_pos hxy, if_pos (add_eq_zero_iff_eq x y |>.mp hxy), qft_coeff_sq_coe]
+  · rw [ite_eq_left hxy, ite_eq_left (add_eq_zero_iff_eq x y |>.mp hxy), qft_coeff_sq_coe]
     exact inv_two_pow_mul_two_pow n
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     by_cases hxdy : x = y
     · exact absurd (by rw [hxdy, addSelf_zero]) hxy
-    · rw [if_neg hxdy]
+    · rw [ite_eq_right hxdy]
       ring
 
 end Qatlib.Papers.UnambigMeas25.MainResults

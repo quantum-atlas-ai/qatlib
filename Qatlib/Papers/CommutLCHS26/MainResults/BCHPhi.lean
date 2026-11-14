@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHMultilinear
-import Mathlib.Analysis.Normed.Algebra.Basic
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHMultilinear
+public import Mathlib.Analysis.Normed.Algebra.Basic
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # The multilinear BCH phi expression

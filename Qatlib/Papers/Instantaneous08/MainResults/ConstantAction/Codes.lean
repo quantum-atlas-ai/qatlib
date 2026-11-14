@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.RankBias
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.RankBias
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Binary code identities for constant-action programs
@@ -272,8 +276,8 @@ theorem eq11_of_selfDual {q : ℕ} (C : Finset (Fin q → ZMod 2))
     have hconv : (if dot c1 c2 = 0 then (1 : ℝ) else 0) =
         (if ¬ (parity c1 = 1 ∧ parity c2 = 1) then (1 : ℝ) else 0) := by
       by_cases h : dot c1 c2 = 0
-      · rw [if_pos h, if_pos (hiff.mp h)]
-      · rw [if_neg h, if_neg (fun hh => h (hiff.mpr hh))]
+      · rw [ite_eq_left h, ite_eq_left (hiff.mp h)]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h (hiff.mpr hh))]
     rw [hconv]
     unfold oddInd
     rw [ind_not, ind_and]

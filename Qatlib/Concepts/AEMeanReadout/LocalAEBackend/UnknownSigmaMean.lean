@@ -4,42 +4,48 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Bound
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Data.NNReal.Defs
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Bound
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Basic.NNReal.Defs
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
 
 /-!
 # Quantum mean estimation with pilot-selected precision
@@ -159,10 +165,10 @@ noncomputable def unknownSigmaLaw
   nonneg rec := by
     refine mul_nonneg ((unknownSigmaPilotLaw A j hA N).nonneg _) ?_
     by_cases hc : rec.1 = unknownSigmaPilotIndex N h f nu eps K hk rec.2.1
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       exact Finset.prod_nonneg fun t _ =>
         (unknownSigmaTrialLaw A j hA f nu eps N h K r hk rec.1 rec.2.1).nonneg _
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
   sum_one := by
     classical
     have htrials (k : Fin K) (ωp : Fin N → I) :
@@ -192,14 +198,14 @@ noncomputable def unknownSigmaLaw
       refine Finset.sum_congr rfl fun ωp _ => ?_
       refine Finset.sum_congr rfl fun k _ => ?_
       by_cases hc : k = unknownSigmaPilotIndex N h f nu eps K hk ωp
-      · simp only [if_pos hc]
+      · simp only [ite_eq_left hc]
         unfold unknownSigmaProbAt
-        simp only [if_pos hc]
+        simp only [ite_eq_left hc]
         rw [← Finset.mul_sum]
         rw [htrials k ωp]
-      · simp only [if_neg hc]
+      · simp only [ite_eq_right hc]
         unfold unknownSigmaProbAt
-        simp only [if_neg hc]
+        simp only [ite_eq_right hc]
         simp
     calc
       (∑ rec : unknownSigmaFullRecord I N K r,
@@ -282,8 +288,8 @@ theorem unknownSigma_failure_bound
     rw [Finset.sum_filter]
     refine Finset.sum_congr rfl fun rec _ => ?_
     by_cases he : unknownSigmaFails A j hA f nu eps N h K r hk rec
-    · rw [if_pos he, if_pos he]; ring
-    · rw [if_neg he, if_neg he]; ring
+    · rw [ite_eq_left he, ite_eq_left he]; ring
+    · rw [ite_eq_right he, ite_eq_right he]; ring
   have hmass1 : (∑ rec : unknownSigmaFullRecord I N K r,
           (unknownSigmaLaw A j hA f nu eps N h K r hk).prob rec *
             (if unknownSigmaFails A j hA f nu eps N h K r hk rec then (1 : ℝ) else 0))
@@ -310,9 +316,9 @@ theorem unknownSigma_failure_bound
           (if k = unknownSigmaPilotIndex N h f nu eps K hk ωp then
             unknownSigmaTrialFail A j hA f nu eps N h K r hk k ωp else (0 : ℝ)) := by
     by_cases hc : k = unknownSigmaPilotIndex N h f nu eps K hk ωp
-    · simp only [if_pos hc]
+    · simp only [ite_eq_left hc]
       unfold unknownSigmaProbAt
-      simp only [if_pos hc]
+      simp only [ite_eq_left hc]
       have hteq : (∑ ωt : unknownSigmaTrialRecord I r k.val,
             (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt *
               (if unknownSigmaFails A j hA f nu eps N h K r hk ⟨k, (ωp, ωt)⟩ then (1 : ℝ) else 0))
@@ -322,9 +328,9 @@ theorem unknownSigma_failure_bound
       simp_rw [mul_assoc]
       rw [← Finset.mul_sum]
       rw [hteq]
-    · simp only [if_neg hc]
+    · simp only [ite_eq_right hc]
       unfold unknownSigmaProbAt
-      simp only [if_neg hc]
+      simp only [ite_eq_right hc]
       simp
   have htrial_le_one (k : Fin K) (ωp : Fin N → I) :
       unknownSigmaTrialFail A j hA f nu eps N h K r hk k ωp ≤ 1 := by
@@ -336,8 +342,8 @@ theorem unknownSigma_failure_bound
               (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt else (0 : ℝ)) := by
       refine Finset.sum_congr rfl fun ωt _ => ?_
       by_cases hh : unknownSigmaFails A j hA f nu eps N h K r hk ⟨k, (ωp, ωt)⟩
-      · rw [if_pos hh, if_pos hh]; ring
-      · rw [if_neg hh, if_neg hh]; ring
+      · rw [ite_eq_left hh, ite_eq_left hh]; ring
+      · rw [ite_eq_right hh, ite_eq_right hh]; ring
     calc
       unknownSigmaTrialFail A j hA f nu eps N h K r hk k ωp
         = ∑ ωt : unknownSigmaTrialRecord I r k.val,
@@ -421,8 +427,8 @@ theorem unknownSigma_failure_bound
               (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt else (0 : ℝ)) := by
         refine Finset.sum_congr rfl fun ωt _ => ?_
         by_cases hh : unknownSigmaFails A j hA f nu eps N h K r hk ⟨k, (ωp, ωt)⟩
-        · rw [if_pos hh, if_pos hh]; ring
-        · rw [if_neg hh, if_neg hh]; ring
+        · rw [ite_eq_left hh, ite_eq_left hh]; ring
+        · rw [ite_eq_right hh, ite_eq_right hh]; ring
       rw [h1, ← Finset.sum_filter]
       unfold Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent
       refine Finset.sum_le_sum_of_subset_of_nonneg hfilter (fun ωt _ _ =>
@@ -461,16 +467,16 @@ theorem unknownSigma_failure_bound
           refine Finset.sum_le_sum fun ωp _ => ?_
           rw [hinner ωp k]
           by_cases hc : k = unknownSigmaPilotIndex N h f nu eps K hk ωp
-          · simp only [if_pos hc]
+          · simp only [ite_eq_left hc]
             by_cases hg : (pilotScale N h f nu ωp : ℝ)^2 ≥
                 (signedMeanSource A j hA).variance (fun i => (f i : ℝ))
-            · simp only [if_pos hg]
+            · simp only [ite_eq_left hg]
               exact mul_le_mul_of_nonneg_left (hgood k ωp hc hg)
                 ((unknownSigmaPilotLaw A j hA N).nonneg ωp)
-            · simp only [if_neg hg]
+            · simp only [ite_eq_right hg]
               exact mul_le_mul_of_nonneg_left (htrial_le_one k ωp)
                 ((unknownSigmaPilotLaw A j hA N).nonneg ωp)
-          · simp only [if_neg hc]
+          · simp only [ite_eq_right hc]
             simp
         have hswap : (∑ k : Fin K, ∑ (ωp : Fin N → I), (unknownSigmaPilotLaw A j hA N).prob ωp *
                 (if k = unknownSigmaPilotIndex N h f nu eps K hk ωp then
@@ -511,8 +517,8 @@ theorem unknownSigma_failure_bound
           refine Finset.sum_congr rfl fun ωp _ => ?_
           by_cases hg : (pilotScale N h f nu ωp : ℝ)^2 ≥
               (signedMeanSource A j hA).variance (fun i => (f i : ℝ))
-          · rw [if_pos hg, if_pos hg, if_neg (by exact not_lt_of_ge hg)]; ring
-          · rw [if_neg hg, if_neg hg, if_pos (lt_of_not_ge hg)]; ring
+          · rw [ite_eq_left hg, ite_eq_left hg, ite_eq_right (by exact not_lt_of_ge hg)]; ring
+          · rw [ite_eq_right hg, ite_eq_right hg, ite_eq_left (lt_of_not_ge hg)]; ring
         rw [h1, Finset.sum_add_distrib]
         have ha : (∑ ωp : Fin N → I, (if (pilotScale N h f nu ωp : ℝ)^2 ≥
                 (signedMeanSource A j hA).variance (fun i => (f i : ℝ))
@@ -532,8 +538,8 @@ theorem unknownSigma_failure_bound
                   refine Finset.sum_congr rfl fun ωp _ => ?_
                   by_cases hg : (pilotScale N h f nu ωp : ℝ)^2 ≥
                       (signedMeanSource A j hA).variance (fun i => (f i : ℝ))
-                  · rw [if_pos hg, if_pos hg]
-                  · rw [if_neg hg, if_neg hg]
+                  · rw [ite_eq_left hg, ite_eq_left hg]
+                  · rw [ite_eq_right hg, ite_eq_right hg]
                     ring
             _ = (8/9 : ℝ)^r * (∑ ωp : Fin N → I, (if (pilotScale N h f nu ωp : ℝ)^2 ≥
                   (signedMeanSource A j hA).variance (fun i => (f i : ℝ))
@@ -628,11 +634,11 @@ theorem unknownSigma_probEvent_union {X : Type} [Fintype X] [DecidableEq X] {L :
     have hnn : 0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
     by_cases hE : E ω
     · by_cases hF : F ω
-      · rw [if_pos (Or.inr hF), if_pos hF, if_pos hE]; linarith
-      · rw [if_pos (Or.inl hE), if_neg hF, if_pos hE]; linarith
+      · rw [ite_eq_left (Or.inr hF), ite_eq_left hF, ite_eq_left hE]; linarith
+      · rw [ite_eq_left (Or.inl hE), ite_eq_right hF, ite_eq_left hE]; linarith
     · by_cases hF : F ω
-      · rw [if_pos (Or.inr hF), if_neg hE, if_pos hF]; linarith
-      · rw [if_neg (not_or.mpr ⟨hE, hF⟩), if_neg hE, if_neg hF]; linarith
+      · rw [ite_eq_left (Or.inr hF), ite_eq_right hE, ite_eq_left hF]; linarith
+      · rw [ite_eq_right (not_or.mpr ⟨hE, hF⟩), ite_eq_right hE, ite_eq_right hF]; linarith
   rw [Finset.sum_add_distrib] at h2
   rw [Finset.sum_filter, Finset.sum_filter]
   rw [Finset.sum_filter]
@@ -1111,9 +1117,9 @@ theorem unknownSigma_expected_accesses_eq_pilot
     refine Finset.sum_congr rfl fun ωp _ => ?_
     refine Finset.sum_congr rfl fun k _ => ?_
     by_cases hc : k = unknownSigmaPilotIndex N h f nu eps K hk ωp
-    · simp only [if_pos hc]
+    · simp only [ite_eq_left hc]
       unfold unknownSigmaProbAt
-      simp only [if_pos hc]
+      simp only [ite_eq_left hc]
       have hsum : (∑ ωt : unknownSigmaTrialRecord I r k.val,
             (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt *
               unknownSigmaLedgerAccesses N r k.val)
@@ -1128,9 +1134,9 @@ theorem unknownSigma_expected_accesses_eq_pilot
       simp_rw [mul_assoc]
       rw [← Finset.mul_sum]
       rw [hsum]
-    · simp only [if_neg hc]
+    · simp only [ite_eq_right hc]
       unfold unknownSigmaProbAt
-      simp only [if_neg hc]
+      simp only [ite_eq_right hc]
       have hz : (∑ ωt : unknownSigmaTrialRecord I r k.val,
             ((unknownSigmaPilotLaw A j hA N).prob ωp * (0 : ℝ)) *
               unknownSigmaLedgerAccesses N r k.val) = 0 := by
@@ -1210,11 +1216,11 @@ theorem unknownSigma_expected_accesses_le
               (unknownSigmaGoodPrecision ((signedMeanSource A j hA).variance (fun i => (f i : ℝ)))
                 (nu : ℝ) h (eps : ℝ)) : ℝ) := by
     by_cases hb : unknownSigmaBadMoments A j hA f N (nu : ℝ) ωp
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       exact Nat.cast_le.mpr (unknownSigma_ledgerAccesses_mono (N := N) (r := r) (by
         exact (unknown_variance_pilot_computed_precision_and_worst_path I N h f nu eps ωp
           hN hf hnu hnu1 heps).2.2))
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       have hgoodmom : unknownSigmaGoodMoments A j hA f N (nu : ℝ) ωp :=
         (unknownSigma_good_iff_not_bad A j hA f N (nu : ℝ) ωp).mpr hb
       exact Nat.cast_le.mpr (unknownSigma_ledgerAccesses_mono (N := N) (r := r)
@@ -1227,9 +1233,9 @@ theorem unknownSigma_expected_accesses_le
       _ ≤ ∑ ωp : Fin N → I, (unknownSigmaPilotLaw A j hA N).prob ωp := by
         exact Finset.sum_le_sum fun ωp _ => by
           by_cases hb : unknownSigmaBadMoments A j hA f N (nu : ℝ) ωp
-          · rw [if_pos hb]
+          · rw [ite_eq_left hb]
             exact (unknownSigmaPilotLaw A j hA N).nonneg ωp
-          · rw [if_neg hb]
+          · rw [ite_eq_right hb]
       _ = 1 := by simpa using! (unknownSigmaPilotLaw A j hA N).sum_one
   calc
     (∑ ωp : Fin N → I, (unknownSigmaPilotLaw A j hA N).prob ωp *

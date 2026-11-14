@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElecStructure10.MainResults.NumberNumber.NumberNumberPauliDecomposition
-import Qatlib.Papers.ElecStructure10.MainResults.DoubleExcitation.DoubleExcitationPauliDecomposition
-import Qatlib.Concepts.TrotterFormula.TimeOrdered.TypesOfTrotterErrorAthe
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+module
+
+public import Qatlib.Papers.ElecStructure10.MainResults.NumberNumber.NumberNumberPauliDecomposition
+public import Qatlib.Papers.ElecStructure10.MainResults.DoubleExcitation.DoubleExcitationPauliDecomposition
+public import Qatlib.Concepts.TrotterFormula.TimeOrdered.TypesOfTrotterError
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

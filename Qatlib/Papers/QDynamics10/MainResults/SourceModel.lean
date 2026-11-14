@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

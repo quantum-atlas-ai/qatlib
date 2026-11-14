@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.GoodVectorBasic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Prod
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.GoodVectorBasic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Prod
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting good vectors over finite fields
@@ -172,7 +176,7 @@ theorem psMap_fiber_le_two {p : ℕ} [Fact p.Prime] {u1 u2 : ZMod p}
       (u1 * u2 + u1 ^ 2) * x ^ 2 + (-2 * t.2 * u1) * x + (t.2 ^ 2 - t.1 * u2) = 0 := by
     intro x hx
     obtain ⟨q, hq, hqx⟩ := Finset.mem_image.mp hx
-    simp only [Finset.mem_coe, hF, Finset.mem_filter] at hq
+    simp only [hF, Finset.mem_filter] at hq
     have hqP : psMap u1 u2 q = t := hq.2
     have hP1 : u1 * q.1 ^ 2 + u2 * q.2 ^ 2 = t.1 := by
       have := congrArg Prod.fst hqP
@@ -273,7 +277,7 @@ theorem card_badSet {p : ℕ} [Fact p.Prime] [NeZero p] : (badSet p).card = p - 
     simpa using congrArg Prod.fst hab
 
 /-- For an odd prime `p`, `pairSet p` has cardinality `(p - 1) * (p - 2)`. -/
-theorem card_pairSet {p : ℕ} [Fact p.Prime] [NeZero p] (hodd : p ≠ 2) :
+theorem card_pairSet {p : ℕ} [Fact p.Prime] [NeZero p] (_hodd : p ≠ 2) :
     (pairSet p).card = (p - 1) * (p - 2) := by
   classical
   have hpair : pairSet p = (nz p ×ˢ nz p) \ badSet p := by
@@ -335,7 +339,7 @@ noncomputable def goodSet (p : ℕ) [NeZero p] : Finset (Fin 4 → ZMod p) := by
 
 /-- The vectors constructed from a pair in `pairSet p` are good when two is nonzero. -/
 theorem cvSet_subset_good {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0)
-    {r : ZMod p × ZMod p} (hr : r ∈ pairSet p) : cvSet p r ⊆ goodSet p := by
+    {r : ZMod p × ZMod p} (_hr : r ∈ pairSet p) : cvSet p r ⊆ goodSet p := by
   classical
   intro x hx
   obtain ⟨t, ht, hxt⟩ := Finset.mem_image.mp hx
@@ -446,7 +450,7 @@ theorem arith_key {p : ℕ} (hp : 3 ≤ p) :
   by_cases h9 : p < 9
   · have hz : p - 9 = 0 := Nat.sub_eq_zero_of_le (by omega)
     simp [hz]
-  · push_neg at h9
+  · push Not at h9
     have hp9 : 9 ≤ p := by omega
     have hcast9 : ((p - 9 : ℕ) : ℤ) = (p : ℤ) - 9 := by
       rw [Nat.cast_sub hp9]; norm_num
@@ -494,7 +498,7 @@ theorem lemma7_probability {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
   · have hz : (p - 9 : ℕ) = 0 := Nat.sub_eq_zero_of_le (by omega)
     rw [hz, Nat.cast_zero, zero_div]
     positivity
-  · push_neg at h9
+  · push Not at h9
     have hp9 : 9 ≤ p := by omega
     have hcast9 : ((p - 9 : ℕ) : ℚ) = (p : ℚ) - 9 := by
       rw [Nat.cast_sub (by omega)]; norm_num

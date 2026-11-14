@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonhomogPDE18.CubicWord.Source
+module
+
+public import Qatlib.Papers.NonhomogPDE18.CubicWord.Source
+
+@[expose] public section
 
 /-!
 # Quartic phase synthesis on wave functions

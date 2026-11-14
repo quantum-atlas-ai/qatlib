@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Lean.Elab.Tactic.Omega
+module
+
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Lean.Elab.Tactic.Omega
+
+@[expose] public section
 
 /-!
 # Centered binomial fiber counts

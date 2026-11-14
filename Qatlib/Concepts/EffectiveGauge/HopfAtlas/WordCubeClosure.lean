@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordTransport
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordTransport
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,7 +27,7 @@ def InOpenUnitCube (x : SpatialPoint) : Prop := ∀ i, 0<x i ∧ x i<1
 theorem isOpen_openUnitCube : IsOpen {x : SpatialPoint | InOpenUnitCube x} := by
   have hset : {x : SpatialPoint | InOpenUnitCube x}=⋂ i : Fin 3, {x : SpatialPoint | 0<x i ∧ x i<1} := by
     ext x
-    simp only [Set.mem_setOf_eq,Set.mem_iInter,InOpenUnitCube]
+    simp only [Set.mem_ofPred_eq,Set.mem_iInter,InOpenUnitCube]
   rw [hset]
   apply isOpen_iInter_of_finite
   intro i

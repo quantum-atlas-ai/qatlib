@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Amplification.Theorem414TidySubroutineStat
-import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStre
-import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.QueryComplexity.Amplification.Theorem414TidySubroutineStat
+public import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStre
+public import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Tidy subroutine amplification theorem

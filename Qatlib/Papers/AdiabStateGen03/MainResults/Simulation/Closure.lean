@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CommutingAssembly
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CommutingAssembly
+
+@[expose] public section
 
 /-!
 # Closure properties of Hamiltonian simulation

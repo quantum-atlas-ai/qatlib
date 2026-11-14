@@ -22,12 +22,16 @@ The `poly(S)` running time is represented by the finitely-staged construction
 (Proposition 4's recursion followed by Proposition 5's collision amplification),
 not by a Turing-machine cost model.
 -/
-import Mathlib.Data.Fintype.Pigeonhole
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+module
+
+public import Mathlib.Data.Fintype.Pigeonhole
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+
+@[expose] public section
 
 /-!
 # Deterministic Zero-Sum Subsequence Bound over `ℤ_p^n`

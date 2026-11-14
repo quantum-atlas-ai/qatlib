@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
-import Mathlib.LinearAlgebra.Matrix.Block
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
+public import Mathlib.LinearAlgebra.Matrix.Block
+
+@[expose] public section
 
 /-!
 # Triangular structure of the Taylor step matrix

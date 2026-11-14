@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+module
+
+public import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

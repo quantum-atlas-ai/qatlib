@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
-import Qatlib.Papers.ClassShadows20.HigherMoments.HigherPauliShadows
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+public import Qatlib.Papers.ClassShadows20.HigherMoments.HigherPauliShadows
+
+@[expose] public section
 
 /-!
 # Higher Pauli moment estimators

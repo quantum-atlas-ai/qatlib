@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterKickbackStat
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterLaws
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterKickbackStat
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterLaws
+
+@[expose] public section
 
 /-!
 # Full-range Fourier-character kickback

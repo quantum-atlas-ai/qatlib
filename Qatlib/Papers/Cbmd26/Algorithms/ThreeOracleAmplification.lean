@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CleanTwoOracleWord
-import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CleanTwoOracleWord
+public import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+
+@[expose] public section
 
 /-!
 # Amplitude amplification with three counted oracles

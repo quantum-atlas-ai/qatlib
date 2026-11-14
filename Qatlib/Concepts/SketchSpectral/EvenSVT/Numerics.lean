@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
-import Qatlib.Concepts.SketchSpectral.EvenSVT.RationalMachineBridge
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.RationalMachineBridge
+
+@[expose] public section
 
 /-!
 # Numerical bounds and cost identities for even SVT

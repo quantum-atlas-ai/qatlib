@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.StateRegisters.QubitCount
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sum
+module
+
+public import Qatlib.Papers.HHLManyBody22.StateRegisters.QubitCount
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sum
+
+@[expose] public section
 
 /-!
 # Finite encodings of excitation manifolds

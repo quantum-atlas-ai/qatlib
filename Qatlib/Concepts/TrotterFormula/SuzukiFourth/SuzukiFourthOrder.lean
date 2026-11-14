@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
-import Mathlib.Algebra.Group.Submonoid.BigOperators
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+public import Mathlib.Algebra.Group.Submonoid.BigOperators
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Fourth-order Suzuki product formulas
@@ -428,7 +432,7 @@ theorem suzukiSeries_singleton {I : Type} [Fintype I] [DecidableEq I]
         · simpa only [hl, add_zero] using! h
         · exact hl
       exact hne he
-    simp only [suzukiSeries_nil, if_neg hl, Matrix.mul_zero]
+    simp only [suzukiSeries_nil, ite_eq_right hl, Matrix.mul_zero]
   · simp
 
 /-- The real exponential of any `a ≤ 2` is bounded above by nine. -/

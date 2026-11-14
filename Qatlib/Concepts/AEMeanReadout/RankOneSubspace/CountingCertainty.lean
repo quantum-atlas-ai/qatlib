@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CertaintyMethodSlowdownQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CertaintyMethodSlowdownQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+
+@[expose] public section
 
 /-!
 # Certainty branches and generalized amplification projectors

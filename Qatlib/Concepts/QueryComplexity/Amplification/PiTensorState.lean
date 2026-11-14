@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Finite tensor products of pure states
@@ -58,6 +62,7 @@ theorem bornProb_piTensorState {ι : Type*} [Fintype ι] (ψ : ι → QState I) 
   simp only [BornProb, piTensorState_apply]
   rw [Complex.norm_prod, ← Finset.prod_pow]
 
+omit [DecidableEq I] in
 /-- A finite tensor product of normalized states is normalized. -/
 theorem normalized_piTensorState {ι : Type*} [Fintype ι] [DecidableEq ι] {ψ : ι → QState I}
     (hψ : ∀ j, Normalized (ψ j)) : Normalized (PiTensorState ψ) := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+module
+
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+@[expose] public section
 
 /-!
 # Injective and collision parts of Dyson cube sums
@@ -56,8 +60,8 @@ theorem effectiveCollisionRaw_zero {I : Type} [Fintype I] [DecidableEq I]
     intro i j _
     exact Subsingleton.elim i j
   constructor
-  · simp only [effectiveCollisionRaw,if_pos (hinj 0 _),Finset.sum_const_zero]
-  · simp only [effectiveCollisionRaw,if_pos (hinj 1 _),Finset.sum_const_zero]
+  · simp only [effectiveCollisionRaw,ite_eq_left (hinj 0 _),Finset.sum_const_zero]
+  · simp only [effectiveCollisionRaw,ite_eq_left (hinj 1 _),Finset.sum_const_zero]
 
 /-- The repeated-index cube sum and the strict sum coincide in degree one. -/
 theorem effectiveCubeRaw_one {I : Type} [Fintype I] [DecidableEq I]

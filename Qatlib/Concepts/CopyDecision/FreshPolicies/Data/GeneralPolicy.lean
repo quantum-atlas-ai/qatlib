@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.RiskCoarsening
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.RiskCoarsening
+
+@[expose] public section
 
 /-!
 # General Policy
@@ -64,7 +68,7 @@ theorem generalLabelRisk_unit {n : ℕ} (P : RawGeneralPolicy.{u} n)
     change 0 ≤ 1-p.prob i ∧ 1-p.prob i ≤ 1
     exact ⟨sub_nonneg.mpr (terminal_prob_le_one p i), by linarith [p.nonneg i]⟩
   | step Y mY M next ih =>
-    letI := mY
+    let := mY
     have hc : ∀ y, 0 ≤ generalLabelRisk (next y) i ∧ generalLabelRisk (next y) i ≤ 1 :=
       fun y => ih y (hP.1 y)
     have hint := integrable_unitRisk (M.bornMeasure (trineState i))

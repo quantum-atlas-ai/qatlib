@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
+
+@[expose] public section
 
 /-!
 # Off-diagonal bounds for recording queries
@@ -38,7 +42,7 @@ theorem recording_none_some (phase : L → ℂ) (hzero : ∑ y,phase y=0) (y : L
     recording phase none (some y)=(coefficient L : ℂ)*phase y := by
   rw [recording_entry,swap_none_none]
   simp_rw [swap_none_some,swap_some_some,mul_sub,mul_ite,mul_one,mul_zero]
-  simp only [zero_mul,zero_add,Finset.sum_sub_distrib,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [zero_mul,zero_add,Finset.sum_sub_distrib,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   simp only [← Finset.sum_mul,← Finset.mul_sum,hzero,mul_zero,zero_mul,sub_zero]
 
 /-- For phases with zero sum, the recording entry from `none` to `some x` is `coefficient L *
@@ -47,7 +51,7 @@ theorem recording_some_none (phase : L → ℂ) (hzero : ∑ y,phase y=0) (x : L
     recording phase (some x) none=(coefficient L : ℂ)*phase x := by
   rw [recording_entry,swap_none_none]
   simp_rw [swap_some_none,swap_some_some,sub_mul,ite_mul,one_mul,zero_mul]
-  simp only [mul_zero,zero_add,Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,if_true]
+  simp only [mul_zero,zero_add,Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,ite_true]
   simp only [← Finset.sum_mul,← Finset.mul_sum,hzero,mul_zero,zero_mul,sub_zero]
   ring
 
@@ -63,7 +67,7 @@ most three divided by the number of labels. -/
 theorem recording_off_diagonal_bound (phase : L → ℂ) (hzero : ∑ y,phase y=0)
     (hp : ∀ y, ‖phase y‖=1) (x y : L) (hxy : x ≠ y) :
     ‖recording phase (some x) (some y)‖ ≤ 3/(Fintype.card L : ℝ) := by
-  rw [recording_some_some phase hzero x y,if_neg hxy,zero_add,norm_mul,norm_pow]
+  rw [recording_some_some phase hzero x y,ite_eq_right hxy,zero_add,norm_mul,norm_pow]
   have hn : ‖(coefficient L : ℂ)‖=coefficient L := by
     rw [Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg coefficient_nonneg]
   rw [hn]

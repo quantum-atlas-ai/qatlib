@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — paper-layer statements for all active claims
@@ -193,7 +197,7 @@ theorem radius_power_sufficient (d ell : ℕ) (c Δ κ Onorm ε : ℝ)
 contributes only `(d-1) log ℓ`, which is dominated by the linear right-hand
 side (`Real.isLittleO_log_id_atTop`). -/
 theorem exists_radius (d : ℕ) (c Δ κ Onorm ε : ℝ)
-    (hc : 0 < c) (hΔ : 0 < Δ) (hκ : 1 ≤ κ) (hO : 0 < Onorm) (hε : 0 < ε) :
+    (hc : 0 < c) (hΔ : 0 < Δ) (_hκ : 1 ≤ κ) (_hO : 0 < Onorm) (_hε : 0 < ε) :
     ∃ ell : ℕ, 1 ≤ ell ∧
       ((d - 1 : ℕ) : ℝ) * Real.log (ell : ℝ) + 2 * Real.log κ
         + Real.log ε⁻¹ + Real.log Onorm ≤ c * (ell : ℝ) * Δ := by
@@ -414,12 +418,12 @@ def spectralCorrelation (lam a b : ι → ℝ) (j1 : ι) (x : ℕ) : ℝ :=
 transfer operator along `L` itself inherits the gap of the parent Hamiltonian"
 (p. 7). -/
 theorem second_eigenvalue_decay (lam2 c1 c2 δ : ℝ)
-    (hlam2 : 0 ≤ lam2) (hc1 : 0 < c1) (hc2 : 0 < c2) (hδ : 0 < δ)
+    (_hlam2 : 0 ≤ lam2) (_hc1 : 0 < c1) (_hc2 : 0 < c2) (_hδ : 0 < δ)
     (hdecay : ∀ x : ℕ, 1 ≤ x →
       lam2 ^ x ≤ c1 * Real.exp (-(c2 * (x : ℝ) * δ))) :
     lam2 ≤ Real.exp (-(c2 * δ)) := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   set E : ℝ := Real.exp (-(c2 * δ)) with hE
   have hEpos : 0 < E := Real.exp_pos _
   have hratio : 1 < lam2 / E := (one_lt_div hEpos).mpr hcon
@@ -431,7 +435,6 @@ theorem second_eigenvalue_decay (lam2 c1 c2 δ : ℝ)
   have hEpow : E ^ x = Real.exp (-(c2 * (x : ℝ) * δ)) := by
     rw [hE, ← Real.exp_nat_mul]
     congr 1
-    push_cast
     ring
   have hlamx : lam2 ^ x = (lam2 / E) ^ x * E ^ x := by
     rw [← mul_pow]

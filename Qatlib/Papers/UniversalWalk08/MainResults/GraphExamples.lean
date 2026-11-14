@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
-import Mathlib.Data.Fin.Basic
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
+public import Mathlib.Data.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Elementary finite quantum-walk graphs

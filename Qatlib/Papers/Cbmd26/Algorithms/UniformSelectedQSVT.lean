@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.UniformQSVTPhases
-import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
-import Qatlib.Papers.Cbmd26.Algorithms.TwoOracleWordBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.UniformQSVTPhases
+public import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.TwoOracleWordBridge
+
+@[expose] public section
 
 /-!
 # Flat selected QSVT for polynomial families

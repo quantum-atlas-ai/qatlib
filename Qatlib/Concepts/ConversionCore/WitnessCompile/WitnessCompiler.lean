@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+
+@[expose] public section
+set_option linter.style.haveILetI false
 
 /-!
 # Near-optimal rational filtered witnesses
@@ -278,7 +283,7 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
       refine Finset.sum_nonneg fun j _ => ?_
       by_cases hz : ((inst.Z j x y : ℚ) : ℝ) = 0
       · simp [hz]
-      · rw [if_neg hz]
+      · rw [ite_eq_right hz]
         exact inv_nonneg.2 (abs_nonneg _)
     linarith
   have hRZ0 : 0 ≤ RZ := le_trans zero_le_one hRZ1
@@ -626,7 +631,7 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
         · simp [hz]
         · simp [hz]
       calc |((inst.Z j x y : ℚ) : ℝ)|⁻¹
-          = if ((inst.Z j x y : ℚ) : ℝ) = 0 then 0 else |((inst.Z j x y : ℚ) : ℝ)|⁻¹ := (if_neg hne).symm
+          = if ((inst.Z j x y : ℚ) : ℝ) = 0 then 0 else |((inst.Z j x y : ℚ) : ℝ)|⁻¹ := (ite_eq_right hne).symm
         _ ≤ ∑ j' : Fin n, (if ((inst.Z j' x y : ℚ) : ℝ) = 0 then 0 else |((inst.Z j' x y : ℚ) : ℝ)|⁻¹) :=
             Finset.single_le_sum (f := fun j' => if ((inst.Z j' x y : ℚ) : ℝ) = 0 then 0
               else |((inst.Z j' x y : ℚ) : ℝ)|⁻¹) (fun j' _ => hif0 j' x y) (Finset.mem_univ j)
@@ -680,17 +685,17 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
         rw [huPunf j x (x, y), hvPunf j y (x, y)]
         (try dsimp only)
         by_cases hf : (((E x y : ℚ) : ℝ) ≠ 0 ∧ j = j₀ x y)
-        · rw [if_pos ⟨hf.1, hf.2, rfl⟩, if_pos ⟨hf.1, hf.2, rfl⟩, if_pos hf]
+        · rw [ite_eq_left ⟨hf.1, hf.2, rfl⟩, ite_eq_left ⟨hf.1, hf.2, rfl⟩, ite_eq_left hf]
           field_simp [hZQne x y hf.1, (hax x y).1.ne']
-        · rw [if_neg (fun hc => hf ⟨hc.1, hc.2.1⟩), if_neg (fun hc => hf ⟨hc.1, hc.2.1⟩),
-            if_neg hf, mul_zero]
+        · rw [ite_eq_right (fun hc => hf ⟨hc.1, hc.2.1⟩), ite_eq_right (fun hc => hf ⟨hc.1, hc.2.1⟩),
+            ite_eq_right hf, mul_zero]
       · intro p _ hp
         show uPatch j x p * vPatch j y p = 0
         by_cases h1 : (((E p.1 p.2 : ℚ) : ℝ) ≠ 0 ∧ j = j₀ p.1 p.2 ∧ x = p.1)
         · by_cases h2 : (((E p.1 p.2 : ℚ) : ℝ) ≠ 0 ∧ j = j₀ p.1 p.2 ∧ y = p.2)
           · exact absurd (Prod.ext h1.2.2.symm h2.2.2.symm) hp
-          · rw [huPunf j x p, hvPunf j y p, if_pos h1, if_neg h2, mul_zero]
-        · rw [huPunf j x p, hvPunf j y p, if_neg h1, zero_mul]
+          · rw [huPunf j x p, hvPunf j y p, ite_eq_left h1, ite_eq_right h2, mul_zero]
+        · rw [huPunf j x p, hvPunf j y p, ite_eq_right h1, zero_mul]
       · intro h
         exact absurd (Finset.mem_univ (x, y)) h
     obtain ⟨U, huUdef⟩ : ∃ f : Fin n → X → (((X ⊕ X) × Bool) ⊕ (X × X)) → ℚ,
@@ -723,11 +728,11 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
             then E x y / inst.Z (j₀ x y) x y else 0)) = E x y := by
         by_cases hf : ((E x y : ℚ) : ℝ) ≠ 0
         · rw [Finset.sum_eq_single (j₀ x y)]
-          · rw [if_pos ⟨hf, rfl⟩]
+          · rw [ite_eq_left ⟨hf, rfl⟩]
             rw [mul_comm]
             exact div_mul_cancel₀ _ (hZQne x y hf)
           · intro j _ hjne
-            rw [if_neg (fun hc => hjne hc.2)]
+            rw [ite_eq_right (fun hc => hjne hc.2)]
             ring
           · intro h
             exact absurd (Finset.mem_univ (j₀ x y)) h
@@ -875,19 +880,19 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
         rw [Finset.sum_eq_single (j₀ p.1 p.2)]
         · by_cases hxp : x = p.1
           · show ((uPatch (j₀ p.1 p.2) x p * uPatch (j₀ p.1 p.2) x p : ℚ) : ℝ) ≤ _
-            rw [huPunf, if_pos ⟨hf, rfl, hxp⟩, Rat.cast_mul]
+            rw [huPunf, ite_eq_left ⟨hf, rfl, hxp⟩, Rat.cast_mul]
             exact haR
           · show ((uPatch (j₀ p.1 p.2) x p * uPatch (j₀ p.1 p.2) x p : ℚ) : ℝ) ≤ _
-            rw [huPunf, if_neg (fun hc => hxp hc.2.2), mul_zero, Rat.cast_zero]
+            rw [huPunf, ite_eq_right (fun hc => hxp hc.2.2), mul_zero, Rat.cast_zero]
             linarith [ht0 p.1 p.2, hη0.le]
         · intro j _ hjne
           show ((uPatch j x p * uPatch j x p : ℚ) : ℝ) = 0
-          rw [huPunf, if_neg (fun hc => hjne hc.2.1), mul_zero, Rat.cast_zero]
+          rw [huPunf, ite_eq_right (fun hc => hjne hc.2.1), mul_zero, Rat.cast_zero]
         · intro h
           exact absurd (Finset.mem_univ (j₀ p.1 p.2)) h
       · have hz : ∀ j : Fin n, ((uPatch j x p * uPatch j x p : ℚ) : ℝ) = 0 := by
           intro j
-          rw [huPunf, if_neg (fun hc => hf hc.1), mul_zero, Rat.cast_zero]
+          rw [huPunf, ite_eq_right (fun hc => hf hc.1), mul_zero, Rat.cast_zero]
         rw [Finset.sum_eq_zero (fun j _ => hz j)]
         linarith [ht0 p.1 p.2, hη0.le]
     have hvv : ∀ (x y : X), (((E x y / (inst.Z (j₀ x y) x y * a x y) : ℚ) : ℝ)
@@ -929,19 +934,19 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
       · rw [Finset.sum_eq_single (j₀ p.1 p.2)]
         · by_cases hyp : y = p.2
           · show ((vPatch (j₀ p.1 p.2) y p * vPatch (j₀ p.1 p.2) y p : ℚ) : ℝ) ≤ _
-            rw [hvPunf, if_pos ⟨hf, rfl, hyp⟩, Rat.cast_mul]
+            rw [hvPunf, ite_eq_left ⟨hf, rfl, hyp⟩, Rat.cast_mul]
             exact hvv p.1 p.2
           · show ((vPatch (j₀ p.1 p.2) y p * vPatch (j₀ p.1 p.2) y p : ℚ) : ℝ) ≤ _
-            rw [hvPunf, if_neg (fun hc => hyp hc.2.2), mul_zero, Rat.cast_zero]
+            rw [hvPunf, ite_eq_right (fun hc => hyp hc.2.2), mul_zero, Rat.cast_zero]
             exact ht0 p.1 p.2
         · intro j _ hjne
           show ((vPatch j y p * vPatch j y p : ℚ) : ℝ) = 0
-          rw [hvPunf, if_neg (fun hc => hjne hc.2.1), mul_zero, Rat.cast_zero]
+          rw [hvPunf, ite_eq_right (fun hc => hjne hc.2.1), mul_zero, Rat.cast_zero]
         · intro h
           exact absurd (Finset.mem_univ (j₀ p.1 p.2)) h
       · have hz : ∀ j : Fin n, ((vPatch j y p * vPatch j y p : ℚ) : ℝ) = 0 := by
           intro j
-          rw [hvPunf, if_neg (fun hc => hf hc.1), mul_zero, Rat.cast_zero]
+          rw [hvPunf, ite_eq_right (fun hc => hf hc.1), mul_zero, Rat.cast_zero]
         rw [Finset.sum_eq_zero (fun j _ => hz j)]
         exact ht0 p.1 p.2
     have hsumt : (∑ p : X × X, t p.1 p.2)

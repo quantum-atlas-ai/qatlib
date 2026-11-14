@@ -32,14 +32,18 @@ resource counts are polynomials in `T` and `c`; "poly" is represented by
 `∃ C`, with the degree left free (matching `poly(T^{O(c)}·ℓ)` rather than
 fixing a numerical degree).
 -/
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
-import Qatlib.Papers.ZeroSumImran24.MainResults.GroupModel
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+public import Qatlib.Papers.ZeroSumImran24.MainResults.GroupModel
+
+@[expose] public section
 
 /-!
 # Hidden Subgroup Modulo Commutator Solvers for Semi-Elementary Groups

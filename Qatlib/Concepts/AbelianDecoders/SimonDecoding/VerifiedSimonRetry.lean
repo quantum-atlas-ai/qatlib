@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AbelianDecoders.SimonDecoding.SimonDecoderConsumers
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Concepts.AbelianDecoders.SimonDecoding.SimonDecoderConsumers
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Verified Simon trials and retry costs
@@ -167,7 +171,7 @@ theorem simon_verified_actual_trial_success_and_soundness :
   have hvf : f (regBooleanEquiv n s) = f 0 := (hf _ 0).mpr (Or.inr (by simp))
   have hv : simonVerifyCandidate f (some s) = some s := by
     simp only [simonVerifyCandidate]
-    rw [if_pos ((hf _ 0).mpr (Or.inr (by simp)))]
+    rw [ite_eq_left ((hf _ 0).mpr (Or.inr (by simp)))]
   have hgood : (1/2 : ℝ≥0∞) ≤ simonVerifiedTrial f (some s) := by
     have hb := (simon_gaussian_accessible_budget f s 1 hf).1
     norm_num only [pow_one, show (1 : ℝ) - 1/2 = 1/2 by norm_num] at hb
@@ -252,7 +256,7 @@ theorem simon_verified_pending {n : ℕ} {R : Type} [AddCommGroup R]
     rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype,
         Fintype.sum_option]
     simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
-    simp only [Sum.inl_ne_inr, exists_false, if_false, mul_zero, Finset.sum_const_zero, add_zero]
+    simp only [Sum.inl_ne_inr, exists_false, ite_false, mul_zero, Finset.sum_const_zero, add_zero]
     rw [show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 1 (runFor (simonVerifiedRetryKernel f) K (Sum.inr ())) =
       PMF.map (fun z => (z.1,1+z.2)) (runFor (simonVerifiedRetryKernel f) K (Sum.inr ())) from rfl,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
@@ -268,7 +272,7 @@ theorem simon_verified_halt_point_succ {n : ℕ} {R : Type} [AddCommGroup R]
       simonVerifiedTrial f none * runFor (simonVerifiedRetryKernel f) K (Sum.inr ()) (Sum.inl t,j) +
       (if j = 0 then simonVerifiedTrial f (some t) else 0) := by
   rw [simon_verified_runFor_succ, PMF.bind_apply, tsum_fintype, Fintype.sum_option]
-  rw [GeneralExecution.charge_point_mass, if_pos (by omega)]
+  rw [GeneralExecution.charge_point_mass, ite_eq_left (by omega)]
   simp only [Nat.add_sub_cancel]
   have he : (∑ a : Reg n, simonVerifiedTrial f (some a) * PMF.pure ((Sum.inl a : Reg n ⊕ Unit),1) (Sum.inl t,j+1)) =
       if j = 0 then simonVerifiedTrial f (some t) else 0 := by
@@ -299,7 +303,7 @@ theorem simon_verified_actual_geometric_joint_law :
     simp [runFor_zero, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, PMF.pure_apply]
   | succ K ih =>
     change runFor (simonVerifiedRetryKernel f) ((K+1)+1) (Sum.inr ()) (Sum.inl t,(K+1)+1) = _
-    rw [simon_verified_halt_point_succ, if_neg (by omega), add_zero]
+    rw [simon_verified_halt_point_succ, ite_eq_right (by omega), add_zero]
     change simonVerifiedTrial f none * haltJoint (simonVerifiedRetryKernel f) (Sum.inr ()) t
         (K+1) = _
     rw [ih, pow_succ]

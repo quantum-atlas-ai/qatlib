@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+module
+
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+
+@[expose] public section
 
 /-!
 # Numerical mixed word semantics

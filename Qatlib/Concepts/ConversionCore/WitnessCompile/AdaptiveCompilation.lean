@@ -4,13 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversion
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsQuan
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversion
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsQuan
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+@[expose] public section
+
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+set_option linter.style.haveILetI false
 
 /-!
 # Resource bounds for adaptive compilation
@@ -122,13 +130,13 @@ theorem sourceTreeFrame_clean {H : Type} [Fintype H] [DecidableEq H]
   simp only [sourceTreeFrame, sourceClean, TensorState, Qatlib.Foundations.PureStateMath.Ket, Matrix.mulVec, dotProduct,
     Matrix.of_apply, Fintype.sum_prod_type]
   simp only [mul_ite, mul_zero, mul_one, Finset.sum_ite_eq', Finset.mem_univ,
-    if_true]
+    ite_true]
   simp only [Prod.mk.injEq, ite_and, mul_ite, ite_mul, zero_mul, mul_zero,
     one_mul]
   have hz (i : Fin L) : i.val = 0 ↔ i = ⟨0,hL⟩ := by simp [Fin.ext_iff]
   simp only [Fin.ext_iff, Fin.val_zero]
   simp
-  simp only [hz, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [hz, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   split_ifs <;> simp_all
 end
 noncomputable section
@@ -342,7 +350,7 @@ theorem sourceWordAdaptive_coherent_success {X H : Type} [Fintype H] [DecidableE
   simp only [sourceWordAdaptive_pure,TensorState,Qatlib.Foundations.PureStateMath.Ket]
   simp only [mul_ite,ite_mul,zero_mul,one_mul,mul_zero]
   rw [Finset.sum_comm]
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   exact hSuccess x
 end
 noncomputable section
@@ -370,7 +378,7 @@ theorem sourceWordAdaptive_noncoherent_success {X H : Type} [Fintype H] [Decidab
     simp only [sourceWordAdaptive_pure,sourceAdaptiveGarbageTarget,TensorState,Qatlib.Foundations.PureStateMath.Ket,
       mul_ite,ite_mul,zero_mul,one_mul,mul_zero]
     rw [Finset.sum_comm]
-    simp only [Finset.sum_ite_eq',Finset.mem_univ,if_true]
+    simp only [Finset.sum_ite_eq',Finset.mem_univ,ite_true]
     rfl
   rw [he]
   exact hs
@@ -484,9 +492,9 @@ theorem sourceAdaptive_resource_compilation :
       rw [Finset.sum_eq_single s]
       · by_cases hl : l=(⟨0,hL⟩ : Fin (max 1 (sourceAdaptiveLeaves T)))
         · subst hl; simp
-        · rw [if_neg hl,if_neg (fun h => hl (Prod.ext_iff.mp h).1)]
+        · rw [ite_eq_right hl,ite_eq_right (fun h => hl (Prod.ext_iff.mp h).1)]
       · intro t _ ht
-        rw [if_neg (fun h => ht (Prod.ext_iff.mp h).2.symm),zero_mul]
+        rw [ite_eq_right (fun h => ht (Prod.ext_iff.mp h).2.symm),zero_mul]
       · intro hs; exact absurd (Finset.mem_univ s) hs
     have hin : (sourceTreeFrame (H := H) n q r (max 1 (sourceAdaptiveLeaves T)) R)*ᵥ
         TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0,hL⟩ : Fin (max 1 (sourceAdaptiveLeaves T)))) ψ=

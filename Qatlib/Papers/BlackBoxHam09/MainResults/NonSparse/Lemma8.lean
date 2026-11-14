@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lemma 8 step and error parameter bounds
@@ -220,20 +224,26 @@ theorem lemma8_query_bound {Λ Λ1 Λmax ε t δ : ℝ} {D : ℕ}
     _ = t * (Real.sqrt 2 * Real.sqrt (Λmax * (D : ℝ) * Λ1 * Λ * t / δ)) := by rw [hsplit]
     _ = Real.sqrt 2 * (t * Real.sqrt (Λmax * (D : ℝ) * Λ1 * Λ * t / δ)) := by ring
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Under the stated black box, norm, and parameter hypotheses, choose a positive `ε ≤ 1`
 between `δ / (2 * (Λ * t))` and `δ / (Λ * t)` and establish the accompanying scalar cost
 identity and bound. This packages the parameter arithmetic for Lemma 8 of [BerryChilds2012]. -/
-theorem lemma8_improved_simulation
+theorem lemma8_improved_simulation {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ}
     (BB : BlackBox ι D L) {Λ Λ1 Λmax t δ : ℝ}
-    (hsp : IsColumnSparse BB.H D) (hD : 0 < D)
-    (hΛ : spectralNorm BB.H ≤ Λ) (hΛ1 : colSumNorm BB.H ≤ Λ1)
-    (hΛmax : maxEntryNorm BB.H ≤ Λmax)
+    (_hsp : IsColumnSparse BB.H D) (hD : 0 < D)
+    (_hΛ : spectralNorm BB.H ≤ Λ) (_hΛ1 : colSumNorm BB.H ≤ Λ1)
+    (_hΛmax : maxEntryNorm BB.H ≤ Λmax)
     (hΛ0 : 0 < Λ) (hΛ1pos : 0 < Λ1) (hmax0 : 0 < Λmax)
-    (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (ht : 0 ≤ t)
+    (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (_ht : 0 ≤ t)
     (hcond1 : Real.sqrt δ ≤ Λ * t)
-    (hcond2 : Λ / (Λmax * Λ1 * (D : ℝ)) ≤ Λ * t)
+    (_hcond2 : Λ / (Λmax * Λ1 * (D : ℝ)) ≤ Λ * t)
     (hcond3 : Λ ≤ Λ1)
-    (hden : 0 < Λmax * Λ1 * (D : ℝ)) :
+    (_hden : 0 < Λmax * Λ1 * (D : ℝ)) :
     ∃ ε : ℝ, 0 < ε ∧ ε ≤ δ / (Λ * t) ∧ ε ≤ 1 ∧
       δ / (2 * (Λ * t)) ≤ ε ∧
       (Λ1 * t / ε) * Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) =

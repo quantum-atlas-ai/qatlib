@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCellAutomata96.MainResults.ParityReduction
-import Qatlib.Papers.QCellAutomata96.MainResults.PairNormalForm
-import Qatlib.Concepts.QcaDynamics.ParityWeights
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+module
+
+public import Qatlib.Papers.QCellAutomata96.MainResults.ParityReduction
+public import Qatlib.Papers.QCellAutomata96.MainResults.PairNormalForm
+public import Qatlib.Concepts.QcaDynamics.ParityWeights
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+@[expose] public section
 
 /-!
 # Classification of reduced parity weights
@@ -419,15 +423,15 @@ theorem eq24_classification_of_eq19 {A B C D : ℂ} (hA : A ≠ 0)
   refine ⟨ψ, ρ, θ, ?_, ?_, ?_⟩
   · ext i j
     fin_cases i <;> fin_cases j
-    all_goals simp [redM, eq24wm, Matrix.smul_apply, hAe, hBe]
-    all_goals ring
+    <;> simp [redM, eq24wm, Matrix.smul_apply, hAe, hBe]
+    ring
   · ext i j
     fin_cases i <;> fin_cases j
-    all_goals simp [red0, eq24w0, Matrix.smul_apply, hCe, hDe]
-    all_goals ring
+    <;> simp [red0, eq24w0, Matrix.smul_apply, hCe, hDe]
+    <;> ring
   · ext i j
     fin_cases i <;> fin_cases j
-    all_goals simp [redP, eq24wp, Matrix.smul_apply, hAe, hBe]
-    all_goals ring
+    <;> simp [redP, eq24wp, Matrix.smul_apply, hAe, hBe]
+    ring
 
 end Qatlib.Papers.QCellAutomata96.MainResults

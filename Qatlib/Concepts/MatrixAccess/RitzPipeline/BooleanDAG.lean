@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGNodes
-import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGNodes
+public import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Reversible compilation of Boolean directed acyclic graphs
@@ -85,7 +89,7 @@ private theorem dag_compute_into_basis {m n L : ℕ} (g : BooleanDAG m n)
       funext i
       exact dag_filled_source g hp x s i
     have hzero : dagFilled g hp x s (⟨m+n,ht⟩:Fin L)=false := by
-      simp only [dagFilled,dif_neg (Nat.lt_irrefl (m+n))]
+      simp only [dagFilled,dite_eq_right (Nat.lt_irrefl (m+n))]
       exact hw (⟨m+n,ht⟩ : Fin L) (by change m ≤ m+n; omega)
         (by change m+n < m+(n+1); omega)
     rw [hsource,hzero,Bool.false_xor]
@@ -94,7 +98,7 @@ private theorem dag_compute_into_basis {m n L : ℕ} (g : BooleanDAG m n)
     by_cases hwt : w=(⟨m+n,ht⟩:Fin L)
     · subst w
       have hnew : m+n < m+(n+1) := by omega
-      simp only [Function.update_self,dagFilled,dif_pos hnew,booleanDAGValue]
+      simp only [Function.update_self,dagFilled,dite_eq_left hnew,booleanDAGValue]
       have he : (⟨m+n,hnew⟩ : Fin (m+(n+1))) = Fin.last (m+n) := Fin.ext rfl
       rw [he]
       exact (Fin.lastCases_last (n := m+n) (motive := fun _ => Bool)
@@ -103,7 +107,7 @@ private theorem dag_compute_into_basis {m n L : ℕ} (g : BooleanDAG m n)
     · rw [Function.update_of_ne hwt]
       by_cases hwp : w.val < m+n
       · have hnew : w.val < m+(n+1) := by omega
-        simp only [dagFilled,dif_pos hwp,dif_pos hnew,booleanDAGValue]
+        simp only [dagFilled,dite_eq_left hwp,dite_eq_left hnew,booleanDAGValue]
         have he : (⟨w.val,hnew⟩:Fin (m+(n+1)))=
             Fin.castSucc (⟨w.val,hwp⟩:Fin (m+n)) := Fin.ext rfl
         rw [he,Fin.lastCases_castSucc]

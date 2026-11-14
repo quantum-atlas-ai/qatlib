@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
-import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradientDefs
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradientDefs
+
+@[expose] public section
 
 /-!
 # Finite precision Fourier gradient assembly
@@ -52,6 +56,8 @@ open Qatlib.Concepts.SignalPrimitive.GridGradient
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradient
 
 set_option autoImplicit false
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 
 open Qatlib
 open scoped ComplexOrder ENNReal
@@ -543,7 +549,7 @@ theorem knownBasisSetUpWord_isUnitary (K k : ℕ) :
   by_cases hk : k = 0
   · subst hk
     simp [knownBasisSetUpWord, knownBasisSetUpGates]
-  · rw [knownBasisSetUpWord, if_neg hk]
+  · rw [knownBasisSetUpWord, ite_eq_right hk]
     refine ⟨?_, rfl, ?_⟩
     intro U hU
     rw [List.mem_cons] at hU
@@ -571,7 +577,7 @@ theorem knownBasisSetUpWord_maps_origin :
   · have hne : fullRangeCharacterIndex K k ≠ 0 := by
       intro hz
       exact absurd ((fullRangeCharacterIndex_eq_zero_iff K k h).mp hz) hk
-    rw [knownBasisSetUpWord, if_neg hk]
+    rw [knownBasisSetUpWord, ite_eq_right hk]
     have hgate : ApplyGate (knownBasisSetUpGate 0 (fullRangeCharacterIndex K k))
           (Qatlib.Foundations.PureStateMath.Ket 0) =
         Qatlib.Foundations.PureStateMath.Ket (fullRangeCharacterIndex K k) := by
@@ -637,7 +643,7 @@ theorem centered_output_scaled_bound :
   by_cases hcase : 2 * z.val ≤ 2 ^ m
   · have hmain : centeredGridOutput (2 ^ m) z = (z.val : ℝ) / ((2 ^ m : ℕ) : ℝ) := by
       unfold centeredGridOutput signedGridValue
-      rw [if_pos hcase]
+      rw [ite_eq_left hcase]
     have hval : (2 : ℝ) ^ m * centeredGridOutput (2 ^ m) z = (z.val : ℝ) := by
       rw [hmain, hscale m]
     rw [hval, abs_of_nonneg (by positivity)]
@@ -660,7 +666,7 @@ theorem centered_output_scaled_bound :
   · have hmain : centeredGridOutput (2 ^ m) z
         = (z.val : ℝ) / ((2 ^ m : ℕ) : ℝ) - 1 := by
       unfold centeredGridOutput signedGridValue
-      rw [if_neg hcase]
+      rw [ite_eq_right hcase]
     have hval : (2 : ℝ) ^ m * centeredGridOutput (2 ^ m) z
         = (z.val : ℝ) - (2 : ℝ) ^ m := by
       rw [hmain]

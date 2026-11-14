@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

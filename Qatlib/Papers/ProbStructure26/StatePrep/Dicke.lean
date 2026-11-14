@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Nat.Choose.Vandermonde
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Tactic
-import Qatlib.Papers.ProbStructure26.StatePrep.LocalUpdate
-import Qatlib.Papers.ProbStructure26.StatePrep.ResourceLedger
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Nat.Choose.Vandermonde
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Tactic
+public import Qatlib.Papers.ProbStructure26.StatePrep.LocalUpdate
+public import Qatlib.Papers.ProbStructure26.StatePrep.ResourceLedger
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -112,7 +116,7 @@ theorem concat_left {mL mR : ℕ} (x : BitString mL) (y : BitString mR) (i : Fin
 theorem concat_right {mL mR : ℕ} (x : BitString mL) (y : BitString mR) (j : Fin mR) :
     concat x y ⟨mL + j.val, by omega⟩ = y j := by
   simp only [concat]
-  rw [dif_neg (by omega)]
+  rw [dite_eq_right (by omega)]
   have hfin : (⟨mL + j.val - mL, by omega⟩ : Fin mR) = j := by
     apply Fin.ext
     simp
@@ -128,14 +132,14 @@ theorem weight_concat {mL mR : ℕ} (x : BitString mL) (y : BitString mR) :
     intro i _
     have h : concat x y (Fin.castAdd mR i) = x i := by
       unfold concat Fin.castAdd Fin.castLE
-      rw [dif_pos i.isLt]
+      rw [dite_eq_left i.isLt]
     rw [h]
   · apply Finset.sum_congr rfl
     intro j _
     have h : concat x y (Fin.natAdd mL j) = y j := by
       unfold concat
       simp only [Fin.natAdd]
-      rw [dif_neg (by omega)]
+      rw [dite_eq_right (by omega)]
       congr 1
       apply Fin.ext
       simp
@@ -187,13 +191,13 @@ theorem labelRep_neighbor_agree {mL mR r q : ℕ} (hq : q < mL) (hrq : q < r)
     labelRep mL mR r q i = labelRep mL mR r (q + 1) i := by
   unfold labelRep concat packed leftSite rightSite at *
   by_cases hlt : (i : ℕ) < mL
-  · rw [dif_pos hlt, dif_pos hlt]
+  · rw [dite_eq_left hlt, dite_eq_left hlt]
     by_cases hcase : mL - q ≤ i.val
     · have hcase' : mL - (q + 1) ≤ i.val := by omega
       simp [hcase, hcase']
     · have hcase' : ¬ mL - (q + 1) ≤ i.val := by omega
       simp [hcase, hcase']
-  · rw [dif_neg hlt, dif_neg hlt]
+  · rw [dite_eq_right hlt, dite_eq_right hlt]
     by_cases hcase : mR - (r - q) ≤ i.val - mL
     · have hcase' : mR - (r - (q + 1)) ≤ i.val - mL := by omega
       simp [hcase, hcase']
@@ -226,22 +230,22 @@ theorem neighbor_pattern {mL mR r q : ℕ} (hq : q < mL) (hrq : q < r)
   have hqR : r - (q + 1) ≤ mR := by omega
   refine ⟨?_, ?_, ?_, ?_⟩
   · simp only [labelRep, concat]
-    rw [dif_pos (by show leftSite mL q < mL; unfold leftSite; omega)]
+    rw [dite_eq_left (by show leftSite mL q < mL; unfold leftSite; omega)]
     simp only [packed]
     have h : ¬ (mL - q ≤ leftSite mL q) := by unfold leftSite; omega
     simp [h]
   · simp only [labelRep, concat]
-    rw [dif_neg (by show ¬ (rightSite mL mR r q < mL); unfold rightSite; omega)]
+    rw [dite_eq_right (by show ¬ (rightSite mL mR r q < mL); unfold rightSite; omega)]
     simp only [packed]
     have h : mR - (r - q) ≤ rightSite mL mR r q - mL := by unfold rightSite; omega
     simp [h]
   · simp only [labelRep, concat]
-    rw [dif_pos (by show leftSite mL q < mL; unfold leftSite; omega)]
+    rw [dite_eq_left (by show leftSite mL q < mL; unfold leftSite; omega)]
     simp only [packed]
     have h : mL - (q + 1) ≤ leftSite mL q := by unfold leftSite; omega
     simp [h]
   · simp only [labelRep, concat]
-    rw [dif_neg (by show ¬ (rightSite mL mR r q < mL); unfold rightSite; omega)]
+    rw [dite_eq_right (by show ¬ (rightSite mL mR r q < mL); unfold rightSite; omega)]
     simp only [packed]
     have h : ¬ (mR - (r - (q + 1)) ≤ rightSite mL mR r q - mL) := by
       unfold rightSite; omega

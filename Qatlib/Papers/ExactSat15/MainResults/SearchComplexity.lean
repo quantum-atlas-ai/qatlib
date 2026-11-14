@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3CorrectedTigh
-import Qatlib.Papers.ExactSat15.MainResults.XorReductionSubspace
-import Qatlib.Papers.ExactSat15.MainResults.OracleGateCount
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3Corrected
+public import Qatlib.Papers.ExactSat15.MainResults.XorReductionSubspace
+public import Qatlib.Papers.ExactSat15.MainResults.OracleGateCount
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

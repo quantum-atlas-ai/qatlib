@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.BinaryProductDefs
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.BinaryProductDefs
+
+@[expose] public section
 
 /-!
 # Binary multiplication with explicit stack costs
@@ -193,9 +197,7 @@ theorem copy_call (a b acc : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   · intro j hj
     cases j <;> first
     | rfl
-    | exact (hj 0 rfl).elim
-    | exact (hj 1 rfl).elim
-    | exact (hj 2 rfl).elim
+    | exact (hj  2 rfl).elim
 
 /-- Transfer the reversed copy into the addition-argument slot and enter the adder, with the
 displayed quadratic cost bound. -/
@@ -242,8 +244,7 @@ theorem add_call (a b acc : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
   · intro j hj
     cases j <;> first
     | rfl
-    | exact (hj 0 rfl).elim
-    | exact (hj 1 rfl).elim
+    | exact (hj  1 rfl).elim
     | exact (hj 2 rfl).elim
     | exact (hj 3 rfl).elim
 

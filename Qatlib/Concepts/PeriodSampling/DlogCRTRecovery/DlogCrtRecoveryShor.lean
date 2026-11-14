@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCrtRecoveryStat
-import Mathlib.Tactic.NormNum.Prime
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCrtRecoveryStat
+public import Mathlib.Tactic.NormNum.Prime
+
+@[expose] public section
 
 /-!
 # CRT uniqueness with a bounded discrete logarithm

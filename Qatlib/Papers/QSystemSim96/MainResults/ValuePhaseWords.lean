@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Bitwise phases and reversible phase computation

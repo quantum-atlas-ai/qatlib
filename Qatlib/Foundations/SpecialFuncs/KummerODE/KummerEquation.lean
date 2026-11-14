@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.SpecialFuncs.KummerODE.Confluent
-import Mathlib.Analysis.Calculus.SmoothSeries
-import Mathlib.Analysis.Calculus.Deriv.Pow
-import Mathlib.Analysis.Normed.Module.Basic
+module
+
+public import Qatlib.Foundations.SpecialFuncs.KummerODE.Confluent
+public import Mathlib.Analysis.Calculus.SmoothSeries
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Normed.Module.Basic
+
+@[expose] public section
 
 /-!
 # Kummer's differential equation

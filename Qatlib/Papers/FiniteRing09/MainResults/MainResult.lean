@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.FiniteAbelian.Basic
-import Mathlib.Algebra.DirectSum.Basic
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Data.ZMod.Basic
-import Mathlib.RingTheory.Ideal.Defs
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.LinearAlgebra.Finsupp.LinearCombination
+module
+
+public import Mathlib.GroupTheory.FiniteAbelian.Basic
+public import Mathlib.Algebra.DirectSum.Basic
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.RingTheory.Ideal.Defs
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.LinearAlgebra.Finsupp.LinearCombination
+
+@[expose] public section
 
 /-!
 # Additive representations of finite-ring ideals
@@ -44,7 +48,7 @@ theorem source_cyclic_product_decomposition
     {R : Type*} [Ring R] [Fintype R] (I : Ideal R) :
     ∃ (ι : Type) (_ : Fintype ι) (s : ι → ℕ) (_ : ∀ i, 1 < s i),
       Nonempty (I ≃+ ((i : ι) → ZMod (s i))) := by
-  haveI : Finite I := inferInstance
+  have : Finite I := inferInstance
   obtain ⟨ι, hι, n, hn, ⟨e⟩⟩ := AddCommGroup.equiv_directSum_zmod_of_finite' I
   exact ⟨ι, hι, n, hn, ⟨e.trans (DirectSum.addEquivProd (fun i => ZMod (n i)))⟩⟩
 
@@ -62,7 +66,7 @@ theorem source_cyclic_factor_count_bound
     rw [hcard]
     calc 2 ^ Fintype.card ι = ∏ _i : ι, 2 := by simp
       _ ≤ ∏ i, s i :=
-        Finset.prod_le_prod' (fun i _ => Nat.succ_le_of_lt (hs i))
+        Finset.prod_le_prod (fun i _ => Nat.succ_le_of_lt (hs i))
   have hA : Nat.card A ≠ 0 := Nat.card_pos.ne'
   exact (Nat.le_log_iff_pow_le (by norm_num) hA).mpr h2
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs
+
+@[expose] public section
 
 /-!
 # Values and intervals for binary rational quotients
@@ -72,7 +76,7 @@ theorem quotient_value (a b : WordRat) (hb : 0 < binaryValue b.numerator) :
   all_goals
     simp only [WordRat.toRat,WordRat.toEnc,quotient,RatEnc.toRat,ha,hb',
       Bool.false_xor,Bool.true_xor,Bool.not_false,Bool.not_true,Bool.false_eq_true,
-      if_false,if_true,mulProgram_value,Int.cast_neg,Int.cast_natCast,Nat.cast_mul]
+      ite_false,ite_true,mulProgram_value,Int.cast_neg,Int.cast_natCast,Nat.cast_mul]
     field_simp [hA,hB,hN]
     simp only [Int.cast_mul,Int.cast_natCast]
 

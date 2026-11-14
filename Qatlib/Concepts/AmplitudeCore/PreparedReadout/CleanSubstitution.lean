@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+
+@[expose] public section
 
 /-!
 # Coherent substitution on a clean ancillary fiber
@@ -42,12 +46,10 @@ open scoped Classical BigOperators
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
-/-- Matrix multiplication for compatible rectangular complex matrices, using the finite
-intermediate index type. -/
-private noncomputable abbrev matmul {X Y Z : Type*} [Fintype Y]
-    (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
-  @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
-    Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
+/- Matrix multiplication remains a local macro so exported declarations reduce to the standard
+matrix multiplication instance rather than exposing a private helper. -/
+macro "matmul " a:term:max b:term:max : term =>
+  `(@HMul.hMul _ _ _ Matrix.instHMulOfFintypeOfMulOfAddCommMonoid $a $b)
 
 /-- The embedding into the ancillary fiber labeled `false`. -/
 noncomputable def frame : Matrix (Bool × H) H ℂ :=
@@ -62,7 +64,7 @@ theorem parallel_frame (V : Matrix H H ℂ) :
     matmul (Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle (J := Bool) V) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame V := by
   ext ⟨b,i⟩ j
   cases b <;>
-    simp [matmul, Matrix.mul_apply, Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame, Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber,
+    simp [Matrix.mul_apply, Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame, Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber,
       Fintype.sum_prod_type]
 
 /-- Lifts the known gates of an adjoint oracle word to act in parallel on the Boolean ancillary
@@ -104,13 +106,13 @@ theorem adjoint_clean (B : Matrix (Bool × H) (Bool × H) ℂ)
     simpa only [Matrix.star_eq_conjTranspose] using (Matrix.mem_unitaryGroup_iff.mp hO)
   calc
     matmul Bᴴ Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame = matmul Bᴴ (matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (O * Oᴴ)) := by
-      simp only [hOO, matmul, Matrix.mul_one]
+      simp only [hOO, Matrix.mul_one]
     _ = matmul Bᴴ (matmul (matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame O) Oᴴ) :=
       congrArg (fun M => matmul Bᴴ M) (Matrix.mul_assoc Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame O Oᴴ).symm
     _ = matmul Bᴴ (matmul (matmul B Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame) Oᴴ) := by rw [← hf]
     _ = matmul (Bᴴ * B) (matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame Oᴴ) := by
-      simp only [matmul, Matrix.mul_assoc]
-    _ = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame Oᴴ := by simp only [hBB, matmul, Matrix.one_mul]
+      simp only [Matrix.mul_assoc]
+    _ = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame Oᴴ := by simp only [hBB, Matrix.one_mul]
 
 /-- If both forward and adjoint oracle actions intertwine the clean fiber, evaluation of any
 lifted word intertwines evaluation of the original word. -/

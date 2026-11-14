@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalStat
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalStat
+
+@[expose] public section
 
 /-!
 # Existence and optimality of source-constrained fidelity levels
@@ -55,7 +59,7 @@ theorem sourceFidelityLevelSubgoal : SourceFidelityLevelSubgoal := by
     exact absurd hπ₀' (not_lt.mpr hle2)
   have hPmaxpos : (0 : ℝ) < waterPmax π σ := by
     have hterm : (0 : ℝ) < if 0 < π i₀ then (σ i₀ : ℝ) ^ 2 else 0 := by
-      rw [if_pos hπ₀]
+      rw [ite_eq_left hπ₀]
       exact sq_pos_of_ne_zero (ne_of_gt (hσpos i₀))
     have hrest : (0 : ℝ) ≤ ∑ i ∈ Finset.univ.erase i₀,
         (if 0 < π i then (σ i : ℝ) ^ 2 else 0) :=
@@ -75,12 +79,12 @@ theorem sourceFidelityLevelSubgoal : SourceFidelityLevelSubgoal := by
     intro i
     by_cases hpi : 0 < π i
     · unfold levelFill
-      rw [min_eq_right (hlow i hpi), if_pos hpi]
+      rw [min_eq_right (hlow i hpi), ite_eq_left hpi]
     · have hπi0 : (π i : ℝ) ≤ 0 := by exact_mod_cast (le_of_not_gt hpi)
       have hc : (π i : ℝ) ≤ γlo * (σ i : ℝ) :=
         hπi0.trans (mul_nonneg hγlo.le (hσpos i).le)
       unfold levelFill
-      rw [min_eq_left hc, if_neg hpi]
+      rw [min_eq_left hc, ite_eq_right hpi]
       exact_mod_cast (show π i = 0 from le_antisymm (le_of_not_gt hpi) (hπ i))
   have hAlo : levelDot π σ γlo = γlo * waterPmax π σ := by
     unfold levelDot waterPmax
@@ -89,9 +93,9 @@ theorem sourceFidelityLevelSubgoal : SourceFidelityLevelSubgoal := by
       intro i
       rw [hfilllo i]
       by_cases hpi : 0 < π i
-      · simp only [hpi, if_true]
+      · simp only [hpi, ite_true]
         ring
-      · simp only [hpi, if_false]
+      · simp only [hpi, ite_false]
         ring
     rw [show ∑ i, (σ i : ℝ) * levelFill π σ γlo i =
         ∑ i, (γlo * (if 0 < π i then (σ i : ℝ) ^ 2 else 0)) from
@@ -103,9 +107,9 @@ theorem sourceFidelityLevelSubgoal : SourceFidelityLevelSubgoal := by
       intro i
       rw [hfilllo i]
       by_cases hpi : 0 < π i
-      · simp only [hpi, if_true]
+      · simp only [hpi, ite_true]
         ring
-      · simp only [hpi, if_false]
+      · simp only [hpi, ite_false]
         ring
     rw [show ∑ i, (levelFill π σ γlo i) ^ 2 =
         ∑ i, (γlo * γlo * (if 0 < π i then (σ i : ℝ) ^ 2 else 0)) from

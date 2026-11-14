@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedTransportPreparation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceAngularIdentity
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedTransportPreparation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceAngularIdentity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,7 @@ theorem materializeAngularPreparation_angular (prepared : CachedMeanPreparation)
   have hQ (n : ℕ) (hn : n<9) :
       storedTransportValue (materializeTransportPreparation prepared).transportBounds n=
         transportWordMajorant (sourceFrameCoefficientNat prepared.derivativeBounds) n := by
-    rw [storedTransportValue,dif_pos hn]
+    rw [storedTransportValue,dite_eq_left hn]
     exact materializeTransportPreparation_transport prepared ⟨n,hn⟩
   simp only [materializeAngularPreparation,Vector.getElem_ofFn,storedGammaMajorant,sourceFrameGammaMajorant]
   apply Finset.sum_congr rfl

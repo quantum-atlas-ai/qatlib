@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A finite-torus counterexample to volume-only sizing
@@ -82,37 +86,37 @@ theorem cyclicKernel_unitary : cyclicKernel ∈ Matrix.unitaryGroup (ZMod 4) ℂ
   ext x y
   rcases hall x with rfl | rfl | rfl | rfl <;>
     rcases hall y with rfl | rfl | rfl | rfl
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, if_neg, hne12, hne13, hsub01, Ne.symm hne13, if_pos, hne23, hsub02, Ne.symm hne12, Finset.sum_singleton, hsub03, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, ite_eq_right, hne12, hne13, hsub01, Ne.symm hne13, ite_eq_left, hne23, hsub02, Ne.symm hne12, Finset.sum_singleton, hsub03, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, if_neg, hsub10, if_pos, hne13, hne12, hsub01, Ne.symm hne13, hsub11, hne23, hsub02, Ne.symm hne12, hsub12, Finset.sum_singleton, hsub03, hsub13, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, ite_eq_right, hsub10, ite_eq_left, hne13, hne12, hsub01, Ne.symm hne13, hsub11, hne23, hsub02, Ne.symm hne12, hsub12, Finset.sum_singleton, hsub03, hsub13, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, if_neg, hsub20, Ne.symm hne12, hne23, hne12, hne13, hsub01, Ne.symm hne13, if_pos, hsub21, hsub02, hsub22, Finset.sum_singleton, hsub03, hsub23, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, ite_eq_right, hsub20, Ne.symm hne12, hne23, hne12, hne13, hsub01, Ne.symm hne13, ite_eq_left, hsub21, hsub02, hsub22, Finset.sum_singleton, hsub03, hsub23, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, if_neg, hsub30, Ne.symm hne13, if_pos, hne12, hne13, hsub01, hsub31, Ne.symm hne12, hne23, hsub02, hsub32, Finset.sum_singleton, hsub03, hsub33, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub00, ite_eq_right, hsub30, Ne.symm hne13, ite_eq_left, hne12, hne13, hsub01, hsub31, Ne.symm hne12, hne23, hsub02, hsub32, Finset.sum_singleton, hsub03, hsub33, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, if_pos, hne13, if_neg, hsub00, hne12, hsub11, hsub01, Ne.symm hne13, hne23, hsub12, hsub02, Ne.symm hne12, Finset.sum_singleton, hsub13, hsub03, one_apply, Ne.symm hne01]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, ite_eq_left, hne13, ite_eq_right, hsub00, hne12, hsub11, hsub01, Ne.symm hne13, hne23, hsub12, hsub02, Ne.symm hne12, Finset.sum_singleton, hsub13, hsub03, one_apply, Ne.symm hne01]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, if_pos, hne13, if_neg, hne12, hsub11, hne23, hsub12, Ne.symm hne13, Finset.sum_singleton, hsub13, Ne.symm hne12, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, ite_eq_left, hne13, ite_eq_right, hne12, hsub11, hne23, hsub12, Ne.symm hne13, Finset.sum_singleton, hsub13, Ne.symm hne12, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, if_pos, hne13, if_neg, hsub20, Ne.symm hne12, hne23, hne12, hsub11, hsub21, hsub12, Ne.symm hne13, hsub22, Finset.sum_singleton, hsub13, hsub23, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, ite_eq_left, hne13, ite_eq_right, hsub20, Ne.symm hne12, hne23, hne12, hsub11, hsub21, hsub12, Ne.symm hne13, hsub22, Finset.sum_singleton, hsub13, hsub23, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, if_pos, hne13, if_neg, hsub30, Ne.symm hne13, hne12, hsub11, hsub31, Ne.symm hne12, hne23, hsub12, hsub32, Finset.sum_singleton, hsub13, hsub33, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub10, ite_eq_left, hne13, ite_eq_right, hsub30, Ne.symm hne13, hne12, hsub11, hsub31, Ne.symm hne12, hne23, hsub12, hsub32, Finset.sum_singleton, hsub13, hsub33, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, if_neg, hne23, hsub00, hne12, hne13, hsub21, if_pos, hsub01, Ne.symm hne13, hsub22, hsub02, Finset.sum_singleton, hsub23, hsub03, one_apply, Ne.symm hne02]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, ite_eq_right, hne23, hsub00, hne12, hne13, hsub21, ite_eq_left, hsub01, Ne.symm hne13, hsub22, hsub02, Finset.sum_singleton, hsub23, hsub03, one_apply, Ne.symm hne02]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, if_neg, hne23, hsub10, if_pos, hne13, hne12, hsub21, hsub11, hsub22, hsub12, Ne.symm hne13, Finset.sum_singleton, hsub23, hsub13, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, ite_eq_right, hne23, hsub10, ite_eq_left, hne13, hne12, hsub21, hsub11, hsub22, hsub12, Ne.symm hne13, Finset.sum_singleton, hsub23, hsub13, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, if_neg, hne23, hne12, hne13, hsub21, if_pos, hsub22, Finset.sum_singleton, hsub23, Ne.symm hne13, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, ite_eq_right, hne23, hne12, hne13, hsub21, ite_eq_left, hsub22, Finset.sum_singleton, hsub23, Ne.symm hne13, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, if_neg, hne23, hsub30, Ne.symm hne13, if_pos, hne12, hne13, hsub21, hsub31, hsub22, hsub32, Finset.sum_singleton, hsub23, hsub33, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub20, Ne.symm hne12, ite_eq_right, hne23, hsub30, Ne.symm hne13, ite_eq_left, hne12, hne13, hsub21, hsub31, hsub22, hsub32, Finset.sum_singleton, hsub23, hsub33, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, if_neg, if_pos, hsub00, hne12, hne13, hsub31, Ne.symm hne12, hne23, hsub01, hsub32, hsub02, Finset.sum_singleton, hsub33, hsub03, one_apply, Ne.symm hne03]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, ite_eq_right, ite_eq_left, hsub00, hne12, hne13, hsub31, Ne.symm hne12, hne23, hsub01, hsub32, hsub02, Finset.sum_singleton, hsub33, hsub03, one_apply, Ne.symm hne03]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, if_neg, if_pos, hsub10, hne13, hne12, hsub31, Ne.symm hne12, hne23, hsub11, hsub32, hsub12, Finset.sum_singleton, hsub33, hsub13, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, ite_eq_right, ite_eq_left, hsub10, hne13, hne12, hsub31, Ne.symm hne12, hne23, hsub11, hsub32, hsub12, Finset.sum_singleton, hsub33, hsub13, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, if_neg, if_pos, hsub20, Ne.symm hne12, hne23, hne12, hne13, hsub31, hsub21, hsub32, hsub22, Finset.sum_singleton, hsub33, hsub23, one_apply, Ne.symm hne23]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, ite_eq_right, ite_eq_left, hsub20, Ne.symm hne12, hne23, hne12, hne13, hsub31, hsub21, hsub32, hsub22, Finset.sum_singleton, hsub33, hsub23, one_apply, Ne.symm hne23]
     norm_num [alpha,beta,Complex.ext_iff]
-  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, if_neg, if_pos, hne12, hne13, hsub31, Ne.symm hne12, hne23, hsub32, Finset.sum_singleton, hsub33, one_apply]
+  · simp only [mul_apply, hu, star_apply, cyclicKernel, cyclicWeight, hm, Finset.mem_insert, hne01, hne02, Finset.mem_singleton, hne03, or_self, not_false_eq_true, Finset.sum_insert, hsub30, Ne.symm hne13, ite_eq_right, ite_eq_left, hne12, hne13, hsub31, Ne.symm hne12, hne23, hsub32, Finset.sum_singleton, hsub33, one_apply]
     norm_num [alpha,beta,Complex.ext_iff]
 
 /-- The finite torus `ZMod 8 × ZMod 4` used for the sizing counterexample. -/
@@ -181,12 +185,12 @@ theorem torusKernel_not_translation :
   have hep : cellPlus=e := by
     by_contra he
     have hh := h 0 cellPlus
-    simp only [zero_add,if_neg he] at hh
+    simp only [zero_add,ite_eq_right he] at hh
     exact hp hh
   have hem : cellMinus=e := by
     by_contra he
     have hh := h 0 cellMinus
-    simp only [zero_add,if_neg he] at hh
+    simp only [zero_add,ite_eq_right he] at hh
     exact hm hh
   exact two_nonzero_weights.1 (hep.trans hem.symm)
 
@@ -197,7 +201,7 @@ theorem torusWeight_support (e : Torus) (h : torusWeight e ≠ 0) :
   · exact Or.inl hp
   · by_cases hm : e=cellMinus
     · exact Or.inr hm
-    · simp only [torusWeight,if_neg hp,if_neg hm,zero_add] at h
+    · simp only [torusWeight,ite_eq_right hp,ite_eq_right hm,zero_add] at h
       exact (h rfl).elim
 
 /-- No fixed displacement and scalar express the torus kernel action as a scalar multiple of

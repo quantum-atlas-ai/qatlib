@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
+module
+
+public import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
+
+@[expose] public section
 
 /-!
 # Exact imaginary-time products for commuting matrices

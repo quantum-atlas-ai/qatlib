@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Translation-invariant quadratic models
@@ -43,7 +47,7 @@ set_option autoImplicit false
 theorem theorem12_observable_convergence
     {E : Type*} [NormedAddCommGroup E]
     (tauLambda tauR : ℝ → E → E) (O : E) {J0 R s CX : ℝ}
-    (hJ0 : 0 < J0) (hR : 0 < R) (hs : 0 < s) (hCX : 0 < CX)
+    (_hJ0 : 0 < J0) (_hR : 0 < R) (_hs : 0 < s) (_hCX : 0 < CX)
     (hbound : ∀ t : ℝ,
       ‖tauLambda t O - tauR t O‖ ≤ CX * ‖O‖ * (J0 * |t| / R ^ s)) :
     ∀ t : ℝ, ‖tauLambda t O - tauR t O‖ ≤ CX * ‖O‖ * J0 * |t| / R ^ s := by
@@ -55,7 +59,7 @@ theorem theorem12_observable_convergence
 difference by `C‖O‖J₀ T²/R^s` (using `∫₀^T t dt = T²/2 ≤ T²`). -/
 theorem theorem12_dense_output_convergence
     {f : ℝ → ℝ} {JH JHR O_norm J0 R s T C : ℝ}
-    (hC : 0 < C) (hJ0 : 0 < J0) (hR : 0 < R) (hs : 0 < s) (hO : 0 ≤ O_norm)
+    (hC : 0 < C) (hJ0 : 0 < J0) (hR : 0 < R) (_hs : 0 < s) (hO : 0 ≤ O_norm)
     (hT : 0 ≤ T)
     (hInt : IntervalIntegrable f volume (0 : ℝ) T)
     (hpt : ∀ t ∈ Set.Icc (0 : ℝ) T, f t ≤ C * O_norm * J0 * t / R ^ s)
@@ -79,7 +83,7 @@ theorem lemma5_local_observable_comparison
     (tu tv : E →L[ℝ] E) (O : E) {CX m : ℝ} (hCX : 1 ≤ CX) (hm : ‖tu - tv‖ ≤ m) :
     ‖tu O - tv O‖ ≤ CX * ‖O‖ * m := by
   have h1 : ‖tu O - tv O‖ ≤ ‖tu - tv‖ * ‖O‖ := by
-    rw [← ContinuousLinearMap.sub_apply]
+    rw [← _root_.sub_apply]
     exact ContinuousLinearMap.le_opNorm (tu - tv) O
   have hO : 0 ≤ ‖O‖ := norm_nonneg O
   have hm0 : 0 ≤ m := le_trans (norm_nonneg _) hm

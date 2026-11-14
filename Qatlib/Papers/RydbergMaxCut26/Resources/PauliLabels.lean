@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Resources.MomentCounts
-import Qatlib.Papers.RydbergMaxCut26.MomentSdp.PauliRotation
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Resources.MomentCounts
+public import Qatlib.Papers.RydbergMaxCut26.MomentSdp.PauliRotation
+
+@[expose] public section
 
 /-!
 # Pauli labels and the full moment matrix

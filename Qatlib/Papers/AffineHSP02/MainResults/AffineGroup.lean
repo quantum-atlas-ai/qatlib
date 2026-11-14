@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # The affine group over a residue ring
@@ -270,7 +274,7 @@ instance (p : ℕ) [NeZero p] : Fintype (Aff p) :=
 
 /-- For prime `p`, the affine group `Aff p` has cardinality `p * (p - 1)`. -/
 theorem card_aff (p : ℕ) [Fact p.Prime] : Fintype.card (Aff p) = p * (p - 1) := by
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   rw [Fintype.card_congr (affEquivProd p), Fintype.card_prod, ZMod.card,
     Fintype.card_units, ZMod.card]
 

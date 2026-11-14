@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinModels08.MainResults.EdgeModel.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Qatlib.Papers.SpinModels08.MainResults.EdgeModel.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 /-!
 # Edge-model realizations of elementary gates

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianStat
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutOpti
+module
+
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianStat
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutOpti
+
+@[expose] public section
 
 /-!
 # Median amplification of gradient coordinates
@@ -213,10 +217,10 @@ private theorem probEvent_of_iff {X : Type} [Fintype X] [DecidableEq X] (p : Fin
 private theorem gradientSignedValueQ_cast (M : ℕ) (z : Fin M) :
     ((gradientSignedValueQ M z : ℚ) : ℝ) = signedGridValue M z := by
   by_cases h : 2*z.val ≤ M
-  · rw [gradientSignedValueQ, if_pos h, signedGridValue, if_pos h]
+  · rw [gradientSignedValueQ, ite_eq_left h, signedGridValue, ite_eq_left h]
     push_cast
     ring
-  · rw [gradientSignedValueQ, if_neg h, signedGridValue, if_neg h]
+  · rw [gradientSignedValueQ, ite_eq_right h, signedGridValue, ite_eq_right h]
     push_cast
     ring
 

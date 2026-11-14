@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistTesting09.MainResults.Defs
+module
+
+public import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Hoeffding bounds for distribution hit counts

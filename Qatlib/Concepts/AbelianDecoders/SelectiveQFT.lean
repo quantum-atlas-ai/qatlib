@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Selective measurement followed by the quantum Fourier transform

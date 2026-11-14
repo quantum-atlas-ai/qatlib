@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BeyondCircuit08.MainResults.LocalGates.Basic
-import Qatlib.Papers.BeyondCircuit08.MainResults.Model.ModelFacts
+module
+
+public import Qatlib.Papers.BeyondCircuit08.MainResults.LocalGates.Basic
+public import Qatlib.Papers.BeyondCircuit08.MainResults.Model.ModelFacts
+
+@[expose] public section
 
 /-!
 # Reduction of local gate products to two dimensions

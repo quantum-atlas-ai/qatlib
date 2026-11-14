@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Logic.Relation
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Logic.Relation
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -214,7 +218,7 @@ def hcQueryCost (K n : ℝ) : ℝ := Real.rpow 2 (hcQueryExponent K n)
 /-- **Hamiltonian-cycle complexity** (source p. 13, line 127): for a
 `K`-regular graph, `2^((M-n')/2) ≤ √2 · 2^((K-2)n/4)`, i.e. the algorithm runs in
 `O(2^((K-2)n/4))`. -/
-theorem hcQueryCost_le (K n : ℝ) (hK : 3 ≤ K) (hn : 1 ≤ n) :
+theorem hcQueryCost_le (K n : ℝ) (_hK : 3 ≤ K) (_hn : 1 ≤ n) :
     hcQueryCost K n ≤ Real.sqrt 2 * Real.rpow 2 (hcClaimExponent K n) := by
   unfold hcQueryCost
   rw [hcQueryExponent_eq]

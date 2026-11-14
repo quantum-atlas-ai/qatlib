@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidOriginalJetCodec
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
-import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.PaidRawMachineCall
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidOriginalJetCodec
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.PaidRawMachineCall
+
+@[expose] public section
 
 /-!
 # Paid Jet Machine Call

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.JointApparatus
-import Qatlib.Foundations.FiniteStats.BornEstimator.SecondMoment
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.JointApparatus
+public import Qatlib.Foundations.FiniteStats.BornEstimator.SecondMoment
+
+@[expose] public section
 
 /-!
 # Operator identities for joint context score moments

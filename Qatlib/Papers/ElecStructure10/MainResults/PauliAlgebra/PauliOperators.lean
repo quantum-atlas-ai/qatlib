@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,7 +80,7 @@ non-zero entries are diagonal, with value `∏_{i∈is} (if x_i then −1 else 1
   rw [zString, Matrix.diagonal_apply]
   by_cases h : y = x
   · subst h; simp
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- Entry formula for `σ^z` of paper Section 3.1 (eigenvalues `+1, −1` for bits
 `0, 1`): diagonal, `+1` when bit `i` of `x` is `0` and `−1` when it is `1`. -/
@@ -85,7 +89,7 @@ non-zero entries are diagonal, with value `∏_{i∈is} (if x_i then −1 else 1
   rw [zOp, Matrix.diagonal_apply]
   by_cases h : y = x
   · subst h; simp
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- Entry formula for `σ^x` (paper Section 3.1, `σ^x = [[0,1],[1,0]]` acting on
 site `i`): the only non-zero entries are the bit-flip permutation ones, with
@@ -103,7 +107,7 @@ site `i`): the bit-flip permutation entries carry the phase `i` on `|0⟩` and
 
 /-- `zOp i` is a diagonal matrix: it is zero off the diagonal. -/
 theorem zOp_apply_of_ne {i : Fin n} {y x : Reg n} (h : y ≠ x) : zOp i y x = 0 := by
-  rw [zOp_apply, if_neg h]
+  rw [zOp_apply, ite_eq_right h]
 
 /-- `zString` over the empty set is the identity: the paper omits `σ^z` factors
 when `p+1 > q−1` (adjacent orbitals). -/

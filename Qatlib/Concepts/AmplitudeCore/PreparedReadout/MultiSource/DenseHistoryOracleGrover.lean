@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryOracleWord
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryOracleWord
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
+
+@[expose] public section
 
 /-!
 # Controlled Grover words with multiple oracle sources

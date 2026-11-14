@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.PepsTransfer.OpenGridPeps.Defs
+module
+
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.PepsTransfer.OpenGridPeps.Defs
+
+@[expose] public section
 
 /-!
 # Open-grid PEPS contractions and row transfer matrices
@@ -62,8 +66,8 @@ private theorem delta_horizontal_zero {a b d D : ℕ} (hD : 0 < D)
   apply Finset.prod_eq_zero (Finset.mem_univ i)
   apply Finset.prod_eq_zero (Finset.mem_univ j)
   have he : (⟨j.val, by omega⟩ : Fin (b-1)) = k := Fin.ext rfl
-  simp only [value, dif_pos hj, he]
-  exact if_neg (fun hp => hn hp.2.2.2)
+  simp only [value, dite_eq_left hj, he]
+  exact ite_eq_right (fun hp => hn hp.2.2.2)
 
 /-- For tensors supported only on zero virtual indices, any nonzero vertical bond assignment
 makes the product of local tensor values vanish. -/
@@ -85,8 +89,8 @@ private theorem delta_vertical_zero {a b d D : ℕ} (hD : 0 < D)
   apply Finset.prod_eq_zero (Finset.mem_univ i)
   apply Finset.prod_eq_zero (Finset.mem_univ j)
   have he : (⟨i.val, by omega⟩ : Fin (a-1)) = k := Fin.ext rfl
-  simp only [value, dif_pos hi, he]
-  exact if_neg (fun hp => hn hp.2.1)
+  simp only [value, dite_eq_left hi, he]
+  exact ite_eq_right (fun hp => hn hp.2.1)
 
 /-- Tensors supported only at zero virtual indices contract to a product of
 local amplitudes, the product-state case of PEPS; see
@@ -179,7 +183,7 @@ private theorem value_curried {n b d D : ℕ} (hD : 0 < D)
     · simp [show k.val+1 < n+1 by omega]
   dsimp only [value, Function.uncurry]
   rw [← hu, ← hd]
-  try (split_ifs <;> rfl)
+
 
 /-- The PEPS amplitude on `n + 1` rows is the sum over internal row-boundary configurations of
 the product of row-matrix entries. -/

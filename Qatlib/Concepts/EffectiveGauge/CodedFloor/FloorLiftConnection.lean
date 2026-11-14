@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSpinFamily
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSpinFamily
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,7 +42,7 @@ theorem floorRawLift_connection_formula (a : ℝ) (X : SpatialPoint) (i : Fin 3)
   have hI := congrFun (spatialWordPartial_clm (quaternionCoordinateCLM 1) (floorRawLift a)
     (contDiff_floorRawLift a) [i]) X
   change fderiv ℝ (fun _ : SpatialPoint => (0 : ℝ)) X e=V.imI at hI
-  have hI0 : V.imI=0 := by simpa only [fderiv_const_apply,ContinuousLinearMap.zero_apply] using hI.symm
+  have hI0 : V.imI=0 := by simpa only [fderiv_const_apply,_root_.zero_apply] using hI.symm
   have hJ := congrFun (spatialWordPartial_clm (quaternionCoordinateCLM 2) (floorRawLift a)
     (contDiff_floorRawLift a) [i]) X
   change fderiv ℝ (fun Y => Real.sin (theta Y)*Real.cos (phi Y)) X e=V.imJ at hJ
@@ -46,7 +50,7 @@ theorem floorRawLift_connection_formula (a : ℝ) (X : SpatialPoint) (i : Fin 3)
   change HasFDerivAt (fun Y => Real.sin (theta Y)*Real.cos (phi Y)) _ X at hdJ
   have hJV : V.imJ=Real.cos (theta X)*T*Real.cos (phi X)-Real.sin (theta X)*Real.sin (phi X)*P := by
     rw [← hJ,hdJ.fderiv]
-    simp only [ContinuousLinearMap.add_apply,ContinuousLinearMap.smul_apply,
+    simp only [_root_.add_apply,_root_.smul_apply,
       smul_eq_mul]
     dsimp only [T,P]
     ring
@@ -57,7 +61,7 @@ theorem floorRawLift_connection_formula (a : ℝ) (X : SpatialPoint) (i : Fin 3)
   change HasFDerivAt (fun Y => Real.sin (theta Y)*Real.sin (phi Y)) _ X at hdK
   have hKV : V.imK=Real.cos (theta X)*T*Real.sin (phi X)+Real.sin (theta X)*Real.cos (phi X)*P := by
     rw [← hK,hdK.fderiv]
-    simp only [ContinuousLinearMap.add_apply,ContinuousLinearMap.smul_apply,
+    simp only [_root_.add_apply,_root_.smul_apply,
       smul_eq_mul]
     dsimp only [T,P]
     ring

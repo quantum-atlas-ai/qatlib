@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualMeanPayoff
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualMeanPayoff
+
+@[expose] public section
 
 /-!
 # ActualMeanPayoff identities for the finite mathematical model.
@@ -37,7 +41,8 @@ theorem actual_mean_quadratic_error {I : Type} [Fintype I] [DecidableEq I]
   dsimp only
   apply actual_mean_smooth_error M hM hEven A j S hA D (fun x => x^2) (fun x => 2*x) 2
   · intro x
-    convert! (hasDerivAt_pow 2 x) using 1 <;> ring
+    convert! (hasDerivAt_pow 2 x) using 1
+    ring
   · apply LipschitzWith.of_dist_le_mul
     intro x y
     rw [Real.dist_eq,Real.dist_eq,← mul_sub,abs_mul]
@@ -55,7 +60,7 @@ theorem actual_mean_affine_error {I : Type} [Fintype I] [DecidableEq I]
   have h := actual_mean_smooth_error M hM hEven A j S hA D
     (fun x => α*x + β) (fun _ => α) 0
     (by intro x; simpa using ((hasDerivAt_id x).const_mul α).add_const β)
-    (by simpa using (LipschitzWith.const (α : ℝ)))
+    (by exact LipschitzWith.const (α : ℝ))
   simpa using h
 
 /-- Any pointwise bounded payoff has the same bound after averaging over the

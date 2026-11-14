@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryVisits
-import Mathlib.Tactic.Abel
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryVisits
+public import Mathlib.Tactic.Abel
+
+@[expose] public section
 
 /-!
 # Paired observed executions and inner products

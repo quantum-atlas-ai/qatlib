@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
-import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+
+@[expose] public section
 
 /-!
 # Regular secular terms and crossing roots

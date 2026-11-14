@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+
+@[expose] public section
 
 /-!
 # Continuous path obstructions from overlap gaps

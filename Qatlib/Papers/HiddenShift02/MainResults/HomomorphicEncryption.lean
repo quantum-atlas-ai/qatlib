@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
-import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
-import Mathlib.FieldTheory.Finite.Basic
+module
+
+public import Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
+public import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+public import Mathlib.FieldTheory.Finite.Basic
+
+@[expose] public section
 
 /-!
 # Homomorphic operations and shifted quadratic characters
@@ -43,6 +47,43 @@ namespace Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption
 
 variable {F S : Type*}
 
+/--
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.add`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.dec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.enc`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.mul`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.zeroTest`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Data for plaintext encryption, ciphertext decryption, ciphertext addition and
 multiplication, and a Boolean zero test. -/
 structure HomomorphicEncryption (F S : Type*) where
@@ -71,17 +112,38 @@ structure SchemeSpec [Zero F] [Add F] [Mul F] (H : HomomorphicEncryption F S) : 
 
 namespace HomomorphicEncryption
 
+/--
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.epow`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The ciphertext power computed recursively using encrypted one as the zeroth power and
 ciphertext multiplication for successor powers. -/
 def epow [One F] (H : HomomorphicEncryption F S) (c : S) : ℕ → S
   | 0 => H.enc 1
   | n + 1 => H.mul c (epow H c n)
 
+/--
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.epow_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The zeroth ciphertext power is the encryption of one. -/
 @[simp]
 theorem epow_zero [One F] (H : HomomorphicEncryption F S) (c : S) :
     H.epow c 0 = H.enc 1 := rfl
 
+/--
+error: The namespace `HomomorphicEncryption` is duplicated in the declaration `Qatlib.Papers.HiddenShift02.MainResults.HomomorphicEncryption.HomomorphicEncryption.epow_succ`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The successor ciphertext power multiplies the ciphertext by its preceding power. -/
 @[simp]
 theorem epow_succ [One F] (H : HomomorphicEncryption F S) (c : S) (n : ℕ) :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmFast
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmFast
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Dimension dependence of gradient-query effort
@@ -91,7 +95,7 @@ theorem quantum_effort_lt_classical (basins iterations p : ℕ)
 /-- Under the displayed discretization, smoothness, derivative, and window hypotheses,
 `gradientValueProgram d M Q` has query count one [Bulger2005]. -/
 theorem quantum_gradient_single_query :
-    ∀ (d M Q n_o : ℕ) (hM : 0 < M) [NeZero Q], 2 ≤ M → Q = 2 ^ n_o → 0 < n_o →
+    ∀ (d M Q n_o : ℕ) (_hM : 0 < M) [NeZero Q], 2 ≤ M → Q = 2 ^ n_o → 0 < n_o →
       ∀ (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d))
         (H h w : ℝ),
         ContDiff ℝ 2 f → 0 ≤ H → (∀ y, ‖fderiv ℝ (fderiv ℝ f) y‖ ≤ H) →

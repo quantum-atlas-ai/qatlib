@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.Theorem1QueryBudgetCorrected
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.Theorem1QueryBudgetCorrected
+
+@[expose] public section
 
 /-!
 # Corrected query-budget minimum-finding theorem

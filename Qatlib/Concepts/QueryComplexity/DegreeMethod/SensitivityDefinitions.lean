@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Nat.Lattice
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+module
+
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Order.Lattice.Nat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+@[expose] public section
 
 /-!
 # Sensitivity and certificate complexity

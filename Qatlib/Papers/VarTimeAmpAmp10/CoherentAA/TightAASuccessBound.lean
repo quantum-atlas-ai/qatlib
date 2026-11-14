@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # A refined success bound for amplitude amplification

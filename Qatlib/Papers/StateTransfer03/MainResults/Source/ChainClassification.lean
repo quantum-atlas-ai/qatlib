@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateTransfer03.MainResults.Defs
-import Mathlib.NumberTheory.Niven
+module
+
+public import Qatlib.Papers.StateTransfer03.MainResults.Defs
+public import Mathlib.NumberTheory.Niven
+
+@[expose] public section
 
 /-!
 # Obstruction to perfect transfer on longer chains

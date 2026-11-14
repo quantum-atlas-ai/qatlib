@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPolynomial
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicExtension
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
+module
+
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPolynomial
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicExtension
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ theorem floorInteriorBump_le_one (X : SpatialPoint) : floorInteriorBump X ≤ 1 
   · simp only [floorInteriorBump,expNegInvGlue.zero_of_nonpos hp]
     norm_num
   · change expNegInvGlue (floorBumpArgument X) ≤ 1
-    rw [expNegInvGlue,if_neg hp]
+    rw [expNegInvGlue,ite_eq_right hp]
     exact Real.exp_le_one_iff.mpr (neg_nonpos.mpr (inv_nonneg.mpr (not_le.mp hp).le))
 
 /-- Original `floorBumpArgument_eq_norm` guarantee for the `FloorBumpFamily` construction; the complete source hypotheses are retained. -/

@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import QuantumInfo.Channels.Unbundled
-import Mathlib.Topology.Algebra.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.ODE.Gronwall
-import QuantumInfo.ForMathlib.HermitianMat.Inner
-import QuantumInfo.Entropy.DPI
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import QuantumInfo.Channels.Unbundled
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.ODE.Gronwall
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+public import QuantumInfo.Entropy.DPI
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+
+@[expose] public section
 
 /-!
 # Relative-entropy monotonicity for Lindblad evolution
@@ -79,7 +83,7 @@ theorem relativeEntropy_eq_qRelativeEnt {D : ℕ} {σ ρ : Operator D}
   let r := Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState (Fin D) ⟨ρ,hρ⟩
   have hf : r.M.NonSingular := HermitianMat.nonSingular_of_posDef hfull
   have hk : r.M.ker ≤ s.M.ker := by
-    letI := hf
+    let := hf
     rw [HermitianMat.nonSingular_ker_bot]
     exact bot_le
   change relativeEntropy σ ρ = (qRelativeEnt s r).toReal
@@ -109,7 +113,7 @@ theorem lindbladSemigroup_relativeEntropy_le {D : ℕ} (G : GKSL D) {ρ σ : Ope
   have h := sandwichedRenyiEntropy_DPI_eq_one s r Φ
   change qRelativeEnt (Φ s) (Φ r) ≤ qRelativeEnt s r at h
   rw [hsr, hss] at h
-  letI : r.M.NonSingular := HermitianMat.nonSingular_of_posDef hfull
+  let : r.M.NonSingular := HermitianMat.nonSingular_of_posDef hfull
   have hn : qRelativeEnt s r ≠ ⊤ := qRelativeEnt_ne_top
   have hr := ENNReal.toReal_mono hn h
   change (qRelativeEnt τ r).toReal ≤ (qRelativeEnt s r).toReal at hr

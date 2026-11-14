@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.Lemma6
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.Lemma6
+
+@[expose] public section
 
 /-!
 # A two-dimensional amplification recurrence

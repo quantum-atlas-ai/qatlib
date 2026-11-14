@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgGraph15.MainResults.SourceSpanPrograms
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Combinatorics.SimpleGraph.Coloring.Constructions
+module
+
+public import Qatlib.Papers.SpanProgGraph15.MainResults.SourceSpanPrograms
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Combinatorics.SimpleGraph.Coloring.Constructions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

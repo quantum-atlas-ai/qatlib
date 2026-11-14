@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.Notation
+module
+
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.Notation
+
+@[expose] public section
 
 /-!
 # Complex arrow block definitions

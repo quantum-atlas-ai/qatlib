@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffWord
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ScalarWordProduct
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhaseWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffWord
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ScalarWordProduct
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhaseWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,7 +73,7 @@ theorem sourceFrameBoundRun_correction_correct (v : SpatialPoint → SpatialPoin
     have h := hLambda q₀ h₀ ⟨j,hlt⟩ (List.replicate j 0) (by simp) 0
       (fun _ => ⟨le_rfl,zero_le_one⟩)
     have hzero := (norm_nonneg _).trans h
-    simpa only [sourceFrameLambdaNat,dif_pos hlt] using hzero
+    simpa only [sourceFrameLambdaNat,dite_eq_left hlt] using hzero
   have hprod := spatialWordPartial_real_mul_norm_le (unitCutoffField (eta : ℝ))
     (sourceUnitRealPhase v hv q₀ h₀) (contDiff_unitCutoffField _)
     (contDiff_sourceUnitRealPhase v hv q₀ h₀)
@@ -79,7 +83,7 @@ theorem sourceFrameBoundRun_correction_correct (v : SpatialPoint → SpatialPoin
     (by
       intro z hz
       have hlt : z.length<8 := by omega
-      simpa only [sourceFrameLambdaNat,dif_pos hlt] using hLambda q₀ h₀ ⟨z.length,hlt⟩ z rfl x hx)
+      simpa only [sourceFrameLambdaNat,dite_eq_left hlt] using hLambda q₀ h₀ ⟨z.length,hlt⟩ z rfl x hx)
   have heq : sourceCorrectionPhase v hv q₀ h₀ (eta : ℝ)=
       fun y => (-1 : ℝ) • (unitCutoffField (eta : ℝ) y*sourceUnitRealPhase v hv q₀ h₀ y) := by
     funext y

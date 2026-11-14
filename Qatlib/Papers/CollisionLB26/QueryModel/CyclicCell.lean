@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.Normed.Ring.Finite
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.Normed.Ring.Finite
+
+@[expose] public section
 
 /-!
 # Cyclic characters and recording matrices

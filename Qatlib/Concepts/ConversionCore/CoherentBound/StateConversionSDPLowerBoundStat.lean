@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+
+@[expose] public section
 
 /-!
 # Coherent state conversion SDP specification

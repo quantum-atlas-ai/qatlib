@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOASupremacy16.GapModels
+module
+
+public import Qatlib.Papers.QAOASupremacy16.GapModels
+
+@[expose] public section
 
 /-!
 # Rejection sampling for supplied nonnegative path weights

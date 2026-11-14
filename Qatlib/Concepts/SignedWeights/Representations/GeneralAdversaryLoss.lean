@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignedWeights.Representations.GeneralAdversaryLossDefs
+module
+
+public import Qatlib.Concepts.SignedWeights.Representations.GeneralAdversaryLossDefs
+
+@[expose] public section
 
 /-!
 # Loss Completion and Truncated Query Accounting
@@ -229,7 +233,7 @@ theorem certifiedCutCostE_le_of_separating {X : Type} [Fintype X] [DecidableEq X
     Finset.mem_filter.mpr ⟨Finset.mem_univ _, hsep⟩
   have hne : (separatingCoords input x y).Nonempty := ⟨j, hj⟩
   unfold certifiedCutCostE
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   exact Finset.inf'_le (fun k => beta k) hj
 
 /-- A separating coordinate with finite extended cost ensures that the extended certified cut
@@ -265,10 +269,10 @@ theorem certifiedCutCostE_top_of_all_infinite {X : Type} [Fintype X] [DecidableE
   rw [ENNReal.toReal_top] at hj'val
   constructor
   · unfold certifiedCutCostE
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
     exact hjval
   · unfold certifiedCutCost
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
     exact hj'val
 
 /-- A successful weighted cut check certifies that the coordinate separates the inputs and has
@@ -604,7 +608,7 @@ theorem neverQueryCost_le_budget_mul_neverMass {d : ℕ} (O : Operator d)
     by_cases h : neverEvent t.accepted t.outcomes
     · have hle : (t.queries : ℝ) ≤ (K : ℝ) := by
         exact_mod_cast hq t ht
-      simp only [h, if_true]
+      simp only [h, ite_true]
       exact mul_le_mul_of_nonneg_left hle (hmass t ht)
     · simp [h]
   have hmap : (instrumentCircuitMixedTraces O (truncateInstrumentQueries P K) rho).map

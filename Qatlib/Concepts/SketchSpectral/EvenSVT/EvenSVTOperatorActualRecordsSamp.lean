@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTOperatorActualRecordsStat
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTOperatorActualRecordsStat
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
+
+@[expose] public section
 
 /-!
 # Operator accuracy for actual even SVT records

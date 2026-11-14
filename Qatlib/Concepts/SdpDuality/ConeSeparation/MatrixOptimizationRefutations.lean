@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Counterexamples to SDP threshold and sparsification contracts
@@ -71,10 +75,10 @@ theorem sdpRoundOracleFailure_refuted :
       intro M
       rw [Matrix.zero_mul, Matrix.trace_zero]
       simp
-    simp [mul_zero, Finset.sum_const_zero, h0]
+    simp [mul_zero, Finset.sum_const_zero]
     norm_num
   have hconcl := h (fun _ => (0 : ℝ)) (fun _ => le_rfl) hprem
-  simp only [mul_zero, Finset.sum_const_zero] at hconcl
+  simp only [] at hconcl
   norm_num at hconcl
 open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSeparation
 
@@ -224,16 +228,16 @@ private def b0 : Fin 2 → ℝ := fun i => if i = 0 then (1:ℝ) else (2:ℝ)
 private noncomputable def y0 : ℕ → Fin 2 → ℝ := fun _ _ => (17:ℝ) / 24
 
 /-- Constraint zero of `A0` equals minus the scalar identity matrix. -/
-private theorem hA0 : A0 0 = -(1 : Operator 1) := if_pos rfl
+private theorem hA0 : A0 0 = -(1 : Operator 1) := ite_eq_left rfl
 
 /-- Constraint one of `A0` equals the scalar identity matrix. -/
-private theorem hA1 : A0 1 = (1 : Operator 1) := if_neg (by decide)
+private theorem hA1 : A0 1 = (1 : Operator 1) := ite_eq_right (by decide)
 
 /-- The first constraint bound in `b0` is one. -/
-private theorem hb0 : b0 0 = (1:ℝ) := if_pos rfl
+private theorem hb0 : b0 0 = (1:ℝ) := ite_eq_left rfl
 
 /-- The second constraint bound in `b0` is two. -/
-private theorem hb1 : b0 1 = (2:ℝ) := if_neg (by decide)
+private theorem hb1 : b0 1 = (2:ℝ) := ite_eq_right (by decide)
 
 /-- Every index in `Fin 2` is zero or one. -/
 private theorem hfin2_clause12 : ∀ i : Fin 2, i = 0 ∨ i = 1 := by

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.Matrix.InvariantBasisNumber
-import Mathlib.RingTheory.FiniteType
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedStat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.Matrix.InvariantBasisNumber
+public import Mathlib.RingTheory.FiniteType
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedStat
+
+@[expose] public section
 
 /-!
 # Two-dimensional action of rank-one phase amplification

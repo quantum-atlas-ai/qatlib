@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ def mwAcceptanceProb {ι : Type*} [Fintype ι] (w lam : ι → ℝ) (N : ℕ) : 
 
 /-- Elementary exponential bound used in the lower half of Theorem 9:
 for `0 ≤ a ≤ 1` and any `m`, `(1-a)^m ≤ e^{-m a}`. -/
-theorem one_sub_pow_le_exp_neg {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) (m : ℕ) :
+theorem one_sub_pow_le_exp_neg {a : ℝ} (_h0 : 0 ≤ a) (h1 : a ≤ 1) (m : ℕ) :
     (1 - a) ^ m ≤ Real.exp (-(m * a)) := by
   have hbase : 1 - a ≤ Real.exp (-a) := Real.one_sub_le_exp_neg a
   have hnonneg : 0 ≤ 1 - a := by linarith
@@ -132,7 +136,7 @@ eigenbasis this is `2N Σ_i w_i λ_i`. -/
 theorem source_modified_mw_upper {ι : Type*} [Fintype ι]
     (w lam : ι → ℝ) (N : ℕ)
     (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
-    (hlam0 : ∀ i, 0 ≤ lam i) (hlam1 : ∀ i, lam i ≤ 1) :
+    (_hlam0 : ∀ i, 0 ≤ lam i) (hlam1 : ∀ i, lam i ≤ 1) :
     mwAcceptanceProb w lam N ≤ 2 * N * ∑ i, w i * lam i := by
   rw [mwAcceptanceProb, one_sub_sum_eq_sum_one_sub w (fun i => (1 - lam i) ^ (2 * N)) hw1]
   calc

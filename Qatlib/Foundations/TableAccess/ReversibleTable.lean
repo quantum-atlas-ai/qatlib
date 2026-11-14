@@ -4,39 +4,43 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.IsEmpty.Defs
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.IsEmpty.Defs
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Involutive permutation matrices for reversible tables
@@ -77,7 +81,7 @@ theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ * permMatrix σ = 1 := by
   ext i j
   simp only [permMatrix, Matrix.mul_apply, Matrix.of_apply, Matrix.one_apply]
-  rw [Finset.sum_eq_single (σ j) (fun k _ hk => by rw [if_neg hk, mul_zero])
+  rw [Finset.sum_eq_single (σ j) (fun k _ hk => by rw [ite_eq_right hk, mul_zero])
     (fun h => absurd (Finset.mem_univ (σ j)) h)]
   simp [hσ j]
 
@@ -90,9 +94,9 @@ theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
   simp only [permMatrix, Matrix.conjTranspose_apply, Matrix.of_apply, RCLike.star_def]
   by_cases hji : j = σ i
   · have hij : i = σ j := by rw [← hσ i, ← hji]
-    rw [if_pos hji, if_pos hij, map_one]
+    rw [ite_eq_left hji, ite_eq_left hij, map_one]
   · have hij : i ≠ σ j := fun e => hji (by rw [← hσ j, ← e])
-    rw [if_neg hji, if_neg hij, map_zero]
+    rw [ite_eq_right hji, ite_eq_right hij, map_zero]
 
 /-- The matrix associated with an involution is unitary. -/
 theorem permMatrix_unitary {σ : I → I} (hσ : Function.Involutive σ) :

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -87,6 +91,7 @@ theorem Fk_one (a : Stream n m) : Fk a 1 = n := by
     (f := a) (fun i _ => Finset.mem_univ (a i))
   simpa using h.symm
 
+omit [NeZero m] in
 /-- Every frequency is at most `n`. -/
 theorem freq_le (a : Stream n m) (j : ZMod m) : freq a j ≤ n := by
   unfold freq

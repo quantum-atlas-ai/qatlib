@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,8 +77,7 @@ theorem Pauli1.mat_conj (V P : Pauli1) :
     · ext i j
       fin_cases i <;> fin_cases j <;>
         simp [Pauli1.mat, Pauli1.conjSign, Matrix.mul_apply, Matrix.conjTranspose_apply,
-          Matrix.smul_apply, Fin.sum_univ_two] <;>
-        try norm_num
+          Matrix.smul_apply, Fin.sum_univ_two]
 
 /-- Right-associated form of `Pauli1.mat_conj`, convenient inside Kronecker products. -/
 theorem Pauli1.mat_conj_assoc (V P : Pauli1) :
@@ -93,7 +96,6 @@ theorem Pauli1.char_sum_zero (P Q : Pauli1) (h : P ≠ Q) :
       | exact False.elim (h rfl)
       | · rw [huniv]
           simp [Pauli1.conjSign]
-          try norm_num
 
 /-- An `n`-qubit Pauli assignment (unnormalized), Eq. (5), p.7. -/
 abbrev Pauli (n : ℕ) := Fin n → Pauli1

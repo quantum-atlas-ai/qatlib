@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompletenessNumerics
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompletenessNumerics
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Finite gate entries and integer coefficient bounds

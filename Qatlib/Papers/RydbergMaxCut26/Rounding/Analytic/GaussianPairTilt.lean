@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.Gaussian
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.Gaussian
+
+@[expose] public section
 
 /-!
 # Pairwise Gaussian tilted moments

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingPart03.MainResults.SharpPWitness
+module
+
+public import Qatlib.Papers.IsingPart03.MainResults.SharpPWitness
+
+@[expose] public section
 
 /-!
 # Signed witness counts for spin-glass partition functions
@@ -93,9 +97,9 @@ lemma card_witnesses (x y : ℕ) (ends : E → V × V) :
   apply Finset.sum_congr rfl
   intro b _
   by_cases hp : parity ends b = 0
-  · rw [if_pos hp, if_pos hp, Finset.card_univ, Fintype.card_prod, card_colour_nat,
+  · rw [ite_eq_left hp, ite_eq_left hp, Finset.card_univ, Fintype.card_prod, card_colour_nat,
       card_freeColour]
-  · rw [if_neg hp, if_neg hp]
+  · rw [ite_eq_right hp, ite_eq_right hp]
 
 /-- The positive witness count is the weighted sum over edge vectors with zero vertex parity and
 zero binary dot product with `w`. -/
@@ -110,11 +114,11 @@ lemma card_posWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
   intro b _
   by_cases hp : parity ends b = 0
   · by_cases hw : bDotW b w = 0
-    · rw [if_pos hp, if_pos hw, if_pos ⟨hp, hw⟩, Finset.card_univ, Fintype.card_prod,
+    · rw [ite_eq_left hp, ite_eq_left hw, ite_eq_left ⟨hp, hw⟩, Finset.card_univ, Fintype.card_prod,
         card_colour_nat, card_freeColour]
-    · rw [if_pos hp, if_neg hw, if_neg (fun h => hw h.2)]
+    · rw [ite_eq_left hp, ite_eq_right hw, ite_eq_right (fun h => hw h.2)]
       simp
-  · rw [if_neg hp, if_neg (fun h => hp h.1)]
+  · rw [ite_eq_right hp, ite_eq_right (fun h => hp h.1)]
 
 /-- The negative witness count is the weighted sum over edge vectors with zero vertex parity and
 binary dot product one with `w`. -/
@@ -129,11 +133,11 @@ lemma card_negWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
   intro b _
   by_cases hp : parity ends b = 0
   · by_cases hw : bDotW b w = 1
-    · rw [if_pos hp, if_pos hw, if_pos ⟨hp, hw⟩, Finset.card_univ, Fintype.card_prod,
+    · rw [ite_eq_left hp, ite_eq_left hw, ite_eq_left ⟨hp, hw⟩, Finset.card_univ, Fintype.card_prod,
         card_colour_nat, card_freeColour]
-    · rw [if_pos hp, if_neg hw, if_neg (fun h => hw h.2)]
+    · rw [ite_eq_left hp, ite_eq_right hw, ite_eq_right (fun h => hw h.2)]
       simp
-  · rw [if_neg hp, if_neg (fun h => hp h.1)]
+  · rw [ite_eq_right hp, ite_eq_right (fun h => hp h.1)]
 
 /-- The integer sign of a binary value, equal to `1` at zero and `-1` otherwise. -/
 def sgnZ (x : ZMod 2) : ℤ := if x = 0 then 1 else -1
@@ -142,7 +146,7 @@ def sgnZ (x : ZMod 2) : ℤ := if x = 0 then 1 else -1
 @[simp] lemma sgnZ_zero : sgnZ (0 : ZMod 2) = 1 := by simp [sgnZ]
 
 /-- The integer binary sign at one equals `-1`. -/
-@[simp] lemma sgnZ_one : sgnZ (1 : ZMod 2) = -1 := by rw [sgnZ]; exact if_neg (by decide)
+@[simp] lemma sgnZ_one : sgnZ (1 : ZMod 2) = -1 := by rw [sgnZ]; exact ite_eq_right (by decide)
 
 /-- The complex coercion of the integer binary sign equals the complex binary sign. -/
 lemma sgnZ_cast (z : ZMod 2) : ((sgnZ z : ℤ) : ℂ) = sgn z := by
@@ -166,11 +170,11 @@ theorem qwgtInt_cast (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : 
   apply Finset.sum_congr rfl
   intro b _
   by_cases h : A.mulVec b = 0
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     push_cast
     rw [sgnZ_cast]
     ring
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     simp
 
 /-- For an incidence matrix and a diagonal sign matrix, the integer weight enumerator is the
@@ -195,8 +199,8 @@ lemma qwgtInt_incidence_dg (ends : E → V × V) (w : E → ZMod 2) (x y : ℕ) 
     rw [bDotW]
     exact Finset.sum_congr rfl (fun e _ => hb e)
   by_cases hp : (incidence ends).mulVec b = 0
-  · rw [if_pos hp, if_pos hp, hsum]
-  · rw [if_neg hp, if_neg hp]
+  · rw [ite_eq_left hp, ite_eq_left hp, hsum]
+  · rw [ite_eq_right hp, ite_eq_right hp]
 
 /-- The complex weight enumerator at natural parameters equals the positive witness count minus
 the negative witness count, as in [Lidar, Corollary 1][Lidar2004]. -/
@@ -231,17 +235,17 @@ theorem source_corollary1_qwgt_signed_counts (ends : E → V × V) (w : E → ZM
     by_cases hp : parity ends b = 0
     · by_cases h0 : bDotW b w = 0
       · have h1 : ¬ (bDotW b w = 1) := by rw [h0]; decide
-        rw [if_pos hp, if_pos ⟨hp, h0⟩, if_neg (fun h => h1 h.2), h0, sgnZ_zero]
+        rw [ite_eq_left hp, ite_eq_left ⟨hp, h0⟩, ite_eq_right (fun h => h1 h.2), h0, sgnZ_zero]
         ring
       · by_cases h1 : bDotW b w = 1
-        · rw [if_pos hp, if_neg (fun h => h0 h.2), if_pos ⟨hp, h1⟩, h1, sgnZ_one]
+        · rw [ite_eq_left hp, ite_eq_right (fun h => h0 h.2), ite_eq_left ⟨hp, h1⟩, h1, sgnZ_one]
           ring
         · have hz : bDotW b w = 1 := by
             rcases eq_zero_or_one (bDotW b w) with h | h
             · exact absurd h h0
             · exact h
           exact absurd hz h1
-    · rw [if_neg hp, if_neg (fun h => hp h.1), if_neg (fun h => hp h.1)]
+    · rw [ite_eq_right hp, ite_eq_right (fun h => hp h.1), ite_eq_right (fun h => hp h.1)]
       ring
   rw [← qwgtInt_cast (incidence ends) (dg w) x y, hZ]
   push_cast
@@ -260,17 +264,17 @@ theorem source_corollary1_witness_balance (ends : E → V × V) (w : E → ZMod 
   by_cases hp : parity ends b = 0
   · by_cases h0 : bDotW b w = 0
     · have h1 : ¬ (bDotW b w = 1) := by rw [h0]; decide
-      rw [if_pos ⟨hp, h0⟩, if_neg (fun h => h1 h.2), if_pos hp]
+      rw [ite_eq_left ⟨hp, h0⟩, ite_eq_right (fun h => h1 h.2), ite_eq_left hp]
       ring
     · by_cases h1 : bDotW b w = 1
-      · rw [if_neg (fun h => h0 h.2), if_pos ⟨hp, h1⟩, if_pos hp]
+      · rw [ite_eq_right (fun h => h0 h.2), ite_eq_left ⟨hp, h1⟩, ite_eq_left hp]
         ring
       · have hz : bDotW b w = 1 := by
           rcases eq_zero_or_one (bDotW b w) with h | h
           · exact absurd h h0
           · exact h
         exact absurd hz h1
-  · rw [if_neg (fun h => hp h.1), if_neg (fun h => hp h.1), if_neg hp]
+  · rw [ite_eq_right (fun h => hp h.1), ite_eq_right (fun h => hp h.1), ite_eq_right hp]
 
 omit [DecidableEq E] in
 
@@ -289,7 +293,7 @@ lemma prod_weight (x y : ℕ) (b : E → ZMod 2) :
           = (Finset.univ.filter (fun e : E => b e = 0)).prod (fun _ => y) := by
       apply Finset.prod_congr rfl
       intro e he
-      rw [if_pos (Finset.mem_filter.mp he).2]
+      rw [ite_eq_left (Finset.mem_filter.mp he).2]
     rw [hconst, Finset.prod_const, ← Fintype.card_subtype, card_zeroDomain]
   have hneg : (Finset.univ.filter (fun e : E => ¬ b e = 0)).prod
       (fun e => if b e = 0 then y else x) = x ^ suppCard b := by
@@ -298,7 +302,7 @@ lemma prod_weight (x y : ℕ) (b : E → ZMod 2) :
           = (Finset.univ.filter (fun e : E => ¬ b e = 0)).prod (fun _ => x) := by
       apply Finset.prod_congr rfl
       intro e he
-      rw [if_neg (Finset.mem_filter.mp he).2]
+      rw [ite_eq_right (Finset.mem_filter.mp he).2]
     rw [hconst, Finset.prod_const]
     have hcard : Fintype.card {e : E // ¬ b e = 0} = suppCard b := by
       simpa only [ne_eq] using card_colourDomain b
@@ -340,12 +344,12 @@ theorem qwgtInt_abs_le (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y 
             ((x ^ suppCard b * y ^ (Fintype.card E - suppCard b) : ℕ) : ℤ) else 0) := by
     intro b
     by_cases h : A.mulVec b = 0
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       have hs : |sgnZ (∑ e, b e * (B.mulVec b) e)| = 1 := by
         rcases eq_zero_or_one (∑ e, b e * (B.mulVec b) e) with hz | hz <;>
           simp [sgnZ, hz]
       rw [abs_mul, hs, one_mul, abs_of_nonneg (Int.natCast_nonneg _)]
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       simp
   have hsum : (∑ b : E → ZMod 2,
         (if A.mulVec b = 0 then
@@ -355,8 +359,8 @@ theorem qwgtInt_abs_le (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y 
     apply Finset.sum_le_sum
     intro b _
     by_cases h : A.mulVec b = 0
-    · rw [if_pos h]
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+    · rw [ite_eq_right h]
       positivity
   have hcast : (∑ b : E → ZMod 2,
         ((x ^ suppCard b * y ^ (Fintype.card E - suppCard b) : ℕ) : ℤ))

@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Contracts for combinatorial triangle search

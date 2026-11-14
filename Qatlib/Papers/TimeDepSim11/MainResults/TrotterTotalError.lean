@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ theorem trotter_iterated_sum_bound (L : ℝ) (M : ℕ) :
 /-- The per-segment error bound of the paper:
 `½ c_max² (Δt)² · Σ_{m=1}^{M} 2^m (L/2^m)² ≤ ½ c_max² L² (Δt)²`.
 No sign hypothesis on `L` or `Δt` is needed; only `c_max ≥ 0`. -/
-theorem trotter_step_error_bound (cmax L dt : ℝ) (M : ℕ) (hcmax : 0 ≤ cmax) :
+theorem trotter_step_error_bound (cmax L dt : ℝ) (M : ℕ) (_hcmax : 0 ≤ cmax) :
     (1 / 2) * cmax ^ 2 * dt ^ 2
         * (∑ i ∈ Finset.range M, (2 : ℝ) ^ (i + 1) * (L / (2 : ℝ) ^ (i + 1)) ^ 2)
       ≤ (1 / 2) * cmax ^ 2 * L ^ 2 * dt ^ 2 := by
@@ -110,8 +114,8 @@ theorem trotter_step_error_bound (cmax L dt : ℝ) (M : ℕ) (hcmax : 0 ≤ cmax
 /-- Total error over `T`, from `T/Δt` segments each bounded by `½ c_max² L² (Δt)²`:
 `(T/Δt) · ½ c_max² L² (Δt)² ≤ ½ T c_max² L² Δt`.
 This is the paper's step from the per-segment bound to the total error. -/
-theorem trotter_total_error_bound (T cmax L dt : ℝ) (M : ℕ)
-    (hT : 0 ≤ T) (hdt : 0 < dt) (hcmax : 0 ≤ cmax) :
+theorem trotter_total_error_bound (T cmax L dt : ℝ) (_M : ℕ)
+    (hT : 0 ≤ T) (hdt : 0 < dt) (_hcmax : 0 ≤ cmax) :
     (T / dt) * ((1 / 2) * cmax ^ 2 * L ^ 2 * dt ^ 2)
       ≤ (1 / 2) * T * cmax ^ 2 * L ^ 2 * dt := by
   have hratio : 0 ≤ T / dt := div_nonneg hT hdt.le

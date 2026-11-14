@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
-import QuantumInfo.ForMathlib.HermitianMat.CFC
-import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+public import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+
+@[expose] public section
 
 /-!
 # Positive components and counterexamples for SDP contracts
@@ -77,7 +81,7 @@ theorem clause3_conj1_refuted : ¬
         ∧ ((sourcePayoffTarget D Cv ρ α ε - exactWidthSlack α R ε) / (1 + 2 * R * ε) ≤
           ∑ i, (y i / (1 + 2 * R * ε)) * (Matrix.trace (A i * ρ)).re)
       ∧ (∀ η' : ℝ, 0 < η' → η' < ε → ∃ T : ℕ, 0 < T ∧ η' + Real.log D / (η' * T) < ε)
-      ∧ (∀ (T : ℕ) (ys : ℕ → Fin m → ℝ) (ht : 0 < T),
+      ∧ (∀ (T : ℕ) (ys : ℕ → Fin m → ℝ) (_ht : 0 < T),
         (∀ t < T, ∀ i, 0 ≤ ys t i) →
         (∀ t < T, ∑ i, b i * ys t i ≤ sourceWidthBudget α R ε) →
         (∑ i, sdpDualCertificate m δ α R j₀ ys T i * b i ≤
@@ -221,7 +225,7 @@ theorem clause4_normalized_kernel_part : ∀ (D m : ℕ) (A : Fin m → Operator
     (∀ i, (A i).IsHermitian ∧ ‖A i‖ ≤ 1) →
     Cv.IsHermitian ∧ ‖Cv‖ ≤ 1 →
     (∀ i, 1 ≤ b i) →
-    (∃ (η T : ℝ) (hη : 0 < η ∧ η ≤ 1) (hT : 0 < T),
+    (∃ (η T : ℝ) (_hη : 0 < η ∧ η ≤ 1) (_hT : 0 < T),
       η ≤ δ / (8 * R) ∧
       Real.log D / (η * T) ≤ δ * α / (4 * R) ∧
       (∀ σ : Operator D, IsDensityOperator σ →
@@ -324,7 +328,7 @@ theorem clause4_refuted : ¬
               (∀ i, (Matrix.trace (A i * σ')).re ≤ b i + S.valueError) ∧
               (Matrix.trace (Cv * σ)).re ≤ (Matrix.trace (Cv * σ')).re + S.valueError))
       ∧
-      (∃ (η T : ℝ) (hη : 0 < η ∧ η ≤ 1) (hT : 0 < T),
+      (∃ (η T : ℝ) (_hη : 0 < η ∧ η ≤ 1) (_hT : 0 < T),
         η ≤ δ / (8 * R) ∧
         Real.log D / (η * T) ≤ δ * α / (4 * R) ∧
         (∀ σ : Operator D, IsDensityOperator σ →
@@ -443,7 +447,7 @@ theorem clause3_conj3_refuted : ¬
       ∃ T : ℕ, 0 < T ∧ η' + Real.log D / (η' * T) < ε)
     ∧
 
-    (∀ (T : ℕ) (ys : ℕ → Fin m → ℝ) (ht : 0 < T),
+    (∀ (T : ℕ) (ys : ℕ → Fin m → ℝ) (_ht : 0 < T),
       (∀ t < T, ∀ i, 0 ≤ ys t i) →
       (∀ t < T, ∑ i, b i * ys t i ≤ sourceWidthBudget α R ε) →
       (∑ i, sdpDualCertificate m δ α R j₀ ys T i * b i ≤

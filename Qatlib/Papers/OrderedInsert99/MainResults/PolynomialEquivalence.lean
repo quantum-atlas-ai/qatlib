@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Eval.Defs
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+
+@[expose] public section
 
 /-!
 # Polynomial sequences for ordered insertion
@@ -64,7 +68,7 @@ theorem polyseq_zero_queries (N : ℕ) (hN : 0 < N) :
       · simp
       · intro b hb hne
         rw [Polynomial.coeff_X_pow]
-        exact if_neg (Ne.symm hne)
+        exact ite_eq_right (Ne.symm hne)
       · intro h
         exact absurd (Finset.mem_range.mpr (by omega)) h
     simp only [P0poly, Polynomial.coeff_C_mul, hsumcoeff, mul_one] at hcoeff

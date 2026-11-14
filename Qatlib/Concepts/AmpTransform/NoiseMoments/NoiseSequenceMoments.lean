@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Uniform noise-sequence moments and corrected variance
@@ -72,7 +76,7 @@ noncomputable def noiseAverage {A : Type} [Fintype A] (f : A→ℂ) : ℂ :=
 /-- The uniform finite average commutes with complex conjugation. -/
 @[simp] theorem noiseAverage_star {A : Type} [Fintype A] (f : A→ℂ) :
     noiseAverage (fun a => star (f a))=star (noiseAverage f) := by
-  simp [noiseAverage,map_mul,map_sum,Complex.star_def,Complex.conj_natCast]
+  simp [noiseAverage]
 
 /-- The uniform finite average is unchanged by reindexing along an equivalence. -/
 theorem noiseAverage_equiv {A B : Type} [Fintype A] [Fintype B] (e : A ≃ B) (f : B→ℂ) :
@@ -103,7 +107,7 @@ theorem noiseAverage_tuple_succ {N L : ℕ} [NeZero N] (f : (Fin (L+1)→ZMod N)
       noiseAverage (fun x : ZMod N => f (Fin.cons x omega))) := by
   rw [← noiseAverage_equiv (Fin.consEquiv (fun _ : Fin (L+1) => ZMod N)),noiseAverage_prod]
   unfold noiseAverage
-  simp only [← Finset.mul_sum,Fin.consEquiv_apply]
+  simp only [← Finset.mul_sum]
   rw [Finset.sum_comm]
   change (Fintype.card (ZMod N) : ℂ)⁻¹*((Fintype.card (Fin L→ZMod N) : ℂ)⁻¹*
     ∑ omega,∑ x,f (Fin.cons x omega)) =
@@ -148,18 +152,18 @@ theorem noise_fresh_moments {A : Type} [Fintype A] [Nonempty A] (X : A→ℂ) (d
   have hs2 : noiseAverage (fun x => (star (X x))^2)=delta := by
     rw [show (fun x => (star (X x))^2)=(fun x => star (X x^2)) by ext x;rw [star_pow],
       noiseAverage_star,h2,hdelta]
-  refine ⟨by simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,mul_zero,zero_mul,zero_add,add_zero],?_,?_,?_,?_⟩
+  refine ⟨by simp only [noiseAverage_add,noiseAverage_const,h0,add_zero],?_,?_,?_,?_⟩
   · rw [show (fun x => (s+X x)^2)=(fun x => s^2+2*s*X x+X x^2) by ext x;ring]
-    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,h2,mul_zero,zero_mul,zero_add,add_zero]
+    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,h0,h2,mul_zero,add_zero]
   · rw [show (fun x => (s+X x)*star (s+X x))=
       (fun x => s*star s+s*star (X x)+(star s)*X x+1) by
         ext x;simp only [star_add];linear_combination hu x]
-    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,hs0,mul_zero,zero_mul,zero_add,add_zero]
+    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,h0,hs0,mul_zero,add_zero]
   · rw [show (fun x => (s+X x)^2*star (s+X x))=
       (fun x => s^2*star s+s^2*star (X x)+(2*s*star s)*X x+
         2*s+(star s)*X x^2+X x) by
         ext x;simp only [star_add];linear_combination (2*s+X x)*(hu x)]
-    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,hs0,h2,mul_zero,zero_mul,zero_add,add_zero]
+    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,h0,hs0,h2,mul_zero,add_zero]
     ring
   · rw [show (fun x => (s+X x)^2*(star (s+X x))^2)=
       (fun x => s^2*(star s)^2+4*s*star s+1+
@@ -168,7 +172,7 @@ theorem noise_fresh_moments {A : Type} [Fintype A] [Nonempty A] (X : A→ℂ) (d
         (2*s)*star (X x)+(2*star s)*X x) by
         ext x;simp only [star_add]
         linear_combination (4*s*star s+2*s*star (X x)+2*star s*X x+X x*star (X x)+1)*(hu x)]
-    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,hs0,h2,hs2,mul_zero,zero_mul,zero_add,add_zero]
+    simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,h0,hs0,h2,hs2,mul_zero,add_zero]
     ring
 
 /-- For nonzero frequency, computes the character sum's first and mixed moments through degree
@@ -209,7 +213,7 @@ theorem noise_sequence_mixed_moments (N L : ℕ) [NeZero N] (y : ZMod N) (hy : y
     · rw [noiseAverage_tuple_succ]
       simp only [noiseCharacterSum_cons]
       simp only [(hstep _ h0 h2 hdelta hu).2.2.2.1,noiseAverage_add,noiseAverage_mul_left,
-        noiseAverage_star,ih.1,ih.2.2.2.1,star_zero,mul_zero,zero_add,add_zero]
+        noiseAverage_star,ih.1,ih.2.2.2.1,star_zero,mul_zero,add_zero]
     · rw [noiseAverage_tuple_succ]
       simp only [noiseCharacterSum_cons]
       have hstarsq : noiseAverage (fun omega : Fin L→ZMod N => (star (noiseCharacterSum y omega))^2)=delta*(L : ℂ) := by
@@ -220,7 +224,7 @@ theorem noise_sequence_mixed_moments (N L : ℕ) [NeZero N] (y : ZMod N) (hy : y
         ring
       simp only [(hstep _ h0 h2 hdelta hu).2.2.2.2,noiseAverage_add,noiseAverage_const,
         noiseAverage_mul_left,ih.2.2.2.2,ih.2.2.1,ih.2.1,hstarsq]
-      by_cases hr : 2*y=0 <;> simp only [delta,hr,if_true,if_false] <;> ring
+      by_cases hr : 2*y=0 <;> simp only [delta,hr,ite_true,ite_false] <;> ring
 
 /-- Averaging a real-valued function after embedding in ℂ equals the complex embedding of its
 real uniform average. -/
@@ -232,7 +236,7 @@ theorem noiseAverage_real {A : Type} [Fintype A] (f : A→ℝ) :
 
 /-- The type of length-L sequences in `ZMod N` has cardinality Nᴸ. -/
 theorem noise_tuple_card (N L : ℕ) [NeZero N] : Fintype.card (Fin L→ZMod N)=N^L := by
-  simp [Fintype.card_fun,ZMod.card]
+  simp [ZMod.card]
 
 /-- At nonzero frequency, a uniform noise character sum has mean squared norm L, and its affine
 intensity has mean ‖c‖²+b²L. -/
@@ -254,11 +258,11 @@ theorem noise_sequence_second_moment : ∀ (N L : ℕ) [NeZero N] (y : ZMod N)
           ((b : ℂ)*star c)*noiseCharacterSum y omega+
           ((b : ℂ)*c)*star (noiseCharacterSum y omega) := by
       rw [← Complex.normSq_eq_norm_sq,Complex.normSq_eq_conj_mul_self]
-      simp only [star_add,star_mul,Complex.star_def,map_add,map_mul,Complex.conj_ofReal]
+      simp only [Complex.star_def,map_add,map_mul,Complex.conj_ofReal]
       ring
     simp_rw [he]
     simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_star,
-      h0,hn,star_zero,mul_zero,zero_add,add_zero]
+      h0,hn,star_zero,mul_zero,add_zero]
     rw [Complex.star_def,Complex.mul_conj,Complex.normSq_eq_norm_sq]
     push_cast
     ring
@@ -323,17 +327,17 @@ theorem noise_sequence_variance_corrected : ∀ (N L : ℕ) [NeZero N] (y : ZMod
         (b : ℂ)^2*(L : ℂ)*delta*(c^2+(star c)^2) := by
     simp_rw [hpoly]
     simp only [noiseAverage_add,noiseAverage_sub,noiseAverage_mul_left,noiseAverage_const,
-      noiseAverage_star,h0,h2,hn,h3,h4,h2bar,h3bar,star_zero,mul_zero,zero_add,add_zero,sub_zero]
+      noiseAverage_star,h0,h2,hn,h3,h4,h2bar,h3bar,star_zero,mul_zero,add_zero,sub_zero]
     ring
   have hc2 : c^2+(star c)^2=((2*(c^2).re : ℝ) : ℂ) := by
-    apply Complex.ext <;> simp [Complex.star_def,Complex.mul_re,Complex.mul_im,pow_two] <;> ring
+    apply Complex.ext <;> simp [Complex.mul_re,Complex.mul_im,pow_two] <;> ring
   rw [hc2,Complex.star_def,Complex.mul_conj,Complex.normSq_eq_norm_sq] at havg
   have havgr : noiseAverage (fun omega : Fin L→ZMod N =>
       (((‖c+(b : ℂ)*S omega‖^2-mu)^2 : ℝ) : ℂ)) =
       ((b^4*((L : ℝ)^2-L+(if 2*y=0 then 1 else 0)*((L : ℝ)^2-L))+
         2*b^2*(L : ℝ)*‖c‖^2+2*b^2*(L : ℝ)*(c^2).re*(if 2*y=0 then 1 else 0) : ℝ) : ℂ) := by
     rw [havg]
-    by_cases hr : 2*y=0 <;> simp only [delta,hr,if_true,if_false]
+    by_cases hr : 2*y=0 <;> simp only [delta,hr,ite_true,ite_false]
     all_goals push_cast
     all_goals ring
   rw [noiseAverage_real,noise_tuple_card] at havgr

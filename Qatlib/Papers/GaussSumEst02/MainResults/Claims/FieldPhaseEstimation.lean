@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+@[expose] public section
 
 /-!
 # Conditional finite-field Gauss-sum phase estimation

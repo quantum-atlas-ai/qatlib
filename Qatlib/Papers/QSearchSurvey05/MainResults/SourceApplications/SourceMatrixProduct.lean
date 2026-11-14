@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchSurvey05.MainResults.Applications.MatrixProduct
-import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Applications.MatrixProduct
+public import Qatlib.Papers.QSearchSurvey05.MainResults.Defs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

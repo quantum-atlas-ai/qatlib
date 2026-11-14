@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawPath
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawPath
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
+
+@[expose] public section
 
 /-!
 # High probability norm regions for Gaussian inputs

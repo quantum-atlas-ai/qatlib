@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.AngleIntegral
+module
+
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.AngleIntegral
+
+@[expose] public section
 
 /-!
 # A Gaussian Poincare estimate from pair rotations
@@ -38,6 +42,7 @@ namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+omit [BorelSpace E] in
 /-- For a Gaussian square-integrable function, the integral of its squared increment between two
 independent standard Gaussian inputs is twice its variance. -/
 theorem pair_increment_square_memLp (f : E→ℝ) (hm : MemLp f 2 (stdGaussian E)) :
@@ -70,7 +75,7 @@ theorem gradient_pair_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   · apply Filter.Eventually.of_forall
     intro x
     have hl : MemLp (fderiv ℝ f x) 2 (stdGaussian E) :=
-      (fderiv ℝ f x).lipschitz.comp_memLp (map_zero _) (IsGaussian.memLp_id (stdGaussian E) 2 (by simp))
+      (fderiv ℝ f x).lipschitzWith.comp_memLp (map_zero _) (IsGaussian.memLp_id (stdGaussian E) 2 (by simp))
     simpa only [Real.norm_eq_abs,sq_abs] using! hl.integrable_norm_pow'
   · simpa only
       [Real.norm_eq_abs,abs_pow,sq_abs,Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional.dual_square_integral] using! hgrad

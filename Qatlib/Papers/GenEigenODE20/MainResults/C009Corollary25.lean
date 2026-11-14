@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,8 +40,8 @@ sparse complexity (54) plus the nonnegative term
 `s_A‖A‖_max κ_B^{1.5}/(‖B‖ε)`. -/
 theorem corollary25_sparse_le_hermitian
     (κB sA sB Amax Bmax Tin Bnorm ε : ℝ)
-    (hκ : 0 ≤ κB) (hsA : 0 ≤ sA) (hsB : 0 ≤ sB)
-    (hAmax : 0 ≤ Amax) (hBmax : 0 ≤ Bmax) (hTin : 0 ≤ Tin)
+    (hκ : 0 ≤ κB) (hsA : 0 ≤ sA) (_hsB : 0 ≤ sB)
+    (hAmax : 0 ≤ Amax) (_hBmax : 0 ≤ Bmax) (_hTin : 0 ≤ Tin)
     (hB : 0 < Bnorm) (hε : 0 < ε) :
     sparseHermitianComplexity κB sA sB Amax Bmax Tin Bnorm ε
       ≤ hermitianComplexity κB (sA * Amax) (sB * Bmax) Tin 1 1 Bnorm ε := by
@@ -55,7 +59,7 @@ theorem corollary25_sparse_le_hermitian
 conditions. -/
 theorem corollary25_complexity_nonneg
     (κB sA sB Amax Bmax Tin Bnorm ε : ℝ)
-    (hκ : 0 ≤ κB) (hsA : 0 ≤ sA) (hsB : 0 ≤ sB)
+    (_hκ : 0 ≤ κB) (hsA : 0 ≤ sA) (hsB : 0 ≤ sB)
     (hAmax : 0 ≤ Amax) (hBmax : 0 ≤ Bmax) (hTin : 0 ≤ Tin)
     (hB : 0 < Bnorm) (hε : 0 < ε) :
     0 ≤ sparseHermitianComplexity κB sA sB Amax Bmax Tin Bnorm ε := by

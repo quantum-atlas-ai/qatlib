@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Endpoint cases of amplitude amplification

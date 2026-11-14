@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ToeplitzSys16.MainResults.ToeplitzCirculantModel
-import Mathlib.Analysis.Complex.Polynomial.Basic
+module
+
+public import Qatlib.Papers.ToeplitzSys16.MainResults.ToeplitzCirculantModel
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+
+@[expose] public section
 
 /-!
 # Probability laws for interrupted search calls
@@ -56,11 +60,11 @@ theorem interrupted_eval_nonneg (hN : 0 < Fintype.card I) (A : Finset I)
     intro x _
     apply mul_nonneg ((search_joint_attempt_law hN A (sizes stage) (hsizes stage)).1 x)
     by_cases hc : x.1.val + 1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases x.2 with
       | some i => exact hs i _
       | none => exact ih _ (search_budget_progress _ _ hc) (stage + 1)
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
       exact Finset.sum_nonneg fun i _ => mul_nonneg (partialObsMass_nonneg _ _ _ _) (hs i 0)
 
 /-- The interrupted search evaluator sends the constant-one payoff to one. -/
@@ -75,11 +79,11 @@ theorem interrupted_eval_one (hN : 0 < Fintype.card I) (A : Finset I)
         apply Finset.sum_congr rfl
         intro x _
         by_cases hc : x.1.val + 1 ≤ budget
-        · simp only [dif_pos hc]
+        · simp only [dite_eq_left hc]
           cases x.2 with
           | some i => simp
           | none => rw [ih _ (search_budget_progress _ _ hc) (stage + 1)]; simp
-        · simp only [dif_neg hc, mul_one]
+        · simp only [dite_eq_right hc, mul_one]
           have hm : (∑ i : I, partialObsMass A x.1.val budget i) = 1 := by
             simpa only [tsum_fintype] using (partialObsMass_sum_one hN A x.1.val budget).tsum_eq
           rw [hm, mul_one]
@@ -99,11 +103,11 @@ theorem interrupted_eval_mono (hN : 0 < Fintype.card I) (A : Finset I)
     apply mul_le_mul_of_nonneg_left _
       ((search_joint_attempt_law hN A (sizes stage) (hsizes stage)).1 x)
     by_cases hc : x.1.val + 1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases x.2 with
       | some i => exact hfg i _
       | none => exact ih _ (search_budget_progress _ _ hc) (stage + 1)
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
       exact Finset.sum_le_sum fun i _ => mul_le_mul_of_nonneg_left (hfg i 0)
         (partialObsMass_nonneg _ _ _ _)
 
@@ -117,14 +121,14 @@ theorem interrupted_call_remaining (hN : 0 < Fintype.card I) (A : Finset I)
     rw [interruptedBudgetPMF] at hx
     obtain ⟨j, _, hj⟩ := (PMF.mem_support_bind_iff _ _ x).mp hx
     by_cases hc : j.val + 1 ≤ budget
-    · rw [dif_pos hc] at hj
+    · rw [dite_eq_left hc] at hj
       obtain ⟨o, _, ho⟩ := (PMF.mem_support_bind_iff _ _ x).mp hj
       cases o with
       | some i =>
         have heq := (PMF.mem_support_pure_iff _ _).mp ho
         simp [heq]
       | none => exact (ih _ (search_budget_progress _ _ hc) (stage + 1) ho).trans (Nat.sub_le _ _)
-    · rw [dif_neg hc] at hj
+    · rw [dite_eq_right hc] at hj
       obtain ⟨i, _, hi⟩ := (PMF.mem_support_bind_iff _ _ x).mp hj
       have heq := (PMF.mem_support_pure_iff _ _).mp hi
       simp [heq]
@@ -164,7 +168,7 @@ theorem interrupted_call_expectation (hN : 0 < Fintype.card I) (A : Finset I)
           (fun x => ENNReal.ofReal (s x.1 x.2)) =
         ENNReal.ofReal (∑ o : Option I, (checkedOutcomePMF hN A j.val o).toReal * w j o) := by
       by_cases hc : j.val + 1 ≤ budget
-      · simp only [dif_pos hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
+      · simp only [dite_eq_left hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
         have he (o : Option I) :
             Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (match o with
               | some i => PMF.pure (i, budget - (j.val + 1))
@@ -172,14 +176,14 @@ theorem interrupted_call_expectation (hN : 0 < Fintype.card I) (A : Finset I)
               (fun x => ENNReal.ofReal (s x.1 x.2)) = ENNReal.ofReal (w j o) := by
           cases o with
           | some i =>
-            simpa only [w, dif_pos hc] using (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure
+            simpa only [w, dite_eq_left hc] using (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure
               (i, budget - (j.val + 1)) (fun x => ENNReal.ofReal (s x.1 x.2)))
-          | none => simpa only [w, dif_pos hc] using ih _ (search_budget_progress _ _ hc) (stage + 1)
+          | none => simpa only [w, dite_eq_left hc] using ih _ (search_budget_progress _ _ hc) (stage + 1)
         simp_rw [he]
         exact Qatlib.Concepts.AmplitudeSearch.InterruptMin.CostedLaw.expectation_ofReal_fintype _ _ (hw j)
-      · simp only [dif_neg hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+      · simp only [dite_eq_right hc, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
         rw [Qatlib.Concepts.AmplitudeSearch.InterruptMin.CostedLaw.expectation_ofReal_fintype _ _ (fun i => hs i 0)]
-        simp only [partialObsPMF_toReal, w, dif_neg hc]
+        simp only [partialObsPMF_toReal, w, dite_eq_right hc]
         rw [← Finset.sum_mul]
         have hn : (∑ o : Option I, (checkedOutcomePMF hN A j.val o).toReal) = 1 := by
           simp only [checkedOutcomePMF_toReal, Fintype.sum_option]
@@ -222,7 +226,7 @@ theorem interrupted_dominates_atomic (hN : 0 < Fintype.card I) (A : Finset I)
     apply mul_le_mul_of_nonneg_left _
       ((search_joint_attempt_law hN A (sizes stage) (hsizes stage)).1 x)
     by_cases hc : x.1.val + 1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       have hb := search_budget_progress _ _ hc
       cases x.2 with
       | some i => exact hfg i _ hb
@@ -230,7 +234,7 @@ theorem interrupted_dominates_atomic (hN : 0 < Fintype.card I) (A : Finset I)
         exact ih _ hb (stage + 1)
           (fun i r hr => hfg i r (hr.trans hb))
           (fun i r hr => ht i r (hr.trans hb.le))
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
       have hm : (∑ i : I, partialObsMass A x.1.val budget i) = 1 := by
         simpa only [tsum_fintype] using (partialObsMass_sum_one hN A x.1.val budget).tsum_eq
       calc

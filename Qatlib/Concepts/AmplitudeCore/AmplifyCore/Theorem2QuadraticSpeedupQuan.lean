@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupStat
+module
+
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupStat
+
+@[expose] public section
 
 /-!
 # Grover rotation and quadratic amplification

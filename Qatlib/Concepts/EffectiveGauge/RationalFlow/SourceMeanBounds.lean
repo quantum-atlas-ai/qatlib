@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanSector
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanSector
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,7 +69,7 @@ theorem sourceMeanBoundsPhysicalExecution_eq (source : RationalJetSource) (bound
         (sourceMeanCompressedBound (bounds 2)) tolerance := by
   dsimp only [sourceMeanBoundsPhysicalExecution]
   split_ifs with hz
-  · rw [sourceMeanPhysicalExecution,if_pos hz]
+  · rw [sourceMeanPhysicalExecution,ite_eq_left hz]
   · rfl
 
 /-- A numerical comparison using the raw second bound. This equality of
@@ -86,7 +90,7 @@ theorem sourceMeanBoundsSectorExecution_effective_eq (source : RationalJetSource
   rw [sourceMeanBoundsSectorExecution_eq]
   by_cases h : sourceMeanCompressedBound (bounds 1)=0
   · simp only [h,sourceMeanEffectiveSecondBound,ite_true,sourceMeanSectorExecution_zero]
-  · simp only [sourceMeanEffectiveSecondBound,if_neg h]
+  · simp only [sourceMeanEffectiveSecondBound,ite_eq_right h]
 
 /-- Original `sourceMeanBoundsPhysicalExecution_zero` guarantee for the `SourceMeanBounds` construction; the complete source hypotheses are retained. -/
 theorem sourceMeanBoundsPhysicalExecution_zero (source : RationalJetSource) (bounds : ℕ → ℚ)

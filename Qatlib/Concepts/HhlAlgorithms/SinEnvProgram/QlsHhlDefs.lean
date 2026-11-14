@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseConsumers
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseConsumers
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
+
+@[expose] public section
 
 /-!
 # Interfaces for sine-envelope linear-system algorithms
@@ -91,19 +95,19 @@ def qlsRegEmbed (M : ℕ) (i : Fin M) : Reg (qlsBitWidth M) :=
 /-- Encode a label's low bits in a register of width `w`, setting positions beyond `qlsBitWidth
 M` to false. -/
 def qlsLabelEmbed (M w : ℕ) : Fin M → Reg w :=
-  fun i t => if ht : t.1 < qlsBitWidth M then i.val.testBit t.1 else false
+  fun i t => if _ht : t.1 < qlsBitWidth M then i.val.testBit t.1 else false
 
 /-- Encode a data index's low bits in a register of width `w`, with false bits beyond the data
 width. -/
 def qlsDataEmbed (D w : ℕ) : Fin D → Reg w :=
-  fun i t => if ht : t.1 < qlsBitWidth D then i.val.testBit t.1 else false
+  fun i t => if _ht : t.1 < qlsBitWidth D then i.val.testBit t.1 else false
 
 /-- Encode a Boolean control in the first wire and the data index in the following wires, with
 remaining wires false. -/
 def qlsControlEmbed (D w : ℕ) : Bool × Fin D → Reg w :=
   fun p t =>
     if t.1 = 0 then p.1
-    else if ht : t.1 ≤ qlsBitWidth D then p.2.val.testBit (t.1 - 1) else false
+    else if _ht : t.1 ≤ qlsBitWidth D then p.2.val.testBit (t.1 - 1) else false
 
 /-- Extend amplitudes from finite labels to their binary register encodings, assigning zero
 outside the encoding image. -/
@@ -184,10 +188,10 @@ def qlsSumEquiv (m n : ℕ) : Fin m ⊕ Fin n ≃ Fin (m + n) where
   right_inv := by
     intro k
     by_cases h : (k : ℕ) < m
-    · simp only [h, dif_pos, Sum.elim_inl]
+    · simp only [h, dite_eq_left, Sum.elim_inl]
       simp
     · have hk : m ≤ (k : ℕ) := by omega
-      simp only [h, dif_neg, not_false_iff, Sum.elim_inr]
+      simp only [h, dite_eq_right, not_false_iff, Sum.elim_inr]
       apply Fin.ext
       show (m : ℕ) + ((k : ℕ) - m) = (k : ℕ)
       omega
@@ -312,7 +316,7 @@ def SinEnvelopePrepFamily.PreparesAt (P : SinEnvelopePrepFamily) (M k : ℕ)
     (hM : 2 ≤ M) : Prop :=
   finiteWordLegal (P.wireCount M k) (P.word M k) = true ∧
     M ≤ 2 ^ (P.wireCount M k) ∧
-    ∀ h2 : M ≤ 2 ^ (P.wireCount M k),
+      ∀ _h2 : M ≤ 2 ^ (P.wireCount M k),
       ‖toEuclidean_fromVec (qlsWordRunState (P.word M k)
           (Qatlib.Foundations.PureStateMath.Ket (qlsZeroReg (P.wireCount M k))) -
           qlsZeroExtendTo M (P.wireCount M k) (sinEnvelopeState M))‖
@@ -330,7 +334,7 @@ def SinEnvelopePrepFamily.PolyBounded (P : SinEnvelopePrepFamily) : Prop :=
 
 /-- The sine-envelope phase circuit with its initial preparation matrix replaced by `Pm`. -/
 noncomputable def qlsPhaseCircuitWith {I : Type} [Fintype I] [DecidableEq I]
-    (M : ℕ) (hM : 2 ≤ M) (Pm : Matrix (Fin M) (Fin M) ℂ) :
+    (M : ℕ) (_hM : 2 ≤ M) (Pm : Matrix (Fin M) (Fin M) ℂ) :
     Circuit (Fin M × (Bool × I)) :=
   [Step.gate (TensorGate Pm (1 : Matrix (Bool × I) (Bool × I) ℂ))] ++
     phaseThresholdLoop M (M - 1) ++
@@ -395,7 +399,7 @@ structure SparseHamiltonianSynthesis (S : SparseAccessSystem) where
 /-- Evaluate a sparse-pipeline instruction list using the access system's row, column, and value
 oracles. -/
 noncomputable def SparseHamiltonianSynthesis.matrix
-    (S : SparseAccessSystem) (Y : SparseHamiltonianSynthesis S)
+    (S : SparseAccessSystem) (_Y : SparseHamiltonianSynthesis S)
     (ps : List (SparsePipelineStep S.wireCount)) :
     Matrix (Reg S.wireCount) (Reg S.wireCount) ℂ :=
   sparsePipelineMatrix S.rowOracle S.colOracle S.valueOracle ps

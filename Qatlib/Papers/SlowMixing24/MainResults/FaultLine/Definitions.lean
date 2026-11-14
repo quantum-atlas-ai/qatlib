@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SlowMixing24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.SlowMixing24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +50,36 @@ structure Region (n : ℕ) where
 noncomputable def Region.compl {n : ℕ} (R : Region n) : Finset (Fin n) :=
   Finset.univ \ R.carrier
 
+/--
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.defects`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.k_eq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.k`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.length`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine.region`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `FaultLine` is duplicated in the declaration `Qatlib.Papers.SlowMixing24.MainResults.FaultLine.FaultLine`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A fault line (Definition 4.5): the set of defect bonds crossed by the
 boundary between a region `R` and its complement, together with the number of
 defects `k`. -/

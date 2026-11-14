@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
+module
+
+public import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,8 +65,8 @@ formalised. -/
 def lemma2_extension_is_product
     (C : Constellation554)
     (T : Fin 3 → Fin 6 → QState (Fin 2 × Fin 3))
-    (hT : IsMuTriple T)
-    (hcont : ContainsConstellationInTriple T C) : Prop :=
+    (_hT : IsMuTriple T)
+    (_hcont : ContainsConstellationInTriple T C) : Prop :=
   ∀ r k, IsProductState (T r k)
 
 end Qatlib.Papers.MUBProduct12.TripleClassify.Lemma2Constellation

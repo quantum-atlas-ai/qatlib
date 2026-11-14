@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+module
+
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+
+@[expose] public section
 
 /-!
 # Commutators under a spectral cutoff

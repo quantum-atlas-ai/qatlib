@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -117,10 +121,10 @@ theorem selected_neumann_pair_word (active : J → Bool) (P U : Matrix H H ℂ)
       Qatlib.Concepts.BlockEncoding.LCU.select_unitary (fun j : J => if active j then
         Qatlib.Concepts.BlockEncoding.EncodingCore.independentLiftRight (J := Bool) (Qatlib.Concepts.QsvtCore.QsVtMain.cppNot P) else 1) ?_⟩
     all_goals intro j
-    · cases ha : active j <;> simp only [ha, Bool.false_eq_true, ↓reduceIte]
+    · cases ha : active j <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · exact (unitaryGroup _ ℂ).one_mem
       · exact hlegal.1
-    · cases ha : active j <;> simp only [ha, Bool.false_eq_true, ↓reduceIte]
+    · cases ha : active j <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · exact (unitaryGroup _ ℂ).one_mem
       · exact hlegal.2
 

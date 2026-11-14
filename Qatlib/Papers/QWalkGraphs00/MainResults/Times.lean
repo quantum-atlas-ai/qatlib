@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Topology.Algebra.Order.Field
-import Mathlib.Tactic
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Topology.Algebra.Order.Field
+public import Mathlib.Tactic
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+
+@[expose] public section
 
 /-!
 # Mixing, sampling, filling, and dispersion times

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ExpectedQueryCounterexample
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7CorrectedTigh
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8CorrectedTigh
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ExpectedQueryCounterexample
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7Corrected
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8Corrected
+
+@[expose] public section
 
 /-!
 # Fixed-query bounds and an expected-query example

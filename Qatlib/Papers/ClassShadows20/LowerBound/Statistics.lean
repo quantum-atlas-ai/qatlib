@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.StatisticsDefs
-import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalHuan
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalHuan
-import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalStat
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalStat
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalQuan
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalStat
-import Mathlib.NumberTheory.Real.Irrational
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.StatisticsDefs
+public import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalHuan
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalHuan
+public import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalStat
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalStat
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalQuan
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalStat
+public import Mathlib.NumberTheory.Real.Irrational
+
+@[expose] public section
 
 /-!
 # Finite statistical witnesses

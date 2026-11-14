@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.ClassicalLowerBound
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.ClassicalLowerBound
+
+@[expose] public section
 
 /-!
 # Selecting an oracle family across input sizes
@@ -49,6 +53,6 @@ theorem assemble_scale_choices
   refine ⟨fun n => if hn : 4 ≤ n then Classical.choose (h n hn) else 0, ?_⟩
   intro n hn
   have hspec := Classical.choose_spec (h n hn)
-  simpa only [dif_pos hn] using hspec
+  simpa only [dite_eq_left hn] using hspec
 
 end Qatlib.Papers.ExactSimon97.MainResults

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+module
+
+public import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

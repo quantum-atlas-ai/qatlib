@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprBoundCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprBoundCode
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,16 +74,16 @@ theorem floorExprDecode_diffCode (axis n : ℕ) :
     by_cases hn : n=0
     · subst n
       have hz : floorExprDecode 0=FloorJetExpr.integer 0 := by rw [floorExprDecode]; simp
-      rw [floorExprDiffCode,dif_pos rfl]
+      rw [floorExprDiffCode,dite_eq_left rfl]
       rw [floorExprDecode_node,hz]
       norm_num [floorExprInteger,floorJetDiff]
     · have hp : (n-1).unpair.2<n := (Nat.unpair_right_le _).trans_lt (by omega)
       have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
       have hb := (Nat.unpair_right_le (n-1).unpair.2).trans_lt hp
-      rw [floorExprDiffCode,dif_neg hn]
-      conv_rhs => rw [floorExprDecode,dif_neg hn]
+      rw [floorExprDiffCode,dite_eq_right hn]
+      conv_rhs => rw [floorExprDecode,dite_eq_right hn]
       unfold floorExprDiffStep
-      rw [if_neg hn]
+      rw [ite_eq_right hn]
       dsimp only
       generalize ht : (n-1).unpair.1=tag
       by_cases htag : tag<9
@@ -179,7 +183,7 @@ theorem computable_floorExprDiffCode : Computable₂ floorExprDiffCode := by
   · have hp : (n-1).unpair.2<n := (Nat.unpair_right_le _).trans_lt (by omega)
     have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
     have hb := (Nat.unpair_right_le (n-1).unpair.2).trans_lt hp
-    rw [floorExprDiffCode,dif_neg hn]
+    rw [floorExprDiffCode,dite_eq_right hn]
     rw [floorExprHistory_getD _ n _ ha,floorExprHistory_getD _ n _ hb,floorExprHistory_getD _ n _ hp]
 
 end Qatlib.Concepts.EffectiveGauge.CodedFloor

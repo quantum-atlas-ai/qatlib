@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma2Restricted
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma2Restricted
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+
+@[expose] public section
 
 /-!
 # A restricted randomized-search contract

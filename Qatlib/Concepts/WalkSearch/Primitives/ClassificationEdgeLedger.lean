@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+@[expose] public section
 
 /-!
 # Graph-edge accounting for classification
@@ -71,10 +75,10 @@ theorem classifyScan_edge_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dL
     rw [classifyScan]
     dsimp only at hc ⊢
     split_ifs with he hl
-    · exact ih (drainedPairSet S τ) (by simpa only [if_pos he] using hc) hthinD
-    · have hc' := (by simpa only [if_neg he] using hc :
+    · exact ih (drainedPairSet S τ) (by simpa only [ite_eq_left he] using hc) hthinD
+    · have hc' := (by simpa only [ite_eq_right he] using hc :
           testCorrectCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v dHi dLo K c (ttape v) ∧ _)
-      have hh:=ih (lowRemaining (drainedPairSet S τ) v) (by simpa only [if_pos hl] using hc'.2)
+      have hh:=ih (lowRemaining (drainedPairSet S τ) v) (by simpa only [ite_eq_left hl] using hc'.2)
           (Finset.sdiff_subset.trans hthinD)
       have hb:=lowStep_graph_card G (drainedPairSet S τ) dHi dLo K c v (ttape v) hc'.1 hl
       (try dsimp only)
@@ -82,7 +86,7 @@ theorem classifyScan_edge_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dL
       have hsum := Finset.card_union_le (pairsAt (drainedPairSet S τ).edges v∩G.edges)
         ((classifyScan G sgs τ K c ttape stape vs (lowRemaining (drainedPairSet S τ) v)).movedE∩G.edges)
       nlinarith
-    · have hc' := (by simpa only [if_neg he] using hc :
+    · have hc' := (by simpa only [ite_eq_right he] using hc :
           testCorrectCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v dHi dLo K c (ttape v) ∧ _)
       cases hrun : operationalSgsFind sgs (neighborhoodMarked G v) 2 (n*n) (stape v) with
       | some p =>
@@ -90,7 +94,7 @@ theorem classifyScan_edge_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dL
         simp
       | none =>
         have hh:=ih (highRemaining G (drainedPairSet S τ) v)
-            (by simpa only [if_neg hl,hrun] using hc'.2) (Finset.sdiff_subset.trans hthinD)
+            (by simpa only [ite_eq_right hl,hrun] using hc'.2) (Finset.sdiff_subset.trans hthinD)
         have hb:=highEadd_graph_card G (drainedPairSet S τ).edges
             (drainedPairSet S τ).symm v tThin hthinD
         (try dsimp only)

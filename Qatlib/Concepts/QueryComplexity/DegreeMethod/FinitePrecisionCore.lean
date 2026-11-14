@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionMachine
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionMachine
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionValue
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionMachine
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionMachine
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionValue
+
+@[expose] public section
 
 /-!
 # Exact rational division with polynomial machine bounds

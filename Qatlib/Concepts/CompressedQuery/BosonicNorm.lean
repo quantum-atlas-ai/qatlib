@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.BosonOperators.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompressedOracleBounds
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.BosonFock.BosonOperators.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompressedOracleBounds
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Bosonic norm bounds and compressed query records
@@ -559,7 +563,7 @@ theorem phaseQuery_decomposition (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     | false =>
       by_cases hde : d = e
       · subst e
-        simp only [phaseDiagonal, Matrix.diagonal_apply, Bool.false_eq_true, if_false]
+        simp only [phaseDiagonal, Matrix.diagonal_apply, Bool.false_eq_true, ite_false]
         push_cast
         ring
       · simp [phaseDiagonal, hde]
@@ -773,7 +777,7 @@ def recordRaiseGate : Matrix (XorBasis I W) (XorBasis I W) ℂ :=
 theorem recordRaiseGate_norm : ‖recordRaiseGate (I := I) (W := W)‖ ≤ 1 := by
   apply fibreGate_norm_le _ 1 zero_le_one
   intro q
-  cases hb : q.1.2 <;> simp only [Bool.false_eq_true, if_false, if_true]
+  cases hb : q.1.2 <;> simp only [Bool.false_eq_true, ite_false, ite_true]
   · simp
   · exact databaseRaise_norm q.1.1
 
@@ -812,7 +816,7 @@ theorem flipDatabase_card_true (j : I) (d : I → Bool) (hd : d j = true) :
     databaseCard (flipDatabase j d) + 1 = databaseCard d := by
   have hj : j ∈ databaseSupport d := by simp [databaseSupport, hd]
   have hh := Finset.card_erase_add_one hj
-  simpa only [databaseCard, flipDatabase_support, hd, if_true] using! hh
+  simpa only [databaseCard, flipDatabase_support, hd, ite_true] using! hh
 
 /-- The block of the controlled flip crossing a record threshold equals the corresponding block
 of the controlled raising gate. -/
@@ -1054,6 +1058,8 @@ theorem normalized_euclidean_norm {X : Type} [Fintype X] [DecidableEq X]
 /-- The record amplitude at threshold zero is the Euclidean norm of the full state. -/
 theorem recordAmplitude_zero (v : QState (XorBasis I W)) : recordAmplitude 0 v = ‖toEuclidean_fromVec v‖ := by
   simp only [recordAmplitude, recordProjector_zero, applyGate_one]
+
+omit [DecidableEq W] in
 
 /-- Attaching the empty database to a normalized algorithm state gives a normalized joint state. -/
 theorem physicalInitial_normalized (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) :

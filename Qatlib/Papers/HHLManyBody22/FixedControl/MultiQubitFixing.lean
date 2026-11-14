@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Data.Matrix.Block
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Filter
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Controlled gates and threshold based fixing counts

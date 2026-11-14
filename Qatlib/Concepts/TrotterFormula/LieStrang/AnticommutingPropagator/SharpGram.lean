@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.SharpGramDefs
-import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.Algebra
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.SharpGramDefs
+public import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.Algebra
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Gram bounds for anticommuting propagators

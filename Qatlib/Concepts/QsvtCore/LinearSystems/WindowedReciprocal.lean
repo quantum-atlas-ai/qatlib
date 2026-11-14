@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Windowed reciprocal approximation with explicit bounds
@@ -278,7 +282,7 @@ theorem windowed_reciprocal_exists :
       linarith
     have hind : thresholdIndicator τ₀ x = 0 := by
       unfold thresholdIndicator
-      rw [if_neg]
+      rw [ite_eq_right]
       nlinarith
     have hgap : γ ≤ |x^2-τ₀^2| := by
       have hz : x^2-τ₀^2 ≤ -γ := by nlinarith
@@ -296,7 +300,7 @@ theorem windowed_reciprocal_exists :
     have hmem := thresholdPolynomial_eval_mem_Icc k hτ01 (abs_le.mpr ⟨by nlinarith, hx1⟩)
     have hind : thresholdIndicator τ₀ x = 1 := by
       unfold thresholdIndicator
-      rw [if_pos]
+      rw [ite_eq_left]
       nlinarith
     have hgap : γ ≤ |x^2-τ₀^2| := by
       rw [abs_of_nonneg (by nlinarith)]

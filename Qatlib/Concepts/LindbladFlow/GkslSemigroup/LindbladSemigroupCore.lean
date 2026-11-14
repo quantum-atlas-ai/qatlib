@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import QuantumInfo.Channels.Unbundled
-import Mathlib.Topology.Algebra.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.ODE.Gronwall
-import QuantumInfo.ForMathlib.HermitianMat.Inner
-import QuantumInfo.Entropy.DPI
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import QuantumInfo.Channels.Unbundled
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.ODE.Gronwall
+public import QuantumInfo.ForMathlib.HermitianMat.Inner
+public import QuantumInfo.Entropy.DPI
+
+@[expose] public section
 
 /-!
 # Lindblad semigroups from completely positive Euler maps
@@ -65,11 +69,11 @@ times `t` and `s`. -/
 theorem lindbladSemigroup_add {D : ℕ} (G : GKSL D) (s t : ℝ) (ρ : Operator D) :
     lindbladSemigroup G (s + t) ρ =
       lindbladSemigroup G s (lindbladSemigroup G t ρ) := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
-  letI : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
-  letI : TopologicalSpace (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
+  let : TopologicalSpace (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toUniformSpace.toTopologicalSpace
-  letI : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
+  let : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
   let L : Operator D →L[ℂ] Operator D := LinearMap.toContinuousLinearMap (lindbladMap G)
   have heq (u : ℝ) (σ : Operator D) :
       lindbladSemigroup G u σ = (NormedSpace.exp ((u : ℂ) • L)) σ := by
@@ -80,17 +84,17 @@ theorem lindbladSemigroup_add {D : ℕ} (G : GKSL D) (s t : ℝ) (ρ : Operator 
             (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) =
           ((u : ℂ) ^ k / k.factorial) • ((lindbladMap G)^[k]) σ := by
       change (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) σ = _
-      rw [ContinuousLinearMap.smul_apply]
+      rw [_root_.smul_apply]
       have hpow (k : ℕ) : ((u : ℂ) • L) ^ k = (u : ℂ) ^ k • L ^ k := by
         induction k with
         | zero => simp only [pow_zero, one_smul]
         | succ k ih =>
           rw [pow_succ, ih]
           ext τ
-          simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply,
+          simp only [_root_.mul_apply_eq_comp, _root_.smul_apply,
             map_smul, smul_smul, pow_succ, mul_comm]
-      rw [hpow k, ContinuousLinearMap.smul_apply, smul_smul,
-        ContinuousLinearMap.coe_pow']
+      rw [hpow k, _root_.smul_apply, smul_smul,
+        FunLike.coe_pow_eq_iterate]
       change ((k.factorial : ℂ)⁻¹ * (u : ℂ) ^ k) • ((lindbladMap G)^[k]) σ = _
       rw [div_eq_mul_inv, mul_comm]
     simp only [ht] at hh
@@ -98,11 +102,11 @@ theorem lindbladSemigroup_add {D : ℕ} (G : GKSL D) (s t : ℝ) (ρ : Operator 
   rw [heq, heq, heq, Complex.ofReal_add]
   have hadd : ((s : ℂ) + (t : ℂ)) • L = (s : ℂ) • L + (t : ℂ) • L := by
     ext σ
-    simp only [ContinuousLinearMap.smul_apply, ContinuousLinearMap.add_apply, add_smul]
+    simp only [_root_.smul_apply, _root_.add_apply, add_smul]
   have hcomm : Commute ((s : ℂ) • L) ((t : ℂ) • L) := by
     show ((s : ℂ) • L) * ((t : ℂ) • L) = ((t : ℂ) • L) * ((s : ℂ) • L)
     ext τ
-    simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply,
+    simp only [_root_.mul_apply_eq_comp, _root_.smul_apply,
       map_smul, smul_smul, mul_comm]
   have hexp := NormedSpace.exp_add_of_commute_of_mem_ball (𝕂 := ℂ) hcomm
     (by rw [NormedSpace.expSeries_radius_eq_top]; exact edist_lt_top _ _)
@@ -114,11 +118,11 @@ theorem lindbladSemigroup_add {D : ℕ} (G : GKSL D) (s t : ℝ) (ρ : Operator 
 theorem lindbladSemigroup_hasSum {D : ℕ} (G : GKSL D) (u : ℝ) (σ : Operator D) :
     HasSum (fun k : ℕ => ((u : ℂ) ^ k / k.factorial) • ((lindbladMap G)^[k]) σ)
       (lindbladSemigroup G u σ) := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
-  letI : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
-  letI : TopologicalSpace (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
+  let : TopologicalSpace (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toUniformSpace.toTopologicalSpace
-  letI : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
+  let : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
   let L : Operator D →L[ℂ] Operator D := LinearMap.toContinuousLinearMap (lindbladMap G)
   have hh := (ContinuousLinearMap.apply ℂ (Operator D) σ).hasSum
     (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℂ) ((u : ℂ) • L))
@@ -127,17 +131,17 @@ theorem lindbladSemigroup_hasSum {D : ℕ} (G : GKSL D) (u : ℝ) (σ : Operator
           (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) =
         ((u : ℂ) ^ k / k.factorial) • ((lindbladMap G)^[k]) σ := by
     change (((k.factorial : ℂ)⁻¹) • ((u : ℂ) • L) ^ k) σ = _
-    rw [ContinuousLinearMap.smul_apply]
+    rw [_root_.smul_apply]
     have hpow (k : ℕ) : ((u : ℂ) • L) ^ k = (u : ℂ) ^ k • L ^ k := by
       induction k with
       | zero => simp only [pow_zero, one_smul]
       | succ k ih =>
         rw [pow_succ, ih]
         ext τ
-        simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply,
+        simp only [_root_.mul_apply_eq_comp, _root_.smul_apply,
           map_smul, smul_smul, pow_succ, mul_comm]
-    rw [hpow k, ContinuousLinearMap.smul_apply, smul_smul,
-      ContinuousLinearMap.coe_pow']
+    rw [hpow k, _root_.smul_apply, smul_smul,
+      FunLike.coe_pow_eq_iterate]
     change ((k.factorial : ℂ)⁻¹ * (u : ℂ) ^ k) • ((lindbladMap G)^[k]) σ = _
     rw [div_eq_mul_inv, mul_comm]
   simp only [ht] at hh
@@ -162,11 +166,11 @@ theorem trace_lindbladApply {D : ℕ} (G : GKSL D) (ρ : Operator D) :
 /-- Lindblad evolution preserves the trace of every operator at every real time. -/
 theorem trace_lindbladSemigroup {D : ℕ} (G : GKSL D) (t : ℝ) (ρ : Operator D) :
     Matrix.trace (lindbladSemigroup G t ρ) = Matrix.trace ρ := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
-  letI : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
-  letI : TopologicalSpace (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
+  let : TopologicalSpace (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toUniformSpace.toTopologicalSpace
-  letI : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
+  let : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
   let f : Operator D →L[ℂ] ℂ :=
     LinearMap.toContinuousLinearMap (Matrix.traceLinearMap (Fin D) ℂ ℂ)
   have hs := f.hasSum (lindbladSemigroup_hasSum G t ρ)
@@ -888,7 +892,18 @@ with trace preservation and density-operator preservation [Lindblad1976]. -/
 theorem lindbladSemigroup_cptp {D : ℕ} (G : GKSL D) (t : ℝ) (ht : 0 ≤ t) :
     ∃ K : Fin (D * D * D * D) → Operator D,
       (∀ ρ : Operator D, lindbladSemigroup G t ρ = ∑ j, K j * ρ * (K j)ᴴ) ∧
-        HasKrausFamily (krausMap K) ∧
+        HasKrausFamily
+          ({ toFun := fun ρ => ∑ j, K j * ρ * (K j)ᴴ
+             map_add' := by
+               intro ρ σ
+               rw [← Finset.sum_add_distrib]
+               refine Finset.sum_congr rfl fun j _ => ?_
+               rw [Matrix.mul_add, Matrix.add_mul]
+             map_smul' := by
+               intro c ρ
+               simp only [RingHom.id_apply, Finset.smul_sum]
+               refine Finset.sum_congr rfl fun j _ => ?_
+               rw [Matrix.mul_smul, Matrix.smul_mul] } : Operator D →ₗ[ℂ] Operator D) ∧
         (∀ ρ : Operator D, Matrix.trace (lindbladSemigroup G t ρ) = Matrix.trace ρ) ∧
         (∀ ρ : Operator D, IsDensityOperator ρ → IsDensityOperator (lindbladSemigroup G t ρ)) := by
   obtain ⟨K, hK⟩ := lindbladSemigroup_hasKrausFamily G t ht
@@ -906,20 +921,32 @@ theorem g1 :
 
     (∀ t : ℝ, 0 ≤ t → t ≤ 1 → ∀ ρ : Operator D,
         ‖lindbladSemigroup G t ρ - ρ - t • lindbladApply G ρ‖
-          ≤ (lindbladGeneratorBound G) ^ 2 * Real.exp (lindbladGeneratorBound G)
+          ≤ (2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2) ^ 2 *
+              Real.exp (2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2)
               * t ^ 2 * ‖ρ‖) ∧
 
     (∀ t : ℝ, 0 ≤ t →
         ∃ K : Fin (D * D * D * D) → Operator D,
           (∀ ρ : Operator D, lindbladSemigroup G t ρ = ∑ j, K j * ρ * (K j)ᴴ) ∧
-            HasKrausFamily (krausMap K) ∧
+            HasKrausFamily
+              ({ toFun := fun ρ => ∑ j, K j * ρ * (K j)ᴴ
+                 map_add' := by
+                   intro ρ σ
+                   rw [← Finset.sum_add_distrib]
+                   refine Finset.sum_congr rfl fun j _ => ?_
+                   rw [Matrix.mul_add, Matrix.add_mul]
+                 map_smul' := by
+                   intro c ρ
+                   simp only [RingHom.id_apply, Finset.smul_sum]
+                   refine Finset.sum_congr rfl fun j _ => ?_
+                   rw [Matrix.mul_smul, Matrix.smul_mul] } : Operator D →ₗ[ℂ] Operator D) ∧
             (∀ ρ : Operator D, Matrix.trace (lindbladSemigroup G t ρ) = Matrix.trace ρ) ∧
             (∀ ρ : Operator D, IsDensityOperator ρ →
                 IsDensityOperator (lindbladSemigroup G t ρ))) ∧
 
     (∀ t : ℝ, 0 ≤ t → ∀ ρ : Operator D,
         ‖lindbladSemigroup G t ρ‖
-          ≤ Real.exp (lindbladGeneratorBound G * t) * ‖ρ‖) ∧
+          ≤ Real.exp ((2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2) * t) * ‖ρ‖) ∧
 
     (∀ ρ : Operator D, KMSNormalForm G ρ →
         IsStationary G ρ ∧ KmsSelfAdjoint ρ (lindbladMap G) ∧

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAdditionData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedMultiplication
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtract
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAdditionData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedMultiplication
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtract
+
+@[expose] public section
 
 /-!
 # Sign-magnitude addition by Boolean DAGs
@@ -60,7 +64,7 @@ private theorem sa_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [sa_snoc_value]
-  simp only [Fin.val_castLE,dif_pos j.isLt]
+  simp only [Fin.val_castLE,dite_eq_left j.isLt]
 
 /-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem sa_input_value {m n : ℕ} (g : BooleanDAG m n)
@@ -71,7 +75,7 @@ private theorem sa_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [sa_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- The expression `b ^^ ((a ^^ b) && c)` selects `a` when `c` is true and `b` otherwise. -/
 private theorem mux_bool (a b c : Bool) : (b ^^ ((a ^^ b) && c)) = if c then a else b := by
@@ -106,7 +110,7 @@ private theorem mux_prefix_bit (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w+1)) (j :
         sa_snoc_value,booleanNodeValue,mux_prefix_input]
       have h0 : w+i < 2*w+(1+3*i) := by omega
       have h1 : w+i < 2*w+(1+(3*i+1)) := by omega
-      rw [dif_pos h1,dif_pos h0]
+      rw [dite_eq_left h1,dite_eq_left h0]
       exact mux_bool (x ⟨i,by omega⟩) (x ⟨w+i,by omega⟩) (x (Fin.last (2*w)))
     · rw [mux_prefix_old w i hi x _ (by have := k.isLt; simp only [Fin.val_castSucc]; omega)]
       exact ih (by omega) k
@@ -332,14 +336,14 @@ private theorem sa_reverse_inputs (w : ℕ) (a b : Reg w) (sa sb : Bool) :
       booleanWordAdderInput w b a := by
   funext j
   by_cases hj : j.val < w
-  · simp only [saReverse,booleanWordAdderInput,dif_pos hj]
+  · simp only [saReverse,booleanWordAdderInput,dite_eq_left hj]
     have h := sa_raw_value (saGF w) a b sa sb (⟨w+j.val,by omega⟩ : Fin (2*w))
     have hnot : ¬w+j.val < w := by omega
-    simpa only [booleanWordAdderInput,dif_neg hnot,Nat.add_sub_cancel_left] using! h
-  · simp only [saReverse,booleanWordAdderInput,dif_neg hj]
+    simpa only [booleanWordAdderInput,dite_eq_right hnot,Nat.add_sub_cancel_left] using! h
+  · simp only [saReverse,booleanWordAdderInput,dite_eq_right hj]
     have hk : j.val-w < w := by have := j.isLt; omega
     have h := sa_raw_value (saGF w) a b sa sb (⟨j.val-w,by omega⟩ : Fin (2*w))
-    simpa only [booleanWordAdderInput,dif_pos hk] using! h
+    simpa only [booleanWordAdderInput,dite_eq_left hk] using! h
 
 /-- The reverse-subtraction output wires evaluate to conditional subtraction of `a` from `b`. -/
 private theorem sa_reverse_value (w : ℕ) (a b : Reg w) (sa sb : Bool) (j : Fin (w+1)) :
@@ -369,7 +373,7 @@ private theorem sa_xor_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanDAGValue (saG1 w) (booleanWordSignedAddInput w a b sa sb)
       ⟨2*w+2+saNR w,by omega⟩ = (sa ^^ sb) := by
   have hn : ¬2*w+2+saNR w < 2*w+2+saNR w := by omega
-  rw [saG1,sa_snoc_value,dif_neg hn]
+  rw [saG1,sa_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (saGR w) (booleanWordSignedAddInput w a b sa sb) ⟨2*w,by omega⟩ ^^
     booleanDAGValue (saGR w) (booleanWordSignedAddInput w a b sa sb) ⟨2*w+1,by omega⟩) = _
   rw [sa_sign_a,sa_sign_b]
@@ -381,7 +385,7 @@ private theorem sa_choose_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
       ⟨2*w+2+saNR w+1,by omega⟩ =
       ((sa ^^ sb) && booleanWordCondSubResult w a b (Fin.last w)) := by
   have hn : ¬2*w+2+saNR w+1 < 2*w+2+(saNR w+1) := by omega
-  rw [saG2,sa_snoc_value,dif_neg hn]
+  rw [saG2,sa_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (saG1 w) (booleanWordSignedAddInput w a b sa sb)
       ⟨2*w+2+saNR w,by omega⟩ &&
     booleanDAGValue (saG1 w) (booleanWordSignedAddInput w a b sa sb)
@@ -395,7 +399,7 @@ private theorem sa_sign_S (w : ℕ) (a b : Reg w) (sa sb : Bool) :
       ⟨2*w+2+saNR w+2,by dsimp only [saNS]; omega⟩ =
       if booleanWordLSBValue w b ≤ booleanWordLSBValue w a then sa else sb := by
   have hn : ¬2*w+2+saNR w+2 < 2*w+2+(saNR w+1+1) := by omega
-  rw [saG3,sa_snoc_value,dif_neg hn]
+  rw [saG3,sa_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (saG2 w) (booleanWordSignedAddInput w a b sa sb) ⟨2*w+1,by omega⟩ ^^
     booleanDAGValue (saG2 w) (booleanWordSignedAddInput w a b sa sb)
       ⟨2*w+2+saNR w+1,by omega⟩) = _
@@ -423,16 +427,16 @@ private theorem sa_diff_inputs (w : ℕ) (a b : Reg w) (sa sb : Bool) :
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
   · have hn : ¬2*w < w := by omega
-    simp only [saDiffMap,Fin.val_last,dif_neg hn,dif_neg (Nat.lt_irrefl (2*w)),
+    simp only [saDiffMap,Fin.val_last,dite_eq_right hn,dite_eq_right (Nat.lt_irrefl (2*w)),
       booleanWordMuxInput,Fin.snoc_last]
     exact (sa_SF w (booleanWordSignedAddInput w a b sa sb) (saF w (Fin.last w))).trans
       (sa_forward_value w a b sa sb (Fin.last w))
   · rw [booleanWordMuxInput,Fin.snoc_castSucc]
     by_cases hk : k.val < w
-    · simp only [saDiffMap,Fin.val_castSucc,booleanWordAdderInput,dif_pos hk]
+    · simp only [saDiffMap,Fin.val_castSucc,booleanWordAdderInput,dite_eq_left hk]
       exact (sa_SF w (booleanWordSignedAddInput w a b sa sb) (saF w (Fin.castSucc ⟨k.val,hk⟩))).trans
         (sa_forward_value w a b sa sb (Fin.castSucc ⟨k.val,hk⟩))
-    · simp only [saDiffMap,Fin.val_castSucc,booleanWordAdderInput,dif_neg hk,dif_pos k.isLt]
+    · simp only [saDiffMap,Fin.val_castSucc,booleanWordAdderInput,dite_eq_right hk,dite_eq_left k.isLt]
       exact (sa_SR w (booleanWordSignedAddInput w a b sa sb)
         (saR w (Fin.castSucc ⟨k.val-w,by have := k.isLt; omega⟩))).trans
         (sa_reverse_value w a b sa sb (Fin.castSucc ⟨k.val-w,by have := k.isLt; omega⟩))
@@ -485,22 +489,22 @@ private theorem sa_final_inputs (w : ℕ) (a b : Reg w) (sa sb : Bool) :
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
   · have hn : ¬2*(w+1) < w+1 := by omega
-    simp only [saFinalMap,Fin.val_last,dif_neg hn,dif_neg (Nat.lt_irrefl (2*(w+1))),
+    simp only [saFinalMap,Fin.val_last,dite_eq_right hn,dite_eq_right (Nat.lt_irrefl (2*(w+1))),
       booleanWordMuxInput,Fin.snoc_last]
     exact sa_xor_D w a b sa sb
   · rw [booleanWordMuxInput,Fin.snoc_castSucc]
     by_cases hk : k.val < w+1
-    · simp only [saFinalMap,Fin.val_castSucc,booleanWordAdderInput,dif_pos hk]
+    · simp only [saFinalMap,Fin.val_castSucc,booleanWordAdderInput,dite_eq_left hk]
       have hbit (t : Fin (w+1)) :
           booleanDAGValue (saGD w) (booleanWordSignedAddInput w a b sa sb)
             (if ht : t.val < w then saDiff w ⟨t.val,ht⟩ else saZeroD w) =
             (Fin.snoc (saDiffWord w a b sa sb) false : Reg (w+1)) t := by
         refine Fin.lastCases ?_ (fun r => ?_) t
-        · simp only [Fin.val_last,dif_neg (Nat.lt_irrefl w),Fin.snoc_last]
+        · simp only [Fin.val_last,dite_eq_right (Nat.lt_irrefl w),Fin.snoc_last]
           exact sa_zero_D w _
-        · simp only [Fin.val_castSucc,dif_pos r.isLt,Fin.snoc_castSucc,saDiffWord]
+        · simp only [Fin.val_castSucc,dite_eq_left r.isLt,Fin.snoc_castSucc,saDiffWord]
       exact hbit ⟨k.val,hk⟩
-    · simp only [saFinalMap,Fin.val_castSucc,booleanWordAdderInput,dif_neg hk,dif_pos k.isLt]
+    · simp only [saFinalMap,Fin.val_castSucc,booleanWordAdderInput,dite_eq_right hk,dite_eq_left k.isLt]
       exact (sa_DA w (booleanWordSignedAddInput w a b sa sb)
         (saSum w ⟨k.val-(w+1),by have := k.isLt; omega⟩)).trans
         (sa_sum_value w a b sa sb ⟨k.val-(w+1),by have := k.isLt; omega⟩)
@@ -513,7 +517,7 @@ private theorem sa_magnitude_word (w : ℕ) (a b : Reg w) (sa sb : Bool) :
         (booleanWordAdderResult w a b) (sa ^^ sb) := by
   funext j
   simp only [booleanWordSignedAddMagnitude,booleanWordSignedAddResult,booleanWordSignedAddProgram,
-    Fin.val_castSucc,dif_pos j.isLt]
+    Fin.val_castSucc,dite_eq_left j.isLt]
   have h := boolean_dag_splice_value (saGD w) (saFinalMap w) (booleanWordMuxDAG (w+1))
     (booleanWordSignedAddInput w a b sa sb) (booleanWordMuxSelect (w+1) j)
   rw [sa_final_inputs] at h
@@ -541,7 +545,7 @@ private theorem sa_sign_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanWordSignedAddSign w a b sa sb =
       if booleanWordLSBValue w b ≤ booleanWordLSBValue w a then sa else sb := by
   simp only [booleanWordSignedAddSign,booleanWordSignedAddResult,booleanWordSignedAddProgram,
-    Fin.val_last,dif_neg (Nat.lt_irrefl (w+1))]
+    Fin.val_last,dite_eq_right (Nat.lt_irrefl (w+1))]
   exact (sa_TS w (booleanWordSignedAddInput w a b sa sb)
     (⟨2*w+2+saNR w+2,by dsimp only [saNS]; omega⟩ : Fin (2*w+2+saNS w))).trans
     (sa_sign_S w a b sa sb)

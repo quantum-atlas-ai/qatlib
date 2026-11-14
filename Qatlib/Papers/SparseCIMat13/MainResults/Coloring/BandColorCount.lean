@@ -9,10 +9,14 @@ Copyright: paper-layer formalization for SparseCIMat13.
 Source: B. Toloui and P. J. Love, "Quantum Algorithms for Quantum Chemistry based on the
 sparsity of the CI-matrix", arXiv:1312.2579 (2013), Section III E p.8, Eqs. (23)-(26).
 -/
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,7 +96,7 @@ theorem card_BandLabel (no ne : ℕ) :
         (Fintype.card {s : Finset (Fin ne) // s.card = 2} *
          Fintype.card {t : Finset (Fin (no - ne)) // t.card = 2})) := by
     simp only [BandLabel, Fintype.card_sum, Fintype.card_unit, Fintype.card_prod,
-      Fintype.card_fin, Fintype.card_coe]
+      Fintype.card_fin]
   rw [h1, card_two_subsets, card_two_subsets]
   unfold ciRowDegree
   ring

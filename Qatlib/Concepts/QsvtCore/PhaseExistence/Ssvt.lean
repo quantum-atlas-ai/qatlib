@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SsvtDefs
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SsvtDefs
+
+@[expose] public section
 
 /-!
 # Singular value transformation words and resource counts
@@ -82,7 +86,7 @@ theorem def15Word_odd (Φ : List ℝ) {H : Type} [Fintype H] [DecidableEq H]
   rw [def15Steps_odd]
   show cppEvaluate U P Q (cppCompile (sourceRealFamily Φ)) = sourceRealWord U P Q Φ
   unfold sourceRealWord
-  rw [if_pos hodd]
+  rw [ite_eq_left hodd]
 
 /-- For an even-length angle list, the even-parity Definition 15 word equals `sourceRealWord`. -/
 theorem def15Word_even (Φ : List ℝ) {H : Type} [Fintype H] [DecidableEq H]
@@ -94,7 +98,7 @@ theorem def15Word_even (Φ : List ℝ) {H : Type} [Fintype H] [DecidableEq H]
     sourceRealWord U P Q Φ
   unfold sourceRealWord
   have hne : Φ.length % 2 ≠ 1 := by omega
-  rw [if_neg hne]
+  rw [ite_eq_right hne]
 
 /-- Selecting the parity tag from the angle-list length makes the Definition 15 word equal to
 `sourceRealWord`. -/
@@ -283,7 +287,7 @@ theorem ctrlDef15_ledger_odd (Φ : List ℝ) :
         controlledDataQueries := 0
         controlledAdjointQueries := 0 } := by
   have hlen : (ctrlSourceFamily Φ).length = Φ.length := by
-    simp [ctrlSourceFamily, sourceRealFamily]
+    simp [ctrlSourceFamily]
   rw [ctrlDef15Steps, ctrlCounts_ctrlCompileControlled, hlen]
 
 /-- The even-parity controlled word has the displayed resource ledger with reversed forward and
@@ -299,7 +303,7 @@ theorem ctrlDef15_ledger_even (Φ : List ℝ) :
         controlledDataQueries := 0
         controlledAdjointQueries := 0 } := by
   have hlen : (ctrlSourceFamily Φ).length = Φ.length := by
-    simp [ctrlSourceFamily, sourceRealFamily]
+    simp [ctrlSourceFamily]
   rw [ctrlDef15Steps, ctrlCounts_swapData, ctrlCounts_ctrlCompileControlled, hlen]
 
 /-- The odd-parity multiply controlled word of length parameter `d` has the displayed ledger,
@@ -365,7 +369,7 @@ parity endpoint identities. See [GilyenSuLowWiebe2019]. -/
 theorem clause76_endpoint :
 
     (∀ (Φ : List ℝ) {H : Type} [Fintype H] [DecidableEq H]
-        (U P Q : Matrix H H ℂ) (hodd : Φ.length % 2 = 1),
+        (U P Q : Matrix H H ℂ) (_hodd : Φ.length % 2 = 1),
         def15Word U P Q Φ .odd = sourceRealWord U P Q Φ ∧
         def15Ledger (def15Steps Φ .odd) =
           { forwardQueries := (Φ.length + 1) / 2
@@ -375,7 +379,7 @@ theorem clause76_endpoint :
             phaseMacros := Φ.length }) ∧
 
     (∀ (Φ : List ℝ) {H : Type} [Fintype H] [DecidableEq H]
-        (U P Q : Matrix H H ℂ) (heven : Φ.length % 2 = 0),
+        (U P Q : Matrix H H ℂ) (_heven : Φ.length % 2 = 0),
         def15Word U P Q Φ .even = sourceRealWord U P Q Φ ∧
         def15Ledger (def15Steps Φ .even) =
           { forwardQueries := Φ.length / 2

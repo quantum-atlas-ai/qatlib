@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem5Stat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
-import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem5Stat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+
+@[expose] public section
 
 /-!
 # Corrected subgraph candidate-search guarantees
@@ -81,7 +85,7 @@ theorem theorem5_answer : Theorem5 := by
     (pow_pos hn _) (by omega)
   refine ⟨r, hr, hl, hu, hAlg_sound adj H hv kcs r qH, ?_, ?_⟩
   · intro hex
-    haveI := kcs.seedFin
+    have := kcs.seedFin
     have hnone (ρ : kcs.seed) :
         (hAlg adj H hv kcs r qH (fun _ => ρ)).1 = none ↔
           kcs.run r (hCandRel adj H hv) (r*r) r qH ρ = none := by

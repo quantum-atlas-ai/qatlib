@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic
-import Qatlib.Papers.QWalkDiff01.MainResults.Defs
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Tactic
+public import Qatlib.Papers.QWalkDiff01.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Absorbing chain on the right tree
@@ -41,11 +45,11 @@ def downNbr {m : ℕ} (j : Fin m) : Fin m := if h : 0 < j.val then ⟨j.val - 1,
 
 /-- Below the final index, `upNbr` increases the index by one. -/
 lemma upNbr_eq {m : ℕ} {j : Fin m} (h : j.val + 1 < m) : upNbr j = ⟨j.val + 1, h⟩ := by
-  simp [upNbr, dif_pos h]
+  simp [upNbr, dite_eq_left h]
 
 /-- At a positive index, `downNbr` decreases the index by one. -/
 lemma downNbr_eq {m : ℕ} {j : Fin m} (h : 0 < j.val) : downNbr j = ⟨j.val - 1, by omega⟩ := by
-  simp [downNbr, dif_pos h]
+  simp [downNbr, dite_eq_left h]
 
 /-- The transition weights of the right-tree chain, with upward probability `1/3`, downward
 probability `2/3`, and special root and sink transitions. -/
@@ -107,18 +111,18 @@ lemma rightStep_nonneg (n : ℕ) (j k : Fin (n + 2)) : 0 ≤ rightStep n j k := 
 lemma rightStep_expect (n : ℕ) (f : Fin (n + 2) → ℝ) (j : Fin (n + 2)) :
     ∑ k, rightStep n j k * f k = stepImage n f j := by
   by_cases h0 : j.val = 0
-  · simp only [stepImage, rightStep, if_pos h0]
+  · simp only [stepImage, rightStep, ite_eq_left h0]
     exact sum_two_vals f (by omega : (1 : ℕ) < n + 2) (by omega : n + 1 < n + 2)
       (1 / 2) (1 / 2)
   · by_cases hn : j.val = n
-    · simp only [stepImage, rightStep, if_neg h0, if_pos hn]
+    · simp only [stepImage, rightStep, ite_eq_right h0, ite_eq_left hn]
       rw [sum_single_val f (by omega : n < n + 2) 1, one_mul]
       exact congrArg f (Fin.ext (by simpa using hn)).symm
     · by_cases hs : j.val = n + 1
-      · simp only [stepImage, rightStep, if_neg h0, if_neg hn, if_pos hs]
+      · simp only [stepImage, rightStep, ite_eq_right h0, ite_eq_right hn, ite_eq_left hs]
         rw [sum_single_val f (by omega : n + 1 < n + 2) 1, one_mul]
         exact congrArg f (Fin.ext (by simpa using hs)).symm
-      · simp only [stepImage, rightStep, if_neg h0, if_neg hn, if_neg hs]
+      · simp only [stepImage, rightStep, ite_eq_right h0, ite_eq_right hn, ite_eq_right hs]
         rw [sum_two_vals f (by omega : j.val + 1 < n + 2) (by omega : j.val - 1 < n + 2)
           (1 / 3) (2 / 3), upNbr_eq (by omega), downNbr_eq (by omega)]
 
@@ -141,34 +145,34 @@ lemma barrier_nonneg (n : ℕ) (j : Fin (n + 2)) : 0 ≤ barrier n j := bval_non
 /-- The barrier value at index zero is `(1 / 2)^n`. -/
 lemma bval_zero (n : ℕ) : bval n 0 = (1 / 2 : ℝ) ^ n := by
   unfold bval
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   have h : (1 / 2 : ℝ) = (2 : ℝ)⁻¹ := by norm_num
   rw [h, inv_pow, div_eq_mul_inv, pow_zero, one_mul]
 
 /-- The barrier value at the root index `n` is one. -/
 lemma bval_mid (n : ℕ) : bval n n = 1 := by
   unfold bval
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   exact div_self (by positivity)
 
 /-- The barrier value at the sink index `n + 1` is zero. -/
 lemma bval_sink (n : ℕ) : bval n (n + 1) = 0 := by
   unfold bval
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- For `n ≥ 1`, the barrier is harmonic for the right-tree chain. -/
 lemma barrier_harmonic (n : ℕ) (hn : 1 ≤ n) (j : Fin (n + 2)) :
     stepImage n (barrier n) j = barrier n j := by
   unfold stepImage
   by_cases h0 : j.val = 0
-  · rw [if_pos h0]
+  · rw [ite_eq_left h0]
     have hj : barrier n j = bval n 0 := by rw [barrier, h0]
     rw [hj]
     show (1 / 2) * bval n 1 + (1 / 2) * bval n (n + 1) = bval n 0
     rw [bval_sink, mul_zero, add_zero]
     have hb1 : bval n 1 = 2 / (2 : ℝ) ^ n := by
       unfold bval
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
       norm_num
     rw [hb1, bval_zero]
     have h2 : (1 / 2 : ℝ) * (2 / (2 : ℝ) ^ n) = (1 / 2 : ℝ) ^ n := by
@@ -176,13 +180,13 @@ lemma barrier_harmonic (n : ℕ) (hn : 1 ≤ n) (j : Fin (n + 2)) :
       rw [hc, inv_pow, div_eq_mul_inv, ← mul_assoc]
       norm_num
     rw [h2]
-  · rw [if_neg h0]
+  · rw [ite_eq_right h0]
     by_cases hn' : j.val = n
-    · rw [if_pos hn']
-    · rw [if_neg hn']
+    · rw [ite_eq_left hn']
+    · rw [ite_eq_right hn']
       by_cases hs : j.val = n + 1
-      · rw [if_pos hs]
-      · rw [if_neg hs]
+      · rw [ite_eq_left hs]
+      · rw [ite_eq_right hs]
         have hjpos : 0 < j.val := by omega
         have hu : upNbr j = (⟨j.val + 1, by omega⟩ : Fin (n + 2)) := upNbr_eq (by omega)
         have hd : downNbr j = (⟨j.val - 1, by omega⟩ : Fin (n + 2)) := downNbr_eq hjpos
@@ -196,14 +200,14 @@ lemma barrier_harmonic (n : ℕ) (hn : 1 ≤ n) (j : Fin (n + 2)) :
         have hbu : barrier n (⟨j.val + 1, by omega⟩ : Fin (n + 2)) =
             (2 : ℝ) ^ (j.val + 1) / (2 : ℝ) ^ n := by
           unfold barrier bval
-          rw [if_neg hne1]
+          rw [ite_eq_right hne1]
         have hbd : barrier n (⟨j.val - 1, by omega⟩ : Fin (n + 2)) =
             (2 : ℝ) ^ (j.val - 1) / (2 : ℝ) ^ n := by
           unfold barrier bval
-          rw [if_neg hne2]
+          rw [ite_eq_right hne2]
         have hbj : barrier n j = (2 : ℝ) ^ j.val / (2 : ℝ) ^ n := by
           unfold barrier bval
-          rw [if_neg (by simpa using hs)]
+          rw [ite_eq_right (by simpa using hs)]
         rw [hbu, hbd, hbj]
         have hpowj : (2 : ℝ) ^ j.val = (2 : ℝ) ^ (j.val - 1) * 2 := by
           rw [← pow_succ]

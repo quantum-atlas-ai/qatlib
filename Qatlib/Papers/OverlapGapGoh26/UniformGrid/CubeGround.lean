@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.SoftGround
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.ExplicitGrid
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.SoftGround
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.ExplicitGrid
+
+@[expose] public section
 
 /-!
 # Finite cube grids and smoothed ground energies

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # The bounded-norm case of the first degree term

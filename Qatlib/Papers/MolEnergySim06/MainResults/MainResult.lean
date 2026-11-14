@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MolEnergySim06.MainResults.ResourceScaling
-import Qatlib.Papers.MolEnergySim06.MainResults.RecursivePhaseEstimation
-import Qatlib.Papers.MolEnergySim06.MainResults.ChemicalPrecision
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.MolEnergySim06.MainResults.ResourceScaling
+public import Qatlib.Papers.MolEnergySim06.MainResults.RecursivePhaseEstimation
+public import Qatlib.Papers.MolEnergySim06.MainResults.ChemicalPrecision
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Molecular simulation precision and register summaries

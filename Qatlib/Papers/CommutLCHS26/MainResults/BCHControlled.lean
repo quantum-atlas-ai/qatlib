@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHHalfBudget
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHConvergence
-import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.Normed.Group.FunctionSeries
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHHalfBudget
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHConvergence
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.Normed.Group.FunctionSeries
+
+@[expose] public section
 
 /-!
 # BCH convergence from odd commutator control

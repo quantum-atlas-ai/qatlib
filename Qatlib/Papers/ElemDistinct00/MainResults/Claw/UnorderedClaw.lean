@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Qatlib.Papers.ElemDistinct00.MainResults.Claw.OrReduction
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Qatlib.Papers.ElemDistinct00.MainResults.Claw.OrReduction
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # The unordered claw upper bound function
@@ -51,12 +55,12 @@ theorem clawQ2UpperFunction_of_le {N M : ℕ} (h : M ≤ N ^ 2) :
     clawQ2UpperFunction N M =
       (N : ℝ) ^ ((1 : ℝ) / 2) * (M : ℝ) ^ ((1 : ℝ) / 4) * Real.log (N : ℝ) := by
   unfold clawQ2UpperFunction
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- When `M > N²`, the defined cost expression is `sqrt M * log N`. -/
 theorem clawQ2UpperFunction_of_gt {N M : ℕ} (h : ¬ M ≤ N ^ 2) :
     clawQ2UpperFunction N M = Real.sqrt (M : ℝ) * Real.log (N : ℝ) := by
   unfold clawQ2UpperFunction
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 end Qatlib.Papers.ElemDistinct00.MainResults.Claw

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+
+@[expose] public section
 
 /-!
 # Clean-Frame Controlled Partial-Swap Semantics
@@ -90,7 +94,7 @@ theorem localCopyPhaseUncompute_clean_basis (n : ℕ) (θ : ℝ)
     rw [hc]
     cases h : x (localCopyControlWire n)
     · simp
-    · simp only [Bool.true_and, if_true]
+    · simp only [Bool.true_and, ite_true]
       rw [localCopyPhase_affine, hs]
   have hu := reflectionProgramMatrix_unitary (localCopyComputeAndParity n)
     (localCopyComputeAndParity_legal n)
@@ -137,9 +141,9 @@ theorem localCopyPairLift_spectator_commute (n : ℕ)
     Matrix.reindex_apply,Matrix.submatrix_apply,Equiv.symm_symm,TensorGate,
     Matrix.kroneckerMap_apply,Matrix.one_apply]
   by_cases h : (localCopyPairSplit n x).1 = (localCopyPairSplit n y).1
-  · rw [if_pos h,h]
+  · rw [ite_eq_left h,h]
     ring
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp
 
 /-- The Bell basis word commutes with the clean scratch projector. -/
@@ -176,14 +180,14 @@ theorem localCopyPhaseUncompute_clean_projector (n : ℕ) (θ : ℝ) :
     unfold localCopyCleanProjector
     rw [applyGate_diagonal_ket]
     by_cases h : (∀ i, y (localCopyAndWire n i) = false) ∧ y (localCopyParityWire n) = false
-    · rw [if_pos h,one_smul,localCopyPhaseUncompute_clean_basis n θ y h.1 h.2]
+    · rw [ite_eq_left h,one_smul,localCopyPhaseUncompute_clean_basis n θ y h.1 h.2]
       unfold localCopySpectralPhase
       rw [applyGate_diagonal_ket]
-    · rw [if_neg h,zero_smul]
+    · rw [ite_eq_right h,zero_smul]
       simp [ApplyGate]
   ext x y
   simpa only [ApplyGate,Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq',Finset.mem_univ,if_true] using! congrFun (he y) x
+    Finset.sum_ite_eq',Finset.mem_univ,ite_true] using! congrFun (he y) x
 
 /-- The physical diagonal matrix whose entry depends only on the control wire through the
 function `a`. -/
@@ -290,7 +294,7 @@ theorem localCopyControlRz_matrix (n : ℕ) (θ : ℝ) :
     cases a <;> cases b <;> cases c <;> cases d <;>
       simp [TensorGate,Matrix.kroneckerMap_apply,Rz]
   have hw := localCopyPhaseWireGate n true (Rz θ)
-  simp only [if_true] at hw
+  simp only [ite_true] at hw
   rw [hw,he,localCopyPhaseLift_diagonal]
   rfl
 

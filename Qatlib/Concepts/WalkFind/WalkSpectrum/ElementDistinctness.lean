@@ -4,8 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctnessDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctnessDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+
+set_option linter.unusedTactic false
+set_option linter.style.haveILetI false
+
+@[expose] public section
 
 /-!
 # A compact-register value oracle
@@ -97,7 +104,7 @@ private theorem compactValueAction_answer {N M r w : ℕ} (hM : 0 < M) (x : Fin 
   have hcap := Nat.le_pow_clog (by decide : 1 < 2) (M+1)
   unfold compactValueAction
   (try dsimp only)
-  rw [dif_pos ha,if_pos hb,addressValue_written ψ _ _ _ (by unfold compactWidth; omega)]
+  rw [dite_eq_left ha,ite_eq_left hb,addressValue_written ψ _ _ _ (by unfold compactWidth; omega)]
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ hM) (by omega))
 
 /-- For positive `M`, the compact value action is injective on register labels. -/
@@ -217,7 +224,7 @@ private theorem compactValueAction_valid (N M r w : ℕ) (_hM : 0 < M) (x : Fin 
         then naturalBit result (k.val-(Nat.clog 2 (N+1))) else ψ k := by
   unfold compactValueAction
   (try dsimp only)
-  rw [hA, hB, dif_pos ha, if_pos hb]
+  rw [hA, hB, dite_eq_left ha, ite_eq_left hb]
   simp only [hr]
 
 /-- On a compact label with valid address `i` and zero answer, the value action writes `(x

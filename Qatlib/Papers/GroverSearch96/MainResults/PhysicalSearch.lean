@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.ObservedSearchLowerBoundAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.ObservedDecisionLowerBoundAfas
-import Mathlib.Tactic
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchConsumers
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.ObservedSearchLowerBound
+public import Qatlib.Concepts.SearchStopping.KnownCount.ObservedDecisionLowerBound
+public import Mathlib.Tactic
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchConsumers
+
+@[expose] public section
 
 /-!
 # Physical query bounds for singleton search

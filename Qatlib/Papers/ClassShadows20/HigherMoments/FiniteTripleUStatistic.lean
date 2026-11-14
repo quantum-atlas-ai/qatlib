@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite triple U-statistics
@@ -457,7 +461,7 @@ private theorem tripleCoordinates_injective {m : ℕ} :
     Set.InjOn (@tripleCoordinates m) ↑(tripleIndexList m).toFinset := by
   intro a ha b hb hab
   have he := congrArg (fun s : Finset (Fin m) => s.sort (· ≤ ·)) hab
-  (try dsimp only at he)
+
   rw [tripleCoordinates_sort a (List.mem_toFinset.mp ha),
     tripleCoordinates_sort b (List.mem_toFinset.mp hb)] at he
   have he' : a.1 = b.1 ∧ a.2.1 = b.2.1 ∧ a.2.2 = b.2.2 := by simpa using he

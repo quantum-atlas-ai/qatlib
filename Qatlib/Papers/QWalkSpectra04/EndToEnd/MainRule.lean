@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
-import Qatlib.Concepts.WalkSearch.ProjectorCS
+module
+
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+
+@[expose] public section
 
 /-!
 # Classical and quantum detection scale comparison

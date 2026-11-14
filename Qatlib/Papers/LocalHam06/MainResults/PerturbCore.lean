@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Spectrum
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+
+@[expose] public section
 
 /-!
 # Projection and overlap bounds for perturbations

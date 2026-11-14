@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCubeJets
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCubeJets
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

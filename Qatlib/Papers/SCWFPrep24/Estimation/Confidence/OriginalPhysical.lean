@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.MatchingEnergy
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.GridLossBridge
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.GridMatching
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhysicalScales
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhaseLaw
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.MatchingEnergy
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.GridLossBridge
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.GridMatching
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhysicalScales
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhaseLaw
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

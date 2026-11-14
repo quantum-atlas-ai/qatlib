@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkDiff01.MainResults.Defs
+module
+
+public import Qatlib.Papers.QWalkDiff01.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # The quantum column propagator at time zero

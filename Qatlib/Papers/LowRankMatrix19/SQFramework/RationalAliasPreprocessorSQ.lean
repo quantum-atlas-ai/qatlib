@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SqEstimation.AliasPreprocess
-import Qatlib.Papers.LowRankMatrix19.SQFramework.SqClosureEstimation
+module
+
+public import Qatlib.Concepts.SqEstimation.AliasPreprocess
+public import Qatlib.Papers.LowRankMatrix19.SQFramework.SqClosureEstimation
+
+@[expose] public section
 
 /-!
 # Rational alias preprocessing for sample/query access

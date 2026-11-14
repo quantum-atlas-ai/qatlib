@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,10 +66,10 @@ theorem abs_colPayoff_le {n m : ℕ} (A : PayoffMatrix n m) (x : Fin n → ℝ) 
     `Õ(β√m)` query/time cost — is not formalised here; the cost contract is
     recorded in `GibbsSampler`. -/
 theorem source_lemma8_accuracy
-    {n m : ℕ} (hn : 0 < n) (hm : 0 < m)
+    {n m : ℕ} (_hn : 0 < n) (hm : 0 < m)
     (A : PayoffMatrix n m) (x : Fin n → ℝ) {β δ : ℝ}
-    (hβ : 1 ≤ β) (hδ0 : 0 < δ) (hδ1 : δ < 1)
-    (hx_nonneg : ∀ i, 0 ≤ x i) (hxβ : ∑ i, x i ≤ β) :
+    (_hβ : 1 ≤ β) (hδ0 : 0 < δ) (_hδ1 : δ < 1)
+    (_hx_nonneg : ∀ i, 0 ≤ x i) (_hxβ : ∑ i, x i ≤ β) :
     IsDistribution (gibbsDist (fun j => colPayoff A x j)) ∧
     ∃ S : GibbsSampler m,
       IsDistribution S.output ∧

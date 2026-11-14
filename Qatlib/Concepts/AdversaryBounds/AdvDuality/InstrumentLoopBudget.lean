@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+@[expose] public section
 
 /-!
 # Expected Time and Geometric Bounds for Instrument Loops
@@ -59,7 +63,7 @@ set_option maxHeartbeats 400000 in
 /-- For a density input, the expected time dominates `(n + 1) * loopPending I ρ n`. Positive
 nontermination mass forces this expected time to be infinite. -/
 theorem instrument_loop_expected_time_online_budget :
-    ∀ (D : ℕ) (I : Instrument Bool D D) (ρ : Operator D) (hρ : IsDensityOperator ρ) (n : ℕ),
+    ∀ (D : ℕ) (I : Instrument Bool D D) (ρ : Operator D) (_hρ : IsDensityOperator ρ) (n : ℕ),
       loopExpectedTime I ρ = ∑' k : ℕ, loopPending I ρ k ∧
       (n+1:ℝ≥0∞)*loopPending I ρ n ≤ loopExpectedTime I ρ ∧
       (0 < loopNeverMass I ρ → loopExpectedTime I ρ = ⊤) := by
@@ -265,14 +269,14 @@ system-diagonal entries of `tensorLeft T X`. -/
 theorem tensorLeft_diag_trace {D r : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     Matrix.trace (T (refBlock X s t)) = ∑ a : Fin D, tensorLeft T X (a, s) (a, t) := by
-  simp [refBlock, Matrix.trace, tensorLeft]
+  simp [Matrix.trace, tensorLeft]
 
 /-- Each entry of the reference marginal after applying `tensorLeft T` is the trace of `T`
 applied to the corresponding reference block. -/
 theorem partialTraceFirst_tensorLeft {D r : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     partialTraceFirst (tensorLeft T X) s t = Matrix.trace (T (refBlock X s t)) := by
-  simp [partialTraceFirst, Matrix.traceLeft, tensorLeft, refBlock, Matrix.trace]
+  simp [partialTraceFirst, Matrix.traceLeft, tensorLeft, Matrix.trace]
 
 /-- Each entry of the partial trace over the first subsystem is the trace of the corresponding
 reference block. -/

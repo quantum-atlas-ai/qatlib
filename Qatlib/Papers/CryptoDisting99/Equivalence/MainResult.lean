@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition3
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition3
+
+@[expose] public section
 
 /-!
 # Parity mixtures and their trace distance
@@ -255,12 +259,12 @@ lemma signed_entry_compl (α : ℝ) (n : ℕ) (u v : Fin n → Fin 2) :
   rw [signed_entry]
   simp only [complMat, Matrix.submatrix_apply, Matrix.one_apply, id]
   by_cases h : ∀ i, u i ≠ v i
-  · rw [if_pos ((forall_ne_iff_eq_bcFun u v).mp h)]
+  · rw [ite_eq_left ((forall_ne_iff_eq_bcFun u v).mp h)]
     rw [Finset.prod_congr rfl (g := fun _ => ((2 * (Real.cos α * Real.sin α) : ℝ) : ℂ))
       (fun i _ => by simp [h i])]
     rw [Finset.prod_const, ← Complex.ofReal_pow]
     simp
-  · rw [if_neg (fun hh => h ((forall_ne_iff_eq_bcFun u v).mpr hh))]
+  · rw [ite_eq_right (fun hh => h ((forall_ne_iff_eq_bcFun u v).mpr hh))]
     simp only [mul_zero]
     push Not at h
     obtain ⟨i, hi⟩ := h

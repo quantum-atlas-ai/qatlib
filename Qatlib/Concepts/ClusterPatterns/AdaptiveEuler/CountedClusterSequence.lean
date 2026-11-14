@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Counted execution of cluster sequences
@@ -86,9 +90,9 @@ theorem applyGate_ket_col {I J : Type*} [Fintype I] [Fintype J] [DecidableEq J]
     (M : Matrix I J ℂ) (i : J) : M *ᵥ Qatlib.Foundations.PureStateMath.Ket i = fun r => M r i := by
   funext r
   simp only [Matrix.mulVec, dotProduct, ket_apply]
-  rw [Finset.sum_eq_single i (fun k _ hk => by rw [if_neg hk, mul_zero]) (fun h =>
+  rw [Finset.sum_eq_single i (fun k _ hk => by rw [ite_eq_right hk, mul_zero]) (fun h =>
     (h (Finset.mem_univ i)).elim)]
-  rw [if_pos rfl, mul_one]
+  rw [ite_eq_left rfl, mul_one]
 
 /-- Every Boolean-indexed state is the linear combination of the two basis kets with its
 amplitudes as coefficients. -/
@@ -169,11 +173,11 @@ theorem clusterSeqOneBitB_eq_tensor (n : ℕ) (j : Fin (n + 1)) (U : Matrix Bool
   show (if (∀ k : Fin (n + 1), k ≠ j → x k = y k) then U (x j) (y j) else 0) = _
   rw [hentry]
   by_cases hoff : (∀ k : Fin (n + 1), k ≠ j → x k = y k)
-  · rw [if_pos hoff]
+  · rw [ite_eq_left hoff]
     have htail : (fun i => x (j.succAbove i)) = (fun i => y (j.succAbove i)) :=
       funext fun i => hoff _ (Fin.succAbove_ne j i)
-    rw [if_pos htail, mul_one]
-  · rw [if_neg hoff]
+    rw [ite_eq_left htail, mul_one]
+  · rw [ite_eq_right hoff]
     rw [Classical.not_forall] at hoff
     obtain ⟨k, hoff⟩ := hoff
     rw [Classical.not_imp] at hoff
@@ -184,7 +188,7 @@ theorem clusterSeqOneBitB_eq_tensor (n : ℕ) (j : Fin (n + 1)) (U : Matrix Bool
       have hcon := congrFun hc i
       rw [hi] at hcon
       exact hne hcon
-    rw [if_neg htail, mul_zero]
+    rw [ite_eq_right htail, mul_zero]
 
 /-- Embedding a unitary single-qubit matrix at wire `j` preserves unitarity. -/
 theorem clusterSeqOneBitB_unitary (n : ℕ) (j : Fin (n + 1)) {U : Matrix Bool Bool ℂ}
@@ -234,7 +238,7 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
       = U (x j) (y j) * (if C then V (x k) (y k) else 0) := by
     rw [Finset.sum_eq_single z₀]
     · have hoff0 : (∀ l, l ≠ j → x l = z₀ l) := fun l hl => (hz₀_off l hl).symm
-      rw [if_pos hoff0, hz₀_j, hz₀_k]
+      rw [ite_eq_left hoff0, hz₀_j, hz₀_k]
       have hB : (∀ l, l ≠ k → z₀ l = y l) ↔ C := by
         constructor
         · intro h l hlj hlk
@@ -246,8 +250,8 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
           · rw [hz₀_off l hlj]
             exact hC l hlj hlk
       by_cases hC : C
-      · rw [if_pos (hB.mpr hC), if_pos hC]
-      · rw [if_neg (fun h => hC (hB.mp h)), if_neg hC, mul_zero]
+      · rw [ite_eq_left (hB.mpr hC), ite_eq_left hC]
+      · rw [ite_eq_right (fun h => hC (hB.mp h)), ite_eq_right hC, mul_zero]
     · intro z _ hz
       by_cases hoff : (∀ l, l ≠ j → x l = z l)
       · have hzj : z j ≠ y j := by
@@ -260,8 +264,8 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
             exact (hoff l hlj).symm
         have hk : j ≠ k := hjk
         have : ¬(∀ l, l ≠ k → z l = y l) := fun h => hzj (h j hk)
-        rw [if_neg this, mul_zero]
-      · rw [if_neg hoff, zero_mul]
+        rw [ite_eq_right this, mul_zero]
+      · rw [ite_eq_right hoff, zero_mul]
     · intro h
       exact (h (Finset.mem_univ z₀)).elim
   have hR : (∑ z : Reg (n + 1), (if (∀ l, l ≠ k → x l = z l) then V (x k) (z k) else 0) *
@@ -269,7 +273,7 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
       = V (x k) (y k) * (if C then U (x j) (y j) else 0) := by
     rw [Finset.sum_eq_single z₁]
     · have hoff1 : (∀ l, l ≠ k → x l = z₁ l) := fun l hl => (hz₁_off l hl).symm
-      rw [if_pos hoff1, hz₁_k, hz₁_j]
+      rw [ite_eq_left hoff1, hz₁_k, hz₁_j]
       have hB : (∀ l, l ≠ j → z₁ l = y l) ↔ C := by
         constructor
         · intro h l hlj hlk
@@ -281,8 +285,8 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
           · rw [hz₁_off l hlk]
             exact hC l hlj hlk
       by_cases hC : C
-      · rw [if_pos (hB.mpr hC), if_pos hC]
-      · rw [if_neg (fun h => hC (hB.mp h)), if_neg hC, mul_zero]
+      · rw [ite_eq_left (hB.mpr hC), ite_eq_left hC]
+      · rw [ite_eq_right (fun h => hC (hB.mp h)), ite_eq_right hC, mul_zero]
     · intro z _ hz
       by_cases hoff : (∀ l, l ≠ k → x l = z l)
       · have hzk : z k ≠ y k := by
@@ -295,14 +299,14 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
             exact (hoff l hlk).symm
         have hj : k ≠ j := fun h => hjk h.symm
         have : ¬(∀ l, l ≠ j → z l = y l) := fun h => hzk (h k hj)
-        rw [if_neg this, mul_zero]
-      · rw [if_neg hoff, zero_mul]
+        rw [ite_eq_right this, mul_zero]
+      · rw [ite_eq_right hoff, zero_mul]
     · intro h
       exact (h (Finset.mem_univ z₁)).elim
   rw [hL, hR]
   by_cases hC : C
-  · rw [if_pos hC, if_pos hC, mul_comm]
-  · rw [if_neg hC, if_neg hC, mul_zero, mul_zero]
+  · rw [ite_eq_left hC, ite_eq_left hC, mul_comm]
+  · rw [ite_eq_right hC, ite_eq_right hC, mul_zero, mul_zero]
 
 /-- A diagonal matrix whose entries are unchanged by varying wire `k` commutes with every gate
 on that wire. -/
@@ -314,13 +318,13 @@ theorem clusterSeqDiagonal_oneBitB_commute (n : ℕ) (k : Fin (n + 1)) (d : Reg 
   ext x y
   simp only [clusterSeqOneBitB, Matrix.of_apply, Matrix.mul_apply, Matrix.diagonal_apply]
   rw [Finset.sum_eq_single x (fun z _ hz => by
-      rw [if_neg (fun h => hz h.symm), zero_mul]) (fun h => (h (Finset.mem_univ x)).elim),
+      rw [ite_eq_right (fun h => hz h.symm), zero_mul]) (fun h => (h (Finset.mem_univ x)).elim),
     Finset.sum_eq_single y (fun z _ hz => by
-      rw [if_neg hz, mul_zero]) (fun h => (h (Finset.mem_univ y)).elim),
-    if_pos rfl, if_pos rfl]
+      rw [ite_eq_right hz, mul_zero]) (fun h => (h (Finset.mem_univ y)).elim),
+    ite_eq_left rfl, ite_eq_left rfl]
   by_cases hoff : (∀ l : Fin (n + 1), l ≠ k → x l = y l)
-  · rw [if_pos hoff, hd x y hoff, mul_comm]
-  · rw [if_neg hoff, mul_zero, zero_mul]
+  · rw [ite_eq_left hoff, hd x y hoff, mul_comm]
+  · rw [ite_eq_right hoff, mul_zero, zero_mul]
 
 /-- Embedding a diagonal single-qubit matrix gives the diagonal function obtained by reading
 wire `j`. -/
@@ -330,8 +334,8 @@ theorem clusterSeqOneBitB_diagonal (n : ℕ) (j : Fin (n + 1)) (f : Bool → ℂ
   simp only [clusterSeqOneBitB, Matrix.of_apply, Matrix.diagonal_apply]
   by_cases h : x = y
   · subst h
-    rw [if_pos (fun k _ => rfl), if_pos rfl, if_pos rfl]
-  · rw [if_neg h]
+    rw [ite_eq_left (fun k _ => rfl), ite_eq_left rfl, ite_eq_left rfl]
+  · rw [ite_eq_right h]
     by_cases hoff : (∀ k : Fin (n + 1), k ≠ j → x k = y k)
     · have hne : x j ≠ y j := by
         intro hj
@@ -340,8 +344,8 @@ theorem clusterSeqOneBitB_diagonal (n : ℕ) (j : Fin (n + 1)) (f : Bool → ℂ
         by_cases hlj : l = j
         · rw [hlj, hj]
         · exact hoff l hlj
-      rw [if_pos hoff, if_neg hne]
-    · rw [if_neg hoff]
+      rw [ite_eq_left hoff, ite_eq_right hne]
+    · rw [ite_eq_right hoff]
 
 /-- The extension of a register operator by an identity on a new leading wire. -/
 noncomputable def clusterSeqShiftOp (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
@@ -405,12 +409,12 @@ theorem clusterSeqShiftOp_oneBitB (m : ℕ) (j : Fin (m + 1)) (U : Matrix Bool B
       · exact htail k' (fun c => hk (by rw [c]))
   simp only [clusterSeqOneBitB, Matrix.of_apply]
   by_cases hoff : (∀ k : Fin (m + 2), k ≠ j.succ → x k = y k)
-  · rw [if_pos hoff, if_pos (hcond.mp hoff).1, if_pos (hcond.mp hoff).2, one_mul]
+  · rw [ite_eq_left hoff, ite_eq_left (hcond.mp hoff).1, ite_eq_left (hcond.mp hoff).2, one_mul]
     rfl
-  · rw [if_neg hoff]
+  · rw [ite_eq_right hoff]
     rcases (not_and_or.mp (fun h => hoff (hcond.mpr h))) with h0 | htail
-    · rw [if_neg h0, zero_mul]
-    · rw [if_neg htail, mul_zero]
+    · rw [ite_eq_right h0, zero_mul]
+    · rw [ite_eq_right htail, mul_zero]
 
 /-- A gate on the leading wire commutes with every operator extended from the tail. -/
 theorem clusterSeqOneBitB_zero_mul_shiftOp (m : ℕ) (U : Matrix Bool Bool ℂ)
@@ -453,15 +457,15 @@ theorem clusterSequenceInitialFrame_entry (n : ℕ) (r : Fin (2 ^ (n + 1))) (i :
       clusterSeqInitialFrameB n ((bitVecEquiv (n + 1)).symm r) i := by
   simp only [clusterSequenceInitialFrame, clusterSeqInitialFrameB, Matrix.of_apply]
   by_cases h : r = bitVecEquiv (n + 1) (clusterSeqBasisVec n i)
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h' : (bitVecEquiv (n + 1)).symm r = clusterSeqBasisVec n i := by
       rw [h, Equiv.symm_apply_apply]
-    rw [if_pos h']
-  · rw [if_neg h]
+    rw [ite_eq_left h']
+  · rw [ite_eq_right h]
     have h' : (bitVecEquiv (n + 1)).symm r ≠ clusterSeqBasisVec n i := by
       intro hc
       exact h ((Equiv.symm_apply_eq (bitVecEquiv (n + 1))).mp hc)
-    rw [if_neg h']
+    rw [ite_eq_right h']
 
 /-- The two registers used as columns of the initial frame are distinct. -/
 theorem clusterSeqBasisVec_injective (n : ℕ) :
@@ -485,11 +489,11 @@ theorem clusterSeqInitialFrameB_isometry (n : ℕ) :
         rw [conjTranspose_apply]
         simp only [clusterSeqInitialFrameB, Matrix.of_apply]
         by_cases hr : r = clusterSeqBasisVec n i
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ (clusterSeqBasisVec n i) (fun _ => (1 : ℂ)),
-        if_pos (Finset.mem_univ _)]
+        ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Reg (n + 1),
           (clusterSeqInitialFrameB n)ᴴ i r * clusterSeqInitialFrameB n r j = 0 := by
@@ -497,8 +501,8 @@ theorem clusterSeqInitialFrameB_isometry (n : ℕ) :
         rw [conjTranspose_apply]
         simp only [clusterSeqInitialFrameB, Matrix.of_apply]
         by_cases hr : r = clusterSeqBasisVec n i
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r), Finset.sum_const_zero]
       exact (Matrix.one_apply_ne hij).symm
   exact h
@@ -519,11 +523,11 @@ theorem clusterSequenceInitialFrame_isometry (n : ℕ) :
         rw [conjTranspose_apply]
         simp only [clusterSequenceInitialFrame, Matrix.of_apply]
         by_cases hr : r = bitVecEquiv (n + 1) (clusterSeqBasisVec n i)
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ (bitVecEquiv (n + 1) (clusterSeqBasisVec n i))
-          (fun _ => (1 : ℂ)), if_pos (Finset.mem_univ _)]
+          (fun _ => (1 : ℂ)), ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Fin (2 ^ (n + 1)),
           (clusterSequenceInitialFrame n)ᴴ i r * clusterSequenceInitialFrame n r j = 0 := by
@@ -531,8 +535,8 @@ theorem clusterSequenceInitialFrame_isometry (n : ℕ) :
         rw [conjTranspose_apply]
         simp only [clusterSequenceInitialFrame, Matrix.of_apply]
         by_cases hr : r = bitVecEquiv (n + 1) (clusterSeqBasisVec n i)
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r), Finset.sum_const_zero]
       exact (Matrix.one_apply_ne hij).symm
   exact h
@@ -558,9 +562,9 @@ theorem clusterSeqInitialFrameB_mulVec (n : ℕ) (φ : QState (Fin 2)) :
           rw [show ZeroStr n j' = false from rfl] at this
           exact this
         exact h0
-    rw [if_pos htail, mul_one]
+    rw [ite_eq_left htail, mul_one]
     rw [Finset.sum_eq_single (boolEquivFin2 (x 0))]
-    · rw [if_pos hx, one_mul]
+    · rw [ite_eq_left hx, one_mul]
     · intro i _ hi
       have hne : x ≠ clusterSeqBasisVec n i := by
         intro h
@@ -570,10 +574,10 @@ theorem clusterSeqInitialFrameB_mulVec (n : ℕ) (φ : QState (Fin 2)) :
         have h1 := congrArg boolEquivFin2 h0
         rw [Equiv.apply_symm_apply] at h1
         exact h1.symm
-      rw [if_neg hne, zero_mul]
+      rw [ite_eq_right hne, zero_mul]
     · intro h
       exact (h (Finset.mem_univ _)).elim
-  · rw [if_neg htail, mul_zero]
+  · rw [ite_eq_right htail, mul_zero]
     apply Finset.sum_eq_zero
     intro i _
     have hne : x ≠ clusterSeqBasisVec n i := by
@@ -583,7 +587,7 @@ theorem clusterSeqInitialFrameB_mulVec (n : ℕ) (φ : QState (Fin 2)) :
       have hk := congrFun h k.succ
       rw [clusterSeqBasisVec_succ] at hk
       exact hk
-    rw [if_neg hne, zero_mul]
+    rw [ite_eq_right hne, zero_mul]
 
 /-- Applying the integer-indexed initial frame relabels the corresponding Boolean-register
 state. -/
@@ -771,14 +775,14 @@ theorem clusterSeqShiftOp_diagonal (m : ℕ) (d : Reg (m + 1) → ℂ) :
   rw [clusterSeqShiftOp_entry, Matrix.diagonal_apply, Matrix.diagonal_apply]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl, if_pos rfl, one_mul, if_pos rfl]
-  · rw [if_neg h]
+    rw [ite_eq_left rfl, ite_eq_left rfl, one_mul, ite_eq_left rfl]
+  · rw [ite_eq_right h]
     by_cases h0 : x 0 = y 0
-    · rw [if_pos h0]
+    · rw [ite_eq_left h0]
       have ht : Fin.tail x ≠ Fin.tail y := fun ht => h (by
         rw [← Fin.cons_self_tail x, ← Fin.cons_self_tail y, h0, ht])
-      rw [if_neg ht, mul_zero]
-    · rw [if_neg h0, zero_mul]
+      rw [ite_eq_right ht, mul_zero]
+    · rw [ite_eq_right h0, zero_mul]
 
 /-- Extending an adjacent controlled-Z gate shifts both of its wires by one. -/
 theorem clusterSeqShiftOp_czB (m : ℕ) (j : Fin m) :
@@ -1078,9 +1082,9 @@ theorem clusterSeqXFin_unitary (m : ℕ) (hm : 0 < m) (k : Fin 2) :
   unfold clusterSeqXFin
   refine clusterSeqOneBitFin_unitary _ _ _ ?_
   by_cases hk : boolEquivFin2.symm k
-  · simp only [if_pos hk]
+  · simp only [ite_eq_left hk]
     exact pauliX_unitary
-  · simp only [if_neg hk]
+  · simp only [ite_eq_right hk]
     exact Submonoid.one_mem _
 
 /-- The conditional Pauli-Z correction on wire two controlled by the binary outcome `k`. -/
@@ -1093,9 +1097,9 @@ theorem clusterSeqZFin_unitary (m : ℕ) (hm : 1 < m) (k : Fin 2) :
   unfold clusterSeqZFin
   refine clusterSeqOneBitFin_unitary _ _ _ ?_
   by_cases hk : boolEquivFin2.symm k
-  · simp only [if_pos hk]
+  · simp only [ite_eq_left hk]
     exact pauliZ_unitary
-  · simp only [if_neg hk]
+  · simp only [ite_eq_right hk]
     exact Submonoid.one_mem _
 
 /-- The extension of an integer-indexed operator by an identity on a new leading wire. -/
@@ -1171,12 +1175,12 @@ theorem clusterSeqShiftGateFin_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 
   simp only [Matrix.reindex_apply, Matrix.submatrix_apply, clusterSeqShiftOp_entry,
     Projector, Matrix.diagonal_apply, Matrix.diagonal_apply, Equiv.symm_symm]
   by_cases hrr' : r' = r
-  · rw [hrr', if_pos rfl, one_mul, if_pos rfl, if_pos rfl]
+  · rw [hrr', ite_eq_left rfl, one_mul, ite_eq_left rfl, ite_eq_left rfl]
     simp only [Finset.mem_filter, Finset.mem_univ, true_and]
     unfold clusterSeqShiftLabelFin
     by_cases hl : l (bitVecEquiv (m + 1) (Fin.tail ((bitVecEquiv (m + 2)).symm r))) = o
-    · simp only [if_pos hl]
-    · simp only [if_neg hl]
+    · simp only [ite_eq_left hl]
+    · simp only [ite_eq_right hl]
   · have hne : (bitVecEquiv (m + 2)).symm r' ≠ (bitVecEquiv (m + 2)).symm r :=
       fun h => hrr' (Equiv.injective ((bitVecEquiv (m + 2)).symm) h)
     by_cases h0 : (bitVecEquiv (m + 2)).symm r 0 = (bitVecEquiv (m + 2)).symm r' 0
@@ -1184,12 +1188,12 @@ theorem clusterSeqShiftGateFin_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 
           ≠ Fin.tail ((bitVecEquiv (m + 2)).symm r') := fun ht => hne (by
         rw [← Fin.cons_self_tail ((bitVecEquiv (m + 2)).symm r),
           ← Fin.cons_self_tail ((bitVecEquiv (m + 2)).symm r'), h0, ht])
-      rw [if_pos h0,
-        if_neg (fun hc : (bitVecEquiv (m + 1)) (Fin.tail ((bitVecEquiv (m + 2)).symm r))
+      rw [ite_eq_left h0,
+        ite_eq_right (fun hc : (bitVecEquiv (m + 1)) (Fin.tail ((bitVecEquiv (m + 2)).symm r))
             = (bitVecEquiv (m + 1)) (Fin.tail ((bitVecEquiv (m + 2)).symm r')) =>
           htail (Equiv.injective (bitVecEquiv (m + 1)) hc)),
-        mul_zero, if_neg (fun h : r = r' => hrr' h.symm)]
-    · rw [if_neg h0, zero_mul, if_neg (fun h : r = r' => hrr' h.symm)]
+        mul_zero, ite_eq_right (fun h : r = r' => hrr' h.symm)]
+    · rw [ite_eq_right h0, zero_mul, ite_eq_right (fun h : r = r' => hrr' h.symm)]
 
 /-- Pointwise equal finite functions produce equal lists under `List.ofFn`. -/
 theorem clusterSeqOfFn_congr {α : Type*} {n : ℕ} {f g : Fin n → α} (h : ∀ i, f i = g i) :
@@ -2013,10 +2017,10 @@ theorem clusterSeqProjectorFin_eq (m : ℕ) (b : Bool) :
   by_cases h : r' = r
   · subst h
     by_cases hh : r' ∈ Finset.univ.filter (fun r => clusterSeqLabelFin m r = boolEquivFin2 b)
-    · rw [if_pos hh, if_pos rfl, if_pos ((hiff r').mp hh), if_pos rfl]
-    · rw [if_neg hh, if_pos rfl, if_neg (fun hb => hh ((hiff r').mpr hb)), if_pos rfl]
-  · rw [if_neg (fun hc => h hc.symm),
-      if_neg (fun hc => h (Equiv.injective ((bitVecEquiv (m + 1)).symm) hc).symm)]
+    · rw [ite_eq_left hh, ite_eq_left rfl, ite_eq_left ((hiff r').mp hh), ite_eq_left rfl]
+    · rw [ite_eq_right hh, ite_eq_left rfl, ite_eq_right (fun hb => hh ((hiff r').mpr hb)), ite_eq_left rfl]
+  · rw [ite_eq_right (fun hc => h hc.symm),
+      ite_eq_right (fun hc => h (Equiv.injective ((bitVecEquiv (m + 1)).symm) hc).symm)]
 
 /-- A product of six relabeled matrices is the relabeling of their product. -/
 theorem clusterSeqRelabelGate_merge6 {I J : Type*} [Fintype I] [DecidableEq I]
@@ -2144,7 +2148,7 @@ theorem clusterSeqOneBitB_permMatrix (n : ℕ) (j : Fin (n + 1)) (σ : Bool → 
   ext x y
   simp only [clusterSeqOneBitB, Matrix.of_apply, permMatrix, Matrix.of_apply]
   by_cases hoff : ∀ k : Fin (n + 1), k ≠ j → x k = y k
-  · rw [if_pos hoff]
+  · rw [ite_eq_left hoff]
     by_cases hxj : x j = σ (y j)
     · have hxe : x = Function.update y j (σ (y j)) := by
         funext k
@@ -2156,8 +2160,8 @@ theorem clusterSeqOneBitB_permMatrix (n : ℕ) (j : Fin (n + 1)) (σ : Bool → 
     · have hxn : x ≠ Function.update y j (σ (y j)) := by
         intro hc
         exact hxj ((congrFun hc j).trans (by simp))
-      rw [if_neg hxj, if_neg hxn]
-  · rw [if_neg hoff, if_neg]
+      rw [ite_eq_right hxj, ite_eq_right hxn]
+  · rw [ite_eq_right hoff, ite_eq_right]
     intro hc
     apply hoff
     intro k hkj
@@ -2456,7 +2460,7 @@ theorem clusterSeqShiftOp_mulVec (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1
   · intro b _ hb
     apply Finset.sum_eq_zero
     intro t _
-    rw [if_neg (Ne.symm hb), zero_mul, zero_mul]
+    rw [ite_eq_right (Ne.symm hb), zero_mul, zero_mul]
   · intro h
     exact (h (Finset.mem_univ _)).elim
 
@@ -2474,20 +2478,20 @@ theorem clusterSeqH1Frame (m : ℕ) (φ : QState (Fin 2)) (y : Reg (m + 2)) :
   rw [clusterSeqSum_cons m]
   simp only [clusterSeqInitialFrameB_val, Fin.cons_zero, Fin.tail_cons]
   by_cases hcond : Fin.tail (Fin.tail y) = ZeroStr m
-  · rw [if_pos hcond]
+  · rw [ite_eq_left hcond]
     rw [Finset.sum_eq_single (y (0 : Fin (m + 2)))]
     · rw [Finset.sum_eq_single (ZeroStr (m + 1))]
       · have hsupp : ∀ k : Fin (m + 2), k ≠ ⟨1, by omega⟩ →
             y k = (Fin.cons (y 0) (ZeroStr (m + 1)) : Reg (m + 2)) k :=
           (clusterSeqSupport_one y (y 0) (ZeroStr (m + 1))).mpr ⟨rfl, hcond⟩
-        rw [if_pos hsupp,
+        rw [ite_eq_left hsupp,
           show (Fin.cons (y 0) (ZeroStr (m + 1)) : Reg (m + 2)) ⟨1, by omega⟩ = false
             from rfl,
           show Hadamard (y ⟨1, by omega⟩) false = (Real.sqrt 2 : ℂ)⁻¹ from by
             simp [Hadamard]]
         simp
       · intro t _ ht
-        rw [if_neg ht, mul_zero, mul_zero]
+        rw [ite_eq_right ht, mul_zero, mul_zero]
       · intro h
         exact (h (Finset.mem_univ _)).elim
     · intro b _ hb
@@ -2497,10 +2501,10 @@ theorem clusterSeqH1Frame (m : ℕ) (φ : QState (Fin 2)) (y : Reg (m + 2)) :
           y k = (Fin.cons b t : Reg (m + 2)) k) := by
         intro hs
         exact hb ((clusterSeqSupport_one y b t).mp hs).1.symm
-      rw [if_neg hns, zero_mul]
+      rw [ite_eq_right hns, zero_mul]
     · intro h
       exact (h (Finset.mem_univ _)).elim
-  · rw [if_neg hcond, mul_zero]
+  · rw [ite_eq_right hcond, mul_zero]
     apply Finset.sum_eq_zero
     intro b _
     apply Finset.sum_eq_zero
@@ -2511,8 +2515,8 @@ theorem clusterSeqH1Frame (m : ℕ) (φ : QState (Fin 2)) (y : Reg (m + 2)) :
           y k = (Fin.cons b (ZeroStr (m + 1)) : Reg (m + 2)) k) := by
         intro hs
         exact hcond ((clusterSeqSupport_one y b (ZeroStr (m + 1))).mp hs).2
-      rw [if_neg hns, zero_mul]
-    · rw [if_neg ht, mul_zero, mul_zero]
+      rw [ite_eq_right hns, zero_mul]
+    · rw [ite_eq_right ht, mul_zero, mul_zero]
 
 /-- The prepared resource amplitude factors into the leading input amplitude and a smaller
 prepared frame applied to a Hadamard row. -/
@@ -2654,7 +2658,7 @@ theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2))
         simp
       · intro t _ ht
         simp only [clusterSeqSupport_zero x b t]
-        rw [if_neg (fun hc => ht hc.symm), zero_mul]
+        rw [ite_eq_right (fun hc => ht hc.symm), zero_mul]
       · intro h
         exact (h (Finset.mem_univ _)).elim
     simp only [hinner]
@@ -2668,15 +2672,15 @@ theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2))
           = (if y (0 : Fin (m + 2)) = a then (1 : ℂ) else 0) := by
       intro y
       by_cases hy : y (0 : Fin (m + 2)) = a
-      · simp only [Finset.mem_filter, Finset.mem_univ, true_and, if_pos hy]
-      · simp only [Finset.mem_filter, Finset.mem_univ, true_and, if_neg hy]
+      · simp only [Finset.mem_filter, Finset.mem_univ, true_and, ite_eq_left hy]
+      · simp only [Finset.mem_filter, Finset.mem_univ, true_and, ite_eq_right hy]
     show (Matrix.diagonal (fun i : Reg (m + 2) =>
         if i ∈ Finset.univ.filter (fun y' => y' (0 : Fin (m + 2)) = a)
           then (1 : ℂ) else 0) *ᵥ u) x = _
     rw [mulVec_diagonal, hd x]
     by_cases hx : x (0 : Fin (m + 2)) = a
-    · rw [if_pos hx, one_mul, if_pos hx]
-    · rw [if_neg hx, zero_mul, if_neg hx]
+    · rw [ite_eq_left hx, one_mul, ite_eq_left hx]
+    · rw [ite_eq_right hx, zero_mul, ite_eq_right hx]
   have hv1 : ∀ b : Bool,
       (clusterSeqShiftOp m (clusterSeqResourceGateB m)
           *ᵥ (clusterSeqCzB (m + 1) (0 : Fin (m + 1))
@@ -2691,7 +2695,7 @@ theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2))
   rw [hP, hH0]
   simp only [hph, hv1]
   by_cases hx : x (0 : Fin (m + 2)) = a
-  · rw [if_pos hx, hx]
+  · rw [ite_eq_left hx, hx]
     show (∑ b : Bool, Hadamard a b
           * ((if b then z else 1)
             * (φ (boolEquivFin2 b)
@@ -2720,15 +2724,15 @@ theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2))
         * ((clusterSeqResourceGateB m * clusterSeqInitialFrameB m) *ᵥ
             ((Real.sqrt 2 : ℂ)⁻¹ • (relabelGate boolEquivFin2 (if a then PauliX else 1)
               *ᵥ (clusterJ z *ᵥ φ)))) (Fin.tail x)
-    rw [if_pos hx]
+    rw [ite_eq_left hx]
     ring
-  · rw [if_neg hx]
+  · rw [ite_eq_right hx]
     show (0 : ℂ)
       = (if (x (0 : Fin (m + 2))) = a then (1 : ℂ) else 0)
         * ((clusterSeqResourceGateB m * clusterSeqInitialFrameB m) *ᵥ
             ((Real.sqrt 2 : ℂ)⁻¹ • (relabelGate boolEquivFin2 (if a then PauliX else 1)
               *ᵥ (clusterJ z *ᵥ φ)))) (Fin.tail x)
-    rw [if_neg hx, zero_mul]
+    rw [ite_eq_right hx, zero_mul]
 
 /-- An operator extended to the tail acts only on the tail factor of a state with a fixed
 leading basis ket. -/
@@ -2894,7 +2898,7 @@ theorem clusterSeqFrame0_val (χ : QState (Fin 2)) (y : Reg 1) :
   have ht : Fin.tail y = ZeroStr 0 := by
     funext j
     exact Fin.elim0 j
-  rw [ht, if_pos rfl, mul_one]
+  rw [ht, ite_eq_left rfl, mul_one]
 
 /-- For unit-norm phases, a corrected leaf is supported on its outcome register and carries the
 logical sequence output scaled by the inverse square root of two to the sequence length. -/
@@ -2916,7 +2920,7 @@ theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1)
       rw [hx]
       have hω : (fun j : Fin 0 => Fin.cons (x 0) (Fin.tail x) (Fin.castSucc j)) = ω :=
         funext fun j => Fin.elim0 j
-      rw [if_pos hω]
+      rw [ite_eq_left hω]
       show TensorState (relabelState boolEquivFin2.symm φ) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 0))
           ((Fin.consEquiv (fun _ : Fin 1 => Bool)).symm (Fin.cons (x 0) (Fin.tail x))) = _
       have hpair : (Fin.consEquiv (fun _ : Fin 1 => Bool)).symm (Fin.cons (x 0) (Fin.tail x))
@@ -2926,7 +2930,7 @@ theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1)
           * (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 0)) (Fin.tail x) = _
       have hz : (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 0)) (Fin.tail x) = 1 := by
         show (if Fin.tail x = ZeroStr 0 then (1 : ℂ) else 0) = _
-        rw [if_pos (funext fun j => Fin.elim0 j)]
+        rw [ite_eq_left (funext fun j => Fin.elim0 j)]
       rw [hz, mul_one]
       show φ (boolEquivFin2 (x 0)) = (1 *ᵥ φ) (boolEquivFin2
           (Fin.cons (x 0) (Fin.tail x) (Fin.last 0)))
@@ -2990,13 +2994,13 @@ theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1)
           funext j
           fin_cases j; simp [hc]
       by_cases hx0 : (x (0 : Fin 2)) = ω (0 : Fin 1)
-      · rw [if_pos hx0, if_pos (hfront.mpr hx0), one_mul,
+      · rw [ite_eq_left hx0, ite_eq_left (hfront.mpr hx0), one_mul,
         show ((Real.sqrt 2 : ℂ)⁻¹) ^ ([z]).length = (Real.sqrt 2 : ℂ)⁻¹ from by
           rw [show ([z]).length = 1 from rfl, pow_one],
         show (clusterSequenceUnitary [z] : Operator 2) = 1 * clusterJ z from rfl,
         Matrix.one_mul]
         rfl
-      · rw [if_neg hx0, if_neg (fun hc => hx0 (hfront.mp hc)), zero_mul]
+      · rw [ite_eq_right hx0, ite_eq_right (fun hc => hx0 (hfront.mp hc)), zero_mul]
   | z :: w :: ws, hzs, ω, φ => by
       have hstep := clusterSeqStep (w :: ws) z (ω (0 : Fin ((z :: w :: ws).length)))
         (Fin.tail ω) φ
@@ -3098,15 +3102,15 @@ theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1)
             · simpa using! congrFun h1 j'
       by_cases hx0 : (x (0 : Fin ((z :: w :: ws).length + 1)))
           = ω (0 : Fin ((z :: w :: ws).length))
-      · rw [if_pos hx0, one_mul]
+      · rw [ite_eq_left hx0, one_mul]
         by_cases hf : (fun j : Fin (w :: ws).length => (Fin.tail x) (Fin.castSucc j))
             = Fin.tail ω
-        · rw [if_pos hf, if_pos (hfront.mpr ⟨hx0, hf⟩), Pi.smul_apply, smul_eq_mul,
+        · rw [ite_eq_left hf, ite_eq_left (hfront.mpr ⟨hx0, hf⟩), Pi.smul_apply, smul_eq_mul,
             mul_assoc]
           rfl
-        · rw [if_neg hf, if_neg (fun hc => hf (hfront.mp hc).2)]
-      · rw [if_neg hx0, zero_mul,
-        if_neg (fun hc => hx0 (hfront.mp hc).1)]
+        · rw [ite_eq_right hf, ite_eq_right (fun hc => hf (hfront.mp hc).2)]
+      · rw [ite_eq_right hx0, zero_mul,
+        ite_eq_right (fun hc => hx0 (hfront.mp hc).1)]
 
 /-- Splitting a register into a front register and a final bit recovers each front coordinate
 under the inverse equivalence. -/
@@ -3203,7 +3207,7 @@ theorem cluster_sequence_actual_leaf_full_amplitude :
     else 0) = _
   rw [hxfront, hxlast]
   by_cases hv : v = ω
-  · rw [if_pos hv]
+  · rw [ite_eq_left hv]
     have hbc : boolEquivFin2 (boolEquivFin2.symm c) = c := by
       fin_cases c <;> rfl
     rw [hbc]
@@ -3211,8 +3215,8 @@ theorem cluster_sequence_actual_leaf_full_amplitude :
       show (∑ k : Fin 2, clusterSequenceUnitary zs c k
           * (if i = k then (1 : ℂ) else 0)) = _
       exact clusterSeqSum_col _ i
-    rw [hUcol, if_pos hv]
-  · rw [if_neg hv, if_neg hv]
+    rw [hUcol, ite_eq_left hv]
+  · rw [ite_eq_right hv, ite_eq_right hv]
 
 /-- The equivalence decoding an integer register index into its measured front register and
 final output bit. -/
@@ -3240,7 +3244,7 @@ theorem clusterSeqG4_vec (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω :
         * clusterSequenceInitialFrame zs.length) r k * Qatlib.Foundations.PureStateMath.Ket i k)
       = _
   rw [Finset.sum_eq_single i]
-  · rw [ket_apply, if_pos rfl, mul_one]
+  · rw [ket_apply, ite_eq_left rfl, mul_one]
     have hsplit : ∃ v : Reg zs.length, ∃ c : Fin 2,
         r = clusterSequenceRegisterEquiv zs.length (v, boolEquivFin2.symm c) := by
       refine ⟨((clusterSeqSplitEquiv zs.length) r).1,
@@ -3271,7 +3275,7 @@ theorem clusterSeqG4_vec (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω :
     show (((observedLeaf 1 (clusterSequenceProgram zs)
         (clusterSequenceLeaf zs ω)).operator
         * clusterSequenceInitialFrame zs.length) r k * Qatlib.Foundations.PureStateMath.Ket i k) = _
-    rw [ket_apply, if_neg hk, mul_zero]
+    rw [ket_apply, ite_eq_right hk, mul_zero]
   · intro h
     exact (h (Finset.mem_univ _)).elim
 
@@ -3345,7 +3349,7 @@ theorem clusterSequenceActualBranchMap_apply (zs : List ℂ)
       if v = ω then ((Real.sqrt 2 : ℂ)⁻¹)^zs.length * clusterSequenceUnitary zs c i
       else 0 := cluster_sequence_actual_leaf_full_amplitude zs hzs ω v c i
   rw [Fintype.sum_eq_single ω]
-  · simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hcol, if_true,
+  · simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hcol, ite_true,
       Matrix.smul_apply, smul_eq_mul, conjBranch_apply]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
@@ -3359,7 +3363,7 @@ theorem clusterSequenceActualBranchMap_apply (zs : List ℂ)
     rw [← clusterSeqSqrtPow zs.length]
     ring
   · intro v hv
-    simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hcol, if_neg hv,
+    simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hcol, ite_eq_right hv,
       zero_mul, Finset.sum_const_zero]
 
 /-- The physical branch map equals the corresponding branch of `clusterSequenceInstrument`, with

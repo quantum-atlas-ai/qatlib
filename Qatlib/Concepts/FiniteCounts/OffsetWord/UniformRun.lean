@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.FiniteCounts.OffsetWord.CheckedWord
-import Mathlib.Probability.Distributions.Uniform
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.CheckedWord
+public import Mathlib.Probability.Distributions.Uniform
+
+@[expose] public section
 
 /-!
 # Uniform nonzero offsets for checked execution
@@ -48,7 +52,7 @@ theorem uniform_failure_exact (w : List (Instruction G))
     simp only [Finset.mem_filter, Finset.mem_erase, Finset.mem_univ, true_and,
       checkedRun_eq_none, and_comm]
   rw [PMF.toOuterMeasure_uniformOfFinset'_apply]
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   rw [hf]
   simp only [Finset.card_erase_of_mem (Finset.mem_univ (0 : G)), Finset.card_univ,
     ENNReal.toReal_div, ENNReal.toReal_natCast, nonzeroFailureProbability]

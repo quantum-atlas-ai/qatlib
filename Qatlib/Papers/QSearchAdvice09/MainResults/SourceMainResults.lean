@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchAdvice09.MainResults.AmpLaw
-import Qatlib.Papers.QSearchAdvice09.MainResults.AmplifyCost
-import Qatlib.Papers.QSearchAdvice09.MainResults.Basic
-import Qatlib.Papers.QSearchAdvice09.MainResults.Prop32
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Papers.QSearchAdvice09.MainResults.AmpLaw
+public import Qatlib.Papers.QSearchAdvice09.MainResults.AmplifyCost
+public import Qatlib.Papers.QSearchAdvice09.MainResults.Basic
+public import Qatlib.Papers.QSearchAdvice09.MainResults.Prop32
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Pointwise Query Upper Bound for Quantum Search with Advice (Algorithm 3)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.CoefficientRecursion
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.GeneratorSeries
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.CoefficientRecursion
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.GeneratorSeries
+
+@[expose] public section
 
 /-!
 # Convergent generator expansions for product words

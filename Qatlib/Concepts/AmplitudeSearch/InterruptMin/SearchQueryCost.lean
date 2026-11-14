@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+
+@[expose] public section
 
 /-!
 # Boolean-query and source lookup search costs
@@ -93,7 +97,7 @@ theorem search_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     · subst s
       simp only [RetryReach, Finset.range_zero, Finset.prod_empty, ite_true, one_mul]
       linarith
-    · rw [if_neg hs, zero_add]
+    · rw [ite_eq_right hs, zero_add]
       have hm : 2 ≤ sizes s := search_later_size_ge_two _ s (by omega) (by omega)
       obtain ⟨_,_,_,_,_,hQ,_⟩ := search_randomized_search_contract A hA hp (sizes s) (hsizes s)
       have hmr : (2 : ℝ) ≤ sizes s := by exact_mod_cast hm

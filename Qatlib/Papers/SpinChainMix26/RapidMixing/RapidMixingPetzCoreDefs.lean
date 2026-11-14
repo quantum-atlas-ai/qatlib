@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+@[expose] public section
 
 /-!
 # Cut-based Petz heat-bath definitions

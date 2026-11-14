@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalActualFinalReadoutStat
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalReadoutAux
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawFrameReadoutQuan
+module
+
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalActualFinalReadoutStat
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalReadoutAux
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawFrameReadoutQuan
+
+@[expose] public section
 
 /-!
 # Correctness of actual graph-state final readout

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeExecution
+module
+
+public import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeExecution
+
+@[expose] public section
 
 /-!
 # Event conditioning for dimension changing instrument trees

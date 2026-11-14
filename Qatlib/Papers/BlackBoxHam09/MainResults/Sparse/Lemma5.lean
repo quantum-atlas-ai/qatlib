@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lemma 5 phase and accumulated cost arithmetic
@@ -52,7 +56,7 @@ theorem lemma5_phase_power (θ : ℝ) (d : ℕ) :
 /-- A sum of `d` nonnegative errors, each at most `e`, is at most `d * e`. See [Berry and
 Childs, Lemma 5][BerryChilds2012]. -/
 theorem lemma5_error_accumulation (d : ℕ) (err : ℕ → ℝ) (e : ℝ)
-    (herr0 : ∀ j ∈ Finset.range d, 0 ≤ err j)
+    (_herr0 : ∀ j ∈ Finset.range d, 0 ≤ err j)
     (herr : ∀ j ∈ Finset.range d, err j ≤ e) :
     ∑ j ∈ Finset.range d, err j ≤ (d : ℝ) * e := by
   calc ∑ j ∈ Finset.range d, err j ≤ ∑ _j ∈ Finset.range d, e := by
@@ -66,7 +70,7 @@ theorem lemma5_total_error_eq {Λ Λ1 ε t : ℝ} (hΛ1 : Λ1 ≠ 0) (hε : ε �
   field_simp
 
 /-- Restate the supplied bound `Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ`. -/
-theorem lemma5_error_le_of_bound {Λ Λ1 ε : ℝ} {δ : ℝ} (hΛ1 : Λ1 ≠ 0)
+theorem lemma5_error_le_of_bound {Λ Λ1 ε : ℝ} {δ : ℝ} (_hΛ1 : Λ1 ≠ 0)
     (h : Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ) :
     Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ := h
 
@@ -81,20 +85,26 @@ theorem lemma5_steps_times_eps {Λ1 ε t : ℝ} {d : ℕ}
 /-- For a prescribed step count `d = Λ1 * t / ε` and nonnegative per-step cost `c`, the total
 scalar cost is at most `c * (Λ1 * t / ε)`. -/
 theorem lemma5_query_budget {Λ1 ε t c : ℝ} {d : ℕ}
-    (hint : (d : ℝ) = Λ1 * t / ε) (hc : 0 ≤ c) :
+    (hint : (d : ℝ) = Λ1 * t / ε) (_hc : 0 ≤ c) :
     (d : ℝ) * c ≤ c * (Λ1 * t / ε) := by
   rw [hint]
   exact le_of_eq (mul_comm _ _)
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Given the stated black box hypotheses and an integer witness for `d = Λ1 * t / ε`, retain
 that witness and establish its step identity, scalar cost bound, and cubic error identity.
 These arithmetic relations accompany Lemma 5 of [BerryChilds2012]. -/
-theorem lemma5_walk_step_simulation
+theorem lemma5_walk_step_simulation {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ}
     (BB : BlackBox ι D L) {Λ Λ1 ε t : ℝ}
-    (hsp : IsColumnSparse BB.H D)
-    (hΛ : spectralNorm BB.H ≤ Λ) (hΛ1 : colSumNorm BB.H ≤ Λ1)
-    (hΛ0 : 0 < Λ) (hΛ1pos : 0 < Λ1)
-    (hε0 : 0 < ε) (hε1 : ε ≤ 1)
+    (_hsp : IsColumnSparse BB.H D)
+    (_hΛ : spectralNorm BB.H ≤ Λ) (_hΛ1 : colSumNorm BB.H ≤ Λ1)
+    (_hΛ0 : 0 < Λ) (hΛ1pos : 0 < Λ1)
+    (hε0 : 0 < ε) (_hε1 : ε ≤ 1)
     (hint : ∃ d : ℕ, (d : ℝ) = Λ1 * t / ε)
     (c : ℝ) (hc : 0 ≤ c) :
     ∃ d : ℕ, (d : ℝ) = Λ1 * t / ε ∧ (d : ℝ) * ε = Λ1 * t ∧

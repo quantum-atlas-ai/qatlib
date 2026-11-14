@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+
+@[expose] public section
 
 /-!
 # Mixing of the projected connectivity walk
@@ -58,13 +62,13 @@ theorem lemma3State_eq_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : 鈩
   funext p
   rw [lemma3State, diagLift_apply]
   by_cases hp : p.1 = p.2
-  路 rw [if_pos hp]
+  路 rw [ite_eq_left hp]
     have hp' : p = (p.1, p.1) := by ext <;> simp [hp]
     rw [hp', walkQ_pow_apply_diag]
     by_cases hr : G.Reachable u p.1
     路 simp [uniformOn, hr]
     路 simp [uniformOn, hr]
-  路 rw [if_neg hp, walkQ_pow_apply_offdiag G d k u hp]
+  路 rw [ite_eq_right hp, walkQ_pow_apply_offdiag G d k u hp]
     simp [hp]
 
 /-- For a regular graph of degree at least two with the assumed component spectral gap, the

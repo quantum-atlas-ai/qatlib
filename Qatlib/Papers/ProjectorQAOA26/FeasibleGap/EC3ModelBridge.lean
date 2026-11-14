@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
-import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+
+@[expose] public section
 
 /-!
 # EC3 tensor states and feasible Hamiltonian compression
@@ -82,7 +86,7 @@ theorem ec3TensorAmplitude_outside (m f : ℕ) (g : ((Fin m × Fin 3) ⊕ Fin f)
 
 /-- The EC3 tensor amplitude function has `l2norm` equal to one [ZhouAnLiu2026]. -/
 theorem ec3TensorAmplitude_normalized (m f : ℕ) : l2norm (ec3TensorAmplitude m f)=1 := by
-  letI : Nonempty (EC3Feasible m f) :=
+  let : Nonempty (EC3Feasible m f) :=
     ⟨(ec3FeasibleEquiv m f).symm ((fun _ => 0),(fun _ => false))⟩
   have hi : ∑ g : EC3Feasible m f,Complex.normSq (ec3TensorAmplitude m f g.1)=1 := by
     have hn := l2norm_sq (uniformReference (I := EC3Feasible m f))
@@ -127,7 +131,7 @@ theorem ec3PhysicalHamiltonian_compress (m f : ℕ)
   simp only [ec3PhysicalHamiltonian,Matrix.submatrix_apply,Matrix.add_apply,Matrix.smul_apply,
     Matrix.sub_apply,ec3Tensor_projector_restrict,hamiltonian,uniformMixer,
     learnedGenerator,costOperator,Matrix.one_apply,Matrix.diagonal_apply,Subtype.val_inj]
-  split_ifs <;> first | rfl | contradiction
+  split_ifs <;>  rfl
 
 /-- A physical Hamiltonian entry from a feasible assignment to an assignment violating a
 prescribed triple is zero. -/

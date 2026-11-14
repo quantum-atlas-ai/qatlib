@@ -4,52 +4,56 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.End
-import Mathlib.Algebra.Group.Equiv.Defs
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Subgroup.Defs
-import Mathlib.Algebra.Group.Subgroup.Ker
-import Mathlib.Algebra.Group.Subgroup.Lattice
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.TypeTags.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Insert
-import Mathlib.Data.ZMod.Defs
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Subgroup
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Notation
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.End
+public import Mathlib.Algebra.Group.Equiv.Defs
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Subgroup.Defs
+public import Mathlib.Algebra.Group.Subgroup.Ker
+public import Mathlib.Algebra.Group.Subgroup.Lattice
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.TypeTags.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Insert
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Subgroup
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Notation
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Hidden subgroup interfaces and semidirect product identities
@@ -158,7 +162,7 @@ theorem lemma1_subgroup_dichotomy (p : ℕ) (hp : p.Prime)
       H.map (SemidirectProduct.rightHom (φ := φ)) = ⊤ := by
   have hcard : Nat.card (Multiplicative (ZMod p)) = p := by
     rw [Nat.card_congr (Multiplicative.toAdd (α := ZMod p)), Nat.card_zmod]
-  haveI : Fact (Nat.card (Multiplicative (ZMod p))).Prime := ⟨by rw [hcard]; exact hp⟩
+  have : Fact (Nat.card (Multiplicative (ZMod p))).Prime := ⟨by rw [hcard]; exact hp⟩
   exact Subgroup.eq_bot_or_eq_top_of_prime_card _
 
 /-- A subgroup with trivial image under the right projection is contained in the image of the

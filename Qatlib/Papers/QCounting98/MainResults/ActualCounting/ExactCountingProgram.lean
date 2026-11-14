@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ExactCountingCost
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ExactCountingCost
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.FoldedEstimate
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # Success and cost of the adaptive exact-counting program

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+module
+
+public import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,32 +53,36 @@ variable {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
 /-! ## Linearity of the Choi matrix and Choi matrices of Werner--Holevo channels -/
 
 /-- The Choi matrix construction is additive. -/
-theorem choi_add (M N : MatrixMap A A ℂ) :
+theorem choi_add {A : Type*} [_choiFintype : Fintype A] [DecidableEq A]
+    (M N : MatrixMap A A ℂ) :
     (M + N).choi_matrix = M.choi_matrix + N.choi_matrix := by
   ext ⟨b, a⟩ ⟨b', a'⟩
   simp [MatrixMap.choi_matrix, Matrix.add_apply]
 
 /-- The Choi matrix construction commutes with subtraction. -/
-theorem choi_sub (M N : MatrixMap A A ℂ) :
+theorem choi_sub {A : Type*} [_choiFintype : Fintype A] [DecidableEq A]
+    (M N : MatrixMap A A ℂ) :
     (M - N).choi_matrix = M.choi_matrix - N.choi_matrix := by
   ext ⟨b, a⟩ ⟨b', a'⟩
   simp [MatrixMap.choi_matrix, Matrix.sub_apply]
 
 /-- The Choi matrix construction is complex-linear. -/
-theorem choi_smul (c : ℂ) (M : MatrixMap A A ℂ) :
+theorem choi_smul {A : Type*} [_choiFintype : Fintype A] [DecidableEq A]
+    (c : ℂ) (M : MatrixMap A A ℂ) :
     (c • M).choi_matrix = c • M.choi_matrix := by
   ext ⟨b, a⟩ ⟨b', a'⟩
   simp [MatrixMap.choi_matrix, Matrix.smul_apply, smul_eq_mul]
 
 /-- Entrywise complex conjugation does not transpose indices:
 `conj(single i j c) = single i j (conj c)`. -/
-theorem eConj_single (i : A) (j : B) (c : ℂ) :
+theorem eConj_single {A B : Type*} [_choiFintypeA : Fintype A] [DecidableEq A]
+    [_choiFintypeB : Fintype B] [DecidableEq B] (i : A) (j : B) (c : ℂ) :
     eConj (Matrix.single i j c) = Matrix.single i j (star c) := by
   ext x y
   simp only [eConj_apply, Matrix.single, Matrix.of_apply]
   by_cases h : i = x ∧ j = y
-  · rw [if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h]; simp
+  · rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h]; simp
 
 /-- Unfolding lemma for `traceScalarMap`. -/
 @[simp] theorem traceScalarMap_apply (c : ℂ) (X : Matrix A A ℂ) :
@@ -92,10 +100,10 @@ theorem choi_traceScalarMap (c : ℂ) :
     · subst ha
       simp
     · have h1 : (b, a) ≠ (b, a') := fun h => ha (Prod.mk.inj h).2
-      rw [if_neg h1, Matrix.trace_single_eq_of_ne a a' (1 : ℂ) ha]
+      rw [ite_eq_right h1, Matrix.trace_single_eq_of_ne a a' (1 : ℂ) ha]
       simp
   · have h1 : (b, a) ≠ (b', a') := fun h => hb (Prod.mk.inj h).1
-    rw [if_neg hb, if_neg h1]
+    rw [ite_eq_right hb, ite_eq_right h1]
     simp
 
 /-- Eq. (7), p. 4: the Choi matrix of `W_d^+` is `(1 + F)/(d+1)`. -/
@@ -136,7 +144,8 @@ def quasiCoeffThree : ℂ := -((Fintype.card A : ℂ) * ((Fintype.card B : ℂ) 
 
 /-- The quasi-probability coefficients in Eq. (9) sum to one, as required for a
 virtual comb in Eq. (3). -/
-theorem quasiCoefficients_sum_one :
+theorem quasiCoefficients_sum_one {A B : Type*} [Fintype A]
+    [_choiDecidableEqA : DecidableEq A] [Fintype B] [_choiDecidableEqB : DecidableEq B] :
     quasiCoeffOne (B := B) + quasiCoeffTwo (A := A) (B := B) +
       quasiCoeffThree (A := A) (B := B) = 1 := by
   simp only [quasiCoeffOne, quasiCoeffTwo, quasiCoeffThree]
@@ -158,7 +167,9 @@ def linkProduct (C : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
 trace-preserving map, one column of the diagonal `∑_b choi(N)[(b,a),(b,a)]`
 equals one (this is `Tr N(|a⟩⟨a|) = 1`, the `a = a'` instance of the
 trace-preservation row-sum identity used in Eq. (10)). -/
-theorem choi_diag_row_sum (N : MatrixMap A B ℂ) (hTP : N.IsTracePreserving) (a : A) :
+theorem choi_diag_row_sum {A B : Type*} [Fintype A] [DecidableEq A]
+    [Fintype B] [_choiDecidableEqB : DecidableEq B]
+    (N : MatrixMap A B ℂ) (hTP : N.IsTracePreserving) (a : A) :
     ∑ b : B, N.choi_matrix (b, a) (b, a) = 1 := by
   have h : ∑ b : B, N.choi_matrix (b, a) (b, a) = (N (Matrix.single a a 1)).trace := by
     simp [MatrixMap.choi_matrix, Matrix.trace, Matrix.single]
@@ -166,14 +177,17 @@ theorem choi_diag_row_sum (N : MatrixMap A B ℂ) (hTP : N.IsTracePreserving) (a
   simp [Matrix.trace, Matrix.single]
 
 /-- Linearity of the link product in its first argument (addition). -/
-theorem linkProduct_add (C C' : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
+theorem linkProduct_add {A B : Type*} [Fintype A] [_choiDecidableEqA : DecidableEq A]
+    [Fintype B] [_choiDecidableEqB : DecidableEq B]
+    (C C' : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
     (Nt : Matrix (B × A) (B × A) ℂ) :
     linkProduct (C + C') Nt = linkProduct C Nt + linkProduct C' Nt := by
   ext x y
   simp only [linkProduct, Matrix.add_apply, mul_add, Finset.sum_add_distrib]
 
 /-- Linearity of the link product in its first argument (scalar multiplication). -/
-theorem linkProduct_smul (c : ℂ)
+theorem linkProduct_smul {A B : Type*} [Fintype A] [_choiDecidableEqA : DecidableEq A]
+    [Fintype B] [_choiDecidableEqB : DecidableEq B] (c : ℂ)
     (C : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
     (Nt : Matrix (B × A) (B × A) ℂ) :
     linkProduct (c • C) Nt = c • linkProduct C Nt := by
@@ -183,7 +197,9 @@ theorem linkProduct_smul (c : ℂ)
   ring
 
 /-- Linearity of the link product in its first argument (subtraction). -/
-theorem linkProduct_sub (C C' : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
+theorem linkProduct_sub {A B : Type*} [Fintype A] [_choiDecidableEqA : DecidableEq A]
+    [Fintype B] [_choiDecidableEqB : DecidableEq B]
+    (C C' : Matrix ((A × A) × (B × B)) ((A × A) × (B × B)) ℂ)
     (Nt : Matrix (B × A) (B × A) ℂ) :
     linkProduct (C - C') Nt = linkProduct C Nt - linkProduct C' Nt := by
   ext x y
@@ -210,7 +226,7 @@ theorem linkProduct_one (Nt : Matrix (B × A) (B × A) ℂ) :
         · simp
         · intro x2 _ hx2; simp [hx2]
         · intro hx; simp at hx
-      · simp_rw [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      · simp_rw [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
         rw [Finset.sum_comm]
         rw [← Finset.sum_product', Finset.univ_product_univ]
     · simp [h2]
@@ -255,10 +271,10 @@ theorem linkProduct_kron_flip_one (Nt : Matrix (B × A) (B × A) ℂ)
   by_cases hb : b' = b''
   · subst hb
     simp only [Prod.mk.injEq, and_true, true_and, ite_and, mul_ite, mul_one, mul_zero]
-    simp_rw [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp_rw [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     rw [Finset.sum_eq_single a']
-    · simp only [if_true]
-      simp_rw [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    · simp only [ite_true]
+      simp_rw [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       exact hpartial a' a''
     · intro x _ hx
       have h : ¬ (a' = x) := by simpa [eq_comm] using hx

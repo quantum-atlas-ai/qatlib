@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.StoppingRule
-import Mathlib.Data.Finset.Max
+module
+
+public import Qatlib.Concepts.MatrixWeights.StoppingRule
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Exact residual selection for matrix multiplicative weights
@@ -56,7 +60,7 @@ def mmwSdpGibbsOfSum (D : ℕ) (η : ℝ) (S : Operator D) : Operator D :=
 
 /-- A nonempty finite constraint family has an index maximizing the real trace residual against
 any given operator. -/
-private theorem mmwSdp_exists_max_residual (D m : ℕ) (C : Fin m → Operator D)
+theorem mmwSdp_exists_max_residual (D m : ℕ) (C : Fin m → Operator D)
     (b : Fin m → ℝ) (hm : 0 < m) (ρ : Operator D) :
     ∃ j : Fin m, ∀ i : Fin m,
       (Matrix.trace (C i * ρ)).re - b i ≤ (Matrix.trace (C j * ρ)).re - b j := by

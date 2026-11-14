@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.GroupAction.Quotient
-import Mathlib.GroupTheory.Coset.Basic
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.GroupTheory.Solvable
-import Mathlib.Tactic
+module
+
+public import Mathlib.GroupTheory.GroupAction.Quotient
+public import Mathlib.GroupTheory.Coset.Basic
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Group identities for translating-coset algorithms
@@ -111,7 +115,7 @@ satisfying `y⁻¹ * x ∈ stabilizer G φ`. -/
 theorem fiber_eq_coset (φ ψ : Γ) (x : G) (hx : x • φ = ψ) :
     {y : G | y • φ = ψ} = {y : G | y⁻¹ * x ∈ MulAction.stabilizer G φ} := by
   ext y
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   constructor
   · intro hy
     have hy' : y • φ = ψ := hy
@@ -180,7 +184,7 @@ theorem leftCoset_eq_of_both_translate {φ₀ φ₁ : Γ} {u v : G}
     show (u⁻¹ * v) • φ₁ = φ₁
     rw [mul_smul, hv, ← hu, inv_smul_smul]
   ext g
-  simp only [leftCoset, Set.mem_setOf_eq]
+  simp only [leftCoset, Set.mem_ofPred_eq]
   constructor
   · intro hg
     have hinv : v⁻¹ * u ∈ MulAction.stabilizer G φ₁ := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
+module
+
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
+
+@[expose] public section
 
 /-!
 # Uniqueness of the stationary singular value
@@ -58,7 +62,7 @@ lemma stationary_pos {X : Type*} [Fintype X] [DecidableEq X]
     exact lt_of_lt_of_le (mul_pos hx hxy)
       (Finset.single_le_sum (fun z _ => mul_nonneg (hπ z) (hP.nonneg z y))
         (Finset.mem_univ x))
-  letI : Quiver X := P.toQuiver
+  let : Quiver X := P.toQuiver
   intro x
   obtain ⟨p, hp⟩ := hP.connected a x
   clear hp
@@ -238,7 +242,7 @@ lemma unit_pair_eq {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
   let a : X := Classical.choice inferInstance
   have hratio : ∀ y, w a / (Real.sqrt (π a) : ℂ) =
       w y / (Real.sqrt (π y) : ℂ) := by
-    letI : Quiver X := P.toQuiver
+    let : Quiver X := P.toQuiver
     intro y
     obtain ⟨p, hp⟩ := hP.connected a y
     clear hp

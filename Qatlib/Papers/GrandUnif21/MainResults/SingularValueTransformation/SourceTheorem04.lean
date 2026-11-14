@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

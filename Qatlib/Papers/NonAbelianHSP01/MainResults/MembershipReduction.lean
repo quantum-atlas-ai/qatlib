@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Int.GCD
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Int.GCD
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Integer-power membership reductions

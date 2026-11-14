@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+
+@[expose] public section
 
 /-!
 # Transport of hidden-subgroup solvers along group isomorphisms
@@ -54,7 +58,7 @@ theorem proposition10_reduction
   classical
 
   have _ := hperiodic
-  letI : DecidableEq e.Token := e.decEq
+  let : DecidableEq e.Token := e.decEq
 
   obtain ⟨s', c', hb⟩ := hKnown e'
   simp only [HSPSolver.HasQueryBound] at hb

@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.ShadowsDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.ShadowsDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
+
+set_option linter.unusedVariables false
+
+@[expose] public section
 
 /-!
 # Finite shadow lower bound ingredients
@@ -447,24 +453,24 @@ theorem clause7_conjunct6 :
   have hgated_psd : ∀ x i, (gatedState μ Uf (lemma8CodeState d r α (P x)) i).PosSemidef := by
     intro x i
     by_cases hi : 0 < μ.prob i
-    · rw [gatedState, if_pos hi]
+    · rw [gatedState, ite_eq_left hi]
       exact hconjpsd x i hi
-    · rw [gatedState, if_neg hi]
+    · rw [gatedState, ite_eq_right hi]
       exact hρpsd x
   have hgated_tr : ∀ x i, Matrix.trace (gatedState μ Uf (lemma8CodeState d r α (P x)) i) = 1 := by
     intro x i
     by_cases hi : 0 < μ.prob i
-    · rw [gatedState, if_pos hi]
+    · rw [gatedState, ite_eq_left hi]
       obtain ⟨_, hb⟩ := hu i hi
       rw [Matrix.trace_mul_cycle, hb, Matrix.one_mul]
       exact hρtr x
-    · rw [gatedState, if_neg hi]
+    · rw [gatedState, ite_eq_right hi]
       exact hρtr x
   have hgated_pos : ∀ x i, 0 < μ.prob i →
       gatedState μ Uf (lemma8CodeState d r α (P x)) i
         = Uf i * lemma8CodeState d r α (P x) * (Uf i)ᴴ := by
     intro x i hi
-    rw [gatedState, if_pos hi]
+    rw [gatedState, ite_eq_left hi]
 
   have hw_nonneg : ∀ o : O, 0 ≤ (Matrix.trace (F o)).re / (d : ℝ) := by
     intro o
@@ -549,7 +555,7 @@ theorem clause7_conjunct6 :
         rw [Finset.sum_eq_single j]
         · by_cases hj : j = i <;> simp [hj] <;> ring
         · intro b _ hb
-          rw [if_neg hb]
+          rw [ite_eq_right hb]
           simp
         · intro hj
           exact absurd (Finset.mem_univ j) hj

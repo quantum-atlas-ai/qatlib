@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StringRewrite07.MainResults.LineGraphSpectrum.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Papers.StringRewrite07.MainResults.LineGraphSpectrum.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Concrete bounds for path spectral sums
@@ -43,14 +47,14 @@ theorem sum_abs_weight_le_one {κ ι : Type} [Fintype κ] [Fintype ι] [Decidabl
     (fun j => |e j a|) (fun j => |e j b|)
   have ha : (∑ j, |e j a| ^ 2) = 1 := by
     have h := horth a a
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     rw [← h]
     apply Finset.sum_congr rfl
     intro j _
     rw [sq_abs]; ring
   have hb : (∑ j, |e j b| ^ 2) = 1 := by
     have h := horth b b
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     rw [← h]
     apply Finset.sum_congr rfl
     intro j _

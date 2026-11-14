@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Quan
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Quan
+
+@[expose] public section
 
 /-!
 # Terminal accuracy and Taylor-block norm estimates
@@ -218,7 +222,7 @@ theorem taylorV2_positiveBlockClosed (m k p : ℕ) (M : Matrix N N ℂ)
       apply Fin.ext
       show a * (k + 1) + (i + 1) - 1 = a * (k + 1) + i
       omega
-    rw [hprev, ih (by omega) (by omega), if_neg (by omega : i + 1 ≠ 1), add_zero,
+    rw [hprev, ih (by omega) (by omega), ite_eq_right (by omega : i + 1 ≠ 1), add_zero,
       Matrix.mulVec_smul, Matrix.mulVec_mulVec] at hstep
     have hpow : M * M ^ (i - 1) = M ^ i := by
       rw [← pow_succ']
@@ -250,7 +254,7 @@ theorem taylorV2_positiveBlock_norm_le (m k p : ℕ) (M : Matrix N N ℂ)
     | succ q ih =>
       rw [pow_succ]
       exact (Matrix.l2_opNorm_mul _ _).trans
-        (mul_le_one₀ ih (norm_nonneg M) hM)
+        ((mul_le_mul_of_nonneg_right ih (norm_nonneg M) ).trans ((one_mul _).trans_le hM) )
   have hpow : ‖M ^ (i - 1)‖ ≤ 1 := hall (i - 1)
   exact (stateVector_mulVec_norm_le _ _).trans
     (mul_le_of_le_one_left (norm_nonneg _) hpow)

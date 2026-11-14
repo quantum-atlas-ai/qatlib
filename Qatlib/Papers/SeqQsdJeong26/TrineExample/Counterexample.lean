@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.AsymptoticRatio
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.GeneralCollectiveOptimum
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.SequentialOptimum
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.AsymptoticRatio
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.GeneralCollectiveOptimum
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.SequentialOptimum
+
+@[expose] public section
 
 /-! Original OQ #145 fixed-copy trine comparison. This extension is separately
 attributed to its source research; Jeong et al. do not claim this arbitrary-POVM

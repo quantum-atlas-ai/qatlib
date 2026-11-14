@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidScheduleStat
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidScheduleStat
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+
+@[expose] public section
 
 /-!
 # Accuracy schedules for trapezoidal LCHS

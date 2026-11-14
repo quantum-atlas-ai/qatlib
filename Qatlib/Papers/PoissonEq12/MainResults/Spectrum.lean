@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PoissonEq12.MainResults.SineApproximation
+module
+
+public import Qatlib.Papers.PoissonEq12.MainResults.SineApproximation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

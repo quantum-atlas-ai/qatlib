@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureLine
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
-import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprLine
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureLine
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+public import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprLine
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+
+@[expose] public section
 
 /-!
 # Loaded LCHS labels and resource quantities

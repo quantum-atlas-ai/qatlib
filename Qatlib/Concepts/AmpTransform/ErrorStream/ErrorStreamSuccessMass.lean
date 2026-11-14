@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedMarkedSetAmplitudes
+module
+
+public import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedMarkedSetAmplitudes
+
+@[expose] public section
 
 /-!
 # Success mass for amplified Fourier sampling with noise

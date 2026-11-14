@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+
+@[expose] public section
 
 /-!
 # Exact interrogation of finite alphabet inputs

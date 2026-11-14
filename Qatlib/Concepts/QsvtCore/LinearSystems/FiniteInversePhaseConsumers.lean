@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
+
+@[expose] public section
 
 /-!
 # Solution states from finite inverse phase programs

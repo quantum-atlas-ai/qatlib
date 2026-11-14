@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
+
+@[expose] public section
 
 /-!
 # Operational semantics of weighted program mixtures

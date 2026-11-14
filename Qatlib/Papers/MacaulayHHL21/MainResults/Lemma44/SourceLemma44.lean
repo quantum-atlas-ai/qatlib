@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,8 @@ def convexHullR {t : ℕ} (Y : Fin t → ι → ℝ) : Set (ι → ℝ) :=
   {y | ∃ w : Fin t → ℝ, (∀ i, 0 ≤ w i) ∧ (∑ i, w i) = 1 ∧ y = fun k => ∑ i, w i * Y i k}
 
 /-- A 0/1 real entry squares to itself. -/
-theorem zeroOneR_sq (v : ι → ℝ) (h : IsZeroOneR v) (i : ι) :
+theorem zeroOneR_sq {ι : Type*} [_zeroOneFintype : Fintype ι]
+    [_zeroOneDecidableEq : DecidableEq ι] (v : ι → ℝ) (h : IsZeroOneR v) (i : ι) :
     v i ^ 2 = if v i = 1 then (1 : ℝ) else 0 := by
   rcases h i with h0 | h1 <;> simp_all
 
@@ -64,7 +69,8 @@ theorem zeroOneR_l2NormSq_eq (v : ι → ℝ) (h : IsZeroOneR v) :
   simp only [zeroOneR_sq v h, Finset.sum_boole]
 
 /-- The entry sum of a real 0/1 vector equals its Hamming weight. -/
-theorem zeroOneR_sum_eq (v : ι → ℝ) (h : IsZeroOneR v) :
+theorem zeroOneR_sum_eq {ι : Type*} [Fintype ι] [_zeroOneDecidableEq : DecidableEq ι]
+    (v : ι → ℝ) (h : IsZeroOneR v) :
     (∑ i, v i) = (hammingWeightR v : ℝ) := by
   unfold hammingWeightR
   have hstep : ∀ i : ι, v i = if v i = 1 then (1 : ℝ) else 0 := by
@@ -75,7 +81,8 @@ theorem zeroOneR_sum_eq (v : ι → ℝ) (h : IsZeroOneR v) :
         Finset.sum_boole (fun i => v i = 1) univ
 
 /-- A real 0/1 entry is nonnegative. -/
-theorem zeroOneR_nonneg (v : ι → ℝ) (h : IsZeroOneR v) (i : ι) : 0 ≤ v i := by
+theorem zeroOneR_nonneg {ι : Type*} [_zeroOneFintype : Fintype ι]
+    [_zeroOneDecidableEq : DecidableEq ι] (v : ι → ℝ) (h : IsZeroOneR v) (i : ι) : 0 ≤ v i := by
   rcases h i with h0 | h1 <;> simp_all
 
 /-- **Lemma 4.4** (arXiv:2111.00405, p.8): a convex combination of 0/1 vectors, one of which

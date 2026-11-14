@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
+
+@[expose] public section
 
 /-!
 # Original symmetry contracts for query SDP families

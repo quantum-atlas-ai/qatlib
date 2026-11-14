@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeDefs
+module
+
+public import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeDefs
+
+@[expose] public section
 
 /-!
 # Execution laws for adaptive instrument trees
@@ -106,14 +110,12 @@ lemma forget_trace {D E : ℕ} (P : Program D E) : TracePreserving (forget P) :=
       Matrix.trace (∑ o, forget (next o) (I.branch o A))
           = ∑ o, Matrix.trace (forget (next o) (I.branch o A)) := by
             rw [← List.sum_ofFn]
-            simpa [List.sum_ofFn] using
-              (trace_list_sum (List.ofFn fun o => forget (next o) (I.branch o A))).symm
+            simp [List.sum_ofFn]
       _ = ∑ o, Matrix.trace (I.branch o A) := by
             refine Finset.sum_congr rfl fun o _ => ih o (I.branch o A)
       _ = Matrix.trace (∑ o, I.branch o A) := by
             rw [← List.sum_ofFn]
-            simpa [List.sum_ofFn] using
-              (trace_list_sum (List.ofFn fun o => I.branch o A))
+            simp [List.sum_ofFn]
       _ = Matrix.trace A := I.total A
 
 /-- Every instrument program has completely positive leaf maps and a trace-preserving map after

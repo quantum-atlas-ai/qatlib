@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TuraevViro10.MainResults.HadamardTest
-import Qatlib.Papers.TuraevViro10.MainResults.ApproximationGuarantee
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.TuraevViro10.MainResults.HadamardTest
+public import Qatlib.Papers.TuraevViro10.MainResults.ApproximationGuarantee
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite-sample guarantees for Hadamard readout

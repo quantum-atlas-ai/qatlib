@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Data.ZMod.Units
+module
+
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Data.ZMod.Units
+
+@[expose] public section
 
 /-!
 # RSA recovery from the plaintext order

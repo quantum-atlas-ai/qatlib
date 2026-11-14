@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.TensorHyper20.MainResults.Definitions
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.TensorHyper20.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Coefficient mass for tensor hypercontraction

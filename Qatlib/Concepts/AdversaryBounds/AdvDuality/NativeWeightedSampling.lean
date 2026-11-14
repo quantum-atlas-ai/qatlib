@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeWeightedSamplingDefs
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeWeightedSamplingDefs
+
+@[expose] public section
 
 /-!
 # Native weighted sampling probabilities
@@ -172,13 +176,13 @@ theorem leftEvent_eq_finished (n a b : ℕ) :
   apply tsum_congr
   intro r
   by_cases hr : r.stop = .halted
-  · rw [NativeTape.finishedMass, if_pos hr]
-  · rw [NativeTape.finishedMass, if_neg hr]
+  · rw [NativeTape.finishedMass, ite_eq_left hr]
+  · rw [NativeTape.finishedMass, ite_eq_right hr]
     have h1 : leftIndicator r = 0 := by
       by_cases ho : RaceOutcome.of r = .left
-      · rw [leftIndicator, if_pos ho]
+      · rw [leftIndicator, ite_eq_left ho]
         exact (hr (of_eq_left_halted ho)).elim
-      · rw [leftIndicator, if_neg ho]
+      · rw [leftIndicator, ite_eq_right ho]
     simp [h1]
 
 /-- The bounded right-outcome event equals the sum of finished result masses weighted by
@@ -191,13 +195,13 @@ theorem rightEvent_eq_finished (n a b : ℕ) :
   apply tsum_congr
   intro r
   by_cases hr : r.stop = .halted
-  · rw [NativeTape.finishedMass, if_pos hr]
-  · rw [NativeTape.finishedMass, if_neg hr]
+  · rw [NativeTape.finishedMass, ite_eq_left hr]
+  · rw [NativeTape.finishedMass, ite_eq_right hr]
     have h1 : rightIndicator r = 0 := by
       by_cases ho : RaceOutcome.of r = .right
-      · rw [rightIndicator, if_pos ho]
+      · rw [rightIndicator, ite_eq_left ho]
         exact (hr (of_eq_right_halted ho)).elim
-      · rw [rightIndicator, if_neg ho]
+      · rw [rightIndicator, ite_eq_right ho]
     simp [h1]
 
 /-- The eventual left-outcome mass is the supremum of the left-outcome events over all execution
@@ -347,8 +351,7 @@ theorem leftEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   simp only [PMF.uniformOfFintype'_apply, Fintype.card_bool, Nat.cast_ofNat]
   rw [show (2 : ℝ≥0∞)⁻¹ = (1/2 : ℝ≥0∞) by norm_num]
   simp only [show (if True then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from
-      if_pos trivial,
-    show (if true = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from rfl,
+      ite_eq_left trivial,
     show (if false = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.left from by simp,
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
@@ -393,8 +396,7 @@ theorem rightEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   simp only [PMF.uniformOfFintype'_apply, Fintype.card_bool, Nat.cast_ofNat]
   rw [show (2 : ℝ≥0∞)⁻¹ = (1/2 : ℝ≥0∞) by norm_num]
   simp only [show (if True then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from
-      if_pos trivial,
-    show (if true = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from rfl,
+      ite_eq_left trivial,
     show (if false = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.left from by simp,
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
@@ -600,7 +602,7 @@ theorem law_degenerate (n : ℕ) :
       rfl
 
 /-- For positive right distance, `leftEndpointResult b` decodes to the left race outcome. -/
-theorem of_leftEndpointResult (b : ℕ) (hb : 0 < b) :
+theorem of_leftEndpointResult (b : ℕ) (_hb : 0 < b) :
     RaceOutcome.of (leftEndpointResult b) = .left := by
   have hs : (leftEndpointResult b).stop = .halted := rfl
   have hq : (leftEndpointResult b).cfg.q = .done := rfl
@@ -613,7 +615,7 @@ theorem of_leftEndpointResult (b : ℕ) (hb : 0 < b) :
   exact RaceOutcome.of_eq_left _ hout
 
 /-- For positive left distance, `rightEndpointResult a` decodes to the right race outcome. -/
-theorem of_rightEndpointResult (a : ℕ) (ha : 0 < a) :
+theorem of_rightEndpointResult (a : ℕ) (_ha : 0 < a) :
     RaceOutcome.of (rightEndpointResult a) = .right := by
   have hs : (rightEndpointResult a).stop = .halted := rfl
   have hq : (rightEndpointResult a).cfg.q = .done := rfl
@@ -925,7 +927,7 @@ theorem harmonic_affine {N : ℕ} (hN : 0 < N) (r : ℕ → ℝ) (c0 cN : ℝ)
     field_simp
     simpa [mul_comm] using hlin
   rw [hm, hd1, h0]
-  field_simp <;> ring
+  field_simp
 
 /-- For positive total endpoint distance, the left-outcome probability is `b / (a + b)` as a
 real number. -/
@@ -968,7 +970,8 @@ theorem leftProb_eq (a b : ℕ) (hab : 0 < a + b) :
   have hcast : ((a + b : ℕ) : ℝ) = (a : ℝ) + (b : ℝ) := by
     exact_mod_cast (Nat.cast_add a b)
   rw [hcast]
-  field_simp <;> ring
+  field_simp
+  ring
 
 /-- For positive total endpoint distance, the right-outcome probability is `a / (a + b)` as a
 real number. -/
@@ -1056,17 +1059,17 @@ theorem leftMass_add_rightMass (a b : ℕ) (hab : 0 < a + b) :
 theorem indicator_sum_le_one (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     leftIndicator r + rightIndicator r ≤ 1 := by
   by_cases h1 : RaceOutcome.of r = .left
-  · rw [leftIndicator, if_pos h1]
+  · rw [leftIndicator, ite_eq_left h1]
     have h2 : RaceOutcome.of r ≠ .right := by
       intro h2r
       rw [h1] at h2r
       exact RaceOutcome.noConfusion h2r
-    rw [rightIndicator, if_neg h2]
+    rw [rightIndicator, ite_eq_right h2]
     norm_num
   · by_cases h2 : RaceOutcome.of r = .right
-    · rw [leftIndicator, if_neg h1, rightIndicator, if_pos h2]
+    · rw [leftIndicator, ite_eq_right h1, rightIndicator, ite_eq_left h2]
       norm_num
-    · rw [leftIndicator, if_neg h1, rightIndicator, if_neg h2]
+    · rw [leftIndicator, ite_eq_right h1, rightIndicator, ite_eq_right h2]
       norm_num
 
 /-- Weighting a result's halted mass by the sum of its left and right outcome indicators cannot
@@ -1082,7 +1085,7 @@ theorem haltedMass_pointwise (a b : ℕ)
         (⨆ m : ℕ, NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program m (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) := by
     intro n
     by_cases hr : r.stop = .halted
-    · rw [NativeTape.finishedMass, if_pos hr]
+    · rw [NativeTape.finishedMass, ite_eq_left hr]
       have hmul : (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) *
             (leftIndicator r + rightIndicator r) ≤
           (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) * 1 :=
@@ -1096,7 +1099,7 @@ theorem haltedMass_pointwise (a b : ℕ)
               (⨆ m : ℕ, NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program m (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) :=
             le_iSup (fun m => NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program m (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) n
           simpa [NativeTape.finishedMass, hr] using hle'
-    · rw [NativeTape.finishedMass, if_neg hr]
+    · rw [NativeTape.finishedMass, ite_eq_right hr]
       simp
   unfold NativeTape.haltedMass
   rw [ENNReal.iSup_mul]

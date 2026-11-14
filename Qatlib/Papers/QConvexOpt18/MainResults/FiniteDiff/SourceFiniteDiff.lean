@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -98,10 +102,10 @@ theorem half_smul_add_half_smul_sub {n : ℕ} (z : Fin n → ℝ) (r : ℝ) (i :
   ext j
   by_cases h : j = i
   · simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, coordVec, Pi.single_apply, h,
-      if_true, smul_eq_mul]
+      ite_true, smul_eq_mul]
     ring
   · simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, coordVec, Pi.single_apply, h,
-      if_false, mul_zero, smul_eq_mul]
+      ite_false, mul_zero, smul_eq_mul]
     ring
 
 /-- The paper's remark after Definition 9: for a convex `f` the coordinate Laplace approximation

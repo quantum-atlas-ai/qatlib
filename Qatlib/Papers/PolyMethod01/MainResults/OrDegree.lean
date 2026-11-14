@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+@[expose] public section
 
 /-!
 # Exact polynomial degree of Boolean OR
@@ -50,10 +54,10 @@ theorem orRepresentingPoly_represents (n : ℕ) (g : Fin n → Bool) :
   have hprod : (∏ i : Fin n, (if g i then (0 : ℝ) else 1))
       = if (∃ i, g i = true) then (0 : ℝ) else 1 := by
     by_cases h : ∃ i, g i = true
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       obtain ⟨i, hi⟩ := h
       exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       refine Finset.prod_eq_one fun i _ => ?_
       have hni : ¬ (g i = true) := fun hi => h ⟨i, hi⟩
       simp [hni]

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting decision and guessing problems from state covers
@@ -132,7 +136,7 @@ theorem abs_sqrt_fiberProb_sub_le {N A : ℕ} (p : Fin N → Fin A)
 pointwise Euclidean distances are strictly below `1 / q`. This is the separation step for
 Theorem 5.1 of [Knill1995]. -/
 theorem decides_eq_of_close {N : ℕ} {ι : Type*} (p : Fin N → Fin 2) {q : ℝ}
-    (hq : 0 < q) {u v : ι → Fin N → ℂ} {f g : ι → Fin 2}
+    (_hq : 0 < q) {u v : ι → Fin N → ℂ} {f g : ι → Fin 2}
     (hu : StateNorm u) (hv : StateNorm v)
     (hf : decides p q u f) (hg : decides p q v g)
     (hnear : ∀ b, l2norm (u b - v b) < 1 / q) :
@@ -341,7 +345,7 @@ theorem fiberProb_ge_quarter_of_close {N A : ℕ} {ι : Type*} (p : Fin N → Fi
 probability at least `α`, multiplied by `α`, is at most one. This bounds the output choices
 in Theorem 5.3 of [Knill1995]. -/
 theorem card_threshold_mass_le {N A : ℕ} (p : Fin N → Fin A) (u : Fin N → ℂ)
-    (hn : ∑ i, ‖u i‖ ^ 2 = 1) {α : ℝ} (hα : 0 < α) :
+    (hn : ∑ i, ‖u i‖ ^ 2 = 1) {α : ℝ} (_hα : 0 < α) :
     ((Finset.univ.filter (fun c : Fin A => α ≤ fiberProb p u c)).card : ℝ) * α ≤ 1 := by
   classical
   have hsum : ∑ c, fiberProb p u c = 1 := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.FiniteAmp
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.FiniteAmp
+
+@[expose] public section
 
 /-!
 # Regularity of AMP spin readouts

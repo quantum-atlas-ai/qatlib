@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialSearch03.MainResults.LatticeDefs
+module
+
+public import Qatlib.Papers.SpatialSearch03.MainResults.LatticeDefs
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 /-!
 # Spectral expansions of search amplitudes
@@ -120,10 +125,9 @@ theorem norm_exp_neg_I_sub_exp_I (θ : ℝ) :
     ‖Complex.exp (-(Complex.I * (θ : ℂ))) - Complex.exp (Complex.I * (θ : ℂ))‖ =
       2 * |Real.sin θ| := by
   have h1 : -(Complex.I * (θ : ℂ)) = ((-θ : ℝ) : ℂ) * Complex.I := by
-    push_cast
+    rw [Complex.ofReal_neg]
     ring
   have h2 : Complex.I * (θ : ℂ) = ((θ : ℝ) : ℂ) * Complex.I := by
-    push_cast
     ring
   rw [h1, h2, Complex.exp_mul_I, Complex.exp_mul_I]
   simp only [← Complex.ofReal_cos, ← Complex.ofReal_sin]

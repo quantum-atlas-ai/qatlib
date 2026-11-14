@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option autoImplicit false
 

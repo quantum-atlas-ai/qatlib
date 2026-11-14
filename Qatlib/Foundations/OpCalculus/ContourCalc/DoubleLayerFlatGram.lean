@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerL2Frame
-import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerPanelTime
-import Mathlib.Data.Fintype.BigOperators
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerL2Frame
+public import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerPanelTime
+public import Mathlib.Data.Fintype.BigOperators
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 open Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayer
 open Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayer.L2
@@ -75,7 +79,7 @@ theorem sum_rankOne_adjoint (R : E →L[ℂ] E) (m : ℕ) (a : Fin m → E) :
       R† ∘L (∑ i,rankOne ℂ (a i) (a i)) ∘L R := by
   apply ContinuousLinearMap.ext
   intro y
-  simp only [ContinuousLinearMap.sum_apply,comp_apply,rankOne_apply,adjoint_inner_left,map_sum,map_smul]
+  simp only [_root_.sum_apply,comp_apply,rankOne_apply,adjoint_inner_left,map_sum,map_smul]
 
 /-- The identity or estimate `weighted_flat_integral` holds with the displayed separation, geometry and norm hypotheses. -/
 theorem weighted_flat_integral (m : J → ℕ) (a : ∀ j,Fin (m j) → E)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+
+@[expose] public section
 
 /-!
 # Decoding arbitrary qudit resource vectors
@@ -53,7 +57,7 @@ theorem quditResourceBranchKraus_entry (n : ℕ) [NeZero n]
     applyGate_mul, quditSUMabInv_state]
   simp only [relabelState, Function.comp_apply, Equiv.symm_apply_apply]
   rw [quditHaInv_apply]
-  simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- For fixed `b`, the map `quditAdd n b` is injective in nonzero dimension. -/
 theorem quditAdd_left_injective (n : ℕ) [NeZero n] (b : Fin n) :
@@ -106,6 +110,6 @@ theorem quditResourceBranchKraus_gram (n : ℕ) [NeZero n]
   · have ht : quditAdd n o.2 j ≠ quditAdd n o.2 i := by
       intro h
       exact hij ((quditAdd_left_injective n o.2 h).symm)
-    simp [Matrix.smul_apply, Matrix.one_apply, ht, hij]
+    simp [Matrix.smul_apply,  ht, hij]
 
 end Qatlib.Concepts.QuditTeleport.ResourceIff

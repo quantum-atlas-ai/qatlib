@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.SpinPath
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.DensityMargin
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.SpinPath
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.DensityMargin
+
+@[expose] public section
 
 /-!
 # Overlap gap obstructions for spin readout paths

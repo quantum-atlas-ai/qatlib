@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Units
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Units
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Automorphisms preserve coprime prime-power factors
@@ -57,7 +61,7 @@ lemma coprime_prime_powers {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : 
 ^ s) × ZMod (p ^ r)` maps each coordinate factor into itself. See [Chi et al., 2006, Lemma
 1][ChiKimLee2006]. -/
 theorem lemma1_componentwise {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
-    (hs : 0 < s) (hr : 0 < r)
+    (_hs : 0 < s) (_hr : 0 < r)
     (F : ZMod (q ^ s) × ZMod (p ^ r) ≃+ ZMod (q ^ s) × ZMod (p ^ r))
     (a : ZMod (q ^ s)) (b : ZMod (p ^ r)) :
     (F (a, 0)).2 = 0 ∧ (F (0, b)).1 = 0 := by

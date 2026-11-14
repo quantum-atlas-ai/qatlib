@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTaylorBiasStat
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Data.Nat.Choose.Central
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTaylorBiasStat
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Data.Nat.Choose.Central
+
+@[expose] public section
 
 /-!
 # Taylor bias of polynomial payoff rotations

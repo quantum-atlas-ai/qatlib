@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+module
+
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+@[expose] public section
 
 /-!
 # Prepared character table recovery and a modulo four example

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeSampled
-import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeSampled
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+
+@[expose] public section
 
 /-!
 # Clocked native scheduled search
@@ -72,9 +76,9 @@ theorem searchCode_actual_law (cost : I → ℝ) (current : I)
     | some yg =>
       cases hv : valid yg.1 with
       | false =>
-        simp only [valueLaw,hv,Bool.false_eq_true,if_false,valueLaw_mapCode,ih]
+        simp only [valueLaw,hv,Bool.false_eq_true,ite_false,valueLaw_mapCode,ih]
         rfl
-      | true => simp only [valueLaw,hv,if_true]
+      | true => simp only [valueLaw,hv,ite_true]
 
 /-- The scheduled search code contains no save instructions. -/
 theorem searchCode_noSave (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)

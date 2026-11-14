@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -119,7 +123,7 @@ The hypotheses `he` (local truncation, (4.55)) and `hM` (the `M` estimate, (4.81
 two Carleman-specific inputs; their derivation needs the block matrices (3.3)--(3.5) and the
 spectral estimates (4.76)--(4.80), which are not in the current library. -/
 theorem lemma3_global_error (g e : ℕ → ℝ) (m : ℕ) (h T N : ℝ)
-    (F2 F1 F0 F0' : ℝ) (hN : 0 ≤ N) (hT : 0 ≤ T) (hh : 0 ≤ h) (hF0' : 0 ≤ F0')
+    (F2 F1 F0 F0' : ℝ) (_hN : 0 ≤ N) (hT : 0 ≤ T) (hh : 0 ≤ h) (_hF0' : 0 ≤ F0')
     (hg0 : g 0 = 0) (hrec : ∀ k, g (k + 1) ≤ g k + e (k + 1))
     (he : ∀ k, e (k + 1) ≤ (2 * (3 * Real.rpow N (5 / 2)) *
       ((F2 + F1 + F0) ^ 2 + F0')) * h ^ 2 / 2)

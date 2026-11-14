@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch06.LaurentDefs
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ExactLaurentProgramIffSDPTran
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelTran
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiInvariantProgramCharacterizationTran
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialActualAlgorithmTran
+module
+
+public import Qatlib.Papers.OrderedSearch06.LaurentDefs
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ExactLaurentProgramIffSDPTransport
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelTransport
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiInvariantProgramCharacterizationTransport
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialActualAlgorithmTransport
+
+@[expose] public section
 
 /-!
 # Semidefinite and invariant-algorithm formulations
@@ -82,13 +86,13 @@ theorem counteridentity_transpose (N : ℕ) : (counteridentity N)ᵀ = counterid
   simp only [counteridentity, Matrix.of_apply]
   by_cases h' : j = revFin N i
   · have h : i = revFin N j := by rw [h', revFin_involutive]
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
   · have h : ¬ (i = revFin N j) := by
       intro hh
       apply h'
       have hh' : revFin N i = j := by rw [hh, revFin_involutive]
       exact hh'.symm
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
 
 /-- The counteridentity matrix equals its conjugate transpose. -/
 theorem counteridentity_conjTranspose (N : ℕ) : (counteridentity N)ᴴ = counteridentity N := by
@@ -97,14 +101,14 @@ theorem counteridentity_conjTranspose (N : ℕ) : (counteridentity N)ᴴ = count
   simp only [counteridentity, Matrix.of_apply]
   by_cases h' : i = revFin N j
   · have h : j = revFin N i := by rw [h', revFin_involutive]
-    rw [if_pos h', if_pos h]
+    rw [ite_eq_left h', ite_eq_left h]
     simp
   · have h : ¬ (j = revFin N i) := by
       intro hh
       apply h'
       have hh' : revFin N j = i := by rw [hh, revFin_involutive]
       exact hh'.symm
-    rw [if_neg h', if_neg h]
+    rw [ite_eq_right h', ite_eq_right h]
     simp
 
 /-- The square of the counteridentity matrix is the identity [ChildsLandahlParrilo2007]. -/
@@ -114,12 +118,12 @@ theorem counteridentity_mul_self (N : ℕ) :
   rw [Matrix.mul_apply, Matrix.one_apply]
   simp only [counteridentity, Matrix.of_apply]
   rw [Finset.sum_eq_single (revFin N i)]
-  · rw [if_pos rfl, one_mul, revFin_involutive]
+  · rw [ite_eq_left rfl, one_mul, revFin_involutive]
     by_cases hij : j = i
-    · rw [if_pos hij, if_pos hij.symm]
-    · rw [if_neg hij, if_neg (fun h => hij h.symm)]
+    · rw [ite_eq_left hij, ite_eq_left hij.symm]
+    · rw [ite_eq_right hij, ite_eq_right (fun h => hij h.symm)]
   · intro k _ hk
-    rw [if_neg hk, zero_mul]
+    rw [ite_eq_right hk, zero_mul]
   · intro hmem
     simp at hmem
 

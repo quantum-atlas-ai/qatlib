@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtLinearSolve.Angles.CountedHhlDefs
+module
+
+public import Qatlib.Concepts.QsvtLinearSolve.Angles.CountedHhlDefs
+
+@[expose] public section
 
 /-!
 # Explicit query and gate ledgers for an HHL word
@@ -46,7 +50,7 @@ theorem clause31_endpoint :
       B ∈ Matrix.unitaryGroup (Fin D) ℂ →
       controlOracle (countedHHLPrepMain (D := D) (M := M) B)
         ∈ Matrix.unitaryGroup (Bool × (Fin M × (Bool × Fin D))) ℂ) ∧
-    (∀ (D M : ℕ) (c : ℝ) (B : Operator D) (hM : 0 < M) (tB : ℕ),
+    (∀ (D M : ℕ) (c : ℝ) (B : Operator D) (_hM : 0 < M) (tB : ℕ),
       (countedLedger D M tB).totalGates
         = tB + adjointGateCount (countedHHLWord (D := D) M c B)) ∧
     (∀ (tB g r q : ℕ),

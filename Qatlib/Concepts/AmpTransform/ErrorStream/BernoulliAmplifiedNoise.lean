@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+
+@[expose] public section
 
 /-!
 # Bernoulli subset laws and mixed Fourier moments

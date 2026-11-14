@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxTransfer
-import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxTransfer
+public import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
+
+@[expose] public section
 
 /-!
 # Real polynomial completion and sufficiency
@@ -220,7 +224,7 @@ theorem achievableSufficiencyCore (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d
       (A.map Complex.ofRealHom + Polynomial.C (Complex.I) * (b.map Complex.ofRealHom))
       (Qt.map Complex.ofRealHom + Polynomial.C (Complex.I) * (c.map Complex.ofRealHom)) = 1 := by
     simp only [responsePairNorm, conjugatePolynomial_add, conjugatePolynomial_mul,
-      conjugatePolynomial_C, conj_map_real, lcStar_I, Polynomial.C_neg, Polynomial.C_1,
+      conjugatePolynomial_C, conj_map_real, lcStar_I, Polynomial.C_neg,
       neg_mul]
     linear_combination -hSOSc
       - ((b.map Complex.ofRealHom) ^ 2 + (1 - (X : Polynomial ℂ) ^ 2)
@@ -243,7 +247,7 @@ theorem achievableSufficiencyCore (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d
         * (Qt.map Complex.ofRealHom + Polynomial.C (Complex.I) * (c.map Complex.ofRealHom))
     rw [hOdd1c, Polynomial.C_neg, Polynomial.C_1, neg_one_mul]
     simp only [add_comp, mul_comp, lcC_comp, comp_negX_map_real, hQtodd, hcoddd,
-      neg_mul, Polynomial.map_neg]
+      Polynomial.map_neg]
     ring
   have hPdeg : (A.map Complex.ofRealHom
       + Polynomial.C (Complex.I) * (b.map Complex.ofRealHom)).degree
@@ -264,11 +268,11 @@ theorem achievableSufficiencyCore (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d
         Polynomial.degree_map_eq_of_injective Complex.ofRealHom.injective]
       rcases hcdeg with h0 | h1
       · subst h0
-        simp only [Polynomial.map_zero, Polynomial.degree_zero]
+        simp only [Polynomial.degree_zero]
         exact WithBot.bot_lt_coe d
       · rcases eq_or_ne c 0 with hz | hz
         · subst hz
-          simp only [Polynomial.map_zero, Polynomial.degree_zero]
+          simp only [Polynomial.degree_zero]
           exact WithBot.bot_lt_coe d
         · rw [Polynomial.degree_eq_natDegree hz]
           have h1' := h1

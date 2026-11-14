@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSamplingDefs
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSamplingDefs
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Dyadic rounding errors for sampled matrices

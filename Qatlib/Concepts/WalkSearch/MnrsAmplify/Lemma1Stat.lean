@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Data.Real.Sqrt
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Complex.Basic
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Defs
+module
+
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Defs
+
+@[expose] public section
 
 /-!
 # Approximate amplification specification

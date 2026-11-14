@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Counterexamples to unrestricted amplification bounds
@@ -116,14 +120,14 @@ end
 
 /-- The sequence equal to `1 / 9` at index one and zero elsewhere, used in the gain-product
 counterexample. -/
-private noncomputable def g68rs : ℕ → ℝ := fun j => if j = 1 then 1 / 9 else 0
+noncomputable def g68rs : ℕ → ℝ := fun j => if j = 1 then 1 / 9 else 0
 
 /-- The sequence equal to `1 / 900` at index one and zero elsewhere, used in the gain-product
 counterexample. -/
-private noncomputable def g68rs' : ℕ → ℝ := fun j => if j = 1 then 1 / 900 else 0
+noncomputable def g68rs' : ℕ → ℝ := fun j => if j = 1 then 1 / 900 else 0
 
 /-- The identically zero stopping-mass sequence used in the gain-product counterexample. -/
-private noncomputable def g68pstop : ℕ → ℝ := fun _ => 0
+noncomputable def g68pstop : ℕ → ℝ := fun _ => 0
 noncomputable section
 
 /-- The explicit sequences satisfy the displayed local gain conditions, but their gain-ratio

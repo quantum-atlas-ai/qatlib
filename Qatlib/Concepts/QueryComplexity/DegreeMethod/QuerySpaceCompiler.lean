@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QuerySpaceKnownPhase
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QuerySpaceKnownPhase
+
+set_option linter.unusedSectionVars false
+
+@[expose] public section
 
 /-!
 # Compilation with a known phase reference

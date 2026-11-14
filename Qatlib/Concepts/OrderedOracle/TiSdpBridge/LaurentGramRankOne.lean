@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramShift
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramSchur
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramShift
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramSchur
+
+@[expose] public section
 
 /-!
 # Rank one Gram representatives

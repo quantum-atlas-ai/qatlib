@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28UnitarySumStat
-import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Simu
+module
+
+public import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28UnitarySumStat
+public import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Simu
+
+@[expose] public section
 
 /-!
 # Positive unitary sums for time dependent segments
@@ -59,10 +63,10 @@ private theorem unitarySum_add {I : Type} [Fintype I] [DecidableEq I]
     HasUnitarySum (A+B) (a+b) := by
   obtain ⟨D,hD,dD,β,V,hβ,hV,he,hw⟩ := hA
   obtain ⟨E,hE,dE,γ,W,hγ,hW,hf,hz⟩ := hB
-  letI := hD
-  letI := dD
-  letI := hE
-  letI := dE
+  let := hD
+  let := dD
+  let := hE
+  let := dE
   refine ⟨D ⊕ E, inferInstance, inferInstance, Sum.elim β γ, Sum.elim V W, ?_, ?_, ?_, ?_⟩
   · intro d; cases d with | inl d => exact hβ d | inr e => exact hγ e
   · intro d; cases d with | inl d => exact hV d | inr e => exact hW e
@@ -77,10 +81,10 @@ private theorem unitarySum_mul {I : Type} [Fintype I] [DecidableEq I]
     HasUnitarySum (A*B) (a*b) := by
   obtain ⟨D,hD,dD,β,V,hβ,hV,he,hw⟩ := hA
   obtain ⟨E,hE,dE,γ,W,hγ,hW,hf,hz⟩ := hB
-  letI := hD
-  letI := dD
-  letI := hE
-  letI := dE
+  let := hD
+  let := dD
+  let := hE
+  let := dE
   refine ⟨D × E, inferInstance, inferInstance, (fun d => β d.1 * γ d.2),
     (fun d => V d.1 * W d.2), ?_, ?_, ?_, ?_⟩
   · intro d; exact mul_nonneg (hβ _) (hγ _)
@@ -220,8 +224,8 @@ theorem equation28UnitarySum : Equation28UnitarySum := by
     rw [hp]
     exact unitarySum_add unitarySum_one hrep
   obtain ⟨D,hD,dD,β,V,hβ,hV,he,hweight⟩ := hr
-  letI := hD
-  letI := dD
+  let := hD
+  let := dD
   refine ⟨D,hD,dD,β,V,hβ,hV,he,?_,?_⟩
   · rw [hweight]; linarith
   · rw [hweight, Finset.sum_range_succ']

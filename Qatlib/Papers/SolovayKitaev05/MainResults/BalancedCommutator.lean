@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CommutatorDecomposition
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CommutatorDecomposition
+
+@[expose] public section
 
 /-!
 # Exact balanced commutators in SU(2)

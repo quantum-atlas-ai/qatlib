@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoalTigh
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+module
+
+public import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoal
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+
+@[expose] public section
 
 /-!
 # Prepared circuits for amplified Haar pairs

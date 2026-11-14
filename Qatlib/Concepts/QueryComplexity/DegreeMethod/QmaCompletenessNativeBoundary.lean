@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeLocality
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeLocality
+
+@[expose] public section
 
 /-!
 # Local boundary and clock-pair penalty encodings
@@ -52,22 +56,22 @@ theorem diagonal_entries {N : ℕ} {T : Type} (z : T)
         (if regEq (fill S (mask S x)) (fill S (mask S y))
           then f (fill S (mask S x)) else z) else z := by
   by_cases hout : outside S x = outside S y
-  · rw [if_pos hout]
+  · rw [ite_eq_left hout]
     have he := eq_fill_iff S x y hout
     by_cases hxy : x = y
     · have hfilled := he.mp hxy
-      simp only [if_pos ((regEq_true_iff x y).mpr hxy),
-        if_pos ((regEq_true_iff _ _).mpr hfilled)]
+      simp only [ite_eq_left ((regEq_true_iff x y).mpr hxy),
+        ite_eq_left ((regEq_true_iff _ _).mpr hfilled)]
       exact hf x
     · have hfilled : fill S (mask S x) ≠ fill S (mask S y) :=
         fun h => hxy (he.mpr h)
-      simp only [if_neg (fun h => hxy ((regEq_true_iff x y).mp h)),
-        if_neg (fun h => hfilled ((regEq_true_iff _ _).mp h))]
+      simp only [ite_eq_right (fun h => hxy ((regEq_true_iff x y).mp h)),
+        ite_eq_right (fun h => hfilled ((regEq_true_iff _ _).mp h))]
   · have hxy : x ≠ y := by
       intro h
       subst y
       exact hout rfl
-    simp only [if_neg hout, if_neg (fun h => hxy ((regEq_true_iff x y).mp h))]
+    simp only [ite_eq_right hout, ite_eq_right (fun h => hxy ((regEq_true_iff x y).mp h))]
 
 /-- Tests the output-boundary condition when `last` is true and the input-boundary condition
 otherwise, using the designated work bit and clock endpoint. -/
@@ -119,7 +123,7 @@ theorem boundaryGuard_fill (m n : ℕ) (last : Bool) (j : Fin n) (x : Reg (m+n))
               (mask (boundarySites m n false j) x))).1 1 =
             nativeBit (flattenEquiv m n x).1 1 := by
           simpa [nativeBit, show 1 ≤ m by omega] using hc
-        simp only [boundaryGuard, Bool.false_eq_true, if_false]
+        simp only [boundaryGuard, Bool.false_eq_true, ite_false]
         rw [he, hw]
     | true =>
         have he :
@@ -127,7 +131,7 @@ theorem boundaryGuard_fill (m n : ℕ) (last : Bool) (j : Fin n) (x : Reg (m+n))
               (mask (boundarySites m n true j) x))).1 m =
             nativeBit (flattenEquiv m n x).1 m := by
           simpa [nativeBit, ne_of_gt hm] using hc
-        simp only [boundaryGuard, if_true]
+        simp only [boundaryGuard, ite_true]
         rw [he, hw]
   · have hm0 : m = 0 := by omega
     subst m
@@ -228,11 +232,11 @@ theorem boundaryTerm_value_entry (m n b : ℕ) (last : Bool) (j : Fin n)
   rw [partitionLift_apply]
   have he := boundaryCoeff_entries m n b last j x y
   by_cases hout : outside (boundarySites m n last j) x = outside (boundarySites m n last j) y
-  · rw [if_pos hout]
-    rw [if_pos hout] at he
+  · rw [ite_eq_left hout]
+    rw [ite_eq_left hout] at he
     exact congrArg (fun z : ℤ => dyadicValue (b+1) z 0) he.symm
-  · rw [if_neg hout]
-    rw [if_neg hout] at he
+  · rw [ite_eq_right hout]
+    rw [ite_eq_right hout] at he
     rw [he, dyadic_zero]
 
 /-- The boundary term at width `b + 1` represents the flattened physical input or output
@@ -341,11 +345,11 @@ theorem clockPairTerm_value_entry {m : ℕ} (n b J : ℕ) (i j : Fin m) (x y : R
   rw [partitionLift_apply]
   have he := pairCoeff_entries n b J i j x y
   by_cases hout : outside (pairSites n i j) x = outside (pairSites n i j) y
-  · rw [if_pos hout]
-    rw [if_pos hout] at he
+  · rw [ite_eq_left hout]
+    rw [ite_eq_left hout] at he
     exact congrArg (fun z : ℤ => dyadicValue (b+1) z 0) he.symm
-  · rw [if_neg hout]
-    rw [if_neg hout] at he
+  · rw [ite_eq_right hout]
+    rw [ite_eq_right hout] at he
     rw [he, dyadic_zero]
 
 /-- The clock-pair term at width `b + 1` represents the flattened clock-pair penalty weighted by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Mathlib.Data.Finset.Powerset
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Mathlib.Data.Finset.Powerset
+
+@[expose] public section
 
 /-!
 # Fourier moments of uniformly sampled distinct noise sites
@@ -145,7 +149,7 @@ private theorem distinctNoise_pair_inclusion (N L : ℕ) [NeZero N] (hLN : L ≤
       omega
     have hm : distinctNoiseMean N L (fun S => if x∈S ∧ y∈S then 1 else 0) = 0 := by
       unfold distinctNoiseMean
-      rw [Finset.sum_eq_zero (fun S hS => if_neg (he S hS))]
+      rw [Finset.sum_eq_zero (fun S hS => ite_eq_right (he S hS))]
       simp
     rw [hm]
     have hcases : L = 0 ∨ L = 1 := by omega
@@ -220,7 +224,7 @@ theorem distinct_noise_fourier_mean_second_moment (N L : ℕ) [NeZero N] (y : ZM
       if x=w then p else q := by
     by_cases hxw : x=w
     · subst w; simpa only [and_self, eq_self_iff_true, ite_true] using hp x
-    · rw [if_neg hxw]; exact hij x w hxw hN
+    · rw [ite_eq_right hxw]; exact hij x w hxw hN
   constructor
   · simp_rw [distinctNoise_fourier_expand]
     rw [distinctNoiseMean_sum]
@@ -236,10 +240,10 @@ theorem distinct_noise_fourier_mean_second_moment (N L : ℕ) [NeZero N] (y : ZM
           q*(χ x*star (χ w))+(if w=x then (p-q)*(χ x*star (χ w)) else 0) := by
         by_cases hw : w=x
         · subst w; simp only [ite_true]; ring
-        · simp only [if_neg hw, if_neg (Ne.symm hw), add_zero]; ring
+        · simp only [ite_eq_right hw, ite_eq_right (Ne.symm hw), add_zero]; ring
       simp_rw [he]
       rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum]
-      simp only [hbar, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true, hu]
+      simp only [hbar, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true, hu]
       ring
     change (∑ x : ZMod N, ∑ w : ZMod N, (χ x*star (χ w))*(if x=w then p else q)) = _
     simp_rw [hrow]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+module
+
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+
+@[expose] public section
 
 /-!
 # Recovery probabilities for character table decoding
@@ -224,9 +228,11 @@ private theorem exists_annihilator_not_killing (H : AddSubgroup G) (x : G) (hx :
   have h3 : ¬ ((χ : AddChar G ℂ) x ≠ 1) := fun h => hcon ⟨χ, χ.property, h⟩
   exact Classical.byContradiction fun h => h3 h
 
+omit [AddCommGroup G] [Fintype G] [DecidableEq G] in
 /-- For an element outside `H`, at most half of the characters in the annihilator of `H` take
 value one on that element. -/
-private theorem card_killers_le_half (H : AddSubgroup G) (x : G) (hx : x ∉ H) :
+private theorem card_killers_le_half [_group : AddCommGroup G] [_fintype : Fintype G]
+    [_decidableEq : DecidableEq G] (H : AddSubgroup G) (x : G) (hx : x ∉ H) :
     2 * (Finset.univ.filter fun χ : AddChar G ℂ =>
       χ ∈ characterAnnihilator H ∧ χ x = 1).card ≤ Fintype.card (characterAnnihilator H) := by
   classical

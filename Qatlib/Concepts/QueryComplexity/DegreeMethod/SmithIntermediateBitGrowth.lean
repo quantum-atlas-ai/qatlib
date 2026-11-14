@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 /-!
 # Entry growth in Euclidean Smith elimination

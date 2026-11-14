@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
-import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+module
+
+public import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+public import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+
+@[expose] public section
 
 /-!
 # Finite coordinate graphs and search Hamiltonians
@@ -163,7 +167,7 @@ semidefinite. -/
 theorem lattice_weighted_laplacian_psd (d n : ℕ) (hn : 0 < n) :
     (Qatlib.Concepts.GraphEnergy.ZeroEnergy.weightedLaplacian
       (latticeGraph d n)).PosSemidef := by
-  haveI : Nonempty (LatticeVertex d n) := ⟨fun _ => ⟨0, hn⟩⟩
+  have hne : Nonempty (LatticeVertex d n) := ⟨fun _ => ⟨0, hn⟩⟩
   exact Qatlib.Concepts.GraphLaplacian.LaplacianPsd.posSemidef_weighted
     (latticeGraph d n)
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceAnalyticModel
+module
+
+public import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceAnalyticModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,7 +80,7 @@ theorem source_lemma_A_3 :
   have hfact : 4 * δ * (1 - 4 * β * δ) ≤ 0 := by nlinarith [hmain]
   have hle : 1 - 4 * β * δ ≤ 0 := by
     by_contra hcon
-    push_neg at hcon
+    push Not at hcon
     nlinarith [mul_pos h4 hcon]
   nlinarith [hle]
 

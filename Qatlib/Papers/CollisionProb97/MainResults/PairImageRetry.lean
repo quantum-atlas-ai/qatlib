@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.CollisionProb97.MainResults.AcceptedImageRetry
-import Qatlib.Papers.CollisionProb97.MainResults.ReturningStages
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.AcceptedImageRetry
+public import Qatlib.Papers.CollisionProb97.MainResults.ReturningStages
+
+@[expose] public section
 
 /-!
 # Returning a fresh function record
@@ -94,7 +98,7 @@ theorem bad_run (F : X → R) (T : Finset R) (p : X × R) (hp : ¬ Valid F T p)
     intro x
     dsimp only [Function.comp_def]
     by_cases hx : F x ∉ T
-    · simp only [if_pos hx]
+    · simp only [ite_eq_left hx]
       rw [branchCostRun_halted]
       simp only [CostedLaw.charge, PMF.pure_map, Nat.add_zero]
       have hne : (x,F x) ≠ p := by
@@ -103,7 +107,7 @@ theorem bad_run (F : X → R) (T : Finset R) (p : X × R) (hp : ¬ Valid F T p)
         rw [← he]
         exact ⟨rfl, hx⟩
       simp [PMF.pure_apply, Ne.symm hne]
-    · simp only [if_neg hx]
+    · simp only [ite_eq_right hx]
       rw [Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution.charge_point_mass]
       split_ifs <;> simp [ih]
 

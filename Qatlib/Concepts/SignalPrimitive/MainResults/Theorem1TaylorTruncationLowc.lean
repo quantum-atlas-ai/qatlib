@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationStat
-import Qatlib.Concepts.SignalPrimitive.MainResults.TaylorTruncation
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+module
+
+public import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationStat
+public import Qatlib.Concepts.SignalPrimitive.MainResults.TaylorTruncation
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+
+@[expose] public section
 
 /-!
 # Corrected Taylor Truncation Degree

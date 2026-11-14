@@ -4,29 +4,36 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Int.Star
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Convex.Slope
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Convex.Slope
+public import Mathlib.Analysis.Convex.SpecificFunctions.Deriv
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Off-grid phase estimation and window probabilities
@@ -289,7 +296,7 @@ theorem controlledPowers_offgrid_kickback (M : ℕ) (U : Matrix I I ℂ)
         (Real.sqrt (M : ℝ) : ℂ)⁻¹ * ((U ^ x.val) *ᵥ ψ) i := by
       simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
       exact Finset.sum_congr rfl fun j _ => by ring
-    simp only [if_true]
+    simp only [ite_true]
     rw [hsum, hev, Pi.smul_apply, smul_eq_mul, ← Complex.exp_nat_mul]
     have he : (x.val : ℂ) * (2 * Real.pi * Complex.I * φ) =
         2 * Real.pi * Complex.I * ((x.val : ℝ) * φ) := by push_cast; ring
@@ -433,9 +440,9 @@ theorem phaseThresholdLoop_action (M n : ℕ) (U : Matrix I I ℂ)
     funext p
     (try dsimp only)
     by_cases h : n < p.1.val
-    · rw [if_pos h, Nat.min_eq_left (by omega), Nat.min_eq_left (by omega),
+    · rw [ite_eq_left h, Nat.min_eq_left (by omega), Nat.min_eq_left (by omega),
         ← applyGate_mul, ← pow_succ']
-    · rw [if_neg h, Nat.min_eq_right (by omega), Nat.min_eq_right (by omega)]
+    · rw [ite_eq_right h, Nat.min_eq_right (by omega), Nat.min_eq_right (by omega)]
 
 /-- Applying a gate on the phase register commutes with embedding the extra false flag. -/
 theorem phaseFlagEmbed_phaseGate (M : ℕ) (T : Matrix (Fin M) (Fin M) ℂ)
@@ -521,7 +528,7 @@ private theorem cosine_square_tangent {a x : ℝ} (ha : 0 < a)
   let f : ℝ → ℝ := fun t => Real.cos t + Real.sin a / (2*a) * t^2
   have hd (t : ℝ) : HasDerivAt f (-Real.sin t + Real.sin a/a*t) t := by
     convert! (Real.hasDerivAt_cos t).add
-      (((hasDerivAt_id t).pow 2).const_mul (Real.sin a / (2*a))) using 1
+      ((hasDerivAt_pow 2 t).const_mul (Real.sin a / (2*a))) using 1
     dsimp [f]
     ring
   have hl : AntitoneOn f (Icc 0 a) := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+
+@[expose] public section
 
 /-!
 # Interaction picture sorting and resource definitions
@@ -79,7 +83,7 @@ def ip26SegmentGateCount (p : EffectiveSegmentParameters) : ℕ :=
   2 * ipSegmentCopies p
 
 /-- The sparse-step count expression, equal to three. -/
-def ip27SparseStepCount (p : EffectiveSparseParameters) : ℕ := 3
+def ip27SparseStepCount (_p : EffectiveSparseParameters) : ℕ := 3
 
 /-- The sparse register width expression `p.nd + 2 * p.ns + 2 * p.np`. -/
 def ip27SparseWidth (p : EffectiveSparseParameters) : ℕ :=
@@ -108,7 +112,7 @@ def ip27ProgramQueries (prog : EffectiveProgram) : ℕ :=
 def ip27DiagonalGateCount (p : EffectiveSparseParameters) : ℕ := p.nd
 
 /-- The diagonal query-count expression, equal to zero. -/
-def ip27DiagonalQueries (p : EffectiveSparseParameters) : ℕ := 0
+def ip27DiagonalQueries (_p : EffectiveSparseParameters) : ℕ := 0
 
 /-- Prepends `p.nd` phase steps to the sparse program and uses the sparse register width. -/
 def ip27DiagonalProgram (p : EffectiveSparseParameters) : EffectiveProgram :=

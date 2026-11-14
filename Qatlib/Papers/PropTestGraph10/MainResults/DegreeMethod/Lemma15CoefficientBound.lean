@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PropTestGraph10.MainResults.Model.AcceptancePolynomial
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Papers.PropTestGraph10.MainResults.Model.AcceptancePolynomial
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

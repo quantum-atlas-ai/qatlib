@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraph
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraph
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
+
+@[expose] public section
 
 /-!
 # Sequential entanglement and MBQC pattern execution
@@ -100,7 +104,7 @@ theorem czB_comm_regWireGate {n : ℕ} (i j v : Fin n) (U : Operator 2)
         by_contra hc
         exact hxy fun k hkv => by_contra fun hne => hc ⟨k, hkv, hne⟩
       obtain ⟨k, hkv, hkxy⟩ := hxy'
-      have hk : (if x k = y k then (1 : ℂ) else 0) = 0 := if_neg hkxy
+      have hk : (if x k = y k then (1 : ℂ) else 0) = 0 := ite_eq_right hkxy
       have hzero : mbqcRegWireGate v U x y = 0 := by
         unfold mbqcRegWireGate
         simp only [Matrix.of_apply]
@@ -762,17 +766,17 @@ theorem mbqcWireGate_one {n : ℕ} (v : Fin n) : mbqcWireGate v (1 : Operator 2)
     by_cases h : x = y
     · subst h
       simp
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       obtain ⟨i, hi⟩ := Function.ne_iff.mp h
       by_cases hiv : i = v
       · subst hiv
         have hne : boolEquivFin2 (x i) ≠ boolEquivFin2 (y i) :=
           fun he => hi (boolEquivFin2.injective he)
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
         ring
       · have hmem : i ∈ (Finset.univ.erase v : Finset (Fin n)) :=
           Finset.mem_erase.mpr ⟨hiv, Finset.mem_univ i⟩
-        have hfac : (if x i = y i then (1 : ℂ) else 0) = 0 := if_neg hi
+        have hfac : (if x i = y i then (1 : ℂ) else 0) = 0 := ite_eq_right hi
         rw [Finset.prod_eq_zero hmem hfac]
         ring
   rw [mbqcWireGate, hreg, relabelGate_one_fin]
@@ -787,7 +791,7 @@ theorem teleWire_inFrame_apply (x : Fin (2 ^ 2)) (y : Fin 2) :
   simp only [Matrix.of_apply, Fin.prod_univ_two]
   have h0 : (0 : Fin 2) ∈ teleWireInput := by decide
   have h1 : (1 : Fin 2) ∉ teleWireInput := by decide
-  rw [dif_pos h0, dif_neg h1, teleWire_regBitInput y]
+  rw [dite_eq_left h0, dite_eq_right h1, teleWire_regBitInput y]
   ring
 
 /-- The teleportation output frame selects the recorded first bit and the designated output bit
@@ -800,7 +804,7 @@ theorem teleWire_outFrame_apply (z : Fin 2 → Bool) (y : Fin 2) (x : Fin (2 ^ 2
   simp only [Matrix.of_apply, Fin.prod_univ_two]
   have h0 : (0 : Fin 2) ∉ clause1OutputA := by decide
   have h1 : (1 : Fin 2) ∈ clause1OutputA := by decide
-  rw [dif_neg h0, dif_pos h1, teleWire_regBitOutput y]
+  rw [dite_eq_right h0, dite_eq_left h1, teleWire_regBitOutput y]
 
 /-- The two-vertex entangler is diagonal, with controlled-Z phase `bitPhase (x 0 && x 1)`. -/
 theorem teleWire_czMatrix_apply (x y : Reg 2) :
@@ -856,7 +860,6 @@ theorem sum_reg2_delta0 (x0 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if x0 = y 0 then (1 : ℂ) else 0) * g y)
       = g ![x0, false] + g ![x0, true] := by
   have h := sum_reg2_eq (fun y : Reg 2 => (if x0 = y 0 then (1 : ℂ) else 0) * g y)
-  (try simp only at h)
   have a00 : ((![false, false] : Reg 2) 0) = false := rfl
   have a01 : ((![false, true] : Reg 2) 0) = false := rfl
   have a10 : ((![true, false] : Reg 2) 0) = true := rfl
@@ -874,7 +877,6 @@ theorem sum_reg2_delta1 (x1 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if x1 = y 1 then (1 : ℂ) else 0) * g y)
       = g ![false, x1] + g ![true, x1] := by
   have h := sum_reg2_eq (fun y : Reg 2 => (if x1 = y 1 then (1 : ℂ) else 0) * g y)
-  (try simp only at h)
   have a00 : ((![false, false] : Reg 2) 1) = false := rfl
   have a01 : ((![false, true] : Reg 2) 1) = true := rfl
   have a10 : ((![true, false] : Reg 2) 1) = false := rfl
@@ -895,8 +897,8 @@ theorem sum_reg2_delta0' (x0 : Bool) (g : Reg 2 → ℂ) :
   rw [← sum_reg2_delta0 x0 g]
   refine Finset.sum_congr rfl fun y _ => ?_
   by_cases hc : y 0 = x0
-  · rw [if_pos hc, if_pos hc.symm]
-  · rw [if_neg hc, if_neg (fun he => hc he.symm)]
+  · rw [ite_eq_left hc, ite_eq_left hc.symm]
+  · rw [ite_eq_right hc, ite_eq_right (fun he => hc he.symm)]
 
 /-- The entangled input-frame entries are the normalized input-bit selector multiplied by the
 controlled-Z phase. -/
@@ -930,20 +932,20 @@ theorem teleWire_entangler_frame (x : Fin (2 ^ 2)) (j : Fin 2) :
       simp only [Equiv.symm_apply_apply]
     rw [hE, hI, teleWire_czMatrix_apply]
     by_cases h : (bitVecEquiv 2).symm x = y
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   rw [Finset.sum_congr rfl (fun y _ => hterm y)]
   rw [Finset.sum_eq_single ((bitVecEquiv 2).symm x)]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     by_cases h : (bitVecEquiv 2).symm x 0 = boolEquivFin2.symm j
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   · intro y _ hy
-    rw [if_neg (fun he => hy he.symm)]
+    rw [ite_eq_right (fun he => hy he.symm)]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -988,9 +990,9 @@ theorem teleWire_corr_entangler_frame (U : Operator 2) (x : Fin (2 ^ 2)) (j : Fi
       simp only [Equiv.symm_apply_apply]
     rw [hW, hS]
     by_cases hc : y 0 = boolEquivFin2.symm j
-    · rw [if_pos hc, if_pos hc]
+    · rw [ite_eq_left hc, ite_eq_left hc]
       ring
-    · rw [if_neg hc, if_neg hc]
+    · rw [ite_eq_right hc, ite_eq_right hc]
       ring
   rw [Finset.sum_congr rfl (fun y _ => hterm y), sum_reg2_delta0]
   have c0 : ∀ b : Bool,
@@ -1000,9 +1002,9 @@ theorem teleWire_corr_entangler_frame (U : Operator 2) (x : Fin (2 ^ 2)) (j : Fi
   have e1 : ((![(bitVecEquiv 2).symm x 0, true] : Reg 2) 1) = true := rfl
   rw [c0 false, c0 true, e0, e1]
   by_cases hd : (bitVecEquiv 2).symm x 0 = boolEquivFin2.symm j
-  · rw [if_pos hd, if_pos hd, if_pos hd, Fintype.sum_bool, hd]
+  · rw [ite_eq_left hd, ite_eq_left hd, ite_eq_left hd, Fintype.sum_bool, hd]
     ring
-  · rw [if_neg hd, if_neg hd, if_neg hd]
+  · rw [ite_eq_right hd, ite_eq_right hd, ite_eq_right hd]
     ring
 
 /-- The measurement-and-correction composition on the entangled input frame factors into its
@@ -1067,7 +1069,7 @@ theorem teleWire_meas_corr_entangler_frame (P U : Operator 2) (x : Fin (2 ^ 2)) 
       fin_cases j
       · rfl
       · exact absurd hjd (by simp [boolEquivFin2])
-    rw [hj, if_pos rfl, if_neg (by decide : ¬(true = false))]
+    rw [hj, ite_eq_left rfl, ite_eq_right (by decide : ¬(true = false))]
     have h0 : boolEquivFin2 false = 0 := rfl
     rw [h0]
     ring
@@ -1078,7 +1080,7 @@ theorem teleWire_meas_corr_entangler_frame (P U : Operator 2) (x : Fin (2 ^ 2)) 
       fin_cases j
       · exact absurd hdt (by simp [boolEquivFin2])
       · rfl
-    rw [hj, if_neg (by decide : ¬(false = true)), if_pos rfl]
+    rw [hj, ite_eq_right (by decide : ¬(false = true)), ite_eq_left rfl]
     have h1 : boolEquivFin2 true = 1 := rfl
     rw [h1]
     ring
@@ -1134,7 +1136,7 @@ theorem teleWire_kraus_entry (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (j' j : 
   have e1 : ((![(z 0), true] : Reg 2) 1) = true := rfl
   rw [c0 false, c0 true, e0, e1]
   by_cases hj' : boolEquivFin2.symm j' = false
-  · rw [hj', if_pos rfl, if_neg (by decide : ¬(true = false))]
+  · rw [hj', ite_eq_left rfl, ite_eq_right (by decide : ¬(true = false))]
     by_cases hs : s 0 = true
     · rw [hs]
       simp [boolEquivFin2, bitPhase, pauliX]
@@ -1143,7 +1145,7 @@ theorem teleWire_kraus_entry (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (j' j : 
       simp [boolEquivFin2, bitPhase]
   · have hdt : boolEquivFin2.symm j' = true := by
       cases h : boolEquivFin2.symm j' <;> simp_all
-    rw [hdt, if_neg (by decide : ¬(false = true)), if_pos rfl]
+    rw [hdt, ite_eq_right (by decide : ¬(false = true)), ite_eq_left rfl]
     by_cases hs : s 0 = true
     · rw [hs]
       simp [boolEquivFin2, bitPhase, pauliX]
@@ -1296,7 +1298,7 @@ theorem teleWire_kraus_phase (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
     linear_combination -(Complex.cos_sq_add_sin_sq (y : ℂ))
       * ((Real.sqrt 2 : ℂ)⁻¹ * (2 : ℂ)⁻¹)
   cases z 0 <;> cases s 0 <;> fin_cases j' <;> fin_cases j <;>
-    simp [boolEquivFin2, bitPhase, exp_ofReal_I, exp_neg_ofReal_I] <;>
+    simp [boolEquivFin2, bitPhase, exp_ofReal_I] <;>
     try ring
   all_goals try simp only [Complex.I_sq]
   all_goals
@@ -1322,15 +1324,15 @@ theorem teleWire_kraus_branch (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (ρ : O
     cases b'
     · have hz : (if (false : Bool) then
             (if b then (-1 : ℂ) else 1) * Complex.exp ((a 0 : ℂ) * Complex.I)
-          else (1 : ℂ)) = 1 := if_neg (by decide)
+          else (1 : ℂ)) = 1 := ite_eq_right (by decide)
       rw [hz, star_one, mul_one]
     · have hz : (if (true : Bool) then
             (if b then (-1 : ℂ) else 1) * Complex.exp ((a 0 : ℂ) * Complex.I)
           else (1 : ℂ))
-          = (if b then (-1 : ℂ) else 1) * Complex.exp ((a 0 : ℂ) * Complex.I) := if_pos rfl
+          = (if b then (-1 : ℂ) else 1) * Complex.exp ((a 0 : ℂ) * Complex.I) := ite_eq_left rfl
       rw [hz]
       by_cases hb : b
-      · rw [if_pos hb]
+      · rw [ite_eq_left hb]
         have h2 : ((-1 : ℂ) * Complex.exp ((a 0 : ℂ) * Complex.I))
             * star ((-1 : ℂ) * Complex.exp ((a 0 : ℂ) * Complex.I))
             = Complex.exp ((a 0 : ℂ) * Complex.I)
@@ -1339,7 +1341,7 @@ theorem teleWire_kraus_branch (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (ρ : O
           ring
         rw [h2]
         exact mul_star_exp_one (a 0)
-      · rw [if_neg hb, one_mul]
+      · rw [ite_eq_right hb, one_mul]
         exact mul_star_exp_one (a 0)
   rw [teleWire_kraus_phase, smul_smul]
   refine (conjBranch_smul ((if z 0 then (if s 0 then (-1 : ℂ) else 1)

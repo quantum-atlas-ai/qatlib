@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.L2Dynamics.PhaseShears.Word
-import Qatlib.Papers.NonhomogPDE18.WaveModel.Defs
+module
+
+public import Qatlib.Foundations.L2Dynamics.PhaseShears.Word
+public import Qatlib.Papers.NonhomogPDE18.WaveModel.Defs
+
+@[expose] public section
 
 /-!
 # Native phase and shear primitives

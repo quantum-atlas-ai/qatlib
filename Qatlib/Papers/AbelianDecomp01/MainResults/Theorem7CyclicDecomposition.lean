@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+
+@[expose] public section
 
 /-!
 # Cyclic decomposition from a valid Abelian presentation
@@ -98,9 +102,9 @@ theorem source_theorem7_generator_words
     by_cases h : (s : Fin m) = (r : Fin m)
     · have hs : s = r := Subtype.ext h
       subst hs
-      rw [if_pos rfl, Pi.single_eq_same]
+      rw [ite_eq_left rfl, Pi.single_eq_same]
     · have hs : s ≠ r := fun hs => h (by rw [hs])
-      rw [if_neg h, Pi.single_eq_of_ne hs]
+      rw [ite_eq_right h, Pi.single_eq_of_ne hs]
   calc addOrderOf (generatorWordMap p.generators
           (fun i => p.run.reduction.leftInverse i (r : Fin m)))
       = addOrderOf (compactRecoveryEquiv p hp (generatorWordMap p.generators

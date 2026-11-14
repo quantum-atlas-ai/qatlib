@@ -4,10 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterSourceBoundsDefs
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
-import Qatlib.Concepts.InteractionEvo.CayleyTransform
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterSourceBoundsDefs
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
+public import Qatlib.Concepts.InteractionEvo.CayleyTransform
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
 
 /-!
 # Product-formula source bounds and counterexamples
@@ -60,13 +68,13 @@ open scoped ComplexConjugate
 
 /-- The positive ceiling-based segment count obtained from the fourth-order norm error bound and
 tolerance `ε`. -/
-private noncomputable def fourthOrderSegments {I : Type} [Fintype I] [DecidableEq I]
+public noncomputable def fourthOrderSegments {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t ε : ℝ) : ℕ :=
   max 1 (Nat.ceil ((100 * ((‖A‖ + ‖B‖) ^ 5 * |t| ^ 5 / ε)) ^ ((1 : ℝ) / 4)))
 
 /-- The positive ceiling-based segment count obtained from the recursive Suzuki commutator error
 bound and tolerance `ε`. -/
-private noncomputable def generalOrderSegments {I : Type} [Fintype I] [DecidableEq I]
+public noncomputable def generalOrderSegments {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t ε : ℝ) : ℕ :=
   max 1
     (Nat.ceil
@@ -118,7 +126,7 @@ private theorem commutatorSum_le_two_sq {D Λ : ℕ} (H : Fin Λ → Operator D)
       (if j < k then ‖pfComm (H j) (H k)‖ else 0) ≤ 2 * b ^ 2 := by
     intro j k
     by_cases hjk : j < k
-    · rw [if_pos hjk]
+    · rw [ite_eq_left hjk]
       have hAB : ‖pfComm (H j) (H k)‖ ≤ ‖H j‖ * ‖H k‖ + ‖H k‖ * ‖H j‖ := by
         rw [pfComm]
         exact (norm_sub_le _ _).trans
@@ -131,7 +139,7 @@ private theorem commutatorSum_le_two_sq {D Λ : ℕ} (H : Fin Λ → Operator D)
           mul_le_mul hj hk (norm_nonneg _) hb0
         nlinarith [hmul]
       exact hAB.trans hbb
-    · rw [if_neg hjk]
+    · rw [ite_eq_right hjk]
       positivity
   have hsum : pfCommutatorSum H ≤ ∑ _j : Fin Λ, ∑ _k : Fin Λ, 2 * b ^ 2 := by
     unfold pfCommutatorSum
@@ -886,8 +894,8 @@ theorem clause20_refuted : ¬ Qatlib.Concepts.TrotterFormula.GeneralOrder.Trotte
     unfold longRangeTruncated
     by_cases hxy : torusDist 2 x y ≤ ((0 : ℕ) : ℤ)
     · have hxe : x = y := (hdist x y).mp hxy
-      rw [if_pos hxy, hxe, hHdiag y]
-    · rw [if_neg hxy]
+      rw [ite_eq_left hxy, hxe, hHdiag y]
+    · rw [ite_eq_right hxy]
   have hflat0 : longRangeFlat 1 2 0 H = fun _ : Fin (2 * 2) => (0 : Operator 1) := by
     funext ij
     obtain ⟨x, y, hx, hy⟩ : ∃ x y : Fin 2,

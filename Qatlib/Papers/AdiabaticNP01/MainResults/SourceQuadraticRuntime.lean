@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticNP01.MainResults.SourceRepetition
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Topology.Order.OrderClosed
+module
+
+public import Qatlib.Papers.AdiabaticNP01.MainResults.SourceRepetition
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Topology.Order.OrderClosed
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -169,7 +173,7 @@ success probability on `10 ≤ n ≤ 20` is at least `1/8` and at most `1`.  The
 median runtime is `O(n²)` and a fixed number of repetitions attains any target
 confidence on the whole observed range. -/
 theorem main_quadratic_runtime
-    (med p : ℕ → ℝ) (a b c : ℝ) (ha : 0 < a)
+    (med p : ℕ → ℝ) (a b c : ℝ) (_ha : 0 < a)
     (hmed0 : ∀ n, 0 ≤ med n)
     (hfit : ∀ᶠ n : ℕ in Filter.atTop, med n ≤ QuadraticFit a b c n)
     {ε : ℝ} (hε : 0 < ε)

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
-import Qatlib.Papers.JuntaLearning07.MainResults.ParsevalIdentity
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
+public import Qatlib.Papers.JuntaLearning07.MainResults.ParsevalIdentity
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Identifying influential variables by Fourier sampling
@@ -107,12 +111,12 @@ theorem fsProb_mono (f : (Fin n → Bool) → Bool) (T : ℕ)
   apply Finset.sum_le_sum
   intro s _
   by_cases hE : E s
-  · rw [if_pos hE, if_pos (h s hE)]
-  · rw [if_neg hE]
+  · rw [ite_eq_left hE, ite_eq_left (h s hE)]
+  · rw [ite_eq_right hE]
     by_cases hE' : E' s
-    · rw [if_pos hE']
+    · rw [ite_eq_left hE']
       exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
-    · rw [if_neg hE']
+    · rw [ite_eq_right hE']
 
 /-- Pointwise equivalent transcript events have equal Fourier-sampling probabilities. -/
 theorem fsProb_congr (f : (Fin n → Bool) → Bool) (T : ℕ)
@@ -123,8 +127,8 @@ theorem fsProb_congr (f : (Fin n → Bool) → Bool) (T : ℕ)
   apply Finset.sum_congr rfl
   intro s _
   by_cases hE : E s
-  · rw [if_pos hE, if_pos ((h s).mp hE)]
-  · rw [if_neg hE, if_neg (fun h' => hE ((h s).mpr h'))]
+  · rw [ite_eq_left hE, ite_eq_left ((h s).mp hE)]
+  · rw [ite_eq_right hE, ite_eq_right (fun h' => hE ((h s).mpr h'))]
 
 /-- The probability that some i in a finite set satisfies a transcript event is at most the sum
 of the individual event probabilities; see [AticiServedio2007]. -/
@@ -139,22 +143,22 @@ theorem fsProb_exists_le (f : (Fin n → Bool) → Bool) (T : ℕ) (I : Finset (
     intro s
     simp only [hE]
     by_cases h : ∃ i ∈ I, P i s
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       obtain ⟨i0, hi0, hP0⟩ := h
       have hnn : ∀ i ∈ I, 0 ≤ (if P i s then ∏ t : Fin T, fsWeight f (s t) else 0) := by
         intro i _
         by_cases hP : P i s
-        · rw [if_pos hP]; exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
-        · rw [if_neg hP]
+        · rw [ite_eq_left hP]; exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
+        · rw [ite_eq_right hP]
       calc ∏ t : Fin T, fsWeight f (s t)
-          = (if P i0 s then ∏ t : Fin T, fsWeight f (s t) else 0) := by rw [if_pos hP0]
+          = (if P i0 s then ∏ t : Fin T, fsWeight f (s t) else 0) := by rw [ite_eq_left hP0]
         _ ≤ ∑ i ∈ I, (if P i s then ∏ t : Fin T, fsWeight f (s t) else 0) :=
             Finset.single_le_sum hnn hi0
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact Finset.sum_nonneg (fun i _ => by
         by_cases hP : P i s
-        · rw [if_pos hP]; exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
-        · rw [if_neg hP])
+        · rw [ite_eq_left hP]; exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
+        · rw [ite_eq_right hP])
   conv_lhs => rw [fsProb_eq_sum]
   calc (∑ s : Fin T → Finset (Fin n),
           (if E s then ∏ t : Fin T, fsWeight f (s t) else 0))
@@ -404,7 +408,7 @@ theorem influence_identification_upper (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 
           rw [fsProb_eq_sum]
           apply Finset.sum_eq_zero
           intro s _
-          rw [if_neg]
+          rw [ite_eq_right]
           exact fun h => hInf h.1
         rw [hzero]
         exact pow_nonneg (by linarith) N

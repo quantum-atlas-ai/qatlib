@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+@[expose] public section
 
 /-!
 # Addressing supplied time grids
@@ -109,6 +113,8 @@ theorem suppliedGridField_eq_address {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
   classical
   have hex := suppliedGrid_interval_exists hτ0 hu0 huN
   simp only [suppliedGridField, suppliedGridAddress, dite_eq_left hex]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- The supplied-grid field formed from samples of `A` equals `A` at the selected supplied-grid
 sample time. -/

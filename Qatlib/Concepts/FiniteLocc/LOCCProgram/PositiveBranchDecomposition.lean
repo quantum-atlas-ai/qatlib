@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Positive branch decompositions on qubits
@@ -180,7 +184,7 @@ theorem partialTrace_discard_sandwich (D E : ℕ) (A : Operator E)
     simp only [PartialTrace, Matrix.trace, Matrix.diag_apply, Matrix.mul_apply,
       Fintype.sum_prod_type, tensorGate_apply, Matrix.one_apply, ite_mul,
       mul_ite, one_mul, mul_zero, zero_mul, Finset.sum_ite_irrel,
-      Finset.sum_const_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      Finset.sum_const_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     rfl
   rw [hl, hr]
   simpa only [Matrix.mul_assoc] using (Matrix.trace_mul_cycle B Aᴴ A).symm

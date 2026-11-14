@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
-import Mathlib.Data.Matrix.Block
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -137,9 +141,9 @@ The records below carry independent output and resource annotations; this propos
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def theorem10_blockEncoding_greenG_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s) (δ β ω ε : ℝ) (na : ℕ)
-    (hδpos : 0 < δ) (hβpos : 0 < β) (hε : 0 < ε)
-    (hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ))
-    (hδ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ 1 / δ ≤ P.eval (n : ℝ)) : Prop :=
+    (_hδpos : 0 < δ) (_hβpos : 0 < β) (_hε : 0 < ε)
+    (_hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ))
+    (_hδ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ 1 / δ ≤ P.eval (n : ℝ)) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (greenGQuarter h δ β ω) 1 ε,
       B.m = n + 5 ∧
       PolyOverEps B.cost.oracleCalls n ε ∧
@@ -153,7 +157,7 @@ The records below carry independent output and resource annotations; this propos
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def theorem19_greenG_resources_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s) (δ β ω εPA εp δc : ℝ) (na : ℕ)
-    (hδ : 0 < δ) (hβ : 0 < β) (hεPA : 0 < εPA) (hεp : 0 ≤ εp) (hδc : 0 < δc) : Prop :=
+    (_hδ : 0 < δ) (_hβ : 0 < β) (_hεPA : 0 < εPA) (_hεp : 0 ≤ εp) (_hδc : 0 < δc) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (greenGQuarter h δ β ω) 1 (εPA + εp + δc),
       B.m = n + 5 ∧
       ThetaBound B.cost.oracleCalls

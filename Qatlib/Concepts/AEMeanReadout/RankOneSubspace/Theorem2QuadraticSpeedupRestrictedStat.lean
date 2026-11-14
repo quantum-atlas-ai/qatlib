@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+module
+
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+
+@[expose] public section
 
 /-!
 # Specification of known-success amplification

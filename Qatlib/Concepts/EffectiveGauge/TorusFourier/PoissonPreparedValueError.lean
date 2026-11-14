@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonFiniteValueError
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonValueBudget
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.ConnectionPoisson
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonFiniteValueError
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonValueBudget
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.ConnectionPoisson
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

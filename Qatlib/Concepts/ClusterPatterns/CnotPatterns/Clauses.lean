@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+
+@[expose] public section
 
 /-!
 # Measurement-pattern clauses and a combined counterexample
@@ -102,7 +106,7 @@ theorem clause7_counter_clause5b :
 one. -/
 private theorem frame_entry_edge01 (x : Reg 2) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix mpEdge01 x x = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x),
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x),
     Fin.prod_univ_two]
   have h0 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd mpEdge01 0 = false := by decide
   have h1 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd mpEdge01 1 = true := by decide
@@ -113,7 +117,7 @@ private theorem frame_entry_edge01 (x : Reg 2) :
 the product of its two bits. -/
 private theorem cz_entry_edge01 (x : Reg 2) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix mpEdge01 x x = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x)]
   simp only [mpEdge01, Finset.prod_singleton]
   rfl
 
@@ -145,10 +149,10 @@ theorem clause7_clause4c : ∀ b : Bool,
     mpDeletionState]
   by_cases hx : x ⟨0, by omega⟩ = b
   · have hxB : x 0 = b := hx
-    rw [if_pos hx, if_pos hxB, one_mul, hxB]
+    rw [ite_eq_left hx, ite_eq_left hxB, one_mul, hxB]
     cases hb : b <;> cases hy : x 1 <;> norm_num [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
   · have hxB : ¬ x 0 = b := hx
-    rw [if_neg hx, if_neg hxB, zero_mul]
+    rw [ite_eq_right hx, ite_eq_right hxB, zero_mul]
 
 /-- Simultaneous row and column reindexing by an equivalence preserves matrix multiplication. -/
 private theorem reindex_square_mul {m n : Type*} [Fintype m] [DecidableEq m]
@@ -168,7 +172,7 @@ private theorem permMatrix_mul' {I : Type*} [Fintype I] [DecidableEq I] (σ τ :
   rw [Finset.sum_eq_single (τ j)]
   · simp
   · intro k _ hk
-    rw [if_neg hk, mul_zero]
+    rw [ite_eq_right hk, mul_zero]
   · simp
 
 /-- The integer-indexed CNOT matrix is the register CNOT matrix reindexed by `bitVecEquiv` when
@@ -178,7 +182,7 @@ private theorem mpFinCnot_eq_reindex (c t : Fin 2) (hct : (c : ℕ) ≠ (t : ℕ
       (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.cnotGate 2 c t) := by
   simp only [mpFinCnot, mpFinGate, finiteCodeMatrix]
   have h : (c : ℕ) < 2 ∧ (t : ℕ) < 2 ∧ (c : ℕ) ≠ (t : ℕ) := ⟨c.isLt, t.isLt, hct⟩
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- Three CNOT gates with alternating control and target implement the wire-swap matrix. -/
 theorem clause7_clause4b : mpFinCnot ⟨0, by omega⟩ ⟨1, by omega⟩
@@ -197,7 +201,7 @@ theorem clause7_clause4b : mpFinCnot ⟨0, by omega⟩ ⟨1, by omega⟩
   apply congrArg Qatlib.Foundations.PureStateMath.permMatrix
   funext i k
   fin_cases k <;> simp [Function.comp_apply, Function.update, Bool.xor_comm,
-    Bool.xor_left_comm, Bool.xor_self, Bool.xor_false]
+    Bool.xor_left_comm]
 
 /-- A deterministic pattern has at most twice as many measured wires as communication bits. -/
 theorem clause7_clause6c : ∀ (n w m : ℕ) (P : MpPattern n w m) (resource : QState (Reg (w + m - n))),

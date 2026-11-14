@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphSUCSourceCorrectedStat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphSUCSourceCorrectedStat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerQuan
+
+@[expose] public section
 
 /-!
 # Stored-subgraph reconstruction and resource guarantees

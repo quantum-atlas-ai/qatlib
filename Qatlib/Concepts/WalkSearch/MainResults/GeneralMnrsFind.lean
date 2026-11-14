@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.GeneralMnrsFindDefs
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecution
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.GeneralMnrsFindDefs
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecution
+
+@[expose] public section
 
 /-!
 # Exact decoding laws for general walk search
@@ -128,7 +132,7 @@ theorem clause5_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
 /-- The decoder has no false positives and the detection execution satisfies the exact kernel
 weight success formula, together with decoder reflexivity. -/
 theorem clause6_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
-    (S : Finset (GeneralVertex V)) (k : ℕ) :
+    (S : Finset (GeneralVertex V)) (_k : ℕ) :
     (∀ u v, generalFindDecoder S u = some v → v ∈ S) ∧
       generalFindSuccess S (generalDetectionExecution K p S)
         = ∑ u ∈ S, (K.weight p u : ℝ) ∧
@@ -139,7 +143,7 @@ theorem clause6_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
 /-- Decoder reflexivity holds and the detection execution success is the sum of the kernel
 weights on `S`. -/
 theorem clause7_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
-    (S : Finset (GeneralVertex V)) (k : ℕ) :
+    (S : Finset (GeneralVertex V)) (_k : ℕ) :
     (generalFindDecoder S = generalFindDecoder S) ∧
       generalFindSuccess S (generalDetectionExecution K p S)
         = ∑ u ∈ S, (K.weight p u : ℝ) := by

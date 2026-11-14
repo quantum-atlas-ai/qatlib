@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Equivalence of bit and additive value queries
@@ -127,6 +131,7 @@ theorem bit_value_matrix (f : I → Bool) :
   exact relabel_permMatrix_of_intertwining (bitValueEquiv I) (BitFlip f)
     (addOracleEquiv (boolValue f)) (bitValueEquiv_intertwining f)
 
+omit [Fintype I] in
 omit [Fintype W] in
 
 /-- Relabeling a workspace bit oracle gives the tensor product of the additive value oracle with
@@ -137,6 +142,8 @@ theorem workspace_bit_value_matrix (f : I → Bool) :
   change relabelGate ((bitValueEquiv I).prodCongr (Equiv.refl W))
       (TensorGate (BitOracleOn f) (1 : Matrix W W ℂ)) = _
   rw [relabel_tensor_right, bit_value_matrix]
+
+omit [Fintype I] [Fintype W] in
 
 /-- Relabeling the workspace additive value oracle by the inverse equivalence recovers the
 workspace bit oracle. -/
@@ -226,6 +233,7 @@ theorem backward_resources (C : Circuit ((I × ZMod 2) × W)) :
     Size (relabelCircuit (workspaceValueEquiv I W).symm C) = Size C :=
   relabelCircuit_legality_resources (workspaceValueEquiv I W).symm C
 
+omit [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W] in
 /-- Forward relabeling followed by inverse relabeling recovers both the original circuit and the
 original state. -/
 theorem roundtrip (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) :

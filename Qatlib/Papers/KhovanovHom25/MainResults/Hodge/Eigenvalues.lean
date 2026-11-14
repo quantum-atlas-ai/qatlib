@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KhovanovHom25.MainResults.Hodge.Decomposition
+module
+
+public import Qatlib.Papers.KhovanovHom25.MainResults.Hodge.Decomposition
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ variable (K : CochainComplex)
 
 /-- **Proposition 10, second bullet (eq. (6.4)).**  A non-zero eigenvalue `λ` of
 `Δᵢ` is an eigenvalue of `dᵢ†dᵢ` or of `dᵢ₋₁dᵢ₋₁†` (here `lapDown`/`lapUp`). -/
-theorem proposition10_eigenvalue_factors (i : ℕ) {lam : ℂ} (hne : lam ≠ 0)
+theorem proposition10_eigenvalue_factors (i : ℕ) {lam : ℂ} (_hne : lam ≠ 0)
     {x : K.C i} (hx : x ≠ 0) (h : K.lap i x = lam • x) :
     (∃ y : K.C i, y ≠ 0 ∧ K.lapDown i y = lam • y) ∨
       (∃ y : K.C i, y ≠ 0 ∧ K.lapUp i y = lam • y) := by
@@ -119,7 +123,7 @@ theorem proposition10 (i : ℕ) :
         K.lap (i + 1) x = lam • x →
         (∃ y : K.C (i + 1), y ≠ 0 ∧ K.lapDown (i + 1) y = lam • y) ∨
           (∃ y : K.C (i + 1), y ≠ 0 ∧ K.lapUp (i + 1) y = lam • y)) :=
-  ⟨fun lam hne x hx hxorth h => proposition10_neighbor_eigenvalue K i hne hx hxorth h,
-    fun lam hne x hx h => proposition10_eigenvalue_factors K (i + 1) hne hx h⟩
+  ⟨fun _lam hne _x hx hxorth h => proposition10_neighbor_eigenvalue K i hne hx hxorth h,
+    fun _lam hne _x hx h => proposition10_eigenvalue_factors K (i + 1) hne hx h⟩
 
 end Qatlib.Papers.KhovanovHom25.MainResults

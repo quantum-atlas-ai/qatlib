@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalPolynomial
-import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalApproximation
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalPolynomial
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalApproximation
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Chebyshev reciprocal approximation
@@ -426,7 +430,7 @@ theorem nearOptimalReciprocal_binomial_tail (b k : ℕ) (hb : 0 < b) :
     intro m _
     have ha : 0 ≤ a m := by dsimp [a]; positivity
     by_cases hm : b+k ≤ m
-    · rw [if_pos hm]
+    · rw [ite_eq_left hm]
       have hm' : (b : ℝ)+(k : ℝ) ≤ m := by exact_mod_cast hm
       have he : 1 ≤ Real.exp (-2*t*(k : ℝ))*Real.exp (2*t*((m : ℝ)-(b : ℝ))) := by
         rw [← Real.exp_add]
@@ -435,7 +439,7 @@ theorem nearOptimalReciprocal_binomial_tail (b k : ℕ) (hb : 0 < b) :
         nlinarith
       have hh := mul_le_mul_of_nonneg_left he ha
       simpa only [mul_one, one_mul, mul_assoc, mul_comm (a m)] using! hh
-    · rw [if_neg hm]
+    · rw [ite_eq_right hm]
       positivity
   have hcosh : (Real.cosh t)^(2*b) ≤ Real.exp ((b : ℝ)*t^2) := by
     have hh := pow_le_pow_left₀ (Real.cosh_pos t).le (Real.cosh_le_exp_half_sq t) (2*b)

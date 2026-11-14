@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
+module
+
+public import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
+
+@[expose] public section
 
 /-!
 # Sparse Hamiltonian oracle and product-formula definitions
@@ -43,7 +47,7 @@ def iteratedLog2 : ℕ → ℕ → ℕ
 
 /-- The natural-number binary logarithm of `n` is strictly less than `n` whenever `n ≥ 2`. -/
 theorem nat_log2_lt_self {n : ℕ} (h : 2 ≤ n) : Nat.log2 n < n := by
-  rw [Nat.log2_def, if_pos h]
+  rw [Nat.log2_def, ite_eq_left h]
   by_cases hn : n = 2
   · subst hn
     decide

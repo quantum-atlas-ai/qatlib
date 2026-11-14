@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrderConsumers
-import Mathlib.RingTheory.PowerSeries.Basic
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrderConsumers
+public import Mathlib.RingTheory.PowerSeries.Basic
+
+@[expose] public section
 
 /-!
 # Recursive even-order Suzuki generators

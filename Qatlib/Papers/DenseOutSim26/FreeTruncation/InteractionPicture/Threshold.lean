@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Interaction-picture threshold system size
@@ -41,7 +45,7 @@ theorem proposition5_threshold_form (g T ε Robs α D : ℝ) :
 /-- **Proposition 5, positivity**: the threshold is positive when `g,T > 0`,
 `ε,R_obs > 0` and the numerator `log(1/ε) + D log R_obs` is positive. -/
 theorem proposition5_threshold_pos
-    {g T ε Robs α D : ℝ} (hg : 0 < g) (hT : 0 < T) (hε : 0 < ε)
+    {g T ε Robs α D : ℝ} (hg : 0 < g) (hT : 0 < T) (_hε : 0 < ε)
     (hbase : 0 < Real.log (1 / ε) + D * Real.log Robs) :
     0 < interactionPictureThreshold g T ε Robs α D := by
   unfold interactionPictureThreshold

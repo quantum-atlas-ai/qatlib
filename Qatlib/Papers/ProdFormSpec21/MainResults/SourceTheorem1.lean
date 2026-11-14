@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -60,10 +64,10 @@ hypothesis `hEq46`.  The unitary-conjugation norm identity
 (`‖U†PU − P‖ ≤ 2δp` and the final squaring) is also derived. -/
 theorem theorem1_leakage
     (ρ P Pt U : Matrix I I ℂ)
-    (hP : P * P = P) (hPt : Pt * Pt = Pt)
+    (_hP : P * P = P) (_hPt : Pt * Pt = Pt)
     (hU : Uᴴ * U = 1) (hcomm : U * Pt = Pt * U)
-    (hρ : Matrix.trace (ρ * P) = 1)
-    (hδ : ‖P - Pt‖ < 1)
+    (_hρ : Matrix.trace (ρ * P) = 1)
+    (_hδ : ‖P - Pt‖ < 1)
     -- Appendix D, Eq (46) (rank-m min-trace identity, applied to `U†PU` and `P`):
     (hEq46 : 1 - (Matrix.trace (ρ * (Uᴴ * P * U))).re ≤ ‖Uᴴ * P * U - P‖ ^ 2) :
     leakageRate ρ P U ≤ 4 * ‖P - Pt‖ ^ 2 := by

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReflectQuery10.MainResults.BarePowerTestModel
-import Mathlib.Tactic.Linarith
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Papers.ReflectQuery10.MainResults.BarePowerTestModel
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
-import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingAmplitudeEstimation
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
+public import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingAmplitudeEstimation
+
+@[expose] public section
 
 /-!
 # Controlled Grover words for the inner preparation

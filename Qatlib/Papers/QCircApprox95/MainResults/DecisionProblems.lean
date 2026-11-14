@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircApprox95.MainResults.MeasureBounds
+module
+
+public import Qatlib.Papers.QCircApprox95.MainResults.MeasureBounds
+
+@[expose] public section
 
 /-!
 # Fractions of finitely counted decision problems

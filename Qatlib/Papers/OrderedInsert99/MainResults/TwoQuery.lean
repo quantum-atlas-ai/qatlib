@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.Exact
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.Exact
+
+@[expose] public section
 
 /-!
 # Excluding two-query insertion at large sizes

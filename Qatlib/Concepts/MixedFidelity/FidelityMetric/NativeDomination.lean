@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Tactic
+module
+
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Trace-distance bounds from semidefinite domination

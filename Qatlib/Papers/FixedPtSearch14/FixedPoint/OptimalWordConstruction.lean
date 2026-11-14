@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalWordConstructionDefs
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalWordConstructionDefs
+
+@[expose] public section
 
 /-!
 # Public fixed-point word guarantees
@@ -442,7 +446,7 @@ theorem l3_failure_amplitude (delta lam : ℝ) (hl : 0 ≤ lam) (hl' : lam ≤ 1
     rw [hword, Matrix.neg_mulVec]
     congr 1
     rw [← Matrix.mulVec_mulVec]
-    simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_two, Matrix.mul_apply]
+    simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_two]
     rw [hSs00, hSs01, hSt00, hSt01, hSt10, hSt11, hAmp0, hAmp1]
     ring
 

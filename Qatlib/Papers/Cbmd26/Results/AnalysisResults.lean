@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.MatrixResidue
-import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.MatrixResidue
+public import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
+
+@[expose] public section
 
 /-!
 # Analytic results for contour-based matrix decomposition

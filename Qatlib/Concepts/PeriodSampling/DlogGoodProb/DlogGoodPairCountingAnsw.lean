@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingStat
-import Mathlib.Algebra.Order.Round
-import Mathlib.Combinatorics.Pigeonhole
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingStat
+public import Mathlib.Algebra.Order.Round
+public import Mathlib.Combinatorics.Pigeonhole
+
+@[expose] public section
 
 /-!
 # Counting good discrete-logarithm pairs
@@ -65,7 +69,7 @@ theorem dlog_extend_small_residue (p q r : ℕ) (hq : 0 < q) (c : Fin q)
 theorem dlog_good_pairs_ge_small (p q r : ℕ) (hq : 0 < q) :
     (Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c).card ≤
       (Finset.univ.filter fun cd : Fin q × Fin q => dlogGoodPair p q r cd.1 cd.2).card := by
-  letI : NeZero q := ⟨ne_of_gt hq⟩
+  let : NeZero q := ⟨ne_of_gt hq⟩
   let S := Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c
   let f : Fin q → Fin q × Fin q := fun c =>
     (c, if hc : dlogSmallResidue p q c then
@@ -81,7 +85,7 @@ theorem dlog_good_pairs_ge_small (p q r : ℕ) (hq : 0 < q) :
     apply Finset.mem_filter.mpr
     refine ⟨Finset.mem_univ _, ?_⟩
     dsimp [f]
-    rw [dif_pos hs]
+    rw [dite_eq_left hs]
     exact Classical.choose_spec (dlog_extend_small_residue p q r hq c hs)
   have hh := Finset.card_le_card hsub
   rw [Finset.card_image_of_injective _ hf] at hh
@@ -95,11 +99,11 @@ private theorem dlog_centered_eq (q z w : ℤ) (_hq : 0 < q)
   (try dsimp only)
   rw [hmod]
   by_cases h0 : 0 ≤ w
-  · rw [Int.emod_eq_of_lt h0 (by omega : w < q), if_pos (by omega : w ≤ q/2)]
+  · rw [Int.emod_eq_of_lt h0 (by omega : w < q), ite_eq_left (by omega : w ≤ q/2)]
   · have hr : w%q = w+q := by
       have hh := Int.emod_eq_of_lt (by omega : 0 ≤ w+q) (by omega : w+q < q)
       simpa using! hh
-    rw [hr, if_neg (by omega : ¬w+q ≤ q/2)]
+    rw [hr, ite_eq_right (by omega : ¬w+q ≤ q/2)]
     ring
 
 /-- For positive `q`, at least `q / 12` first coordinates satisfy the small-residue condition,
@@ -109,7 +113,7 @@ theorem dlog_small_residue_count (p q : ℕ) (hq : 0 < q) :
   by_cases hq12 : q < 12
   · rw [Nat.div_eq_of_lt hq12]
     exact Nat.zero_le _
-  letI : NeZero q := ⟨ne_of_gt hq⟩
+  let : NeZero q := ⟨ne_of_gt hq⟩
   have hqz : (0 : ℤ) < q := by exact_mod_cast hq
   let m : ℤ := (p : ℤ)-1
   let z : Fin q → ℤ := fun c => ((c : ℕ) : ℤ)*m
@@ -196,7 +200,7 @@ theorem dlog_small_residue_count (p q : ℕ) (hq : 0 < q) :
 `(q : ℝ) / 12`. -/
 theorem dlog_small_residue_real_count (p q : ℕ) (hq : 0 < q) :
     (q : ℝ)/12 ≤ ((Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c).card : ℝ) := by
-  letI : NeZero q := ⟨ne_of_gt hq⟩
+  let : NeZero q := ⟨ne_of_gt hq⟩
   have hqz : (0 : ℤ) < q := by exact_mod_cast hq
   let m : ℤ := (p : ℤ)-1
   let z : Fin q → ℤ := fun c => ((c : ℕ) : ℤ)*m

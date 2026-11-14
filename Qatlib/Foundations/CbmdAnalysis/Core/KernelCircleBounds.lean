@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
-import Mathlib.Analysis.Complex.CauchyIntegral
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
+public import Mathlib.Analysis.Complex.CauchyIntegral
+
+@[expose] public section
 
 /-!
 # Decay of integer kernels on expanding circles

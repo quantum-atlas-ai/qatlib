@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrotterSuzuki15.MainResults.SourceTermCount.SourceTermCountModel
+module
+
+public import Qatlib.Papers.TrotterSuzuki15.MainResults.SourceTermCount.SourceTermCountModel
+
+@[expose] public section
 
 /-!
 # Anharmonic Oscillator Trotter-Suzuki Term Count Bound

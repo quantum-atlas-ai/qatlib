@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ResourceBounds.AsymBounds.EffectiveAccessDefs
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.EffectiveAccessDefs
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Exact state preparation and finite access circuits
@@ -49,17 +53,17 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccess Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
 /-- The total squared norm of the amplitude function represented by sparse access data. -/
-private noncomputable def sparseNorm {N b : ℕ} (s : SparseAccessData N b) : ℝ :=
+noncomputable def sparseNorm {N b : ℕ} (s : SparseAccessData N b) : ℝ :=
   ∑ i, ‖sparseValue s i‖ ^ 2
 
 /-- The sparse amplitude vector divided by the square root of its total squared norm. -/
-private noncomputable def sparseTarget {N b : ℕ} (s : SparseAccessData N b) :
+noncomputable def sparseTarget {N b : ℕ} (s : SparseAccessData N b) :
     QState (Fin N) :=
   fun i => sparseValue s i / ((Real.sqrt (sparseNorm s) : ℝ) : ℂ)
 
 /-- The circuit consisting of one Householder-completion gate for the sparse target, using basis
 index zero as the initial vector. -/
-private noncomputable def prepareWordSparse {N b : ℕ} (s : SparseAccessData N b)
+noncomputable def prepareWordSparse {N b : ℕ} (s : SparseAccessData N b)
     (hN : 0 < N) : Circuit (Fin N) :=
   [Step.gate (householderCompletion (⟨0, hN⟩ : Fin N) (sparseTarget s))]
 
@@ -157,6 +161,7 @@ omit [Fintype I] [DecidableEq I] in
 private theorem hhPhase_norm_one (i₀ : I) (v : QState I) : ‖hhPhase i₀ v‖ = 1 :=
   Complex.norm_exp_ofReal_mul_I _
 
+omit [Fintype I] [DecidableEq I] in
 /-- The phase used in the Householder construction is nonzero. -/
 private theorem hhPhase_ne_zero (i₀ : I) (v : QState I) : hhPhase i₀ v ≠ 0 := by
   intro h0
@@ -164,12 +169,14 @@ private theorem hhPhase_ne_zero (i₀ : I) (v : QState I) : hhPhase i₀ v ≠ 0
   rw [h0, norm_zero] at h1
   exact zero_ne_one h1
 
+omit [Fintype I] [DecidableEq I] in
 /-- The product of the conjugate Householder phase with the phase itself is one. -/
 private theorem hhPhase_star_mul (i₀ : I) (v : QState I) :
     starRingEnd ℂ (hhPhase i₀ v) * hhPhase i₀ v = 1 := by
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
     hhPhase_norm_one i₀ v, one_pow, Complex.ofReal_one]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Multiplication by the inverse Householder phase preserves the norm of a complex number. -/
 private theorem hhPhase_inv_mul_norm (i₀ : I) (v : QState I) (z : ℂ) :
     ‖((hhPhase i₀ v)⁻¹ * z)‖ = ‖z‖ := by
@@ -194,6 +201,7 @@ private theorem sum_star_mul_self (w : QState I) :
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+omit [DecidableEq I] in
 /-- Squaring the outer-product matrix multiplies it by the sum of the squared component norms of
 its defining vector. -/
 private theorem hhOuter_mul (w : QState I) :

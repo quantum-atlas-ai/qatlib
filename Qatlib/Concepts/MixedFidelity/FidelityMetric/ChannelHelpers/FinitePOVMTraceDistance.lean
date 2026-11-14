@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteOutputDistinguishability
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteOutputDistinguishability
+
+@[expose] public section
 
 /-!
 # Finite POVMs contract trace distance
@@ -41,7 +45,7 @@ variable {O : Type} [Fintype O] [DecidableEq O] {d : ℕ}
 /-- The matrix map sending an operator to the diagonal matrix of its POVM effect traces. -/
 def recordMap (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) : MatrixMap (Fin d) O ℂ where
   toFun A := Matrix.diagonal fun o => Matrix.trace (E.effect o * A)
-  map_add' := by intro A B; ext i j; by_cases h : i=j <;> simp [Matrix.mul_add, Matrix.trace_add, Matrix.diagonal_apply,h]
+  map_add' := by intro A B; ext i j; by_cases h : i=j <;> simp [Matrix.mul_add, Matrix.trace_add, h]
   map_smul' := by intro c A; ext i j; simp [Matrix.trace_smul, Matrix.diagonal_apply, mul_ite]
 
 /-- The diagonal POVM record map is positive. -/

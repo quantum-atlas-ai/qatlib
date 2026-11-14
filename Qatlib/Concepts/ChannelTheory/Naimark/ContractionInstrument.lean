@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Measurements.POVM
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Tactic
+module
+
+public import QuantumInfo.Measurements.POVM
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Two-outcome instruments for contractions

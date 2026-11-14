@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Topology.Algebra.InfiniteSum.Order
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+
+@[expose] public section
 
 /-!
 # Native rational decoding of amplitude estimates

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.Algebra.MvPolynomial.CommRing
-import Mathlib.Data.ZMod.Basic
-import Mathlib.FieldTheory.Finite.Basic
+module
+
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.Algebra.MvPolynomial.CommRing
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.FieldTheory.Finite.Basic
+
+@[expose] public section
 
 /-!
 # Finite-field polynomials for addition carries
@@ -107,9 +111,9 @@ lemma indicator_natCast (a d : ℕ) (ha : a < p) (hd : d < p) :
   by_cases h : a = d
   · subst h
     have hz : (0 : ZMod p) ^ (p - 1) = 0 := zero_pow (by have := hp.out.two_le; omega)
-    rw [if_pos rfl, sub_self, hz, sub_zero]
+    rw [ite_eq_left rfl, sub_self, hz, sub_zero]
   · have hne : ((a : ℕ) : ZMod p) - ((d : ℕ) : ZMod p) ≠ 0 := fun h0 => h (hiff.mp h0)
-    rw [if_neg h, ZMod.pow_card_sub_one_eq_one hne, sub_self]
+    rw [ite_eq_right h, ZMod.pow_card_sub_one_eq_one hne, sub_self]
 
 /-- Evaluation of the carry polynomial expands as the sum of the evaluated digit-indicator
 products over pairs with sum at least `p`. -/
@@ -154,10 +158,10 @@ theorem carryPoly_eval (a b : ℕ) (ha : a < p) (hb : b < p) :
             * (1 - (((b : ℕ) : ZMod p) - (j : ZMod p)) ^ (p - 1))
           else 0) = 0 := by
         intro j hj hjb
-        rw [indicator_natCast b j hb (Finset.mem_range.mp hj), if_neg (Ne.symm hjb), mul_zero]
+        rw [indicator_natCast b j hb (Finset.mem_range.mp hj), ite_eq_right (Ne.symm hjb), mul_zero]
         split_ifs <;> rfl
       rw [Finset.sum_eq_single b hterm]
-      · rw [if_pos rfl, indicator_natCast b b hb hb, if_pos rfl]
+      · rw [ite_eq_left rfl, indicator_natCast b b hb hb, ite_eq_left rfl]
         have hz : (0 : ZMod p) ^ (p - 1) = 0 := zero_pow (by have := hp.out.two_le; omega)
         rw [sub_self, hz, sub_zero, one_mul]
       · intro hbnot
@@ -168,16 +172,16 @@ theorem carryPoly_eval (a b : ℕ) (ha : a < p) (hb : b < p) :
             * (1 - (((b : ℕ) : ZMod p) - (j : ZMod p)) ^ (p - 1))
           else 0) = 0 := by
         intro j hj
-        rw [indicator_natCast a i ha (Finset.mem_range.mp hi), if_neg hai, zero_mul]
+        rw [indicator_natCast a i ha (Finset.mem_range.mp hi), ite_eq_right hai, zero_mul]
         split_ifs <;> rfl
-      rw [Finset.sum_eq_zero hterm, if_neg hai]
+      rw [Finset.sum_eq_zero hterm, ite_eq_right hai]
   rw [Finset.sum_congr rfl hinner,
-    Finset.sum_eq_single a (fun i _ hia => by rw [if_neg (Ne.symm hia)])
+    Finset.sum_eq_single a (fun i _ hia => by rw [ite_eq_right (Ne.symm hia)])
       (fun hanot => absurd (Finset.mem_range.mpr ha) hanot),
-    if_pos rfl]
+    ite_eq_left rfl]
   by_cases hab : a + b < p
-  · rw [if_neg (by omega), if_pos hab]
-  · rw [if_pos (by omega), if_neg hab]
+  · rw [ite_eq_right (by omega), ite_eq_left hab]
+  · rw [ite_eq_left (by omega), ite_eq_right hab]
 
 /-- For prime `p`, there exists a bivariate polynomial over `ZMod p` of total degree at most `2
 * p - 2` evaluating to the carry bit of every pair of base-`p` digits [Ivanyos, Lemma

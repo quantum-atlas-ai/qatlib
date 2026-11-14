@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Schrodinger25.MainResults.Model
+module
+
+public import Qatlib.Papers.Schrodinger25.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -95,8 +99,8 @@ amplification) is abstracted into `HamTSimulation`; the numeric content is
 proved from the `μ_max`-bound and `α_H, T ≥ 0`. -/
 theorem theorem_two_two_query_complexity
     (uI uT : ι → ℂ) (ε αH T β C μmax : ℝ)
-    (hε : 0 < ε) (hβ : 0 < β) (hT : 0 ≤ T) (hC : 0 ≤ C) (hα : 0 ≤ αH)
-    (huT : 0 < stateNorm uT)
+    (_hε : 0 < ε) (_hβ : 0 < β) (hT : 0 ≤ T) (_hC : 0 ≤ C) (hα : 0 ≤ αH)
+    (_huT : 0 < stateNorm uT)
     (hμ : μmax ≤ C * (Real.log (stateNorm uI / (ε * stateNorm uT))) ^ (1 / β)) :
     ∃ sim : HamTSimulation,
       sim.flagSuccess = true ∧

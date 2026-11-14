@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.RationalData
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.RationalData
+
+@[expose] public section
 
 /-!
 # Correctness and bounds for rational products
@@ -37,7 +41,7 @@ private theorem signed_abs (a : ℤ) :
   by_cases ha : a < 0
   · have h := Int.natAbs_of_nonneg (by omega : 0 ≤ -a)
     simp only [Int.natAbs_neg] at h
-    simp only [binomialSignedMagnitude,decide_eq_true ha,if_true]
+    simp only [binomialSignedMagnitude,decide_eq_true ha,ite_true]
     omega
   · simp [binomialSignedMagnitude,ha,Int.natAbs_of_nonneg (by omega : 0 ≤ a)]
 
@@ -77,12 +81,12 @@ theorem binomial_signed_rat (a : ℤ) (d : ℕ) :
     simp only [binomialSignedMagnitude,decide_eq_true_eq] at ha
     split_ifs with hs
     · rw [Rat.neg_mkRat]
-      simp only [if_pos hs] at ha
+      simp only [ite_eq_left hs] at ha
       rw [ha]
-    · simp only [if_neg hs] at ha
+    · simp only [ite_eq_right hs] at ha
       rw [ha]
   change (binomialSignedRat a d).1 = _ ∧ _
-  simp only [binomialSignedRat,dif_neg hd]
+  simp only [binomialSignedRat,dite_eq_right hd]
   change (if a < 0 then -q.1 else q.1) = _ ∧
     (binomialRatHeight (if a < 0 then -q.1 else q.1)).size ≤ max 1 w ∧ q.2 ≤ _
   refine ⟨hv,?_,hr.2.2.2.2.2⟩

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalHuan
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalHuan
-import QuantumInfo.ForMathlib.Matrix
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalHuan
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalHuan
+public import QuantumInfo.ForMathlib.Matrix
+
+@[expose] public section
 
 /-!
 # Proposition 5, linear variance terms for random Clifford measurements

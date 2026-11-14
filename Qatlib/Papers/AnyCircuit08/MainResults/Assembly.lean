@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AnyCircuit08.MainResults.Basic
-import Qatlib.Papers.AnyCircuit08.MainResults.RandomAssembly
+module
+
+public import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+public import Qatlib.Papers.AnyCircuit08.MainResults.RandomAssembly
+
+@[expose] public section
 
 /-!
 # From row moments to dispersing matrices
@@ -122,8 +126,8 @@ theorem fraction_lt_of_bad_fraction_le {Ω : Type*} [Fintype Ω] (f : Ω → ℝ
       = 1 := by
     intro ω
     by_cases hle : s ≤ f ω
-    · rw [if_pos hle, if_neg (not_lt.mpr hle)]; ring
-    · rw [if_neg hle, if_pos (not_le.mp hle)]; ring
+    · rw [ite_eq_left hle, ite_eq_right (not_lt.mpr hle)]; ring
+    · rw [ite_eq_right hle, ite_eq_left (not_le.mp hle)]; ring
   have hsum : (∑ ω, if s ≤ f ω then (1 : ℝ) else 0)
       + (∑ ω, if f ω < s then (1 : ℝ) else 0) = (Fintype.card Ω : ℝ) := by
     rw [← Finset.sum_add_distrib]
@@ -163,7 +167,7 @@ theorem fraction_dispersing_ge {Ω : Type*} {X : Type} [Fintype Ω] [Fintype X] 
       ≤ (if IsDispersing (U ω) α β then (1 : ℝ) else 0) := by
     intro ω
     by_cases hf : f ω < s
-    · rw [if_pos hf]
+    · rw [ite_eq_left hf]
       have hdis : IsDispersing (U ω) α β := by
         have hbadeq : ((Finset.univ.filter (fun a => bad ω a = true)).card : ℝ)
             = ∑ a, if bad ω a then (1 : ℝ) else 0 := by
@@ -180,8 +184,8 @@ theorem fraction_dispersing_ge {Ω : Type*} {X : Type} [Fintype Ω] [Fintype X] 
         exact dispersing_of_row_bounds (U ω) A hβ (le_of_lt hAcard) hcardpos
           (fun a ha => hunit ω a (hAfalse a ha))
           (fun a ha => hQ ω a (hAfalse a ha))
-      rw [if_pos hdis]
-    · rw [if_neg hf]
+      rw [ite_eq_left hdis]
+    · rw [ite_eq_right hf]
       split_ifs <;> norm_num
   have hsum_le : (∑ ω, if f ω < s then (1 : ℝ) else 0)
       ≤ ∑ ω, if IsDispersing (U ω) α β then (1 : ℝ) else 0 :=

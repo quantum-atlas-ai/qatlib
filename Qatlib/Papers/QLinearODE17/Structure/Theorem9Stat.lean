@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+
+@[expose] public section
 
 /-!
 # Statement of the quantitative ODE construction

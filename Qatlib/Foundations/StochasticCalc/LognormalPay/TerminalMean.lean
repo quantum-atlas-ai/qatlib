@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
-import Mathlib.Probability.Distributions.Gaussian.Real
+module
+
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
+public import Mathlib.Probability.Distributions.Gaussian.Real
+
+@[expose] public section
 
 /-!
 # Mean of a lognormal terminal level

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+
+@[expose] public section
 
 /-!
 # Unbounded Boolean instrument loops
@@ -520,9 +524,9 @@ private theorem unitVector_apply {D : ℕ} (p a : Fin D) :
     unitVector p a = if p = a then (1 : ℂ) else 0 := by
   by_cases h : p = a
   · subst h
-    simp [unitVector, Pi.single_apply]
+    simp [unitVector]
   · have h' : a ≠ p := fun he => h he.symm
-    simp [unitVector, Pi.single_apply, h, h']
+    simp [unitVector, h, h']
 
 /-- The `(a, b)` entry of `psdUnitVec u` is `u a` times the conjugate of `u b`. -/
 private theorem psdUnitVec_apply {D : ℕ} (u : Fin D → ℂ) (a b : Fin D) :
@@ -545,15 +549,15 @@ private theorem matrixUnit_eq_pieces {D : ℕ} (p q : Fin D) :
     by_cases hpa : p = a <;> by_cases hqa : q = a <;>
       simp [psdUnitVec_apply, unitVector_apply, hpa, hqa,
         Matrix.sub_apply, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
-        Matrix.single_apply, Pi.add_apply, Pi.smul_apply, map_mul, map_add, map_one,
+         Pi.add_apply, Pi.smul_apply, map_add, map_one,
         map_zero] <;>
       refine Complex.ext ?_ ?_ <;> norm_num [Complex.add_re, Complex.mul_re,
         Complex.sub_re, Complex.add_im, Complex.mul_im, Complex.sub_im]
   · by_cases hpa : p = a <;> by_cases hqa : q = a <;> by_cases hpb : p = b <;>
       by_cases hqb : q = b <;>
-      simp_all [psdUnitVec_apply, unitVector_apply, hpa, hqa, hpb, hqb, hab,
+      simp_all [psdUnitVec_apply, unitVector_apply,
         Matrix.sub_apply, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
-        Matrix.single_apply, Pi.add_apply, Pi.smul_apply, map_mul, map_add, map_one,
+         Pi.add_apply, Pi.smul_apply, map_add, map_one,
         map_zero] <;>
       refine Complex.ext ?_ ?_ <;> norm_num [Complex.add_re, Complex.mul_re,
         Complex.sub_re, Complex.add_im, Complex.mul_im, Complex.sub_im]

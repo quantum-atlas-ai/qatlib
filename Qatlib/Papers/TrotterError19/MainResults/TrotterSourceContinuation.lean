@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrotterError19.MainResults.TrotterSourceContinuationDefs
+module
+
+public import Qatlib.Papers.TrotterError19.MainResults.TrotterSourceContinuationDefs
+
+@[expose] public section
 
 /-!
 # A single parallel layer for disjoint supports

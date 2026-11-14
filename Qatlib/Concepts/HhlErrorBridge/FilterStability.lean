@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Stability of sine-envelope HHL filters
@@ -268,7 +272,7 @@ private theorem sin_envelope_h_triangle (d x z y : ℝ) :
         WithLp.toLp 2 (sinEnvelopeHVector d z - sinEnvelopeHVector d y)‖ := by
       congr 1
       ext s
-      simp [WithLp.toLp]
+      simp []
     _ ≤ _ := norm_add_le _ _
 
 /-- On the ordered ramp interval, the Euclidean distance of flag vectors is at most `(y-x)/d`
@@ -303,7 +307,7 @@ private theorem sin_envelope_h_ordered_lipschitz (d x y : ℝ) (hd : 0 < d) (hxy
   · rw [sin_envelope_h_low d x hd (by linarith)]
     by_cases hy : y ≤ d
     · rw [sin_envelope_h_low d y hd hy, sub_self]
-      simp [WithLp.toLp]
+      simp []
       positivity
     · by_cases hw : y ≤ 2*d
       · have hb := sin_envelope_h_ramp_coarse d d y hd le_rfl (by linarith) hw
@@ -355,7 +359,7 @@ private theorem sin_envelope_low_mass (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) 
     norm_num
   · have hw : ¬ 2*d ≤ x := by intro h; exact he (le_antisymm hx h)
     unfold sinEnvelopeFilterF sinEnvelopeFilterG
-    simp only [if_neg hw]
+    simp only [ite_eq_right hw]
     split_ifs with h
     · nlinarith [Real.sin_sq_add_cos_sq (Real.pi/2*(x-d)/d)]
     · norm_num

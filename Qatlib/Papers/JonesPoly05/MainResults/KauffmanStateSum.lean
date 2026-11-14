@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Perm.Cycle.Factors
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.GroupTheory.Perm.Cycle.Factors
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Permutation state sums and trace normalization
@@ -62,7 +66,7 @@ def upperPos {n : ℕ} (i : Fin (n - 1)) : Fin n :=
     have hn : 0 < n :=
       Nat.pos_of_ne_zero fun h => by subst h; exact Nat.not_lt_zero i.1 i.isLt
     have h : i.1 + 1 < (n - 1) + 1 := by
-      simpa [Nat.succ_eq_add_one] using Nat.succ_lt_succ i.isLt
+      exact Nat.succ_lt_succ i.isLt
     rwa [Nat.sub_add_cancel (Nat.succ_le_of_lt hn)] at h⟩
 
 /-- The identity permutation for a straight smoothing and the adjacent transposition otherwise. -/

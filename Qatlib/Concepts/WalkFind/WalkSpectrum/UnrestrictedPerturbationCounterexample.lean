@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.UnrestrictedPerturbationCounterexample
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Coeff
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.UnrestrictedPerturbationCounterexample
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Coeff
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Counterexample to unrestricted spectral perturbation

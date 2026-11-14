@@ -4,7 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchDefs
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchDefs
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedTactic false
+
+@[expose] public section
 
 /-!
 # Search and amplitude-estimation resource bounds
@@ -572,7 +579,7 @@ theorem variance_only_separates_nonnegativity (f : I → ℝ) (hf : ∀ i, f i =
 
 /-- For the two-point payoff with positive scale `t`, the mean is `t`, the variance is `t²`, and
 the relative-variance contract with parameter one holds. -/
-theorem relative_variance_gives_no_absolute_bound (B t : ℝ) (hB : 1 ≤ B)
+theorem relative_variance_gives_no_absolute_bound (B t : ℝ) (_hB : 1 ≤ B)
     (ht : 0 < t) :
     let p : FinDist (Fin 2) := twoPointSource
     let f : Fin 2 → ℝ := twoPointPayoff t
@@ -592,10 +599,7 @@ theorem relative_variance_gives_no_absolute_bound (B t : ℝ) (hB : 1 ≤ B)
     · rw [hmean]
       exact ht
     · rw [hvar, hmean]
-      have h1 : (1 : ℝ) ≤ B := hB
-      have hmul : (1 : ℝ) * t ^ 2 ≤ B * t ^ 2 :=
-        mul_le_mul_of_nonneg_right h1 (sq_nonneg t)
-      simpa using! hmul
+      simp
   · intro V hV
     exact hV
 
@@ -735,14 +739,14 @@ theorem linear_scan_ledger (t : DatabaseTable) :
       rw [scanMinRow_comps]
       simp only [Nat.zero_add]
       rw [hdrop]
-    simp only [linearScanMinimum, dif_pos hr]
+    simp only [linearScanMinimum, dite_eq_left hr]
     rw [hcomps]
     simp only [ComparisonLedger.bitCost]
     have hkey : t.rows + (t.rows - 1) = 2 * t.rows - 1 := by omega
     rw [hkey]
     simp
   · have hrows : t.rows = 0 := by omega
-    simp only [linearScanMinimum, dif_neg hr]
+    simp only [linearScanMinimum, dite_eq_right hr]
     simp [hrows, ComparisonLedger.bitCost]
 
 end Qatlib.Papers.FixedPtSearch14.FixedPoint

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseNetwork13.MainResults.Model.CostModel
+module
+
+public import Qatlib.Papers.SparseNetwork13.MainResults.Model.CostModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,7 +49,7 @@ theorem lemma3_query_cost (d kappa eps : ℝ) (hd : 0 < d) (hk : 0 < kappa) (he 
   positivity
 
 /-- **Lemma 3**, monotonicity of the leading cost in the sparsity `d` (p.10). -/
-theorem lemma3_query_cost_mono (d d' kappa eps : ℝ) (hd : d ≤ d') (hk : 0 ≤ kappa)
+theorem lemma3_query_cost_mono (d d' kappa eps : ℝ) (hd : d ≤ d') (_hk : 0 ≤ kappa)
     (he : 0 < eps) :
     costLemma3 d kappa eps ≤ costLemma3 d' kappa eps := by
   unfold costLemma3

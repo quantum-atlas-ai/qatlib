@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastPoisson19.CostModels.CircuitCostDefs
+module
+
+public import Qatlib.Papers.FastPoisson19.CostModels.CircuitCostDefs
+
+@[expose] public section
 
 /-!
 # Controlled-rotation resource bounds

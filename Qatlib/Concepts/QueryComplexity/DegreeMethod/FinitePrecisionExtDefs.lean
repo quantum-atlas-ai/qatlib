@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffective
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffective
+
+@[expose] public section
 
 /-!
 # Encoded multiplication stack program

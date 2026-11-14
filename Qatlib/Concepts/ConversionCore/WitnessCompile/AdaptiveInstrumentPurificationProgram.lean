@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Data.List.GetD
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Data.List.GetD
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
+
+@[expose] public section
 
 /-!
 # Programs implementing adaptive purification
@@ -78,11 +82,11 @@ theorem sourceRelabelGate_mul_basisFrame {I J : Type} [Fintype I] [DecidableEq I
     · simp
   have hr : (∑ a : I,(if j=e a then (1:ℂ) else 0)*M a i)=M (e.symm j) i := by
     rw [Finset.sum_eq_single (e.symm j)]
-    · rw [if_pos (Equiv.apply_symm_apply e j).symm,one_mul]
+    · rw [ite_eq_left (Equiv.apply_symm_apply e j).symm,one_mul]
     · intro a _ ha
       have hne : j≠e a := fun hh => ha (((congrArg e.symm hh).trans
         (Equiv.symm_apply_apply e a)).symm)
-      rw [if_neg hne,zero_mul]
+      rw [ite_eq_right hne,zero_mul]
     · simp
   simp only [Matrix.mul_apply,relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,
     sourceBasisFrame]
@@ -99,19 +103,19 @@ theorem sourceRelabelGate_permMatrix {I J : Type} [Fintype I] [DecidableEq I]
   ext j j'
   simp only [relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,permMatrix,Matrix.of_apply]
   by_cases hj : j=τ j'
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     have hh : e.symm j=σ (e.symm j') := by
       have h1 := h (e.symm j')
       rw [Equiv.apply_symm_apply] at h1
       have h2 : e (σ (e.symm j'))=j := h1.trans hj.symm
       exact ((congrArg e.symm h2).symm).trans (Equiv.symm_apply_apply e (σ (e.symm j')))
-    rw [if_pos hh]
-  · rw [if_neg hj]
+    rw [ite_eq_left hh]
+  · rw [ite_eq_right hj]
     have hh : e.symm j≠σ (e.symm j') := fun he => hj (by
       have h1 := h (e.symm j')
       rw [← he,Equiv.apply_symm_apply,Equiv.apply_symm_apply] at h1
       exact h1)
-    rw [if_neg hh]
+    rw [ite_eq_right hh]
 end
 noncomputable section
 
@@ -419,7 +423,7 @@ theorem sourceBlockDiagonal'_permMatrix {I : Type} [DecidableEq I]
   · rw [Matrix.blockDiagonal'_apply_ne _ _ _ h]
     symm
     simp only [permMatrix,Matrix.of_apply]
-    rw [if_neg (fun hh => h (congrArg Sigma.fst hh))]
+    rw [ite_eq_right (fun hh => h (congrArg Sigma.fst hh))]
 end
 noncomputable section
 
@@ -484,7 +488,7 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
           (sourcePurifyIn (n:=n) (q:=q) (r:=r) (L:=max 1 (sourceAdaptiveLeaves T)) hL *ᵥ ψ)=
         sourcePurifyOut (n:=n) (q:=q) (r:=r) (L:=max 1 (sourceAdaptiveLeaves T)) *ᵥ
           sourceAdaptivePure (sourceAlphabetOracle input x) T ψ := by
-  haveI : Nonempty (SourceSpace n q H r) :=
+  have : Nonempty (SourceSpace n q H r) :=
     ⟨⟨⟨⟨0,Nat.succ_pos n⟩,⟨0,Nat.succ_pos q⟩⟩,⟨⟨true,Classical.arbitrary H⟩,⟨0,hr⟩⟩⟩⟩
   intro T
   induction T with
@@ -507,9 +511,9 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
       have hiv : i.val=0 := by
         rw [hi]
       by_cases hw : w=(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1))
-      · rw [if_pos ⟨hi,hw⟩,if_pos hw]
+      · rw [ite_eq_left ⟨hi,hw⟩,ite_eq_left hw]
         simp [sourceAdaptivePure,sourceAdaptiveBranches]
-      · rw [if_neg (fun hh => hw hh.2),if_neg hw]
+      · rw [ite_eq_right (fun hh => hw hh.2),ite_eq_right hw]
   | known U next ih =>
     intro hT hL
     have hL' : 0<max 1 (sourceAdaptiveLeaves next) := hL
@@ -573,7 +577,7 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
               (l,s,w)=0 := by
           intro l s w hw
           rw [sourcePurifyIn_apply]
-          exact if_neg (fun hh => hw hh.2)
+          exact ite_eq_right (fun hh => hw hh.2)
         rw [sourcePurifySwapGate_layer input x _ hclean]
         have hor : sourcePurifyOracle (n:=n) (q:=q) input x (r:=r)
             (L:=max 1 (sourceAdaptiveLeaves next)) *ᵥ
@@ -632,7 +636,7 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
               (l,s,w)=0 := by
           intro l s w hw
           rw [sourcePurifyFlipGate,sourcePermMatrix_equiv_mulVec,sourcePurifyIn_apply]
-          exact if_neg (fun hh => hw hh.2)
+          exact ite_eq_right (fun hh => hw hh.2)
         have hstep : ((sourcePurifyFlipGate (H:=H) (n:=n) (q:=q) (r:=r)
               (L:=max 1 (sourceAdaptiveLeaves next))*
             sourcePurifySwapGate (H:=H) (n:=n) (q:=q) (r:=r) (L:=max 1 (sourceAdaptiveLeaves next)))*
@@ -849,23 +853,23 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
         · subst hj
           by_cases hw : w=(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1))
           · subst hw
-            rw [if_pos ⟨rfl,rfl⟩]
+            rw [ite_eq_left ⟨rfl,rfl⟩]
             rw [Finset.sum_eq_single (i,s)]
-            · rw [if_pos rfl,one_mul]
+            · rw [ite_eq_left rfl,one_mul]
             · intro ⟨i',s'⟩ _ hne
-              rw [if_neg (show (e_leaf_inv ⟨i,⟨0,_⟩⟩,s,⟨n,Nat.lt_succ_self n⟩)≠c_a (i',s') from
+              rw [ite_eq_right (show (e_leaf_inv ⟨i,⟨0,_⟩⟩,s,⟨n,Nat.lt_succ_self n⟩)≠c_a (i',s') from
                 fun hh => hne (Prod.ext (congrArg Sigma.fst (e_leaf_inv.injective
                   (congrArg (fun y => y.1) hh))).symm (congrArg (fun y => y.2.1) hh).symm)),zero_mul]
             · simp
-          · rw [if_neg (fun hh => hw hh.2)]
+          · rw [ite_eq_right (fun hh => hw hh.2)]
             apply Finset.sum_eq_zero
             intro ⟨i',s'⟩ _
-            rw [if_neg (show (e_leaf_inv ⟨i,⟨0,_⟩⟩,s,w)≠c_a (i',s') from fun hh =>
+            rw [ite_eq_right (show (e_leaf_inv ⟨i,⟨0,_⟩⟩,s,w)≠c_a (i',s') from fun hh =>
               hw (congrArg (fun y => y.2.2) hh)),zero_mul]
-        · rw [if_neg (fun hh => hj hh.1)]
+        · rw [ite_eq_right (fun hh => hj hh.1)]
           apply Finset.sum_eq_zero
           intro ⟨i',s'⟩ _
-          rw [if_neg (show (e_leaf_inv ⟨i,j⟩,s,w)≠c_a (i',s') from fun hh => hj (by
+          rw [ite_eq_right (show (e_leaf_inv ⟨i,j⟩,s,w)≠c_a (i',s') from fun hh => hj (by
             have h1 := e_leaf_inv.injective (congrArg (fun y => y.1) hh)
             have hi : i=i' := congrArg Sigma.fst h1
             subst hi
@@ -905,9 +909,9 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
           by_cases hcond : j=(⟨0,lt_of_lt_of_le Nat.zero_lt_one (le_max_left _ _)⟩ :
               Fin (max 1 (sourceAdaptiveLeaves (next i))))∧
             w=(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1))
-          · rw [if_pos hcond,if_pos hcond]
+          · rw [ite_eq_left hcond,ite_eq_left hcond]
             simp [sourceInstrumentMatrix,Matrix.mulVec,dotProduct]
-          · rw [if_neg hcond,if_neg hcond]
+          · rw [ite_eq_right hcond,ite_eq_right hcond]
         rw [hθ]
         exact congrFun ((hP i).2.2 x (K i *ᵥ ψ)) y
       rw [hB]
@@ -923,7 +927,7 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
       simp only [sourcePurifyOut_apply]
       by_cases hw : w=(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1))
       · subst hw
-        rw [if_pos rfl,if_pos rfl]
+        rw [ite_eq_left rfl,ite_eq_left rfl]
         have hgl : (e_leaf_inv ⟨(e_leaf_inv.symm g).1,(e_leaf_inv.symm g).2⟩)=g := by
           have hh := Equiv.symm_apply_apply e_leaf_inv.symm g
           rw [Equiv.symm_symm] at hh
@@ -952,6 +956,6 @@ theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
             (K i *ᵥ ψ)).flatten.getD g.val 0) s
         rw [hgval,sourceFlatten_getD 0 _ _ _ _ hjlt,List.getElem_ofFn]
         simp only [sourceAdaptivePure,Fin.eta]
-      · rw [if_neg hw,if_neg hw]
+      · rw [ite_eq_right hw,ite_eq_right hw]
 end
 end Qatlib.Concepts.ConversionCore.WitnessCompile

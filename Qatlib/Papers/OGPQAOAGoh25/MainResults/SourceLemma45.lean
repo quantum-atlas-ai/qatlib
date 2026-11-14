@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,10 +47,10 @@ of vertices have a non-treelike radius-`l n` neighbourhood (the cycle-count
 Markov bound of eqs. (28)–(31)), then with probability tending to one at least a
 `1 - δ` fraction of the `l n`-local neighbourhoods are treelike. -/
 theorem lemma45
-    {q : ℕ} (hq : 2 ≤ q)
+    {q : ℕ} (_hq : 2 ≤ q)
     (μ : ∀ n : ℕ, FinDist (Instance n q))
-    (l : ℕ → ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hl : ∀ᶠ n : ℕ in atTop, (l n : ℝ) ≤ ε * Real.log n)
+    (l : ℕ → ℕ) (ε : ℝ) (_hε : 0 < ε)
+    (_hl : ∀ᶠ n : ℕ in atTop, (l n : ℝ) ≤ ε * Real.log n)
     (hbad : ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,
       1 - δ ≤ mass (μ n) (fun I => (I.badCount (l n) : ℝ) ≤ δ * (n : ℝ))) :
     ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,

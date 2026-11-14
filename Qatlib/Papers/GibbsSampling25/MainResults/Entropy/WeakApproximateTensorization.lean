@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,9 +85,9 @@ term of eq. (7) is bounded by `D·2^D·K·|Λ|·e^{-c/ξ}`:
 def weak_approximate_tensorization_uniform {D L k c ℓ : ℕ} (cg : CoarseGraining D L k c ℓ)
     {I : Type} [Fintype I] [DecidableEq I] (σ ρ : Density I)
     (davies : Fin (D + 1) → Finset (Site D L) → Density I → Density I)
-    (mcmi : McmiNorm (Site D L)) (K ξ : ℝ) (hK : 0 < K) (hξ : 0 < ξ)
-    (X Z W : Fin (D + 1) → Finset (Site D L))
-    (hDecay : ∀ A C Dd : Finset (Site D L),
+    (mcmi : McmiNorm (Site D L)) (K ξ : ℝ) (_hK : 0 < K) (_hξ : 0 < ξ)
+    (_X _Z _W : Fin (D + 1) → Finset (Site D L))
+    (_hDecay : ∀ A C Dd : Finset (Site D L),
       mcmi A C Dd ≤ K * (Fintype.card (Site D L) : ℝ) * Real.exp (- setDist A C / ξ))  : Prop :=
     relEnt ρ σ ≤
       (∑ a : Fin (D + 1), ∑ C ∈ cg.cell a, relEnt ρ (davies a C ρ))

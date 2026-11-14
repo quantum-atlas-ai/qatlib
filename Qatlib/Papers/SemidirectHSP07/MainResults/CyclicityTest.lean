@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.Group
-import Qatlib.Papers.SemidirectHSP07.MainResults.CommutatorStructure
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.Group
+public import Qatlib.Papers.SemidirectHSP07.MainResults.CommutatorStructure
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+
+@[expose] public section
 
 /-!
 # Intersections and a sufficient test for cyclicity

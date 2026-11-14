@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
-import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+module
+
+public import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+
+@[expose] public section
 
 /-!
 # Circuit semantics of hidden subgroup Fourier sampling
@@ -57,23 +61,40 @@ gate to the first register. -/
 noncomputable def hiddenSubgroupSamplingCircuit (e : G ≃ AddChar G ℂ) : Circuit (G × R) :=
   [Step.query, Step.gate (TensorGate (fourierGate e) 1)]
 
+omit [AddCommGroup G] [Fintype G] [DecidableEq G]
+    [AddCommGroup R] [Fintype R] [DecidableEq R] in
 /-- The hidden subgroup sampling circuit has one query, one gate macro, and total size two. -/
-theorem hiddenSubgroupSamplingCircuit_resources (e : G ≃ AddChar G ℂ) :
+theorem hiddenSubgroupSamplingCircuit_resources {G R : Type*}
+    [_instAddCommGroupG : AddCommGroup G] [_instFintypeG : Fintype G]
+    [_instDecidableEqG : DecidableEq G] [_instAddCommGroupR : AddCommGroup R]
+    [_instFintypeR : Fintype R] [_instDecidableEqR : DecidableEq R]
+    (e : G ≃ AddChar G ℂ) :
     QueryCount (hiddenSubgroupSamplingCircuit (R := R) e) = 1 ∧
       GateCount (hiddenSubgroupSamplingCircuit (R := R) e) = 1 ∧
         Size (hiddenSubgroupSamplingCircuit (R := R) e) = 2 := by
   exact ⟨rfl, rfl, rfl⟩
 
+omit [AddCommGroup G] [Fintype G] [DecidableEq G]
+    [AddCommGroup R] [Fintype R] [DecidableEq R] in
 /-- Every gate in the hidden subgroup sampling circuit is unitary. -/
-theorem hiddenSubgroupSamplingCircuit_unitary (e : G ≃ AddChar G ℂ) :
+theorem hiddenSubgroupSamplingCircuit_unitary {G R : Type*}
+    [_instAddCommGroupG : AddCommGroup G] [_instFintypeG : Fintype G]
+    [_instDecidableEqG : DecidableEq G] [_instAddCommGroupR : AddCommGroup R]
+    [_instFintypeR : Fintype R] [_instDecidableEqR : DecidableEq R]
+    (e : G ≃ AddChar G ℂ) :
     IsUnitaryCircuit (hiddenSubgroupSamplingCircuit (R := R) e) := by
   simp only [hiddenSubgroupSamplingCircuit, isUnitaryCircuit_query,
     isUnitaryCircuit_gate, isUnitaryCircuit_nil, and_true]
   exact tensorGate_unitary (fourierGate_unitary e) (Submonoid.one_mem _)
 
+omit [AddCommGroup G] [Fintype G] [DecidableEq G]
+    [AddCommGroup R] [Fintype R] [DecidableEq R] in
 /-- A tensor gate with identity on the second register acts by its first factor on each fixed
 second-register slice. -/
-private theorem applyGate_tensorGate_one_slice
+private theorem applyGate_tensorGate_one_slice {G R : Type*}
+    [_instAddCommGroupG : AddCommGroup G] [_instFintypeG : Fintype G]
+    [_instDecidableEqG : DecidableEq G] [_instAddCommGroupR : AddCommGroup R]
+    [_instFintypeR : Fintype R] [_instDecidableEqR : DecidableEq R]
     (U : Matrix G G ℂ) (ψ : QState (G × R)) (x : G) (z : R) :
     ApplyGate (TensorGate U 1) ψ (x, z) =
       ApplyGate U (fun y => ψ (y, z)) x := by

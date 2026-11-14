@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Polylogarithmic costs for phase estimation
@@ -113,7 +117,7 @@ lemma sampleCount_third_le (ε : ℝ) (hε : 0 < ε) :
 def timeBound (c d : ℕ) (ε : ℝ) (n : ℕ) : ℕ := sampleCount ε * (c * bitLength n ^ d)
 
 /-- The product of the precision factor and bit-length cost equals `timeBound`. -/
-theorem timeBound_le (c d : ℕ) (hc : 0 < c) (hd : 0 < d) (ε : ℝ) (n : ℕ) :
+theorem timeBound_le (c d : ℕ) (_hc : 0 < c) (_hd : 0 < d) (ε : ℝ) (n : ℕ) :
     sampleCount ε * (c * bitLength n ^ d) = timeBound c d ε n := rfl
 
 end Qatlib.Papers.GaussSumEst02.MainResults.Source

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBitPair
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeLabelPadding
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBitPair
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeLabelPadding
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiprimeFact15.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.SemiprimeFact15.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,7 +47,7 @@ and `q > 2`, the multiplicative order of `2` modulo `p` is `q` or `2q`
 theorem orderOf_two_zmod_of_safe_prime {p q : ℕ} (hp : p.Prime) (hpq : p = 2 * q + 1)
     (hq : q.Prime) (hq2 : 2 < q) :
     orderOf (2 : ZMod p) = q ∨ orderOf (2 : ZMod p) = 2 * q := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hp3 : 3 < p := by rw [hpq, two_mul]; omega
   have hne0 : (2 : ZMod p) ≠ 0 := by
     show ((2 : ℕ) : ZMod p) ≠ 0

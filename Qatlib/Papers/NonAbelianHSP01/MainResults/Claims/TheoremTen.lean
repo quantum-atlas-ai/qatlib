@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Qatlib.Papers.NonAbelianHSP01.MainResults.MembershipReduction
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.MembershipReduction
+
+@[expose] public section
 
 /-!
 # Orders and periods in normal quotients

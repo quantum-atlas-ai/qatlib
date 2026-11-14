@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Algebra.Group.Subgroup.Lattice
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Sylow
-import Mathlib.GroupTheory.PresentedGroup
-import Mathlib.GroupTheory.Subgroup.Center
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Algebra.Group.Subgroup.Lattice
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Sylow
+public import Mathlib.GroupTheory.PresentedGroup
+public import Mathlib.GroupTheory.Subgroup.Center
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Black-box group vocabulary and algebraic task feasibility

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressAxisCertificate
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressCountMap
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressAxisCertificate
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressCountMap
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -116,8 +120,11 @@ def trainedLaw (p : FinDist T) (u v : E → Bool → ℂ)
     simp_rw [← Finset.mul_sum,FinDist.sum_probOf,mul_one]
     exact p.sum_one
 
+omit [Fintype E] [DecidableEq E] [Nonempty E] [Fintype T] in
 /-- Complete original `trained_law_native` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
-theorem trained_law_native (p : FinDist T) (u v : E → Bool → ℂ)
+theorem trained_law_native {E : Type} [_inst0 : Fintype E] [_inst1 : DecidableEq E]
+    [_inst2 : Nonempty E] {T : Type} [_inst3 : Fintype T]
+    (p : FinDist T) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : T → E → List Gate) (n : ℕ) (z : T × (Fin n → GlobalRecord E)) :
     (trainedLaw p u v hu hv words n).prob z=
@@ -164,8 +171,11 @@ theorem event_le_one {X : Type} [Fintype X] (p : FinDist X) (n : ℕ)
       · simpa [hω] using h
     _ = 1 := p.sum_probOf n
 
+omit [Fintype E] [DecidableEq E] [Nonempty E] [Fintype T] in
 /-- Complete original `trained_event_bound` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
-theorem trained_event_bound (p : FinDist T) (u v : E → Bool → ℂ)
+theorem trained_event_bound {E : Type} [_inst0 : Fintype E] [_inst1 : DecidableEq E]
+    [_inst2 : Nonempty E] {T : Type} [_inst3 : Fintype T]
+    (p : FinDist T) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : T → E → List Gate) (n : ℕ) (bad : T → Prop) [DecidablePred bad]
     (event : (Fin n → GlobalRecord E) → Prop) [DecidablePred event]

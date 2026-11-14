@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Mathlib.Analysis.Complex.CauchyIntegral
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 /-!
 # Matrix-valued Cauchy on a circle
 

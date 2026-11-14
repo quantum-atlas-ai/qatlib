@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -78,7 +82,7 @@ theorem lemma12_expectationEstimation (n s : ℕ) (A ρ : Operator n) (ε p_e : 
           |estC ω - (Matrix.trace (A * ρ)).re| ≤ ε
       · have hQ : |estA ω 0 - (Matrix.trace (A * ρ)).re| ≤ ε := hP.1 0
         simp [hP]
-      · rw [if_neg hP]
+      · rw [ite_eq_right hP]
         by_cases hQ : |estA ω 0 - (Matrix.trace (A * ρ)).re| ≤ ε
         · simp [hQ, hlaw.1 ω]
         · simp [hQ]

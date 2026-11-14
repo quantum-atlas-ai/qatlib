@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarCompact
-import Qatlib.Papers.Trainability23.HaarAverages.HaarIntegral
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Complex
-import Mathlib.MeasureTheory.Group.Integral
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
-import Mathlib.MeasureTheory.Measure.Haar.Basic
-import Mathlib.Topology.Algebra.Star.Unitary
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarCompact
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarIntegral
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Complex
+public import Mathlib.MeasureTheory.Group.Integral
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+public import Mathlib.MeasureTheory.Measure.Haar.Basic
+public import Mathlib.Topology.Algebra.Star.Unitary
+
+@[expose] public section
 
 /-!
 # Haar unitary moments and tensor averages
@@ -78,15 +82,15 @@ theorem haarIntegrable_entryPair (n : Type*) [Fintype n] [DecidableEq n] (a b k 
       (fun V : Matrix.unitaryGroup n ℂ =>
         (V : Matrix n n ℂ) k a * star ((V : Matrix n n ℂ) l b))
       (haarUnitaryGroup n) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup n) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup n) :=
     ⟨by rw [haarUnitaryGroup_univ n]; exact ENNReal.one_lt_top⟩
   have h1 : Continuous fun V : Matrix.unitaryGroup n ℂ => (V : Matrix n n ℂ) k a := by
-    change Continuous fun V : Matrix.unitaryGroup n ℂ => (V : n → n → ℂ) k a
+
     have hk : Continuous fun p : n → n → ℂ => p k := continuous_apply k
     have ha : Continuous fun q : n → ℂ => q a := continuous_apply a
     exact (ha.comp hk).comp continuous_subtype_val
   have h2 : Continuous fun V : Matrix.unitaryGroup n ℂ => (V : Matrix n n ℂ) l b := by
-    change Continuous fun V : Matrix.unitaryGroup n ℂ => (V : n → n → ℂ) l b
+
     have hl : Continuous fun p : n → n → ℂ => p l := continuous_apply l
     have hb : Continuous fun q : n → ℂ => q b := continuous_apply b
     exact (hb.comp hl).comp continuous_subtype_val
@@ -134,7 +138,7 @@ theorem haar_entryPair_invariant (n : Type*) [Fintype n] [DecidableEq n] (a b : 
       = ∑ l, ∑ k, (U : Matrix n n ℂ) i l * star ((U : Matrix n n ℂ) j k) *
           MeasureTheory.integral (haarUnitaryGroup n) (fun V : Matrix.unitaryGroup n ℂ =>
             (V : Matrix n n ℂ) l a * star ((V : Matrix n n ℂ) k b)) := by
-  haveI : (haarUnitaryGroup n).IsMulLeftInvariant := by
+  have : (haarUnitaryGroup n).IsMulLeftInvariant := by
     rw [haarUnitaryGroup]
     infer_instance
   have hint : ∀ l k : n, MeasureTheory.Integrable
@@ -189,19 +193,19 @@ theorem signDiagonal_mem_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] (i
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Finset.sum_eq_single x]
-    · simp only [Matrix.star_apply, Matrix.diagonal_apply, if_pos rfl]
+    rw [ite_eq_left rfl, Finset.sum_eq_single x]
+    · simp only [Matrix.star_apply, Matrix.diagonal_apply]
       by_cases hx : x = i <;> simp [hx]
     · intro k _ hk
-      simp [Matrix.star_apply, Matrix.diagonal_apply, Ne.symm hk]
+      simp [Matrix.star_apply, Ne.symm hk]
     · intro hx
       exact absurd (Finset.mem_univ x) hx
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hkx : k = x
     · subst hkx
-      simp [Matrix.star_apply, Matrix.diagonal_apply, hxy, Ne.symm hxy]
-    · simp [Matrix.star_apply, Matrix.diagonal_apply, hkx, Ne.symm hkx]
+      simp [Matrix.star_apply,  Ne.symm hxy]
+    · simp [Matrix.star_apply, Matrix.diagonal_apply, Ne.symm hkx]
 
 /-- The Haar integral of an entry-pair product vanishes when its two row indices differ. -/
 theorem haar_entryPair_offdiag (n : Type*) [Fintype n] [DecidableEq n] (a b : n) {i j : n}
@@ -221,9 +225,9 @@ theorem haar_entryPair_offdiag (n : Type*) [Fintype n] [DecidableEq n] (a b : n)
             (V : Matrix n n ℂ) i a * star ((V : Matrix n n ℂ) j b)) := by
     rw [Finset.sum_eq_single i]
     · rw [Finset.sum_eq_single j]
-      · rw [Matrix.diagonal_apply, if_pos rfl, Matrix.diagonal_apply, if_pos rfl]
+      · rw [Matrix.diagonal_apply, ite_eq_left rfl, Matrix.diagonal_apply, ite_eq_left rfl]
       · intro k _ hk
-        simp [Matrix.diagonal_apply, Ne.symm hk]
+        simp [ Ne.symm hk]
       · intro hj
         exact absurd (Finset.mem_univ j) hj
     · intro l _ hl
@@ -265,19 +269,19 @@ theorem permMatrix_mem_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] (σ 
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hab : a = b
   · subst hab
-    rw [if_pos rfl, Finset.sum_eq_single (σ a)]
+    rw [ite_eq_left rfl, Finset.sum_eq_single (σ a)]
     · simp [permMatrix, Matrix.of_apply, Matrix.star_apply]
     · intro k _ hk
       simp [permMatrix, Matrix.of_apply, Matrix.star_apply, hk]
     · intro h
       exact absurd (Finset.mem_univ (σ a)) h
-  · rw [if_neg hab]
+  · rw [ite_eq_right hab]
     have hne : σ a ≠ σ b := fun h => hab (σ.injective h)
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hk : k = σ a
     · subst hk
       simp [permMatrix, Matrix.of_apply, Matrix.star_apply, hne]
-    · simp [permMatrix, Matrix.of_apply, Matrix.star_apply, hk, hne]
+    · simp [permMatrix, Matrix.of_apply, Matrix.star_apply, hk]
 
 /-- Simultaneously permuting the row indices leaves the Haar entry-pair integral unchanged. -/
 theorem haar_entryPair_perm (n : Type*) [Fintype n] [DecidableEq n] (a b : n) (σ : Equiv.Perm n)
@@ -339,7 +343,7 @@ theorem haar_entryPair_eq (n : Type*) [Fintype n] [DecidableEq n] (a b : n) (i j
       = if i = j then (Matrix.single a b (1 : ℂ)).trace / (Fintype.card n : ℂ) else 0 := by
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hcard : (Fintype.card n : ℂ) ≠ 0 :=
       Nat.cast_ne_zero.mpr (Fintype.card_pos_iff.mpr ⟨i⟩).ne'
     have hconst : ∀ k : n,
@@ -362,7 +366,7 @@ theorem haar_entryPair_eq (n : Type*) [Fintype n] [DecidableEq n] (a b : n) (i j
     rw [haar_entryPair_trace n a b] at hsum
     rw [eq_div_iff hcard, mul_comm]
     exact hsum.symm
-  · rw [if_neg hij]
+  · rw [ite_eq_right hij]
     exact haar_entryPair_offdiag n a b hij
 
 /-- The permutation matrix exchanging the two factors of `n × n`. -/
@@ -410,18 +414,18 @@ theorem diagonal_mem_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] (d : n
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Finset.sum_eq_single x]
+    rw [ite_eq_left rfl, Finset.sum_eq_single x]
     · simpa [Matrix.star_apply, Matrix.diagonal_apply, mul_comm] using hd x
     · intro k _ hk
-      simp [Matrix.star_apply, Matrix.diagonal_apply, Ne.symm hk]
+      simp [Matrix.star_apply,  Ne.symm hk]
     · intro hx
       exact absurd (Finset.mem_univ x) hx
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hkx : k = x
     · subst hkx
-      simp [Matrix.star_apply, Matrix.diagonal_apply, hxy, Ne.symm hxy]
-    · simp [Matrix.star_apply, Matrix.diagonal_apply, hkx, Ne.symm hkx]
+      simp [Matrix.star_apply,  Ne.symm hxy]
+    · simp [Matrix.star_apply, Matrix.diagonal_apply, Ne.symm hkx]
 
 /-- The Kronecker square of a two-dimensional diagonal matrix has diagonal entry `z p.1 * z p.2`
 and zero off-diagonal entries. -/
@@ -432,15 +436,15 @@ theorem diagonal_kronecker_apply (z : Fin 2 → ℂ) (p q : Fin 2 × Fin 2) :
   by_cases h : p = q
   · subst h
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rcases p with ⟨p₁, p₂⟩
     rcases q with ⟨q₁, q₂⟩
     simp only [Prod.mk.injEq] at h
     by_cases h₁ : p₁ = q₁
-    · rw [if_pos h₁]
+    · rw [ite_eq_left h₁]
       have h₂ : p₂ ≠ q₂ := fun h₂ => h ⟨h₁, h₂⟩
-      rw [if_neg h₂, mul_zero]
-    · rw [if_neg h₁, zero_mul]
+      rw [ite_eq_right h₂, mul_zero]
+    · rw [ite_eq_right h₁, zero_mul]
 
 /-- A matrix commuting with a diagonal Kronecker square has zero entries between indices with
 distinct diagonal eigenvalues. -/
@@ -451,17 +455,17 @@ theorem torus_sparsity (z : Fin 2 → ℂ) (M : Matrix (Fin 2 × Fin 2) (Fin 2 �
   have hleft : (Matrix.kroneckerMap (· * ·) (Matrix.diagonal z) (Matrix.diagonal z) * M) p q
       = z p.1 * z p.2 * M p q := by
     rw [Matrix.mul_apply, Finset.sum_eq_single p]
-    · rw [diagonal_kronecker_apply, if_pos rfl]
+    · rw [diagonal_kronecker_apply, ite_eq_left rfl]
     · intro r _ hr
-      rw [diagonal_kronecker_apply, if_neg (fun hh => hr hh.symm), zero_mul]
+      rw [diagonal_kronecker_apply, ite_eq_right (fun hh => hr hh.symm), zero_mul]
     · intro hp
       exact absurd (Finset.mem_univ p) hp
   have hright : (M * Matrix.kroneckerMap (· * ·) (Matrix.diagonal z) (Matrix.diagonal z)) p q
       = M p q * (z q.1 * z q.2) := by
     rw [Matrix.mul_apply, Finset.sum_eq_single q]
-    · rw [diagonal_kronecker_apply, if_pos rfl]
+    · rw [diagonal_kronecker_apply, ite_eq_left rfl]
     · intro r _ hr
-      rw [diagonal_kronecker_apply, if_neg hr, mul_zero]
+      rw [diagonal_kronecker_apply, ite_eq_right hr, mul_zero]
     · intro hq
       exact absurd (Finset.mem_univ q) hq
   have hpq : z p.1 * z p.2 * M p q = (z q.1 * z q.2) * M p q := by
@@ -513,7 +517,7 @@ theorem bitflip_relation (M : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     · rw [bitflip_kronecker_apply]
       simp
     · intro r _ hr
-      rw [bitflip_kronecker_apply, if_neg (fun hh => hr (by cases r with | mk a b => exact hh)),
+      rw [bitflip_kronecker_apply, ite_eq_right (fun hh => hr (by cases r with | mk a b => exact hh)),
         zero_mul]
     · intro hp
       exact absurd (Finset.mem_univ _) hp
@@ -524,7 +528,7 @@ theorem bitflip_relation (M : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     · rw [bitflip_kronecker_apply]
       simp
     · intro r _ hr
-      rw [bitflip_kronecker_apply, if_neg ?_, mul_zero]
+      rw [bitflip_kronecker_apply, ite_eq_right ?_, mul_zero]
       intro hh
       have h1 : r.1 = k := (Equiv.swap 0 1).injective (Prod.ext_iff.mp hh).1.symm
       have h2 : r.2 = l := (Equiv.swap 0 1).injective (Prod.ext_iff.mp hh).2.symm
@@ -542,8 +546,8 @@ theorem permMatrix_trace (n : Type*) [Fintype n] [DecidableEq n] (σ : Equiv.Per
   push_cast
   refine Finset.sum_congr rfl fun i _ => ?_
   by_cases h : σ i = i
-  · rw [if_pos h.symm, if_pos h]
-  · rw [if_neg (fun hh : i = σ i => h hh.symm), if_neg h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
+  · rw [ite_eq_right (fun hh : i = σ i => h hh.symm), ite_eq_right h]
 
 /-- The identity matrix on two qubits has trace four. -/
 theorem trace_one_fin2x2 : (1 : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ).trace = 4 := by
@@ -575,8 +579,8 @@ theorem permMatrix_refl (n : Type*) [Fintype n] [DecidableEq n] :
   ext a c
   rw [permMatrix, Matrix.of_apply, Matrix.one_apply, Equiv.refl_apply]
   by_cases h : c = a
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun hh => h hh.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]
 
 /-- The two-qubit swap matrix squares to the identity. -/
 theorem swapOp_mul_self : swapOp (Fin 2) * swapOp (Fin 2) = 1 := by
@@ -694,7 +698,7 @@ theorem mix_coeff : ((1 + Complex.I) / 2) * ((1 - Complex.I) / 2) = 1 / 2 := by
   have h : ((1 + Complex.I) / 2) * ((1 - Complex.I) / 2)
       = ((1 + Complex.I) * (1 - Complex.I)) / 4 := by ring
   rw [h, show (1 + Complex.I) * (1 - Complex.I) = (2 : ℂ) by
-    apply Complex.ext <;> simp <;> norm_num]
+    apply Complex.ext <;> simp; norm_num]
   norm_num
 
 /-- The reversed product of the two mixing coefficients is one half. -/
@@ -718,7 +722,7 @@ theorem mixUnitary_relation {M : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ}
   have e2 : M (1, 1) (0, 1) = 0 := h2
   have e3 : M (0, 0) (1, 1) = 0 := h3
   have e4 : M (0, 0) (1, 0) = 0 := h4
-  simp only [e1, e2, e3, e4, zero_mul, mul_zero, Fin.isValue, if_true] at h'
+  simp only [e1, e2, e3, e4, zero_mul, mul_zero, Fin.isValue, ite_true] at h'
 
   simp [mix_coeff, mix_coeff_symm] at h'
 
@@ -805,12 +809,12 @@ theorem continuous_kronecker_entry (n : Type*) [Fintype n] [DecidableEq n] (p q 
     Continuous fun V : Matrix.unitaryGroup n ℂ =>
       Matrix.kroneckerMap (· * ·) (V : Matrix n n ℂ) (V : Matrix n n ℂ) p q := by
   have h1 : Continuous fun V : Matrix.unitaryGroup n ℂ => (V : Matrix n n ℂ) p.1 q.1 := by
-    change Continuous fun V : Matrix.unitaryGroup n ℂ => (V : n → n → ℂ) p.1 q.1
+
     have hk : Continuous fun r : n → n → ℂ => r p.1 := continuous_apply p.1
     have ha : Continuous fun s : n → ℂ => s q.1 := continuous_apply q.1
     exact (ha.comp hk).comp continuous_subtype_val
   have h2 : Continuous fun V : Matrix.unitaryGroup n ℂ => (V : Matrix n n ℂ) p.2 q.2 := by
-    change Continuous fun V : Matrix.unitaryGroup n ℂ => (V : n → n → ℂ) p.2 q.2
+
     have hk : Continuous fun r : n → n → ℂ => r p.2 := continuous_apply p.2
     have ha : Continuous fun s : n → ℂ => s q.2 := continuous_apply q.2
     exact (ha.comp hk).comp continuous_subtype_val
@@ -840,7 +844,7 @@ theorem haarIntegrable_kroneckerConj (P : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 
     (p q : Fin 2 × Fin 2) :
     MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       (unitaryKronecker V * P * (unitaryKronecker V)ᴴ) p q) (haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hbase : ∀ a b : Fin 2 × Fin 2, MeasureTheory.Integrable
       (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
@@ -963,7 +967,7 @@ single-qubit unitary. -/
 theorem haarKroneckerAverage_invariant (U : Matrix.unitaryGroup (Fin 2) ℂ)
     (P : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     unitaryKronecker U * haarKroneckerAverage P * (unitaryKronecker U)ᴴ = haarKroneckerAverage P := by
-  haveI : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
+  have : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
     rw [haarUnitaryGroup]
     infer_instance
   ext p q
@@ -1204,14 +1208,14 @@ theorem tensorPow_one (t : ℕ) : tensorPow t (1 : Matrix (Fin 2) (Fin 2) ℂ) =
   rw [tensorPow_apply, Matrix.one_apply]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl]
-    exact Finset.prod_eq_one fun i _ => by rw [Matrix.one_apply, if_pos rfl]
-  · rw [if_neg h]
+    rw [ite_eq_left rfl]
+    exact Finset.prod_eq_one fun i _ => by rw [Matrix.one_apply, ite_eq_left rfl]
+  · rw [ite_eq_right h]
     obtain ⟨i, hi⟩ : ∃ i, x i ≠ y i := by
       by_contra hc
       simp only [not_exists, not_not] at hc
       exact h (funext hc)
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (by rw [Matrix.one_apply, if_neg hi])
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (by rw [Matrix.one_apply, ite_eq_right hi])
 
 /-- Taking a tensor power preserves matrix multiplication. -/
 theorem tensorPow_mul (t : ℕ) (U V : Matrix (Fin 2) (Fin 2) ℂ) :
@@ -1254,10 +1258,10 @@ theorem tensorPerm_one (t : ℕ) : tensorPerm t (Equiv.refl (Fin t)) = 1 := by
   rw [tensorPerm_apply, Matrix.one_apply]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp
-  · rw [if_neg h]
-    refine if_neg fun hyx => h ?_
+  · rw [ite_eq_right h]
+    refine ite_eq_right fun hyx => h ?_
     funext i
     have hi := congrFun hyx i
     simpa [Function.comp] using hi.symm
@@ -1268,13 +1272,13 @@ theorem tensorPerm_mul (t : ℕ) (σ τ : Equiv.Perm (Fin t)) :
     tensorPerm t (σ.trans τ) = tensorPerm t σ * tensorPerm t τ := by
   ext x y
   rw [tensorPerm_apply, Matrix.mul_apply, Finset.sum_eq_single (x ∘ σ.symm)]
-  · simp only [tensorPerm_apply, if_true, one_mul]
+  · simp only [tensorPerm_apply, ite_true, one_mul]
     have hcomp : (x ∘ σ.symm) ∘ τ.symm = x ∘ (σ.trans τ).symm := by
       funext i
       simp only [Function.comp_apply, Equiv.symm_trans_apply]
     rw [hcomp]
   · intro z _ hz
-    rw [tensorPerm_apply, if_neg hz, zero_mul]
+    rw [tensorPerm_apply, ite_eq_right hz, zero_mul]
   · intro hx
     exact absurd (Finset.mem_univ (x ∘ σ.symm)) hx
 
@@ -1295,9 +1299,9 @@ theorem tensorPerm_conjTranspose (t : ℕ) (σ : Equiv.Perm (Fin t)) :
       have hi := congrFun h (σ.symm i)
       simpa [Function.comp, Equiv.apply_symm_apply] using hi.symm
   by_cases h : x = y ∘ σ.symm
-  · rw [if_pos h, if_pos (hiff.mp h)]
+  · rw [ite_eq_left h, ite_eq_left (hiff.mp h)]
     simp
-  · rw [if_neg h, if_neg fun hc => h (hiff.mpr hc)]
+  · rw [ite_eq_right h, ite_eq_right fun hc => h (hiff.mpr hc)]
     simp
 
 /-- Every tensor permutation matrix is unitary. -/
@@ -1336,9 +1340,8 @@ theorem continuous_tensorPow_entry (t : ℕ) (x y : Fin t → Fin 2) :
     funext V
     rw [tensorPow_apply]
   rw [hfun]
-  refine continuous_finset_prod Finset.univ fun i _ => ?_
-  change Continuous fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
-    (V : Fin 2 → Fin 2 → ℂ) (x i) (y i)
+  refine continuous_finsetProd Finset.univ fun i _ => ?_
+
   have hk : Continuous fun r : Fin 2 → Fin 2 → ℂ => r (x i) := continuous_apply (x i)
   have ha : Continuous fun s : Fin 2 → ℂ => s (y i) := continuous_apply (y i)
   exact (ha.comp hk).comp continuous_subtype_val
@@ -1360,7 +1363,7 @@ theorem haarIntegrable_unitaryTensorPowConj (t : ℕ)
     MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       (unitaryTensorPow t V * P * (unitaryTensorPow t V)ᴴ) p q)
       (haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hbase : ∀ a b : Fin t → Fin 2, MeasureTheory.Integrable
       (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
@@ -1459,7 +1462,7 @@ theorem haarTensorAverage_invariant (t : ℕ) (U : Matrix.unitaryGroup (Fin 2) �
     (P : Matrix (Fin t → Fin 2) (Fin t → Fin 2) ℂ) :
     unitaryTensorPow t U * haarTensorAverage t P * (unitaryTensorPow t U)ᴴ
       = haarTensorAverage t P := by
-  haveI : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
+  have : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
     rw [haarUnitaryGroup]
     infer_instance
   ext p q
@@ -1503,10 +1506,10 @@ theorem tensorPerm_mul_unitaryTensorPow (t : ℕ) (σ : Equiv.Perm (Fin t))
         = ∏ i, (V : Matrix (Fin 2) (Fin 2) ℂ) (x (σ.symm i)) (y i) := by
     intro x y
     rw [Matrix.mul_apply, Finset.sum_eq_single (x ∘ σ.symm)]
-    · rw [tensorPerm_apply, if_pos rfl, one_mul]
+    · rw [tensorPerm_apply, ite_eq_left rfl, one_mul]
       simp only [unitaryTensorPow, tensorPow_apply, Function.comp_apply]
     · intro z _ hz
-      rw [tensorPerm_apply, if_neg hz, zero_mul]
+      rw [tensorPerm_apply, ite_eq_right hz, zero_mul]
     · intro hx
       exact absurd (Finset.mem_univ (x ∘ σ.symm)) hx
   have hR : ∀ x y : Fin t → Fin 2,
@@ -1514,12 +1517,12 @@ theorem tensorPerm_mul_unitaryTensorPow (t : ℕ) (σ : Equiv.Perm (Fin t))
         = ∏ i, (V : Matrix (Fin 2) (Fin 2) ℂ) (x i) (y (σ i)) := by
     intro x y
     rw [Matrix.mul_apply, Finset.sum_eq_single (y ∘ σ)]
-    · rw [tensorPerm_apply, if_pos ?_, mul_one]
+    · rw [tensorPerm_apply, ite_eq_left ?_, mul_one]
       · simp only [unitaryTensorPow, tensorPow_apply, Function.comp_apply]
       · funext i
-        simp [Function.comp, Equiv.symm_apply_apply]
+        simp [Function.comp]
     · intro z _ hz
-      rw [tensorPerm_apply, if_neg ?_, mul_zero]
+      rw [tensorPerm_apply, ite_eq_right ?_, mul_zero]
       intro hyz
       exact hz (by
         funext j
@@ -1651,12 +1654,12 @@ theorem tensorPerm_mul_zeroProj (t : ℕ) (σ : Equiv.Perm (Fin t)) :
     tensorPerm t σ * zeroProj t = zeroProj t := by
   ext x y
   rw [Matrix.mul_apply, Finset.sum_eq_single (x ∘ σ.symm)]
-  · rw [tensorPerm_apply, if_pos rfl, one_mul]
+  · rw [tensorPerm_apply, ite_eq_left rfl, one_mul]
     simp only [zeroProj_apply]
     by_cases hx : x = 0 <;> by_cases hy : y = 0 <;>
       simp [hx, hy, comp_symm_eq_zero_iff t x σ]
   · intro z _ hz
-    rw [tensorPerm_apply, if_neg hz, zero_mul]
+    rw [tensorPerm_apply, ite_eq_right hz, zero_mul]
   · intro hx
     exact absurd (Finset.mem_univ (x ∘ σ.symm)) hx
 
@@ -1887,7 +1890,7 @@ theorem unitary_col_norm_sq (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     rfl
   have h := Matrix.mem_unitaryGroup_iff'.mp V.2
   have h00 := congrArg (fun M : Matrix (Fin 2) (Fin 2) ℂ => M 0 0) h
-  simp [Matrix.mul_apply, Matrix.star_apply, Matrix.one_apply] at h00
+  simp [Matrix.mul_apply, Matrix.star_apply] at h00
   have key : (((‖(V : Matrix (Fin 2) (Fin 2) ℂ) 0 0‖ ^ 2
         + ‖(V : Matrix (Fin 2) (Fin 2) ℂ) 1 0‖ ^ 2 : ℝ) : ℂ)) = 1 := by
     push_cast
@@ -1898,7 +1901,7 @@ theorem unitary_col_norm_sq (V : Matrix.unitaryGroup (Fin 2) ℂ) :
 /-- Every natural power of a real number in the interval from zero to one is at most one. -/
 theorem real_pow_le_one_of_le_one {x : ℝ} (h0 : 0 ≤ x) (h : x ≤ 1) (n : ℕ) : x ^ n ≤ 1 := by
   induction n with
-  | zero => simpa using le_rfl
+  | zero => simp
   | succ k ih =>
       rw [pow_succ]
       simpa using mul_le_mul ih h h0 (zero_le_one)
@@ -1916,7 +1919,7 @@ theorem integrable_symMoment (A B : ℕ) : MeasureTheory.Integrable
       ‖(V : Matrix (Fin 2) (Fin 2) ℂ) 0 0‖ ^ (2 * A)
         * ‖(V : Matrix (Fin 2) (Fin 2) ℂ) 1 0‖ ^ (2 * B))
     (haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   refine MeasureTheory.Integrable.of_bound
     (Continuous.aestronglyMeasurable
@@ -1955,7 +1958,7 @@ theorem symMoment_succ (A B : ℕ) :
 
 /-- The mixed Haar moment is symmetric in its two exponents. -/
 theorem symMoment_swap (A B : ℕ) : symMoment A B = symMoment B A := by
-  haveI : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
+  have : (haarUnitaryGroup (Fin 2)).IsMulLeftInvariant := by
     rw [haarUnitaryGroup]
     infer_instance
   rw [symMoment, symMoment]
@@ -2012,7 +2015,7 @@ theorem haarTensorAverage_zeroProj_apply (t : ℕ) (x y : Fin t → Fin 2) :
   rw [conjTranspose_mul_apply_sum]
   rw [Finset.sum_eq_single (0 : Fin t → Fin 2)]
   · rw [Finset.sum_eq_single (0 : Fin t → Fin 2)]
-    · rw [zeroProj_apply, if_pos ⟨rfl, rfl⟩, mul_one]
+    · rw [zeroProj_apply, ite_eq_left ⟨rfl, rfl⟩, mul_one]
       simp only [unitaryTensorPow, tensorPow_apply]
       rw [star_prod, Finset.prod_mul_distrib]
       rfl
@@ -2043,7 +2046,7 @@ theorem complex_mul_aux (a b c d : ℝ) : (a + b * Complex.I) * (c + d * Complex
     = (a * c - b * d) + (a * d + b * c) * Complex.I := by
   apply Complex.ext <;>
     simp [Complex.mul_re, Complex.mul_im, Complex.add_re, Complex.add_im,
-      Complex.I_re, Complex.I_im] <;> ring
+      Complex.I_re, Complex.I_im]
 
 /-- The complex number `torusRoot` has squared modulus one. -/
 theorem star_mul_self_torusRoot : star torusRoot * torusRoot = 1 := by
@@ -2111,8 +2114,7 @@ theorem torusRoot_pow_ne_one : ∀ k : ℕ, 1 ≤ k → k ≤ 4 → torusRoot ^ 
     rw [torusRoot_pow_four] at h
     field_simp at h
     apply_fun Complex.im at h
-    simp only [Complex.sub_im, Complex.neg_im, Complex.add_im, Complex.mul_im, Complex.I_im,
-      Complex.ofReal_im] at h
+    simp only [Complex.sub_im, Complex.neg_im, Complex.mul_im, Complex.I_im] at h
     norm_num at h
 
 /-- No nonzero integer power of `torusRoot` with exponent between negative four and four equals
@@ -2178,7 +2180,7 @@ theorem phase_factor {t : ℕ} (x y : Fin t → Fin 2) (i : Fin t) :
     have hw : torusRoot * star torusRoot = 1 := by rw [mul_comm, star_mul_self_torusRoot]
     have hst : star torusRoot = torusRoot ⁻¹ := eq_inv_of_mul_eq_one_left star_mul_self_torusRoot
     fin_cases a <;> fin_cases b <;>
-      simp_all [phaseVec, hw, hst, zpow_zero, zpow_one, zpow_neg_one, Fin.val_zero, Fin.val_one]
+      simp_all [phaseVec]
   exact key (x i) (y i)
 
 /-- The product of bitwise phase factors is `torusRoot` raised to the difference of the Hamming
@@ -2203,7 +2205,7 @@ theorem zeroProjEntry_eq (t : ℕ) (V : Matrix.unitaryGroup (Fin 2) ℂ) (x y : 
   rw [conjTranspose_mul_apply_sum]
   rw [Finset.sum_eq_single (0 : Fin t → Fin 2)]
   · rw [Finset.sum_eq_single (0 : Fin t → Fin 2)]
-    · rw [zeroProj_apply, if_pos ⟨rfl, rfl⟩, mul_one]
+    · rw [zeroProj_apply, ite_eq_left ⟨rfl, rfl⟩, mul_one]
       simp only [unitaryTensorPow, tensorPow_apply]
       rw [star_prod, Finset.prod_mul_distrib]
       rfl
@@ -2276,7 +2278,7 @@ theorem haarTensorAverage_zeroProj_phase_mul (t : ℕ) (x y : Fin t → Fin 2) :
                 * ∏ i, ((V : Matrix (Fin 2) (Fin 2) ℂ) (x i) 0
                   * star ((V : Matrix (Fin 2) (Fin 2) ℂ) (y i) 0)) := by
           funext V
-          simp only [Submonoid.coe_mul]
+          simp only []
           calc ∏ i, ((phaseUnitary * (V : Matrix (Fin 2) (Fin 2) ℂ)) (x i) 0
                 * star ((phaseUnitary * (V : Matrix (Fin 2) (Fin 2) ℂ)) (y i) 0))
               = (∏ i, (phaseVec (x i) * star (phaseVec (y i))))
@@ -2290,7 +2292,7 @@ theorem haarTensorAverage_zeroProj_phase_mul (t : ℕ) (x y : Fin t → Fin 2) :
                 * ∏ i, ((V : Matrix (Fin 2) (Fin 2) ℂ) (x i) 0
                   * star ((V : Matrix (Fin 2) (Fin 2) ℂ) (y i) 0)) := by rw [phaseProd_eq]
         conv_lhs => rw [hfun]
-        haveI hint : MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
+        have hint : MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
             ∏ i, ((V : Matrix (Fin 2) (Fin 2) ℂ) (x i) 0
               * star ((V : Matrix (Fin 2) (Fin 2) ℂ) (y i) 0)))
             (haarUnitaryGroup (Fin 2)) := integrable_zeroProjEntry t x y
@@ -2358,8 +2360,8 @@ theorem prod_if_split {t : ℕ} (x : Fin t → Fin 2) (a b : ℂ) :
   rw [h1]
   conv_lhs => rw [← Finset.filter_union_filter_not_eq (fun i => x i = 0) Finset.univ]
   rw [Finset.prod_union (Finset.disjoint_filter_filter_not _ _ _)]
-  rw [Finset.prod_congr rfl fun i hi => if_pos (Finset.mem_filter.mp hi).2,
-    Finset.prod_congr rfl fun i hi => if_neg (Finset.mem_filter.mp hi).2,
+  rw [Finset.prod_congr rfl fun i hi => ite_eq_left (Finset.mem_filter.mp hi).2,
+    Finset.prod_congr rfl fun i hi => ite_eq_right (Finset.mem_filter.mp hi).2,
     Finset.prod_const, Finset.prod_const]
 
 /-- The product of `u^A * v^B` with its conjugate factors into powers of `u * star u` and `v *
@@ -2390,7 +2392,7 @@ theorem zeroProjEntry_eq_symMoment_integrand {t : ℕ} (V : Matrix.unitaryGroup 
     intro z i
     by_cases h : z i = 0
     · simp [h]
-    · rw [if_neg h, (fin_two_ne_zero_iff (z i)).mp h]
+    · rw [ite_eq_right h, (fin_two_ne_zero_iff (z i)).mp h]
   rw [Finset.prod_mul_distrib, ← star_prod]
   have hpx : (∏ i, (V : Matrix (Fin 2) (Fin 2) ℂ) (x i) 0)
       = (V : Matrix (Fin 2) (Fin 2) ℂ) 0 0 ^ ((Finset.univ.filter fun i => x i = 0).card)
@@ -2427,7 +2429,7 @@ theorem haarTensorAverage_zeroProj_apply_eq_symMoment {t : ℕ} (x y : Fin t →
     haarTensorAverage t (zeroProj t) x y
       = ((symMoment (t - hamWeight x) (hamWeight x) : ℝ) : ℂ) := by
   rw [haarTensorAverage_zeroProj_apply]
-  haveI hint : MeasureTheory.Integrable
+  have hint : MeasureTheory.Integrable
       (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
         ‖(V : Matrix (Fin 2) (Fin 2) ℂ) 0 0‖ ^ (2 * (t - hamWeight x))
           * ‖(V : Matrix (Fin 2) (Fin 2) ℂ) 1 0‖ ^ (2 * hamWeight x))
@@ -2451,9 +2453,9 @@ theorem haarTensorAverage_zeroProj_apply_eq {t : ℕ} (ht : t ≤ 4) (a b : Fin 
         then ((symMoment (t - hamWeight a) (hamWeight a) : ℝ) : ℂ)
         else 0 := by
   by_cases hk : hamWeight a = hamWeight b
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     exact haarTensorAverage_zeroProj_apply_eq_symMoment a b hk
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     exact haarTensorAverage_zeroProj_of_hamWeight_ne ht a b hk
 
 /-- The square of `Real.sqrt 2 / 2` is one half. -/
@@ -2726,8 +2728,8 @@ theorem Mfour_entry_w1 (a : Fin 4 → Fin 2) :
       = if hamWeight a = 1 then ((symMoment 3 1 : ℝ) : ℂ) else 0 := by
   rw [haarTensorAverage_zeroProj_apply_eq (by norm_num) a ![0,0,0,1], hamWeight_vec0001]
   by_cases h : hamWeight a = 1
-  · rw [if_pos h, h, if_pos rfl]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, h, ite_eq_left rfl]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The column `![0,0,1,1]` of the four-copy averaged all-zero projector equals `symMoment 2 2`
 on weight-two rows and zero on all other rows. -/
@@ -2736,8 +2738,8 @@ theorem Mfour_entry_w2 (a : Fin 4 → Fin 2) :
       = if hamWeight a = 2 then ((symMoment 2 2 : ℝ) : ℂ) else 0 := by
   rw [haarTensorAverage_zeroProj_apply_eq (by norm_num) a ![0,0,1,1], hamWeight_vec0011]
   by_cases h : hamWeight a = 2
-  · rw [if_pos h, h, if_pos rfl]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, h, ite_eq_left rfl]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The all-zero row of the four-copy averaged all-zero projector equals `symMoment 4 0` on
 weight-zero columns and zero otherwise. -/
@@ -2746,8 +2748,8 @@ theorem Mfour_entry_w0 (a : Fin 4 → Fin 2) :
       = if hamWeight a = 0 then ((symMoment 4 0 : ℝ) : ℂ) else 0 := by
   rw [haarTensorAverage_zeroProj_apply_eq (by norm_num) ![0,0,0,0] a]
   by_cases h : hamWeight a = 0
-  · rw [if_pos (by rw [hamWeight_vec0000, h]), hamWeight_vec0000, if_pos h]
-  · rw [if_neg (by rw [hamWeight_vec0000]; exact fun hh => h hh.symm), if_neg h]
+  · rw [ite_eq_left (by rw [hamWeight_vec0000, h]), hamWeight_vec0000, ite_eq_left h]
+  · rw [ite_eq_right (by rw [hamWeight_vec0000]; exact fun hh => h hh.symm), ite_eq_right h]
 
 /-- The sum of column `![0,0,0,1]` of the four-copy averaged all-zero projector is four times
 the complex cast of `symMoment 3 1`. -/
@@ -2780,8 +2782,8 @@ theorem sum_Mfour_row_w0 (y : Fin 4 → Fin 2) :
     intro a
     rw [Mfour_entry_w0 a]
     by_cases h : hamWeight a = 0
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, zero_mul, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, zero_mul, ite_eq_right h]
   rw [Finset.sum_congr rfl (fun a _ => hite a),
     ← Finset.sum_filter (fun a : Fin 4 → Fin 2 => hamWeight a = 0), weight_zero_filter,
     Finset.sum_singleton, hadamardPow4_row_zero y]
@@ -2906,9 +2908,9 @@ theorem permSum_three_apply (a b : Fin 3 → Fin 2) :
     ← Finset.sum_filter (fun σ : Equiv.Perm (Fin 3) => b = a ∘ σ.symm),
     Finset.sum_const, perm_count_three a b]
   by_cases hk : hamWeight a = hamWeight b
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     exact Nat.smul_one_eq_cast _
-  · rw [if_neg hk, if_neg hk, zero_smul]
+  · rw [ite_eq_right hk, ite_eq_right hk, zero_smul]
 
 /-- The third tensor moment of a Haar-random single-qubit pure state is the sum of the
 three-position permutation matrices divided by `4!`. See [RudolphEtAl2024]. -/
@@ -2919,7 +2921,7 @@ theorem haarTensorAverage_three_eq_permSum :
   rw [Matrix.smul_apply, smul_eq_mul, permSum_three_apply,
     haarTensorAverage_zeroProj_apply_eq (by norm_num)]
   by_cases hk : hamWeight a = hamWeight b
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     have hle : hamWeight a ≤ 3 := by
       have h := hamWeight_le a
       omega
@@ -2928,7 +2930,7 @@ theorem haarTensorAverage_three_eq_permSum :
     · rw [show 3 - 1 = 2 from rfl, symMoment_three.2.1]; norm_num
     · rw [show 3 - 2 = 1 from rfl, symMoment_swap, symMoment_three.2.1]; norm_num
     · rw [show 3 - 3 = 0 from rfl, symMoment_swap, symMoment_three.1]; norm_num
-  · rw [if_neg hk, if_neg hk]
+  · rw [ite_eq_right hk, ite_eq_right hk]
     ring
 
 /-- The number of position permutations taking one length-four bit string to another is the
@@ -2950,9 +2952,9 @@ theorem permSum_four_apply (a b : Fin 4 → Fin 2) :
     ← Finset.sum_filter (fun σ : Equiv.Perm (Fin 4) => b = a ∘ σ.symm),
     Finset.sum_const, perm_count_four a b]
   by_cases hk : hamWeight a = hamWeight b
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     exact Nat.smul_one_eq_cast _
-  · rw [if_neg hk, if_neg hk, zero_smul]
+  · rw [ite_eq_right hk, ite_eq_right hk, zero_smul]
 
 /-- The fourth tensor moment of a Haar-random single-qubit pure state is the sum of the
 four-position permutation matrices divided by `5!`. See [RudolphEtAl2024]. -/
@@ -2963,7 +2965,7 @@ theorem haarTensorAverage_four_eq_permSum :
   rw [Matrix.smul_apply, smul_eq_mul, permSum_four_apply,
     haarTensorAverage_zeroProj_apply_eq (by norm_num)]
   by_cases hk : hamWeight a = hamWeight b
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     have hle : hamWeight a ≤ 4 := by
       have h := hamWeight_le a
       omega
@@ -2973,7 +2975,7 @@ theorem haarTensorAverage_four_eq_permSum :
     · rw [show 4 - 2 = 2 from rfl, symMoment_four.2.2.1]; norm_num
     · rw [show 4 - 3 = 1 from rfl, symMoment_swap, symMoment_four.2.1]; norm_num
     · rw [show 4 - 4 = 0 from rfl, symMoment_swap, symMoment_four.1]; norm_num
-  · rw [if_neg hk, if_neg hk]
+  · rw [ite_eq_right hk, ite_eq_right hk]
     ring
 
 end MeasurableInstances

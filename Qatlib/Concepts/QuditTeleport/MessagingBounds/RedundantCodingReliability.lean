@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+
+@[expose] public section
 
 /-!
 # Reliable discrimination by repeated binary observations

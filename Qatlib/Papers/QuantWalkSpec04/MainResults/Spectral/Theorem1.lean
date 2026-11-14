@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
-import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
+module
+
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
+
+@[expose] public section
 
 /-!
 # Spectral structure of the bipartite walk

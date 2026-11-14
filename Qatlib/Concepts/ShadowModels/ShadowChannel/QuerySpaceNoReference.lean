@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+
+@[expose] public section
 
 /-!
 # Global phase invariance without a reference

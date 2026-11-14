@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DecisionRisk.HarmonicError.GraphPairCertificate
+module
+
+public import Qatlib.Foundations.DecisionRisk.HarmonicError.GraphPairCertificate
+
+@[expose] public section
 
 /-! Original scalar shared-axis certificate from OQ #145, beyond the paper's
 one-parameter numerical trine example. It has no general Bloch/graph/POVM

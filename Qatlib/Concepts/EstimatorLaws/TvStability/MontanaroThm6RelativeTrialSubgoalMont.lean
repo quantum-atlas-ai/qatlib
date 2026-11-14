@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalStat
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalStat
+
+@[expose] public section
 
 /-!
 # Pilot-scaled relative quantum mean trial
@@ -93,7 +97,7 @@ theorem theorem6_good_pilot_moments {I : Type} [Fintype I] [DecidableEq I]
   have hs : (Real.sqrt (B+1))^2 = B+1 := Real.sq_sqrt (by linarith)
   have hscale_eq : theorem6Scale f B N ω = 2*Real.sqrt (B+1)*c := by
     unfold theorem6Scale
-    rw [if_neg (ne_of_gt hcpos)]
+    rw [ite_eq_right (ne_of_gt hcpos)]
     dsimp [c]
     ring
   have hscale : 0 < theorem6Scale f B N ω := by

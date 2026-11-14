@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.HistorySystem.FiniteHistoryEuler
-import Qatlib.Papers.NonlinearDE20.ForcingModel.ForcingMarginal
+module
+
+public import Qatlib.Papers.NonlinearDE20.HistorySystem.FiniteHistoryEuler
+public import Qatlib.Papers.NonlinearDE20.ForcingModel.ForcingMarginal
+
+@[expose] public section
 
 /-!
 # A forcing counterexample from the finite history inverse

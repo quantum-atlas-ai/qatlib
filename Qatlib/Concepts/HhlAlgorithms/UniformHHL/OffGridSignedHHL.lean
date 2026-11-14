@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
-import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+public import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+@[expose] public section
 
 /-!
 # Uniform HHL for signed off-grid spectra

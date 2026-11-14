@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
-import Mathlib.Analysis.InnerProductSpace.SingularValues
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+
+@[expose] public section
 
 /-!
 # Singular values and singular vector bases
@@ -260,13 +264,13 @@ private noncomputable def leftSingularSeed (A : Matrix O I ℂ)
 /-- Restricting the left singular seeds to indices below the rank gives an orthonormal family. -/
 private theorem leftSingularSeed_orthonormal (A : Matrix O I ℂ) :
     Orthonormal ℂ (({i : Fin (Fintype.card O) |
-      (i : ℕ) < finrank ℂ A.toEuclideanLin.range} : Set _).restrict (leftSingularSeed A)) := by
+      (i : ℕ) < finrank ℂ A.toEuclideanLin.range} : Set _).domRestrict (leftSingularSeed A)) := by
   constructor
   · intro i
     have hI : (i.1 : ℕ) < Fintype.card I :=
       lt_of_lt_of_le i.2 (by simpa using A.toEuclideanLin.finrank_range_le)
     change ‖leftSingularSeed A i.1‖ = 1
-    rw [leftSingularSeed, dif_pos hI]
+    rw [leftSingularSeed, dite_eq_left hI]
     exact norm_leftSingularVector A ⟨i.1, hI⟩ i.2
   · intro i j hij
     have hI : (i.1 : ℕ) < Fintype.card I :=
@@ -274,7 +278,7 @@ private theorem leftSingularSeed_orthonormal (A : Matrix O I ℂ) :
     have hJ : (j.1 : ℕ) < Fintype.card I :=
       lt_of_lt_of_le j.2 (by simpa using A.toEuclideanLin.finrank_range_le)
     change inner ℂ (leftSingularSeed A i.1) (leftSingularSeed A j.1) = 0
-    rw [leftSingularSeed, dif_pos hI, leftSingularSeed, dif_pos hJ]
+    rw [leftSingularSeed, dite_eq_left hI, leftSingularSeed, dite_eq_left hJ]
     apply inner_leftSingularVector_of_ne A
     intro h
     have hv : (i.1 : ℕ) = (j.1 : ℕ) :=
@@ -294,7 +298,12 @@ private theorem exists_leftSingularBasis (A : Matrix O I ℂ) :
 below the rank. -/
 noncomputable def leftSingularBasis (A : Matrix O I ℂ) :
     OrthonormalBasis (Fin (Fintype.card O)) ℂ (EuclideanSpace ℂ O) :=
-  Classical.choose (exists_leftSingularBasis A)
+  Classical.choose (show ∃ b : OrthonormalBasis (Fin (Fintype.card O)) ℂ
+      (EuclideanSpace ℂ O), ∀ i : Fin (Fintype.card O),
+      (i : ℕ) < finrank ℂ A.toEuclideanLin.range →
+        b i = (if hi : (i : ℕ) < Fintype.card I then
+          leftSingularVector A ⟨i, hi⟩ else 0) from by
+    exact exists_leftSingularBasis A)
 
 /-- Below the rank, the chosen left singular basis agrees with the corresponding left singular
 vector. -/
@@ -304,7 +313,7 @@ theorem leftSingularBasis_apply_of_lt (A : Matrix O I ℂ)
       ⟨i, lt_of_lt_of_le hi (by simpa using A.toEuclideanLin.finrank_range_le)⟩ := by
   have hI : (i : ℕ) < Fintype.card I :=
     lt_of_lt_of_le hi (by simpa using A.toEuclideanLin.finrank_range_le)
-  simpa only [leftSingularSeed, dif_pos hI] using!
+  simpa only [leftSingularSeed, dite_eq_left hI] using!
     (Classical.choose_spec (exists_leftSingularBasis A)) i hi
 
 /-- In the right and left singular bases, the Euclidean linear map has a rectangular diagonal

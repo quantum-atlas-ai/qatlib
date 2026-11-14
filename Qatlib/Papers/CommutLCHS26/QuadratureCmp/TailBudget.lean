@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
+
+@[expose] public section
 
 /-!
 # Explicit mesh and tail budgets

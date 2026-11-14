@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
+
+@[expose] public section
 
 /-!
 # Frame norm and detector endpoint specifications
@@ -186,7 +190,7 @@ def WalkSpectral3Clause39FullEndpoint : Prop :=
         = v (false, c, xy)) ∧
   (∀ (I : Type) [Fintype I] [DecidableEq I]
       (S : Finset I) (U : Matrix (I × I) (I × I) ℂ)
-      (hU : U ∈ Matrix.unitaryGroup (I × I) ℂ),
+      (_hU : U ∈ Matrix.unitaryGroup (I × I) ℂ),
     (detectionInstruction U S .rowForward) * (detectionInstruction U S .rowBackward) = 1) ∧
   (∀ (I : Type) [Fintype I] [DecidableEq I]
       (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I),

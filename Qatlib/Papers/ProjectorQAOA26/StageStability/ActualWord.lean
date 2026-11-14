@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.StageStability.MixerWordError
-import Qatlib.Papers.ProjectorQAOA26.StageStability.RayTransport
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.MixerWordError
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.RayTransport
+
+@[expose] public section
 
 /-!
 # Chronological learned-projector circuit words
@@ -85,7 +89,7 @@ omit [Nonempty I] in
 /-- The mixer exponential of a Hermitian generator at a real angle is unitary. -/
 theorem mixerExp_unitary (R : Matrix I I ℂ) (hR : Rᴴ=R) (β : ℝ) :
     mixerExp R β∈Matrix.unitaryGroup I ℂ := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
   apply NormedSpace.exp_mem_unitary_of_mem_skewAdjoint
   change star ((-β)•(Complex.I•R))=-((-β)•(Complex.I•R))
   simp only [Matrix.star_eq_conjTranspose,Matrix.conjTranspose_smul,star_trivial,

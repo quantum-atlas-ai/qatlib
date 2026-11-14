@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Success bounds for independent bit transitions
@@ -44,7 +48,7 @@ theorem decoupled_success_product (n : ℕ) (q : ℝ) :
 
 /-- For `0 ≤ q ≤ 1`, the joint success expression `(1 - q) ^ n` is at least `1 - n * q`
 [FarhiGoldstoneGutmannNagaj2008]. -/
-theorem one_sub_pow_ge (n : ℕ) (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q ≤ 1) :
+theorem one_sub_pow_ge (n : ℕ) (q : ℝ) (_hq0 : 0 ≤ q) (hq1 : q ≤ 1) :
     1 - (n : ℝ) * q ≤ (1 - q) ^ n := by
   induction n with
   | zero => simp
@@ -63,7 +67,7 @@ theorem one_sub_pow_ge (n : ℕ) (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q ≤ 1) :
 /-- If `0 ≤ q ≤ 1`, `n * q ≤ c`, and `c ≤ 1`, then `(1 - q) ^ n ≥ 1 - c`
 [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem constant_success (n : ℕ) (q c : ℝ) (hq0 : 0 ≤ q) (hq1 : q ≤ 1)
-    (hc_nq : (n : ℝ) * q ≤ c) (hc1 : c ≤ 1) :
+    (hc_nq : (n : ℝ) * q ≤ c) (_hc1 : c ≤ 1) :
     1 - c ≤ (1 - q) ^ n := by
   have hb := one_sub_pow_ge n q hq0 hq1
   linarith

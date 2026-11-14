@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Collision-search cost and amplification corollaries

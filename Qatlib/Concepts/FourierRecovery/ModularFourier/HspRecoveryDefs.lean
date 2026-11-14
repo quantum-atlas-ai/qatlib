@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.AbelianStabilizer
-import Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderDefs
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.AbelianStabilizer
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderDefs
+
+@[expose] public section
 
 /-!
 # Stabilizer recovery costs and endpoint specifications

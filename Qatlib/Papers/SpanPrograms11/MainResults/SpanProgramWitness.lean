@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanPrograms11.MainResults.LearningGraphStages
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SpanPrograms11.MainResults.LearningGraphStages
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,9 +90,9 @@ theorem agreeing_injective (x : ι → Bool) : Function.Injective (agreeing x) :
   simp only [agreeing] at h
   by_cases hi : i ∈ S <;> by_cases hT : i ∈ T
   · exact ⟨fun _ => hT, fun _ => hi⟩
-  · rw [if_pos hi, if_neg hT] at h
+  · rw [ite_eq_left hi, ite_eq_right hT] at h
     exact absurd h (by simp)
-  · rw [if_neg hi, if_pos hT] at h
+  · rw [ite_eq_right hi, ite_eq_left hT] at h
     exact absurd h.symm (by simp)
   · exact ⟨fun h' => absurd h' hi, fun h' => absurd h' hT⟩
 
@@ -111,21 +115,21 @@ theorem agrees_arcAssn_iff (x : ι → Bool) (src : E → Finset ι) (j : E → 
   · intro h
     have hb : arcAssn x src j e b (j e) = some b := by
       unfold arcAssn
-      rw [if_neg hj, if_pos rfl]
+      rw [ite_eq_right hj, ite_eq_left rfl]
     exact h (j e) b hb
   · intro hb i b' hb'
     unfold arcAssn at hb'
     by_cases hi : i ∈ src e
-    · rw [if_pos hi] at hb'
+    · rw [ite_eq_left hi] at hb'
       injection hb' with h
       exact h.symm
-    · rw [if_neg hi] at hb'
+    · rw [ite_eq_right hi] at hb'
       by_cases hij : i = j e
-      · rw [if_pos hij] at hb'
+      · rw [ite_eq_left hij] at hb'
         injection hb' with h
         rw [hij]
         exact h.symm.trans hb
-      · rw [if_neg hij] at hb'
+      · rw [ite_eq_right hij] at hb'
         exact absurd hb' (by simp)
 
 omit [Fintype ι] [Fintype E] [DecidableEq E] in
@@ -136,11 +140,11 @@ theorem arcAssn_eq_agreeing (x : ι → Bool) (src : E → Finset ι) (j : E →
   funext i
   unfold arcAssn agreeing dst
   by_cases hi : i ∈ src e
-  · rw [if_pos hi, if_pos (Finset.mem_insert_of_mem hi)]
-  · rw [if_neg hi]
+  · rw [ite_eq_left hi, ite_eq_left (Finset.mem_insert_of_mem hi)]
+  · rw [ite_eq_right hi]
     by_cases hij : i = j e
-    · rw [if_pos hij, if_pos (by rw [hij]; exact Finset.mem_insert_self _ _), ← hij]
-    · rw [if_neg hij, if_neg (by
+    · rw [ite_eq_left hij, ite_eq_left (by rw [hij]; exact Finset.mem_insert_self _ _), ← hij]
+    · rw [ite_eq_right hij, ite_eq_right (by
         intro hmem
         rw [Finset.mem_insert] at hmem
         exact hmem.elim hij hi)]
@@ -212,10 +216,10 @@ theorem negWitness_available_orthogonal (x : ι → Bool) (src : E → Finset ι
   rw [ip_inVec_negWitness]
   have h1 : negWitness x (agreeing x (src e)) = 1 := by
     unfold negWitness
-    rw [if_pos (agrees_agreeing x (src e))]
+    rw [ite_eq_left (agrees_agreeing x (src e))]
   have h2 : negWitness x (arcAssn x src j e (x (j e))) = 1 := by
     unfold negWitness
-    rw [if_pos ((agrees_arcAssn_iff x src j e hj (x (j e))).2 rfl)]
+    rw [ite_eq_left ((agrees_arcAssn_iff x src j e hj (x (j e))).2 rfl)]
   rw [h1, h2]
   ring
 
@@ -227,12 +231,12 @@ theorem negWitness_false_inner (x : ι → Bool) (src : E → Finset ι) (j : E 
   rw [ip_inVec_negWitness]
   have h1 : negWitness x (agreeing x (src e)) = 1 := by
     unfold negWitness
-    rw [if_pos (agrees_agreeing x (src e))]
+    rw [ite_eq_left (agrees_agreeing x (src e))]
   have hne : (!x (j e)) ≠ x (j e) := by
     cases h : x (j e) <;> simp
   have h2 : negWitness x (arcAssn x src j e (!x (j e))) = 0 := by
     unfold negWitness
-    rw [if_neg (fun hcon => hne ((agrees_arcAssn_iff x src j e hj (!x (j e))).1 hcon))]
+    rw [ite_eq_right (fun hcon => hne ((agrees_arcAssn_iff x src j e hj (!x (j e))).1 hcon))]
   rw [h1, h2]
   ring
 
@@ -244,7 +248,7 @@ theorem negWitness_free_orthogonal (x : ι → Bool) (σ : Assn ι) (hfree : ¬ 
     ip (basis σ) (negWitness x) = 0 := by
   rw [ip_basis]
   unfold negWitness
-  rw [if_neg hfree]
+  rw [ite_eq_right hfree]
 
 omit [DecidableEq E] in
 /-- The free input vectors contribute nothing to the negative witness size. -/
@@ -301,7 +305,7 @@ theorem inFlow_empty (src : E → Finset ι) (j : E → ι) (flow : E → ℝ) :
       rw [← h]
       exact Finset.mem_insert_self _ _
     exact absurd this (by simp)
-  rw [if_neg hne, mul_zero]
+  rw [ite_eq_right hne, mul_zero]
 
 /-- The coefficient of the positive witness on the available input vector of arc `e`:
 `p_e / √w_e` (§3.3, positive witness size). -/
@@ -344,7 +348,7 @@ theorem posTarget_of_forall_ne (x : ι → Bool) (src : E → Finset ι) (j : E 
     posTarget x src j flow τ = 0 := by
   unfold posTarget
   refine Finset.sum_eq_zero fun e _ => ?_
-  rw [if_neg (hne (src e)), if_neg (hne (dst src j e))]
+  rw [ite_eq_right (hne (src e)), ite_eq_right (hne (dst src j e))]
   ring
 
 omit [DecidableEq E] in
@@ -366,9 +370,9 @@ theorem positive_witness_target (x : ι → Bool) (src : E → Finset ι) (j : E
     · have hne : agreeing x T ≠ agreeing x ∅ := by
         intro hcon
         exact hT ((agreeing_injective x) hcon)
-      rw [hcons T hT, sub_self, if_neg hne]
+      rw [hcons T hT, sub_self, ite_eq_right hne]
   · push Not at h
-    rw [posTarget_of_forall_ne x src j flow τ h, if_neg (h ∅)]
+    rw [posTarget_of_forall_ne x src j flow τ h, ite_eq_right (h ∅)]
 
 omit [DecidableEq E] in
 /-- The squared norm of the positive-witness coefficients is `Σ_e p_e²/w_e`, the positive

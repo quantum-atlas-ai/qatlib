@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
+module
+
+public import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,10 +48,10 @@ def Detection.accepts (threshold lam1 : ℝ) : Prop := threshold ≤ lam1
 with `c > 0`, then `E_max` lies strictly below `E_cut = (E₀ + E_max)/2`, which in
 turn lies strictly below `E₀`.  Consequently the decision rule separates the two
 hypotheses. -/
-theorem detection_separation (E0 Emax c : ℝ) (hc : 0 < c) (hE0 : 0 < E0) (hEm : 0 < Emax)
+theorem detection_separation (E0 Emax c : ℝ) (hc : 0 < c) (_hE0 : 0 < E0) (hEm : 0 < Emax)
     (hsep : (1 + c) * Emax ≤ E0) :
     Emax < (E0 + Emax) / 2 ∧ (E0 + Emax) / 2 < E0 := by
-  constructor <;> nlinarith [hE0, hEm, hc, hsep]
+  constructor <;> nlinarith [hEm, hc, hsep]
 
 /-- **Theorem 2** (§3.2.1, p.9).  If Assumption 1 holds and
 `λ (p/2)! C(n_bos, p/2) N^{p/2} − E_max = ω(ξ)` — in explicit form
@@ -62,7 +66,7 @@ theorem theorem2_detection_even (s : SpikedTensor) (hEven : s.p % 2 = 0) {c : �
     detection_separation (E0Even s) (EmaxEven s) c hc hE0 hEm hsep
   have hcut : Ecut s = (E0Even s + EmaxEven s) / 2 := by
     unfold Ecut E0 Emax
-    rw [if_pos hEven, if_pos hEven]
+    rw [ite_eq_left hEven, ite_eq_left hEven]
   unfold Detection.accepts
   rw [hcut]
   exact ⟨not_le.mpr h1, h2.le⟩
@@ -79,7 +83,7 @@ theorem theorem4_detection_odd (s : SpikedTensor) (hOdd : s.p % 2 = 1) {c : ℝ}
   have hne : ¬ s.p % 2 = 0 := by omega
   have hcut : Ecut s = (E0Odd s + EmaxOdd s) / 2 := by
     unfold Ecut E0 Emax
-    rw [if_neg hne, if_neg hne]
+    rw [ite_eq_right hne, ite_eq_right hne]
   unfold Detection.accepts
   rw [hcut]
   exact ⟨not_le.mpr h1, h2.le⟩
@@ -97,7 +101,7 @@ theorem detection_probability {Ω : Type*} [MeasurableSpace Ω] {s : SpikedTenso
     measurableSet_le measurable_const M.measurable_eig
   have hcompl : {ω | M.eig ω < Ecut s} = {ω | Ecut s ≤ M.eig ω}ᶜ := by
     ext ω
-    simp only [Set.mem_setOf_eq, Set.mem_compl_iff, not_le]
+    simp only [Set.mem_ofPred_eq, Set.mem_compl_iff, not_le]
   have hfin : M.μ {ω | Ecut s ≤ M.eig ω} ≠ ∞ := measure_ne_top M.μ _
   have hle1 : M.μ {ω | Ecut s ≤ M.eig ω} ≤ 1 := by
     calc M.μ {ω | Ecut s ≤ M.eig ω} ≤ M.μ Set.univ :=

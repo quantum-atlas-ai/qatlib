@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPProgram
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPProgram
+
+@[expose] public section
 
 /-!
 # Statement of source-constrained fidelity SDP optimality

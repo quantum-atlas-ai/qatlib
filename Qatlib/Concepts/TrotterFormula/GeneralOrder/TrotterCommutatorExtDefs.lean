@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutator
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCore
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterOrderedCommutatorAthe
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorScalingCorrectedAthe
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCombinatorics
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorMultiplicative
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorNormGibbs
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefutations
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorWords
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutator
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCore
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterOrderedCommutator
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorScalingCorrected
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCombinatorics
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorMultiplicative
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorNormGibbs
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefutations
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorWords
+
+@[expose] public section
 
 /-!
 # Ordered derivative levels and raw segment selectors

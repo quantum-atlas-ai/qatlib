@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.List.OfFn
-import Mathlib.Algebra.Field.Rat
-import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Algebra.Field.Rat
+public import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Dynamic evaluation of separable U-statistics
@@ -220,19 +224,19 @@ private def sepLiftFresh {A : Type} [DecidableEq A] {m : ℕ} (a : A)
     · exact hx.trans hy.symm
     · have hv := congrArg (fun z : Fin (m+1) => z.val) h
       dsimp only at hv
-      simp only [dif_pos hx,dif_neg hy,Fin.val_castSucc,Fin.val_last] at hv
+      simp only [dite_eq_left hx,dite_eq_right hy,Fin.val_castSucc,Fin.val_last] at hv
       have hh := (g ⟨y,hy⟩).isLt
       omega
     · have hv := congrArg (fun z : Fin (m+1) => z.val) h
       dsimp only at hv
-      simp only [dif_neg hx,dif_pos hy,Fin.val_castSucc,Fin.val_last] at hv
+      simp only [dite_eq_right hx,dite_eq_left hy,Fin.val_castSucc,Fin.val_last] at hv
       have hh := (g ⟨x,hx⟩).isLt
       omega
     · have he : g ⟨x,hx⟩ = g ⟨y,hy⟩ := by
         apply Fin.ext
         have hv := congrArg (fun z : Fin (m+1) => z.val) h
         dsimp only at hv
-        simpa only [dif_neg hx,dif_neg hy] using! hv
+        simpa only [dite_eq_right hx,dite_eq_right hy] using! hv
       exact congrArg Subtype.val (g.injective he)
 
 /-- Construct an embedding into `Fin (m + 1)` either from an old embedding or by assigning one
@@ -283,7 +287,7 @@ private theorem sepLiftSplit_injective {A : Type} [DecidableEq A] (m : ℕ) :
             intro x
             apply Fin.ext
             have hx := congrArg (fun e : A ↪ Fin (m+1) => (e x.val).val) he
-            simpa only [sepLiftSplit,sepLiftFresh,Function.Embedding.coeFn_mk,dif_neg x.property,
+            simpa only [sepLiftSplit,sepLiftFresh,Function.Embedding.coeFn_mk,dite_eq_right x.property,
               Fin.val_castSucc] using hx
           subst g
           rfl
@@ -320,7 +324,7 @@ private theorem sepLiftSplit_surjective {A : Type} [DecidableEq A] (m : ℕ) :
     · subst x
       simpa [sepLiftSplit,sepLiftFresh] using ha.symm
     · apply Fin.ext
-      simp only [sepLiftSplit,sepLiftFresh,Function.Embedding.coeFn_mk,dif_neg hx,Fin.val_castSucc]
+      simp only [sepLiftSplit,sepLiftFresh,Function.Embedding.coeFn_mk,dite_eq_right hx,Fin.val_castSucc]
       rfl
   · have hne (x : A) : f x ≠ Fin.last m := by intro he; exact hf ⟨x,he⟩
     let g : A ↪ Fin m := {
@@ -353,7 +357,7 @@ private theorem sepEmbedding_sum_succ {A : Type} [Fintype A] [DecidableEq A] (m 
   congr 1
   apply Finset.sum_congr rfl
   intro a _
-  (try dsimp only)
+
   conv_rhs => rw [Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro g _
@@ -363,7 +367,7 @@ private theorem sepEmbedding_sum_succ {A : Type} [Fintype A] [DecidableEq A] (m 
   congr 1
   apply Finset.prod_congr rfl
   intro x _
-  simp only [dif_neg x.property]
+  simp only [dite_eq_right x.property]
 
 /-- The equivalence between the elements of a finite subset other than `a` and the subtype
 associated with erasing `a` from that subset. -/
@@ -415,7 +419,7 @@ private theorem sepMaskInjectionSum_zero {r : ℕ} (v : Fin 0 → Fin r → ℚ)
     simp [sepMaskInjectionSum]
   · have hs := Finset.nonempty_iff_ne_empty.mpr hS
     obtain ⟨a,ha⟩ := hs
-    letI : IsEmpty (S ↪ Fin 0) := ⟨fun f => Fin.elim0 (f ⟨a,ha⟩)⟩
+    let : IsEmpty (S ↪ Fin 0) := ⟨fun f => Fin.elim0 (f ⟨a,ha⟩)⟩
     simp [sepMaskInjectionSum,hS]
 
 /-- The full-subset injection sum equals the sum of separable products over embeddings of `Fin
@@ -541,7 +545,7 @@ private theorem sep_kernel_bound {X : Type} {r : ℕ} (h : Fin r → X → ℚ) 
     (hb : ∀ x : Fin r → X, |∏ j : Fin r, (h j (x j) : ℝ)| ≤ B) :
     ∀ xs : List X, xs.length = r → |(separableOrderedKernel h xs : ℝ)| ≤ B := by
   intro xs hxs
-  rw [separableOrderedKernel,dif_pos hxs,Rat.cast_prod]
+  rw [separableOrderedKernel,dite_eq_left hxs,Rat.cast_prod]
   exact hb (fun j => xs[j.val]'(by rw [hxs]; exact j.isLt))
 
 /-- The independent-sample mean of the separable ordered kernel equals the product of the

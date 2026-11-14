@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorStat
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOriginalContract
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceTaylor
+module
+
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorStat
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOriginalContract
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceTaylor
+
+@[expose] public section
 
 /-!
 # One-dimensional central-difference error and the step sign

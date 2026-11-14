@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Int.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Optimality of the unit phase-measurement kernel
@@ -55,7 +59,7 @@ def sourceUnitChi {q : ℕ} : Fin q → Fin q → ℝ := fun _ _ => 1
 entries bounded in absolute value by one, the constant-one kernel minimizes
 `sourceHolevoCost` and has the stated coefficient-sum value. See [van Dam et al.,
 2007][VanDamEtAl2007]. -/
-theorem source_holevo_cost_optimal {q : ℕ} (hq : 1 ≤ q) (c : ℕ → ℝ)
+theorem source_holevo_cost_optimal {q : ℕ} (_hq : 1 ≤ q) (c : ℕ → ℝ)
     (hc : ∀ l, 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k)
     (χ : Fin q → Fin q → ℝ) (hχ : ∀ h k, |χ h k| ≤ 1) :
     sourceHolevoCost c ψ χ ≥ sourceHolevoCost c ψ sourceUnitChi ∧
@@ -113,7 +117,7 @@ theorem source_holevo_term_equality (c ψ χ : ℝ) (hψ : 0 < ψ) (hc : c ≠ 0
     have hψχ : ψ * ψ * χ ≤ ψ * ψ * 1 := mul_le_mul_of_nonneg_left (abs_le.mp hχ).2 hψ2.le
     constructor
     · rw [habs]; nlinarith [hψχ]
-    · rw [if_pos hcpos, habs]
+    · rw [ite_eq_left hcpos, habs]
       constructor
       · intro he
         have hzero : c * ψ * ψ ≠ 0 := by positivity
@@ -128,7 +132,7 @@ theorem source_holevo_term_equality (c ψ χ : ℝ) (hψ : 0 < ψ) (hc : c ≠ 0
       mul_le_mul_of_nonneg_left (abs_le.mp hχ).1 hψ2.le
     constructor
     · rw [habs]; nlinarith [hψχ]
-    · rw [if_neg hcpos, habs]
+    · rw [ite_eq_right hcpos, habs]
       constructor
       · intro he
         have hzero : c * ψ * ψ ≠ 0 := by

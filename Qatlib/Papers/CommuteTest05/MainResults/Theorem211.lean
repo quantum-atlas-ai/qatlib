@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralMapSubgoalQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralMapSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Discriminant contractions and invariant walk planes

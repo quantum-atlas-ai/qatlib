@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
-import Qatlib.Papers.PartitionFunc08.MainResults.Model.NumericBounds
+module
+
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
+public import Qatlib.Papers.PartitionFunc08.MainResults.Model.NumericBounds
+
+@[expose] public section
 
 /-!
 # Relative accuracy and product estimates

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+
+@[expose] public section
 
 /-!
 # Autocorrelation and duality of bent functions
@@ -220,7 +224,7 @@ lemma walsh_sq_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
     · have hzero : x + (x + u) + u = 0 := by
         rw [add_assoc, add_assoc, add_self_bvec, add_zero]
         exact add_self_bvec x
-      rw [if_pos hzero]
+      rw [ite_eq_left hzero]
       ring
     · intro y _ hy
       have hne : x + y + u ≠ 0 := by
@@ -234,7 +238,7 @@ lemma walsh_sq_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
           rw [← add_assoc, add_self_bvec, zero_add]
         rw [hyx] at key3
         exact key3
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
     · intro hmem
       simp at hmem
   simp only [hcol]
@@ -275,8 +279,8 @@ lemma bent_gram {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) (x x' : BVec n) 
     rw [harg]
   rw [hmain, bent_autocorrelation hf]
   by_cases h : x = x'
-  · rw [if_pos h, if_pos (by rw [h, add_self_bvec])]
-  · rw [if_neg h, if_neg]
+  · rw [ite_eq_left h, ite_eq_left (by rw [h, add_self_bvec])]
+  · rw [ite_eq_right h, ite_eq_right]
     intro hzero
     exact h ((add_eq_zero_iff_eq_bvec x x').mp hzero)
 
@@ -314,12 +318,12 @@ lemma sum_walsh_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
     rw [sum_w_eps_dot]
   simp only [hinner]
   rw [Finset.sum_eq_single u]
-  · rw [if_pos (by rw [add_self_bvec])]
+  · rw [ite_eq_left (by rw [add_self_bvec])]
     ring
   · intro x _ hx
     have hne : u + x ≠ 0 := fun h0 =>
       hx ((add_eq_zero_iff_eq_bvec u x).mp h0).symm
-    rw [if_neg hne, mul_zero]
+    rw [ite_eq_right hne, mul_zero]
   · intro hmem
     simp at hmem
 

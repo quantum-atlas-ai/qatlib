@@ -6,10 +6,14 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.TangentForcing
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOrder.Asymptotics
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.TangentForcing
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOrder.Asymptotics
+
+@[expose] public section
 
 /-!
 # Cancellation across flat contour crossings

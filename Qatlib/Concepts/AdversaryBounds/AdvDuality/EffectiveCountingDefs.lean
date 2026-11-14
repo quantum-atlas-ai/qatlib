@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
-import Mathlib.Data.List.GetD
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Finset.Max
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+public import Mathlib.Data.List.GetD
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Definitions for effective counting and finite samplers

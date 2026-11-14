@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashPartitionData
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVector
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashPartitionData
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVector
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Weighted hash deviation with side information

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+
+@[expose] public section
 
 /-!
 # Measured-record statistical guarantees
@@ -51,14 +55,14 @@ variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 /-- Distinct positions in the POVM sample record have product marginals and product-law
 expectations. Averaging a kernel over injective tuples is unbiased when the number of such
 tuples is nonzero. -/
-theorem clause6_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeasurementMap E))
-    (ρ : Operator D) (hρ : IsDensityOperator ρ) {n k : ℕ} (hn : 0 < n)
+theorem clause6_complete (E : FinitePOVM O D) (_hM : Function.Bijective (povmMeasurementMap E))
+    (ρ : Operator D) (hρ : IsDensityOperator ρ) {n k : ℕ} (_hn : 0 < n)
     (h : (Fin k → O) → ℝ) (hcount : (distinctTupleCount n k : ℕ) ≠ 0) :
-    (∀ (idx : Fin k → Fin n) (hidx : Function.Injective idx) (y : Fin k → O),
+    (∀ (idx : Fin k → Fin n) (_hidx : Function.Injective idx) (y : Fin k → O),
         (∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω
             * (∏ t : Fin k, (if ω (idx t) = y t then 1 else 0)))
           = ∏ t : Fin k, (povmRecordLaw E ρ hρ).prob (y t)) ∧
-    (∀ (idx : Fin k → Fin n) (hidx : Function.Injective idx) (g : (Fin k → O) → ℝ),
+    (∀ (idx : Fin k → Fin n) (_hidx : Function.Injective idx) (g : (Fin k → O) → ℝ),
         (∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * g (fun t => ω (idx t)))
           = ∑ y : Fin k → O, (∏ t : Fin k, (povmRecordLaw E ρ hρ).prob (y t)) * g y) ∧
     (∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * povmUStatisticK h ω

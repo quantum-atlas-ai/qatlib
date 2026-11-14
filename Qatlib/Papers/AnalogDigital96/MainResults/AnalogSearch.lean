@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.AnalogDigital96.MainResults.EvolutionBridge
+module
+
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.AnalogDigital96.MainResults.EvolutionBridge
+
+@[expose] public section
 
 /-!
 # Analog quantum search from the Hamiltonian exponential
@@ -63,6 +67,7 @@ theorem analogHamiltonian_isHermitian (E : ℝ) (s w : QState I) :
   exact Matrix.IsHermitian.smul ((outerProduct_isHermitian w).add
     (outerProduct_isHermitian s)) hE
 
+omit [DecidableEq I] in
 /-- For normalized `s` and `w` with real overlap `x`, the vector `s + w` satisfies the
 eigenvalue relation with value `E * (1 + x)`. -/
 theorem analogHamiltonian_eigen_plus (E x : ℝ) (s w : QState I)
@@ -81,6 +86,7 @@ theorem analogHamiltonian_eigen_plus (E x : ℝ) (s w : QState I)
   push_cast
   ring
 
+omit [DecidableEq I] in
 /-- For normalized `s` and `w` with real overlap `x`, the vector `s - w` satisfies the
 eigenvalue relation with value `E * (1 - x)`. -/
 theorem analogHamiltonian_eigen_minus (E x : ℝ) (s w : QState I)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateFibre
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateFibre
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
+
+@[expose] public section
 
 /-!
 # Coordinate Gram actions as update sums
@@ -90,8 +94,8 @@ theorem coordinateGram_apply (i : I) (u : InjectiveTuple I L) (v : InjectiveTupl
       · apply Finset.sum_congr rfl
         intro a ha
         by_cases h : a ∉ Set.range (eraseTuple i u)
-        · rw [if_pos h]
-        · rw [if_neg h]
+        · rw [ite_eq_left h]
+        · rw [ite_eq_right h]
           have hn := not_iff_not.mpr (update_injective_iff i u a)
           have hni : ¬ Function.Injective (Function.update (u : I → L) i a) := hn.mpr h
           simp [extend,hni]

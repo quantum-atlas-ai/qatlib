@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
-import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+public import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+
+@[expose] public section
 
 /-!
 # Product Fourier layers and binary Hadamard gates

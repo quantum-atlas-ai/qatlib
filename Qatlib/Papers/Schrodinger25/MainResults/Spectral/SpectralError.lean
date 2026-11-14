@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Qatlib.Papers.Schrodinger25.MainResults.Model
+module
+
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Qatlib.Papers.Schrodinger25.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -91,7 +95,7 @@ truncated problem; the arithmetic fact `(x+y)² ≤ 2x² + 2y²` and the
 monotonicity of the integral are proved here. -/
 theorem theorem_two_one_discrete_error
     (a b : ℝ) (hab : a ≤ b)
-    (w wmid wh : ℝ → ι → ℂ) (uI : ι → ℂ) (ε : ℝ) (hε : 0 ≤ ε)
+    (w wmid wh : ℝ → ι → ℂ) (uI : ι → ℂ) (ε : ℝ) (_hε : 0 ≤ ε)
     (hAint : IntervalIntegrable (fun p => vecNormSq (fun j => w p j - wmid p j)) volume a b)
     (hBint : IntervalIntegrable (fun p => vecNormSq (fun j => wmid p j - wh p j)) volume a b)
     (hCint : IntervalIntegrable (fun p => vecNormSq (fun j => w p j - wh p j)) volume a b)

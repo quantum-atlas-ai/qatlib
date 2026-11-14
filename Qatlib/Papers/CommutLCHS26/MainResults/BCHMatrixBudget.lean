@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHCommBudget
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordEval
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHCommBudget
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordEval
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+
+@[expose] public section
 
 /-!
 # Matrix commutator bounds from formal brackets

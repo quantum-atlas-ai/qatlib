@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ def lemma52Cost (α γ : ℝ) (M J : ℕ) (ε : ℝ) : ℝ :=
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def lemma8_controlled_hamiltonian_simulation_statement
-    (α : ℝ) (a J : ℕ) (ε : ℝ) (hε : 0 ≤ ε)
+    (α : ℝ) (a J : ℕ) (ε : ℝ) (_hε : 0 ≤ ε)
     (Realizes : CircuitCost → Prop) : Prop :=
     ∃ c : CircuitCost, Realizes c ∧ c.ancilla = a + 2 ∧ c.error ≤ ε ∧
       c.uses ≤ lemma8Cost α (2 ^ J) J ε ∧
@@ -61,7 +65,7 @@ def lemma8_controlled_hamiltonian_simulation_statement
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def lemma52_controlled_simulation_statement
-    (α γ : ℝ) (a J : ℕ) (ε : ℝ) (hε : 0 ≤ ε)
+    (α γ : ℝ) (a J : ℕ) (ε : ℝ) (_hε : 0 ≤ ε)
     (Realizes : CircuitCost → Prop) : Prop :=
     ∃ c : CircuitCost, Realizes c ∧ c.ancilla = a + 2 ∧ c.error ≤ ε ∧
       c.uses ≤ lemma52Cost α γ (2 ^ J) J ε ∧

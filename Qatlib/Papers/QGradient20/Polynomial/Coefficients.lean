@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
-import Qatlib.Papers.QGradient20.DressedUpdate.Encoding
+module
+
+public import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
+public import Qatlib.Papers.QGradient20.DressedUpdate.Encoding
+
+@[expose] public section
 
 /-!
 # Symmetric coefficients for homogeneous polynomial terms

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.AxisRotations.Rotation
+module
+
+public import Qatlib.Foundations.MatrixGeometry.AxisRotations.Rotation
+
+@[expose] public section
 
 /-!
 # Finite histories of axis rotations

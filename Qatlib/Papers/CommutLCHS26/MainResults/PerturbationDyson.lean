@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.TimeOrderedPicard
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.PicardResidual
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.TimeOrderedPicard
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.PicardResidual
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
+
+@[expose] public section
 
 /-!
 # Perturbative Dyson expansions

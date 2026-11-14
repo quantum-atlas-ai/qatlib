@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliInvolution
-import Qatlib.Foundations.FiniteStats.BornEstimator.JointApparatus
+module
+
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliInvolution
+public import Qatlib.Foundations.FiniteStats.BornEstimator.JointApparatus
+
+@[expose] public section
 
 /-!
 # Pauli anticommutation graphs

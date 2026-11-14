@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.WeightedCost.PaidExpectation
+module
+
+public import Qatlib.Papers.QAOAScaling23.WeightedCost.PaidExpectation
+
+@[expose] public section
 
 /-!
 # Expected paid cost of initialized descent

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MCMontanaro15.MonteCarlo.MonteCarloDefs
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
-import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+module
+
+public import Qatlib.Papers.MCMontanaro15.MonteCarlo.MonteCarloDefs
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
+public import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+
+@[expose] public section
 
 /-!
 # Monte Carlo error bounds and resource ledgers
@@ -325,7 +329,8 @@ noncomputable def bandMeanAbove (p : FinDist X) (f : X → ℝ) (σ m : ℝ) : �
 
 /-- The negative and nonnegative centered-band expectations equal their scaled band means, with
 the corresponding sign for the negative band. -/
-theorem clause54_band_means (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
+theorem clause54_band_means {X : Type} [Fintype X] [_mcDecidableEq : DecidableEq X]
+    (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
     p.expect (fun i => bandBelowZero (centeredPayoff f σ m i))
         = -4 * bandMeanBelow p f σ m ∧
       p.expect (fun i => bandAtLeastZero (centeredPayoff f σ m i))
@@ -426,7 +431,8 @@ theorem clause56_variance_le_one_of_bounded (p : FinDist X) (f : X → ℝ)
   linarith
 
 /-- If a payoff is bounded in absolute value by one, the variance of its square is at most one. -/
-theorem clause56_variance_sq_le_one (p : FinDist X) (f : X → ℝ)
+theorem clause56_variance_sq_le_one {X : Type} [Fintype X] [_mcDecidableEq : DecidableEq X]
+    (p : FinDist X) (f : X → ℝ)
     (hf : ∀ x, |f x| ≤ 1) : p.variance (fun x => f x ^ 2) ≤ 1 := by
   have h : ∀ x, |f x ^ 2| ≤ 1 := by
     intro x

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Explicit measurement branches and counterexamples
@@ -79,7 +83,7 @@ private theorem wire_pulse_entry (x y : Reg 2) :
   rw [rbWirePulse, sourcePulse_eq_frame_cz, frameMatrix, czMatrix,
     Matrix.diagonal_mul_diagonal, Matrix.diagonal_apply]
   by_cases hxy : x = y
-  · rw [if_pos hxy, if_pos hxy]
+  · rw [ite_eq_left hxy, ite_eq_left hxy]
     have hfr : (∏ v : Fin 2, if (incomingOdd rbWireEdges v && x v) = true then (-1 : ℂ) else 1)
         = bitPhase (x 1) := by
       rw [Fin.prod_univ_two, h0, h1]
@@ -89,7 +93,7 @@ private theorem wire_pulse_entry (x y : Reg 2) :
       rw [rbWireEdges, Finset.prod_singleton]
       cases x 0 <;> cases x 1 <;> simp [bitPhase]
     rw [hfr, hcz]
-  · rw [if_neg hxy, if_neg hxy]
+  · rw [ite_eq_right hxy, ite_eq_right hxy]
 
 /-- The wire input frame has amplitude `1 / √2` when the first register bit matches the logical
 input label, and zero otherwise. -/
@@ -184,14 +188,14 @@ private theorem wire_pulse_frame (x : Reg 2) (j : Fin 2) :
   rw [Matrix.mul_apply]
   simp only [wire_pulse_entry, wire_frame_apply]
   rw [Finset.sum_eq_single x]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     by_cases h : x 0 = boolEquivFin2.symm j
-    · rw [if_pos h, if_pos h, h]
+    · rw [ite_eq_left h, ite_eq_left h, h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   · intro y _ hy
-    rw [if_neg (fun he => hy he.symm)]
+    rw [ite_eq_right (fun he => hy he.symm)]
     ring
   · intro h
     exact absurd (Finset.mem_univ x) h
@@ -208,9 +212,9 @@ private theorem wire_stage1 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
   rw [Finset.sum_eq_single ![boolEquivFin2.symm j, x 1]]
   · have h0 : (![boolEquivFin2.symm j, x 1] : Reg 2) 0 = boolEquivFin2.symm j := rfl
     have h1 : (![boolEquivFin2.symm j, x 1] : Reg 2) 1 = x 1 := rfl
-    rw [h0, h1, if_pos rfl]
+    rw [h0, h1, ite_eq_left rfl]
     have hz : boolEquivFin2 (boolEquivFin2.symm j) = j := by rw [Equiv.apply_symm_apply]
-    rw [hz, if_pos rfl]
+    rw [hz, ite_eq_left rfl]
     ring
   · intro y _ hy
     by_cases hy1 : y 1 = x 1
@@ -218,10 +222,10 @@ private theorem wire_stage1 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
       · exact absurd (funext fun k => by fin_cases k <;> simp [hy0, hy1]) hy
       · have hf : (if y 0 = boolEquivFin2.symm j then
             (Real.sqrt 2 : ℂ)⁻¹ * (bitPhase (y 1) * bitPhase (boolEquivFin2.symm j && y 1))
-          else 0) = 0 := if_neg hy0
+          else 0) = 0 := ite_eq_right hy0
         rw [hf]
         ring
-    · have hd : (if x 1 = y 1 then (1 : ℂ) else 0) = 0 := if_neg (fun he => hy1 he.symm)
+    · have hd : (if x 1 = y 1 then (1 : ℂ) else 0) = 0 := ite_eq_right (fun he => hy1 he.symm)
       rw [hd]
       ring
   · intro h
@@ -293,7 +297,7 @@ private theorem wire_kraus_entry (a : ℝ) (b z : Bool) (j' j : Fin 2) :
     have h1 : (![z, boolEquivFin2.symm j'] : Reg 2) 1 = boolEquivFin2.symm j' := rfl
     rw [h0, h1]
     rw [show (if z = z ∧ boolEquivFin2.symm j' = boolEquivFin2.symm j' then (1 : ℂ) else 0) = 1
-        from if_pos ⟨rfl, rfl⟩, one_mul]
+        from ite_eq_left ⟨rfl, rfl⟩, one_mul]
     have hz : boolEquivFin2 (boolEquivFin2.symm j') = j' := by rw [Equiv.apply_symm_apply]
     rw [hz, wire_corr_sum]
   · intro y _ hy
@@ -301,11 +305,11 @@ private theorem wire_kraus_entry (a : ℝ) (b z : Bool) (j' j : Fin 2) :
     · by_cases hy1 : y 1 = boolEquivFin2.symm j'
       · exact absurd (funext fun k => by fin_cases k <;> simp [hy0, hy1]) hy
       · have hd : (if y 0 = z ∧ y 1 = boolEquivFin2.symm j' then (1 : ℂ) else 0) = 0 :=
-          if_neg (fun he => hy1 he.2)
+          ite_eq_right (fun he => hy1 he.2)
         rw [hd]
         ring
     · have hd : (if y 0 = z ∧ y 1 = boolEquivFin2.symm j' then (1 : ℂ) else 0) = 0 :=
-        if_neg (fun he => hy0 he.1)
+        ite_eq_right (fun he => hy0 he.1)
       rw [hd]
       ring
   · intro h
@@ -385,8 +389,7 @@ private theorem wire_kraus_eq (a : ℝ) (b z : Bool) :
     ring
   rw [hU]
   cases z <;> cases b <;> fin_cases j' <;> fin_cases j <;>
-    simp [plane_XY_entry, wire_corr_sum, boolEquivFin2, bitPhase, exp_ofReal_I, exp_neg_ofReal_I,
-      exp_ofReal_I', exp_neg_ofReal_I'] <;>
+    simp [plane_XY_entry, boolEquivFin2, bitPhase, exp_ofReal_I] <;>
     try ring
   all_goals simp only [Complex.I_sq]
   all_goals try ring
@@ -411,15 +414,15 @@ theorem clause3_clause1 :
     intro bb zz
     cases zz
     · have hz : (if false = true then (if bb = true then (-1 : ℂ) else 1) *
-          Complex.exp ((a : ℂ) * Complex.I) else (1 : ℂ)) = 1 := if_neg (by decide)
+          Complex.exp ((a : ℂ) * Complex.I) else (1 : ℂ)) = 1 := ite_eq_right (by decide)
       rw [hz, star_one, mul_one]
     · have hz : (if true = true then (if bb = true then (-1 : ℂ) else 1) *
           Complex.exp ((a : ℂ) * Complex.I) else (1 : ℂ))
           = (if bb = true then (-1 : ℂ) else 1) * Complex.exp ((a : ℂ) * Complex.I) :=
-          if_pos rfl
+          ite_eq_left rfl
       rw [hz]
       by_cases hb : bb
-      · rw [if_pos hb]
+      · rw [ite_eq_left hb]
         have h2 : ((-1 : ℂ) * Complex.exp ((a : ℂ) * Complex.I))
             * star ((-1 : ℂ) * Complex.exp ((a : ℂ) * Complex.I))
             = Complex.exp ((a : ℂ) * Complex.I) * star (Complex.exp ((a : ℂ) * Complex.I)) := by
@@ -427,7 +430,7 @@ theorem clause3_clause1 :
           ring
         rw [h2]
         exact mul_star_exp_one a
-      · rw [if_neg hb, one_mul]
+      · rw [ite_eq_right hb, one_mul]
         exact mul_star_exp_one a
   have htwo : ((2 : ℂ)⁻¹) * star ((2 : ℂ)⁻¹) = ((2 : ℂ)⁻¹) ^ 2 := by
     rw [star_inv_two]
@@ -483,9 +486,9 @@ private theorem fig2b_pulse_apply (x y : Reg 3) :
   · rw [Finset.sum_eq_zero (fun w _ => by
       by_cases hxw : x = w
       · have hwy : w ≠ y := fun h => hxy (hxw.trans h)
-        rw [if_pos hxw, if_neg hwy, mul_zero]
-      · rw [if_neg hxw, zero_mul])]
-    rw [if_neg hxy]
+        rw [ite_eq_left hxw, ite_eq_right hwy, mul_zero]
+      · rw [ite_eq_right hxw, zero_mul])]
+    rw [ite_eq_right hxy]
 
 /-- A product of coordinate equality indicators selects one register assignment in a finite sum. -/
 private theorem sum_reg_single {n : ℕ} (F : Reg n → ℂ) (b : Reg n) :
@@ -498,7 +501,7 @@ private theorem sum_reg_single {n : ℕ} (F : Reg n → ℂ) (b : Reg n) :
       push Not at hc
       exact hx (funext hc)
     rcases hkb with ⟨k, hk⟩
-    rw [Finset.prod_eq_zero (Finset.mem_univ k) (by rw [if_neg hk])]
+    rw [Finset.prod_eq_zero (Finset.mem_univ k) (by rw [ite_eq_right hk])]
     simp
   · intro h
     exact absurd (Finset.mem_univ b) h
@@ -559,12 +562,12 @@ private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
       · by_cases hk2 : y 2 = v 2
         · exact absurd (funext fun k => by fin_cases k <;> simp [hk0, hk1, hk2]) hy
         · rw [Finset.prod_eq_zero (Finset.mem_erase.mpr ⟨by fin_cases y <;> omega,
-              Finset.mem_univ 2⟩) (by rw [if_neg hk2])]
+              Finset.mem_univ 2⟩) (by rw [ite_eq_right hk2])]
           ring
       · rw [Finset.prod_eq_zero (Finset.mem_erase.mpr ⟨by fin_cases y <;> omega,
-              Finset.mem_univ 1⟩) (by rw [if_neg hk1])]
+              Finset.mem_univ 1⟩) (by rw [ite_eq_right hk1])]
         ring
-    · rw [if_neg hk0]
+    · rw [ite_eq_right hk0]
       ring
   · intro h
     exact absurd (Finset.mem_univ _) h
@@ -580,9 +583,9 @@ private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
   rw [Matrix.mul_apply]
   simp only [fig2b_pulse_apply]
   rw [Finset.sum_eq_single w]
-  · rw [if_pos rfl, fig2b_outmg_apply]
+  · rw [ite_eq_left rfl, fig2b_outmg_apply]
   · intro v _ hv
-    rw [if_neg hv, mul_zero]
+    rw [ite_eq_right hv, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -619,7 +622,7 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
         (bitVecEquiv 2).symm j 1] : Reg 3) 1 = (bitVecEquiv 2).symm j 0 := rfl
     have hb2 : (![boolEquivFin2.symm i, (bitVecEquiv 2).symm j 0,
         (bitVecEquiv 2).symm j 1] : Reg 3) 2 = (bitVecEquiv 2).symm j 1 := rfl
-    rw [hb0, hb1, hb2, if_pos rfl, if_pos rfl, if_pos rfl]
+    rw [hb0, hb1, hb2, ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
     have hph : (bitPhase ((bitVecEquiv 2).symm j 0) * bitPhase ((bitVecEquiv 2).symm j 1) *
         bitPhase (boolEquivFin2.symm i && (bitVecEquiv 2).symm j 0) *
         bitPhase (boolEquivFin2.symm i && (bitVecEquiv 2).symm j 1)) =
@@ -634,13 +637,13 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
   · intro w _ hw
     rw [fig2b_outmgpulse_apply]
     by_cases hw0 : w 0 = boolEquivFin2.symm i
-    · rw [if_pos hw0]
+    · rw [ite_eq_left hw0]
       by_cases hw1 : w 1 = (bitVecEquiv 2).symm j 0
       · by_cases hw2 : w 2 = (bitVecEquiv 2).symm j 1
         · exact absurd (funext fun k => by fin_cases k <;> simp [hw0, hw1, hw2]) hw
-        · rw [if_neg hw2]; ring
-      · rw [if_neg hw1]; ring
-    · rw [if_neg hw0, mul_zero]
+        · rw [ite_eq_right hw2]; ring
+      · rw [ite_eq_right hw1]; ring
+    · rw [ite_eq_right hw0, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -688,7 +691,7 @@ private theorem fig2b_transfer_nonsingular :
     rw [Matrix.mul_apply, Finset.sum_eq_single_of_mem j (Finset.mem_univ j) (by
       intro m _ hm
       rw [Matrix.one_apply_ne hm, mul_zero])]
-    rw [Matrix.one_apply, if_pos rfl, mul_one]
+    rw [Matrix.one_apply, ite_eq_left rfl, mul_one]
   intro h0
   rw [Matrix.mul_apply] at h0
   simp only [h1] at h0
@@ -755,7 +758,7 @@ private theorem wire_pauliZ_entry (x y : Reg 2) :
       fin_cases k
       · exact h0
       · exact absurd rfl hk
-    rw [if_pos hsupp]
+    rw [ite_eq_left hsupp]
     by_cases h1 : x 1 = y 1
     · have hxy : x = y := by
         funext k
@@ -763,18 +766,18 @@ private theorem wire_pauliZ_entry (x y : Reg 2) :
         · exact h0
         · exact h1
       subst hxy
-      rw [if_pos rfl, PauliZ, Matrix.diagonal_apply, if_pos rfl]
+      rw [ite_eq_left rfl, PauliZ, Matrix.diagonal_apply, ite_eq_left rfl]
     · have hxy : ¬ x = y := by
         intro he
         exact h1 (congrFun he 1)
-      rw [if_neg hxy, PauliZ, Matrix.diagonal_apply, if_neg h1]
+      rw [ite_eq_right hxy, PauliZ, Matrix.diagonal_apply, ite_eq_right h1]
   · have hnsupp : ¬ ∀ k : Fin 2, k ≠ (1 : Fin 2) → x k = y k := by
       intro hh
       exact h0 (hh 0 (by decide))
     have hxy : ¬ x = y := by
       intro he
       exact h0 (congrFun he 0)
-    rw [if_neg hnsupp, if_neg hxy]
+    rw [ite_eq_right hnsupp, ite_eq_right hxy]
 
 /-- The wire frame matrix is diagonal with sign determined by the second register bit. -/
 private theorem frame_rb_entry (x y : Reg 2) :
@@ -782,12 +785,12 @@ private theorem frame_rb_entry (x y : Reg 2) :
   rw [frameMatrix, Matrix.diagonal_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Fin.prod_univ_two]
+    rw [ite_eq_left rfl, Fin.prod_univ_two]
     have i0 : incomingOdd (rbWireEdges : Finset (Fin 2 × Fin 2)) 0 = false := by decide
     have i1 : incomingOdd (rbWireEdges : Finset (Fin 2 × Fin 2)) 1 = true := by decide
     rw [i0, i1]
     cases x 0 <;> cases x 1 <;> simp
-  · rw [if_neg hxy, if_neg hxy]
+  · rw [ite_eq_right hxy, ite_eq_right hxy]
 
 /-- Pauli Z on the second qubit equals the wire frame matrix. -/
 private theorem wire_pauliZ_frame : wireGate 2 1 PauliZ = frameMatrix rbWireEdges := by
@@ -811,11 +814,11 @@ private theorem wire_hadamard_sep (x k : Reg 2) :
       fin_cases l
       · exact h
       · exact absurd rfl hl
-    rw [if_pos hsupp, if_pos h, one_mul]
+    rw [ite_eq_left hsupp, ite_eq_left h, one_mul]
   · have hnsupp : ¬ ∀ l : Fin 2, l ≠ (1 : Fin 2) → x l = k l := by
       intro hh
       exact h (hh 0 (by decide))
-    rw [if_neg hnsupp, if_neg h]
+    rw [ite_eq_right hnsupp, ite_eq_right h]
     ring
 
 /-- The CNOT matrix from coordinate zero to coordinate one is the equality indicator for the
@@ -850,7 +853,7 @@ private theorem cnot_hadamard_sep (k y : Reg 2) :
   rw [Matrix.mul_apply]
   simp only [cnot01_apply]
   rw [Finset.sum_eq_single (Function.update k 1 (k 1 ^^ k 0))]
-  · rw [if_pos (cnot_update01_inv k).symm, one_mul, wire_hadamard_sep,
+  · rw [ite_eq_left (cnot_update01_inv k).symm, one_mul, wire_hadamard_sep,
       cnot_update01_0, cnot_update01_1]
   · intro j _ hj
     have hne : ¬ k = Function.update j 1 (j 1 ^^ j 0) := by
@@ -858,7 +861,7 @@ private theorem cnot_hadamard_sep (k y : Reg 2) :
       have h2 := congrArg (fun z : Reg 2 => Function.update z 1 (z 1 ^^ z 0)) he
       simp only [cnot_update01_inv] at h2
       exact hj h2.symm
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     ring
   · intro h
     exact absurd (Finset.mem_univ _) h
@@ -893,10 +896,10 @@ private theorem hcxh_entry (x y : Reg 2) :
       intro k
       by_cases h : x 0 = k 0
       · have h2 : k 0 = y 0 := h.symm.trans hxy
-        rw [if_pos h, if_pos h2, one_mul]
+        rw [ite_eq_left h, ite_eq_left h2, one_mul]
       · by_cases h2 : k 0 = y 0
         · exact absurd (hxy.trans h2.symm) h
-        · rw [if_neg h, if_neg h2]
+        · rw [ite_eq_right h, ite_eq_right h2]
           ring
     simp only [hit]
     rw [sum_reg2_delta]
@@ -912,23 +915,23 @@ private theorem hcxh_entry (x y : Reg 2) :
         fin_cases k
         · exact hxy
         · exact h1
-      rw [if_pos h1, if_pos hxy']
+      rw [ite_eq_left h1, ite_eq_left hxy']
     · have hn : ¬ x = y := by
         intro he
         exact h1 (congrFun he 1)
-      rw [if_neg h1, if_neg hn]
+      rw [ite_eq_right h1, ite_eq_right hn]
   · have hz : ∀ k : Reg 2,
         (if x 0 = k 0 then (1 : ℂ) else 0) * (if k 0 = y 0 then (1 : ℂ) else 0) = 0 := by
       intro k
       by_cases h : x 0 = k 0
       · have h2 : ¬ k 0 = y 0 := fun he => hxy (h.trans he)
-        rw [if_pos h, if_neg h2]
+        rw [ite_eq_left h, ite_eq_right h2]
         ring
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         ring
     simp only [hz, zero_mul]
     rw [Finset.sum_const_zero]
-    rw [if_neg (fun he : x = y => hxy (congrFun he 0))]
+    rw [ite_eq_right (fun he : x = y => hxy (congrFun he 0))]
 
 /-- Conjugating CNOT by a Hadamard on the target gives `networkCzGateB 0 1`. -/
 private theorem hcxh : wireGate 2 1 Hadamard * (cnotGate 2 0 1 * wireGate 2 1 Hadamard)
@@ -954,17 +957,17 @@ private theorem hcxh_cz : wireGate 2 1 Hadamard * (cnotGate 2 0 1 * wireGate 2 1
 
 /-- The finite code for a Hadamard on wire one denotes the corresponding embedded Hadamard gate. -/
 private theorem code_h : finiteCodeMatrix 2 (.h 1) = wireGate 2 1 Hadamard := by
-  rw [finiteCodeMatrix, dif_pos (by decide : (1 : ℕ) < 2)]
+  rw [finiteCodeMatrix, dite_eq_left (by decide : (1 : ℕ) < 2)]
   rfl
 
 /-- The finite code for CNOT from wire zero to wire one denotes the corresponding CNOT matrix. -/
 private theorem code_cx : finiteCodeMatrix 2 (.cx 0 1) = cnotGate 2 0 1 := by
-  rw [finiteCodeMatrix, dif_pos (by decide : (0 : ℕ) < 2 ∧ 1 < 2 ∧ 0 ≠ 1)]
+  rw [finiteCodeMatrix, dite_eq_left (by decide : (0 : ℕ) < 2 ∧ 1 < 2 ∧ 0 ≠ 1)]
   rfl
 
 /-- The finite code for a T gate on wire one denotes the corresponding embedded T gate. -/
 private theorem code_t : finiteCodeMatrix 2 (.t 1) = wireGate 2 1 tGate := by
-  rw [finiteCodeMatrix, dif_pos (by decide : (1 : ℕ) < 2)]
+  rw [finiteCodeMatrix, dite_eq_left (by decide : (1 : ℕ) < 2)]
   rfl
 
 /-- The matrix denoted by the finite gate decomposition `rbFiniteGateDecomp` equals the wire
@@ -990,7 +993,7 @@ theorem clause3_clause4 :
       finiteWordRun 2 rbFiniteGateDecomp ψ = some (ApplyGate rbWirePulse ψ) := by
   intro ψ
   have hlegal : finiteWordLegal 2 rbFiniteGateDecomp = true := rbFiniteGateDecomp_legal
-  simp only [finiteWordRun, hlegal, if_true]
+  simp only [finiteWordRun, hlegal, ite_true]
   rw [finite_phase_word_run, codeWord_rb]
 
 /-- The conjunction of the listed wire, CNOT, three-qubit branch, finite decomposition, and
@@ -1022,16 +1025,16 @@ set_option autoImplicit false
 set_option maxHeartbeats 800000
 
 /-- The Boolean-outcome XY-plane measurement matrix at angle `π / 2`. -/
-private noncomputable def c5P (b : Bool) : Operator 2 :=
+noncomputable def c5P (b : Bool) : Operator 2 :=
   MbqcPlaneBasis MbqcPlane.XY (Real.pi / 2) b
 
 /-- The two-qubit state with amplitude `1 / 2` at every register value except `true, true`,
 where it is `-1 / 2`. -/
-private noncomputable def c5ψ : Reg 2 → ℂ :=
+noncomputable def c5ψ : Reg 2 → ℂ :=
   fun y => if y 0 && y 1 then -(1 / 2 : ℂ) else 1 / 2
 
 /-- The Boolean flag that is true exactly when the supplied matrix equals Pauli X or Pauli Z. -/
-private noncomputable def c5flip (W : Operator 2) : Bool :=
+noncomputable def c5flip (W : Operator 2) : Bool :=
   if W = pauliX then true else if W = pauliZ then true else false
 
 /-- The measurement matrix `c5P b` is one half of the identity plus the outcome-signed Pauli Y. -/
@@ -1042,7 +1045,7 @@ theorem c5P_eq (b : Bool) :
 
 /-- The expectation of the product of two single-qubit operators in the state `c5ψ`, expressed
 as a double coordinate sum. -/
-private noncomputable def c5E (A B : Operator 2) : ℂ :=
+noncomputable def c5E (A B : Operator 2) : ℂ :=
   ∑ u : Reg 2, ∑ v : Reg 2,
     star (c5ψ u) *
       A (boolEquivFin2 (u 0)) (boolEquivFin2 (v 0)) *
@@ -1146,7 +1149,7 @@ theorem c5base (x y : Bool) :
     c5E (c5P x) (c5P y) = if x = y then (1 / 2 : ℂ) else 0 := by
   rw [c5P_eq, c5P_eq, c5E_smul_left, c5E_smul_right]
   cases x <;> cases y <;>
-    simp only [if_true, c5E_add_left, c5E_add_right, c5E_smul_left, c5E_smul_right,
+    simp only [ite_true, c5E_add_left, c5E_add_right, c5E_smul_left, c5E_smul_right,
       c5E_one_one, c5E_Y_one, c5E_one_Y, c5E_Y_Y]
   all_goals norm_num
 
@@ -1286,21 +1289,21 @@ theorem c5_outFrame (z : Reg 2) (y : Fin 1) (x : Fin 4) :
       (if (bitVecEquiv 2).symm x 0 = z 0 then (1 : ℂ) else 0) else 0)
     = if x = bitVecEquiv 2 z then (1 : ℂ) else 0
   by_cases he : x = bitVecEquiv 2 z
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     have hs : (bitVecEquiv 2).symm x = z := (Equiv.symm_apply_eq (bitVecEquiv 2)).mpr he
     have h0 : (bitVecEquiv 2).symm x 0 = z 0 := by rw [hs]
     have h1 : (bitVecEquiv 2).symm x 1 = z 1 := by rw [hs]
-    rw [if_pos h1, if_pos h0]
-  · rw [if_neg he]
+    rw [ite_eq_left h1, ite_eq_left h0]
+  · rw [ite_eq_right he]
     have hs : ¬((bitVecEquiv 2).symm x = z) :=
         fun h => he ((Equiv.symm_apply_eq (bitVecEquiv 2)).mp h)
     by_cases h1 : (bitVecEquiv 2).symm x 1 = z 1
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       by_cases h0 : (bitVecEquiv 2).symm x 0 = z 0
-      · rw [if_pos h0]
+      · rw [ite_eq_left h0]
         exact absurd (funext fun k => by fin_cases k; exact h0; exact h1) hs
-      · rw [if_neg h0]
-    · rw [if_neg h1]
+      · rw [ite_eq_right h0]
+    · rw [ite_eq_right h1]
 
 /-- The single-edge two-qubit CZ matrix is diagonal, with negative sign exactly when both bits
 are true. -/
@@ -1309,11 +1312,11 @@ theorem c5_czDiag (y w : Reg 2) :
       = if y = w then (if y 0 && y 1 then (-1 : ℂ) else 1) else 0 := by
   rw [czMatrix, Matrix.diagonal_apply]
   by_cases he : y = w
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     subst w
     rw [Finset.prod_singleton]
     simp
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     simp [he]
 
 /-- The two-bit controlled phase is twice the corresponding amplitude of `c5ψ`. -/
@@ -1509,9 +1512,9 @@ theorem c5_ppd_one : pauliProductDensity (fun _ : Fin 2 => (1 : Operator 2)) = 1
       by_contra hi
       exact hc ⟨i, hi⟩
     obtain ⟨i, hi⟩ := hex
-    rw [if_neg h]
+    rw [ite_eq_right h]
     apply Finset.prod_eq_zero (Finset.mem_univ i)
-    rw [if_neg hi]
+    rw [ite_eq_right hi]
 
 /-- Relabeling the two-qubit identity matrix by `bitVecEquiv 2` gives the identity. -/
 theorem c5_relabel_one : relabelGate (bitVecEquiv 2) (1 : Matrix (Reg 2) (Reg 2) ℂ) = 1 := by
@@ -1591,9 +1594,9 @@ theorem c5_czRow_sum (w : Reg 2) :
     rw [c5_czDiag]
   simp only [h]
   rw [Fintype.sum_eq_single w]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro y hy
-    rw [if_neg (fun he => hy he.symm)]
+    rw [ite_eq_right (fun he => hy he.symm)]
 
 /-- Entries of a matrix relabeled by `bitVecEquiv 2` are obtained by applying the inverse
 equivalence to both indices. -/
@@ -1642,7 +1645,7 @@ theorem c5_kraus_raw (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 �
     rw [Finset.sum_congr rfl (fun j _ => hite j)]
     rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin 4)) (bitVecEquiv 2 z)
         (fun j => relabelGate (bitVecEquiv 2) (c5Ureg corr s) j x_1)]
-    rw [if_pos (Finset.mem_univ _)]
+    rw [ite_eq_left (Finset.mem_univ _)]
   have hpoint : ∀ x x_1 : Fin 4,
       relabelGate (bitVecEquiv 2) (c5Ureg corr s) (bitVecEquiv 2 z) x_1
           * relabelGate (bitVecEquiv 2) (czMatrix ({(0, 1)} : Finset (Fin 2 × Fin 2))) x_1 x
@@ -2034,8 +2037,8 @@ theorem clause6_clause5 :
     have hvalB : sB 0 = false ∧ sB 1 = true := by
       rw [hsB]
       constructor
-      · exact if_neg (by decide)
-      · exact if_pos rfl
+      · exact ite_eq_right (by decide)
+      · exact ite_eq_left rfl
     have hcorr : corr sA 0 = corr sB 0 ∧ corr sA 1 = corr sB 1 := by
       constructor
       · apply hcausal sA sB 0
@@ -2066,8 +2069,8 @@ theorem clause6_clause5 :
     have hvalB : sB 0 = true ∧ sB 1 = false := by
       rw [hsB]
       constructor
-      · exact if_pos rfl
-      · exact if_neg (by decide)
+      · exact ite_eq_left rfl
+      · exact ite_eq_right (by decide)
     have hcorr : corr sA 0 = corr sB 0 ∧ corr sA 1 = corr sB 1 := by
       constructor
       · apply hcausal sA sB 0

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CircleLogReconstruction
-import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CircleLogReconstruction
+public import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+
+@[expose] public section
 
 /-!
 # A concrete smooth correction which is constant at all six physical faces

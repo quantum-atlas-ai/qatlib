@@ -4,12 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Euler
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Wire
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Euler
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Wire
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Kraus semantics of the six-wire CNOT gadget
@@ -90,7 +95,7 @@ theorem cnotAux_cnot_frame (x : Reg 6) :
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 4)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 5) := by
   rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-      if_pos (rfl : x = x)]
+      ite_eq_left (rfl : x = x)]
   rw [Qatlib.Concepts.ClusterPatterns.CnotPatterns.prod_fin6]
   have h0 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd cnotAux_cnotE 0 = false := by decide
   have h1 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd cnotAux_cnotE 1 = false := by decide
@@ -108,7 +113,7 @@ theorem cnotAux_cnot_cz (x : Reg 6) :
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 2) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 3)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2 && x 5)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3 && x 4) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x)]
   show (∏ e ∈ cnotAux_cnotE, if x e.1 && x e.2 then (-1 : ℂ) else 1) = _
   rw [cnotAux_cnotE]
   rw [Finset.prod_insert (by decide), Finset.prod_insert (by decide),
@@ -129,22 +134,22 @@ theorem cnotAux_cnot_ent_diag (x y : Reg 6) :
   rw [cnotAux_cnot_entangler]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     rw [Matrix.mul_apply, Finset.sum_eq_single x]
     · rw [cnotAux_cnot_frame, cnotAux_cnot_cz]
       rfl
     · intro k _ hk
-      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_neg (Ne.symm hk),
+      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_right (Ne.symm hk),
         zero_mul]
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rw [Matrix.mul_apply]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hk : k = x
     · subst hk
-      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_neg h, mul_zero]
-    · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_neg (Ne.symm hk),
+      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_right h, mul_zero]
+    · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_right (Ne.symm hk),
         zero_mul]
 
 /-- The uniform state on four bits has amplitude one quarter at every register. -/
@@ -162,15 +167,15 @@ theorem cnotAux_cnot_load (d : Reg 6) (y : Reg 2) :
       = if d 0 = y 0 ∧ d 1 = y 1 then (1 / 4 : ℂ) else 0 := by
   simp only [mpLoadMatrix, mpCnotPattern, Matrix.of_apply]
   by_cases h : ∀ i : Fin 2, d (Fin.castLE (by omega : (2:ℕ) ≤ 4 + 2) i) = y i
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h0 : d 0 = y 0 := h ⟨0, by omega⟩
     have h1 : d 1 = y 1 := h ⟨1, by omega⟩
-    rw [if_pos (And.intro h0 h1)]
+    rw [ite_eq_left (And.intro h0 h1)]
     have hres : Uniform (Reg 4)
         (fun k : Fin 4 => d (Fin.cast (by omega) (Fin.natAdd 2 k))) = (1 / 4 : ℂ) :=
       cnotAux_uniform4 _
     rw [hres]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h0 : ¬ (d 0 = y 0 ∧ d 1 = y 1) := by
       intro hh
       apply h
@@ -178,7 +183,7 @@ theorem cnotAux_cnot_load (d : Reg 6) (y : Reg 2) :
       fin_cases i
       · exact hh.1
       · exact hh.2
-    rw [if_neg h0]
+    rw [ite_eq_right h0]
 
 /-- Entangling the loaded CNOT resource gives one quarter of the resource phase on matching
 input bits and zero otherwise. -/
@@ -187,14 +192,14 @@ theorem cnotAux_cnot_EL (d : Reg 6) (y : Reg 2) :
       = if d 0 = y 0 ∧ d 1 = y 1 then (1 / 4 : ℂ) * cnotAux_cnotPhase d else 0 := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single d]
-  · rw [cnotAux_cnot_ent_diag, if_pos rfl, cnotAux_cnot_load]
+  · rw [cnotAux_cnot_ent_diag, ite_eq_left rfl, cnotAux_cnot_load]
     by_cases h : d 0 = y 0 ∧ d 1 = y 1
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   · intro d' _ hdne
-    rw [cnotAux_cnot_ent_diag, if_neg (Ne.symm hdne), zero_mul]
+    rw [cnotAux_cnot_ent_diag, ite_eq_right (Ne.symm hdne), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Every adaptive measurement angle of the CNOT pattern is zero. -/
@@ -299,8 +304,8 @@ theorem cnotAux_sum_reclause6_fix4 (f : Reg 6 → ℂ) (a0 a1 a4 a5 : Bool)
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : c 0 = a0 ∧ c 1 = a1 ∧ c 4 = a4 ∧ c 5 = a5
-    · rw [if_pos h]
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+    · rw [ite_eq_right h]
       have h' : c 0 ≠ a0 ∨ c 1 ≠ a1 ∨ c 4 ≠ a4 ∨ c 5 ≠ a5 := by
         by_contra hc
         push Not at hc
@@ -359,14 +364,14 @@ theorem cnotAux_cnot_sum_eq (s : Fin 4 → Bool) (xp : Fin 4) (y : Reg 2) :
             · exact absurd h5 hc
           · have hne : ¬ (c 4 = mpOutBit mpCnotPattern s xp 0
                 ∧ c 5 = mpOutBit mpCnotPattern s xp 1) := fun hh => h5 hh.2
-            rw [if_neg hne, mul_zero, zero_mul]
+            rw [ite_eq_right hne, mul_zero, zero_mul]
         · have hne : ¬ (c 4 = mpOutBit mpCnotPattern s xp 0
               ∧ c 5 = mpOutBit mpCnotPattern s xp 1) := fun hh => h4 hh.1
-          rw [if_neg hne, mul_zero, zero_mul]
+          rw [ite_eq_right hne, mul_zero, zero_mul]
       · have hne : ¬ (c 0 = y 0 ∧ c 1 = y 1) := fun hh => h1 hh.2
-        rw [if_neg hne, mul_zero]
+        rw [ite_eq_right hne, mul_zero]
     · have hne : ¬ (c 0 = y 0 ∧ c 1 = y 1) := fun hh => h0 hh.1
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
 
 /-- The fourth power of the complex embedding of `√2` is four. -/
 theorem cnotAux_sqrt2_pow4 : ((Real.sqrt 2 : ℝ) : ℂ) ^ 4 = 4 := by
@@ -510,7 +515,7 @@ theorem cnotAux_cnot_summand_pin6 (s : Fin 4 → Bool) (xp : Fin 4) (y : Reg 2) 
       (mpOutBit mpCnotPattern s xp 1)) 0 = y 0 := rfl
   have hD : (pin6 (y 0) (y 1) p q (mpOutBit mpCnotPattern s xp 0)
       (mpOutBit mpCnotPattern s xp 1)) 1 = y 1 := rfl
-  rw [if_pos ⟨hA, hB⟩, if_pos ⟨hC, hD⟩]
+  rw [ite_eq_left ⟨hA, hB⟩, ite_eq_left ⟨hC, hD⟩]
   ring
 
 /-- Each CNOT summand with fixed input and output bits is one sixteenth of its Boolean
@@ -623,13 +628,13 @@ theorem cnotAux_cnot_corePre_closed (s : Fin 4 → Bool) (xp : Fin 4) (y : Reg 2
   rw [cnotAux_sum_bit]
   rw [cnotAux_bitPhase_add_pair]
   by_cases hp : cnotAux_cnotExP s xp y || cnotAux_cnotExQ s xp y
-  · rw [if_pos hp, mul_zero, mul_zero, mul_zero]
+  · rw [ite_eq_left hp, mul_zero, mul_zero, mul_zero]
     have hs : ¬ cnotAux_cnotSupp xp y = true := by
       intro hc
       have h1 := (cnotAux_cnot_supp_iff s xp y).mpr hc
       simp [h1.1, h1.2] at hp
-    rw [if_neg hs, mul_zero]
-  · rw [if_neg hp]
+    rw [ite_eq_right hs, mul_zero]
+  · rw [ite_eq_right hp]
     have hppqq := cnotAux_bool_or_false hp
     have hpp : cnotAux_cnotExP s xp y = false := hppqq.1
     have hqq : cnotAux_cnotExQ s xp y = false := hppqq.2
@@ -640,7 +645,7 @@ theorem cnotAux_cnot_corePre_closed (s : Fin 4 → Bool) (xp : Fin 4) (y : Reg 2
         * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (cnotAux_cnotExB0 s xp y)
         = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (cnotAux_cnotPhi s) := by
       rw [← Clause18Wire1a.bitPhase_xor, hsig]
-    rw [if_pos hsupp, mul_one]
+    rw [ite_eq_left hsupp, mul_one]
     have hcalc : Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (cnotAux_cnotZBit s xp)
         * ((1 / 16 : ℂ) * (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (cnotAux_cnotExB0 s xp y) * 4))
         = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (cnotAux_cnotPhi s) / 4 := by
@@ -660,7 +665,7 @@ theorem cnotAux_mpFinCnot_apply (xp yp : Fin 4) :
         then (1:ℂ) else 0 := by
   have hleg : (0 < 2 ∧ 1 < 2 ∧ (0:ℕ) ≠ 1) := ⟨by omega, by omega, by omega⟩
   simp only [mpFinCnot, mpFinGate, finiteCodeMatrix]
-  rw [dif_pos hleg]
+  rw [dite_eq_left hleg]
   simp only [cnotGate, permMatrix, Matrix.of_apply, Matrix.reindex_apply, Matrix.submatrix_apply,
     Equiv.refl_symm, Equiv.refl_apply, Fin.isValue]
 
@@ -682,7 +687,7 @@ theorem cnotAux_mpFinCnot_supp (xp yp : Fin 4) :
       = Function.update ((bitVecEquiv 2).symm yp) (⟨1, by omega⟩ : Fin 2)
           (((bitVecEquiv 2).symm yp) (⟨1, by omega⟩ : Fin 2)
             ^^ ((bitVecEquiv 2).symm yp) (⟨0, by omega⟩ : Fin 2))
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hi := (cnotAux_update_iff _ _).mp h
     have hb := cnotAux_bv2_bits xp
     have e0 : ((bitVecEquiv 2).symm yp) 0 = ((bitVecEquiv 2).symm xp) 0 := hi.1.symm
@@ -696,7 +701,7 @@ theorem cnotAux_mpFinCnot_supp (xp yp : Fin 4) :
       exact ⟨e0, e1⟩
     rw [key]
     rfl
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hb := cnotAux_bv2_bits xp
     have hi : ¬ (((bitVecEquiv 2).symm xp) 0 = ((bitVecEquiv 2).symm yp) 0
         ∧ ((bitVecEquiv 2).symm xp) 1
@@ -710,7 +715,7 @@ theorem cnotAux_mpFinCnot_supp (xp yp : Fin 4) :
       rw [← hb.1, ← hb.2] at hc
       simp only [Bool.and_eq_true, beq_iff_eq] at hc
       exact hi ⟨hc.1.symm, by rw [hc.2, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]⟩
-    rw [if_neg key]
+    rw [ite_eq_right key]
 
 /-- For each measurement history, the CNOT core is the encoded CNOT matrix scaled by its global
 sign divided by four. -/

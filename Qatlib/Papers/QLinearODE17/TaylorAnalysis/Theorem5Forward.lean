@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Forward norm of the V2 Taylor matrix
@@ -152,9 +156,9 @@ theorem taylorJumpLabels_norm (m k p : ℕ) :
           r.val-(k+1) ≤ c.val ∧ c.val < r.val
       · have he := jump_label_target k r.val c.val h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2
         have ht : (c.val/(k+1)+1)*(k+1) < m*(k+1)+p+1 := by rw [← he]; exact r.isLt
-        have heq : r=target := by apply Fin.ext; simp only [target,dif_pos ht]; exact he
-        simp only [taylorJumpLabels,if_pos h,if_pos heq,norm_one,le_refl]
-      · simp only [taylorJumpLabels,if_neg h,norm_zero]
+        have heq : r=target := by apply Fin.ext; simp only [target,dite_eq_left ht]; exact he
+        simp only [taylorJumpLabels,ite_eq_left h,ite_eq_left heq,norm_one,le_refl]
+      · simp only [taylorJumpLabels,ite_eq_right h,norm_zero]
         split_ifs <;> norm_num
     exact (Finset.sum_le_sum (fun r _ => hpoint r)).trans_eq (by simp)
 
@@ -270,8 +274,8 @@ theorem taylorV2_forward_decomposition (m k p : ℕ) (M : Matrix N N ℂ) :
       · by_cases hp : m*(k+1)<r.1.val
         · have hnot : ¬ r.1.val < m*(k+1) := by omega
           simp [taylorForwardRowBlock,hshift,hnot,hp,Matrix.one_apply]
-        · simp only [hshift,and_true,taylorForwardRowBlock,if_neg hs,if_neg hp,
-            if_true,Matrix.zero_apply,add_zero]
+        · simp only [hshift,and_true,taylorForwardRowBlock,ite_eq_right hs,ite_eq_right hp,
+            ite_true,Matrix.zero_apply,add_zero]
     · simp [hshift]
   rw [hJ,hB]
   simp only [taylorStepMatrixV2,Matrix.one_apply]

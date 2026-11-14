@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+
+@[expose] public section
 
 /-!
 # Applications of random-power walk detection
@@ -97,7 +101,7 @@ theorem source_theorem_three_reduction
 /-- For `ε > 0`, setup cost `k` plus the ceiling of `1000 * sqrt (k / ε)` is at most `k + 1000 *
 sqrt (k / ε) + 1`. -/
 theorem source_theorem_three_total_cost
-    (k : ℕ) (ε : ℝ) (hε : 0 < ε) :
+    (k : ℕ) (ε : ℝ) (_hε : 0 < ε) :
     (k : ℝ) + (Nat.ceil (1000 * Real.sqrt ((k : ℝ) / ε)) : ℝ) ≤
       (k : ℝ) + 1000 * Real.sqrt ((k : ℝ) / ε) + 1 := by
   have hnn : (0 : ℝ) ≤ 1000 * Real.sqrt ((k : ℝ) / ε) := by positivity

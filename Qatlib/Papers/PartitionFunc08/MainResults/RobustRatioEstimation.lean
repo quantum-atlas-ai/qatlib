@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+@[expose] public section
 
 /-!
 # Robust ratio-estimation budgets
@@ -76,13 +80,13 @@ theorem lemma6_robust_ratio_estimation
 reflection cost is at most the sum of their prescribed bounds. See [Wocjan et al.,
 2009][WocjanEtAl2009a]. -/
 theorem lemma6_walk_cost
-    {ℓ : ℕ} {δ εpe εS εR : ℝ} (hδ : 0 < δ) (hεpe : 0 < εpe)
-    (hεR : 0 < εR)
+    {ℓ : ℕ} {δ εpe εS εR : ℝ} (_hδ : 0 < δ) (hεpe : 0 < εpe)
+    (_hεR : 0 < εR)
     {stateCalls reflCalls reflUses : ℝ}
     (hsp : stateCalls ≤ (ℓ : ℝ) / Real.sqrt δ * (Real.log ((ℓ : ℝ) / εS)) ^ 2)
     (hr : reflCalls ≤ Real.log (1 / εR) / Real.sqrt δ)
     (hu : reflUses ≤ 1 / εpe)
-    (hrc : 0 ≤ reflCalls) (hu0 : 0 ≤ reflUses) :
+    (hrc : 0 ≤ reflCalls) (_hu0 : 0 ≤ reflUses) :
     stateCalls + reflUses * reflCalls ≤
       (ℓ : ℝ) / Real.sqrt δ * (Real.log ((ℓ : ℝ) / εS)) ^ 2 +
         (1 / εpe) * (Real.log (1 / εR) / Real.sqrt δ) := by

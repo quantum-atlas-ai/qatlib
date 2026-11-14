@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Pair potential circuits

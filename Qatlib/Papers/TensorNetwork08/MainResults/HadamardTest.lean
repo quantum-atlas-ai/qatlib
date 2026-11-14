@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 /-!
 # Finite-distribution sampling bounds for the Hadamard test
@@ -56,13 +60,13 @@ def rademacherDist (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) : FinDist Bool
   nonneg := by
     intro b
     cases b
-    · simp only [Bool.false_eq_true, if_false]
+    · simp only [Bool.false_eq_true, ite_false]
       linarith [hμ.2]
-    · simp only [if_true]
+    · simp only [ite_true]
       linarith [hμ.1]
   sum_one := by
     rw [Fintype.sum_bool]
-    simp only [if_true, Bool.false_eq_true, if_false]
+    simp only [ite_true, Bool.false_eq_true, ite_false]
     ring
 
 /-- The expectation of `spin` under `rademacherDist μ hμ` equals `μ`. See [AradLandau2010]. -/
@@ -70,7 +74,7 @@ theorem expect_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
     (rademacherDist μ hμ).expect spin = μ := by
   unfold FinDist.expect
   rw [Fintype.sum_bool]
-  simp only [rademacherDist, spin, if_true, Bool.false_eq_true, if_false]
+  simp only [rademacherDist, spin, ite_true, Bool.false_eq_true, ite_false]
   ring
 
 /-- The expectation of the negative sign observable under `rademacherDist μ hμ` equals `-μ`. -/
@@ -78,7 +82,7 @@ theorem expect_neg_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
     (rademacherDist μ hμ).expect (fun b => - spin b) = -μ := by
   unfold FinDist.expect
   rw [Fintype.sum_bool]
-  simp only [rademacherDist, spin, if_true, Bool.false_eq_true, if_false]
+  simp only [rademacherDist, spin, ite_true, Bool.false_eq_true, ite_false]
   ring
 
 /-- The empirical average of the negative sign observable equals the negative empirical average
@@ -113,7 +117,7 @@ theorem probEvent_or_le {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) 
   rw [key, key, key, ← Finset.sum_add_distrib]
   refine Finset.sum_le_sum fun ω _ => ?_
   have hpω : 0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
-  by_cases hE : E ω <;> by_cases hF : F ω <;> simp [hE, hF] <;> nlinarith
+  by_cases hE : E ω <;> by_cases hF : F ω <;> simp [hE, hF]; nlinarith
 
 /-- For positive `N` and `ε` with `N * ε² ≥ 16`, the probability that the empirical sign mean
 differs from `μ` by at least `ε` is at most one quarter. See [AradLandau2010]. -/

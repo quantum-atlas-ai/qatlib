@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalApproximation
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalApproximation
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+
+@[expose] public section
 
 /-!
 # Constructive QSVT pseudoinverse encoding

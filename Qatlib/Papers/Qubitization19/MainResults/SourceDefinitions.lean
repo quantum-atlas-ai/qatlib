@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Tactic
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 open Qatlib.Concepts.BlockEncoding.LinearCombination

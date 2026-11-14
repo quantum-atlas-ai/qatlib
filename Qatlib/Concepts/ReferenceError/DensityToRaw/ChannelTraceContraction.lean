@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+
+@[expose] public section
 
 /-!
 # Hermitian trace norm contraction

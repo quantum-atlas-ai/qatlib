@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.Fact5Stat
-import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleFact5
-import Qatlib.Concepts.WalkSearch.Primitives.RemovalTriangleFact5
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.Fact5Stat
+public import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleFact5
+public import Qatlib.Concepts.WalkSearch.Primitives.RemovalTriangleFact5
+
+@[expose] public section
 
 /-!
 # Incremental triangle-count guarantee

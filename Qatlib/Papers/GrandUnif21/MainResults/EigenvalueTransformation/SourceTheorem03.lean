@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+module
+
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

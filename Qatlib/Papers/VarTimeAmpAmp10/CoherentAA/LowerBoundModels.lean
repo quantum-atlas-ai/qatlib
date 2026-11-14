@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
+
+@[expose] public section
 
 /-!
 # Grover hard-family query models

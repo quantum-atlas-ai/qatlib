@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Complex.Basic
-import Mathlib.Logic.Equiv.Fin.Rotate
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Logic.Equiv.Fin.Rotate
+
+@[expose] public section
 
 open Matrix Finset BigOperators
 set_option autoImplicit false
@@ -89,7 +93,7 @@ lemma sum_fin_pi_prod {k : ℕ} (β : Fin k → Type*) [∀ i, Fintype (β i)]
     (∑ x : (∀ i, β i), ∏ i, g i (x i)) = ∏ i, ∑ a, g i a := by
   induction k with
   | zero =>
-      haveI : Subsingleton ((i : Fin 0) → β i) := ⟨fun f g => funext fun i => i.elim0⟩
+      have : Subsingleton ((i : Fin 0) → β i) := ⟨fun f g => funext fun i => i.elim0⟩
       simp
   | succ k ih =>
       rw [Fintype.sum_equiv (Fin.consEquiv (n := k) β).symm
@@ -123,8 +127,8 @@ lemma permOp_one {k : ℕ} : permOp (d := d) (1 : Equiv.Perm (Fin k)) = 1 := by
   rw [Equiv.coe_refl, Function.comp_id]
   simp only [Matrix.one_apply]
   by_cases h : y = x
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun hh => h hh.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]
 
 /-- **Lemma 1 at the identity permutation**: `Tr (W_1 (Q 0 ⊗ ⋯ ⊗ Q (k-1)))` is the product
 of the traces. -/

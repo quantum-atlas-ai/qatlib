@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Executor
-import Qatlib.Papers.QAOAScaling23.FreshRepeat.ActualLaw
+module
+
+public import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Executor
+public import Qatlib.Papers.QAOAScaling23.FreshRepeat.ActualLaw
+
+@[expose] public section
 
 /-!
 # Recorded budget prefixes of initialized trials

@@ -4,8 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+
+set_option linter.unusedSectionVars false
+
+@[expose] public section
 
 /-!
 # Sine envelope spectral filter circuits
@@ -320,7 +326,7 @@ private theorem envelope_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I
   by_cases hh : x 0 = (⟨0, hM⟩ : Fin M) <;>
     by_cases ht : (fun j : Fin k => x j.succ) = (fun _ => (⟨0, hM⟩ : Fin M)) <;>
     simp [hx, hh, ht] <;> first
-    | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
+    | rw [ite_eq_left (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
 /-- On an eigenstate, the lifted head forward circuit creates one sine envelope kernel while
@@ -565,11 +571,11 @@ theorem envelope_packet_filter_error
       ≤ ‖c j‖ ^ 2 * (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2) := by
     intro j
     by_cases hj : j ∈ T
-    · have hR : (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2) = ‖1 - s‖ ^ 2 := if_pos hj
-      rw [hR, if_pos hj, hs j hj,
+    · have hR : (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2) = ‖1 - s‖ ^ 2 := ite_eq_left hj
+      rw [hR, ite_eq_left hj, hs j hj,
         show c j * s - c j = -(c j * (1 - s)) by ring, norm_neg, norm_mul, mul_pow]
-    · have hR : (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2) = C ^ 2 := if_neg hj
-      rw [hR, if_neg hj, show c j * α j - 0 = c j * α j by ring, norm_mul, mul_pow]
+    · have hR : (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2) = C ^ 2 := ite_eq_right hj
+      rw [hR, ite_eq_right hj, show c j * α j - 0 = c j * α j by ring, norm_mul, mul_pow]
       exact mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (norm_nonneg _) (hb j hj) 2)
         (sq_nonneg _)
   have hsplit : (∑ j, ‖c j‖ ^ 2 * (if j ∈ T then ‖1 - s‖ ^ 2 else C ^ 2))
@@ -590,7 +596,7 @@ theorem envelope_packet_filter_error
       refine Finset.sum_congr rfl fun j _ => ?_
       by_cases hj : j ∈ T
       · simp [hj]
-      · simp only [if_neg hj]
+      · simp only [ite_eq_right hj]
         ring
     have hkey : (∑ j, (if j ∈ T then ‖c j‖ ^ 2 * ‖1 - s‖ ^ 2 else ‖c j‖ ^ 2 * C ^ 2))
         = (∑ j, if j ∈ T then ‖c j‖ ^ 2 * ‖1 - s‖ ^ 2 else (0:ℝ))

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
-import Qatlib.Papers.QAOAScaling23.SearchFees.ActualFees
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
+public import Qatlib.Papers.QAOAScaling23.SearchFees.ActualFees
+
+@[expose] public section
 
 /-!
 # Public search schedule and budget constants

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.Group
-import Mathlib.Algebra.Group.Prod
-import Mathlib.GroupTheory.Index
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Data.Nat.Totient
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.Group
+public import Mathlib.Algebra.Group.Prod
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Separating a trivially acted-on cyclic factor

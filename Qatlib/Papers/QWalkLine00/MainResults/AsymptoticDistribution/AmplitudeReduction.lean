@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.HadamardEigen
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
-import Qatlib.Papers.QWalkLine00.MainResults.AsymptoticDistribution.Basic
-import Mathlib.Analysis.Complex.Norm
+module
+
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.HadamardEigen
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
+public import Qatlib.Papers.QWalkLine00.MainResults.AsymptoticDistribution.Basic
+public import Mathlib.Analysis.Complex.Norm
+
+@[expose] public section
 
 /-!
 # Algebra of leading Hadamard amplitudes

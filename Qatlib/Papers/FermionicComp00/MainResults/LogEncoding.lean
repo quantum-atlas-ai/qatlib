@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Data.Finset.Card
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Logarithmic fermion encoding
@@ -191,10 +195,10 @@ private lemma update_flip_iff {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t)) :
       sourceParity_update_split n s j h, sourceParity_split n s j h]
     cases hn : n s with
     | false =>
-        simp only [Bool.not_false, if_true]
+        simp only [Bool.not_false, ite_true]
         exact enc_bit_ne_of_mod_ne (mod_two_add_one_ne _)
     | true =>
-        simp only [if_true]
+        simp only [ite_true]
         exact (enc_bit_ne_of_mod_ne (mod_two_add_one_ne _)).symm
   · refine ⟨fun hc => ?_, fun hh => absurd hh h⟩
     exfalso
@@ -265,7 +269,7 @@ theorem source_encoding_bijective (t : ℕ) : Function.Bijective (sourceEncoding
               | false => rfl
               | true =>
                   exfalso
-                  simp only [hnj, hmj, Bool.false_eq_true, if_true, if_false, Nat.add_zero]
+                  simp only [hnj, hmj, Bool.false_eq_true, ite_true, ite_false, Nat.add_zero]
                     at hpar'
                   exact (mod_two_add_one_ne
                     (∑ x ∈ (Finset.univ.filter
@@ -275,7 +279,7 @@ theorem source_encoding_bijective (t : ℕ) : Function.Bijective (sourceEncoding
               cases hmj : m j with
               | false =>
                   exfalso
-                  simp only [hnj, hmj, Bool.false_eq_true, if_true, if_false, Nat.add_zero]
+                  simp only [hnj, hmj, Bool.false_eq_true, ite_true, ite_false, Nat.add_zero]
                     at hpar'
                   exact (mod_two_add_one_ne
                     (∑ x ∈ (Finset.univ.filter

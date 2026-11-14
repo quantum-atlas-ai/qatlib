@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Short-step diagonal and Fourier factorization
@@ -203,8 +207,8 @@ theorem twistedDFT_mul_star_apply (u : ZMod N) (a b : ZMod N) :
     exact Finset.sum_congr rfl (fun j _ => by rw [mul_comm])]
   rw [AddChar.sum_mulShift (u * (a - b)) (ZMod.isPrimitive_stdAddChar N)]
   by_cases h : u * (a - b) = 0
-  · rw [if_pos h, if_pos h, ZMod.card]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h, ZMod.card]
+  · rw [ite_eq_right h, ite_eq_right h]
     simp
 
 /-- If the twist is a unit modulo `N`, its Fourier matrix multiplied by its conjugate transpose
@@ -216,12 +220,12 @@ theorem twistedDFT_mul_star_of_isUnit (u : ZMod N) (hu : IsUnit u) :
   by_cases hab : a = b
   · subst hab
     have hzero : u * (a - a) = 0 := by rw [sub_self, mul_zero]
-    rw [if_pos hzero, if_pos rfl, smul_eq_mul, mul_one]
+    rw [ite_eq_left hzero, ite_eq_left rfl, smul_eq_mul, mul_one]
   · have hsub : a - b ≠ 0 := sub_ne_zero.mpr hab
     have hne : u * (a - b) ≠ 0 := by
       intro h
       exact hsub ((IsUnit.mul_right_eq_zero hu).mp h)
-    rw [if_neg hne, if_neg hab, smul_zero]
+    rw [ite_eq_right hne, ite_eq_right hab, smul_zero]
 
 /-- A diagonal matrix on `ZMod N` is unitary if each diagonal entry multiplied by its complex
 conjugate equals one. -/

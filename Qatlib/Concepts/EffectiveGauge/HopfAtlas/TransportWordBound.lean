@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransverseTransportBound
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransportMajorant
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransverseTransportBound
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.TransportMajorant
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

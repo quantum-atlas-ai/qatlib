@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Sampling powered readouts
@@ -88,7 +92,7 @@ theorem sampling_error_bound
 /-- Sampling error and moment-to-diagonal error each at most `ε / 3` give mean-to-diagonal error
 at most `2 * ε / 3`. See [JanzingWocjan2006a]. -/
 theorem sampled_mean_to_diagonal_error {mean moment diag ε : ℝ}
-    (h1 : |mean - moment| ≤ ε / 3) (h2 : |moment - diag| ≤ ε / 3) (hε : 0 ≤ ε) :
+    (h1 : |mean - moment| ≤ ε / 3) (h2 : |moment - diag| ≤ ε / 3) (_hε : 0 ≤ ε) :
     |mean - diag| ≤ 2 * ε / 3 := by
   calc |mean - diag| = |(mean - moment) + (moment - diag)| := by ring_nf
     _ ≤ |mean - moment| + |moment - diag| := abs_add_le _ _

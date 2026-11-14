@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2NearbyFailureCorrectedHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2NearbyFailureCrudeCorrectedStat
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2NearbyFailureCorrectedHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2NearbyFailureCrudeCorrectedStat
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+
+@[expose] public section
 
 /-!
 # Uniform failure bound for corrected two-unitary LCU

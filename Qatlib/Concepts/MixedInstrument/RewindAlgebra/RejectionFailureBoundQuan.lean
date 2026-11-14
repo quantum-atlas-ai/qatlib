@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundStat
-import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundStat
+public import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Spectral bounds for rejection failure

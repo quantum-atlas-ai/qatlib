@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityStat
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityStat
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsLows
+
+@[expose] public section
 
 /-!
 # Forward and reverse bounds for tunable schedules
@@ -380,7 +384,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
   have hE_le : ∀ k (hk : k ≤ m), E k = P ⟨k, by omega⟩ := by
     intro k hk
     show (if h : k ≤ m then P ⟨k, by omega⟩ else P ⟨m, by omega⟩) = P ⟨k, by omega⟩
-    rw [dif_pos hk]
+    rw [dite_eq_left hk]
   have hpot_prod : ∀ (p q : Fin (m + 1)), p.val ≤ q.val →
       potential (P q) bad * potential (P p) bad = potential (P q) bad ∧
       potential (P p) bad * potential (P q) bad = potential (P q) bad := by
@@ -734,7 +738,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
                 (preAmplitude E bad ω U rs j.val)) /
               (((2 * rs (j.val+1) + 1 : ℕ) : ℝ) * preAmplitude E bad ω U rs j.val) := by
           unfold gainLoss
-          rw [if_neg (by positivity : preAmplitude E bad ω U rs j.val ≠ 0)]
+          rw [ite_eq_right (by positivity : preAmplitude E bad ω U rs j.val ≠ 0)]
         rw [hgl]
         set θ := Real.arcsin (preAmplitude E bad ω U rs j.val) with hθ
         have hsinθ : Real.sin θ = preAmplitude E bad ω U rs j.val := by
@@ -761,7 +765,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
         have hg7 := Clause7TightDirichletBounds_answer.1 (2 * rs (j.val+1) + 1) θ
           (by omega) hθ0 hθle
         (try dsimp only at hg7)
-        rw [if_neg hθpos] at hg7
+        rw [ite_eq_right hθpos] at hg7
         have hlo := hg7.1
         rw [hsinθ] at hlo
         have hρa' : (2 * (rs (j.val+1) : ℝ) + 1) ^ 2
@@ -812,13 +816,13 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
           exact_mod_cast this
         refine ⟨?_, ?_, ?_⟩
         · unfold reverseThreshold
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
           split_ifs
           · norm_num
           · nlinarith [sq_nonneg (2 * (rs (j+1) : ℝ) + 1),
               sq_nonneg (preAmplitude E bad ω U rs (j + 1 - 1))]
         · unfold reverseThreshold
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
           split_ifs with hr0
           · rw [hr0]
             push_cast
@@ -838,7 +842,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
             rw [h3]
         · intro s hs
           unfold reverseThreshold
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
           split_ifs with hr0
           · omega
           · rw [Nat.add_sub_cancel, ← hcast21 (rs (j+1))]
@@ -866,7 +870,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
         have : (0:ℕ) < 2 * rs (j.val+1) + 1 := by omega
         exact_mod_cast this
       unfold reverseThreshold
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       split_ifs with hr0
       · norm_num
       · rw [Nat.add_sub_cancel, ← hcast21 (rs (j.val+1))]
@@ -916,7 +920,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
               field_simp
           have hβ : reverseThreshold E bad U ω rs (j.val+1) = 0 := by
             unfold reverseThreshold
-            rw [if_neg hne, if_pos hr0]
+            rw [ite_eq_right hne, ite_eq_left hr0]
           rw [hβ, hgl, Real.log_one]
           norm_num
         · have hr1 : 1 ≤ rs (j.val+1) := by omega
@@ -924,14 +928,14 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
               = 9 * (2 * (rs (j.val+1) : ℝ) + 1) ^ 2
                   * (preAmplitude E bad ω U rs j.val) ^ 2 := by
             unfold reverseThreshold
-            rw [if_neg hne, if_neg hr0]
+            rw [ite_eq_right hne, ite_eq_right hr0]
             rw [Nat.add_sub_cancel, ← hcast21 (rs (j.val+1))]
           have hgl : gainLoss (2 * rs (j.val+1) + 1) (preAmplitude E bad ω U rs j.val)
               = Real.sin (((2 * rs (j.val+1) + 1 : ℕ) : ℝ) * Real.arcsin
                   (preAmplitude E bad ω U rs j.val)) /
                 (((2 * rs (j.val+1) + 1 : ℕ) : ℝ) * preAmplitude E bad ω U rs j.val) := by
             unfold gainLoss
-            rw [if_neg (by positivity : preAmplitude E bad ω U rs j.val ≠ 0)]
+            rw [ite_eq_right (by positivity : preAmplitude E bad ω U rs j.val ≠ 0)]
           set θ := Real.arcsin (preAmplitude E bad ω U rs j.val) with hθ
           have hsinθ : Real.sin θ = preAmplitude E bad ω U rs j.val := by
             rw [hθ]
@@ -968,7 +972,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
           have hg7 := Clause7TightDirichletBounds_answer.1 (2 * rs (j.val+1) + 1) θ
             (by omega) hθ0 hθle
           (try dsimp only at hg7)
-          rw [if_neg hθpos] at hg7
+          rw [ite_eq_right hθpos] at hg7
           have hup := hg7.2
           rw [hsinθ] at hup
           have hglθ : gainLoss (2 * rs (j.val+1) + 1) (preAmplitude E bad ω U rs j.val)
@@ -1085,7 +1089,7 @@ theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
               rw [div_self hne2]
               exact one_ne_zero
           · unfold gainLoss
-            rw [if_neg hne]
+            rw [ite_eq_right hne]
             have hρpos : (0:ℝ) < ((2 * rs (j.val+1) + 1 : ℕ) : ℝ) :=
               Nat.cast_pos.mpr (by omega : 0 < 2 * rs (j.val+1) + 1)
             exact div_ne_zero (by

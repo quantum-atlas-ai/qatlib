@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.ThermalTrace
-import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.ThermalTrace
+public import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Uniform initialization and physical propagation

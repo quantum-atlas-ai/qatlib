@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
-import Mathlib.Data.Finset.Max
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Complex.Basic
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Equivalence of classical and diagonal quantum witnesses

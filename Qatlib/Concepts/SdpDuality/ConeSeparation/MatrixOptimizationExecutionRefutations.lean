@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
-import QuantumInfo.ForMathlib.HermitianMat.CFC
-import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+public import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+
+@[expose] public section
 
 /-!
 # Counterexamples to SDP execution contracts
@@ -69,7 +73,7 @@ theorem one_le_count_of_mem {α : Type} [BEq α] [LawfulBEq α] {a : α} {l : Li
     rw [List.count_cons]
     by_cases hb : b = a
     · rw [hb]; simp
-    · rw [if_neg (by simp [hb])]
+    · rw [ite_eq_right (by simp [hb])]
       rcases List.mem_cons.mp h with h | h
       · exact absurd h.symm hb
       · exact ih h
@@ -84,7 +88,7 @@ theorem sum_ite_eq_count (t : List QueryDesc) (q₀ : QueryDesc) :
     rw [List.map_cons, List.sum_cons, List.count_cons, ih]
     by_cases h : a = q₀
     · rw [h]; simp; omega
-    · rw [if_neg h]; simp [h]
+    · rw [ite_eq_right h]; simp [h]
 
 /-- For a list of distinct query descriptors, the total number of their query-step occurrences
 is at most the total query count of the execution steps. -/
@@ -100,7 +104,7 @@ theorem sum_count_queries_le (l : List QuantumStep) (t : List QueryDesc) (ht : t
       rw [List.count_cons]
       by_cases h : s = QuantumStep.query q
       · rw [h]; simp; omega
-      · rw [if_neg (by simp [h])]; simp [h]
+      · rw [ite_eq_right (by simp [h])]; simp [h]
     have heq : (t.map (fun q => (s :: l).count (QuantumStep.query q)))
         = t.map (fun q => (if s = QuantumStep.query q then 1 else 0)
           + l.count (QuantumStep.query q)) :=
@@ -112,7 +116,7 @@ theorem sum_count_queries_le (l : List QuantumStep) (t : List QueryDesc) (ht : t
       have hz : ∀ q : QueryDesc,
           (if QuantumStep.gateWord n gs = QuantumStep.query q then (1:ℕ) else 0) = 0 := by
         intro q
-        rw [if_neg (fun h => by cases h)]
+        rw [ite_eq_right (fun h => by cases h)]
       simp [QuantumStep.queries]
     | query q₀ =>
       have hif : ∀ q : QueryDesc,
@@ -121,7 +125,7 @@ theorem sum_count_queries_le (l : List QuantumStep) (t : List QueryDesc) (ht : t
         intro q
         by_cases h : q = q₀
         · rw [h]; simp
-        · rw [if_neg (fun he => h (QuantumStep.query.inj he).symm), if_neg h]
+        · rw [ite_eq_right (fun he => h (QuantumStep.query.inj he).symm), ite_eq_right h]
       simp only [hif]
       rw [sum_ite_eq_count]
       have hq : (QuantumStep.query q₀).queries = 1 := rfl
@@ -395,8 +399,8 @@ def F0 : Filtration (Fin 2) where
   univ_mem := fun _ => Or.inr rfl
   compl_mem := fun _ E hE => by
     rcases hE with h | h
-    · rw [h, Set.diff_empty]; exact Or.inr rfl
-    · rw [h, Set.diff_self]; exact Or.inl rfl
+    · rw [h, Set.sdiff_empty]; exact Or.inr rfl
+    · rw [h, Set.sdiff_self]; exact Or.inl rfl
   union_mem := fun _ E F hE hF => by
     rcases hE with hE | hE <;> rcases hF with hF | hF
     · rw [hE, hF, Set.empty_union]; exact Or.inl rfl
@@ -440,7 +444,7 @@ theorem bornLaw_half : ∀ o : Fin 2, bornLaw (Lam 0) (1 : Operator 1) o = (1:�
 /-- The probability of the whole two-atom space `S2` is one. -/
 theorem S2_eventProb_univ : S2.eventProb Set.univ = 1 := by
   unfold FiniteSupportSpace.eventProb
-  simp only [Set.mem_univ, if_true]
+  simp only [Set.mem_univ, ite_true]
   show (∑ _ω : Fin 2, (1:ℝ) / 2) = 1
   rw [Fin.sum_univ_two]
   norm_num
@@ -456,7 +460,7 @@ theorem condExpect_univ_one :
   unfold FiniteSupportSpace.condExpect
   rw [S2_eventProb_univ]
   have h0 : (0:ℝ) < 1 := by norm_num
-  simp only [if_pos h0, Set.mem_univ, if_true, inv_one, one_mul, hZ]
+  simp only [ite_eq_left h0, Set.mem_univ, ite_true, inv_one, one_mul, hZ]
   show (∑ _ω : Fin 2, (1:ℝ) / 2 * 1) = 1
   rw [Fin.sum_univ_two]
   norm_num
@@ -837,8 +841,8 @@ theorem samplerTree_law_dyadic {n : ℕ} (t : SamplerTree (Fin n)) (i : Fin n) :
   | emit o =>
     show IsDyadic (if i = o then (1:ℝ) else 0)
     by_cases h : i = o
-    · rw [if_pos h]; exact ⟨1, 0, by norm_num⟩
-    · rw [if_neg h]; exact ⟨0, 0, by norm_num⟩
+    · rw [ite_eq_left h]; exact ⟨1, 0, by norm_num⟩
+    · rw [ite_eq_right h]; exact ⟨0, 0, by norm_num⟩
   | fail =>
     show IsDyadic (0:ℝ)
     exact ⟨0, 0, by norm_num⟩
@@ -902,7 +906,7 @@ theorem dualMixtureLaw_q0_one : dualMixtureLaw (0:Fin 2) (1:ℝ) mu0 q0 1 = (1:�
   have hsum1 : (∑ t : Fin 1, mu0 t * q0 t 1) = (2:ℝ) / 3 := by
     rw [Fin.sum_univ_one]
     simp only [mu0, q0]
-    rw [if_neg hif]
+    rw [ite_eq_right hif]
     norm_num
   have hsum0 : (∑ t : Fin 1, mu0 t) = (1:ℝ) := by
     rw [Fin.sum_univ_one]
@@ -911,7 +915,7 @@ theorem dualMixtureLaw_q0_one : dualMixtureLaw (0:Fin 2) (1:ℝ) mu0 q0 1 = (1:�
   unfold dualMixtureLaw dualMixtureScale
   simp only [Fin.sum_univ_one]
   simp only [mu0, q0]
-  rw [if_neg hif, if_neg hif]
+  rw [ite_eq_right hif, ite_eq_right hif]
   norm_num
 
 /-- Refutes the stated universal mixture-sampling contract through its demand for an exact

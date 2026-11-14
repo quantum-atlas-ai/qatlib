@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.RealNonnegConjugateFactorization
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.RealNonnegConjugateFactorization
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+
+@[expose] public section
 
 /-!
 # Complex polynomial completion for QSP
@@ -106,7 +110,6 @@ private theorem residual_square_eval (P : Polynomial ℂ) (d : ℕ)
   simp only [eval_comp, eval_pow, eval_X] at h
   rw [h]
   have hm := congrArg (fun p : Polynomial ℂ => (p.eval (x : ℂ)).re) (residual_real_map P)
-  (try dsimp only at hm)
   have hev : ∀ f : Polynomial ℝ, (f.map Complex.ofRealHom).eval (x : ℂ) =
       Complex.ofReal (f.eval x) := fun f => eval_map_apply Complex.ofRealHom x
   rw [hev] at hm

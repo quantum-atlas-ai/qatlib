@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroverAES15.NativeOracle
-import Qatlib.Papers.GroverAES15.KeyPredicate
+module
+
+public import Qatlib.Papers.GroverAES15.NativeOracle
+public import Qatlib.Papers.GroverAES15.KeyPredicate
+
+@[expose] public section
 
 /-!
 # Known-count Grover search for transcript-matching keys
@@ -144,7 +148,7 @@ theorem sparse_success (enc : Reg n → Block → Block) (texts ciphertexts : Fi
       MeasureProb (output enc texts ciphertexts m) (successEvent enc texts ciphertexts) := by
   rw [output_born]
   unfold iterations
-  rw [if_pos half]
+  rw [ite_eq_left half]
   exact knownCount_success Fintype.card_pos _ hA hm (by omega)
 
 /-- If `m` is the positive actual marked count, the physical key-search output has success
@@ -161,7 +165,7 @@ theorem known_count_success (enc : Reg n → Block → Block) (texts ciphertexts
       linarith
     linarith
   · rw [output_born]
-    have hz : iterations n m = 0 := if_neg half
+    have hz : iterations n m = 0 := ite_eq_right half
     rw [hz]
     change (1:ℝ)/2 ≤ MeasureProb (Uniform (Reg n)) (marked enc texts ciphertexts)
     rw [uniform_mass, hA]
@@ -176,9 +180,9 @@ theorem physical_query_budget (n m r : ℕ) (hm : 0 < m) :
       Real.pi/(4*Real.sqrt ((m:ℝ)/Fintype.card (Reg n))) := by
   rw [physical_queries]
   by_cases half : 2*m ≤ Fintype.card (Reg n)
-  · simp only [iterations, if_pos half]
+  · simp only [iterations, ite_eq_left half]
     exact knownCount_query_budget hm (by omega)
-  · simp only [iterations, if_neg half, Nat.cast_zero]
+  · simp only [iterations, ite_eq_right half, Nat.cast_zero]
     positivity
 
 /-- For a positive key length and exactly one marked key, the physical search succeeds with

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.Budget
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.Budget
+
+@[expose] public section
 
 /-!
 # A paid small-SVD model for PCA

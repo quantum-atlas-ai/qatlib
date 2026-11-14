@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.MatrixODE
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.RingTheory.RootsOfUnity.Complex
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.MatrixODE
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+
+@[expose] public section
 
 /-!
 # Airy functions and cubic projection

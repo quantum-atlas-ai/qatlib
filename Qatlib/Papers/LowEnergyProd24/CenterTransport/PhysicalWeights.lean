@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWord
+module
+
+public import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWord
+
+@[expose] public section
 
 /-!
 # Imaginary-time weights for physical product words

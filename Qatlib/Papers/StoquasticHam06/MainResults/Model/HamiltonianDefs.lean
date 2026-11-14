@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Logic.Encodable.Pi
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Logic.Encodable.Pi
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Rational Hamiltonian data and spectral predicates
@@ -180,7 +184,7 @@ def TermwiseCondition (termwise : Bool) (d : LHData) : Prop :=
 
 /-- The equivalence between `LHData` and the dependent tuple of its bit length, locality
 parameter, term count, terms, and supports. -/
-def equiv : LHData ≃ (Σ n : ℕ, Σ k : ℕ, Σ m : ℕ,
+def equiv : LHData ≃ (Σ n : ℕ, Σ _k : ℕ, Σ m : ℕ,
     (Fin m → QMatrix n) × (Fin m → Finset (Fin n))) where
   toFun d := ⟨d.n, d.k, d.m, d.term, d.support⟩
   invFun s := ⟨s.1, s.2.1, s.2.2.1, s.2.2.2.1, s.2.2.2.2⟩
@@ -193,7 +197,7 @@ def equiv : LHData ≃ (Σ n : ℕ, Σ k : ℕ, Σ m : ℕ,
 
 instance encodable : Encodable LHData :=
   Encodable.ofEquiv
-    (Σ n : ℕ, Σ k : ℕ, Σ m : ℕ, (Fin m → QMatrix n) × (Fin m → Finset (Fin n)))
+    (Σ n : ℕ, Σ _k : ℕ, Σ m : ℕ, (Fin m → QMatrix n) × (Fin m → Finset (Fin n)))
     equiv
 
 /-- The bundled conditions fixing the locality parameter, requiring `IsKLocal` and

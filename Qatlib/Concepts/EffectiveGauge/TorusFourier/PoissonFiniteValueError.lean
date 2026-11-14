@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTermError
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTruncation
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTermError
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonTruncation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

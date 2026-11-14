@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.SubsetQueryHybrid
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.FamilyQueryLowerBound
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.SubsetQueryHybrid
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.FamilyQueryLowerBound
+
+@[expose] public section
 
 /-!
 # Statement of the corrected multiple-target query bound

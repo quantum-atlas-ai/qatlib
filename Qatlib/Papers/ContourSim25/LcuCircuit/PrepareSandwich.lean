@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 /-!
 # Bilinear LCU from distinct unitary preparations
 

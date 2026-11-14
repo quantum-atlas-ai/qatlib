@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphIsom13.GiCost
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Papers.GraphIsom13.GiCost
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Resource counts for the graph-isomorphism cost

@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.NatFactorial
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentStat
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormStat
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureStat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.Lagrange
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.NatFactorial
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentStat
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormStat
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureStat
+
+@[expose] public section
 
 /-!
 # Counterexamples to legacy multiproduct statements

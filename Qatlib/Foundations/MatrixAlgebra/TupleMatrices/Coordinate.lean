@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.FiniteProduct
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.FiniteProduct
+
+@[expose] public section
 
 /-!
 # Coordinate actions on product amplitudes
@@ -65,7 +69,7 @@ theorem coordinate_intertwines [Fintype A] [Fintype B] (C : Matrix B A ℂ) (G :
       (∏ j,C (db j) (f j))*phase (f x) := by
   simp_rw [product_update C db f x]
   have hentry := congrArg (fun M : Matrix B A ℂ => M (db x) (f x)) hGC
-  try dsimp only at hentry
+
   rw [Matrix.mul_diagonal] at hentry
   change (∑ value : B,G (db x) value*C value (f x))=C (db x) (f x)*phase (f x) at hentry
   calc

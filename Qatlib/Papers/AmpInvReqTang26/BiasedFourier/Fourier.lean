@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
-import Mathlib.RingTheory.RootsOfUnity.Complex
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+
+@[expose] public section
 
 /-!
 # Weighted Fourier columns and projection bounds
@@ -89,14 +93,14 @@ theorem muEpsWeight_bounds (q : ℕ) (hq : 1 < q) (ε : ℝ) (hε0 : 0 ≤ ε)
   · by_cases h : isRightHalf q g
     · rw [div_eq_mul_inv]
       unfold muEpsWeight
-      rw [if_pos h]
+      rw [ite_eq_left h]
       calc (1 - ε) * (q : ℝ)⁻¹ + ε * (halfCount q : ℝ)⁻¹
           ≤ (1 - ε) * (q : ℝ)⁻¹ + ε * (3 * (q : ℝ)⁻¹) :=
             add_le_add_right (mul_le_mul_of_nonneg_left h3 hε0) _
         _ = (1 + 2 * ε) * (q : ℝ)⁻¹ := by ring
     · rw [div_eq_mul_inv]
       unfold muEpsWeight
-      rw [if_neg h, add_zero]
+      rw [ite_eq_right h, add_zero]
       exact mul_le_mul_of_nonneg_right (by linarith) (inv_nonneg.mpr hq0.le)
 
 /-- For `q > 1` and `ε ∈ [0, 1]`, every biased weight is nonnegative. -/
@@ -120,15 +124,15 @@ theorem card_rightHalf (q : ℕ) (hq : 0 < q) :
     rcases Decidable.em ((g : ℕ) ≤ q / 4) with h1 | h1 <;>
       rcases Decidable.em (q - q / 4 ≤ (g : ℕ)) with h2 | h2
     · exfalso; omega
-    · rw [if_pos (show isRightHalf q g by exact Or.inl h1), if_pos h1, if_neg h2]
+    · rw [ite_eq_left (show isRightHalf q g by exact Or.inl h1), ite_eq_left h1, ite_eq_right h2]
       ring
-    · rw [if_pos (show isRightHalf q g by exact Or.inr h2), if_neg h1, if_pos h2]
+    · rw [ite_eq_left (show isRightHalf q g by exact Or.inr h2), ite_eq_right h1, ite_eq_left h2]
       ring
-    · rw [if_neg (show ¬ isRightHalf q g by
+    · rw [ite_eq_right (show ¬ isRightHalf q g by
             unfold isRightHalf
             rintro (hc | hc)
             · exact h1 hc
-            · exact h2 hc), if_neg h1, if_neg h2]
+            · exact h2 hc), ite_eq_right h1, ite_eq_right h2]
       ring
   rw [Finset.sum_congr rfl (fun g _ => hsplit g), Finset.sum_add_distrib,
     Finset.sum_boole, Finset.sum_boole]
@@ -222,14 +226,14 @@ private theorem charSum (q : ℕ) (hq : 0 < q) (i : ℕ) :
     ∑ g : Fin q, omega q ^ ((g : ℕ) * i) = if q ∣ i then (q : ℂ) else 0 := by
   rw [Fin.sum_univ_eq_sum_range (fun g => omega q ^ (g * i)) q]
   by_cases hd : q ∣ i
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     have hone : omega q ^ i = 1 := (omega_pow_eq_one_iff q hq i).mpr hd
     have hconv : ∀ g ∈ Finset.range q, omega q ^ (g * i) = (1 : ℂ) ^ g := by
       intro g _
       rw [Nat.mul_comm, pow_mul, hone]
     rw [Finset.sum_congr rfl hconv]
     simp
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     have hr1 : omega q ^ i ≠ 1 := fun h => hd ((omega_pow_eq_one_iff q hq i).mp h)
     have hconv : ∀ g ∈ Finset.range q, omega q ^ (g * i) = (omega q ^ i) ^ g := by
       intro g _
@@ -349,16 +353,16 @@ private theorem dft_tight (q : ℕ) (hq : 0 < q) (v : Fin q → ℂ) :
             (if (l : ℕ) = (k : ℕ) then (q : ℂ) else 0) = (if l = k then (q : ℂ) else 0) := by
           intro l
           by_cases h : l = k
-          · rw [if_pos (by rw [h]), if_pos h]
-          · rw [if_neg (by
+          · rw [ite_eq_left (by rw [h]), ite_eq_left h]
+          · rw [ite_eq_right (by
               intro hc
-              exact h (Fin.val_inj.mp hc)), if_neg h]
+              exact h (Fin.val_inj.mp hc)), ite_eq_right h]
         have hrew : ∑ l : Fin q, (v k * star (v l)) * (if (l : ℕ) = (k : ℕ) then (q : ℂ) else 0)
             = ∑ l : Fin q, (v k * star (v l)) * (if l = k then (q : ℂ) else 0) :=
           Finset.sum_congr rfl fun l _ => by rw [hcond l]
         rw [hrew]
         simp only [mul_ite, mul_zero]
-        rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ k)]
+        rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ k)]
         ring
     _ = (q : ℂ) * ∑ k : Fin q, (v k * star (v k)) := (Finset.mul_sum _ _ _).symm
     _ = ((q * ∑ k : Fin q, ‖v k‖ ^ 2 : ℝ) : ℂ) := hR.symm
@@ -614,8 +618,8 @@ theorem lemma38_projection_diagonal {q k : ℕ} (hk : 0 < k) (hkq : k < q)
           apply_fun (fun z => (z : ℕ)) at h2
           simpa using! h2
         omega
-      rw [if_pos h1, if_neg hne]
-    · rw [if_neg h1]
+      rw [ite_eq_left h1, ite_eq_right hne]
+    · rw [ite_eq_right h1]
       positivity
   calc ∑ i : Fin k, ‖∑ x : Fin q, star (u i x) * F ⟨k, hkq⟩ x‖ ^ 2
       ≤ (1 - ε)⁻¹ * ∑ j : Fin k,
@@ -771,9 +775,9 @@ theorem lemma33_biased_fourier_unitary (q : ℕ) (hq : 1 < q) (ε : ℝ)
               intro hc
               have hval : (i : ℕ) = (k : ℕ) := by rw [hc]
               omega
-            rw [if_neg hne, if_pos h]
+            rw [ite_eq_right hne, ite_eq_left h]
             ring
-          · rw [if_pos (Fin.val_inj.mp h), if_neg (by omega)]
+          · rw [ite_eq_left (Fin.val_inj.mp h), ite_eq_right (by omega)]
             ring
           · have hne : i ≠ k := by
               intro hc
@@ -781,7 +785,7 @@ theorem lemma33_biased_fourier_unitary (q : ℕ) (hq : 1 < q) (ε : ℝ)
               omega
             have h0 : ∑ y : Fin q, star (u i y) * fourierUnitVec ε q k y = 0 :=
               hsupp k i h
-            rw [if_neg hne, if_neg (by omega), h0]
+            rw [ite_eq_right hne, ite_eq_right (by omega), h0]
             simp
         calc ∑ i : Fin q, ‖∑ y : Fin q, star (u i y) * fourierUnitVec ε q k y‖ ^ 2
             = ∑ i : Fin q, ((if i = k

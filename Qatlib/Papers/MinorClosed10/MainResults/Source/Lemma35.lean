@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MinorClosed10.MainResults.Model.PaperObjects
-import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma32
-import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma33
-import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma34
+module
+
+public import Qatlib.Papers.MinorClosed10.MainResults.Model.PaperObjects
+public import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma32
+public import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma33
+public import Qatlib.Papers.MinorClosed10.MainResults.Source.Lemma34
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

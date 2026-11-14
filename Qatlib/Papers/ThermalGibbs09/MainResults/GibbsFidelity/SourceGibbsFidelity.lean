@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalGibbs09.MainResults.PartitionFunctionLipschitz.SourcePartitionFunctionLipschitz
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
-import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
-import Qatlib.Concepts.MatrixWeights.WeightsCore
+module
+
+public import Qatlib.Papers.ThermalGibbs09.MainResults.PartitionFunctionLipschitz.SourcePartitionFunctionLipschitz
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+public import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,7 +86,7 @@ theorem cfc_sqrt_gibbs (D : ℕ) (hD : 0 < D) (H : Matrix (Fin D) (Fin D) ℂ)
     (hH : H.IsHermitian) (β : ℝ) :
     CFC.sqrt (gibbsState β H) =
       (Real.sqrt (partitionFunction β H))⁻¹ • NormedSpace.exp ((-(β/2)) • H) := by
-  haveI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  have hne : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   have hZ : 0 < partitionFunction β H := partitionFunction_pos β H hH
   have hM : ((-(β/2)) • H).IsHermitian := hH.smul (R := ℝ) (IsSelfAdjoint.all _)
   have hpsd0 : (NormedSpace.exp ((-(β/2)) • H)).PosSemidef := exp_posSemidef _ hM
@@ -126,7 +130,7 @@ theorem froot_gibbs_eq (D : ℕ) (hD : 0 < D) (H Ht : Matrix (Fin D) (Fin D) ℂ
       Matrix.traceNorm (NormedSpace.exp ((-(β/2)) • H) *
         NormedSpace.exp ((-(β/2)) • Ht)) /
         Real.sqrt (partitionFunction β H * partitionFunction β Ht) := by
-  haveI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  have hne : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   have hZ : 0 < partitionFunction β H := partitionFunction_pos β H hH
   have hZt : 0 < partitionFunction β Ht := partitionFunction_pos β Ht hHt
   rw [Froot, cfc_sqrt_gibbs D hD H hH β, cfc_sqrt_gibbs D hD Ht hHt β]
@@ -178,7 +182,7 @@ theorem mid_partition_ratio_ge
     Real.exp (-(β * ε / t)) ≤
       partitionFunction β ((1 / 2 : ℝ) • (H + Ht)) /
         Real.sqrt (partitionFunction β H * partitionFunction β Ht) := by
-  haveI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  have hne : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   let Hmid : Matrix (Fin D) (Fin D) ℂ := (1 / 2 : ℝ) • (H + Ht)
   have hHmid : Hmid.IsHermitian := (hH.add hHt).smul (R := ℝ) (IsSelfAdjoint.all _)
   have hE1 : Hmid - H = (1 / 2 : ℝ) • (Ht - H) := by
@@ -271,7 +275,7 @@ theorem gibbs_fidelity_lower_bound
     (_hEmax : 0 < Emax) (_htdef : t = Real.pi / (4 * Emax))
     (hE : ‖E‖ ≤ ε / t) :
     Froot (gibbsState β H) (gibbsState β Ht) ≥ Real.exp (-(β * ε / t)) := by
-  haveI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  have hne : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   have hE' : ‖Ht - H‖ ≤ ε / t := by
     rw [hHt_def]
     simpa using hE

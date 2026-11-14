@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+module
+
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+
+@[expose] public section
 
 /-!
 # A Boolean-chain detection example
@@ -88,8 +92,7 @@ theorem detection_uniform_boolean_walk (xy : Bool×Bool) :
   simp only [correctedMarkedWalk,← Matrix.mulVec_mulVec,applyGate_swapGate]
   rcases xy with ⟨x,y⟩
   cases x <;> cases y <;>
-    simp only [ReflectionAbout,Matrix.mulVec_sub,Matrix.smul_mulVec,Matrix.one_mulVec,
-      Pi.sub_apply,Pi.smul_apply,smul_eq_mul,Matrix.mulVec,dotProduct,Fintype.sum_prod_type,
+    simp only [ReflectionAbout,smul_eq_mul,Matrix.mulVec,dotProduct,Fintype.sum_prod_type,
       Fintype.sum_bool,Matrix.one_apply,Matrix.sub_apply,Matrix.smul_apply,
       Prod.swap_prod_mk,detection_uniform_boolean_projector,detection_uniform_boolean_initial] <;>
       norm_num
@@ -120,8 +123,7 @@ theorem corrected_szegedy_uniform_boolean_actual_consumer :
     cases b <;> cases c <;> cases x <;>
       norm_num [detectionInterference,detectionMarkPermutation,
         detection_uniform_boolean_initial,pow_one,detection_uniform_boolean_walk]
-  simp only [MeasureProb,detectionAccept,Finset.sum_filter,Finset.mem_filter,
-    Finset.mem_univ,true_and,BornProb]
+  simp only [MeasureProb,detectionAccept,Finset.sum_filter,BornProb]
   simp_rw [hout]
   norm_num [Fintype.sum_prod_type]
 

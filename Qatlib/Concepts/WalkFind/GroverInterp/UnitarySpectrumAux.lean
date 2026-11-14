@@ -4,11 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.JointEigenspace
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.LinearAlgebra.Eigenspace.Minpoly
+
+@[expose] public section
 
 /-!
 # Spectral tools for finite unitary walks
@@ -89,8 +95,8 @@ theorem jw_unitary_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) �
     intro i j hij
     apply Subtype.ext
     exact Prod.ext (congrArg (fun p => p.2.val) hij) (congrArg (fun p => p.1.val) hij)
-  letI : Finite ι := Finite.of_injective embed hembed
-  letI : Fintype ι := Fintype.ofFinite ι
+  let : Finite ι := Finite.of_injective embed hembed
+  let : Fintype ι := Fintype.ofFinite ι
   have horth := (hH.orthogonalFamily_eigenspace_inf_eigenspace hK).comp
     (Subtype.coe_injective : Function.Injective (Subtype.val : ι → ℂ × ℂ))
   have hdecomp : DirectSum.IsInternal (fun i : ι => H.eigenspace i.1.2 ⊓ K.eigenspace i.1.1) := by
@@ -283,9 +289,9 @@ theorem jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
     rw [hline, star_smul, smul_dotProduct, smul_eq_mul, hconj, hsg, mul_comm]
   have hweights (j : Fin m) : ‖c j‖ ^ 2 = w j + α ^ 2 * s j := by
     by_cases hj : μ j = 1
-    · simp only [w, hj, if_pos, zero_add, s, hcfix j hj, norm_mul, Complex.norm_real,
+    · simp only [w, hj, ite_eq_left, zero_add, s, hcfix j hj, norm_mul, Complex.norm_real,
         Real.norm_eq_abs, mul_pow, sq_abs]
-    · simp only [w, if_neg hj, s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0),
+    · simp only [w, ite_eq_right hj, s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0),
         mul_zero, add_zero]
   have hsumw : (∑ j, w j) = 1 - α ^ 2 := by
     have hh := hsumc
@@ -298,7 +304,7 @@ theorem jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
   · intro j
     exact sq_nonneg _
   · intro j hj
-    simp only [w, hj, if_pos]
+    simp only [w, hj, ite_eq_left]
   · intro j hj
     simp only [s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0)]
 
@@ -349,9 +355,9 @@ theorem jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
       (if μ j = 1 then -1 else (μ j).re) ≤ Real.cos ε := by
   intro j
   by_cases hj : μ j = 1
-  · simp only [if_pos hj]
+  · simp only [ite_eq_left hj]
     exact ⟨le_refl _, Real.neg_one_le_cos ε⟩
-  · simp only [if_neg hj]
+  · simp only [ite_eq_right hj]
     exact jw_nonfixed_eigenvalue_real_gap m ε hε U start (fun i => B i j) (μ j)
       hu hstart (heigen j) hj (jw_unitary_basis_column_ne_zero m B hB j) hphase
 
@@ -411,7 +417,6 @@ theorem jw_eigenbasis_inverse_mulVec (m : ℕ)
     rw [← Matrix.mul_assoc, hKB, Matrix.mul_assoc, hD, Matrix.mul_one]
   have hinv : K⁻¹ * B = B * D := by
     have h := congrArg (fun A => K⁻¹ * A) hKD
-    try dsimp only at h
     rw [← Matrix.mul_assoc, Matrix.nonsing_inv_mul _
       ((Matrix.isUnit_iff_isUnit_det _).mp hK), Matrix.one_mul] at h
     exact h.symm

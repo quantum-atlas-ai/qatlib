@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseUnitary09.MainResults.Model.SourceSparseUnitaryModel
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.SparseUnitary09.MainResults.Model.SourceSparseUnitaryModel
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.GroupTheory.GroupAction.Basic
-import Mathlib.Algebra.Group.Subgroup.Lattice
-import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
-import Mathlib.Data.Matrix.Action
-import Mathlib.Data.Matrix.Mul
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.GroupTheory.GroupAction.Basic
+public import Mathlib.Algebra.Group.Subgroup.Lattice
+public import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
+public import Mathlib.LinearAlgebra.Matrix.Action
+public import Mathlib.Data.Matrix.Mul
+
+@[expose] public section
 
 /-!
 # Affine point stabilizer reductions

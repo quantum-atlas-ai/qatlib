@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.Variance
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+module
+
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ theorem success_probability {X : Ω → ℝ} (hX : MemLp X 2 μ) {σ : ℝ} (hσ
   have hset : {ω | |X ω - μ[X]| < 10 * σ} =
       {ω | 10 * σ ≤ |X ω - μ[X]|}ᶜ := by
     ext ω
-    simp only [Set.mem_setOf_eq, Set.mem_compl_iff, not_le]
+    simp only [Set.mem_ofPred_eq, Set.mem_compl_iff, not_le]
   rw [hset, measure_compl₀ hmeas (measure_ne_top μ _), measure_univ]
   have htail := chebyshev_tail hX hσ hvar
   have hsub : 1 - ENNReal.ofReal (1 / 100) ≤

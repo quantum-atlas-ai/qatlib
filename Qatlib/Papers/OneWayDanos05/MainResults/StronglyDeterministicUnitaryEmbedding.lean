@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+@[expose] public section
 
 /-!
 # Isometric realization of equal complete branches
@@ -109,7 +113,7 @@ theorem stronglyDeterministic_realizes_unitaryEmbedding
     refine ⟨c • M, hiso, ?_, hT⟩
     intro s
     rw [hM_def, hdet s s₀]
-  · haveI : IsEmpty S := not_nonempty_iff.mp hS
+  · have : IsEmpty S := not_nonempty_iff.mp hS
     have hzero : (0 : Matrix (Fin n) (Fin n) ℂ) = 1 := by
       have hempty : ∑ s : S, (A s).conjTranspose * (A s) = 0 := by
         rw [Finset.univ_eq_empty, Finset.sum_empty]

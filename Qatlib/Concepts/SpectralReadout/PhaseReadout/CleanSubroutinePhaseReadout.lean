@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CleanQPEBands
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.CoherentSim.CleanQPEBands
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Phase readout with approximate clean subroutines
@@ -41,6 +45,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 set_option autoImplicit false
+set_option linter.unusedSectionVars false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.QueryWordCore.Circuit

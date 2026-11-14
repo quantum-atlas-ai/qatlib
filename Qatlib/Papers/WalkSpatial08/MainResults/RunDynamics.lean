@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Two-mode rotation and target overlap

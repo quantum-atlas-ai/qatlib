@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
-import Qatlib.Concepts.SpinorSampling.Matching.CopyMultiplicities
-import Mathlib.Analysis.Convex.SpecificFunctions.Basic
-import Mathlib.Analysis.Convex.Jensen
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
+public import Qatlib.Concepts.SpinorSampling.Matching.CopyMultiplicities
+public import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+public import Mathlib.Analysis.Convex.Jensen
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

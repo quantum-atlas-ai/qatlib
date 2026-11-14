@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WeightEnum07.OrbitSieve.CosetSieve
-import Mathlib.RingTheory.Polynomial.Cyclotomic.Basic
-import Mathlib.FieldTheory.Finite.Extension
-import Mathlib.FieldTheory.Minpoly.ConjRootClass
-import Mathlib.FieldTheory.Galois.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.WeightEnum07.OrbitSieve.CosetSieve
+public import Mathlib.RingTheory.Polynomial.Cyclotomic.Basic
+public import Mathlib.FieldTheory.Finite.Extension
+public import Mathlib.FieldTheory.Minpoly.ConjRootClass
+public import Mathlib.FieldTheory.Galois.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Cyclotomic orbit factors and minimal polynomials
@@ -41,6 +45,7 @@ open Polynomial Finset
 
 variable {N : ℕ} [NeZero N] {L : Type*} [Field L]
 
+omit [NeZero N] in
 /-- Membership in the multiplication orbit of `s` is equivalent to being `u ^ n * s` for some
 natural exponent. See [GeraciVanBussel2007]. -/
 theorem mem_orbit_iff_npow {u : (ZMod N)ˣ} {s t : ZMod N} :
@@ -88,7 +93,7 @@ theorem prod_univ_eq_X_pow_sub_one {ζ : L} (hζ : IsPrimitiveRoot ζ N) :
   rw [X_pow_sub_one_eq_prod (NeZero.pos N) hζ]
   refine Finset.prod_bij (fun t _ => ζ ^ t.val) ?_ ?_ ?_ ?_
   · intro t _
-    try dsimp only
+
     rw [Polynomial.mem_nthRootsFinset (NeZero.pos N), ← pow_mul, Nat.mul_comm,
       pow_mul, hζ.pow_eq_one, one_pow]
   · intro t _ u _ H
@@ -161,7 +166,7 @@ theorem minpoly_map_eq_orbit_prod (hζ : IsPrimitiveRoot ζ N)
       ∏ t ∈ OrbitSieve.orbitFinset hunit.unit s, (X - C (ζ ^ t.val)) := by
   classical
   let c : ConjRootClass (ZMod p) L := ConjRootClass.mk (ZMod p) (ζ ^ s.val)
-  haveI : Fintype c.carrier := Fintype.ofFinite _
+  have : Fintype c.carrier := Fintype.ofFinite _
   have hprod := ConjRootClass.minpoly.map_eq_prod c
   have hmin : c.minpoly = minpoly (ZMod p) (ζ ^ s.val) := ConjRootClass.minpoly_mk (ζ ^ s.val)
   rw [hmin] at hprod

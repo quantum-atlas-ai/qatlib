@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SecondOrderErrorRestrictedSubgoalStat
-import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
+module
+
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SecondOrderErrorRestrictedSubgoalStat
+public import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
+
+@[expose] public section
 
 /-!
 # Entrywise second order qDRIFT error
@@ -302,7 +306,7 @@ theorem secondOrderErrorRestrictedSubgoal : SecondOrderErrorRestrictedSubgoal :=
   have hAb : ∀ (j : J) (a b : I), ‖(A j) a b‖ ≤ Λ * cH := fun j a b => by
     have hsign : |(SignType.sign (h j) : ℝ)| ≤ 1 := by
       rcases SignType.trichotomy (SignType.sign (h j)) with hs | hs | hs <;>
-        simp [hs, SignType.coe_neg_one, SignType.coe_zero, SignType.coe_one]
+        simp [hs, SignType.coe_zero, SignType.coe_one]
     rw [hA j, Matrix.smul_apply, smul_eq_mul, norm_mul, norm_mul, norm_neg,
       Complex.norm_I, one_mul, norm_mul, Complex.norm_real, Complex.norm_real,
       Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hΛpos.le]

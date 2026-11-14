@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.SpectralFacts
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.Complex.Trigonometric
+module
+
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.SpectralFacts
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+
+@[expose] public section
 
 /-!
 # Explicit Fourier evolution of the Hadamard walk
@@ -35,7 +39,7 @@ noncomputable section
 /-- For real `x`, `exp (i * x)` equals `cos x + i * sin x`. -/
 lemma exp_I_mul (x : ℝ) :
     Complex.exp (Complex.I * (x : ℂ)) = (Real.cos x : ℂ) + (Real.sin x : ℂ) * Complex.I := by
-  rw [show Complex.I * (x : ℂ) = ((x : ℝ) : ℂ) * Complex.I by push_cast; ring]
+  rw [show Complex.I * (x : ℂ) = ((x : ℝ) : ℂ) * Complex.I by  ring]
   rw [Complex.exp_ofReal_mul_I]
 
 /-- For real `x`, `exp (-i * x)` equals `cos x - i * sin x`. -/
@@ -82,7 +86,7 @@ lemma sqrtTwo_sq_c : ((Real.sqrt 2 : ℂ)) ^ 2 = 2 := by
 equation for `eigValOne`. See [NayakVishwanath2000]. -/
 theorem eigen_one_first (k : ℝ) :
     Matrix.mulVec (hadamardKernel k) (eigVecOne k) 0 = eigValOne k * eigVecOne k 0 := by
-  simp [Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, eigVecOne, eigOneTwo, eigValOne]
+  simp [Matrix.mulVec,  hadamardKernel, eigVecOne, eigOneTwo, eigValOne]
   have h2 : (Real.sqrt 2 : ℂ) ≠ 0 := sqrtTwo_ne_zero_c
   field_simp
   ring
@@ -91,7 +95,7 @@ theorem eigen_one_first (k : ℝ) :
 equation for `eigValOne`. See [NayakVishwanath2000]. -/
 theorem eigen_one_second (k : ℝ) :
     Matrix.mulVec (hadamardKernel k) (eigVecOne k) 1 = eigValOne k * eigVecOne k 1 := by
-  simp [Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, eigVecOne, eigOneTwo, eigValOne]
+  simp [Matrix.mulVec,  hadamardKernel, eigVecOne, eigOneTwo, eigValOne]
   simp only [exp_I_mul, exp_neg_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
@@ -116,16 +120,15 @@ theorem eigen_one_second (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k]
+    try  ring
+
 
 /-- The first coordinate of the Hadamard kernel applied to `eigVecTwo` satisfies the eigenvalue
 equation for `eigValTwo`. See [NayakVishwanath2000]. -/
 theorem eigen_two_first (k : ℝ) :
     Matrix.mulVec (hadamardKernel k) (eigVecTwo k) 0 = eigValTwo k * eigVecTwo k 0 := by
-  simp [Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, eigVecTwo, eigTwoTwo,
-    eigValTwo, eigValOne]
+  simp [Matrix.mulVec,  hadamardKernel, eigVecTwo, eigTwoTwo,
+    eigValTwo]
   have h2 : (Real.sqrt 2 : ℂ) ≠ 0 := sqrtTwo_ne_zero_c
   field_simp
   ring
@@ -134,8 +137,8 @@ theorem eigen_two_first (k : ℝ) :
 equation for `eigValTwo`. See [NayakVishwanath2000]. -/
 theorem eigen_two_second (k : ℝ) :
     Matrix.mulVec (hadamardKernel k) (eigVecTwo k) 1 = eigValTwo k * eigVecTwo k 1 := by
-  simp [Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, eigVecTwo, eigTwoTwo,
-    eigValTwo, eigValOne]
+  simp [Matrix.mulVec,  hadamardKernel, eigVecTwo, eigTwoTwo,
+    eigValTwo]
   simp only [exp_I_mul, exp_neg_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
@@ -160,9 +163,8 @@ theorem eigen_two_second (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k]
+    try  ring
+
 
 /-- The complex-valued left coefficient `(1 + cos k / √(1 + cos² k)) / 2`. -/
 def ampL (k : ℝ) : ℂ := (((1 + Real.cos k / Real.sqrt (1 + Real.cos k ^ 2)) / 2 : ℝ) : ℂ)
@@ -179,7 +181,7 @@ and `ampR`. See [NayakVishwanath2000]. -/
 theorem coef_one (k : ℝ) :
     (Real.sqrt 2 : ℂ)⁻¹ * Complex.exp (-(Complex.I * (k : ℂ))) * (ampL k + ampR k)
       = ampL k * eigValOne k := by
-  simp only [ampL, ampLp, ampR, eigValOne, eigValTwo, exp_I_mul, exp_neg_I_mul]
+  simp only [ampL,  ampR, eigValOne, exp_I_mul, exp_neg_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
       cos_dispersion k
@@ -203,16 +205,15 @@ theorem coef_one (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
 
 /-- The first-row coefficient identity for the `eigValTwo` contribution with coordinates `ampLp`
 and `-ampR`. See [NayakVishwanath2000]. -/
 theorem coef_two (k : ℝ) :
     (Real.sqrt 2 : ℂ)⁻¹ * Complex.exp (-(Complex.I * (k : ℂ))) * (ampLp k - ampR k)
       = ampLp k * eigValTwo k := by
-  simp only [ampL, ampLp, ampR, eigValOne, eigValTwo, exp_I_mul, exp_neg_I_mul]
+  simp only [ ampLp, ampR, eigValTwo, exp_I_mul, exp_neg_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
       cos_dispersion k
@@ -236,16 +237,15 @@ theorem coef_two (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
 
 /-- The second-row coefficient identity for the `eigValOne` contribution with coordinates `ampL`
 and `ampR`. See [NayakVishwanath2000]. -/
 theorem coef_three (k : ℝ) :
     (Real.sqrt 2 : ℂ)⁻¹ * Complex.exp (Complex.I * (k : ℂ)) * (ampL k - ampR k)
       = ampR k * eigValOne k := by
-  simp only [ampL, ampLp, ampR, eigValOne, eigValTwo, exp_I_mul, exp_neg_I_mul]
+  simp only [ampL,  ampR, eigValOne, exp_I_mul, exp_neg_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
       cos_dispersion k
@@ -260,25 +260,23 @@ theorem coef_three (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
   · simp [Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im,
       Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
       Complex.I_re, Complex.I_im, Complex.cos_ofReal_re, Complex.sin_ofReal_re]
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
 
 /-- The second-row coefficient identity for the `eigValTwo` contribution with coordinates
 `ampLp` and `-ampR`. See [NayakVishwanath2000]. -/
 theorem coef_four (k : ℝ) :
     (Real.sqrt 2 : ℂ)⁻¹ * Complex.exp (Complex.I * (k : ℂ)) * (ampLp k + ampR k)
       = -(ampR k * eigValTwo k) := by
-  simp only [ampL, ampLp, ampR, eigValOne, eigValTwo, exp_I_mul, exp_neg_I_mul]
+  simp only [ ampLp, ampR,  eigValTwo, exp_I_mul]
   have hsin : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := sin_dispersion k
   have hcos : Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 :=
       cos_dispersion k
@@ -293,18 +291,16 @@ theorem coef_four (k : ℝ) :
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
   · simp [Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im,
       Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
       Complex.I_re, Complex.I_im, Complex.cos_ofReal_re, Complex.sin_ofReal_re]
     field_simp
     ring_nf
     try rw [hsq2]
-    try rw [hsq]
-    try ring
-    try nlinarith [Real.sin_sq_add_cos_sq k, hsq]
+    try  ring
+
 
 /-- The two-component Fourier amplitude at time `t`, expressed using powers of the two
 eigenvalue expressions. -/
@@ -328,9 +324,9 @@ theorem fourierAmp_succ (k : ℝ) (t : ℕ) :
     Matrix.mulVec (hadamardKernel k) (fourierAmp k t) = fourierAmp k (t + 1) := by
   funext i
   fin_cases i
-  · simp [fourierAmp, Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, pow_succ]
+  · simp [fourierAmp, Matrix.mulVec,  hadamardKernel, pow_succ]
     linear_combination (eigValOne k ^ t) * coef_one k + (eigValTwo k ^ t) * coef_two k
-  · simp [fourierAmp, Matrix.mulVec, Fin.sum_univ_two, hadamardKernel, pow_succ]
+  · simp [fourierAmp, Matrix.mulVec, hadamardKernel, pow_succ]
     linear_combination (eigValOne k ^ t) * coef_three k + (eigValTwo k ^ t) * coef_four k
 
 /-- The `t`th power of the Hadamard Fourier kernel applied to the initial vector equals the

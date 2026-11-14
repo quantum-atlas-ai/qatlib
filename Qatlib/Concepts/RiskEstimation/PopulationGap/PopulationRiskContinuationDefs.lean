@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.ComparativeStrictBounds
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.EffectiveIntegerReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.ComparativeStrictBounds
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.EffectiveIntegerReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+
+@[expose] public section
 
 /-!
 # Shared imports for population risk continuation

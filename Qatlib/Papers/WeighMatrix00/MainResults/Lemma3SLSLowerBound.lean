@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Tactic
-import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Tactic
+public import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
+
+@[expose] public section
 
 /-!
 # Classical lower bounds for shifted Legendre sequences
@@ -72,24 +76,26 @@ def eval : SLSTree F → F → F
 theorem eval_node_zero (i : F) (m p : SLSTree F) (s : F)
     (h : quadraticChar F (i + s) = 0) : (node i m p).eval s = -i := by
   simp only [eval]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- A nonzero quadratic-character response equal to one selects the plus subtree. -/
 theorem eval_node_plus (i : F) (m p : SLSTree F) (s : F)
     (h0 : quadraticChar F (i + s) ≠ 0) (h1 : quadraticChar F (i + s) = 1) :
     (node i m p).eval s = p.eval s := by
   simp only [eval]
-  rw [if_neg h0, if_pos h1]
+  rw [ite_eq_right h0, ite_eq_left h1]
 
 /-- A quadratic-character response unequal to zero and one selects the minus subtree. -/
 theorem eval_node_minus (i : F) (m p : SLSTree F) (s : F)
     (h0 : quadraticChar F (i + s) ≠ 0) (h1 : quadraticChar F (i + s) ≠ 1) :
     (node i m p).eval s = m.eval s := by
   simp only [eval]
-  rw [if_neg h0, if_neg h1]
+  rw [ite_eq_right h0, ite_eq_right h1]
 
+omit [Field F] [Fintype F] [DecidableEq F] in
 /-- The number of terminal outputs is at most `2 ^ (t.depth + 1) - 1`. -/
-theorem leaves_le (t : SLSTree F) : t.leaves ≤ 2 ^ (t.depth + 1) - 1 := by
+theorem leaves_le {F : Type*} [_field : Field F] [_fintype : Fintype F]
+    [_decidableEq : DecidableEq F] (t : SLSTree F) : t.leaves ≤ 2 ^ (t.depth + 1) - 1 := by
   induction t with
   | leaf _ => simp [leaves, depth]
   | node i m p ihm ihp =>
@@ -199,7 +205,7 @@ open SLSTree
 /-- Over a finite field of characteristic different from two and for `0 < ε < 1`, recovering at
 least a `1 - ε` fraction of shifts gives the two stated base-two logarithmic lower bounds on
 tree depth. See [VanDam2002]. -/
-theorem source_lemma3_slsLowerBound (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
+theorem source_lemma3_slsLowerBound (_hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
     (t : SLSTree F) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (hcorrect : (1 - ε) * (Fintype.card F : ℝ) ≤ (t.correctSet.card : ℝ)) :
     Real.log ((1 - ε) * (Fintype.card F : ℝ)) / Real.log 2 - 1 ≤ (t.depth : ℝ) ∧

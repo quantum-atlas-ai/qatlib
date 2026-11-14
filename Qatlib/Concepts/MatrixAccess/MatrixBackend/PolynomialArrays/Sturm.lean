@@ -4,31 +4,35 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Find
-import Mathlib.Data.Option.Basic
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Analysis.Polynomial.MahlerMeasure
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.List.Nodup
-import Mathlib.RingTheory.Polynomial.Resultant.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Data.List.FinRange
-import Mathlib.LinearAlgebra.Matrix.Polynomial
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Topology.Algebra.Polynomial
-import Mathlib.Topology.LocallyConstant.Basic
-import Mathlib.Analysis.Polynomial.CauchyBound
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Data.List.Sort
-import Mathlib.FieldTheory.Separable
-import Mathlib.RingTheory.EuclideanDomain
-import Mathlib.Data.List.Induction
-import Mathlib.Data.List.ToFinsupp
-import Mathlib.RingTheory.Polynomial.GaussLemma
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Yun
+module
+
+public import Mathlib.Data.Nat.Find
+public import Mathlib.Data.Option.Basic
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Analysis.Polynomial.MahlerMeasure
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.List.Nodup
+public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Data.List.FinRange
+public import Mathlib.LinearAlgebra.Matrix.Polynomial
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Topology.Algebra.Polynomial
+public import Mathlib.Topology.LocallyConstant.Basic
+public import Mathlib.Analysis.Polynomial.CauchyBound
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Data.List.Sort
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.RingTheory.EuclideanDomain
+public import Mathlib.Data.List.Induction
+public import Mathlib.Data.List.ToFinsupp
+public import Mathlib.RingTheory.Polynomial.GaussLemma
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Yun
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -273,7 +277,7 @@ theorem initialization_success (a : List ℚ) (hcan : Canonical a) (ha : poly a�
   have hqn : poly q≠0 := by intro hz; rw [hz,mul_zero] at hprod; exact ha hprod.symm
   have hdn : (poly a).derivative≠0 := by
     intro hz
-    have hh := Polynomial.natDegree_eq_zero_of_derivative_eq_zero hz
+    have hh := Polynomial.derivative_eq_zero.mp hz
     omega
   have hcder : poly c∣(poly a).derivative := by rw [hCpoly,gcdQ_eq_gcd]; exact gcd_dvd_right _ _
   have hcle := Polynomial.natDegree_le_of_dvd hcder hdn
@@ -297,7 +301,7 @@ theorem initialization_success (a : List ℚ) (hcan : Canonical a) (ha : poly a�
   have hfc : Canonical (lift f) := primitive_lift_canonical q hqn
   have hfdn : (integerPolyQ f).derivative≠0 := by
     intro hz
-    have hh := Polynomial.natDegree_eq_zero_of_derivative_eq_zero hz
+    have hh := Polynomial.derivative_eq_zero.mp hz
     omega
   let df := derivative (lift f)
   have hdf : poly df=(integerPolyQ f).derivative := by dsimp only [df]; rw [derivative_poly,lift_poly]
@@ -546,7 +550,7 @@ theorem radical_real_roots (F : ℝ[X]) (hF : F≠0) (hd : 0<F.natDegree) (x : �
   have hprod : c*w=F := EuclideanDomain.mul_div_cancel' hc (gcd_dvd_left _ _)
   have hdn : F.derivative≠0 := by
     intro hz
-    have hh := Polynomial.natDegree_eq_zero_of_derivative_eq_zero hz
+    have hh := Polynomial.derivative_eq_zero.mp hz
     omega
   constructor
   · intro hx
@@ -2446,9 +2450,10 @@ open ActualSturmQueueCoverage ActualSturmQueueGeometry
 
 /-- Construction for Lex LE in the sturm model. -/
 def LexLE (p q : ℚ×ℚ) : Prop := p.1<q.1 ∨ p.1=q.1 ∧ p.2≤q.2
-private instance (p q : ℚ×ℚ) : Decidable (LexLE p q) := inferInstanceAs (Decidable (p.1<q.1 ∨ p.1=q.1 ∧ p.2≤q.2))
 /-- Construction for lex Compare in the sturm model. -/
-def lexCompare (p q : ℚ×ℚ) : Bool := decide (LexLE p q)
+noncomputable def lexCompare (p q : ℚ×ℚ) : Bool := by
+  classical
+  exact decide (LexLE p q)
 /-- Construction for sort in the sturm model. -/
 def sort (ps : List (ℚ×ℚ)) : List (ℚ×ℚ) := ps.mergeSort lexCompare
 
@@ -2482,16 +2487,21 @@ theorem sort_perm (ps : List (ℚ×ℚ)) : (sort ps).Perm ps := List.mergeSort_p
 
 /-- The finite construction in `Sturm` satisfies `sort_ordered` under the displayed hypotheses. -/
 theorem sort_ordered (ps : List (ℚ×ℚ)) : (sort ps).Pairwise LexLE := by
+  classical
   have htrans : ∀ p q r,lexCompare p q → lexCompare q r → lexCompare p r := by
     intro p q r hp hq
-    have hp' : LexLE p q := of_decide_eq_true hp
-    have hq' : LexLE q r := of_decide_eq_true hq
-    exact decide_eq_true (lex_trans p q r hp' hq')
+    have hp' : LexLE p q := by
+      apply of_decide_eq_true
+      simpa [lexCompare] using hp
+    have hq' : LexLE q r := by
+      apply of_decide_eq_true
+      simpa [lexCompare] using hq
+    simpa [lexCompare] using decide_eq_true (lex_trans p q r hp' hq')
   have htotal : ∀ p q,lexCompare p q || lexCompare q p := by
     intro p q
-    simpa only [lexCompare,Bool.or_eq_true,decide_eq_true_eq] using lex_total p q
+    simpa [lexCompare, Bool.or_eq_true, decide_eq_true_eq] using lex_total p q
   have hh := List.pairwise_mergeSort htrans htotal ps
-  simpa only [sort,lexCompare,decide_eq_true_eq] using hh
+  simpa [sort,lexCompare,decide_eq_true_eq] using hh
 
 /-- The finite construction in `Sturm` satisfies `canonical_sorted_value` under the displayed hypotheses. -/
 theorem canonical_sorted_value (ps qs : List (ℚ×ℚ)) (hp : qs.Perm ps) (hs : qs.Pairwise LexLE) :

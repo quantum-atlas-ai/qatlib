@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.DirectionalDeriv
-import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.YDistribution
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.DirectionalDeriv
+public import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.YDistribution
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+@[expose] public section
 
 /-!
 # Doubly even codes and deterministic classical bias

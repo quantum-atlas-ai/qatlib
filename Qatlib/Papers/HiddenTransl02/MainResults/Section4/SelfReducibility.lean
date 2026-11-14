@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.Coset.Basic
-import Mathlib.GroupTheory.GroupAction.Basic
-import Mathlib.Algebra.Group.Pointwise.Set.Basic
-import Mathlib.Data.Set.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.GroupTheory.Coset.Basic
+public import Mathlib.GroupTheory.GroupAction.Basic
+public import Mathlib.Algebra.Group.Pointwise.Set.Basic
+public import Mathlib.Data.Set.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coset identities for self-reduction
@@ -63,7 +67,7 @@ theorem biUnion_correction_eq (N H : Subgroup G) (u : G) (σ τ : G → G)
     {x : G | ∃ z ∈ (({u} : Set G) * (H : Set G) * (N : Set G)),
       ∃ k ∈ (H ⊓ N : Subgroup G), τ z * k = x} = (H : Set G) := by
   ext x
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   constructor
   · rintro ⟨z, _hz, k, hk, hkx⟩
     rw [← hkx]

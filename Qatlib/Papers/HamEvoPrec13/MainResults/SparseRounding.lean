@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.Order.Round
-import Mathlib.Data.Real.Archimedean
-import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
-import Qatlib.Papers.HamEvoPrec13.MainResults.MatchedBlocks
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.Order.Round
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
+public import Qatlib.Papers.HamEvoPrec13.MainResults.MatchedBlocks
+
+@[expose] public section
 
 /-!
 # Rounding a real scalar to an equal-weight sum of unit coefficients
@@ -48,9 +52,9 @@ theorem unitCoeff_eq_one_or_zero_or_neg (h : ℤ) (i : ℕ) :
 /-- The unit coefficients of `0` all vanish. -/
 theorem unitCoeff_zero (i : ℕ) : unitCoeff 0 i = 0 := by
   unfold unitCoeff
-  rw [if_pos le_rfl]
+  rw [ite_eq_left le_rfl]
   have : ¬((i : ℤ) < 0) := by omega
-  rw [if_neg this]
+  rw [ite_eq_right this]
 
 /-- A coefficient that is switched off by the indicator of vanishing is orthogonal to the
 coefficient it replaces. -/
@@ -92,7 +96,7 @@ theorem sum_unitCoeff : ∀ (ℓ : ℕ) (h : ℤ), |h| ≤ (ℓ : ℤ) →
       · have hlt : ¬((ℓ : ℤ) < h) := by omega
         have hlast : unitCoeff h ℓ = 0 := by
           unfold unitCoeff
-          rw [if_pos hpos, if_neg hlt]
+          rw [ite_eq_left hpos, ite_eq_right hlt]
         have hih : ∑ i : Fin ℓ, unitCoeff h (i : ℕ) = (h : ℝ) :=
           sum_unitCoeff ℓ h (abs_le.mpr ⟨by omega, hle⟩)
         rw [hlast, add_zero, hih]
@@ -103,10 +107,10 @@ theorem sum_unitCoeff : ∀ (ℓ : ℕ) (h : ℤ), |h| ≤ (ℓ : ℤ) →
           intro i
           have hi : (i : ℤ) < (ℓ : ℤ) := by exact_mod_cast i.isLt
           unfold unitCoeff
-          rw [if_pos hge, if_pos (by omega)]
+          rw [ite_eq_left hge, ite_eq_left (by omega)]
         have hlast : unitCoeff ((ℓ : ℤ) + 1) ℓ = 1 := by
           unfold unitCoeff
-          rw [if_pos hge, if_pos (by omega)]
+          rw [ite_eq_left hge, ite_eq_left (by omega)]
         have hsum1 : (∑ _i : Fin ℓ, (1 : ℝ)) = (ℓ : ℝ) := by simp
         rw [Finset.sum_congr rfl fun i _ => hall i, hlast, hsum1]
         push_cast
@@ -116,7 +120,7 @@ theorem sum_unitCoeff : ∀ (ℓ : ℕ) (h : ℤ), |h| ≤ (ℓ : ℤ) →
       · have hlt : ¬((ℓ : ℤ) < -h) := by omega
         have hlast : unitCoeff h ℓ = 0 := by
           unfold unitCoeff
-          rw [if_neg hpos, if_neg hlt]
+          rw [ite_eq_right hpos, ite_eq_right hlt]
         have hih : ∑ i : Fin ℓ, unitCoeff h (i : ℕ) = (h : ℝ) :=
           sum_unitCoeff ℓ h (abs_le.mpr ⟨by omega, by omega⟩)
         rw [hlast, add_zero, hih]
@@ -125,10 +129,10 @@ theorem sum_unitCoeff : ∀ (ℓ : ℕ) (h : ℤ), |h| ≤ (ℓ : ℤ) →
           intro i
           have hi : (i : ℤ) < (ℓ : ℤ) := by exact_mod_cast i.isLt
           unfold unitCoeff
-          rw [if_neg hpos, if_pos (by omega)]
+          rw [ite_eq_right hpos, ite_eq_left (by omega)]
         have hlast : unitCoeff h ℓ = -1 := by
           unfold unitCoeff
-          rw [if_neg hpos, if_pos (by omega)]
+          rw [ite_eq_right hpos, ite_eq_left (by omega)]
         have hsum1 : (∑ _i : Fin ℓ, (-1 : ℝ)) = -((ℓ : ℝ)) := by simp
         rw [Finset.sum_congr rfl fun i _ => hall i, hlast, hsum1]
         have hval' : (-(h : ℝ)) = (ℓ : ℝ) + 1 := by exact_mod_cast hval

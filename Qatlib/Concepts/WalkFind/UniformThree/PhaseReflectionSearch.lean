@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
-import Qatlib.Concepts.SpectralFilter.WalkBoundary.SzegedyAccessConsumers
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
-import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+public import Qatlib.Concepts.SpectralFilter.WalkBoundary.SzegedyAccessConsumers
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+public import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Search with Fresh Phase Reflection Registers
@@ -295,7 +299,7 @@ theorem phaseSearchState_norm (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I
   induction t with
   | zero => exact phaseReflectionEmbed_norm M (k * 0) (by omega) ψ
   | succ t ih =>
-    rw [phaseSearchState, dif_pos (by omega : 0 < M),
+    rw [phaseSearchState, dite_eq_left (by omega : 0 < M),
       norm_applyGate_of_mem_unitaryGroup (phaseFreshReflectionMatrix_unitary W M k t hW hM),
       norm_applyGate_of_mem_unitaryGroup (phaseSearchCheck_unitary S M (k * (t + 1))),
       phaseFreshAppend_norm, ih]
@@ -433,7 +437,7 @@ private theorem phase_source_preparation_exists (ψ : QState I) (hψ : Normalize
   dsimp only [D]
   simp only [Matrix.mulVec, dotProduct, Matrix.diagonal_apply]
   rw [Finset.sum_eq_single i]
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [mul_comm, norm_mul_coefficientPhase]
   · intro l _ hl
     simp [Ne.symm hl]
@@ -549,7 +553,7 @@ theorem phase_search_reachable_state_error (J : Type) [Fintype J] [DecidableEq J
     have he : phaseSearchState W (v j0) S M k (t + 1) -
         phaseReflectionEmbed M (k * (t + 1)) (phaseIdealSearchState (v j0) S (t + 1)) =
         (Z a - Z b) + (Z b - phaseReflectionEmbed M (k * (t + 1)) r) := by
-      rw [phaseSearchState, dif_pos hMp, phaseIdealSearchState_succ]
+      rw [phaseSearchState, dite_eq_left hMp, phaseIdealSearchState_succ]
       change Z a - phaseReflectionEmbed M (k * (t + 1)) r = _
       abel
     rw [he]
@@ -674,7 +678,7 @@ applied to the marked-sign-flipped input, for every positive `M`. -/
 theorem phaseSearchState_one_register_round (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
     phaseSearchState W ψ S M 1 1 = phaseReflectionState W M 1 (ApplyGate (preparedMark S) ψ) := by
-  rw [phaseSearchState, dif_pos hM, phaseSearchState, phaseFreshAppend_embed,
+  rw [phaseSearchState, dite_eq_left hM, phaseSearchState, phaseFreshAppend_embed,
     phaseSearchCheck_embed S M (1 * (0 + 1)) hM,
     phaseFreshReflectionMatrix_embed W M 1 0 hM, phase_fresh_action_empty_old]
 
@@ -721,9 +725,9 @@ private theorem phase_uniform_three_projector :
     · subst c
       simp only [ite_true, hs, one_mul]
       norm_num
-    · simp only [ite_true, if_neg (Ne.symm h), if_neg h, mul_zero, zero_mul]
+    · simp only [ite_true, ite_eq_right (Ne.symm h), ite_eq_right h, mul_zero, zero_mul]
   · intro x _ hxa
-    simp only [if_neg (Ne.symm hxa), zero_mul, ite_self]
+    simp only [ite_eq_right (Ne.symm hxa), zero_mul, ite_self]
   · simp
 
 /-- Conjugating a tensor product of two gates by `SwapGate` exchanges the two tensor factors. -/

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundCertifiedStat
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductEtaRecordHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductFactorialLowerBoundHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundHami
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundCertifiedStat
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductEtaRecordHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductFactorialLowerBoundHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundHami
+
+@[expose] public section
 
 /-!
 # Certified multiproduct coefficient bound

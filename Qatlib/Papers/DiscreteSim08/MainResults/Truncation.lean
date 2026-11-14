@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiscreteSim08.MainResults.FractionalQuery
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Algebra.Order.Field.GeomSum
-import Mathlib.Algebra.Order.Ring.Pow
+module
+
+public import Qatlib.Papers.DiscreteSim08.MainResults.FractionalQuery
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Algebra.Order.Field.GeomSum
+public import Mathlib.Algebra.Order.Ring.Pow
+
+@[expose] public section
 
 /-!
 # Binomial truncation estimates for controlled simulation

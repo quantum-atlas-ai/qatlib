@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+
+@[expose] public section
 
 /-!
 # Finite seed-tape counting for fresh extraction
@@ -112,12 +116,12 @@ theorem bad_box_card {S : Type*} [Fintype S] [DecidableEq S] {N c : ℕ} (B : Fi
   have htimg : ∀ j ∈ img, t j = B := by
     intro j hj
     rw [ht]
-    exact dif_pos ((himage j).mp hj)
+    exact dite_eq_left ((himage j).mp hj)
   have htcompl : ∀ j ∈ imgᶜ, t j = Finset.univ := by
     intro j hj
     rw [ht]
     have hnotmem : j ∉ img := Finset.mem_compl.mp hj
-    exact dif_neg (fun hex => hnotmem ((himage j).mpr hex))
+    exact dite_eq_right (fun hex => hnotmem ((himage j).mpr hex))
   have hext : (Finset.univ.filter fun σ : Fin N → S => ∀ i, σ (idx i) ∈ B) =
       Fintype.piFinset t := by
     apply Finset.ext
@@ -135,7 +139,7 @@ theorem bad_box_card {S : Type*} [Fintype S] [DecidableEq S] {N c : ℕ} (B : Fi
       refine ⟨Finset.mem_univ _, fun i => ?_⟩
       have hi := h (idx i)
       have hex : ∃ i', idx i' = idx i := ⟨i, rfl⟩
-      simp only [ht, dif_pos hex] at hi
+      simp only [ht, dite_eq_left hex] at hi
       exact hi
   have himgcard : img.card = c := by
     rw [himg, Finset.card_image_of_injective _ hinj, Finset.card_univ, Fintype.card_fin]
@@ -178,7 +182,7 @@ theorem tapeUnsplit_prefix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) 
   have hd : j.val < n * c₀ := j.isLt
   show (if h : j.val < n * c₀ then π ⟨j.val, h⟩
       else σ ⟨j.val - n * c₀, _⟩) = π j
-  rw [dif_pos hd]
+  rw [dite_eq_left hd]
 
 /-- Reading a concatenated tape at an embedded suffix coordinate returns the suffix entry. -/
 theorem tapeUnsplit_suffix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S)
@@ -187,7 +191,7 @@ theorem tapeUnsplit_suffix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) 
   have hd : ¬ (n * c₀ + j.val < n * c₀) := by omega
   show (if h : n * c₀ + j.val < n * c₀ then π ⟨n * c₀ + j.val, h⟩
       else σ ⟨n * c₀ + j.val - n * c₀, _⟩) = σ j
-  rw [dif_neg hd]
+  rw [dite_eq_right hd]
   refine congrArg σ (Fin.ext ?_)
   show n * c₀ + j.val - n * c₀ = j.val
   omega
@@ -197,7 +201,7 @@ range. -/
 theorem extSeed_tapeUnsplit_prefix {S : Type} [Nonempty S] {n c₀ : ℕ}
     (π : Fin (n * c₀) → S) (σ : Fin (n * c₀ + 1) → S) (k : ℕ) (hk : k < n * c₀) :
     @extSeed (2 * n * c₀ + 1) S _ (tapeUnsplit π σ) k = π ⟨k, hk⟩ := by
-  rw [extSeed, dif_pos (by have := tape_two_mul n c₀; omega)]
+  rw [extSeed, dite_eq_left (by have := tape_two_mul n c₀; omega)]
   exact tapeUnsplit_prefix_read π σ ⟨k, hk⟩
 
 /-- The natural-index extension of a concatenated tape agrees with the suffix at indices offset
@@ -205,7 +209,7 @@ by the prefix length. -/
 theorem extSeed_tapeUnsplit_suffix {S : Type} [Nonempty S] {n c₀ : ℕ}
     (π : Fin (n * c₀) → S) (σ : Fin (n * c₀ + 1) → S) (k : ℕ) (hk : k < n * c₀ + 1) :
     @extSeed (2 * n * c₀ + 1) S _ (tapeUnsplit π σ) (n * c₀ + k) = σ ⟨k, hk⟩ := by
-  rw [extSeed, dif_pos (by have := tape_two_mul n c₀; omega)]
+  rw [extSeed, dite_eq_left (by have := tape_two_mul n c₀; omega)]
   exact tapeUnsplit_suffix_read π σ ⟨k, hk⟩
 
 /-- Equality of concatenated tapes implies equality of both their prefixes and their suffixes. -/

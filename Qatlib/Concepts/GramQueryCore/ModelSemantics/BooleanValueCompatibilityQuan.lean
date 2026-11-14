@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.CoherentValueFeasibleBoundaryQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.CoherentValueFeasibleBoundaryQuan
+
+@[expose] public section
 
 /-!
 # Compatibility of Boolean Gram optimization values

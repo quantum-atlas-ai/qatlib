@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeOracle
+module
+
+public import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeOracle
+
+@[expose] public section
 
 /-!
 # Preparation states and overlap promises
@@ -92,7 +96,7 @@ theorem preparedState_distance {W : Type*} [Fintype W] [DecidableEq W] [Nonempty
     ‖baseState w-preparedState eps w‖≤2*Real.sqrt eps := by
   have hd : baseState w-preparedState eps w =
       Matrix.toEuclideanCLM (n:=W×Bool) (𝕜:=ℂ) (1-sourceOracle eps false) (baseState w) := by
-    rw [map_sub,map_one,ContinuousLinearMap.sub_apply,ContinuousLinearMap.one_apply]
+    rw [map_sub,map_one,_root_.sub_apply,_root_.one_apply_eq_self]
     rfl
   rw [hd]
   calc

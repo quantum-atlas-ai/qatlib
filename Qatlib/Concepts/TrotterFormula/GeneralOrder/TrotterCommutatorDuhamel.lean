@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterDefectTaylor
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterDefectTaylor
+
+@[expose] public section
 
 /-!
 # Duhamel estimates for matched product words
@@ -80,7 +84,7 @@ theorem pf_word_duhamel (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (t : �
       ((hasDerivAt_const u t).sub (hasDerivAt_id u))
     have hh := he.mul (pf_word_hasDerivAt_left_generator xs u)
     convert! hh using 1
-    (try dsimp only [F])
+
     simp only [Function.comp_def,zero_sub,neg_smul,one_smul]
     noncomm_ring
   have hh := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun u _=>hd u)

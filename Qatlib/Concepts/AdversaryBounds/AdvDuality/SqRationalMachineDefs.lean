@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineKernel
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineKernel
+
+@[expose] public section
 
 /-!
 # Rational stack-machine control and storage
@@ -111,11 +115,11 @@ structure Local where
   mulState : MulVar
 
 /-- A product representation of the fields of `Local`, used to construct its finite enumeration. -/
-private abbrev LocalProduct := Symbol × Bool × Bool × Bool × Bool × FramedTake.Local ×
+public abbrev LocalProduct := Symbol × Bool × Bool × Bool × Bool × FramedTake.Local ×
   Symbol × ReadonlyTableGet.Local × AddVar × MulVar
 
 /-- The equivalence between `Local` and the product of its component state types. -/
-private def localEquiv : Local ≃ LocalProduct where
+public def localEquiv : Local ≃ LocalProduct where
   toFun v := (v.io,v.first,v.second,v.third,v.multiply,v.takeState,v.copyState,v.lookupState,v.addState,v.mulState)
   invFun p := ⟨p.1,p.2.1,p.2.2.1,p.2.2.2.1,p.2.2.2.2.1,p.2.2.2.2.2.1,
     p.2.2.2.2.2.2.1,p.2.2.2.2.2.2.2.1,p.2.2.2.2.2.2.2.2.1,p.2.2.2.2.2.2.2.2.2⟩

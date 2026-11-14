@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.RatioBounds.Hypergeometric
-import Mathlib.Analysis.Analytic.Binomial
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.RatioBounds.Hypergeometric
+public import Mathlib.Analysis.Analytic.Binomial
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+@[expose] public section
 
 /-!
 # Binomial expansion of the Euler kernel

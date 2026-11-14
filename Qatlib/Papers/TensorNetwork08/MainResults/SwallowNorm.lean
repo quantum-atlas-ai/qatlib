@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Composition norms and approximation rescaling

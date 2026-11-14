@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch06.MainResults.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Papers.OrderedSearch06.MainResults.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Transcript counting for ordered-search lower bounds

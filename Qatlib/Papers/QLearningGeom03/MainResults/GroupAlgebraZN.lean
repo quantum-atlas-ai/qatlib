@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebra
+module
+
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebra
+
+@[expose] public section
 
 /-!
 # Fourier diagonalization of cyclic group algebras

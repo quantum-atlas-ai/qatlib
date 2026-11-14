@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BooleanEnergy.QuboForms.Quadratic
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.Analysis.InnerProductSpace.Adjoint
+module
+
+public import Qatlib.Foundations.BooleanEnergy.QuboForms.Quadratic
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+
+@[expose] public section
 
 /-!
 # Diagonal Hamiltonians of Boolean quadratic forms

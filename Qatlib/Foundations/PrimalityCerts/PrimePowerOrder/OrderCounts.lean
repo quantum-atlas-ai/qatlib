@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.Nat.Factorization.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Unit orders and prime extraction from prime powers
@@ -77,7 +81,7 @@ lemma dvd_of_not_dvd_prime_pow_mul {p n r : ℕ} (hp : p.Prime) (hn : 2 ≤ n)
     rw [htgt]
     exact hrfac
   · have hpfac : p.factorization q = 0 := by
-      rw [Nat.Prime.factorization hp, Finsupp.single_apply, if_neg (Ne.symm hqp)]
+      rw [Nat.Prime.factorization hp, Finsupp.single_apply, ite_eq_right (Ne.symm hqp)]
     rw [hpfac, zero_add] at hle
     exact hle
 
@@ -88,7 +92,7 @@ theorem prime_power_gcd
     (m : (ZMod (p ^ n))ˣ) (hr : p ^ (n - 1) ∣ orderOf m) :
     p ^ n / Nat.gcd (p ^ n) (orderOf m) = p := by
   classical
-  haveI : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
+  have : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
   have hcard : Fintype.card (ZMod (p ^ n))ˣ = p ^ (n - 1) * (p - 1) := by
     rw [ZMod.card_units_eq_totient, Nat.totient_prime_pow hp (by omega)]
   have hrdvd : orderOf m ∣ p ^ (n - 1) * (p - 1) := by
@@ -143,8 +147,8 @@ theorem prime_power_probability
       (Nat.card {m : (ZMod (p ^ n))ˣ // p ^ (n - 1) ∣ orderOf m} : ℚ) /
         (Nat.card (ZMod (p ^ n))ˣ : ℚ) := by
   classical
-  haveI : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
-  haveI hcyc : IsCyclic (ZMod (p ^ n))ˣ :=
+  have : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
+  have hcyc : IsCyclic (ZMod (p ^ n))ˣ :=
     ZMod.isCyclic_units_of_prime_pow p hp hp2 n
   simp only [Nat.card_eq_fintype_card, Fintype.card_subtype]
   set D : ℕ := p ^ (n - 2) * (p - 1) with hD
@@ -227,7 +231,7 @@ theorem prime_power_extraction_probability
         p ^ n / Nat.gcd (p ^ n) (orderOf m) = p} : ℚ) /
         (Nat.card (ZMod (p ^ n))ˣ : ℚ) := by
   classical
-  haveI : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
+  have : NeZero (p ^ n) := ⟨pow_ne_zero n hp.ne_zero⟩
   have hc : Nat.card {m : (ZMod (p ^ n))ˣ // p ^ (n - 1) ∣ orderOf m} ≤
       Nat.card {m : (ZMod (p ^ n))ˣ // p ^ n / Nat.gcd (p ^ n) (orderOf m) = p} := by
     rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card]

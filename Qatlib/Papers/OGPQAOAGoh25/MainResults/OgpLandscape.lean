@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
+module
+
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ theorem ogp_forbids_two_far_optima (h : OgpBand dist F δ₁ δ₂ ηOGP)
     (x y : X) (hx : ηOGP < F x) (hy : ηOGP < F y) :
     dist x y < δ₁ ∨ δ₂ < dist x y := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   obtain ⟨hlo, hhi⟩ := hcon
   exact absurd (h x y hlo hhi) (not_le.mpr (lt_min hx hy))
 

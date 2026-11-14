@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveOptimum
-import Mathlib.MeasureTheory.VectorMeasure.Operations
-import Mathlib.MeasureTheory.VectorMeasure.Order
+module
+
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveOptimum
+public import Mathlib.MeasureTheory.VectorMeasure.Operations
+public import Mathlib.MeasureTheory.VectorMeasure.Order
+
+@[expose] public section
 
 /-!
 # Collective Postprocessing

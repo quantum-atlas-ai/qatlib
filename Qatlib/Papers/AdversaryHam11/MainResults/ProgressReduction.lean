@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversaryHam11.MainResults.HamiltonianOracleModel
-import Mathlib.Analysis.Complex.Norm
+module
+
+public import Qatlib.Papers.AdversaryHam11.MainResults.HamiltonianOracleModel
+public import Mathlib.Analysis.Complex.Norm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,7 +50,7 @@ starts at `w 0 = λ` with `λ ≥ 0`, and ends with `‖w T‖ ≤ ε'·λ`, the
 `w^0 = λ(Γ)`, `|d/dt w^t| ≤ 2 max_j λ(Γ_j)`, `|w^T| ≤ ε' w^0`. -/
 theorem timeLowerBound_from_progress
     {w w' : ℝ → ℂ} {lam M T ε' : ℝ}
-    (hT : 0 ≤ T) (hlam : 0 ≤ lam) (hM : 0 ≤ M)
+    (hT : 0 ≤ T) (hlam : 0 ≤ lam) (_hM : 0 ≤ M)
     (hdiff : ∀ t, HasDerivAt w (w' t) t)
     (hbound : ∀ t ∈ Set.Icc (0 : ℝ) T, ‖w' t‖ ≤ 2 * M)
     (h0 : w 0 = (lam : ℂ))

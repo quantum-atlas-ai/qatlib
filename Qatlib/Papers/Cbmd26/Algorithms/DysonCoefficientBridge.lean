@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
-import Mathlib.Data.List.Nodup
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
+public import Mathlib.Data.List.Nodup
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Dyson word coefficients and their mass
@@ -131,9 +135,9 @@ theorem dyson_word_count_mask (M k : ℕ) (f : Fin k → Fin M) :
       List.ofFn f <+ List.finRange M := by
     simp [dysonTimeWords, List.mem_sublistsLen]
   by_cases hf : List.ofFn f <+ List.finRange M
-  · rw [if_pos hf]
+  · rw [ite_eq_left hf]
     exact List.count_eq_one_of_mem hn (hm.mpr hf)
-  · rw [if_neg hf]
+  · rw [ite_eq_right hf]
     exact List.count_eq_zero.mpr (fun h => hf (hm.mp h))
 
 /-- The Dyson coefficient is `z` to the word's degree for an increasing grid sublist, and is
@@ -175,7 +179,7 @@ private theorem taylorBranchWord_prefix (B : J → Matrix I I ℂ) (K : ℕ)
   induction n with
   | zero => simp [taylorBranchWord]
   | succ n ih =>
-    rw [taylorBranchWord, taylorBranchStep, dif_pos (Nat.lt_of_succ_le hl),
+    rw [taylorBranchWord, taylorBranchStep, dite_eq_left (Nat.lt_of_succ_le hl),
       List.ofFn_succ_last, List.reverse_append, List.prod_append]
     simp only [List.reverse_cons, List.reverse_nil, List.nil_append, List.prod_cons,
       List.prod_nil, Matrix.mul_one]
@@ -192,7 +196,7 @@ private theorem taylorBranchWord_after_length (B : J → Matrix I I ℂ) (K : �
   | base => intro hn; rfl
   | succ n hle ih =>
     intro hn
-    rw [taylorBranchWord, taylorBranchStep, dif_neg (Nat.not_lt.mpr hle), Matrix.one_mul]
+    rw [taylorBranchWord, taylorBranchStep, dite_eq_right (Nat.not_lt.mpr hle), Matrix.one_mul]
     exact ih (Nat.le_of_succ_le hn)
 
 /-- The completed Taylor branch is the matrix product obtained by mapping `B` over the reversed
@@ -312,9 +316,9 @@ theorem gridWordCoefficients_mask (samples : List J) (K : ℕ) (z : ℂ)
       List.ofFn w.2 <+ samples := by simp [List.mem_sublistsLen]
   unfold gridWordCoefficients
   by_cases hw : List.ofFn w.2 <+ samples
-  · rw [if_pos hw, List.count_eq_one_of_mem hn (hm.mpr hw)]
+  · rw [ite_eq_left hw, List.count_eq_one_of_mem hn (hm.mpr hw)]
     simp
-  · rw [if_neg hw, List.count_eq_zero.mpr (fun h => hw (hm.mp h))]
+  · rw [ite_eq_right hw, List.count_eq_zero.mpr (fun h => hw (hm.mp h))]
     simp
 
 omit [Fintype I] [DecidableEq I] in

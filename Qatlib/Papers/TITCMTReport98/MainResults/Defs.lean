@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
+
+@[expose] public section
 
 /-!
 # Displayed formulas for annealing schedules

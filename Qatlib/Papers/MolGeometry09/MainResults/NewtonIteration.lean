@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MolGeometry09.MainResults.DerivativeQueryLedger
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Papers.MolGeometry09.MainResults.DerivativeQueryLedger
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Newton circuit words and three-query ledgers

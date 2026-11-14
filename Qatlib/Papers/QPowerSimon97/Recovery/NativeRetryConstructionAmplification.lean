@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+@[expose] public section
 
 /-!
 # Amplification bounds for Simon experiments
@@ -98,9 +102,9 @@ lemma event_partition {α : Type*} (p : PMF α) (E : α → Prop) :
   have hpt : ∀ a, (if E a then (1 : ℝ≥0∞) else 0) + (if ¬ E a then 1 else 0) = 1 := by
     intro a
     by_cases h : E a
-    · rw [if_pos h, if_neg (fun hne => hne h)]
+    · rw [ite_eq_left h, ite_eq_right (fun hne => hne h)]
       simp [add_zero]
-    · rw [if_neg h, if_pos h]
+    · rw [ite_eq_right h, ite_eq_left h]
       simp [zero_add]
   rw [← ENNReal.tsum_add]
   dsimp
@@ -258,13 +262,13 @@ lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
         rw [PMF.map, event, expectation_bind]
         simp only [expectation_pure, Function.comp_def]
         by_cases ha : a ≠ Z
-        · rw [if_pos ha]
+        · rw [ite_eq_left ha]
           have hpred : ∀ w : Fin r → Option (Reg n),
               (∃ i, (Fin.cons a w : Fin (r + 1) → Option (Reg n)) i ≠ Z) := by
             intro w
             exact (cons_reject a w).mpr (Or.inl ha)
-          simp only [hpred, if_true, expectation, PMF.tsum_coe, mul_one]
-        · rw [if_neg ha]
+          simp only [hpred, ite_true, expectation, PMF.tsum_coe, mul_one]
+        · rw [ite_eq_right ha]
           have hpred : ∀ w : Fin r → Option (Reg n),
               (∃ i, (Fin.cons a w : Fin (r + 1) → Option (Reg n)) i ≠ Z) ↔ (∃ j, w j ≠ Z) := by
             intro w
@@ -282,10 +286,10 @@ lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
                 ∑' (w : Fin r → Option (Reg n)), tail w * indicator w) ?_
           funext w
           by_cases hw : ∃ j, w j ≠ Z
-          · rw [if_pos ((hpred w).mpr hw), if_pos hw]
+          · rw [ite_eq_left ((hpred w).mpr hw), ite_eq_left hw]
           · have hn : ¬ ∃ i, (Fin.cons a w : Fin (r + 1) → Option (Reg n)) i ≠ Z :=
               (hpred w).not.mpr hw
-            rw [if_neg hn, if_neg hw]
+            rw [ite_eq_right hn, ite_eq_right hw]
       simp only [event] at hcont
       simp_rw [hcont]
       unfold event expectation
@@ -293,9 +297,9 @@ lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
           (if a ≠ Z then 1 else 0) + c := by
         intro a
         by_cases ha : a ≠ Z
-        · rw [if_pos ha, if_pos ha]
+        · rw [ite_eq_left ha, ite_eq_left ha]
           exact le_add_of_nonneg_right bot_le
-        · rw [if_neg ha, if_neg ha, zero_add]
+        · rw [ite_eq_right ha, ite_eq_right ha, zero_add]
       calc
         ∑' a, single a * (if a ≠ Z then (1 : ℝ≥0∞) else c)
             ≤ ∑' a, single a * ((if a ≠ Z then 1 else 0) + c) := by
@@ -311,8 +315,8 @@ lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
               intro a
               beta_reduce
               by_cases ha : a ≠ Z
-              · rw [if_pos ha, if_pos ha]
-              · rw [if_neg ha, if_neg ha]
+              · rw [ite_eq_left ha, ite_eq_left ha]
+              · rw [ite_eq_right ha, ite_eq_right ha]
     exact le_trans hstep (add_le_add hsingle hrest)
 end
 noncomputable section
@@ -410,7 +414,7 @@ lemma fresh_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
       intro a
       rw [event_map]
       by_cases ha : a = some (ZeroStr n)
-      · rw [if_pos ha]
+      · rw [ite_eq_left ha]
         refine event_congr ?_
         intro w
         constructor
@@ -420,7 +424,7 @@ lemma fresh_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
           cases i using Fin.cases with
           | zero => simpa [Fin.cons_zero] using! ha
           | succ j => simpa [Fin.cons_succ] using! h j
-      · rw [if_neg ha]
+      · rw [ite_eq_right ha]
         refine event_zero _ _ ?_
         intro w hw
         have hex := (cons_reject a w).mpr (Or.inl ha)
@@ -438,8 +442,8 @@ lemma fresh_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
       intro a
       beta_reduce
       by_cases ha : a = some (ZeroStr n)
-      · rw [if_pos ha, if_pos ha, mul_one, mul_comm]
-      · rw [if_neg ha, if_neg ha, mul_zero, mul_zero]
+      · rw [ite_eq_left ha, ite_eq_left ha, mul_one, mul_comm]
+      · rw [ite_eq_right ha, ite_eq_right ha, mul_zero, mul_zero]
     rw [hprod]
     calc
       c * event single (fun a => a = some (ZeroStr n)) ≤

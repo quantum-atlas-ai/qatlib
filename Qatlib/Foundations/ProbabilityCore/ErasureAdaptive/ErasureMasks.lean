@@ -4,39 +4,45 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.ENNReal.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.NNReal.Defs
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Set.Defs
-import Mathlib.MeasureTheory.OuterMeasure.Defs
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Probability.ProbabilityMassFunction.Monad
-import Mathlib.Tactic
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Defs
-import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
-import Mathlib.Topology.Algebra.InfiniteSum.SummationFilter
-import Mathlib.Topology.Order.Real
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.NNReal.Defs
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Set.Defs
+public import Mathlib.MeasureTheory.OuterMeasure.Defs
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Probability.ProbabilityMassFunction.Monad
+public import Mathlib.Tactic
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Defs
+public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
+public import Mathlib.Topology.Algebra.InfiniteSum.SummationFilter
+public import Mathlib.Topology.Order.Real
+
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Independent Bernoulli erasure masks
@@ -66,21 +72,21 @@ namespace Qatlib.Foundations.ProbabilityCore.ErasureAdaptive
 /-- The distribution of `n` independent Bernoulli erasure indicators, each equal to `true` with
 probability `p`. -/
 noncomputable def erasureMask (n : ℕ) (p : ℝ≥0) (hp : p ≤ 1) : PMF (Fin n → Bool) :=
-  PMF.ofFintype (fun mask => ∏ i, PMF.bernoulli p hp (mask i)) (by
+  PMF.ofFintype (fun mask => ∏ i, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli p hp (mask i)) (by
     rw [← Fintype.prod_sum]
-    have hs : ∑ b : Bool, PMF.bernoulli p hp b = 1 := by
-      simpa only [tsum_fintype] using (PMF.bernoulli p hp).tsum_coe
+    have hs : ∑ b : Bool, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli p hp b = 1 := by
+      simpa only [tsum_fintype] using (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli p hp).tsum_coe
     simp only [hs, Finset.prod_const_one])
 
 /-- The probability of a specified erasure mask is the product of the Bernoulli probabilities of
 its coordinates. -/
 theorem erasureMask_apply (n : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (mask : Fin n → Bool) :
-    erasureMask n p hp mask = ∏ i, PMF.bernoulli p hp (mask i) := rfl
+    erasureMask n p hp mask = ∏ i, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli p hp (mask i) := rfl
 
 /-- The all-true mask, representing complete erasure, has probability `p ^ n`. -/
 theorem erasureMask_complete (n : ℕ) (p : ℝ≥0) (hp : p ≤ 1) :
     erasureMask n p hp (fun _ => true) = (p : ℝ≥0∞)^n := by
-  simp [erasureMask_apply, PMF.bernoulli_apply]
+  simp [erasureMask_apply, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply]
 
 /-- The outer-measure mass of the complete-erasure event is `p ^ n`. -/
 theorem erasureMask_complete_event (n : ℕ) (p : ℝ≥0) (hp : p ≤ 1) :

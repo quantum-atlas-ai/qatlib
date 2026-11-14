@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.SmoothTransition
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Algebra.Polynomial.Eval.Degree
+module
+
+public import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Algebra.Polynomial.Eval.Degree
+
+@[expose] public section
 
 /-! # Computed integer polynomials bound the actual flat cutoff derivatives -/
 set_option autoImplicit false
@@ -92,16 +96,16 @@ theorem cutoffCoefficientAt_eq (n m : ℕ) :
     | succ m => simp [cutoffCoefficientAt,cutoffDerivativePolynomial,Polynomial.coeff_one]
   | succ n ih =>
     by_cases hm : m<2*(n+1)+1
-    · rw [cutoffCoefficientAt,dif_pos hm]
+    · rw [cutoffCoefficientAt,dite_eq_left hm]
       simp only [cutoffCoefficientRow,cutoffNextCoefficientRow,Vector.getElem_ofFn]
       rw [cutoffDerivativePolynomial,Polynomial.coeff_X_pow_mul']
       by_cases htwo : 2 ≤ m
-      · simp only [if_pos htwo,ih,Polynomial.coeff_sub,Polynomial.coeff_derivative]
+      · simp only [ite_eq_left htwo,ih,Polynomial.coeff_sub,Polynomial.coeff_derivative]
         rw [show m-2+1=m-1 by omega]
         simp only [Nat.cast_sub htwo,Nat.cast_ofNat]
         ring
-      · simp only [if_neg htwo]
-    · rw [cutoffCoefficientAt,dif_neg hm]
+      · simp only [ite_eq_right htwo]
+    · rw [cutoffCoefficientAt,dite_eq_right hm]
       exact (Polynomial.coeff_eq_zero_of_natDegree_lt
         (lt_of_le_of_lt (cutoffDerivativePolynomial_degree (n+1)) (by omega))).symm
 
@@ -144,7 +148,7 @@ theorem iteratedDeriv_expNegInvGlue_abs_le (n : ℕ) (x : ℝ) :
     have hdeg : (cutoffRealPolynomial n).natDegree<2*n+1 :=
       Nat.lt_succ_of_le (cutoffRealPolynomial_degree n)
     rw [Polynomial.eval_eq_sum_range' hdeg,
-      show expNegInvGlue x=Real.exp (-x⁻¹) by simp only [expNegInvGlue,if_neg hx],Finset.sum_mul]
+      show expNegInvGlue x=Real.exp (-x⁻¹) by simp only [expNegInvGlue,ite_eq_right hx],Finset.sum_mul]
     calc
       _ ≤ ∑ m ∈ range (2*n+1),
           |(cutoffRealPolynomial n).coeff m*(x⁻¹)^m*Real.exp (-x⁻¹)| :=

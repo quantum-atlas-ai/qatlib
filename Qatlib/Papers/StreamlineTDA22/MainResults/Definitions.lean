@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

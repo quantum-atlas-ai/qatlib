@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCoinReceiptProgram
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.StoppingReference
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCoinReceiptProgram
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.StoppingReference
+
+@[expose] public section
 
 /-!
 # Finite coin-tape laws for an absorbing walk
@@ -297,14 +301,14 @@ theorem race_outBit (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (w : List Bool) :
       by_cases eN : (n : ℕ) + 1 = N
       · have hout : raceOut N a w = RaceOut.right := by
           unfold raceOut
-          rw [hh, if_neg (by omega : ¬((n : ℕ) + 1 = 0)), if_pos eN]
-        rw [hout, if_pos (Or.inr eN), eN]
+          rw [hh, ite_eq_right (by omega : ¬((n : ℕ) + 1 = 0)), ite_eq_left eN]
+        rw [hout, ite_eq_left (Or.inr eN), eN]
         show some (decide (N = N)) = outBit RaceOut.right
         simp [outBit]
       · have hout : raceOut N a w = RaceOut.timeout := by
           unfold raceOut
-          rw [hh, if_neg (by omega : ¬((n : ℕ) + 1 = 0)), if_neg eN]
-        rw [hout, if_neg (fun h => by rcases h with h | h <;> omega)]
+          rw [hh, ite_eq_right (by omega : ¬((n : ℕ) + 1 = 0)), ite_eq_right eN]
+        rw [hout, ite_eq_right (fun h => by rcases h with h | h <;> omega)]
         rfl
 
 /-- For `a ≤ N` and positive `N`, the machine count of each outcome equals its walk fiber count. -/
@@ -351,9 +355,9 @@ theorem walkSumOf_eq (N a : ℕ) (ha : a ≤ N) : ∀ t, walkSumOf N a t = a * 2
       · rw [raceStep_absorb N false hab, raceStep_absorb N true hab, ih a ha, Nat.pow_succ]
         ring
       · have hfa : raceStep N a false = a - 1 := by
-          rw [raceStep, if_neg hab, if_neg (by simp : ¬(false = true))]
+          rw [raceStep, ite_eq_right hab, ite_eq_right (by simp : ¬(false = true))]
         have hft : raceStep N a true = a + 1 := by
-          rw [raceStep, if_neg hab, if_pos rfl]
+          rw [raceStep, ite_eq_right hab, ite_eq_left rfl]
         have h2 : a - 1 + 1 = a := by omega
         have hsub : (a - 1) * 2 ^ t + 2 ^ t = a * 2 ^ t := by
           have e : ((a - 1) + 1) * 2 ^ t = (a - 1) * 2 ^ t + 1 * 2 ^ t :=
@@ -545,8 +549,8 @@ theorem raceWalk_replicate_true (N : ℕ) : ∀ (k p : ℕ), 1 ≤ p → p ≤ N
         rw [hab, hN, ih N (by omega) (by omega),
           min_eq_right (by omega : N ≤ N + k), min_eq_right (by omega : N ≤ N + (k + 1))]
       · have hstep : raceStep N p true = p + 1 := by
-          rw [raceStep, if_neg (by intro h; rcases h with h | h <;> omega),
-            if_pos rfl]
+          rw [raceStep, ite_eq_right (by intro h; rcases h with h | h <;> omega),
+            ite_eq_left rfl]
         rw [hstep, ih (p + 1) (by omega) (by omega)]
         congr 1
         omega
@@ -566,8 +570,8 @@ theorem raceWalk_replicate_false (N : ℕ) : ∀ (k p : ℕ), p ≤ N - 1 →
         rw [raceStep_absorb N false (Or.inl rfl), ih 0 (by omega : (0 : ℕ) ≤ N - 1)]
         omega
       · have hstep : raceStep N p false = p - 1 := by
-          rw [raceStep, if_neg (by intro h; rcases h with h | h <;> omega),
-            if_neg (by simp : ¬(false = true))]
+          rw [raceStep, ite_eq_right (by intro h; rcases h with h | h <;> omega),
+            ite_eq_right (by simp : ¬(false = true))]
         rw [hstep, ih (p - 1) (by omega)]
         omega
 
@@ -727,7 +731,7 @@ theorem fiber_timeout_stride (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ
   · intro hP
     have ht : raceOut N a u = RaceOut.timeout := by
       unfold raceOut
-      rw [if_neg (fun h => hu (Or.inl h)), if_neg (fun h => hu (Or.inr h))]
+      rw [ite_eq_right (fun h => hu (Or.inl h)), ite_eq_right (fun h => hu (Or.inr h))]
     have hP' : decide (raceOut N a u = RaceOut.timeout) = false := hP
     rw [ht] at hP'
     simp at hP'

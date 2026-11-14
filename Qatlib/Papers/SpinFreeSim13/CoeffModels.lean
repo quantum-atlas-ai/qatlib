@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coefficient sums for symmetry readout
@@ -69,7 +73,7 @@ theorem phaseEstAmplitude_eq_wigner {d : ℕ} (D : G → Matrix (Fin d) (Fin d) 
       Real.sqrt_pos.mpr (by exact_mod_cast Nat.pos_of_ne_zero hd)
     exact_mod_cast (ne_of_gt hpos)
   have hcard : ((Fintype.card G : ℂ)) ≠ 0 := by
-    haveI : Nonempty G := ⟨1⟩
+    have : Nonempty G := ⟨1⟩
     exact_mod_cast Fintype.card_ne_zero
   have key :
       ((Real.sqrt (d : ℝ) : ℂ) * ((Fintype.card G : ℂ))⁻¹)

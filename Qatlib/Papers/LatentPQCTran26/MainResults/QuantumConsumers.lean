@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.ActualContract
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.PhysicalWord
-import Qatlib.Papers.LatentPQCTran26.MainResults.NativePreserve
-import Qatlib.Papers.LatentPQCTran26.MainResults.NativeCoverage
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.ActualContract
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.PhysicalWord
+public import Qatlib.Papers.LatentPQCTran26.MainResults.NativePreserve
+public import Qatlib.Papers.LatentPQCTran26.MainResults.NativeCoverage
+
+@[expose] public section
 
 /-!
 # Latent trainability estimates for exponential circuit words

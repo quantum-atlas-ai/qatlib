@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupQuan
+module
+
+public import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupQuan
+
+@[expose] public section
 
 /-!
 # Amplitude-amplification iteration budgets

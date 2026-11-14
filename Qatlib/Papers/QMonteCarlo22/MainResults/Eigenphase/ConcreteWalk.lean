@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QMonteCarlo22.MainResults.Eigenphase.PhaseAlgebra
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QMonteCarlo22.MainResults.Eigenphase.PhaseAlgebra
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -85,15 +89,17 @@ theorem one_add_I_mul_ne_zero (t : ℝ) : (1 : ℂ) + Complex.I * (t : ℂ) ≠ 
   simp [Complex.add_re, Complex.mul_re, Complex.I_re, Complex.one_re,
     Complex.ofReal_re] at hre
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- `ROT_y` sends `1 + i y` to `1 - i y` (Equation (17)). -/
-theorem roty_onePlusIy (y : ι → ℝ) (i : ι) :
+theorem roty_onePlusIy {ι : Type*} [_inst0 : Fintype ι] [_inst1 : DecidableEq ι] (y : ι → ℝ) (i : ι) :
     roty y (onePlusIy y) i = oneMinusIy y i := by
   unfold roty onePlusIy oneMinusIy
   rw [div_mul_eq_mul_div]
   field_simp [one_add_I_mul_ne_zero (y i)]
 
+omit [DecidableEq ι] in
 /-- The reflection barycenter of `1 - i y`: `E_p[1 - i y] = 1 - i µ`. -/
-theorem sum_oneMinusIy (p y : ι → ℝ) (hsum : ∑ i, p i = 1) :
+theorem sum_oneMinusIy {ι : Type*} [_inst0 : Fintype ι] [_inst1 : DecidableEq ι] (p y : ι → ℝ) (hsum : ∑ i, p i = 1) :
     ∑ i, (p i : ℂ) * oneMinusIy y i = 1 - Complex.I * (mean p y : ℂ) := by
   have hterm : ∀ i, (p i : ℂ) * oneMinusIy y i =
       (p i : ℂ) - Complex.I * ((p i * y i : ℝ) : ℂ) := by
@@ -140,9 +146,10 @@ theorem prop3_15 (p y : ι → ℝ) (hsum : ∑ i, p i = 1) :
   rw [walkU_onePlusIy p y hsum i]
   ring
 
+omit [DecidableEq ι] in
 /-- A norm identity for the outcome-basis state vectors: `∑ ‖z_i √p_i‖²
 = ∑ ‖z_i‖² p_i`. -/
-theorem normSq_ket (p : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (z : ι → ℂ) :
+theorem normSq_ket {ι : Type*} [_inst0 : Fintype ι] [_inst1 : DecidableEq ι] (p : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (z : ι → ℂ) :
     ∑ i, ‖ket p z i‖ ^ 2 = ∑ i, ‖z i‖ ^ 2 * p i := by
   apply Finset.sum_congr rfl
   intro i _
@@ -175,10 +182,11 @@ theorem fact3_13_normSq (p y : ι → ℝ) (hp : ∀ i, 0 ≤ p i)
   rw [Finset.sum_add_distrib, hsum]
   rfl
 
+omit [DecidableEq ι] in
 /-- The general inner product of two outcome-basis states (Fact 3.10): with
 `⟨z| = ∑ conj(z_i)√p_i ⟨i|`, one has
 `⟨w|z⟩ = ∑ p_i conj(w_i) z_i`. -/
-theorem inner_ket (p : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (w z : ι → ℂ) :
+theorem inner_ket {ι : Type*} [_inst0 : Fintype ι] [_inst1 : DecidableEq ι] (p : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (w z : ι → ℂ) :
     Inner (ket p w) (ket p z) = ∑ i, (p i : ℂ) * (starRingEnd ℂ) (w i) * z i := by
   rw [inner_apply]
   apply Finset.sum_congr rfl

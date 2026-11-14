@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+@[expose] public section
 
 /-!
 # Spectral equations for the Tulsi construction
@@ -82,7 +86,7 @@ theorem overlap_paired (P : Type*) [Fintype P] (W α : P → ℝ) (c : ℝ)
     intro p
     have hWp : (W p : ℂ) ≠ 0 := by simpa using hW p
     rw [Fintype.sum_bool]
-    simp only [Bool.false_eq_true, if_true, if_false]
+    simp only [Bool.false_eq_true, ite_true, ite_false]
     rw [show -α p / 2 = -(α p / 2) by ring, cot_neg]
     have hphase : phase (α p) - phase (-α p) = 2 * Complex.I * (Real.sin (α p) : ℂ) := by
       apply Complex.ext
@@ -415,7 +419,7 @@ theorem tulsiF_continuousOn {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ}
     (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
     (hθ0 : ∀ j, 0 ≤ θj j) (hθ2 : ∀ j, θj j ≤ Real.pi / 2) (hθα : ∀ j, α < θj j)
-    (hcosθ : Real.cos θ ≠ 0) :
+    (_hcosθ : Real.cos θ ≠ 0) :
     ContinuousOn (tulsiF a0 a θj θ) (Set.Icc (α / 4) α) := by
   have hpi := Real.pi_pos
   have hx0 : ∀ x ∈ Set.Icc (α / 4) α, 0 < x := by
@@ -700,7 +704,7 @@ theorem rotation_overlap_paired (P : Type*) [Fintype P] (W α : P → ℝ) (c : 
     intro p
     have hWp : (W p : ℂ) ≠ 0 := by simpa using hW p
     rw [Fintype.sum_bool]
-    simp only [Bool.false_eq_true, if_true, if_false]
+    simp only [Bool.false_eq_true, ite_true, ite_false]
     rw [show -α p / 2 = -(α p / 2) by ring, cot_neg]
     push_cast
     field_simp

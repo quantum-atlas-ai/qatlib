@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentSeq.SeqAssoc.InstrumentCoarseGrainLaws
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.InstrumentSeq.SeqAssoc.InstrumentCoarseGrainLaws
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # A coarse-grained qutrit measurement

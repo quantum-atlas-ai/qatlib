@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PhysicalPoissonAddress
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SpatialNormLipschitz
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceConnectionSampling
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PhysicalPoissonAddress
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SpatialNormLipschitz
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceConnectionSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

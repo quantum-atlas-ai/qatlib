@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Diagonal
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Diagonal
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,8 +60,10 @@ def cyclicShiftPow (r : ZMod n) : Matrix (ZMod n) (ZMod n) ℂ :=
 def cyclicShift : Matrix (ZMod n) (ZMod n) ℂ :=
   cyclicShiftPow (1 : ZMod n)
 
+omit [NeZero n] in
+
 /-- The zero-th power of the shift is the identity, `S^0 = I`. -/
-theorem cyclicShiftPow_zero : cyclicShiftPow (0 : ZMod n) = 1 := by
+theorem cyclicShiftPow_zero {n : ℕ} [_scopeInst0 : NeZero n] : cyclicShiftPow (0 : ZMod n) = 1 := by
   ext i j
   simp [cyclicShiftPow, Matrix.one_apply]
 
@@ -68,7 +74,7 @@ theorem cyclicShiftPow_mul (r s : ZMod n) :
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single (j + s)]
   · simp only [cyclicShiftPow, Matrix.of_apply]
-    simp [add_assoc, add_comm, add_left_comm]
+    simp [add_comm, add_left_comm]
   · intro b _ hb
     simp [cyclicShiftPow, hb]
   · intro h
@@ -97,9 +103,9 @@ theorem cyclicShiftPow_conj_diagonal (a : ZMod n → ℂ) (r : ZMod n) (i j : ZM
     intro l
     rw [Matrix.mul_apply]
     rw [Finset.sum_eq_single l]
-    · simp [cyclicShiftPow, Matrix.diagonal_apply]
+    · simp [cyclicShiftPow]
     · intro b _ hb
-      simp [Matrix.diagonal_apply, hb]
+      simp [hb]
     · intro h
       simp at h
   have hconj : ∀ l j', (cyclicShiftPow (n := n) r)ᴴ l j' =
@@ -136,8 +142,8 @@ theorem sum_shift_diagonal (a : ZMod n → ℂ) (i : ZMod n) :
   let e : ZMod n ≃ ZMod n :=
     { toFun := fun r => i - r
       invFun := fun j => i - j
-      left_inv := by intro x; simp [sub_sub_self]
-      right_inv := by intro x; simp [sub_sub_self] }
+      left_inv := by intro x; simp []
+      right_inv := by intro x; simp [] }
   have h := Equiv.sum_comp e a
   simpa [e] using h
 
@@ -153,7 +159,7 @@ theorem sum_cyclicShift_conj_diagonal (a : ZMod n → ℂ) :
   · subst hij
     simpa using sum_shift_diagonal a i
   · have hji : j ≠ i := fun h => hij h.symm
-    simp [hij, hji]
+    simp [hij]
 
 /-- **Lemma S1, second identity** (page S4): subtracting the `r = 0` term,
 `Σ_{r=1}^{K−1} S^r A S^{−r} = tr(A) I − A`.  Here the sum is over the nonzero shifts

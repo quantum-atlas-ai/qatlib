@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
-import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurement
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurement
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
+
+@[expose] public section
 
 /-!
 # Filter branches and consumer resource records
@@ -95,14 +99,14 @@ noncomputable def sinEnvelopeIdealIllMass (d θ : ℝ) : ℝ :=
 
 /-- The optional conditional pure state obtained by selecting the well event after rotating the
 flag-zero state. -/
-noncomputable def sinEnvelopeActualWellOutput (d θ : ℝ) (hd : 0 < d) :
+noncomputable def sinEnvelopeActualWellOutput (d θ : ℝ) (_hd : 0 < d) :
     Option (QState (Fin 3)) :=
   ProjectiveConditionalState (Projector sinEnvelopeWellEvent) true
     (ApplyGate (sinEnvelopeFlagRotation d θ) (Ket (0 : Fin 3)))
 
 /-- The unnormalized well-branch vector obtained by collapsing the rotated flag-zero state onto
 the well event. -/
-noncomputable def sinEnvelopeActualWellVector (d θ : ℝ) (hd : 0 < d) : QState (Fin 3) :=
+noncomputable def sinEnvelopeActualWellVector (d θ : ℝ) (_hd : 0 < d) : QState (Fin 3) :=
   Collapse (ApplyGate (sinEnvelopeFlagRotation d θ) (Ket (0 : Fin 3)))
     sinEnvelopeWellEvent
 

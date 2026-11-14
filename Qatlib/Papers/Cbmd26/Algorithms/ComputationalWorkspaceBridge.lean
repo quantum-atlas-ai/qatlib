@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+
+@[expose] public section
 
 /-!
 # Computational success frames and input preparation
@@ -119,7 +123,7 @@ theorem computationalWorkspaceInput_prepare (e : W ≃ Aux × I) (B : Matrix I I
   have hk : relabelState e.symm (Ket (a₀,i₀)) = Ket (e.symm (a₀,i₀)) := by
     funext w
     simp only [relabelState_apply, Equiv.symm_symm, Ket]
-    simp only [Equiv.apply_eq_iff_eq_symm_apply]
+    simp only [← Equiv.eq_symm_apply]
   have he := applyGate_relabelGate e.symm (parallelOracle (J := Aux) B) (Ket (a₀,i₀))
   rw [hk, computationalTag_prepare B a₀ i₀ ψ hB] at he
   change ApplyGate (computationalWorkspaceInput e B) (Ket (e.symm (a₀,i₀))) = _ at he

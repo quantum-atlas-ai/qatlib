@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureStat
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureStat
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+
+@[expose] public section
 
 /-!
 # Two-dimensional trapezoidal source quadrature bound

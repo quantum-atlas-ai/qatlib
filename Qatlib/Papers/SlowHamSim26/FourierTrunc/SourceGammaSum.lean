@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SlowHamSim26.FourierTrunc.Definitions
-import Mathlib.Analysis.SumIntegralComparisons
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+module
+
+public import Qatlib.Papers.SlowHamSim26.FourierTrunc.Definitions
+public import Mathlib.Analysis.SumIntegralComparisons
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

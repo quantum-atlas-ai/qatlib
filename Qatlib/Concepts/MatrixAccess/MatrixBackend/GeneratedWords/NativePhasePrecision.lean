@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeSqrtInterval
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeSqrtInterval
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,12 +70,12 @@ private theorem rationalCayley_value (t : ℚ) : gaussianRatComplex (cayleyRat t
 
 
 /-- Construction for phase Root Midpoint in the native phase precision model. -/
-private def phaseRootMidpoint (x y : ℚ) (p : ℕ) : ℚ :=
+def phaseRootMidpoint (x y : ℚ) (p : ℕ) : ℚ :=
   let b := nativeSqrtInterval (x*x+y*y) (p+4)
   (b.1+b.2.1)/2
 
 /-- Construction for normalized Phase Pair in the native phase precision model. -/
-private def normalizedPhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
+def normalizedPhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
   cayleyRat (y/(phaseRootMidpoint x y p+x))
 
 /-- The finite construction in `NativePhasePrecision` satisfies `realCayley_ratio` under the displayed hypotheses. -/
@@ -149,6 +153,7 @@ private theorem normalizedPhasePair_error (x y : ℚ) (p : ℕ)
     rw [he] at herr
     exact herr
   have harg : ((y/(m+x) : ℚ) : ℝ)=(y : ℝ)/((m : ℝ)+(x : ℝ)) := by push_cast; rfl
+  unfold normalizedPhasePair
   change ‖gaussianRatComplex (cayleyRat (y/(m+x)))-gaussianRatComplex (x,y)/(R : ℂ)‖≤_
   rw [rationalCayley_value,harg,hid]
   calc
@@ -192,7 +197,7 @@ private theorem gaussianRatComplex_unit_scale (x y m : ℚ) (hm : 0< m) :
   · field_simp [hmC,hz]
 
 /-- Construction for positive Phase Pair in the native phase precision model. -/
-private def positivePhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
+def positivePhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
   let m := max |x| |y|
   normalizedPhasePair (x/m) (y/m) p
 

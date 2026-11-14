@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Revealing probabilities over finite fields
@@ -107,10 +111,10 @@ theorem affinePairZeros_card_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
       ≤ (if a * y + c1 = 0 then Fintype.card K else 1) := by
     intro y
     by_cases h : a * y + c1 = 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact le_trans (Finset.card_le_card (Finset.filter_subset _ _))
         (le_of_eq (Finset.card_univ))
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have hset : (Finset.univ.filter (fun x : K => x * (a*y+c1) + c2*y + c3 = 0))
           = (Finset.univ.filter (fun x : K => (a*y+c1) * x + (c2*y + c3) = 0)) := by
         apply Finset.filter_congr
@@ -125,8 +129,8 @@ theorem affinePairZeros_card_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
         = 1 + (if a * y + c1 = 0 then (Fintype.card K - 1) else 0) := by
     intro y
     by_cases h : a * y + c1 = 0
-    · rw [if_pos h, if_pos h]; omega
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]; omega
+    · rw [ite_eq_right h, ite_eq_right h]
   have hsum : (∑ y : K, (if a * y + c1 = 0 then Fintype.card K else 1))
       = Fintype.card K
         + (Finset.univ.filter (fun y : K => a * y + c1 = 0)).card

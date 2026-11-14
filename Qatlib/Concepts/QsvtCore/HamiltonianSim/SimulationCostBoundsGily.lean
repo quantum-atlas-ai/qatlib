@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsStat
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
+module
+
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsStat
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
+
+@[expose] public section
 
 /-!
 # Bounds for the simulation cost equation
@@ -30,7 +34,7 @@ namespace Qatlib.Concepts.QsvtCore.HamiltonianSim
 open Real
 
 /-- For `x` and `y` at least one, the inequality `x * log x ≤ y * log y` implies `x ≤ y`. -/
-theorem sim157_log_mul_le_of_le {x y : ℝ} (hx : 1 ≤ x) (hy : 1 ≤ y)
+theorem sim157_log_mul_le_of_le {x y : ℝ} (_hx : 1 ≤ x) (hy : 1 ≤ y)
     (h : x * Real.log x ≤ y * Real.log y) : x ≤ y := by
   by_contra hne
   have hlt : y < x := lt_of_not_ge hne

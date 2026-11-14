@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -139,7 +143,7 @@ private theorem eq_zero_of_re_and_re_I_mul {z : ℂ} (h1 : z.re = 0)
 generalized eigenvalue equation `H x = E(x) N x`. -/
 theorem stationarity_iff_generalized_eigen
     (H N : Matrix (Fin m) (Fin m) ℂ) (x : Fin m → ℂ)
-    (hx : x ≠ 0) (hNx : qform N x ≠ 0) :
+    (_hx : x ≠ 0) (hNx : qform N x ≠ 0) :
     (∀ δ : Fin m → ℂ, (firstVariation H N x δ).re = 0) ↔
       IsGenEigen H N x (qform H x / qform N x) := by
   set lam : ℂ := qform H x / qform N x with hlamdef

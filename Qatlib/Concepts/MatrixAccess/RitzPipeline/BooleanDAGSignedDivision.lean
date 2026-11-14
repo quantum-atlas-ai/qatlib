@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDivisionData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDivisionData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+
+@[expose] public section
 
 /-!
 # Sign-magnitude division by Boolean DAGs
@@ -109,7 +113,7 @@ private theorem sd_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [sd_snoc_value]
-  simp only [Fin.val_castLE,dif_pos j.isLt]
+  simp only [Fin.val_castLE,dite_eq_left j.isLt]
 
 /-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem sd_input_value {m n : ℕ} (g : BooleanDAG m n)
@@ -120,7 +124,7 @@ private theorem sd_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [sd_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- The right view of a packed unsigned operand pair recovers the second word. -/
 private theorem sd_right_input (w : ℕ) (a b : Reg w) :
@@ -184,8 +188,8 @@ private theorem sd_rem_inputs (w : ℕ) (a b : Reg w) (s : Bool) :
       booleanWordAdderInput (2*w) (fun _ => false) (booleanWordDivRemainder w a b) := by
   funext j
   by_cases hj : j.val < 2*w
-  · simp only [sdRemMap,booleanWordAdderInput,dif_pos hj,sd_clause0_zero]
-  · simp only [sdRemMap,booleanWordAdderInput,dif_neg hj,sd_clause0_r]
+  · simp only [sdRemMap,booleanWordAdderInput,dite_eq_left hj,sd_clause0_zero]
+  · simp only [sdRemMap,booleanWordAdderInput,dite_eq_right hj,sd_clause0_r]
 
 /-- The remainder nonzero-test flag detects positivity of the natural remainder of the input
 values. -/
@@ -228,7 +232,7 @@ private theorem sd_guard_value (w : ℕ) (a b : Reg w) (s : Bool) :
       (decide (0 < booleanWordLSBValue w a % booleanWordLSBValue w b) &&
         decide (0 < booleanWordLSBValue w b)) := by
   have hn : ¬2*w+1+(sdN0 w+(3*(2*w)+1)) < 2*w+1+(sdN0 w+(3*(2*w)+1)) := by omega
-  rw [sdG2,sd_snoc_value,dif_neg hn]
+  rw [sdG2,sd_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (sdG1 w) (booleanWordSignedDivInput w a b s) (sdRNZ w) &&
     booleanDAGValue (sdG1 w) (booleanWordSignedDivInput w a b s)
       (Fin.castLE (by omega) (sdDNZ w))) = _
@@ -242,7 +246,7 @@ private theorem sd_c_value (w : ℕ) (a b : Reg w) (s : Bool) :
         decide (0 < booleanWordLSBValue w b)) && s) := by
   have hn : ¬2*w+1+(sdN0 w+(3*(2*w)+1))+1 <
       2*w+1+(sdN0 w+(3*(2*w)+1)+1) := by omega
-  rw [sdC,sdG3,sd_snoc_value,dif_neg hn]
+  rw [sdC,sdG3,sd_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (sdG2 w) (booleanWordSignedDivInput w a b s)
       ⟨2*w+1+(sdN0 w+(3*(2*w)+1)),by omega⟩ &&
     booleanDAGValue (sdG2 w) (booleanWordSignedDivInput w a b s) ⟨2*w,by omega⟩) = _
@@ -264,9 +268,9 @@ private theorem sd_left_word (w : ℕ) (a b : Reg w) (s : Bool) :
       Fin.snoc (booleanWordDivQuotient w a b) false := by
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
-  · simp only [sdLeft,Fin.val_last,dif_neg (Nat.lt_irrefl w),Fin.snoc_last]
+  · simp only [sdLeft,Fin.val_last,dite_eq_right (Nat.lt_irrefl w),Fin.snoc_last]
     exact sd_z_value w a b s
-  · simp only [sdLeft,Fin.val_castSucc,dif_pos k.isLt,Fin.snoc_castSucc]
+  · simp only [sdLeft,Fin.val_castSucc,dite_eq_left k.isLt,Fin.snoc_castSucc]
     exact (sd_clause3_old w (booleanWordSignedDivInput w a b s) (sdQ w k)).trans
         (sd_clause0_q w a b s k)
 
@@ -280,7 +284,7 @@ private theorem sd_right_word (w : ℕ) (a b : Reg w) (s : Bool) :
   refine Fin.cases ?_ (fun k => ?_) j
   · simp only [sdRight,Fin.val_zero,Fin.cons_zero]
     exact sd_c_value w a b s
-  · simp only [sdRight,Fin.val_succ,Nat.succ_ne_zero,if_false,Fin.cons_succ]
+  · simp only [sdRight,Fin.val_succ,Nat.succ_ne_zero,ite_false,Fin.cons_succ]
     exact sd_z_value w a b s
 
 /-- Appending a false most significant bit preserves the unsigned word value. -/
@@ -302,7 +306,7 @@ private theorem sd_magnitude_word (w : ℕ) (a b : Reg w) (s : Bool) :
         (booleanWordSignedDivInput w a b s) (booleanDAGAppendAdderSelect (w+1) (sdLeft w) (sdRight w) j) := by
   funext j
   simp only [booleanWordSignedDivMagnitude,booleanWordSignedDivResult,booleanWordSignedDivProgram,
-    Fin.val_castSucc,dif_pos j.isLt]
+    Fin.val_castSucc,dite_eq_left j.isLt]
 
 /-- The quotient magnitude is the unsigned quotient plus one exactly for a negative numerator, a
 positive divisor, and a nonzero remainder. -/
@@ -326,7 +330,7 @@ private theorem sd_sign_value (w : ℕ) (a b : Reg w) (s : Bool) :
     booleanWordSignedDivSign w a b s = s := by
   have ho : (booleanWordSignedDivProgram w).output (Fin.last (w+2)) =
       Fin.castLE (by omega) (Fin.last (2*w)) := by
-    simp only [booleanWordSignedDivProgram,Fin.val_last,dif_neg (Nat.lt_irrefl (w+2))]
+    simp only [booleanWordSignedDivProgram,Fin.val_last,dite_eq_right (Nat.lt_irrefl (w+2))]
     apply Fin.ext
     rfl
   rw [booleanWordSignedDivSign,booleanWordSignedDivResult,ho,sd_input_value]

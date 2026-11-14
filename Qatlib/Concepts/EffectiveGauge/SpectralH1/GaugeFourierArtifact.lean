@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.NormalizedGaugeSampling
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeSpectralPlan
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientGridExecution
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.NormalizedGaugeSampling
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeSpectralPlan
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientGridExecution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

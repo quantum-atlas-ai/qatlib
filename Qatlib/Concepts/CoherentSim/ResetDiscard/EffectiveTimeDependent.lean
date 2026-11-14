@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.EffectiveTimeDependentDefs
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.EffectiveTimeDependentDefs
+
+@[expose] public section
 
 /-!
 # Effective time-grid identities and circuit counts
@@ -26,6 +30,11 @@ budget; these ingredients support the time-dependent extension of truncated Tayl
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedSectionVars false
+set_option linter.unusedTactic false
+set_option linter.unnecessarySimpa false
+set_option linter.unusedVariables false
+set_option linter.unreachableTactic false
 
 open Qatlib.Concepts.QspSimulation.Achievability
 

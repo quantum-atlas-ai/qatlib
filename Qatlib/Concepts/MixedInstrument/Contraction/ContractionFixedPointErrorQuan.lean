@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.Contraction.ContractionFixedPointErrorStat
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Concepts.MixedInstrument.Contraction.ContractionFixedPointErrorStat
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+@[expose] public section
 
 /-!
 # Fixed point error for contractive channels

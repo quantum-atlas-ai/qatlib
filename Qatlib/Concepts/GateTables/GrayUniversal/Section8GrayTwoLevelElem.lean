@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelStat
-import Qatlib.Concepts.GateTables.GrayUniversal.GrayPhaseSynthesis
+module
+
+public import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelStat
+public import Qatlib.Concepts.GateTables.GrayUniversal.GrayPhaseSynthesis
+
+@[expose] public section
 
 /-!
 # Exact Gray two-level synthesis

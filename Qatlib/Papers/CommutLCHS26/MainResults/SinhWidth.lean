@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.SinhStrip
-import Mathlib.Data.EReal.Basic
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.SinhStrip
+public import Mathlib.Data.EReal.Basic
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Analytic width of the sinh transform
@@ -304,7 +308,7 @@ theorem original_strip_estimates (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc 
           stripMass n b c d η β (T * ‖L‖) := by
   cases isEmpty_or_nonempty ι with
   | inl hι =>
-    letI := hι
+    let := hι
     refine ⟨analytic_empty n b c d T η H L β, ?_, ?_⟩
     · intro ε hε
       exact ⟨0, fun x _ y _ => by simpa only [transformed_empty, norm_zero] using! hε.le⟩
@@ -316,7 +320,7 @@ theorem original_strip_estimates (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc 
       · simpa only [transformed_empty, norm_zero, integral_zero] using!
           (mass_nonneg n hb hη hβ₀ : 0 ≤ stripMass n b c d η β (T * ‖L‖))
   | inr hι =>
-    letI := hι
+    let := hι
     obtain ⟨hgap, hbn⟩ := gaps_of_lt_width n hb hη hβ₀ (by linarith [Real.pi_pos]) c d T H L hw
     exact transformed_strip_estimates n b c d η β hb hc hη hβ₀ hβ hgap hbn H L hH hL hT
 

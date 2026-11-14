@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.HermitianMat.CFC
-import QuantumInfo.ForMathlib.HermitianMat.Order
+module
+
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+public import QuantumInfo.ForMathlib.HermitianMat.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

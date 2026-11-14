@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.HigherMoments.FiniteTripleUStatistic
-import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticObservableShadows
+module
+
+public import Qatlib.Papers.ClassShadows20.HigherMoments.FiniteTripleUStatistic
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticObservableShadows
+
+@[expose] public section
 
 /-!
 # Cubic moments from Pauli shadows
@@ -92,7 +96,7 @@ component with coefficient three halves. -/
 private theorem cubicPauliShadow_form (a : Fin 3) (b : Bool) :
     PauliShadow b a = (1/2 : ℂ) • (1 : Operator 2) +
       ((3/2 : ℂ)*(cubicSign b : ℂ)) • pauliMatrix a := by
-  cases b <;> simp only [PauliShadow,PauliProjector,cubicSign,Bool.false_eq_true,if_false,if_true]
+  cases b <;> simp only [PauliShadow,PauliProjector,cubicSign,Bool.false_eq_true,ite_false,ite_true]
   all_goals module
 
 /-- The trace of a product of three Pauli matrices is twice their orientation times the
@@ -185,7 +189,7 @@ theorem cubicShadowKernel_mean (n : ℕ) (ρ : Operator (2^n)) (hρ : IsDensityO
       Matrix.trace (tensorPauliSnapshot n c*tensorPauliSnapshot n b*tensorPauliSnapshot n a)) =
       Matrix.trace (ρ*ρ*ρ) := by
     conv_rhs => rw [← hrec]
-    simp only [Matrix.sum_mul,Matrix.mul_sum,Matrix.smul_mul,Matrix.mul_smul,
+    simp only [Matrix.sum_mul,Matrix.smul_mul,Matrix.mul_smul,
       Matrix.trace_sum,Matrix.trace_smul,smul_eq_mul,Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro a _
@@ -196,7 +200,7 @@ theorem cubicShadowKernel_mean (n : ℕ) (ρ : Operator (2^n)) (hρ : IsDensityO
     ring
   have hr := congrArg Complex.re he
   simp only [Complex.re_sum,Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,
-    mul_zero,zero_mul,sub_zero] at hr
+    mul_zero,sub_zero] at hr
   have hs : ∀ a b c, (Matrix.trace
       (tensorPauliSnapshot n c*tensorPauliSnapshot n b*tensorPauliSnapshot n a)).re =
       cubicShadowKernel n a b c := by

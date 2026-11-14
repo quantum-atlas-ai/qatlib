@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3SuccessStat
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationQuan
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3SuccessStat
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationQuan
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Success bounds for recursive collision search
@@ -62,7 +66,7 @@ theorem verifiedOutput_hasCollision {N M k w : ℕ} (x : Fin N → ZMod M)
 theorem frameCallProbability_bounds {N M k : ℕ} [NeZero M]
     (A : RandomQueryAlgorithm N M k) (f : Algorithm3Frame N) (x : Fin N → ZMod M) :
     0 ≤ frameCallProbability A f x ∧ frameCallProbability A f x ≤ 1 := by
-  letI : Nonempty (OutputSpace N M k A.workBits) := ⟨A.start ⟨0, A.positiveSeeds⟩⟩
+  let : Nonempty (OutputSpace N M k A.workBits) := ⟨A.start ⟨0, A.positiveSeeds⟩⟩
   have hseeds : (0 : ℝ) < A.seeds := by exact_mod_cast A.positiveSeeds
   have hb (s : Fin A.seeds) :
       MeasureProb (Run (alphabetOracle x) (A.program s) (Qatlib.Foundations.PureStateMath.Ket (A.start s)))
@@ -79,7 +83,7 @@ theorem frameCallProbability_bounds {N M k : ℕ} [NeZero M]
 theorem frameCallProbability_no_collision {N M k : ℕ} [NeZero M]
     (A : RandomQueryAlgorithm N M k) (f : Algorithm3Frame N) (x : Fin N → ZMod M)
     (hx : ¬HasCollision k x) : frameCallProbability A f x = 0 := by
-  letI : Nonempty (OutputSpace N M k A.workBits) := ⟨A.start ⟨0, A.positiveSeeds⟩⟩
+  let : Nonempty (OutputSpace N M k A.workBits) := ⟨A.start ⟨0, A.positiveSeeds⟩⟩
   have hevent : (Finset.univ : Finset (OutputSpace N M k A.workBits)).filter
       (verifiedInFrame f x) = ∅ := by
     apply Finset.filter_eq_empty_iff.mpr
@@ -274,7 +278,7 @@ theorem algorithm3Tree_frame_unique {N M k r : ℕ} [NeZero M]
   | readAll f A =>
     obtain ⟨_,_,_,_,hcall⟩ := hvalid
     have hc : frameHasCollision k x f := ⟨hx.choose,hx.choose_spec.1⟩
-    simp only [treeProbability, hcall x, if_pos hc]
+    simp only [treeProbability, hcall x, ite_eq_left hc]
     exact le_trans hup hp1
   | grover f A =>
     obtain ⟨_,_,_,_,_,hcall⟩ := hvalid
@@ -303,7 +307,7 @@ theorem algorithm3Tree_isolation_success {N M k r : ℕ} [NeZero M]
   | readAll f A =>
     obtain ⟨_,_,_,_,hcall⟩ := hvalid
     change frameHasCollision k x f at hx
-    simp only [treeProbability,algorithm3Depth,hcall x,if_pos hx,Nat.cast_zero,zero_mul,
+    simp only [treeProbability,algorithm3Depth,hcall x,ite_eq_left hx,Nat.cast_zero,zero_mul,
       sub_zero,mul_one]
     have hu : u ≤ 1 := by linarith [div_nonneg (by norm_num : (0 : ℝ) ≤ 1) hnpos.le]
     change u/2 ≤ 1
@@ -577,7 +581,7 @@ theorem algorithm3ExtendedInput_val {N M q : ℕ} [NeZero M] (f : Algorithm3Fram
       match algorithm3ExtendedOrigin f h j with
       | some i => (x i).val
       | none => M+j.val := by
-  letI : NeZero (M+q+1) := ⟨by omega⟩
+  let : NeZero (M+q+1) := ⟨by omega⟩
   cases hj : algorithm3ExtendedOrigin f h j with
   | none =>
     simp only [algorithm3ExtendedInput, hj, ZMod.val_natCast]
@@ -662,7 +666,7 @@ theorem algorithm3Position_spec {N q : ℕ} [NeZero q] (f : Algorithm3Frame N)
     (hv : v ∈ algorithm3OriginSet f h U) :
     algorithm3Position f h U v ∈ U ∧
       algorithm3ExtendedOrigin f h (algorithm3Position f h U v) = some v := by
-  simp only [algorithm3Position,dif_pos hv]
+  simp only [algorithm3Position,dite_eq_left hv]
   exact Classical.choose_spec ((Finset.mem_filter.mp hv).2)
 
 /-- At a position with real origin `v`, the address map equals `v`. -/
@@ -785,7 +789,7 @@ theorem algorithm3Origin_collision_exists_iff {N M q : ℕ} [NeZero q] [NeZero M
     have hnon : S.Nonempty := Finset.card_pos.mp (by have hs := hS.2.1; omega)
     obtain ⟨j,hj⟩ := hnon
     obtain ⟨v,_⟩ := algorithm3ExtendedInput_collision_real f h x k hk S hS.2 j hj
-    letI : NeZero N := ⟨by have ht := v.isLt; omega⟩
+    let : NeZero N := ⟨by have ht := v.isLt; omega⟩
     exact ⟨_,algorithm3DropCollision f h hf U x k hk S hS⟩
 
 /-- For a well-formed frame and `k ≥ 2`, unique-collision existence is equivalent for
@@ -799,7 +803,7 @@ theorem algorithm3Origin_collision_unique_iff {N M q : ℕ} [NeZero q] [NeZero M
   · rintro ⟨S,hS,hunique⟩
     have hnon : S.Nonempty := Finset.card_pos.mp (by have hs := hS.2.1; omega)
     obtain ⟨v,_⟩ := hnon
-    letI : NeZero N := ⟨by have ht := v.isLt; omega⟩
+    let : NeZero N := ⟨by have ht := v.isLt; omega⟩
     refine ⟨S.image (algorithm3Position f h U),algorithm3LiftCollision f h U x k S hS,?_⟩
     intro B hB
     have heq :=
@@ -812,7 +816,7 @@ theorem algorithm3Origin_collision_unique_iff {N M q : ℕ} [NeZero q] [NeZero M
     have hnon : B.Nonempty := Finset.card_pos.mp (by have hs := hB.2.1; omega)
     obtain ⟨j,hj⟩ := hnon
     obtain ⟨v,_⟩ := algorithm3ExtendedInput_collision_real f h x k hk B hB.2 j hj
-    letI : NeZero N := ⟨by have ht := v.isLt; omega⟩
+    let : NeZero N := ⟨by have ht := v.isLt; omega⟩
     refine ⟨B.image (algorithm3Address f h),algorithm3DropCollision f h hf U x k hk B hB,?_⟩
     intro S hS
     have heq :=
@@ -873,7 +877,7 @@ theorem frame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Fra
     (x : Fin N → ZMod M) :
     (∃ S,S ⊆ frameSet f ∧ IsCollision k x S) ↔
       ∃ S,CollisionIn k (algorithm3ExtendedInput f P.enough x) (algorithm3ExtendedDomain f) S := by
-  letI : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
+  let : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
   have hh := algorithm3Origin_collision_exists_iff f P.enough hf (algorithm3ExtendedDomain f) x k hk
   rw [algorithm3OriginSet_initial] at hh
   exact hh
@@ -885,7 +889,7 @@ theorem frame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame 
     (x : Fin N → ZMod M) :
     (∃! S,S ⊆ frameSet f ∧ IsCollision k x S) ↔
       ∃! S,CollisionIn k (algorithm3ExtendedInput f P.enough x) (algorithm3ExtendedDomain f) S := by
-  letI : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
+  let : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
   have hh := algorithm3Origin_collision_unique_iff f P.enough hf (algorithm3ExtendedDomain f) x k hk
   rw [algorithm3OriginSet_initial] at hh
   exact hh
@@ -898,7 +902,7 @@ theorem nextFrame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm
     (∃ S,S ⊆ frameSet (nextFrame P s) ∧ IsCollision k x S) ↔
       ∃ S,CollisionIn k (algorithm3ExtendedInput f P.enough x)
         (retained k (algorithm3ExtendedDomain f) P.permutation s) S := by
-  letI : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
+  let : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
   have hh := algorithm3Origin_collision_exists_iff f P.enough hf
     (retained k (algorithm3ExtendedDomain f) P.permutation s) x k hk
   rw [algorithm3OriginSet_nextFrame] at hh
@@ -912,7 +916,7 @@ theorem nextFrame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Fr
     (∃! S,S ⊆ frameSet (nextFrame P s) ∧ IsCollision k x S) ↔
       ∃! S,CollisionIn k (algorithm3ExtendedInput f P.enough x)
         (retained k (algorithm3ExtendedDomain f) P.permutation s) S := by
-  letI : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
+  let : NeZero P.q := ⟨by have hd := P.decreases; have he := P.enough; omega⟩
   have hh := algorithm3Origin_collision_unique_iff f P.enough hf
     (retained k (algorithm3ExtendedDomain f) P.permutation s) x k hk
   rw [algorithm3OriginSet_nextFrame] at hh

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Measurement marginals and finite sampling estimates
@@ -94,7 +98,7 @@ theorem bell_correlated :
     simp [hs]
   have hmarg : marginalLeft bell false = (1 / 2 : ℝ) := by
     unfold marginalLeft jointBorn BornProb bell
-    simp [Fintype.sum_bool, hs]
+    simp [ hs]
   refine ⟨hjoint, hmarg, ?_⟩
   rw [hjoint, hmarg]
   norm_num
@@ -113,7 +117,7 @@ theorem minusState_normalized : Normalized minusState := by
       abs_of_nonneg (Real.sqrt_nonneg 2), inv_pow, Real.sq_sqrt (by norm_num)]
     norm_num
   unfold Normalized
-  simp [minusState, hs]
+  simp [minusState]
   norm_num
 
 /-- The states `plusState` and `minusState` have identical Born weights at every Boolean basis
@@ -124,7 +128,7 @@ theorem born_indistinguishable (b : Bool) :
     rw [norm_inv, Complex.norm_real, Real.norm_eq_abs,
       abs_of_nonneg (Real.sqrt_nonneg 2), inv_pow, Real.sq_sqrt (by norm_num)]
     norm_num
-  cases b <;> simp [BornProb, plusState, minusState, hs]
+  cases b <;> simp [BornProb, plusState, minusState]
 
 /-- The real weight p for true and 1 − p for false. -/
 def bitWeight (p : ℝ) (b : Bool) : ℝ := if b then p else 1 - p

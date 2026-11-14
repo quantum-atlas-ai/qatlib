@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexCube
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexGrid
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexLipschitz
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierIntegrationByParts
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexCube
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexGrid
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ComplexLipschitz
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierIntegrationByParts
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+module
+
+public import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+
+@[expose] public section
 
 /-!
 # Comparison tools for Gaussian permanent models
@@ -116,12 +120,12 @@ theorem deleteColumn_injective (n : ℕ) (j : Fin n) :
 /-- The column-deletion map leaves an index strictly below the deleted column unchanged. -/
 theorem deleteColumn_lt {n : ℕ} {j : Fin n} {i : Fin (n - 1)} (h : i.val < j.val) :
     (deleteColumn j i).val = i.val := by
-  rw [deleteColumn_val, if_pos h]
+  rw [deleteColumn_val, ite_eq_left h]
 
 /-- The column-deletion map increases an index at or above the deleted column by one. -/
 theorem deleteColumn_ge {n : ℕ} {j : Fin n} {i : Fin (n - 1)} (h : j.val ≤ i.val) :
     (deleteColumn j i).val = i.val + 1 := by
-  rw [deleteColumn_val, if_neg (not_lt.mpr h)]
+  rw [deleteColumn_val, ite_eq_right (not_lt.mpr h)]
 
 /-- The index map that skips a fixed column is strictly increasing. -/
 theorem deleteColumn_strictMono (n : ℕ) (j : Fin n) :
@@ -163,7 +167,7 @@ theorem vecInner_zero_right {S : Type*} [NormedAddCommGroup S] [InnerProductSpac
 /-- For `m ≤ 1`, the gamma product measure is the Dirac measure at one. -/
 theorem gammaProductLaw_of_le_one {m β : ℕ} (hm : m ≤ 1) :
     gammaProductLaw m β = Measure.dirac (1 : ℝ) := by
-  rw [gammaProductLaw, if_pos hm]
+  rw [gammaProductLaw, ite_eq_left hm]
 
 /-- A nonnegative real number cast to `ℂ` satisfies `IsRealNonneg`. -/
 theorem isRealNonneg_ofReal {r : ℝ} (hr : 0 ≤ r) :
@@ -294,11 +298,12 @@ theorem matrixLaplaceLEVec_trans {S : Type*} [NormedAddCommGroup S] [InnerProduc
 from the gamma product measure to the squared-norm distribution of the permanent cofactor
 column. -/
 theorem gaussianCofactorInduction_laplaceLE
-    {S : Type*} [NormedDivisionRing S] [NormedAlgebra ℝ S] [InnerProductSpace ℝ S]
+    {S : Type*} [NormedDivisionRing S] {realAlgebra : NormedAlgebra ℝ S} [InnerProductSpace ℝ S]
     [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S) :
+    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S (realAlgebra := realAlgebra)) :
     Qatlib.Concepts.BosonFock.PermAnalysis.laplaceLE (gammaProductLaw n (dimR S))
-      (Measure.map (fun x : Fin n → S => vecNormSq S x) (cofactorColumnLaw S n)) :=
+      (Measure.map (fun x : Fin n → S => vecNormSq S x)
+        (cofactorColumnLaw S n (realAlgebra := realAlgebra))) :=
   h.2.1 n hn
 
 /-- The type `WithLp 2 (Fin n → S)` of finite vectors in the `L²` representation. -/
@@ -440,24 +445,26 @@ theorem matrixLaplaceLEVec_iff_matrixLaplaceLE
 /-- For positive dimension, `GaussianCofactorInduction` supplies the vector Laplace comparison
 from the gamma-scaled Gaussian column measure to the permanent cofactor column measure. -/
 theorem gaussianCofactorInduction_matrixLaplaceLEVec
-    {S : Type*} [NormedDivisionRing S] [NormedAlgebra ℝ S] [InnerProductSpace ℝ S]
+    {S : Type*} [NormedDivisionRing S] {realAlgebra : NormedAlgebra ℝ S} [InnerProductSpace ℝ S]
     [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S) :
-    matrixLaplaceLEVec S (gammaScaledGaussianColumnLaw S n) (cofactorColumnLaw S n) :=
+    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S (realAlgebra := realAlgebra)) :
+    matrixLaplaceLEVec S (gammaScaledGaussianColumnLaw S n (realAlgebra := realAlgebra))
+      (cofactorColumnLaw S n (realAlgebra := realAlgebra)) :=
   h.1 n hn
 
 /-- For `n ≥ 1`, `GaussianCofactorInduction` supplies real nonnegative characteristic functions
 in dimension `n + 1` and bounds the cofactor characteristic function above by the
 gamma-scaled Gaussian characteristic function. -/
 theorem gaussianCofactorInduction_fourier
-    {S : Type*} [NormedDivisionRing S] [NormedAlgebra ℝ S] [InnerProductSpace ℝ S]
+    {S : Type*} [NormedDivisionRing S] {realAlgebra : NormedAlgebra ℝ S} [InnerProductSpace ℝ S]
     [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
-    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S) :
+    {n : ℕ} (hn : 1 ≤ n) (h : GaussianCofactorInduction S (realAlgebra := realAlgebra)) :
     ∀ z : Fin (n + 1) → S,
-      IsRealNonneg (vecCF S (cofactorColumnLaw S (n + 1)) z) ∧
-      IsRealNonneg (vecCF S (gammaScaledGaussianColumnLaw S (n + 1)) z) ∧
-      (vecCF S (cofactorColumnLaw S (n + 1)) z).re ≤
-        (vecCF S (gammaScaledGaussianColumnLaw S (n + 1)) z).re :=
+      IsRealNonneg (vecCF S (cofactorColumnLaw S (n + 1) (realAlgebra := realAlgebra)) z) ∧
+      IsRealNonneg (vecCF S (gammaScaledGaussianColumnLaw S (n + 1)
+        (realAlgebra := realAlgebra)) z) ∧
+      (vecCF S (cofactorColumnLaw S (n + 1) (realAlgebra := realAlgebra)) z).re ≤
+        (vecCF S (gammaScaledGaussianColumnLaw S (n + 1) (realAlgebra := realAlgebra)) z).re :=
   h.2.2 n hn
 
 end

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,10 +74,10 @@ not proved here are the three cited/derived bounds themselves. -/
 theorem lemma4_globalError_isO
     (m : SourceMultistepMethod) (n : ℕ)
     (A V : Matrix (Fin n) (Fin n) ℂ) (d : Fin n → ℂ)
-    (hdiag : A = V * Matrix.diagonal d * V⁻¹)
-    (hangle : ∀ i, (d i).re ≤ 0)
+    (_hdiag : A = V * Matrix.diagonal d * V⁻¹)
+    (_hangle : ∀ i, (d i).re ≤ 0)
     (κV h M xinNorm bNorm err startErr derivInt ME MT : ℝ) (tm : ℝ) (steps : ℕ)
-    (p : ℕ) (hp : 0 < p)
+    (p : ℕ) (_hp : 0 < p)
     (hκV : 0 ≤ κV) (hh : 0 ≤ h) (hM : 0 < M) (hxin : 0 ≤ xinNorm) (hb : 0 ≤ bNorm)
     (hMT : 0 < MT) (hME : 0 ≤ ME)
     (hThm3 : err ≤ MT * κV * (startErr + h ^ p * derivInt))

@@ -26,16 +26,20 @@ placeholders and documented; the quantitative cores of their proofs are proved:
 * `theoremC1_conditioning_core` — the arithmetic core of the proof of Theorem C.1:
   `1/√2 ≤ ... ` from `σmax(H) ≤ √2`, `1 ≤ σmax(H)`, `σmin(A) ≤ σmin(H)`.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,7 +75,7 @@ smallest diagonal weights of `D`, `c2` is the norm of the "large" column `AD e_j
 `AD e_jsmall = dmin·A e_j` by a polynomial `P`.  Hence `κ(AD) ≥ dmax/(dmin·P)`. -/
 theorem proposition57_lower_bound {smax smin dmax dmin c1 c2 P : ℝ}
     (hsmin : 0 < smin) (hdmax : 0 < dmax) (hdmin : 0 < dmin) (hc1 : 0 < c1)
-    (hP : 0 < P) (hc1P : c1 ≤ P) (hc2 : 1 ≤ c2)
+    (_hP : 0 < P) (hc1P : c1 ≤ P) (hc2 : 1 ≤ c2)
     (hsmax : dmax * c2 ≤ smax) (hsminle : smin ≤ dmin * c1) :
     dmax / (dmin * P) ≤ smax / smin := by
   have hc2' : dmax ≤ dmax * c2 := by nlinarith
@@ -112,11 +116,11 @@ coefficient, page 30).  Candidate reusable dependencies: `LinearMap.singularValu
 library; `Qatlib.Concepts.QlsReadoutSpec.PseudoInverse` covers the least-squares side). -/
 def proposition57_statement
     {N : ℕ} (A : Matrix (Fin N) (Fin N) ℝ) (d : Fin N → ℝ) (h : ℕ)
-    (hh : 0 < h) (hdpos : ∀ i, 0 < d i)
-    (hdmax : ∃ i, d i = Real.sqrt ((Nat.choose h (h / 2) : ℝ)))
-    (hdmin : ∃ i, d i = 1)
-    (hcol : ∃ P : ℝ, 0 < P ∧ ∀ i, ‖A.toEuclideanLin (EuclideanSpace.single i (1 : ℝ))‖ ≤ P)
-    (hcolpos : ∃ i, 1 ≤ ‖A.toEuclideanLin (EuclideanSpace.single i (1 : ℝ))‖) : Prop :=
+    (_hh : 0 < h) (_hdpos : ∀ i, 0 < d i)
+    (_hdmax : ∃ i, d i = Real.sqrt ((Nat.choose h (h / 2) : ℝ)))
+    (_hdmin : ∃ i, d i = 1)
+    (_hcol : ∃ P : ℝ, 0 < P ∧ ∀ i, ‖A.toEuclideanLin (EuclideanSpace.single i (1 : ℝ))‖ ≤ P)
+    (_hcolpos : ∃ i, 1 ≤ ‖A.toEuclideanLin (EuclideanSpace.single i (1 : ℝ))‖) : Prop :=
   ∃ c : ℝ, 0 < c ∧ c * (2 : ℝ) ^ ((h : ℝ) / 2) ≤
     conditionNumber ((A * Matrix.diagonal d).toEuclideanLin)
 
@@ -183,10 +187,10 @@ theorem provides the eigenbasis but not interlacing. -/
 def theoremC1_statement
     {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℝ) (b : EuclideanSpace ℝ (Fin m))
     (y : EuclideanSpace ℝ (Fin n))
-    (hAnorm : ∀ x, ‖A.toEuclideanLin x‖ ≤ ‖x‖)
-    (hAnorm1 : ∃ v, ‖v‖ = 1 ∧ ‖A.toEuclideanLin v‖ = 1)
-    (hb : ‖b‖ ≤ 1) (hy : ‖y‖ = 1)
-    (hsol : A *ᵥ (WithLp.ofLp y) = WithLp.ofLp b) : Prop :=
+    (_hAnorm : ∀ x, ‖A.toEuclideanLin x‖ ≤ ‖x‖)
+    (_hAnorm1 : ∃ v, ‖v‖ = 1 ∧ ‖A.toEuclideanLin v‖ = 1)
+    (_hb : ‖b‖ ≤ 1) (_hy : ‖y‖ = 1)
+    (_hsol : A *ᵥ (WithLp.ofLp y) = WithLp.ofLp b) : Prop :=
     (1 / Real.sqrt 2) * conditionNumber A.toEuclideanLin
         ≤ conditionNumber (augmentedMatrix A (WithLp.ofLp b)).toEuclideanLin
       ∧ conditionNumber (augmentedMatrix A (WithLp.ofLp b)).toEuclideanLin

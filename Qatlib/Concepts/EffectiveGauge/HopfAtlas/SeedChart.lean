@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalLine
+
+@[expose] public section
 
 /-! # A fixed initial chart selected by a single coarse rational source query -/
 

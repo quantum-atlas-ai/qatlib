@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Lean.Elab.Tactic.Omega
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Probability.Distributions.Uniform
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Probability.Distributions.Uniform
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
+
+@[expose] public section
 
 /-!
 # Ideal and quantum dihedral sieve processes

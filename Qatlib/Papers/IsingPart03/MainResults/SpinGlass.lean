@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spin-glass partition sums and signed weight enumerators
@@ -46,7 +50,7 @@ def sgn (x : ZMod 2) : ℂ := if x = 0 then 1 else -1
 @[simp] lemma sgn_zero : sgn (0 : ZMod 2) = 1 := by simp [sgn]
 
 /-- The binary sign at one equals `-1`. -/
-@[simp] lemma sgn_one : sgn (1 : ZMod 2) = -1 := by rw [sgn]; exact if_neg (by decide)
+@[simp] lemma sgn_one : sgn (1 : ZMod 2) = -1 := by rw [sgn]; exact ite_eq_right (by decide)
 
 /-- Every element of `ZMod 2` equals zero or one. -/
 lemma eq_zero_or_one (x : ZMod 2) : x = 0 ∨ x = 1 := by
@@ -143,16 +147,16 @@ lemma sum_incidence_mul (ends : E → V × V) (hLoop : ∀ e, (ends e).1 ≠ (en
       · exact absurd (h1.symm.trans h2) (hLoop e)
       · have h1' : (ends e).1 = v := h1.symm
         have hi : incidence ends v e = 1 := by simp [incidence, h1']
-        rw [hi, if_pos h1, if_neg h2]; ring
+        rw [hi, ite_eq_left h1, ite_eq_right h2]; ring
     · by_cases h2 : v = (ends e).2
       · have h2' : (ends e).2 = v := h2.symm
         have hi : incidence ends v e = 1 := by simp [incidence, h2']
-        rw [hi, if_neg h1, if_pos h2]; ring
+        rw [hi, ite_eq_right h1, ite_eq_left h2]; ring
       · have h1' : ¬ (ends e).1 = v := fun h => h1 h.symm
         have h2' : ¬ (ends e).2 = v := fun h => h2 h.symm
         have hi : incidence ends v e = 0 := by
           simp [incidence, h1', h2']
-        rw [hi, if_neg h1, if_neg h2]; ring
+        rw [hi, ite_eq_right h1, ite_eq_right h2]; ring
   rw [Finset.sum_congr rfl (fun v _ => happ v), Finset.sum_add_distrib,
     Finset.sum_ite_eq', Finset.sum_ite_eq']
   simp
@@ -292,7 +296,7 @@ theorem source_eq20_spin_summation (ends : E → V × V) (b : E → ZMod 2) :
           simp
     _ = if parity ends b = 0 then (2 : ℂ) ^ Fintype.card V else 0 := by
           by_cases hp : parity ends b = 0
-          · rw [if_pos hp]
+          · rw [ite_eq_left hp]
             have h2 : ∀ v, (1 + sgn (parity ends b v)) = (2 : ℂ) := by
               intro v
               have hv : parity ends b v = 0 := by rw [hp]; simp
@@ -301,7 +305,7 @@ theorem source_eq20_spin_summation (ends : E → V × V) (b : E → ZMod 2) :
               norm_num
             rw [Finset.prod_congr rfl (fun v _ => h2 v), Finset.prod_const]
             norm_num
-          · rw [if_neg hp]
+          · rw [ite_eq_right hp]
             obtain ⟨v, hv⟩ := Function.ne_iff.mp hp
             have hv1 : parity ends b v = 1 := by
               rcases eq_zero_or_one (parity ends b v) with h | h
@@ -380,9 +384,9 @@ lemma qwgt_incidence_dg (ends : E → V × V) (w : E → ZMod 2) (x : ℂ) :
     rw [bDotW]
     exact Finset.sum_congr rfl (fun e _ => hb e)
   by_cases hp : (incidence ends).mulVec b = 0
-  · rw [if_pos hp, if_pos hp, hsum]
+  · rw [ite_eq_left hp, ite_eq_left hp, hsum]
     simp
-  · rw [if_neg hp, if_neg hp]
+  · rw [ite_eq_right hp, ite_eq_right hp]
 
 /-- Under the normalization `Θ * μ ^ card E = 1`, the partition function scaled by `μ ^ card E /
 2 ^ card V` equals the signed weight enumerator, as in [Lidar, Theorem 2][Lidar2004]. -/

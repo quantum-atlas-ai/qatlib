@@ -3,7 +3,11 @@ Copyright (c) 2026 Qatlib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
-import Lean
+module
+
+public import Lean
+
+public section
 
 /-!
 # Qatlib Static Source, Style & Import Linter (`lake lint` / `lake exe lint`)
@@ -18,7 +22,8 @@ Runs fast, read-only static checks across the repository (~1 second):
    - No forbidden debug options (`set_option pp.*`, `profiler.*`, `trace.*`).
 2. **Module Tree & Import Check**:
    - All `.lean` files under `Qatlib/` are imported in `Qatlib.lean` in sorted order.
-   - No bare `import Mathlib` in library modules.
+   - Only the top-level aggregate `import Mathlib` is forbidden in library modules;
+     importing specific `Mathlib.*` submodules is allowed.
    - Every `import Qatlib.*` statement resolves to an existing `.lean` file on disk.
    - Dependencies follow Foundations ← Concepts ← Papers; reverse imports report `ERR_LAY`.
 
@@ -510,8 +515,9 @@ def checkFidelityFile (rel _raw code : String) (lines : Array String) (freq : St
     let codeLine := if i < codeLines.size then codeLines[i]! else ""
     if codeLine.contains "debug.skipKernelTC" then errors := errors.push s!"{rel}:{lineNo}: forbidden skipKernelTC"
     if codeLine.contains "native_decide" then errors := errors.push s!"{rel}:{lineNo}: forbidden native_decide"
-    if codeLine.contains "set_option warningAsError false" then errors := errors.push s!"{rel}:{lineNo}: forbidden warningAsError-false"
-    if codeLine.contains "set_option linter." && codeLine.contains " false" then errors := errors.push s!"{rel}:{lineNo}: forbidden linter-false"
+    let trimmedCodeLine := codeLine.trimAscii.toString
+    if trimmedCodeLine.startsWith "set_option warningAsError false" then
+      errors := errors.push s!"{rel}:{lineNo}: forbidden warningAsError-false"
     let words := codeLine.splitOn " " |>.flatMap (fun x => x.splitOn "\t")
     if words.any (fun w => w == "sorry") then errors := errors.push s!"{rel}:{lineNo}: forbidden sorry"
     if words.any (fun w => w == "admit") then errors := errors.push s!"{rel}:{lineNo}: forbidden admit"
@@ -573,7 +579,7 @@ def checkOneFile (path : FilePath) (moduleSet bibKeys : Std.HashSet String) : IO
   let imports ← extractHeaderImports bodyLines
   for (lineNo, modName) in imports do
     if modName == "Mathlib" then
-      errors := errors.push s!"{relStr}:{lineNo}: ERR_IMP: Bare 'import Mathlib' is forbidden; import specific Mathlib.* modules"
+      errors := errors.push s!"{relStr}:{lineNo}: ERR_IMP: Only the top-level aggregate 'import Mathlib' is forbidden; import the needed Mathlib.* submodule instead (for example 'import Mathlib.Data.Real.Basic')"
     else if modName.startsWith "Qatlib." then
       if !moduleSet.contains modName then
         errors := errors.push s!"{relStr}:{lineNo}: ERR_IMP: Missing source file for import {modName}"

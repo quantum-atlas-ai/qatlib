@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatticeSVP13.MainResults.ExponentCore.PaperConstants
+module
+
+public import Qatlib.Papers.LatticeSVP13.MainResults.ExponentCore.PaperConstants
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ exponent `s̃`.
 `c_g` well defined).  `hTime` fixes the total time to the sequential sum of the three
 phase costs. -/
 theorem lemma6_quantum_saturation
-    (ξ R : ℝ) (hξ : 1 / 2 < ξ) (hR : 2 * ξ < R)
+    (ξ R : ℝ) (_hξ : 1 / 2 < ξ) (_hR : 2 * ξ < R)
     (Tgen Sgen Ssearch time space : ℕ → ℝ)
     (hTgen : HasLog2Exponent (fun n => Real.logb 2 (Tgen n)) (cG ξ + 3 * cT ξ R / 2))
     (hSgen : HasLog2Exponent (fun n => Real.logb 2 (Sgen n))

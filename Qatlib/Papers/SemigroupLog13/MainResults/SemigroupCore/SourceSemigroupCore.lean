@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.WithOne.Defs
-import Mathlib.Data.Fintype.Pigeonhole
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Option
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Nat.Find
-import Mathlib.Data.Nat.Log
+module
+
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.WithOne.Defs
+public import Mathlib.Data.Fintype.Pigeonhole
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Option
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Nat.Find
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -345,7 +349,7 @@ theorem lemma3_semigroup {S : Type*} [CommSemigroup S] [Fintype S] (g : Fin k �
     (hmin : ∀ b : Fin k → ℕ, tupleProd (fun i => (g i : WithOne S)) b = (x : WithOne S) →
       ¬ LexLt b a) :
     (∏ i, (a i + 1)) ≤ Fintype.card S + 1 := by
-  haveI : Fintype (WithOne S) := inferInstanceAs (Fintype (Option S))
+  have : Fintype (WithOne S) := inferInstanceAs (Fintype (Option S))
   have hcore := lemma3_core (fun i => (g i : WithOne S)) (x : WithOne S) a hfirst hmin
   have hcard : Fintype.card (WithOne S) = Fintype.card S + 1 := by
     have h1 : Fintype.card (WithOne S) = Fintype.card (Option S) :=

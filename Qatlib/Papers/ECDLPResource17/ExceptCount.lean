@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteCounts.ExceptionalBits.NativeTrace
-import Qatlib.Concepts.CurveGroups.AffineAdd.FiniteCurve
+module
+
+public import Qatlib.Foundations.FiniteCounts.ExceptionalBits.NativeTrace
+public import Qatlib.Concepts.CurveGroups.AffineAdd.FiniteCurve
+
+@[expose] public section
 
 /-!
 # Exceptional scalar counts on elliptic curves

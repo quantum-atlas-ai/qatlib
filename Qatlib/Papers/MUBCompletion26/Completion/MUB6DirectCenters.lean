@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Rat.Defs
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Data.Rat.Defs
+
+@[expose] public section
 
 /-!
 # Rational centers for dimension-six candidate data

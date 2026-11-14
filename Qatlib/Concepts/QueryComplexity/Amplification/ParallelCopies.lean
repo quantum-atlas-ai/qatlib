@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Circuits on individual tensor factors
@@ -306,6 +310,8 @@ private theorem isUnitaryCircuit_flatMap_factorCircuit {C : Circuit I}
     rw [isUnitaryCircuit_append]
     exact ⟨isUnitaryCircuit_factorCircuit j₀ hC, ih⟩
 
+omit [Fintype I] in
+
 /-- The gate count of the concatenated factor lifts equals the list length times the original
 gate count. -/
 private theorem gateCount_flatMap_factorCircuit (C : Circuit I) :
@@ -316,6 +322,8 @@ private theorem gateCount_flatMap_factorCircuit (C : Circuit I) :
   | cons j₀ L ih =>
     simp only [List.flatMap_cons, gateCount_append, ih, gateCount_factorCircuit,
       List.length_cons, Nat.succ_mul, Nat.add_comm]
+
+omit [Fintype I] in
 
 /-- The query count of the concatenated factor lifts equals the list length times the original
 query count. -/
@@ -371,11 +379,13 @@ theorem isUnitaryCircuit_seqCopiesCircuit (k : ℕ) {C : Circuit I} (hC : IsUnit
   simp only [SeqCopiesCircuit]
   exact isUnitaryCircuit_flatMap_factorCircuit hC (List.finRange k)
 
+omit [Fintype I] in
 /-- The gate count of `k` sequential copies is `k` times the original gate count. -/
 theorem gateCount_seqCopiesCircuit (k : ℕ) (C : Circuit I) :
     GateCount (SeqCopiesCircuit k C) = k * GateCount C := by
   simp only [SeqCopiesCircuit, gateCount_flatMap_factorCircuit, List.length_finRange]
 
+omit [Fintype I] in
 /-- The query count of `k` sequential copies is `k` times the original query count. -/
 theorem queryCount_seqCopiesCircuit (k : ℕ) (C : Circuit I) :
     QueryCount (SeqCopiesCircuit k C) = k * QueryCount C := by

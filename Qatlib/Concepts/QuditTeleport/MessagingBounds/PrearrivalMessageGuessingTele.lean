@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingStat
-import Mathlib.Data.Finset.Card
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingStat
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # A prearrival Bell-message guessing bound

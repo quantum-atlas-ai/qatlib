@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
-import QuantumInfo.Measurements.POVM
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+public import QuantumInfo.Measurements.POVM
+
+@[expose] public section
 
 /-!
 # Tensor Pauli twirling
@@ -68,12 +72,12 @@ theorem tensor_pauli_completeness (n : ℕ) (r t u v : Reg n) :
       simp
     · have he : ∃ i,u i≠v i := not_forall.mp (fun h => huv (funext h))
       obtain ⟨i,hi⟩ := he
-      rw [if_pos rfl,if_neg huv,mul_zero]
+      rw [ite_eq_left rfl,ite_eq_right huv,mul_zero]
       apply Finset.prod_eq_zero (Finset.mem_univ i)
       simp [hi]
   · have he : ∃ i,r i≠t i := not_forall.mp (fun h => hrt (funext h))
     obtain ⟨i,hi⟩ := he
-    rw [if_neg hrt,mul_zero,zero_mul]
+    rw [ite_eq_right hrt,mul_zero,zero_mul]
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [hi]
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+module
+
+public import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+
+@[expose] public section
 
 /-!
 # Concrete consumers of verified Simon retry bounds
@@ -55,6 +59,7 @@ theorem simon_verified_zero_nonzero_actual_consumers :
   have hz := simon_verified_unbounded_expected_queries_and_cutoff 2 (BooleanVec 2)
     (fun x => x) (ZeroStr 2) booleanSimonPromise_id_zero
   refine ⟨hp.1, hp.2.1, hz.1, ?_⟩
-  convert hz.2.2.2.2 4 using 1 <;> norm_num [← ENNReal.inv_pow]
+  convert hz.2.2.2.2 4 using 1
+  norm_num [← ENNReal.inv_pow]
 
 end Qatlib.Papers.QPowerSimon97.Recovery

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.Lemma4Intersection
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.Lemma4Intersection
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Vertex sampling without replacement

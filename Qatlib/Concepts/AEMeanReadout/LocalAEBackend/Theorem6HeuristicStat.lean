@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicAuxiliary
+module
+
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicAuxiliary
+
+@[expose] public section
 
 /-!
 # Heuristic-search cost specification

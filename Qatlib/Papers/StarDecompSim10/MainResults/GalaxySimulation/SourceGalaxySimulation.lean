@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -196,7 +200,7 @@ theorem Kpure_support_snd (p : State N d) :
   | some r =>
       simp only [Kpure] at hq
       by_cases hc : x = r.center
-      · rw [if_pos hc] at hq
+      · rw [ite_eq_left hc] at hq
         rw [Finsupp.mem_support_iff, Finsupp.finsetSum_apply] at hq
         by_contra hne
         apply hq
@@ -208,7 +212,7 @@ theorem Kpure_support_snd (p : State N d) :
             apply Finsupp.single_eq_of_ne
             intro heq
             exact hne (by rw [heq])
-      · rw [if_neg hc] at hq
+      · rw [ite_eq_right hc] at hq
         rw [Finsupp.mem_support_iff] at hq
         by_contra hne
         apply hq
@@ -264,7 +268,7 @@ theorem galaxy_simulation_on_basis (R : Fin N → StarDesc N d) (hR : StarClosed
   rw [hK]
   unfold Hrow
   by_cases hx : x = (R x).center
-  · rw [if_pos hx, if_pos hx]
+  · rw [ite_eq_left hx, ite_eq_left hx]
     -- distribute `U` over the finite sum
     rw [map_sum]
     apply Finset.sum_congr rfl
@@ -276,7 +280,7 @@ theorem galaxy_simulation_on_basis (R : Fin N → StarDesc N d) (hR : StarClosed
         have hUy : Umap R (y, some (R x)) = (y, none) := by
           simp [Umap, Ureg, hy]
         rw [Uapply_single, hUy]
-  · rw [if_neg hx, if_neg hx]
+  · rw [ite_eq_right hx, ite_eq_right hx]
     have hcc : R (R x).center = R x := hcenter x
     have hUc : Umap R ((R x).center, some (R x)) = ((R x).center, none) := by
       simp [Umap, Ureg, hcc]

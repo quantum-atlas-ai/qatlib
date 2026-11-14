@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.PrepQueries.NativePromise
-import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeQueries
+module
+
+public import Qatlib.Concepts.QueryComplexity.PrepQueries.NativePromise
+public import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeQueries
+
+@[expose] public section
 
 /-!
 # Lower bounds from source preparation

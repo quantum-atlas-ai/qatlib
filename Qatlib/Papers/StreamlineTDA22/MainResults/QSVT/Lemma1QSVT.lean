@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StreamlineTDA22.MainResults.Definitions
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+module
+
+public import Qatlib.Papers.StreamlineTDA22.MainResults.Definitions
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -121,6 +125,8 @@ def otherGateCount : List (QsvtStep H) → ℕ
   | .gate _ :: l => 1 + otherGateCount l
   | _ :: l => otherGateCount l
 
+omit [Fintype H] in
+
 /-- The word uses exactly as many data queries as angles. -/
 theorem qsvtWord_queryCount (U P Q : Matrix H H ℂ) (zs : List ℂ) :
     queryCount (qsvtWord U P Q zs) = zs.length := by
@@ -129,6 +135,8 @@ theorem qsvtWord_queryCount (U P Q : Matrix H H ℂ) (zs : List ℂ) :
   | cons z zs ih =>
     simp only [qsvtWord, queryCount, ih, List.length_cons]
     omega
+
+omit [Fintype H] in
 
 /-- The word has exactly `2 d` controlled-projector charges under the stipulated
 two-call phase-gadget accounting convention. -/
@@ -139,6 +147,8 @@ theorem qsvtWord_controlledProjectorCount (U P Q : Matrix H H ℂ) (zs : List �
   | cons z zs ih =>
     simp only [qsvtWord, controlledProjectorCount, ih, List.length_cons]
     ring
+
+omit [Fintype H] in
 
 /-- The only `.gate` macro in this word is the terminal identity.
 No native synthesis cost is asserted. -/

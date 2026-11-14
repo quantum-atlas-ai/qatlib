@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Graph-body parameters for shadow tomography
@@ -329,10 +333,10 @@ lemma alpha_le_beta (w : V → ℝ) (hw : ∀ i, 0 ≤ w i) : alpha B w ≤ beta
   have hconv : (∑ i ∈ I, w i) = ∑ i, w i * (if i ∈ I then (1 : ℝ) else 0) := by
     calc (∑ i ∈ I, w i)
         = ∑ i ∈ I, w i * (if i ∈ I then (1 : ℝ) else 0) :=
-          Finset.sum_congr rfl (fun i hi => by rw [if_pos hi, mul_one])
+          Finset.sum_congr rfl (fun i hi => by rw [ite_eq_left hi, mul_one])
       _ = ∑ i, w i * (if i ∈ I then (1 : ℝ) else 0) :=
           Finset.sum_subset (Finset.subset_univ I)
-            (fun i _ hi => by rw [if_neg hi, mul_zero])
+            (fun i _ hi => by rw [ite_eq_right hi, mul_zero])
   rw [hconv]
   exact le_csSup (supportImage_bddAbove B.beta_unit hw) hmem
 
@@ -405,8 +409,8 @@ lemma one_le_alpha_mul_of_cover (G : SimpleGraph V) {w : V → ℝ}
     calc ∑ i, w i * (if i ∈ I then (1 : ℝ) else 0)
         = ∑ i ∈ I, w i * (if i ∈ I then (1 : ℝ) else 0) :=
           (Finset.sum_subset (Finset.subset_univ I)
-            (fun i _ hi => by rw [if_neg hi, mul_zero])).symm
-      _ = ∑ i ∈ I, w i := Finset.sum_congr rfl (fun i hi => by rw [if_pos hi, mul_one])
+            (fun i _ hi => by rw [ite_eq_right hi, mul_zero])).symm
+      _ = ∑ i ∈ I, w i := Finset.sum_congr rfl (fun i hi => by rw [ite_eq_left hi, mul_one])
   have hterm : ∀ I : Finset V, x I * (∑ i, w i * (if i ∈ I then (1 : ℝ) else 0))
       ≤ x I * weightedIndepNum G w := by
     intro I

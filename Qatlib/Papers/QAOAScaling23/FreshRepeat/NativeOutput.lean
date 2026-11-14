@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.InitializedRun
-import Qatlib.Papers.QAOAScaling23.FreshRepeat.Run
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.InitializedRun
+public import Qatlib.Papers.QAOAScaling23.FreshRepeat.Run
+
+@[expose] public section
 
 /-!
 # Fresh amplification with native candidate outputs
@@ -74,8 +78,8 @@ theorem selectLower_rank (cost : I → ℝ) (rank : I → ℕ)
     rank (selectLower cost old candidate)=min (rank old) (rank candidate) := by
   unfold selectLower
   by_cases hc : cost candidate<cost old
-  · rw [if_pos hc,min_eq_right ((horder _ _).mpr hc).le]
-  · rw [if_neg hc,min_eq_left]
+  · rw [ite_eq_left hc,min_eq_right ((horder _ _).mpr hc).le]
+  · rw [ite_eq_right hc,min_eq_left]
     exact Nat.le_of_not_gt (fun h => hc ((horder _ _).mp h))
 
 /-- If rank order agrees with cost order, the failure indicator of a combined batch is the

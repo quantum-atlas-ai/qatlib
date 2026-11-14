@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMaskedX
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMaskedX
+
+@[expose] public section
 
 /-!
 # Reversible binary comparators and interval tests
@@ -173,7 +177,7 @@ theorem thermalPrefixParity_lex {n : ℕ} (pre zs : List (Fin n))
       · exact List.mem_append_right pre h
     cases b with
     | false =>
-      simp only [thermalPrefixParity,Bool.false_eq_true,if_false,Bool.false_xor,List.map_cons]
+      simp only [thermalPrefixParity,Bool.false_eq_true,ite_false,Bool.false_xor,List.map_cons]
       rw [ih (pre++[w]) (zs++[w]) hr hz,match_append_zero pre zs w hw x]
       simp only [thermalLexLess]
       generalize thermalMatch pre zs x = P
@@ -181,9 +185,9 @@ theorem thermalPrefixParity_lex {n : ℕ} (pre zs : List (Fin n))
       generalize thermalLexLess (List.map (fun p => x p.1) ps) (List.map Prod.snd ps) = L
       cases P <;> cases u <;> cases L <;> rfl
     | true =>
-      simp only [thermalPrefixParity,if_true,List.map_cons]
+      simp only [thermalPrefixParity,ite_true,List.map_cons]
       rw [ih (pre++[w]) zs hr hp,match_append_zero pre zs w hw x,
-        match_append pre zs w x,if_neg hwz]
+        match_append pre zs w x,ite_eq_right hwz]
       simp only [thermalLexLess]
       generalize thermalMatch pre zs x = P
       generalize x w = u
@@ -253,7 +257,7 @@ theorem thermalLessWord_basis {n : ℕ} (pre zs : List (Fin n)) (t : Fin n)
       omega
     cases b with
     | false =>
-      simpa only [thermalLessWord,thermalPrefixParity,Bool.false_eq_true,if_false,
+      simpa only [thermalLessWord,thermalPrefixParity,Bool.false_eq_true,ite_false,
         List.nil_append,Bool.false_xor] using ih (pre++[w]) (zs++[w]) hr hznew hzs hlr x hc
     | true =>
       have hsub : List.Sublist ((pre++[w])++t::ws) (((pre++[w])++ps.map Prod.fst)++t::ws) := by
@@ -276,7 +280,7 @@ theorem thermalLessWord_basis {n : ℕ} (pre zs : List (Fin n)) (t : Fin n)
         exact (List.disjoint_left.mp hr.disjoint) ht (by simp)
       have hrec := ih (pre++[w]) zs hr hz hp hlr y hyc
       rw [parity_update (pre++[w]) zs ps t htarget x v] at hrec
-      simp only [thermalLessWord,if_true,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_append,Qatlib.Foundations.QueryWordCore.Circuit.run_append]
+      simp only [thermalLessWord,ite_true,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_append,Qatlib.Foundations.QueryWordCore.Circuit.run_append]
       change Qatlib.Foundations.QueryWordCore.Circuit.Run 1 (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalLessWord (pre++[w]) zs t ws ps))
         (Qatlib.Foundations.QueryWordCore.Circuit.Run 1 (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalMaskedX (pre++[w]) (zs++[w]) t ws))
           (Qatlib.Foundations.PureStateMath.Ket x)) = _
@@ -323,12 +327,12 @@ theorem thermalLessWord_legal {n : ℕ} (pre zs : List (Fin n)) (t : Fin n)
     have hlm : (pre++[w]).length ≤ ws.length+2 := (Nat.le_add_right _ _).trans hlr
     cases b with
     | false =>
-      simpa only [thermalLessWord,Bool.false_eq_true,if_false,List.nil_append] using
+      simpa only [thermalLessWord,Bool.false_eq_true,ite_false,List.nil_append] using
         ih (pre++[w]) (zs++[w]) hr hlr
     | true =>
       have ha := thermalMaskedX_legal (pre++[w]) (zs++[w]) t ws hmframe hlm
       have hb := ih (pre++[w]) zs hr hlr
-      simpa only [thermalLessWord,if_true,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal,List.all_append,Bool.and_eq_true]
+      simpa only [thermalLessWord,ite_true,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal,List.all_append,Bool.and_eq_true]
         using And.intro ha hb
 
 /-- The recursive gate count for the strict-comparison construction, tracking the current prefix
@@ -363,7 +367,7 @@ theorem thermalLessWord_cost {n : ℕ} (pre zs : List (Fin n)) (t : Fin n)
       have hm := (thermalMaskedX_cost (pre++[w]) (zs++[w]) t ws hlm).1
       rw [(Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit_counts n _).2] at hm
       have hr := ih (pre++[w]) zs hlr
-      simp only [thermalLessWord,if_true,List.length_append,List.map_cons,thermalLessCost]
+      simp only [thermalLessWord,ite_true,List.length_append,List.map_cons,thermalLessCost]
       rw [hm,hr]
       simp
 
@@ -380,11 +384,11 @@ theorem thermalLessCost_bound (bs : List Bool) (k z : ℕ) (hz : z≤k) :
     cases b with
     | false =>
       have hr := ih (k+1) (z+1) (by omega)
-      simp only [thermalLessCost,Bool.false_eq_true,if_false,Nat.zero_add,List.length_cons]
+      simp only [thermalLessCost,Bool.false_eq_true,ite_false,Nat.zero_add,List.length_cons]
       nlinarith
     | true =>
       have hr := ih (k+1) z (by omega)
-      simp only [thermalLessCost,if_true,List.length_cons]
+      simp only [thermalLessCost,ite_true,List.length_cons]
       nlinarith
 
 /-- The finite word that applies X to `t` when `full` is true and otherwise compares the data
@@ -433,7 +437,7 @@ theorem thermalComparatorWord_public {n : ℕ} (full : Bool) (ps : List (Fin n �
       some (Qatlib.Foundations.PureStateMath.Ket (Function.update x t
         (x t ^^ decide (thermalBitValue (ps.map (fun p => x p.1)) <
           (if full then 2^ps.length else thermalBitValue (ps.map Prod.snd)))))) := by
-  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalComparatorWord_legal full ps t ws hn hlen,if_true]
+  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalComparatorWord_legal full ps t ws hn hlen,ite_true]
   rw [thermalComparatorWord_numeric full ps t ws hn hlen x hc]
 
 /-- With sufficient workspace, the comparator uses zero queries and one gate when `full` is
@@ -510,7 +514,8 @@ in the half-open interval `[a, b)`. -/
 private theorem compare_interval (a v b : ℕ) (hab : a≤b) :
     (decide (v<b) ^^ decide (v<a))=decide (a≤v ∧ v<b) := by
   by_cases ha : v<a <;> by_cases hb : v<b
-  all_goals simp [ha,hb] <;> omega
+  all_goals simp [ha,hb]
+  all_goals omega
 
 /-- For matching distinct data wires, sufficient clean workspace, and ordered cutoffs, the
 interval word toggles only `t` according to membership of the data value in the half-open
@@ -585,7 +590,7 @@ theorem thermalIntervalWord_public {n : ℕ} (loFull : Bool) (lo : List (Fin n �
       some (Qatlib.Foundations.PureStateMath.Ket (Function.update x t
         (x t ^^ decide (thermalCutoff loFull lo ≤ thermalBitValue (hi.map (fun p => x p.1)) ∧
           thermalBitValue (hi.map (fun p => x p.1)) < thermalCutoff hiFull hi)))) := by
-  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalIntervalWord_legal loFull lo hiFull hi t ws hwires hn hlen,if_true]
+  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalIntervalWord_legal loFull lo hiFull hi t ws hwires hn hlen,ite_true]
   rw [thermalIntervalWord_numeric loFull lo hiFull hi t ws hwires hn hlen horder x hc]
 
 /-- For matching distinct data wires, sufficient workspace, and ordered cutoffs, the interval

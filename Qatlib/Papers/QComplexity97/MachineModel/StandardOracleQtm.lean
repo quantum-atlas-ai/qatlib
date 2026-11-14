@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QComplexity97.MachineModel.StandardOracleQtmDefs
+module
+
+public import Qatlib.Papers.QComplexity97.MachineModel.StandardOracleQtmDefs
+
+@[expose] public section
 
 /-!
 # An explicit local oracle machine and its charges

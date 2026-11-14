@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoCorrectedQuan
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoCorrectedQuan
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+@[expose] public section
 
 /-!
 # Expanded polynomial payoff preparation

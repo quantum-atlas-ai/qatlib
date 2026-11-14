@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedPhasePreparation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCorrectionWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedPhasePreparation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCorrectionWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ theorem materializeCorrectionPreparation_correction (eta : ℚ) (prepared : Cach
   intro j hj
   have hjlt : j<8 := by have := mem_range.mp hj; omega
   have hklt : r.val-j<8 := by omega
-  simp only [storedPhaseValue,dif_pos hjlt,dif_pos hklt,Vector.getElem_ofFn,
+  simp only [storedPhaseValue,dite_eq_left hjlt,dite_eq_left hklt,Vector.getElem_ofFn,
     sourceFrameLambdaNat]
   rw [materializePhasePreparation_phase prepared ⟨r.val-j,hklt⟩]
 

@@ -4,145 +4,149 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Basic
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.Group.Abs
-import Mathlib.Algebra.Order.Group.MinMax
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Order.Sub.Basic
-import Mathlib.Algebra.Ring.Commute
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Erase
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Symmetric
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.BooleanAlgebra.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.AtTopBot.Basic
-import Mathlib.Order.Filter.AtTopBot.Defs
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Lattice
-import Mathlib.Order.Lattice.Nat
-import Mathlib.Order.MinMax
-import Mathlib.Order.Notation
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.Order.Group
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Topology.GDelta.MetrizableSpace
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
-import Mathlib.Topology.Metrizable.Uniformity
-import Mathlib.Topology.Separation.Basic
-import Mathlib.Topology.Separation.GDelta
-import Mathlib.Topology.Separation.Regular
-import Mathlib.Topology.UniformSpace.Defs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Basic
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.Group.Abs
+public import Mathlib.Algebra.Order.Group.MinMax
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Order.Sub.Basic
+public import Mathlib.Algebra.Ring.Commute
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Symmetric
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.BooleanAlgebra.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.AtTopBot.Basic
+public import Mathlib.Order.Filter.AtTopBot.Defs
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.Lattice.Nat
+public import Mathlib.Order.MinMax
+public import Mathlib.Order.Notation
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.Order.Group
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Defs.Filter
+public import Mathlib.Topology.GDelta.MetrizableSpace
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
+public import Mathlib.Topology.Metrizable.Uniformity
+public import Mathlib.Topology.Separation.Basic
+public import Mathlib.Topology.Separation.GDelta
+public import Mathlib.Topology.Separation.Regular
+public import Mathlib.Topology.UniformSpace.Defs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+
+@[expose] public section
 
 /-!
 # String rewriting and spectral walk-count estimates
@@ -190,7 +194,7 @@ def HasSubwordAt {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (h : i + k �
 
 /-- Replaces the length-`k` subword beginning at `i` by `v`, preserving all other letters. -/
 def overwriteSubword {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (v : Fin k → α)
-    (h : i + k ≤ L) : Word α L :=
+    (_h : i + k ≤ L) : Word α L :=
   fun j =>
     if h1 : (j : ℕ) < i then w j
     else if h2 : (j : ℕ) < i + k then v ⟨(j : ℕ) - i, by omega⟩
@@ -217,15 +221,15 @@ theorem subwordAt_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
   unfold subwordAt overwriteSubword
   dsimp only
   have h1 : ¬ ((⟨i + j.1, by omega⟩ : Fin L) : ℕ) < i := by
-    simp only [Fin.val_mk]
+    change ¬ i + j.1 < i
     omega
   have h2 : ((⟨i + j.1, by omega⟩ : Fin L) : ℕ) < i + k := by
-    simp only [Fin.val_mk]
+    change i + j.1 < i + k
     omega
-  rw [dif_neg h1, dif_pos h2]
+  rw [dite_eq_right h1, dite_eq_left h2]
   congr 1
   ext
-  simp only [Fin.val_mk]
+  change i + j.1 - i = j.1
   omega
 
 /-- Overwriting the same interval twice has the same effect as the second overwrite alone. -/
@@ -235,10 +239,10 @@ theorem overwrite_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
   funext j
   unfold overwriteSubword
   by_cases h1 : (j : ℕ) < i
-  · simp only [dif_pos h1]
+  · simp only [dite_eq_left h1]
   · by_cases h2 : (j : ℕ) < i + k
-    · simp only [dif_neg h1, dif_pos h2]
-    · simp only [dif_neg h1, dif_neg h2]
+    · simp only [dite_eq_right h1, dite_eq_left h2]
+    · simp only [dite_eq_right h1, dite_eq_right h2]
 
 /-- Replacing a subword by its existing contents leaves the word unchanged. -/
 theorem overwrite_self {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (u : Fin k → α)
@@ -247,19 +251,19 @@ theorem overwrite_self {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (u : Fi
   funext j
   unfold overwriteSubword
   by_cases h1 : (j : ℕ) < i
-  · simp only [dif_pos h1]
+  · simp only [dite_eq_left h1]
   · by_cases h2 : (j : ℕ) < i + k
     · have hx : (⟨i + ((j : ℕ) - i), by omega⟩ : Fin L) = j := by
         ext
-        simp only [Fin.val_mk]
+        change i + ((j : ℕ) - i) = (j : ℕ)
         omega
       have hux : u ⟨(j : ℕ) - i, by omega⟩ = w j := by
         rw [← congrFun hu ⟨(j : ℕ) - i, by omega⟩]
-        simp only [HasSubwordAt, subwordAt, Fin.val_mk]
+        simp only [subwordAt]
         rw [hx]
-      simp only [dif_neg h1, dif_pos h2]
+      simp only [dite_eq_right h1, dite_eq_left h2]
       exact hux
-    · simp only [dif_neg h1, dif_neg h2]
+    · simp only [dite_eq_right h1, dite_eq_right h2]
 
 /-- A symmetric replacement rule induces a symmetric relation on words. -/
 theorem step_symm {α : Type} {L : ℕ} {R : ∀ k, (Fin k → α) → (Fin k → α) → Prop}
@@ -280,10 +284,10 @@ theorem adjMatrix_isSymm {α : Type} [Fintype α] [DecidableEq α] {L : ℕ}
   refine Matrix.IsSymm.ext (A := adjMatrix (L := L) R) (fun w w' => ?_)
   unfold adjMatrix
   by_cases h : Step R w w'
-  · rw [if_pos h, if_pos (step_symm hR h)]
+  · rw [ite_eq_left h, ite_eq_left (step_symm hR h)]
   · by_cases h' : Step R w' w
     · exact absurd (step_symm hR h') h
-    · rw [if_neg h', if_neg h]
+    · rw [ite_eq_right h', ite_eq_right h]
 
 /-- The `(s, t)` entry of `A ^ n`, which counts length-`n` walks when `A` is an adjacency
 matrix. -/
@@ -407,8 +411,12 @@ lemma mulVec_phi_apply (A : Matrix ι ι ℝ) (s t t' : ι) :
   simp only [phiVec, mul_div_assoc', mul_sub]
   rw [← Finset.sum_div, Finset.sum_sub_distrib, sum_mul_basisVec, sum_mul_basisVec]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- For a symmetric matrix, the associated bilinear form is symmetric. -/
-lemma dot_mulVec_comm {A : Matrix ι ι ℝ} (hA : A.IsSymm) (x y : ι → ℝ) :
+lemma dot_mulVec_comm {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    {A : Matrix ι ι ℝ} (hA : A.IsSymm) (x y : ι → ℝ) :
     x ⬝ᵥ (A *ᵥ y) = y ⬝ᵥ (A *ᵥ x) := by
   calc x ⬝ᵥ (A *ᵥ y) = y ⬝ᵥ (Aᵀ *ᵥ x) := (dotProduct_transpose_mulVec A y x).symm
     _ = y ⬝ᵥ (A *ᵥ x) := by rw [hA.eq]
@@ -423,23 +431,35 @@ lemma polarization {A : Matrix ι ι ℝ} (hA : A.IsSymm) (a b : ι → ℝ) :
     dotProduct_add, dotProduct_sub, hcomm]
   ring
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Scaling both arguments in the difference of two quadratic forms multiplies the result by `c
 ^ 2`. -/
-lemma dot_quad_smul (A : Matrix ι ι ℝ) (c : ℝ) (a b : ι → ℝ) :
+lemma dot_quad_smul {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (A : Matrix ι ι ℝ) (c : ℝ) (a b : ι → ℝ) :
     (c • (a + b)) ⬝ᵥ (A *ᵥ (c • (a + b))) - (c • (a - b)) ⬝ᵥ (A *ᵥ (c • (a - b)))
       = c ^ 2 * ((a + b) ⬝ᵥ (A *ᵥ (a + b)) - (a - b) ⬝ᵥ (A *ᵥ (a - b))) := by
   simp only [Matrix.mulVec_smul, smul_dotProduct, dotProduct_smul]
   ring
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Expresses `psiPlus` as a scalar multiple of `basisVec s + phiVec t t'`. -/
-lemma psiPlus_eq_smul (s t t' : ι) :
+lemma psiPlus_eq_smul {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (s t t' : ι) :
     psiPlus s t t' = (Real.sqrt 2)⁻¹ • (basisVec s + phiVec t t') := by
   funext j
   simp only [psiPlus, Pi.add_apply, Pi.smul_apply, div_eq_inv_mul]
   rw [smul_eq_mul, mul_comm]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Expresses `psiMinus` as a scalar multiple of `basisVec s - phiVec t t'`. -/
-lemma psiMinus_eq_smul (s t t' : ι) :
+lemma psiMinus_eq_smul {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (s t t' : ι) :
     psiMinus s t t' = (Real.sqrt 2)⁻¹ • (basisVec s - phiVec t t') := by
   funext j
   simp only [psiMinus, Pi.sub_apply, Pi.smul_apply, div_eq_inv_mul]
@@ -546,24 +566,24 @@ def truncFunc (m : ℕ) (c x : ℝ) : ℝ :=
   if x < -c then (-c) ^ m else if x ≤ c then x ^ m else c ^ m
 
 /-- Truncation does not change `x ^ m` when `c` is nonnegative and `|x| ≤ c`. -/
-theorem truncFunc_eq_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) (h : |x| ≤ c) :
+theorem truncFunc_eq_pow {m : ℕ} {c x : ℝ} (_hc : 0 ≤ c) (h : |x| ≤ c) :
     truncFunc m c x = x ^ m := by
   have hle : -c ≤ x := (abs_le.mp h).1
   have hle' : x ≤ c := (abs_le.mp h).2
   unfold truncFunc
-  rw [if_neg (not_lt.mpr hle), if_pos hle']
+  rw [ite_eq_right (not_lt.mpr hle), ite_eq_left hle']
 
 /-- For nonnegative `c`, the absolute value of the truncated power is at most `c ^ m`. -/
 theorem truncFunc_abs_le {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
     |truncFunc m c x| ≤ c ^ m := by
   unfold truncFunc
   by_cases h1 : x < -c
-  · rw [if_pos h1, abs_pow, abs_neg, abs_of_nonneg hc]
-  · rw [if_neg h1]
+  · rw [ite_eq_left h1, abs_pow, abs_neg, abs_of_nonneg hc]
+  · rw [ite_eq_right h1]
     by_cases h2 : x ≤ c
-    · rw [if_pos h2, abs_pow]
+    · rw [ite_eq_left h2, abs_pow]
       exact pow_le_pow_left₀ (abs_nonneg x) (abs_le.mpr ⟨not_lt.mp h1, h2⟩) m
-    · rw [if_neg h2, abs_of_nonneg (pow_nonneg hc m)]
+    · rw [ite_eq_right h2, abs_of_nonneg (pow_nonneg hc m)]
 
 /-- For nonnegative `c`, the truncated power equals the power of `x` clamped to `[-c, c]`. -/
 theorem truncFunc_eq_clamp_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
@@ -572,13 +592,13 @@ theorem truncFunc_eq_clamp_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
   by_cases h1 : x < -c
   · have hxc : x ≤ c := le_of_lt (lt_of_lt_of_le h1 (by linarith))
     have hxm : x ≤ -c := le_of_lt h1
-    rw [if_pos h1, min_eq_left hxc, max_eq_left hxm]
-  · rw [if_neg h1]
+    rw [ite_eq_left h1, min_eq_left hxc, max_eq_left hxm]
+  · rw [ite_eq_right h1]
     have hx : -c ≤ x := not_lt.mp h1
     by_cases h2 : x ≤ c
-    · rw [if_pos h2, min_eq_left h2, max_eq_right hx]
+    · rw [ite_eq_left h2, min_eq_left h2, max_eq_right hx]
     · have hxc : c ≤ x := (not_le.mp h2).le
-      rw [if_neg h2, min_eq_right hxc, max_eq_right (by linarith)]
+      rw [ite_eq_right h2, min_eq_right hxc, max_eq_right (by linarith)]
 
 /-- For nonnegative `c`, the truncated power has Lipschitz bound `m * c ^ (m - 1)`
 [JanzingWocjan2010]. -/
@@ -833,8 +853,8 @@ theorem coefficient_vanishes_of_growth {κ : Type} [Fintype κ] (a lam : κ → 
                 by_cases h : |lam j| = M
                 · have h1 : |lam j / M| = 1 := by
                     rw [abs_div, abs_of_pos hMpos, h, div_self hMne]
-                  rw [if_pos h, hkill j h1, zero_mul]
-                · rw [if_neg h]
+                  rw [ite_eq_left h, hkill j h1, zero_mul]
+                · rw [ite_eq_right h]
               rw [hcongr]; exact hb n
             have hsub : (Finset.univ.filter
                   (fun j => (if |lam j| = M then 0 else b j) ≠ 0 ∧ c < |lam j|)) ⊆ W := by
@@ -844,14 +864,14 @@ theorem coefficient_vanishes_of_growth {κ : Type} [Fintype κ] (a lam : κ → 
               intro hb0
               apply hj.1
               by_cases h : |lam j| = M
-              · rw [if_pos h]
-              · rw [if_neg h]; exact hb0
+              · rw [ite_eq_left h]
+              · rw [ite_eq_right h]; exact hb0
             have hnotsub : ¬ (W ⊆ Finset.univ.filter
                 (fun j => (if |lam j| = M then 0 else b j) ≠ 0 ∧ c < |lam j|)) := by
               intro hsub'
               have hx' := hsub' hxW
               simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hx'
-              rw [if_pos hxM] at hx'
+              rw [ite_eq_left hxM] at hx'
               exact hx'.1 rfl
             have hssub : (Finset.univ.filter
                   (fun j => (if |lam j| = M then 0 else b j) ≠ 0 ∧ c < |lam j|)) ⊂ W := by
@@ -867,7 +887,7 @@ theorem coefficient_vanishes_of_growth {κ : Type} [Fintype κ] (a lam : κ → 
             by_cases h : |lam i| = M
             · exact absurd h htop
             · change (if |lam i| = M then 0 else b i) = 0 at hres
-              rw [if_neg h] at hres
+              rw [ite_eq_right h] at hres
               exact hres
   exact main (Finset.univ.filter (fun j => a j ≠ 0 ∧ c < |lam j|)).card a (le_refl _)
     (fun n => hgrowth n) j hj
@@ -918,7 +938,7 @@ theorem spectral_coeff_vanishes_of_growth {ι : Type} [Fintype ι] [DecidableEq 
 /-- Bounds the error of a finite probability-weighted estimate by its error on a set of mass at
 least `1 - θ` plus `2 * c ^ m * θ` for the remaining mass [JanzingWocjan2010]. -/
 theorem measurement_error_bound {κ : Type} [Fintype κ] [DecidableEq κ] {m : ℕ} (p v : κ → ℝ)
-    (S : Finset κ) (lam : ℝ) {c η θ : ℝ} (hc : 0 ≤ c) (hη : 0 ≤ η) (hθ : 0 ≤ θ)
+    (S : Finset κ) (lam : ℝ) {c η θ : ℝ} (hc : 0 ≤ c) (hη : 0 ≤ η) (_hθ : 0 ≤ θ)
     (hlam : |lam| ≤ c)
     (hp : ∀ k, 0 ≤ p k) (hpsum : (∑ k, p k) = 1)
     (hvS : ∀ k, k ∈ S → |v k - lam ^ m| ≤ η * (m : ℝ) * c ^ (m - 1))
@@ -1148,7 +1168,7 @@ def AbstractCircuitPromise (P : PromiseProblem) : Prop :=
         (1 / 3 : ℝ))
 
 /-- Pads a Boolean register to length `D` with false entries. -/
-def padReg {n D : ℕ} (h : n ≤ D) (x : Reg n) : Reg D :=
+def padReg {n D : ℕ} (_h : n ≤ D) (x : Reg n) : Reg D :=
   fun i => if hi : (i : ℕ) < n then x ⟨(i : ℕ), hi⟩ else false
 
 /-- A promise-preserving map computed exactly on padded basis inputs by circuits of polynomially
@@ -1219,11 +1239,11 @@ theorem blockZ_mulVec (φ : Fin 2 × ι → ℝ) (a : Fin 2 × ι) :
     have h : blockZ a b = 0 := by
       simp only [blockZ]
       by_cases h2 : a.2 = b.2
-      · rw [if_pos h2]
+      · rw [ite_eq_left h2]
         by_cases h1 : a.1 = b.1
         · exact absurd (Prod.ext h1 h2).symm hba
-        · rw [if_neg h1]
-      · rw [if_neg h2]
+        · rw [ite_eq_right h1]
+      · rw [ite_eq_right h2]
     rw [h, zero_mul]
   · intro ha
     exact absurd (Finset.mem_univ a) ha

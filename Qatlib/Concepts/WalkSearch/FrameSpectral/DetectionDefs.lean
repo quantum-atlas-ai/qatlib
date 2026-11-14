@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverStat
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverStat
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
+
+@[expose] public section
 
 /-!
 # Source detection endpoint specifications

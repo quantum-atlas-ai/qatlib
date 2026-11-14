@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+
+@[expose] public section
 
 /-!
 # Parity-preserving sums of squares on the unit interval
@@ -93,7 +97,7 @@ private theorem sos_of_rep (a : Polynomial ℝ) (k : ℕ)
       HasRealParity k b ∧ HasRealParity (k + 1) c := by
   by_cases he : k % 2 = 0
   · let r : EvenRep (k / 2) (contract 2 a) := by
-      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, if_pos he] using rep
+      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, ite_eq_left he] using rep
     have hd : k = 2 * (k / 2) := by omega
     refine ⟨r.a.comp (X ^ 2), X * r.b.comp (X ^ 2), ?_, ?_, ?_, ?_, ?_⟩
     · have hi := congrArg (fun f : Polynomial ℝ => f.comp (X ^ 2)) r.identity
@@ -108,7 +112,7 @@ private theorem sos_of_rep (a : Polynomial ℝ) (k : ℕ)
     · convert X_comp_square_parity r.b (k / 2) using 1
       omega
   · let r : OddRep (k / 2) (contract 2 a) := by
-      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, if_neg he] using rep
+      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, ite_eq_right he] using rep
     have hd : k = 2 * (k / 2) + 1 := by omega
     refine ⟨X * r.a.comp (X ^ 2), r.b.comp (X ^ 2), ?_, ?_, ?_, ?_, ?_⟩
     · have hi := congrArg (fun f : Polynomial ℝ => f.comp (X ^ 2)) r.identity

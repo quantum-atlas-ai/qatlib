@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -87,7 +91,7 @@ theorem prod_one_sub_le_one_sub_sum_add_sq {ι : Type*} (s : Finset ι) (p : ι 
 /-- The product of independent non-matching probabilities is at most the
 exponential of minus the summed matching probability. -/
 theorem prod_one_sub_le_exp_neg_sum {ι : Type*} (s : Finset ι) (p : ι → ℝ)
-    (hp0 : ∀ i ∈ s, 0 ≤ p i) (hp1 : ∀ i ∈ s, p i ≤ 1) :
+    (_hp0 : ∀ i ∈ s, 0 ≤ p i) (hp1 : ∀ i ∈ s, p i ≤ 1) :
     ∏ i ∈ s, (1 - p i) ≤ Real.exp (-∑ i ∈ s, p i) := by
   classical
   have hfac : ∀ i ∈ s, 1 - p i ≤ Real.exp (-p i) := fun i _ =>

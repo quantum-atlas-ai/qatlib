@@ -4,16 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.AlgebraicRecoveryDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.DlogCandidateRecovery
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.DlogTwoDimSamplingLaw
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
-import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
-import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.AlgebraicRecoveryDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.DlogCandidateRecovery
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.DlogTwoDimSamplingLaw
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+public import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
+public import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
+
+@[expose] public section
+
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+set_option linter.style.haveILetI false
 
 /-!
 # Algebraic recovery constructions and encoding obstructions
@@ -84,13 +94,13 @@ theorem intDec_intEnc (z : ℤ) : intDec (intEnc z) = z := by
   · have hz : (z.natAbs : ℤ) = z := Int.ofNat_natAbs_of_nonneg h
     have hpar : 2 * z.natAbs % 2 = 0 := by omega
     have h2 : 2 * z.natAbs / 2 = z.natAbs := by omega
-    rw [if_pos h, if_pos hpar, h2]
+    rw [ite_eq_left h, ite_eq_left hpar, h2]
     exact hz
   · have hz : (z.natAbs : ℤ) = -z := Int.ofNat_natAbs_of_nonpos (by omega)
     have hpos : 0 < z.natAbs := by omega
     have hpar : (2 * z.natAbs - 1) % 2 = 1 := by omega
     have h2 : (2 * z.natAbs - 1 + 1) / 2 = z.natAbs := by omega
-    rw [if_neg h, if_neg (show ¬ (2 * z.natAbs - 1) % 2 = 0 from by omega), h2]
+    rw [ite_eq_right h, ite_eq_right (show ¬ (2 * z.natAbs - 1) % 2 = 0 from by omega), h2]
     rw [hz]
     ring
 
@@ -100,7 +110,7 @@ theorem intEnc_intDec (n : ℕ) : intEnc (intDec n) = n := by
   by_cases he : n % 2 = 0
   · have hz : (0 : ℤ) ≤ ((n / 2 : ℕ) : ℤ) := by exact_mod_cast Nat.zero_le _
     have habs : (((n / 2 : ℕ) : ℤ)).natAbs = n / 2 := rfl
-    rw [if_pos he, if_pos hz, habs]
+    rw [ite_eq_left he, ite_eq_left hz, habs]
     omega
   · have h1 : 0 < (n + 1) / 2 := by omega
     have hz : ¬ (0 : ℤ) ≤ -(((n + 1) / 2 : ℕ) : ℤ) := by
@@ -110,7 +120,7 @@ theorem intEnc_intDec (n : ℕ) : intEnc (intDec n) = n := by
       have hneg : (-(((n + 1) / 2 : ℕ) : ℤ)) = Int.negOfNat ((n + 1) / 2) := rfl
       rw [hneg]
       exact Int.natAbs_negOfNat _
-    rw [if_neg he, if_neg hz, habs]
+    rw [ite_eq_right he, ite_eq_right hz, habs]
     omega
 
 /-- The integer-to-natural encoding `intEnc` is injective. -/
@@ -129,7 +139,7 @@ theorem trivialChain_factorChain {k : ℕ} (A : IMat k) : IsFactorChain (trivial
   intro i j hj
   have hj0 : j.val ≠ 0 := by omega
   show trivialChain A j ∣ trivialChain A i
-  rw [trivialChain, if_neg hj0]
+  rw [trivialChain, ite_eq_right hj0]
   exact one_dvd _
 
 /-- The product of `trivialChain A` is the absolute determinant of `A`. -/
@@ -218,11 +228,11 @@ theorem dlogScan_sound {p : ℕ} (g x : ZMod p) :
     intro r' h
     rw [dlogScan_succ] at h
     by_cases hg : g ^ fuel = x
-    · rw [if_pos hg] at h
+    · rw [ite_eq_left hg] at h
       injection h with hr
       subst hr
       exact ⟨Nat.lt_succ_self fuel, hg⟩
-    · rw [if_neg hg] at h
+    · rw [ite_eq_right hg] at h
       obtain ⟨hlt, heq⟩ := ih r' h
       exact ⟨by omega, heq⟩
 
@@ -284,9 +294,9 @@ theorem dlogScan_complete {p : ℕ} (g x : ZMod p)
     rw [dlogScan_succ]
     by_cases hg : g ^ fuel = x
     · have hr2 : fuel = r := huniq fuel r (by omega) (by omega) (hg.trans hx.symm)
-      rw [if_pos hg, hr2]
+      rw [ite_eq_left hg, hr2]
     · have hne : r ≠ fuel := fun he => hg (by rw [← he]; exact hx)
-      rw [if_neg hg]
+      rw [ite_eq_right hg]
       exact ih r (by omega) (by omega) hx
 
 /-- A two-dimensional discrete-logarithm decoder that searches all exponents below `p - 1`,
@@ -369,17 +379,17 @@ theorem tripleOf_regOfTriple (b : ℕ) (u v w : Reg b) :
   · funext i
     show regOfTriple b u v w ⟨i.1, _⟩ = u i
     simp only [regOfTriple]
-    rw [dif_pos i.isLt]
+    rw [dite_eq_left i.isLt]
   · apply Prod.ext
     · funext i
       show regOfTriple b u v w ⟨b + i.1, _⟩ = v i
       simp only [regOfTriple]
-      rw [dif_neg (by omega : ¬ b + i.1 < b), dif_pos (by omega : b + i.1 < 2 * b)]
+      rw [dite_eq_right (by omega : ¬ b + i.1 < b), dite_eq_left (by omega : b + i.1 < 2 * b)]
       exact congrArg v (Fin.val_injective (show b + i.1 - b = i.1 from by omega))
     · funext i
       show regOfTriple b u v w ⟨2 * b + i.1, _⟩ = w i
       simp only [regOfTriple]
-      rw [dif_neg (by omega : ¬ 2 * b + i.1 < b), dif_neg (by omega : ¬ 2 * b + i.1 < 2 * b)]
+      rw [dite_eq_right (by omega : ¬ 2 * b + i.1 < b), dite_eq_right (by omega : ¬ 2 * b + i.1 < 2 * b)]
       exact congrArg w (Fin.val_injective (show 2 * b + i.1 - 2 * b = i.1 from by omega))
 
 /-- Splitting `encodeTriple b a c d` returns the three separate bit encodings. -/
@@ -389,17 +399,17 @@ theorem tripleOf_encodeTriple (b a c d : ℕ) :
   · funext i
     show encodeTriple b a c d ⟨i.1, _⟩ = encodeBits b a i
     simp only [encodeTriple, encodeBits]
-    rw [if_pos i.isLt]
+    rw [ite_eq_left i.isLt]
   · apply Prod.ext
     · funext i
       show encodeTriple b a c d ⟨b + i.1, _⟩ = encodeBits b c i
       simp only [encodeTriple, encodeBits]
-      rw [if_neg (by omega : ¬ b + i.1 < b), if_pos (by omega : b + i.1 < 2 * b)]
+      rw [ite_eq_right (by omega : ¬ b + i.1 < b), ite_eq_left (by omega : b + i.1 < 2 * b)]
       rw [show b + i.1 - b = i.1 from by omega]
     · funext i
       show encodeTriple b a c d ⟨2 * b + i.1, _⟩ = encodeBits b d i
       simp only [encodeTriple, encodeBits]
-      rw [if_neg (by omega : ¬ 2 * b + i.1 < b), if_neg (by omega : ¬ 2 * b + i.1 < 2 * b)]
+      rw [ite_eq_right (by omega : ¬ 2 * b + i.1 < b), ite_eq_right (by omega : ¬ 2 * b + i.1 < 2 * b)]
       rw [show 2 * b + i.1 - 2 * b = i.1 from by omega]
 
 /-- Concatenating the bit encodings of `a`, `c`, and `d` gives `encodeTriple b a c d`. -/
@@ -498,7 +508,7 @@ theorem addSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
   have hflip : flipAt (encodeBits b ((a + c) % 2 ^ b)) (ZeroStr b)
       = encodeBits b ((a + c) % 2 ^ b) := by
     unfold flipAt
-    exact if_pos rfl
+    exact ite_eq_left rfl
   rw [hflip]
   exact regOfTriple_encodeTriple b a c ((a + c) % 2 ^ b)
 
@@ -522,7 +532,7 @@ theorem mulSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
   have hflip : flipAt (encodeBits b ((a * c) % 2 ^ b)) (ZeroStr b)
       = encodeBits b ((a * c) % 2 ^ b) := by
     unfold flipAt
-    exact if_pos rfl
+    exact ite_eq_left rfl
   rw [hflip]
   exact regOfTriple_encodeTriple b a c ((a * c) % 2 ^ b)
 
@@ -542,7 +552,7 @@ def arith : ReversibleArithmetic where
       show GateCount [] ≤ schoolbookMulModBitCost 0
       simp [GateCount, schoolbookMulModBitCost]
     · have hb1 : 1 ≤ b := by omega
-      rw [if_neg h]
+      rw [ite_eq_right h]
       show GateCount [Step.gate (permMatrix (mulSigma b))] ≤ schoolbookMulModBitCost b
       simp only [GateCount, schoolbookMulModBitCost]
       nlinarith [sq_nonneg ((b : ℕ) - 1)]
@@ -554,7 +564,7 @@ def arith : ReversibleArithmetic where
       · subst h
         show QueryCount [] = 0
         rfl
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         show QueryCount [Step.gate (permMatrix (mulSigma b))] = 0
         simp [QueryCount]
   unitary := fun b => by
@@ -565,7 +575,7 @@ def arith : ReversibleArithmetic where
       · subst h
         show IsUnitaryCircuit []
         exact isUnitaryCircuit_nil
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         show IsUnitaryCircuit [Step.gate (permMatrix (mulSigma b))]
         simp [isUnitaryCircuit_gate, permMatrix_unitary (mulSigma_involutive b)]
   realizes := fun b => by
@@ -586,7 +596,7 @@ def arith : ReversibleArithmetic where
         show Run (1 : Matrix (Reg 0) (Reg 0) ℂ) ([] : Circuit (Reg 0))
             (Qatlib.Foundations.PureStateMath.Ket (encodeTriple 0 0 0 0)) = _
         simp [Run]
-      · rw [if_neg hb]
+      · rw [ite_eq_right hb]
         show Run (1 : Matrix (Reg (3 * b)) (Reg (3 * b)) ℂ)
           [Step.gate (permMatrix (mulSigma b))] (Qatlib.Foundations.PureStateMath.Ket (encodeTriple b a c 0)) = _
         simp only [Run]
@@ -693,13 +703,13 @@ theorem jointScanList_complete {N : ℕ} [NeZero N] (l : List (ZMod N)) :
     intro y hy hySome
     simp only [List.mem_cons] at hy
     by_cases hg : 1 < Nat.gcd z.val N ∧ Nat.gcd z.val N < N
-    · simp only [jointScanList, if_pos hg]
+    · simp only [jointScanList, ite_eq_left hg]
       rfl
-    · simp only [jointScanList, if_neg hg]
+    · simp only [jointScanList, ite_eq_right hg]
       rcases hy with h | h
       · subst h
         unfold residueClassicalFactor at hySome
-        rw [if_neg hg] at hySome
+        rw [ite_eq_right hg] at hySome
         cases hySome
       · exact ih y h hySome
 
@@ -826,7 +836,7 @@ theorem sum_blockAt {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w :
     have hpq' : ({p, q, i} : Finset (Fin k)) = {p, q} := by
       ext t
       simp [hp, or_comm, or_left_comm]
-    rw [hpq', Finset.sum_insert (by simp [hpq, Ne.symm hpq]), Finset.sum_singleton, if_pos hp]
+    rw [hpq', Finset.sum_insert (by simp [hpq, Ne.symm hpq]), Finset.sum_singleton, ite_eq_left hp]
     simp [blockAt_apply, hp, hpq, Ne.symm hpq]
   · by_cases hq : i = q
     · have hsum : ∑ t, blockAt p q a b c d i t * w t
@@ -838,7 +848,7 @@ theorem sum_blockAt {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w :
         ext t
         simp [hq, or_comm, or_left_comm]
       rw [hpq', Finset.sum_insert (by simp [hpq, Ne.symm hpq]), Finset.sum_singleton,
-        if_neg hp, if_pos hq]
+        ite_eq_right hp, ite_eq_left hq]
       simp [blockAt_apply, hp, hq, hpq, Ne.symm hpq]
     · have hsum : ∑ t, blockAt p q a b c d i t * w t
           = ∑ t ∈ ({p, q, i} : Finset (Fin k)), blockAt p q a b c d i t * w t :=
@@ -846,7 +856,7 @@ theorem sum_blockAt {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w :
           (fun t _ ht => hsubset t ht)).symm
       rw [hsum, Finset.sum_insert (by simp [hpq, Ne.symm hpq, hp, Ne.symm hp, hq, Ne.symm hq]),
         Finset.sum_insert (by simp [hpq, Ne.symm hpq, hq, Ne.symm hq]),
-        Finset.sum_singleton, if_neg hp, if_neg hq]
+        Finset.sum_singleton, ite_eq_right hp, ite_eq_right hq]
       simp [blockAt_apply, hp, hq, hpq, Ne.symm hpq]
 
 /-- For distinct `p` and `q`, computes the action of a row vector on `blockAt` as a

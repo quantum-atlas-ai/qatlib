@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.CanonicalNatMultiplication
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.CanonicalNatAddition
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.RedundantRational
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.CanonicalNatMultiplication
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.CanonicalNatAddition
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.RedundantRational
+
+@[expose] public section
 
 /-!
 # Canonical sums of two products
@@ -281,10 +285,7 @@ theorem read_call (i : Fin 4) (n : ℕ) (tail : Qatlib.Concepts.BitWordCompiler.
     fin_cases i <;> cases j <;> first
     | rfl
     | exact (hj .reader rfl).elim
-    | exact (hj .markers rfl).elim
-    | exact (hj .payload rfl).elim
-    | exact (hj .value rfl).elim
-    | exact (hj .temporary rfl).elim
+    | exact (hj .value  rfl).elim
     | exact (hj .output rfl).elim
 
 /-- Clear the selected decoded argument while preserving both encoded operand pairs and
@@ -304,7 +305,7 @@ theorem drain_call (i : Fin 4) (args : Fin 4 → Qatlib.Concepts.BitWordCompiler
     getIO putIO (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ => rfl)
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.drainProgram (fun _ => rfl) v _ _ _ _ _ _ _ ⟨(args i).length + 1, hr, hc.le⟩ ?_ ?_ ?_
   · intro k; fin_cases k; fin_cases i <;> rfl
-  · intro k; fin_cases k; fin_cases i <;> simp [state, argBank]
+  · intro k; fin_cases k; fin_cases i <;> simp [state, argBank, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.singleStack ]
   · intro j hj
     fin_cases i <;> cases j <;> first | rfl | exact (hj 0 rfl).elim
 
@@ -348,13 +349,6 @@ theorem multiply_call (which : Bool) (a b : ℕ) (other saved : Qatlib.Concepts.
     cases which <;> cases j <;> first
     | rfl
     | exact (hj .raw rfl).elim
-    | exact (hj .reader rfl).elim
-    | exact (hj .markers rfl).elim
-    | exact (hj .payload rfl).elim
-    | exact (hj .first rfl).elim
-    | exact (hj .second rfl).elim
-    | exact (hj .result rfl).elim
-    | exact (hj .temp rfl).elim
     | exact (hj .output rfl).elim
 
 /-- Transfer the reversed second product into the result workspace in forward order while
@@ -429,13 +423,6 @@ theorem add_call (a b : ℕ) (v : Local) (hv : getAdd v = default) :
     cases j <;> first
     | rfl
     | exact (hj .raw rfl).elim
-    | exact (hj .reader rfl).elim
-    | exact (hj .markers rfl).elim
-    | exact (hj .payload rfl).elim
-    | exact (hj .first rfl).elim
-    | exact (hj .second rfl).elim
-    | exact (hj .result rfl).elim
-    | exact (hj .temp rfl).elim
     | exact (hj .output rfl).elim
 
 /-- The length of the four-field input is the sum of the lengths of its canonical natural-number

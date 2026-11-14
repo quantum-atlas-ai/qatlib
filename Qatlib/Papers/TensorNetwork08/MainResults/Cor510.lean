@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Lattice.Basic
-import Qatlib.Papers.TensorNetwork08.MainResults.Cor59
+module
+
+public import Mathlib.Data.Finset.Lattice.Basic
+public import Qatlib.Papers.TensorNetwork08.MainResults.Cor59
+
+@[expose] public section
 
 /-!
 # Tree-based scale for difference models

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundZeroRetention
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankControl
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundZeroRetention
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankControl
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -182,7 +186,7 @@ theorem decide_step {states : ℕ}
       some ⟨some (branchChoice flag),default,state saved [flag] [] (fun _ => []) (fun _ => [])⟩ := by
     cases flag <;> simp only [TM2.step,program,TM2.stepAux,hflag,List.head?_cons,
       putIO,getIO,List.tail_cons,update_zero_flag,Option.getD_some,
-      update_output,cond_false,cond_true,branchChoice,Bool.false_eq_true,if_false,if_true] <;> rfl
+      update_output,Bool.cond_false,Bool.cond_true,branchChoice,Bool.false_eq_true,ite_false,ite_true] <;> rfl
   refine ⟨1,by rw [Stacks.run_one]; exact hs,?_⟩
   rw [Stacks.stackRunClock,hs]
   cases flag <;> rfl

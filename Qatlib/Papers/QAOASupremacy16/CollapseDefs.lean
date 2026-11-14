@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOASupremacy16.GapModels
-import Qatlib.Papers.QAOASupremacy16.CondProb
+module
+
+public import Qatlib.Papers.QAOASupremacy16.GapModels
+public import Qatlib.Papers.QAOASupremacy16.CondProb
+
+@[expose] public section
 
 /-!
 # Conditional transport of gaps to hierarchy statements

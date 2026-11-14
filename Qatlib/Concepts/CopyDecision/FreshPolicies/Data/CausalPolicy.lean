@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralOptimum
-import Mathlib.Probability.Kernel.MeasurableIntegral
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralOptimum
+public import Mathlib.Probability.Kernel.MeasurableIntegral
+
+@[expose] public section
 
 /-!
 # Causal Policy
@@ -95,8 +99,8 @@ theorem CausalPolicy.labelRisk_eq_raw {n : ℕ} {H : Type} [MeasurableSpace H]
   | dispatch m pick meas branches ih => exact ih (pick h) ()
   | choose pick meas yes no ihY ihN =>
     by_cases hc : pick h=true
-    · simpa only [causalLabelRisk, CausalPolicy.toRaw, if_pos hc] using ihY h
-    · simpa only [causalLabelRisk, CausalPolicy.toRaw, if_neg hc] using ihN h
+    · simpa only [causalLabelRisk, CausalPolicy.toRaw, ite_eq_left hc] using ihY h
+    · simpa only [causalLabelRisk, CausalPolicy.toRaw, ite_eq_right hc] using ihN h
 
 /-- Full physical measurability implies the weaker derived-risk predicate.
 The proof uses native Markov-kernel integration, not a supplied risk function. -/

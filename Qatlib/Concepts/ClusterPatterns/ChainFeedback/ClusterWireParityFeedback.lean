@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+
+@[expose] public section
 
 /-!
 # Two-bit parity feedback for cluster chains
@@ -274,7 +278,7 @@ theorem cluster_chain_branch_instrument_forget :
     ∀ (L : ℕ) (ρ : Operator 2), ∃ I : Instrument (GraphHistory (clusterChainWord L)) 2 2,
       (∀ h : GraphHistory (clusterChainWord L),
         I.branch h ρ = graphActualBranch true (clusterChainWord L) h ρ) ∧
-      (∀ (hρ : IsDensityOperator ρ) (h : GraphHistory (clusterChainWord L)),
+      (∀ (_hρ : IsDensityOperator ρ) (h : GraphHistory (clusterChainWord L)),
         instrumentProb I ρ h = (1 / 2 : ℝ)^L) ∧
       (∑ h : GraphHistory (clusterChainWord L),
           graphActualBranch true (clusterChainWord L) h ρ) =

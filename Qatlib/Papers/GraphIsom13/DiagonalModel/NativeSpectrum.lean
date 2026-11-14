@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.DiagonalKernels
-import Qatlib.Papers.GraphIsom13.BinaryEncoding
-import Qatlib.Papers.GraphIsom13.AutoEncoding
+module
+
+public import Qatlib.Foundations.MatrixGeometry.DiagonalKernels
+public import Qatlib.Papers.GraphIsom13.BinaryEncoding
+public import Qatlib.Papers.GraphIsom13.AutoEncoding
+
+@[expose] public section
 
 /-!
 # Spectrum and ground eigenspace of the binary cost Hamiltonian

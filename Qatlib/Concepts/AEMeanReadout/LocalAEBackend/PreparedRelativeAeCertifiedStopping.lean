@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeAdaptiveLaw
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesExt
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeAdaptiveLaw
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesExt
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+
+@[expose] public section
 
 /-!
 # Certified stopping with fresh median estimates
@@ -900,9 +904,9 @@ theorem independent_event_all {J : Type*} [Fintype J] [DecidableEq J]
         = ∏ i, (if E i (ω i) then 1 else 0) := by
     by_cases h : ∀ i, E i (ω i)
     · simp [h]
-    · simp only [if_neg h]
+    · simp only [ite_eq_right h]
       obtain ⟨i, hi⟩ := not_forall.mp h
-      exact (Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)).symm
+      exact (Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)).symm
   have hrewrite : (independent p).expect (fun ω => if ∀ i, E i (ω i) then (1 : ℝ) else 0)
       = (independent p).expect (fun ω => ∏ i, (if E i (ω i) then 1 else 0)) := by
     apply Finset.sum_congr rfl
@@ -932,14 +936,14 @@ theorem independent_event_all_finset {J : Type*} [Fintype J] [DecidableEq J]
       (if ∀ i ∈ s, E i (ω i) then (1 : ℝ) else 0)
         = ∏ i, (if i ∈ s then (if E i (ω i) then 1 else 0) else 1) := by
     by_cases h : ∀ i ∈ s, E i (ω i)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       symm
       apply Finset.prod_eq_one
       intro i _
       by_cases hi : i ∈ s
       · simp [hi, h i hi]
       · simp [hi]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       push Not at h
       obtain ⟨i, hi, hE⟩ := h
       exact (Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi, hE])).symm
@@ -958,9 +962,9 @@ theorem independent_event_all_finset {J : Type*} [Fintype J] [DecidableEq J]
       apply Finset.prod_congr rfl
       intro i _
       by_cases hi : i ∈ s
-      · simp only [if_pos hi]
+      · simp only [ite_eq_left hi]
         exact (eventMass_eq_expect (p i) (E i)).symm
-      · simp only [if_neg hi]
+      · simp only [ite_eq_right hi]
         simpa only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_one] using!
             (p i).sum_one
     _ = _ := by
@@ -1002,12 +1006,12 @@ theorem eventMass_exists_le_sum {J X : Type*} [Fintype J] [DecidableEq J]
   change (if ∃ i, E i ω then (1 : ℝ) else 0) ≤ ∑ i, (if E i ω then 1 else 0)
   by_cases h : ∃ i, E i ω
   · obtain ⟨i, hi⟩ := h
-    rw [if_pos ⟨i, hi⟩]
+    rw [ite_eq_left ⟨i, hi⟩]
     have hle := Finset.single_le_sum
       (fun j _ => show (0 : ℝ) ≤ (if E j ω then 1 else 0) by positivity)
       (Finset.mem_univ i)
     simpa [hi] using! hle
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     positivity
 
 /-- For positive marked probability `a` and `0 < eps ≤ 1`, an accurate fresh median is ready

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.FreshEstimateCircuit
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.FreshEstimateCircuit
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+
+@[expose] public section
 
 /-!
 # Median amplification of variable-time estimates

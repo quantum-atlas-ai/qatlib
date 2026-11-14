@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2CircuitUnitaryCorrectedStat
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma2CircuitUnitaryCorrectedStat
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+
+@[expose] public section
 
 /-!
 # Unitarity of the corrected two-unitary LCU circuit

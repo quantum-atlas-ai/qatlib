@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousProgram
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousProgram
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 /-!
 # Source program regularity and operation counts

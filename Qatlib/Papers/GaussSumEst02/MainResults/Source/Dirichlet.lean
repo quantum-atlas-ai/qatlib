@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+@[expose] public section
 
 /-!
 # Dirichlet characters and ring Gauss sums
@@ -104,8 +108,8 @@ theorem dirichlet_phaseChange_normSq {n : ℕ} [NeZero n] (χ : DirichletChar n)
   classical
   refine Finset.sum_congr rfl fun x _ => ?_
   by_cases hx : IsUnit x
-  · rw [if_pos hx, norm_mul, χ.norm_eq_one x hx, one_mul]
-  · rw [if_neg hx, χ.map_zero_of_not_unit x hx, zero_mul, norm_zero,
+  · rw [ite_eq_left hx, norm_mul, χ.norm_eq_one x hx, one_mul]
+  · rw [ite_eq_right hx, χ.map_zero_of_not_unit x hx, zero_mul, norm_zero,
       zero_pow (by norm_num : (2 : ℕ) ≠ 0)]
 
 /-- Multiplication by a Dirichlet character preserves total squared norm for a function
@@ -117,8 +121,8 @@ theorem dirichlet_phaseChange_isometry {n : ℕ} [NeZero n] (χ : DirichletChar 
   rw [dirichlet_phaseChange_normSq]
   refine Finset.sum_congr rfl fun x _ => ?_
   by_cases hx : IsUnit x
-  · rw [if_pos hx]
-  · rw [if_neg hx, hψ x hx, norm_zero,
+  · rw [ite_eq_left hx]
+  · rw [ite_eq_right hx, hψ x hx, norm_zero,
       zero_pow (by norm_num : (2 : ℕ) ≠ 0)]
 
 end Qatlib.Papers.GaussSumEst02.MainResults.Source

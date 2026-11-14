@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchPrimitive.ResultFactor
-import Qatlib.Papers.QAOAScaling23.SearchFees.PlainSlot
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchPrimitive.ResultFactor
+public import Qatlib.Papers.QAOAScaling23.SearchFees.PlainSlot
+
+@[expose] public section
 
 /-!
 # Native search at marked mass one

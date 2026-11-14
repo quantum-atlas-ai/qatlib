@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Tail bounds for complex sample means
@@ -85,6 +89,7 @@ def complexDeviation (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : Fin L �
 def complexEstimate {X : Type} {L : ℕ} (re im : X → ℝ) (ω : Fin L → X) : ℂ :=
   (↑(FinDist.avg re ω) : ℂ) + (↑(FinDist.avg im ω) : ℂ) * Complex.I
 
+omit [DecidableEq X] in
 /-- Subtracting the complex expectation from `complexEstimate` gives `complexDeviation`. -/
 theorem complexEstimate_sub (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : Fin L → X) :
     complexEstimate re im ω -
@@ -94,6 +99,7 @@ theorem complexEstimate_sub (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : 
   push_cast
   ring
 
+omit [DecidableEq X] in
 /-- Inclusion of events implies an inequality between their probabilities under the finite
 product sampling distribution. -/
 theorem probEvent_mono {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → Prop}
@@ -106,6 +112,7 @@ theorem probEvent_mono {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → Prop}
   · intro ω _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+omit [DecidableEq X] in
 /-- The probability of the union of two sampling events is at most the sum of their
 probabilities. -/
 theorem probEvent_or_le {L : ℕ} (p : FinDist X) (E1 E2 : (Fin L → X) → Prop)
@@ -116,7 +123,7 @@ theorem probEvent_or_le {L : ℕ} (p : FinDist X) (E1 E2 : (Fin L → X) → Pro
   refine Finset.sum_le_sum ?_
   intro ω _
   have hw : 0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
-  by_cases h1 : E1 ω <;> by_cases h2 : E2 ω <;> simp [h1, h2] <;> linarith
+  by_cases h1 : E1 ω <;> by_cases h2 : E2 ω <;> simp [h1, h2]; linarith
 
 /-- For positive L, B, and ε, real and imaginary observations in [−B, B] give complex deviation
 probability at most 4 exp(−Lε²/(8B²)); see [AharonovJonesLandau2009]. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
-import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Rational local Pauli qDRIFT
@@ -128,7 +132,7 @@ theorem localPauliQdrift_path_gates {L : ℕ} (q b N R k : ℕ) (a : Fin L → �
   by_cases hW : weightTotal (dyadicWeights b a) = 0
   · simp [localPauliQdriftSteps,hW,reflectionLegal,reflectionCompile]
   · have hlegal : reflectionLegal (localPauliQdriftSteps q b N R k a j0 v t ω) := by
-      rw [localPauliQdriftSteps,if_neg hW]
+      rw [localPauliQdriftSteps,ite_eq_right hW]
       apply reflection_flatten_legal
       intro word hw
       obtain ⟨i,hi⟩ := List.mem_ofFn.mp hw
@@ -136,9 +140,9 @@ theorem localPauliQdrift_path_gates {L : ℕ} (q b N R k : ℕ) (a : Fin L → �
       exact (localPauliSteps_legal _ _ _ _).2
     have hcount : GateCount (reflectionCompile (localPauliQdriftSteps q b N R k a j0 v t ω)) =
         ∑ i : Fin N, localPauliGateCost q (v (fairQdriftPick (dyadicWeights b a) j0 R (ω i)).1) := by
-      rw [localPauliQdriftSteps,if_neg hW,reflection_flatten_length,List.map_ofFn,List.sum_ofFn]
+      rw [localPauliQdriftSteps,ite_eq_right hW,reflection_flatten_length,List.map_ofFn,List.sum_ofFn]
       exact Finset.sum_congr rfl fun i _ => localPauliSteps_gateCount _ _ _ _
-    refine ⟨hlegal,queryCount_reflectionCompile _,by rw [if_neg hW]; exact hcount,?_⟩
+    refine ⟨hlegal,queryCount_reflectionCompile _,by rw [ite_eq_right hW]; exact hcount,?_⟩
     rw [hcount]
     calc
       _ ≤ ∑ _ : Fin N, (6*q+1) := Finset.sum_le_sum fun i _ =>
@@ -186,7 +190,7 @@ private theorem selectedArithmetic_actual {L : ℕ} (q b N k : ℕ) (a : Fin L �
   | none => simp [localPauliSelectedArithmetic,ht,(pauliTarget_none_iff q (v j)).mp ht]
   | some w =>
     have hs : (pauliStringSupport q (v j)).Nonempty := ⟨w,pauliStringTarget_mem q (v j) w ht⟩
-    simp only [localPauliSelectedArithmetic,ht,if_pos hs]
+    simp only [localPauliSelectedArithmetic,ht,ite_eq_left hs]
     exact (localPauliPhaseData_value_counts _ k).2
 
 /-- For positive total weight, the path phase counts are `(m*k, m*(4*k+3), m*(2*k+2), 3*m)`,
@@ -283,7 +287,7 @@ theorem localPauliQdrift_path_matrix {L : ℕ} (q b N R k : ℕ) (a : Fin L → 
         let j := (fairQdriftPick (dyadicWeights b a) j0 R bits).1
         relabelGate (bitVecEquiv q)
           (reflectionProgramMatrix (localPauliRationalSteps q (v j) (localPauliQdriftAngle b N a t j) k))) ω := by
-  rw [localPauliQdriftSteps,if_neg (ne_of_gt hW),reflection_flatten_matrix,List.map_ofFn]
+  rw [localPauliQdriftSteps,ite_eq_right (ne_of_gt hW),reflection_flatten_matrix,List.map_ofFn]
   rfl
 
 /-- For positive total weight, averaging local Pauli circuit paths equals iterating the one-step
@@ -298,7 +302,7 @@ theorem localPauliQdrift_fresh_bridge {L : ℕ} (q b N R k : ℕ) (a : Fin L →
           let j := (fairQdriftPick (dyadicWeights b a) j0 R bits).1
           relabelGate (bitVecEquiv q) (reflectionProgramMatrix
             (localPauliRationalSteps q (v j) (localPauliQdriftAngle b N a t j) k))) r N X := by
-  rw [mixture_fresh_paths_reference_output,localPauliQdriftOutput,if_neg (ne_of_gt hW)]
+  rw [mixture_fresh_paths_reference_output,localPauliQdriftOutput,ite_eq_right (ne_of_gt hW)]
   apply Finset.sum_congr rfl
   intro ω _
   rw [localPauliQdrift_path_matrix q b N R k a j0 v t ω hW]
@@ -407,7 +411,7 @@ private theorem pauli_raw_ideal_bridge {L : ℕ} (q b N R : ℕ) (a : Fin L → 
         (fun bits =>
           let j := (fairQdriftPick (dyadicWeights b a) j0 R bits).1
           HamiltonianEvolution (pauliStringMatrix q (v j)) (localPauliQdriftAngle b N a t j : ℝ)) r N X := by
-  rw [quantizedQdriftOutput,fairQdriftReferenceOutput,if_neg (ne_of_gt hW),mixture_fresh_paths_reference_output]
+  rw [quantizedQdriftOutput,fairQdriftReferenceOutput,ite_eq_right (ne_of_gt hW),mixture_fresh_paths_reference_output]
   simp only [pauli_signed_angle]
 
 /-- Under positive total weight and the angle bound, replacing exact phases by rational phases

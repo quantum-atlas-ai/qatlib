@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Contractive wave and Bessel propagators

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+module
+
+public import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 /-!
 # Weighted defect tails for physical Hamiltonians
@@ -50,7 +54,7 @@ theorem actual_defect_tail (h : PhysicalHamiltonian N R M k d J) (stages : List 
     HasSum (fun n : ℕ => t^(n+p) • weighted h.total (physicalCoefficient h stages (n+p)) lam)
       (weighted h.total (defect h stages t) lam) := by
   have hzero : physicalCoefficient h stages 0=totalGenerator h := by
-    simpa only [if_pos rfl] using! horder 0 hp
+    simpa only [ite_eq_left rfl] using! horder 0 hp
   have hprefix : (∑ n ∈ Finset.range p, t^n • weighted h.total (physicalCoefficient h stages n) lam) =
       weighted h.total (totalGenerator h) lam := by
     rw [Finset.sum_eq_single 0]
@@ -58,7 +62,7 @@ theorem actual_defect_tail (h : PhysicalHamiltonian N R M k d J) (stages : List 
       simp only [pow_zero, one_smul]
     · intro n hn hnzero
       have hc := horder n (Finset.mem_range.mp hn)
-      rw [if_neg hnzero] at hc
+      rw [ite_eq_right hnzero] at hc
       simp only [hc, weighted, mul_zero, zero_mul, smul_zero]
     · intro hn
       exact (hn (Finset.mem_range.mpr hp)).elim

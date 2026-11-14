@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
+module
+
+public import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
+
+@[expose] public section
 
 /-!
 # Continued-fraction consumers for order finding
@@ -100,7 +104,7 @@ theorem continued_fraction_actual_pair_order_and_factor_consumer
   change (cfReducedOrderDecode N M y).2.1 ≤ _ ∧ (cfReducedOrderDecode N M y).2.2 ≤ _ ∧ _ at hx
   change (cfReducedOrderDecode N M z).2.1 ≤ _ ∧ (cfReducedOrderDecode N M z).2.2 ≤ _ ∧ _ at hw
   simp only [cfPairLCMOrderDecode, hd, he, hl, orderVerificationProduct_eq_pow,
-    pow_orderOf_eq_one, if_true]
+    pow_orderOf_eq_one, ite_true]
   have htri := Nat.div_mul_le_self ((cfDepth M + 1) * (cfDepth M + 2)) 2
   refine ⟨trivial, ?_, ?_, trivial⟩ <;> omega
 

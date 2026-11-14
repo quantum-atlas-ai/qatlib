@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsStat
-import Mathlib.Tactic.Abel
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsStat
+public import Mathlib.Tactic.Abel
+
+@[expose] public section
 
 /-!
 # Hidden shift and reflection oracle reductions

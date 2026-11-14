@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.FlagProjection.Born
+module
+
+public import Qatlib.Foundations.MatrixGeometry.FlagProjection.Born
+
+@[expose] public section
 
 /-!
 # Coherent probability amplitudes and pair marginals
@@ -132,7 +136,7 @@ theorem pair_conditional (pi : X → ℝ) (P : X → X → ℝ)
       if i ∈ S then pi i / (∑ x ∈ S, pi x) else 0 := by
   simp only [conditionalBorn, pairFlags, Finset.mem_product, Finset.mem_univ, and_true]
   by_cases hi : i ∈ S
-  · simp only [hi, if_true]
+  · simp only [hi, ite_true]
     rw [← Finset.sum_div, pair_marginal pi P hn hP hsP, ← pair_mass pi P hn hP hsP S]
     rfl
   · simp [hi]

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Hybrid distance bounds for oracle circuits
@@ -85,7 +89,7 @@ theorem qleOutput_dist_le (U : ℕ → E →L[ℂ] E)
       rw [hsplit]
       have h1 : ‖A xA - B xA‖ ≤ δ * ‖ψ‖ := by
         have hABx : A xA - B xA = (A - B) xA := by
-          rw [ContinuousLinearMap.sub_apply]
+          rw [_root_.sub_apply]
         rw [hABx]
         calc ‖(A - B) xA‖ ≤ ‖A - B‖ * ‖xA‖ := ContinuousLinearMap.le_opNorm _ _
           _ ≤ δ * ‖ψ‖ := by

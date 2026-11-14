@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Mathlib.Tactic.Linarith
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+
+@[expose] public section
 
 /-!
 # Validated native Grover search
@@ -379,7 +383,7 @@ theorem sourceSafeGroverLaw_confidence (N : ℕ) (f : Fin N → Bool) (floor c :
   let R := sourceSearchTail N floor c
   let P := searchForSchedule (QFTMatrix N) (qftMatrix_unitary hN) (⟨0,hN⟩ : Fin N) S f
     (geometricSearchSchedule M (J + R))
-  rw [sourceSafeGroverLaw, dif_pos hN]
+  rw [sourceSafeGroverLaw, dite_eq_left hN]
   change (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event P (fun tr => tr.result = none)).toReal ≤ _
   have hvalid : ∀ y : Fin N, f y = true ↔ y ∈ S := by intro y; simp [S]
   have hm0 : 0 < S.card := Finset.card_pos.mpr ⟨x, by simp [S, hx]⟩
@@ -440,7 +444,7 @@ theorem sourceSafeGroverLaw_sound (N : ℕ) (f : Fin N → Bool) (floor c : ℕ)
       (qftMatrix_unitary hN) (⟨0,hN⟩ : Fin N)
       (Finset.univ.filter (fun y => f y = true)) f (sourceSearchCap N)
       (sourceSearchWarmup N + sourceSearchTail N floor c) (by intro y; simp)
-    rw [sourceSafeGroverLaw, dif_pos hN] at htr
+    rw [sourceSafeGroverLaw, dite_eq_left hN] at htr
     simpa using (hs tr htr).1 x hx
   · have hz : N = 0 := by omega
     subst N
@@ -500,7 +504,7 @@ theorem sourceSafeGroverLaw_actual_resources (N : ℕ) (f : Fin N → Bool) (flo
   · let S := Finset.univ.filter (fun y : Fin N => f y = true)
     let T := sourceSearchWarmup N + sourceSearchTail N floor c
     have hvalid : ∀ y : Fin N, f y = true ↔ y ∈ S := by intro y; simp [S]
-    rw [sourceSafeGroverLaw, dif_pos hN] at htr
+    rw [sourceSafeGroverLaw, dite_eq_left hN] at htr
     have hpaths := (geometric_search_zero_one_endpoints_and_path_caps (QFTMatrix N)
       (qftMatrix_unitary hN) (⟨0,hN⟩ : Fin N) S f (sourceSearchCap N) T hvalid).2.2 tr htr
     have hmeta := geometric_search_actual_support_soundness_and_metadata (QFTMatrix N)
@@ -517,7 +521,7 @@ theorem sourceSafeGroverLaw_actual_resources (N : ℕ) (f : Fin N → Bool) (flo
       ring
     · rw [hmeta.2.2.2.2.2]
       omega
-  · rw [sourceSafeGroverLaw, dif_neg hN, PMF.mem_support_pure_iff] at htr
+  · rw [sourceSafeGroverLaw, dite_eq_right hN, PMF.mem_support_pure_iff] at htr
     subst tr
     simp [emptySearchTrace]
 

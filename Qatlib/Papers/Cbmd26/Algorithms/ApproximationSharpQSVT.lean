@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
+
+@[expose] public section
 
 /-!
 # QSVT from bounded holomorphic approximation

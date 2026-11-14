@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleGramCharacterizationTran
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTran
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleGramCharacterizationTransport
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTransport
+
+@[expose] public section
 
 /-!
 # Laurent polynomials and positive Gram matrices

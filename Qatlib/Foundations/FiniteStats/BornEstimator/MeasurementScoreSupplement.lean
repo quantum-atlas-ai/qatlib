@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.EffectNormalize
-import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.EffectNormalize
+public import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+
+@[expose] public section
 
 /-!
 # Measurement-score identities and Hilbert--Schmidt bounds
@@ -41,6 +45,8 @@ theorem measurementScore_nonneg (S : V → HermitianMat d ℂ) (w : V → ℝ)
     · positivity
     · exact HermitianMat.trace_nonneg (P.nonneg s)
 
+omit [Nonempty d] in
+
 /-- Vanishing source weights erase the actual measurement score exactly. -/
 theorem measurementScore_zero_weights (S : V → HermitianMat d ℂ)
     (w : V → ℝ) (hw : ∀ i, w i = 0) (P : POVM Ω d) :
@@ -48,6 +54,8 @@ theorem measurementScore_zero_weights (S : V → HermitianMat d ℂ)
   unfold measurementScore
   simp_rw [hw]
   simp
+
+omit [Nonempty d] in
 
 /-- The actual score is homogeneous in the source weights, including when a
 zero effect makes a denominator vanish. -/
@@ -72,6 +80,8 @@ theorem measurementScore_scale_weights (S : V → HermitianMat d ℂ)
     _ = c * ∑ s, (∑ i, w i * ⟪P.mats s, S i⟫ ^ 2) /
         ((Fintype.card d : ℝ) * (P.mats s).trace) := by
       rw [Finset.mul_sum]
+
+omit [Nonempty d] in
 
 /-- The actual score is additive in the source weights. -/
 theorem measurementScore_add_weights (S : V → HermitianMat d ℂ)
@@ -102,6 +112,8 @@ theorem measurementScore_add_weights (S : V → HermitianMat d ℂ)
         ((Fintype.card d : ℝ) * (P.mats s).trace) := by
       rw [Finset.sum_add_distrib]
 
+omit [Nonempty d] in
+
 /-- The actual score respects signed differences of source weights. -/
 theorem measurementScore_sub_weights (S : V → HermitianMat d ℂ)
     (w₁ w₂ : V → ℝ) (P : POVM Ω d) :
@@ -128,7 +140,7 @@ theorem measurementScore_le_observable_budget (S : V → HermitianMat d ℂ)
     measurementScore S w P ≤ ∑ i, w i * ‖S i‖ ^ 2 := by
   classical
   by_cases hd : Nonempty d
-  · letI := hd
+  · let := hd
     have hscore := measurementScore_le_stateValue S w hw (Set.univ : Set (MState d)) P
       (fun s hne => Set.mem_univ _)
     have hsup : stateScoreValue S w (Set.univ : Set (MState d)) ≤
@@ -140,10 +152,12 @@ theorem measurementScore_le_observable_budget (S : V → HermitianMat d ℂ)
         rcases hy with ⟨ρ, hρ, rfl⟩
         exact quadraticScore_le S w hw ρ
     exact hscore.trans hsup
-  · letI : IsEmpty d := not_nonempty_iff.mp hd
+  · let : IsEmpty d := not_nonempty_iff.mp hd
     simp only [measurementScore, Fintype.card_of_isEmpty, Nat.cast_zero, zero_mul,
       div_zero, Finset.sum_const_zero]
     exact Finset.sum_nonneg (fun i _ => mul_nonneg (hw i) (sq_nonneg _))
+
+omit [Nonempty d] in
 
 /-- If every observable has Hilbert--Schmidt norm at most `B`, the score is
 bounded by the squared norm budget times the total source weight. -/
@@ -169,6 +183,8 @@ theorem measurementScore_le_weight_mass_mul_norm (S : V → HermitianMat d ℂ)
           ring
         _ = B ^ 2 * ∑ i, w i := by rw [Finset.mul_sum]
 
+omit [Nonempty d] in
+
 /-- A scalar total-weight budget turns the norm bound into a direct score
 budget. -/
 theorem measurementScore_le_budget (S : V → HermitianMat d ℂ)
@@ -188,6 +204,8 @@ theorem measurementScore_mem_Icc_budget (S : V → HermitianMat d ℂ)
     measurementScore S w P ∈ Set.Icc 0 (B ^ 2 * W) := by
   exact ⟨measurementScore_nonneg S w hw P,
     measurementScore_le_budget S w hw B W hB hS hW P⟩
+
+omit [Nonempty d] in
 
 /-- A nonnegative source with zero total weight contributes no score. -/
 theorem measurementScore_zero_of_weight_mass_zero (S : V → HermitianMat d ℂ)
@@ -209,6 +227,8 @@ theorem measurementScore_mono_weights (S : V → HermitianMat d ℂ)
   have hsub := measurementScore_sub_weights S w₂ w₁ P
   linarith
 
+omit [Nonempty d] in
+
 /-- Pointwise equal source weights are interchangeable in the actual score. -/
 theorem measurementScore_congr_weights (S : V → HermitianMat d ℂ)
     (w₁ w₂ : V → ℝ) (h12 : ∀ i, w₁ i = w₂ i) (P : POVM Ω d) :
@@ -216,6 +236,8 @@ theorem measurementScore_congr_weights (S : V → HermitianMat d ℂ)
   congr 2
   funext i
   exact h12 i
+
+omit [Nonempty d] in
 
 /-- Vanishing observables erase the actual score for every source weight. -/
 theorem measurementScore_zero_observables (S : V → HermitianMat d ℂ)

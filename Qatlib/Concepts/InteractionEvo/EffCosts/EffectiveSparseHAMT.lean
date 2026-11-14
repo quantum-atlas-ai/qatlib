@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+module
+
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+@[expose] public section
 
 /-!
 # Unitarity of sparse Hamiltonian oracles
@@ -47,7 +51,7 @@ theorem effectiveSparseOH_unitary (p : EffectiveSparseParameters) (S : Effective
   have hpre (x : Reg (p.nd+2*p.ns+2*p.np)) (i : Fin (p.nd+2*p.ns+2*p.np))
       (hi : i.val<p.nd+2*p.ns) : f x i=x i := by
     dsimp [f]
-    rw [dif_neg (by omega)]
+    rw [dite_eq_right (by omega)]
   have hr (x : Reg (p.nd+2*p.ns+2*p.np)) :
       (fun i : Fin p.nd => f x ⟨i.val,by omega⟩) = (fun i : Fin p.nd => x ⟨i.val,by omega⟩) := by
     funext i
@@ -69,9 +73,9 @@ theorem effectiveSparseOH_unitary (p : EffectiveSparseParameters) (S : Effective
         S.values (fun j => f x ⟨j.val,by omega⟩)
           (fun j => f x ⟨p.nd+j.val,by omega⟩)
           (fun j => f x ⟨p.nd+p.ns+j.val,by omega⟩) ⟨i.val-(p.nd+2*p.ns),by omega⟩ else f x i) = x i
-      rw [dif_pos h,hr,hj,hk]
+      rw [dite_eq_left h,hr,hj,hk]
       dsimp [f]
-      rw [dif_pos h]
+      rw [dite_eq_left h]
       simp
     · rw [hpre (f x) i (by omega),hpre x i (by omega)]
   exact permMatrix_unitary hi
@@ -88,7 +92,7 @@ theorem effectiveSparseOF_unitary (p : EffectiveSparseParameters) (S : Effective
   have hpre (x : Reg (p.nd+2*p.ns)) (i : Fin (p.nd+2*p.ns))
       (hi : i.val<p.nd+p.ns) : f x i=x i := by
     dsimp [f]
-    rw [dif_neg (by omega)]
+    rw [dite_eq_right (by omega)]
   have hr (x : Reg (p.nd+2*p.ns)) : r (f x)=r x := by
     funext i
     exact hpre x _ (by (try dsimp only); have := i.isLt; omega)
@@ -98,7 +102,7 @@ theorem effectiveSparseOF_unitary (p : EffectiveSparseParameters) (S : Effective
   have hl (x : Reg (p.nd+2*p.ns)) : l (f x)=S.locations (r x) (j x) (l x) := by
     funext i
     dsimp only [l,f]
-    rw [dif_pos (by omega)]
+    rw [dite_eq_left (by omega)]
     apply congrArg (S.locations (r x) (j x) (l x))
     apply Fin.ext
     simp
@@ -112,7 +116,7 @@ theorem effectiveSparseOF_unitary (p : EffectiveSparseParameters) (S : Effective
     funext i
     by_cases hi : i.val<p.nd+p.ns
     · have hh := congrArg (fun z => z i) h
-      (try dsimp only at hh)
+
       rwa [hpre x i hi,hpre y i hi] at hh
     · have hh := congrFun hle ⟨i.val-(p.nd+p.ns),by have := i.isLt; omega⟩
       dsimp [l] at hh

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+module
+
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+
+@[expose] public section
 
 /-!
 # Bipartite τ maps and eigenspace correspondence
@@ -143,7 +147,6 @@ private theorem tau_interior_preimage (A : Matrix H I ℂ) (B : Matrix H J ℂ)
       rw [← Matrix.mul_assoc,show Bᴴ*B=1 from hB,Matrix.one_mul]]
   have hAeq := congrArg (fun v : QState H => Aᴴ*ᵥv) hproj
   have hBeq := congrArg (fun v : QState H => Bᴴ*ᵥv) hproj
-  (try dsimp only at hAeq hBeq)
   simp only [Matrix.mulVec_sub, Matrix.mulVec_smul, hax] at hAeq
   simp only [Matrix.mulVec_sub, Matrix.mulVec_smul, hby] at hBeq
   have hAy : Aᴴ*ᵥq=(Aᴴ*B)*ᵥy := by
@@ -426,14 +429,12 @@ private theorem tau_endpoint_zero_preimage (A : Matrix H I ℂ) (B : Matrix H J 
   have hs := (bipartite_endpoint_projectors A B hA hB w).2.mp hw
   have hga : (Bᴴ*A)*ᵥ(Aᴴ*ᵥw)=0 := by
     have hh := congrArg (fun x : QState H => Bᴴ*ᵥx) hs
-    (try dsimp only at hh)
     rw [Matrix.mulVec_add,Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,
       show Bᴴ*(B*Bᴴ)=Bᴴ from by rw [← Matrix.mul_assoc,show Bᴴ*B=1 from hB,Matrix.one_mul]] at hh
     rw [Matrix.mulVec_mulVec,Matrix.mul_assoc]
     exact add_eq_right.mp hh
   have hgb : (Aᴴ*B)*ᵥ(Bᴴ*ᵥw)=0 := by
     have hh := congrArg (fun x : QState H => Aᴴ*ᵥx) hs
-    (try dsimp only at hh)
     rw [Matrix.mulVec_add,Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,
       show Aᴴ*(A*Aᴴ)=Aᴴ from by rw [← Matrix.mul_assoc,show Aᴴ*A=1 from hA,Matrix.one_mul]] at hh
     rw [Matrix.mulVec_mulVec,Matrix.mul_assoc]

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPhysical
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPadding
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPhysical
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPadding
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+
+@[expose] public section
 
 /-!
 # Full-space energy guarantees for history Hamiltonians
@@ -64,7 +68,7 @@ theorem propagation_lower (C : QmaHistoryCircuit) (i : Fin C.gates.length)
 theorem input_lower (C : QmaHistoryCircuit) (j : Fin C.qubits) (ψ : QState (Phys C)) :
     -(32:ℝ)*mass ψ ≤ energy (physicalInput j) ψ := by
   have hv:=boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) false j
-  simp only [boundaryTarget,Bool.false_eq_true,if_false] at hv
+  simp only [boundaryTarget,Bool.false_eq_true,ite_false] at hv
   exact local_table_lower (qmaClause2Bits C+1)
     (boundaryTerm C.gates.length C.qubits (qmaClause2Bits C) false j) (physicalInput j)
     ((boundaryTerm_local _ _ _ _ _).trans (by omega)) hv (physicalInput_entry_norm j) ψ
@@ -73,7 +77,7 @@ theorem input_lower (C : QmaHistoryCircuit) (j : Fin C.qubits) (ψ : QState (Phy
 theorem output_lower (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
     -(32:ℝ)*mass ψ ≤ energy (physicalOutput C.outputWire) ψ := by
   have hv:=boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) true C.outputWire
-  simp only [boundaryTarget,if_true] at hv
+  simp only [boundaryTarget,ite_true] at hv
   exact local_table_lower (qmaClause2Bits C+1)
     (boundaryTerm C.gates.length C.qubits (qmaClause2Bits C) true C.outputWire)
     (physicalOutput C.outputWire) ((boundaryTerm_local _ _ _ _ _).trans (by omega)) hv

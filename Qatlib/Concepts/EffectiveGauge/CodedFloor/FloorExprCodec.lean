@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetSyntax
-import Mathlib.Computability.PartrecCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetSyntax
+public import Mathlib.Computability.PartrecCode
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

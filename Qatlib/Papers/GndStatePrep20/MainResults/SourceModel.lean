@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -174,7 +178,7 @@ theorem fidelity_ratio_ge {a b γ ε : ℝ} (ha : 0 < a) (hγ : 0 < γ)
 /-- A denominator-cleared form used when carrying the fidelity estimate
 through amplitude amplification: the successful-branch norm bound
 `‖P̃|φ₀⟩‖ ≤ a + b`. -/
-theorem fidelity_numerator_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
+theorem fidelity_numerator_le {a b : ℝ} (_ha : 0 ≤ a) (hb : 0 ≤ b) :
     a ≤ a + b := le_add_of_nonneg_right hb
 
 /-! ## Binary amplitude estimation (Lemma 7) -/
@@ -229,7 +233,7 @@ theorem interval_recurrence_bound (d : ℕ → ℝ) (G : ℝ)
 the recurrence this is the paper's termination claim `U_l − L_l ≤ 3` at
 `l = ⌈log₂ G⌉`. -/
 theorem interval_le_three (d : ℕ → ℝ) (G : ℝ) (l : ℕ)
-    (h : d l ≤ (G - 2) / 2 ^ l + 2) (hG : G - 2 ≤ 2 ^ l) (hG0 : 0 ≤ G - 2) :
+    (h : d l ≤ (G - 2) / 2 ^ l + 2) (hG : G - 2 ≤ 2 ^ l) (_hG0 : 0 ≤ G - 2) :
     d l ≤ 3 := by
   have hpow : (0 : ℝ) < (2 : ℝ) ^ l := by positivity
   have hratio : (G - 2) / 2 ^ l ≤ 1 := by

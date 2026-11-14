@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceBitPrecision
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceComplementSquare
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCoordinateTruncation
-import Mathlib.Data.Nat.Dist
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceBitPrecision
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceComplementSquare
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCoordinateTruncation
+public import Mathlib.Data.Nat.Dist
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ theorem sourceCoefficient_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (N+1
   simp [rootGridTruncate]
 
 /-- Construction for degree Fold in the native source regularization model. -/
-private def degreeFold {N : ℕ} (a : Fin (N+1) → ℚ) (l : List (Fin (N+1))) (s : ℕ) : ℕ :=
+def degreeFold {N : ℕ} (a : Fin (N+1) → ℚ) (l : List (Fin (N+1))) (s : ℕ) : ℕ :=
   l.foldl (fun D i => if a i=0 then D else max D i.val) s
 
 /-- Construction for source Array Degree in the native source regularization model. -/
@@ -147,7 +151,7 @@ theorem sourceDegree_parity (cs : List ℚ) (N : ℕ) (E : ℚ)
   exact hm
 
 /-- Construction for lifted Index in the native source regularization model. -/
-private def liftedIndex (N d : ℕ) (hd : d ≤ N) (i : Fin (d+d+1)) : Fin (N+1) :=
+def liftedIndex (N d : ℕ) (hd : d ≤ N) (i : Fin (d+d+1)) : Fin (N+1) :=
   ⟨Nat.dist i.val d,by
     have hi := i.isLt
     simp only [Nat.dist]

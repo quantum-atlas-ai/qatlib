@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSVT.Numerics
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmeticDefs
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.Numerics
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchArithmeticDefs
+
+@[expose] public section
 
 /-!
 # Arithmetic and sample bounds for two-stage sketches

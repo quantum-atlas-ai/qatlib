@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.WalkDefs
+module
+
+public import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.WalkDefs
+
+@[expose] public section
 
 /-!
 # Weighted Gram states and swap compression
@@ -101,7 +105,7 @@ theorem normFactor_sq_mul (G : GramData I) :
 numbers. -/
 theorem inv_eq_normFactor_mul (G : GramData I) :
     ((G.C)⁻¹ : ℂ) = G.normFactor * G.normFactor := by
-  rw [show ((G.C)⁻¹ : ℂ) = ((G.C : ℂ))⁻¹ from by push_cast; ring]
+  rw [show ((G.C)⁻¹ : ℂ) = ((G.C : ℂ))⁻¹ from by  ring]
   exact inv_eq_of_mul_eq_one_left G.normFactor_sq_mul
 
 /-- Defines the weighted state supported on pairs whose first coordinate is `j`, with amplitudes
@@ -122,13 +126,13 @@ theorem gramState_mod (j a b : I) :
           G.normFactor * G.normFactor * (((‖G.H j b‖ * G.d b / G.d j : ℝ)) : ℂ)
         else 0 := by
   by_cases ha : a = j
-  · simp only [gramState_apply, if_pos ha, map_mul, G.normFactor_conj]
+  · simp only [gramState_apply, ite_eq_left ha, map_mul, G.normFactor_conj]
     calc G.normFactor * (starRingEnd ℂ) (G.s j b) * (G.normFactor * G.s j b)
         = (G.normFactor * G.normFactor) *
             ((starRingEnd ℂ) (G.s j b) * G.s j b) := by ring
       _ = G.normFactor * G.normFactor *
             (((‖G.H j b‖ * G.d b / G.d j : ℝ)) : ℂ) := by rw [G.s_mod j b]
-  · simp [gramState_apply, if_neg ha]
+  · simp [gramState_apply, ite_eq_right ha]
 
 /-- The Gram states have inner product one for equal labels and zero for distinct labels. -/
 theorem inner_gramState_self (j k : I) :
@@ -141,13 +145,13 @@ theorem inner_gramState_self (j k : I) :
         = if a = j then (G.normFactor * G.normFactor * (G.C : ℂ)) else 0 := by
       intro a
       by_cases ha : a = j
-      · rw [if_pos ha]
+      · rw [ite_eq_left ha]
         have hb : ∀ b : I,
             (starRingEnd ℂ) (G.gramState j (a, b)) * G.gramState j (a, b)
               = (G.normFactor * G.normFactor) *
                   (((‖G.H j b‖ * G.d b / G.d j : ℝ)) : ℂ) := by
           intro b
-          rw [G.gramState_mod j a b, if_pos ha]
+          rw [G.gramState_mod j a b, ite_eq_left ha]
         rw [Finset.sum_congr rfl (fun b _ => hb b), ← Finset.mul_sum]
         have hsum : ∑ b : I, (((‖G.H j b‖ * G.d b / G.d j : ℝ)) : ℂ) = (G.C : ℂ) := by
           have hsumR : ∑ b : I, (‖G.H j b‖ * G.d b / G.d j) = G.C := by
@@ -155,25 +159,25 @@ theorem inner_gramState_self (j k : I) :
             exact mul_div_cancel_right₀ G.C (ne_of_gt (G.d_pos j))
           rw [← Complex.ofReal_sum, hsumR]
         rw [hsum]
-      · rw [if_neg ha]
+      · rw [ite_eq_right ha]
         refine Finset.sum_eq_zero (fun b _ => ?_)
-        rw [G.gramState_mod j a b, if_neg ha]
+        rw [G.gramState_mod j a b, ite_eq_right ha]
     rw [Finset.sum_congr rfl (fun a _ => hrow a), Finset.sum_eq_single j]
     · simpa using G.normFactor_sq_mul
-    · intro a _ ha; rw [if_neg ha]
+    · intro a _ ha; rw [ite_eq_right ha]
     · intro h; exact absurd (Finset.mem_univ j) h
   · have hrow : ∀ a : I, ∑ b : I,
         (starRingEnd ℂ) (G.gramState j (a, b)) * G.gramState k (a, b) = 0 := by
       intro a
       by_cases ha : a = j
       · refine Finset.sum_eq_zero (fun b _ => ?_)
-        rw [gramState_apply, if_pos ha]
-        rw [gramState_apply, if_neg (fun e => hjk (ha.symm.trans e))]
+        rw [gramState_apply, ite_eq_left ha]
+        rw [gramState_apply, ite_eq_right (fun e => hjk (ha.symm.trans e))]
         simp
       · refine Finset.sum_eq_zero (fun b _ => ?_)
-        rw [gramState_apply, if_neg ha]
+        rw [gramState_apply, ite_eq_right ha]
         simp
-    rw [Finset.sum_eq_zero (fun a _ => hrow a), if_neg hjk]
+    rw [Finset.sum_eq_zero (fun a _ => hrow a), ite_eq_right hjk]
 
 /-- The inner product of a Gram state with a swapped Gram state is the corresponding entry of
 `G.H` divided by `G.C`. -/
@@ -187,34 +191,34 @@ theorem inner_gramState_swap (j k : I) :
       = if a = j then G.normFactor * G.normFactor * G.H j k else 0 := by
     intro a
     by_cases ha : a = j
-    · rw [if_pos ha]
+    · rw [ite_eq_left ha]
       have hb : ∀ b : I,
           (starRingEnd ℂ) (G.gramState j (a, b))
             * (fun p : I × I => G.gramState k (Prod.swap p)) (a, b)
           = if b = k then G.normFactor * G.normFactor * G.H j k else 0 := by
         intro b
-        rw [gramState_apply, if_pos ha]
+        rw [gramState_apply, ite_eq_left ha]
         show (starRingEnd ℂ) (G.normFactor * G.s j b) * G.gramState k (b, a) = _
         rw [gramState_apply]
         by_cases hbk : b = k
-        · simp only [if_pos hbk]
+        · simp only [ite_eq_left hbk]
           rw [hbk, ha]
           calc (starRingEnd ℂ) (G.normFactor * G.s j k) * (G.normFactor * G.s k j)
               = (G.normFactor * G.normFactor) *
                   ((starRingEnd ℂ) (G.s j k) * G.s k j) := by
                 rw [map_mul, G.normFactor_conj]; ring
             _ = G.normFactor * G.normFactor * G.H j k := by rw [G.s_cross]
-        · simp [if_neg hbk]
+        · simp [ite_eq_right hbk]
       rw [Finset.sum_congr rfl (fun b _ => hb b), Finset.sum_eq_single k]
-      · rw [if_pos rfl]
-      · intro b _ hbk; rw [if_neg hbk]
+      · rw [ite_eq_left rfl]
+      · intro b _ hbk; rw [ite_eq_right hbk]
       · intro h; exact absurd (Finset.mem_univ k) h
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       refine Finset.sum_eq_zero (fun b _ => ?_)
-      rw [gramState_apply, if_neg ha]; simp
+      rw [gramState_apply, ite_eq_right ha]; simp
   rw [Finset.sum_congr rfl (fun a _ => hrow a), Finset.sum_eq_single j]
-  · rw [if_pos rfl, G.inv_eq_normFactor_mul]
-  · intro a _ ha; rw [if_neg ha]
+  · rw [ite_eq_left rfl, G.inv_eq_normFactor_mul]
+  · intro a _ ha; rw [ite_eq_right ha]
   · intro h; exact absurd (Finset.mem_univ j) h
 
 /-- Defines the matrix whose column indexed by `j` is the Gram state `G.gramState j`. -/

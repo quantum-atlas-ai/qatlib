@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstStat
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasQuan
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+module
+
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstStat
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasQuan
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+@[expose] public section
 
 /-!
 # Median-of-means estimation of hybrid observables

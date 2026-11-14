@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.CausalPolicy
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.CausalPolicy
+
+@[expose] public section
 
 /-!
 # Controller Presentations
@@ -101,8 +105,8 @@ theorem StoppingPolicy.toCausal_labelRisk {n : ℕ} {H : Type} [MeasurableSpace 
   | dispatch m pick meas branches ih => exact ih (pick h) ()
   | choose pick meas yes no ihY ihN =>
     by_cases hc : pick h=true
-    · simpa only [StoppingPolicy.toCausal, causalLabelRisk, stoppingLabelRisk, if_pos hc] using ihY h
-    · simpa only [StoppingPolicy.toCausal, causalLabelRisk, stoppingLabelRisk, if_neg hc] using ihN h
+    · simpa only [StoppingPolicy.toCausal, causalLabelRisk, stoppingLabelRisk, ite_eq_left hc] using ihY h
+    · simpa only [StoppingPolicy.toCausal, causalLabelRisk, stoppingLabelRisk, ite_eq_right hc] using ihN h
 
 /-- The stated copy-decision construction satisfies `stoppingPolicy_uniform_lower` with the complete displayed premises. -/
 theorem stoppingPolicy_uniform_lower {n : ℕ} {H : Type} [MeasurableSpace H]

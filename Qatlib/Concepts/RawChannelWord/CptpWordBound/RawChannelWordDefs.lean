@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+
+@[expose] public section
 
 /-!
 # Approximate channel words

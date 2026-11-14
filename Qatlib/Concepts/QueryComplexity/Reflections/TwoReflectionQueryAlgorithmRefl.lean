@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmStat
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmStat
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+
+@[expose] public section
 
 /-!
 # A query algorithm from dual-feasible witnesses
@@ -80,9 +84,9 @@ theorem twoReflectionQueryAlgorithm : TwoReflectionQueryAlgorithm := by
     rw [hs, reflections_trial_born] at he
     rw [hrun, he]
     cases hx : f x
-    · simp only [Bool.false_eq_true, if_false]
+    · simp only [Bool.false_eq_true, ite_false]
       exact reflections_false_power_mean input f v W hv hW Δ hΔ hker x hx
-    · simp only [if_true]
+    · simp only [ite_true]
       exact reflections_true_power_mean input f v W hv hW Δ hΔ hker x hx τ hτ
   obtain ⟨r, hr, D, E, hD, hDQ, hDG, hsuccess⟩ :=
     reflections_amplified_actual X n hn input f j C hC S hgap

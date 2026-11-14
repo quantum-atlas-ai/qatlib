@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+module
+
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+@[expose] public section
 
 /-!
 # Auxiliary laws for raw graph execution
@@ -191,11 +195,11 @@ theorem mbqcRawTailLeaf_correction {n L : ℕ} (G : GraphWord n L) (h : GraphHis
     cases hg : G t with
     | inl p =>
       obtain ⟨i,z⟩ := p
-      simp only [graphTailLeaf,mbqcRawTailLeaf,hg,if_true,graphFrameAdvance,
+      simp only [graphTailLeaf,mbqcRawTailLeaf,hg,ite_true,graphFrameAdvance,
         ObservedKrausLeaf.prepend,List.foldl_cons,ih,Matrix.mul_assoc]
     | inr p =>
       obtain ⟨i,j⟩ := p
-      simpa only [graphTailLeaf,mbqcRawTailLeaf,hg,if_true,graphFrameAdvance,
+      simpa only [graphTailLeaf,mbqcRawTailLeaf,hg,ite_true,graphFrameAdvance,
         List.foldl_cons] using! ih (graphCzFrame F i j)
 
 /-- The corrected graph-program operator is the raw leaf operator preceded by the correction
@@ -203,7 +207,7 @@ gates for the final Pauli frame. -/
 theorem mbqcRawLeaf_correction {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
     (graphProgramLeaf true G h).operator =
       graphGateProduct (graphCorrectionGates G (graphFinalFrame G h))*(mbqcRawLeaf G h).operator := by
-  simp only [graphProgramLeaf_eq,if_true,mbqcRawLeaf_eq,graphPrependLeaf_operator,
+  simp only [graphProgramLeaf_eq,ite_true,mbqcRawLeaf_eq,graphPrependLeaf_operator,
     mbqcRawTailLeaf_correction,graphFinalFrame,Matrix.mul_assoc]
 
 /-- The ordered graph product of a list of unitary operators is unitary. -/
@@ -235,7 +239,7 @@ theorem mbqcRawLeaf_columns {n L : ℕ} (G : GraphWord n L)
         (graphLogicalTailB G h ts (zeroPauliFrame n)*graphInitialLogicalRows n) := by
     have hleaf := ((preentangled_graph_actual_leaf_retiming n L G hlegal).2.2 h).1
     rw [← hleaf,graphProgramLeaf_eq]
-    simp only [Bool.false_eq_true,if_false,graphPrependLeaf_operator,Matrix.mul_assoc]
+    simp only [Bool.false_eq_true,ite_false,graphPrependLeaf_operator,Matrix.mul_assoc]
     rw [graphFreshPreparation]
     exact ht.1
   let C := graphGateProduct (graphCorrectionGates G (graphFinalFrame G h))

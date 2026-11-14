@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.LiftedDynamics.ResidualDynamics
-import Qatlib.Concepts.KoopmanFlow.FlowAction
+module
+
+public import Qatlib.Papers.KoopmanSim26.LiftedDynamics.ResidualDynamics
+public import Qatlib.Concepts.KoopmanFlow.FlowAction
+
+@[expose] public section
 
 /-!
 # Finite lifted closure and residual bounds

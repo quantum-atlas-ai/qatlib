@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.Data.Matrix.PEquiv
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.Data.Matrix.PEquiv
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # The graph-isomorphism cost function
@@ -194,10 +198,10 @@ theorem transpose_permMatrix_conj_adjMatrix {N : ℕ} (G G' : SimpleGraph (Fin N
     f.symm.map_rel_iff
   by_cases h : G'.Adj i j
   · have h' : G.Adj (f.toEquiv.symm i) (f.toEquiv.symm j) := hiff.mpr h
-    rw [if_pos h', if_pos h]
+    rw [ite_eq_left h', ite_eq_left h]
   · have h' : ¬ G.Adj (f.toEquiv.symm i) (f.toEquiv.symm j) := by
       rw [hiff]; exact h
-    rw [if_neg h', if_neg h]
+    rw [ite_eq_right h', ite_eq_right h]
 
 /-- Permutation conjugacy of the integer adjacency matrices is equivalent to graph isomorphism. -/
 theorem matIso_adjMatrix_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
@@ -256,7 +260,7 @@ theorem sigmaMat_eq_transpose_permMatrix {N : ℕ} (s : IntStr N)
   · have hv : (i.val : ℤ) = ((s j).val : ℤ) := by
       have hival : i.val = (s j).val := by rw [← hk, hval]
       exact_mod_cast hival
-    rw [if_pos hv, if_pos hk]
+    rw [ite_eq_left hv, ite_eq_left hk]
   · have hne : (i.val : ℤ) ≠ ((s j).val : ℤ) := by
       intro hv
       apply hk
@@ -264,7 +268,7 @@ theorem sigmaMat_eq_transpose_permMatrix {N : ℕ} (s : IntStr N)
       have hv' : i.val = (s j).val := by exact_mod_cast hv
       rw [hval]
       exact hv'.symm
-    rw [if_neg hne, if_neg hk]
+    rw [ite_eq_right hne, ite_eq_right hk]
 
 /-- A zero-cost integer string exists if and only if the two graphs are isomorphic. -/
 theorem gi_cop_zero_iff {N : ℕ} (G G' : SimpleGraph (Fin N))

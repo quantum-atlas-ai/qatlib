@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliBasis
-import Qatlib.Papers.KoopmanSim26.SpectralRep.UniversalApproximation
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliBasis
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.UniversalApproximation
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Pauli-Z and tensor rotation realization

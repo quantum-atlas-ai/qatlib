@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
+
+@[expose] public section
 
 /-!
 # Controlled-Z branch semantics on concrete inputs

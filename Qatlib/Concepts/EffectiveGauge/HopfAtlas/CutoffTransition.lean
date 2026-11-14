@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffReciprocal
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffReciprocal
+
+@[expose] public section
 
 /-! # Computed derivative bounds for the actual smooth transition and unit cutoff -/
 set_option autoImplicit false
@@ -84,7 +88,7 @@ theorem unitGluingCutoff_derivative_bound (eta : ℚ) (he : 0<eta) (n : ℕ) (x 
       _ ≤ a^n*(cutoffTransitionMajorant n : ℝ) :=
         mul_le_mul_of_nonneg_left (cutoffTransition_derivative_bound n (a*(x-b))) (pow_nonneg ha.le _)
       _ = (cutoffUnitMajorant eta n : ℝ) := by
-        simp only [cutoffUnitMajorant,if_neg hn,Rat.cast_mul,Rat.cast_pow,Rat.cast_div,
+        simp only [cutoffUnitMajorant,ite_eq_right hn,Rat.cast_mul,Rat.cast_pow,Rat.cast_div,
           Rat.cast_ofNat,Rat.cast_natCast]
         rfl
 

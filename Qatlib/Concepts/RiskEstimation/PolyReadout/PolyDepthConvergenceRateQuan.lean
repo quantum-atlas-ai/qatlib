@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateStat
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateStat
+
+@[expose] public section
 
 /-!
 # Polynomial readout convergence rates

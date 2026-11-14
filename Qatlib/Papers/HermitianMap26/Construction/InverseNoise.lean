@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.CanonicalCompilation
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.CanonicalCompilation
+
+@[expose] public section
 
 /-!
 # Unbiased estimation through inverse noise

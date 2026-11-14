@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.AdiabaticTheorem
-import Qatlib.Papers.LocalHam06.MainResults.QmaComplete
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.AdiabaticTheorem
+public import Qatlib.Papers.LocalHam06.MainResults.QmaComplete
+
+@[expose] public section
 
 /-!
 # Operator-path estimates and endpoint energy promises
@@ -32,6 +36,7 @@ set_option backward.isDefEq.respectTransparency false
 noncomputable section
 
 set_option maxHeartbeats 800000
+set_option linter.unusedSectionVars false
 
 open scoped Classical BigOperators Kronecker ComplexOrder
 open InnerProductSpace Matrix

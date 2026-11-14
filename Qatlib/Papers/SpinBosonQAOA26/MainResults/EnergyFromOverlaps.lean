@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,12 +73,12 @@ lemma sum_fin_three_blocks {M : Type*} [AddCommMonoid M] {p : ℕ}
   have hFapply : ∀ j : Fin (2 * p + 1), F (j : ℕ) = f j := by
     intro j
     rw [hF]
-    simp only [dif_pos j.isLt]
+    simp only [dite_eq_left j.isLt]
   have hpos : (∑ r : Fin p, f (posIdx p r)) = ∑ k ∈ Finset.range p, F k := by
     have hr : ∀ r : Fin p, f (posIdx p r) = F (r : ℕ) := by
       intro r
       rw [hF]
-      simp only [dif_pos (show (r : ℕ) < 2 * p + 1 by omega)]
+      simp only [dite_eq_left (show (r : ℕ) < 2 * p + 1 by omega)]
       congr 1
     have hs : (∑ r : Fin p, f (posIdx p r)) = ∑ r : Fin p, F (r : ℕ) :=
       Finset.sum_congr rfl fun r _ => hr r
@@ -84,7 +88,7 @@ lemma sum_fin_three_blocks {M : Type*} [AddCommMonoid M] {p : ℕ}
     have hr : ∀ r : Fin p, f (negIdx p r) = F (2 * p - (r : ℕ)) := by
       intro r
       rw [hF]
-      simp only [dif_pos (show 2 * p - (r : ℕ) < 2 * p + 1 by omega)]
+      simp only [dite_eq_left (show 2 * p - (r : ℕ) < 2 * p + 1 by omega)]
       congr 1
     have hs : (∑ r : Fin p, f (negIdx p r)) = ∑ r : Fin p, F (2 * p - (r : ℕ)) :=
       Finset.sum_congr rfl fun r _ => hr r
@@ -106,7 +110,7 @@ lemma sum_fin_three_blocks {M : Type*} [AddCommMonoid M] {p : ℕ}
     rw [hcongr, hrefl]
   have hzero : f (zeroIdx p) = F p := by
     rw [hF]
-    simp only [dif_pos (show p < 2 * p + 1 by omega)]
+    simp only [dite_eq_left (show p < 2 * p + 1 by omega)]
     congr 1
   have hsum_range : (∑ j : Fin (2 * p + 1), f j) = ∑ k ∈ Finset.range (2 * p + 1), F k := by
     have hs : (∑ j : Fin (2 * p + 1), f j)

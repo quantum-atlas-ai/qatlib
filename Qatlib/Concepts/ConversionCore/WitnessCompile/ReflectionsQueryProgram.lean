@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.QueryComplexity.Amplification.ParallelCopies
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
-import Qatlib.Concepts.QueryComplexity.Reflections.ReflectionsPhaseBridge
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.QueryComplexity.Amplification.ParallelCopies
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+public import Qatlib.Concepts.QueryComplexity.Reflections.ReflectionsPhaseBridge
+
+@[expose] public section
 
 /-!
 # Counted bit-query programs for reflection algorithms
@@ -431,6 +435,7 @@ theorem reflectionsFrame_normalized (addr : H → Fin n) (ψ : QState (A × H))
 def reflectionsTrialStart (τ : ℕ) (r : QState H) : QState ((Fin τ × Bool) × H) :=
   TensorState (TensorState (Uniform (Fin τ)) Plus) r
 
+omit [DecidableEq H] in
 /-- The trial start state is normalized when the clock is nonempty and `r` is normalized. -/
 theorem reflectionsTrialStart_normalized (τ : ℕ) (hτ : 0 < τ)
     (r : QState H) (hr : Normalized r) : Normalized (reflectionsTrialStart τ r) :=
@@ -574,7 +579,7 @@ variable {n k : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
 /-- Swaps the shared query register with the query register of copy `j`, leaving that copy's
 workspace unchanged. -/
-private def copySwap (j : Fin k)
+def copySwap (j : Fin k)
     (z : (Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   ((z.2 j).1, Function.update z.2 j (z.1, (z.2 j).2))
 
@@ -591,7 +596,7 @@ private theorem copySwap_involutive (j : Fin k) : Function.Involutive (copySwap 
     · simp [copySwap]
 
 /-- The permutation gate routing the shared query register to copy `j`. -/
-private noncomputable def copySwapGate (j : Fin k) := permMatrix (copySwap (n := n) (W := W) j)
+noncomputable def copySwapGate (j : Fin k) := permMatrix (copySwap (n := n) (W := W) j)
 
 /-- The query-routing swap gate is unitary. -/
 private theorem copySwapGate_unitary (j : Fin k) :
@@ -699,6 +704,7 @@ private theorem copies_list_unitary {C : Circuit ((Fin n × Bool) × W)}
     simp only [List.flatMap_cons, isUnitaryCircuit_append]
     exact ⟨standardCopyCircuit_unitary j hC, ih⟩
 
+omit [Fintype W] in
 /-- The query count of a list of routed copies is the list length times the original query
 count. -/
 private theorem copies_list_queries (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :
@@ -707,6 +713,7 @@ private theorem copies_list_queries (C : Circuit ((Fin n × Bool) × W)) (L : Li
   | nil => simp
   | cons j L ih => simp [queryCount_append, standardCopyCircuit_queries, ih, Nat.succ_mul, Nat.add_comm]
 
+omit [Fintype W] in
 /-- A list of routed copies uses its length times the original gate count plus twice the
 original query count per copy. -/
 private theorem copies_list_gates (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :

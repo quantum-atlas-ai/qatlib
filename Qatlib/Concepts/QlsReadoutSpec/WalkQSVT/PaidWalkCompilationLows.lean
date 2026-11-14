@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PaidWalkCompilationStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PaidWalkCompilationStat
+
+@[expose] public section
 
 /-!
 # Compilation of paid quantum walks
@@ -64,23 +68,23 @@ private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     intro k
     by_cases h1 : p.2 = k.2
     · by_cases h2 : k.2 = t.2
-      · rw [if_pos (And.intro h1 h2)]
-        rw [controlled_apply, controlled_apply, if_pos h1, if_pos h2]
+      · rw [ite_eq_left (And.intro h1 h2)]
+        rw [controlled_apply, controlled_apply, ite_eq_left h1, ite_eq_left h2]
         by_cases hT : p.2 ∈ T
         · have hTk : k.2 ∈ T := h1 ▸ hT
-          rw [if_pos hT, if_pos hTk, if_pos hT]
+          rw [ite_eq_left hT, ite_eq_left hTk, ite_eq_left hT]
         · have hTk : k.2 ∉ T := fun hkT => hT (h1 ▸ hkT)
-          rw [if_neg hT, if_neg hTk, if_neg hT]
+          rw [ite_eq_right hT, ite_eq_right hTk, ite_eq_right hT]
           by_cases ha : p.1 = k.1 <;> by_cases hb : k.1 = t.1 <;> simp [ha, hb]
-      · rw [if_neg (fun h => h2 h.2)]
-        rw [controlled_apply, controlled_apply, if_pos h1, if_neg h2, mul_zero]
-    · rw [if_neg (fun h => h1 h.1)]
-      rw [controlled_apply, controlled_apply, if_neg h1, zero_mul]
+      · rw [ite_eq_right (fun h => h2 h.2)]
+        rw [controlled_apply, controlled_apply, ite_eq_left h1, ite_eq_right h2, mul_zero]
+    · rw [ite_eq_right (fun h => h1 h.1)]
+      rw [controlled_apply, controlled_apply, ite_eq_right h1, zero_mul]
   rw [Finset.sum_congr rfl (fun k _ => hterm k)]
   by_cases hk : p.2 = t.2
   · have hR : controlled (A * B) T p t
         = if p.2 ∈ T then (A * B) p.1 t.1 else if p.1 = t.1 then (1 : ℂ) else 0 := by
-      rw [controlled_apply, if_pos hk]
+      rw [controlled_apply, ite_eq_left hk]
     have hc : ∀ k : Space H r, (p.2 = k.2 ∧ k.2 = t.2) ↔ k.2 = p.2 := by
       intro k
       constructor
@@ -89,24 +93,24 @@ private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
       · intro hk2
         exact ⟨hk2.symm, hk2.trans hk⟩
     by_cases hT : p.2 ∈ T
-    · rw [hR, if_pos hT, Matrix.mul_apply]
-      simp only [hc, if_pos hT]
+    · rw [hR, ite_eq_left hT, Matrix.mul_apply]
+      simp only [hc, ite_eq_left hT]
       rw [show (∑ x : Space H r, if x.2 = p.2 then A p.1 x.1 * B x.1 t.1 else 0)
           = (∑ x : H, ∑ y : Fin r, if y = p.2 then A p.1 x * B x t.1 else 0) from
         Fintype.sum_prod_type' (fun x y => if y = p.2 then A p.1 x * B x t.1 else 0)]
       refine Finset.sum_congr rfl (fun x _ => ?_)
       rw [Finset.sum_ite_eq_of_mem' (Finset.univ) p.2 (fun _ => A p.1 x * B x t.1)
         (Finset.mem_univ _)]
-    · rw [hR, if_neg hT]
-      simp only [hc, if_neg hT]
+    · rw [hR, ite_eq_right hT]
+      simp only [hc, ite_eq_right hT]
       by_cases hp : p.1 = t.1
-      · rw [if_pos hp]
+      · rw [ite_eq_left hp]
         have hite : ∀ x : H,
             (if p.1 = x ∧ x = t.1 then (1 : ℂ) else 0) = if x = t.1 then 1 else 0 := by
           intro x
           by_cases hx : x = t.1
-          · rw [if_pos hx, if_pos ⟨hp.trans hx.symm, hx⟩]
-          · rw [if_neg hx, if_neg (fun h => hx h.2)]
+          · rw [ite_eq_left hx, ite_eq_left ⟨hp.trans hx.symm, hx⟩]
+          · rw [ite_eq_right hx, ite_eq_right (fun h => hx h.2)]
         rw [show (∑ x : Space H r, if x.2 = p.2 then
               (if p.1 = x.1 ∧ x.1 = t.1 then (1 : ℂ) else 0) else 0)
             = (∑ x : H, ∑ y : Fin r, if y = p.2 then
@@ -124,7 +128,7 @@ private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
           Finset.sum_congr rfl (fun x _ => hite x)]
         rw [Finset.sum_ite_eq_of_mem' (Finset.univ) t.1 (fun _ => (1 : ℂ))
           (Finset.mem_univ _)]
-      · rw [if_neg hp]
+      · rw [ite_eq_right hp]
         rw [show (∑ x : Space H r, if x.2 = p.2 then
               (if p.1 = x.1 ∧ x.1 = t.1 then (1 : ℂ) else 0) else 0) = 0 by
           rw [Fintype.sum_prod_type' (fun x y =>
@@ -132,12 +136,12 @@ private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
           refine Finset.sum_eq_zero (fun x _ => ?_)
           rw [Finset.sum_ite_eq_of_mem' (Finset.univ) p.2
             (fun _ => if p.1 = x ∧ x = t.1 then (1 : ℂ) else 0) (Finset.mem_univ _)]
-          rw [if_neg (fun h : p.1 = x ∧ x = t.1 => hp (h.1.trans h.2))]]
+          rw [ite_eq_right (fun h : p.1 = x ∧ x = t.1 => hp (h.1.trans h.2))]]
   · have hR : controlled (A * B) T p t = 0 := by
-      rw [controlled_apply, if_neg hk]
+      rw [controlled_apply, ite_eq_right hk]
     rw [hR]
     refine Finset.sum_eq_zero (fun k _ => ?_)
-    rw [if_neg (fun h : p.2 = k.2 ∧ k.2 = t.2 => hk (h.1.trans h.2))]
+    rw [ite_eq_right (fun h : p.2 = k.2 ∧ k.2 = t.2 => hk (h.1.trans h.2))]
 
 /-- Controlling the identity matrix gives the identity matrix. -/
 private theorem controlled_one {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
@@ -146,15 +150,15 @@ private theorem controlled_one {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   ext p t
   simp only [controlled_apply, Matrix.one_apply]
   by_cases hk : p.2 = t.2
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     have hbranch : (if p.2 ∈ T then (if p.1 = t.1 then (1 : ℂ) else 0)
         else (if p.1 = t.1 then 1 else 0)) = if p.1 = t.1 then 1 else 0 := by
       by_cases hT : p.2 ∈ T <;> simp [hT]
     rw [hbranch]
     by_cases hp : p.1 = t.1
-    · rw [if_pos hp, if_pos (Prod.ext hp hk)]
-    · rw [if_neg hp, if_neg (fun he => hp (congrArg Prod.fst he))]
-  · rw [if_neg hk, if_neg (fun he => hk (congrArg Prod.snd he))]
+    · rw [ite_eq_left hp, ite_eq_left (Prod.ext hp hk)]
+    · rw [ite_eq_right hp, ite_eq_right (fun he => hp (congrArg Prod.fst he))]
+  · rw [ite_eq_right hk, ite_eq_right (fun he => hk (congrArg Prod.snd he))]
 
 /-- Conjugate transpose commutes with the controlled-matrix construction. -/
 private theorem controlled_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}

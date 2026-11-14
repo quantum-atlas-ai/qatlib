@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityStat
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityStat
+
+@[expose] public section
 
 /-!
 # Finite payoff sources and Monte Carlo parameters
@@ -123,9 +127,13 @@ theorem bandBelowZero_add_bandAtLeastZero (v : ℝ) :
   · have hpos : 0 ≤ v := le_of_not_gt h
     simp [bandBelowZero, bandAtLeastZero, h, hpos]
 
+omit [Fintype X] [DecidableEq X] in
 /-- The center minus the expected negated negative band plus the expected nonnegative band
 equals the scaled payoff expectation. -/
-theorem algorithm3_reconstruction (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
+theorem algorithm3_reconstruction {X : Type}
+    [_m19inst0 : Fintype X]
+    [_m19inst1 : DecidableEq X]
+    (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
     m - p.expect (fun i => -(bandBelowZero (centeredPayoff f σ m i)))
         + p.expect (fun i => bandAtLeastZero (centeredPayoff f σ m i))
       = p.expect (fun i => f i / σ) := by
@@ -176,9 +184,13 @@ theorem pilot_chebyshev_one (p : FinDist X) (g : X → ℝ) (hg : p.variance g �
 noncomputable def tailAbove (p : FinDist X) (f : X → ℝ) (m : ℝ) : ℝ :=
   p.expect (fun x => if m ≤ f x then f x else 0)
 
+omit [Fintype X] [DecidableEq X] in
 /-- For a nonnegative payoff and positive threshold m, its retained upper-tail expectation is at
 most its second moment divided by m. -/
-theorem tailAbove_le_secondMoment_div (p : FinDist X) (f : X → ℝ)
+theorem tailAbove_le_secondMoment_div {X : Type}
+    [_m19inst0 : Fintype X]
+    [_m19inst1 : DecidableEq X]
+    (p : FinDist X) (f : X → ℝ)
     (hf : ∀ x, 0 ≤ f x) (m : ℝ) (hm : 0 < m) :
     tailAbove p f m ≤ p.expect (fun x => f x ^ 2) / m := by
   have hpoint : ∀ x, (if m ≤ f x then f x else 0) ≤ f x ^ 2 / m := by

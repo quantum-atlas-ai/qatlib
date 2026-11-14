@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Order
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Order
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Commute
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Square-root robustness of real polynomial QSVT
@@ -73,12 +79,12 @@ private theorem root_norm_of_order_bounds {I : Type} [Fintype I] [DecidableEq I]
     (hlo : algebraMap ℝ (Matrix I I ℂ) (-r) ≤ X)
     (hhi : X ≤ algebraMap ℝ (Matrix I I ℂ) r) : ‖X‖ ≤ r := by
   by_cases hI : Nonempty I
-  · letI := hI
-    rcases CStarAlgebra.norm_or_neg_norm_mem_spectrum (a := X) hX with h | h
+  · let _ := hI
+    rcases CStarAlgebra.norm_or_neg_norm_mem_spectrum X hX with h | h
     · exact (le_algebraMap_iff_spectrum_le hX).mp hhi _ h
     · have hh := (algebraMap_le_iff_le_spectrum hX).mp hlo _ h
       linarith
-  · letI : IsEmpty I := not_nonempty_iff.mp hI
+  · let _ : IsEmpty I := not_nonempty_iff.mp hI
     have hzero : X = 0 := by ext i; exact isEmptyElim i
     simpa [hzero] using hr
 
@@ -115,7 +121,8 @@ theorem positive_matrix_square_root_holder :
   have upper (X Y : Matrix I I ℂ) (hX : X.PosSemidef) (hY : Y.PosSemidef) :
       CFC.sqrt X - CFC.sqrt Y ≤
         algebraMap ℝ (Matrix I I ℂ) (Real.sqrt ‖X-Y‖) := by
-    have hXY := (hX.isHermitian.sub hY.isHermitian).isSelfAdjoint.le_algebraMap_norm_self
+    have hXY := IsSelfAdjoint.le_algebraMap_norm_self (X - Y)
+      (hX.isHermitian.sub hY.isHermitian)
     have hXY' : X ≤ Y + algebraMap ℝ (Matrix I I ℂ) ‖X-Y‖ := by
       simpa only [add_comm] using (sub_le_iff_le_add).mp hXY
     have h := (CFC.sqrt_le_sqrt _ _ hXY').trans

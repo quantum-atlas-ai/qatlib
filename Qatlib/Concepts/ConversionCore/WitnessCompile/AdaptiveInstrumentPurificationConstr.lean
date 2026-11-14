@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Data.List.GetD
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Register constructions for adaptive purification
@@ -67,9 +71,9 @@ theorem sourcePermMatrix_conjTranspose {T : Type} [Fintype T] [DecidableEq T]
   ext i j
   simp only [Matrix.conjTranspose_apply,permMatrix,Matrix.of_apply]
   by_cases h : j=e i
-  · rw [if_pos h,star_one,if_pos]
+  · rw [ite_eq_left h,star_one,ite_eq_left]
     exact ((congrArg e.symm h).trans (Equiv.symm_apply_apply e i)).symm
-  · rw [if_neg h,star_zero,if_neg]
+  · rw [ite_eq_right h,star_zero,ite_eq_right]
     intro hi
     exact h ((Equiv.symm_apply_eq e).mp hi.symm)
 end
@@ -301,7 +305,7 @@ theorem sourcePurifyGate_mul {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
   simp only [sourcePurifyGate,Matrix.mul_apply]
   by_cases h : l=l' ∧ w=w'
   · obtain ⟨rfl,rfl⟩ := h
-    rw [if_pos ⟨rfl,rfl⟩]
+    rw [ite_eq_left ⟨rfl,rfl⟩]
     have key : ∀ x : Fin L × SourceSpace n q H r × Fin (n+1),
         (if l=x.1 ∧ w=x.2.2 then U s x.2.1 else 0)*(if x.1=l ∧ x.2.2=w then V x.2.1 s' else 0)=
         (if x.1=l ∧ x.2.2=w then U s x.2.1*V x.2.1 s' else 0) := by
@@ -310,20 +314,20 @@ theorem sourcePurifyGate_mul {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
         (if l''=l ∧ w''=w then U s s''*V s'' s' else 0)
       by_cases h1 : l=l'' ∧ w=w''
       · obtain ⟨rfl,rfl⟩ := h1
-        rw [if_pos ⟨rfl,rfl⟩,if_pos ⟨rfl,rfl⟩,if_pos ⟨rfl,rfl⟩]
+        rw [ite_eq_left ⟨rfl,rfl⟩,ite_eq_left ⟨rfl,rfl⟩,ite_eq_left ⟨rfl,rfl⟩]
       · have h2 : ¬(l''=l ∧ w''=w) := fun ⟨a,b⟩ => h1 ⟨a.symm,b.symm⟩
         simp [h1,h2]
     rw [Finset.sum_congr rfl (fun x _ => key x),sourcePurifyGate_sum
       (fun l'' s'' w'' => U s s''*V s'' s') l w]
-  · rw [if_neg h,eq_comm]
+  · rw [ite_eq_right h,eq_comm]
     apply Finset.sum_eq_zero
     intro ⟨l'',s'',w''⟩ _
     by_cases h1 : l=l'' ∧ w=w''
     · obtain ⟨rfl,rfl⟩ := h1
       by_cases h2 : l=l' ∧ w=w'
       · exact absurd h2 h
-      · rw [if_pos ⟨rfl,rfl⟩,if_neg h2,mul_zero]
-    · rw [if_neg h1,zero_mul]
+      · rw [ite_eq_left ⟨rfl,rfl⟩,ite_eq_right h2,mul_zero]
+    · rw [ite_eq_right h1,zero_mul]
 end
 noncomputable section
 
@@ -336,7 +340,7 @@ theorem sourcePurifyGate_one {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
   by_cases h : l=l' ∧ w=w'
   · obtain ⟨rfl,rfl⟩ := h
     by_cases hs : s=s' <;> simp [hs]
-  · rw [if_neg h,if_neg]
+  · rw [ite_eq_right h,ite_eq_right]
     exact fun hh => h ⟨hh.1,hh.2.2⟩
 end
 noncomputable section
@@ -351,7 +355,7 @@ theorem sourcePurifyGate_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {n
   by_cases h : l=l' ∧ w=w'
   · obtain ⟨rfl,rfl⟩ := h
     simp
-  · rw [if_neg (fun hh => h ⟨hh.1.symm,hh.2.symm⟩),if_neg h,star_zero]
+  · rw [ite_eq_right (fun hh => h ⟨hh.1.symm,hh.2.symm⟩),ite_eq_right h,star_zero]
 end
 noncomputable section
 
@@ -414,11 +418,11 @@ theorem sourcePurifyIn_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
   simp only [sourcePurifyIn,sourceBasisFrame,Matrix.mulVec,dotProduct]
   rw [Finset.sum_eq_single s]
   · by_cases h : (l,s,w)=(⟨0,hL⟩,s,⟨n,Nat.lt_succ_self n⟩)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       simp only [Prod.mk.injEq] at h
-      rw [if_pos ⟨h.1,h.2.2⟩]
+      rw [ite_eq_left ⟨h.1,h.2.2⟩]
       simp
-    · rw [if_neg h,if_neg]
+    · rw [ite_eq_right h,ite_eq_right]
       · simp
       · intro hh
         exact h (Prod.ext hh.1 (Prod.ext rfl hh.2))
@@ -442,11 +446,11 @@ theorem sourcePurifyOut_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : 
   simp only [sourcePurifyOut,sourceBasisFrame,Matrix.mulVec,dotProduct]
   rw [Finset.sum_eq_single (l,s)]
   · by_cases h : (l,s,w)=(l,s,⟨n,Nat.lt_succ_self n⟩)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       simp only [Prod.mk.injEq] at h
-      rw [if_pos h.2.2]
+      rw [ite_eq_left h.2.2]
       simp
-    · rw [if_neg h,if_neg]
+    · rw [ite_eq_right h,ite_eq_right]
       · simp
       · intro hh
         exact h (Prod.ext rfl (Prod.ext rfl hh))
@@ -471,13 +475,13 @@ theorem sourceBasisFrame_commute_mul {S T : Type} [Fintype S] [DecidableEq S] [F
   ext s t
   simp only [Matrix.mul_apply,sourceBasisFrame]
   rw [Finset.sum_eq_single (c t)]
-  · rw [if_pos rfl,mul_one]
+  · rw [ite_eq_left rfl,mul_one]
     by_cases hs : ∃ t₀, s=c t₀
     · obtain ⟨t₀,rfl⟩ := hs
       rw [h1,Finset.sum_eq_single t₀]
-      · rw [if_pos rfl,one_mul]
+      · rw [ite_eq_left rfl,one_mul]
       · intro t' _ ht'
-        rw [if_neg (fun hh => ht' ((hc hh).symm)),zero_mul]
+        rw [ite_eq_right (fun hh => ht' ((hc hh).symm)),zero_mul]
       · simp
     · rw [h2 s t (fun t₀ ht₀ => hs ⟨t₀,ht₀⟩)]
       symm
@@ -485,9 +489,9 @@ theorem sourceBasisFrame_commute_mul {S T : Type} [Fintype S] [DecidableEq S] [F
       intro t' _
       by_cases h' : s=c t'
       · exact absurd ⟨t',h'⟩ hs
-      · rw [if_neg h',zero_mul]
+      · rw [ite_eq_right h',zero_mul]
   · intro y _ hyt
-    rw [if_neg hyt,mul_zero]
+    rw [ite_eq_right hyt,mul_zero]
   · simp
 end
 noncomputable section
@@ -589,8 +593,8 @@ theorem sourcePurifyFlip_conj {X H : Type} [Fintype X] [DecidableEq X]
       by_cases h : z = ⇑(sourcePurifyLift (H:=H) (n:=n) (q:=q) (r:=r) (L:=L)
           (sourceSmallShift (r:=r) input x)) y
       · simp [h,hlift]
-      · rw [if_neg h,star_zero]
-        refine if_neg (fun hh => h ?_)
+      · rw [ite_eq_right h,star_zero]
+        refine ite_eq_right (fun hh => h ?_)
         rw [hlift z] at hh
         have hy : ⇑(sourcePurifyLift (H:=H) (n:=n) (q:=q) (r:=r) (L:=L)
             (sourceSmallShift (r:=r) input x)) y = z := by

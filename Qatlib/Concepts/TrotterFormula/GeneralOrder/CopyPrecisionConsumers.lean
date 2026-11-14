@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+
+@[expose] public section
 
 /-!
 # Concrete copy-based simulation and coherence
@@ -63,7 +67,7 @@ private theorem bell_norm_sq : ‖((Real.sqrt 2 : ℂ)⁻¹)‖ ^ 2 = 1 / 2 := b
 private theorem normalized_copyEvolutionBellInput : Normalized copyEvolutionBellInput := by
   show ∑ p : Fin 2 × Fin 2, ‖copyEvolutionBellInput p‖ ^ 2 = 1
   rw [Fintype.sum_prod_type]
-  simp only [copyEvolutionBellInput, Fin.isValue, Fin.sum_univ_two, bell_norm_sq]
+  simp only [copyEvolutionBellInput, Fin.isValue, Fin.sum_univ_two]
   norm_num
 
 /-- The Bell comparison matrix is positive semidefinite. -/
@@ -211,7 +215,7 @@ square root of two. -/
 private theorem plusPure_apply (i : Fin 2) :
     ((Real.sqrt 2 : ℂ)⁻¹ • (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2) + Qatlib.Foundations.PureStateMath.Ket (1 : Fin 2))) i
       = (Real.sqrt 2 : ℂ)⁻¹ := by
-  fin_cases i <;> simp [Matrix.smul_apply, Matrix.add_apply, Qatlib.Foundations.PureStateMath.Ket]
+  fin_cases i <;> simp [ Qatlib.Foundations.PureStateMath.Ket]
 
 /-- Every entry of the outer product of the equally weighted two-basis-state superposition is
 the square of the inverse square root of two. -/

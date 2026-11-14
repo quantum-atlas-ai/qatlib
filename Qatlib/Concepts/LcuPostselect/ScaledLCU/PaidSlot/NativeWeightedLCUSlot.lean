@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+module
+
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+@[expose] public section
 
 /-!
 # Explicit weighted LCU query slots

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Rat.Defs
-import Mathlib.Algebra.BigOperators.Group.List.Basic
-import Lean.Elab.Tactic.Omega
+module
+
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+public import Lean.Elab.Tactic.Omega
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -134,7 +138,7 @@ theorem length_le_charge (model : PriceModel) (events : List Event) :
 theorem nonempty_charge_pos (model : PriceModel) (events : List Event)
     (hne : events ≠ []) : 0 < charge model events := by
   have hl : 0 < events.length := List.length_pos_iff.mpr hne
-  exact hl.trans_le (length_le_charge model events)
+  exact Nat.lt_of_lt_of_le hl (length_le_charge model events)
 
 /-- Unit primitive pricing counts precisely the complete actual event list. -/
 theorem unit_charge (events : List Event) : charge unitPrice events = events.length := by

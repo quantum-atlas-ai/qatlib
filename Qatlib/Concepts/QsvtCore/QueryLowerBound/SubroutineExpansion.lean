@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+module
+
+public import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+
+@[expose] public section
 
 /-!
 # Expansion of adjoint oracle subroutines

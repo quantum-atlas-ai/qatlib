@@ -19,7 +19,11 @@ that a coefficient can be computed in time O(…), are outside the scope
 of this file. Their formalization requires a model of computation with
 runtime accounting for Young-tableaux enumeration algorithms.
 -/
-import Qatlib.Papers.RepMultiplic25.MainResults.SytCore.Definitions
+module
+
+public import Qatlib.Papers.RepMultiplic25.MainResults.SytCore.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

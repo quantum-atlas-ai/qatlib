@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFramingDefs
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFramingDefs
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+
+@[expose] public section
 
 /-!
 # Round-trip laws for integer word framing

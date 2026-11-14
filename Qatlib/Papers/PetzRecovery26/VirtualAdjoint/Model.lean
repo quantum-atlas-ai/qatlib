@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Channels.CPTP
+module
+
+public import QuantumInfo.Channels.CPTP
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,36 +48,76 @@ variable {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
 /-- Entrywise complex conjugation of a matrix. -/
 def eConj (X : Matrix A B ℂ) : Matrix A B ℂ := fun i j => star (X i j)
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise complex conjugation unfolds to `star` on entries. -/
-@[simp] theorem eConj_apply (X : Matrix A B ℂ) (i : A) (j : B) :
+@[simp] theorem eConj_apply {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (X : Matrix A B ℂ) (i : A) (j : B) :
     eConj X i j = star (X i j) := rfl
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise complex conjugation is additive. -/
-@[simp] theorem eConj_add (X Y : Matrix A B ℂ) : eConj (X + Y) = eConj X + eConj Y := by
+@[simp] theorem eConj_add {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (X Y : Matrix A B ℂ) : eConj (X + Y) = eConj X + eConj Y := by
   ext i j; simp [eConj]
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise complex conjugation is conjugate-linear in the scalar. -/
-@[simp] theorem eConj_smul (c : ℂ) (X : Matrix A B ℂ) :
+@[simp] theorem eConj_smul {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (c : ℂ) (X : Matrix A B ℂ) :
     eConj (c • X) = star c • eConj X := by
   ext i j; simp [eConj, smul_eq_mul]
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise complex conjugation is an involution. -/
-@[simp] theorem eConj_eConj (X : Matrix A B ℂ) : eConj (eConj X) = X := by
+@[simp] theorem eConj_eConj {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (X : Matrix A B ℂ) : eConj (eConj X) = X := by
   ext i j; simp [eConj]
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise conjugation commutes with matrix transpose. -/
-@[simp] theorem eConj_transpose (X : Matrix A B ℂ) : eConj Xᵀ = (eConj X)ᵀ := by
+@[simp] theorem eConj_transpose {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (X : Matrix A B ℂ) : eConj Xᵀ = (eConj X)ᵀ := by
   ext i j; simp [eConj]
 
+omit [Fintype A] [DecidableEq A] in
 /-- Entrywise complex conjugation fixes the identity matrix. -/
-@[simp] theorem eConj_one : eConj (1 : Matrix A A ℂ) = 1 := by
+@[simp] theorem eConj_one {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    : eConj (1 : Matrix A A ℂ) = 1 := by
   ext i j
   by_cases h : i = j
   · subst h; simp [eConj]
   · simp [eConj, h]
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- Entrywise complex conjugation fixes the zero matrix. -/
-@[simp] theorem eConj_zero : eConj (0 : Matrix A B ℂ) = 0 := by
+@[simp] theorem eConj_zero {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    : eConj (0 : Matrix A B ℂ) = 0 := by
   ext i j; simp [eConj]
 
 /-- The channel transpose `Nᵀ` of Section III A (p. 3): entrywise matrix
@@ -83,8 +127,12 @@ def transposeMap : MatrixMap A A ℂ where
   map_add' X Y := Matrix.transpose_add X Y
   map_smul' c X := Matrix.transpose_smul c X
 
+omit [Fintype A] [DecidableEq A] in
 /-- The channel transpose acts by matrix transposition. -/
-@[simp] theorem transposeMap_apply (X : Matrix A A ℂ) : transposeMap X = Xᵀ := rfl
+@[simp] theorem transposeMap_apply {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    (X : Matrix A A ℂ) : transposeMap X = Xᵀ := rfl
 
 /-- The channel complex conjugate `N*` of Section III A (p. 3):
 `N*(X) = conj(N(conj X))`, entrywise conjugation intertwined with the map. -/
@@ -103,12 +151,12 @@ def conjMap (M : MatrixMap A B ℂ) : MatrixMap A B ℂ where
 /-- The transpose map is self-conjugate. -/
 @[simp] theorem conjMap_transposeMap : conjMap (transposeMap : MatrixMap A A ℂ) = transposeMap := by
   ext X i j
-  simp [conjMap, transposeMap, eConj]
+  simp [conjMap, transposeMap]
 
 /-- Complex conjugation is an involution on matrix maps. -/
 @[simp] theorem conjMap_conjMap (M : MatrixMap A B ℂ) : conjMap (conjMap M) = M := by
   ext X i j
-  simp [conjMap, eConj]
+  simp [conjMap]
 
 /-- The transpose map is self-conjugate in the sense that conjugating after
 transposition equals transposing after conjugation. -/
@@ -124,32 +172,44 @@ theorem conjMap_transposeMap_comm (M : MatrixMap A A ℂ) :
 def flip : Matrix (A × A) (A × A) ℂ :=
   fun x y => if x.1 = y.2 ∧ x.2 = y.1 then (1 : ℂ) else 0
 
+omit [Fintype A] [DecidableEq A] in
 /-- Entry formula for the flip (SWAP) operator. -/
-theorem flip_apply (x y : A × A) :
+theorem flip_apply {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    (x y : A × A) :
     flip x y = if x.1 = y.2 ∧ x.2 = y.1 then (1 : ℂ) else 0 := rfl
 
+omit [Fintype A] [DecidableEq A] in
 /-- The Choi matrix of the transpose map `Nᵀ` is the flip (SWAP) operator `F`
 (p. 3, Notation): in the basis `(b, a)` the transpose map sends
 `|a₁⟩⟨a₂|` to `|a₂⟩⟨a₁|`, exactly the action of `F`. -/
-theorem choi_transposeMap :
+theorem choi_transposeMap {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    :
     (transposeMap : MatrixMap A A ℂ).choi_matrix = flip := by
   ext ⟨b1, a1⟩ ⟨b2, a2⟩
   simp only [MatrixMap.choi_matrix, transposeMap_apply, Matrix.transpose_apply,
     Matrix.single, Matrix.of_apply, flip_apply]
   by_cases h : a1 = b2 ∧ a2 = b1
   · have h' : b1 = a2 ∧ a1 = b2 := ⟨h.2.symm, h.1⟩
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
   · have h' : ¬ (b1 = a2 ∧ a1 = b2) := fun hh => h ⟨hh.2, hh.1.symm⟩
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
 
+omit [Fintype A] [DecidableEq A] in
 /-- The flip operator is symmetric. -/
-theorem flip_symm (x y : A × A) : flip x y = flip y x := by
+theorem flip_symm {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    (x y : A × A) : flip x y = flip y x := by
   unfold flip
   by_cases h : x.1 = y.2 ∧ x.2 = y.1
   · have h' : y.1 = x.2 ∧ y.2 = x.1 := ⟨h.2.symm, h.1.symm⟩
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
   · have h' : ¬ (y.1 = x.2 ∧ y.2 = x.1) := fun hh => h ⟨hh.2.symm, hh.1.symm⟩
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
 
 /-- The projection `P^s = (1 + F)/2` onto the symmetric subspace (p. 4, Eq. (6)). -/
 def symProj : Matrix (A × A) (A × A) ℂ := (1 / 2 : ℂ) • (1 + flip)
@@ -157,8 +217,12 @@ def symProj : Matrix (A × A) (A × A) ℂ := (1 / 2 : ℂ) • (1 + flip)
 /-- The projection `P^a = (1 - F)/2` onto the antisymmetric subspace (p. 4, Eq. (6)). -/
 def antiProj : Matrix (A × A) (A × A) ℂ := (1 / 2 : ℂ) • (1 - flip)
 
+omit [Fintype A] [DecidableEq A] in
 /-- The flip operator is the difference of the symmetric and antisymmetric projections. -/
-theorem flip_eq_symProj_sub_antiProj :
+theorem flip_eq_symProj_sub_antiProj {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    :
     (flip : Matrix (A × A) (A × A) ℂ) = symProj - antiProj := by
   ext x y
   simp only [symProj, antiProj, Matrix.sub_apply, Matrix.smul_apply, Matrix.add_apply,
@@ -172,14 +236,18 @@ theorem flip_eq_symProj_sub_antiProj :
     · have hne : ¬ (x.1 = y.1 ∧ x.2 = y.2) := by
         rintro ⟨e1, e2⟩
         exact h (Prod.ext e1 e2)
-      simp [h, h2, hne]; norm_num
+      simp [h, h2]; norm_num
     · have hne : ¬ (x.1 = y.1 ∧ x.2 = y.2) := by
         rintro ⟨e1, e2⟩
         exact h (Prod.ext e1 e2)
-      simp [h, h2, hne]
+      simp [h, h2]
 
+omit [Fintype A] [DecidableEq A] in
 /-- The symmetric and antisymmetric projections sum to the identity. -/
-theorem symProj_add_antiProj :
+theorem symProj_add_antiProj {A : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    :
     (symProj : Matrix (A × A) (A × A) ℂ) + antiProj = 1 := by
   ext x y
   simp only [symProj, antiProj, Matrix.add_apply, Matrix.smul_apply, Matrix.sub_apply,
@@ -239,13 +307,25 @@ def statePrep (ρ : Matrix B B ℂ) : MatrixMap A B ℂ where
     rw [Matrix.trace_smul, smul_smul]
     rfl
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- A state-preparation channel maps `X` to `Tr X` times the fixed state. -/
-@[simp] theorem statePrep_apply (ρ : Matrix B B ℂ) (X : Matrix A A ℂ) :
+@[simp] theorem statePrep_apply {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    (ρ : Matrix B B ℂ) (X : Matrix A A ℂ) :
     statePrep ρ X = (X.trace : ℂ) • ρ := rfl
 
+omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 /-- The state-preparation channel is injective in the prepared state as soon as the
 input system is nonempty (apply to the identity matrix). -/
-theorem statePrep_injective [Nonempty A] :
+theorem statePrep_injective {A B : Type*}
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A]
+    [_instFintypeB : Fintype B]
+    [_instDecidableEqB : DecidableEq B]
+    [Nonempty A] :
     Function.Injective (statePrep (A := A) (B := B)) := by
   intro ρ σ h
   have h1 := congrArg (fun M : MatrixMap A B ℂ => M 1) h

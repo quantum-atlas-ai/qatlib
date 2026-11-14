@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TangentProject.EnergyGradient
-import Qatlib.Foundations.MatrixGeometry.TangentProject.ProjectedHessian
-import Qatlib.Papers.RiemCircuit26.HessianGeometry.RiemannianHessian
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TangentProject.EnergyGradient
+public import Qatlib.Foundations.MatrixGeometry.TangentProject.ProjectedHessian
+public import Qatlib.Papers.RiemCircuit26.HessianGeometry.RiemannianHessian
+
+@[expose] public section
 
 /-!
 # Cost derivatives on the unitary group

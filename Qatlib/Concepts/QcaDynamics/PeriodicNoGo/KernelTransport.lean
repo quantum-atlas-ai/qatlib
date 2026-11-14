@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.ScalarNoGo.OrderedKernel
+module
+
+public import Qatlib.Concepts.QcaDynamics.ScalarNoGo.OrderedKernel
+
+@[expose] public section
 
 /-!
 # Transport of scalar kernels through quotients
@@ -111,7 +115,7 @@ theorem quotient_weight_difference {V W : Type*} [AddCommGroup V] [AddCommGroup 
       have hef := hq (sub_mem_neighborhoodDiffs he hf) hd hmap
       have hf' : f = e - d := by rw [← hef]; abel
       exact hm (hf' ▸ hf)
-    simp only [if_neg hn]
+    simp only [ite_eq_right hn]
 
 /-- The weight unitarity equations lift from quotient weights to the original weights under
 `KernelNonalias`. -/

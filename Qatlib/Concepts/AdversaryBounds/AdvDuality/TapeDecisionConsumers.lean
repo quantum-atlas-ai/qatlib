@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Mathlib.Data.List.GetD
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Mathlib.Data.List.GetD
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Parity decision by deterministic and randomized tape machines
@@ -389,8 +393,7 @@ private def finBoolBoolProdEquiv (n : ℕ) : Bool × Bool × (Fin n → Bool) �
 /-- Enumerating the two-head finite-function equivalence gives the two heads followed by the
 enumerated tail. -/
 theorem ofFn_finBoolBoolProdEquiv (n : ℕ) (b₀ b₁ : Bool) (v : Fin n → Bool) :
-    List.ofFn (finBoolBoolProdEquiv n (b₀, b₁, v)) = b₀ :: b₁ :: List.ofFn v := by
-  show List.ofFn (Fin.cons b₀ (Fin.cons b₁ v)) = _
+    List.ofFn (Fin.cons b₀ (Fin.cons b₁ v)) = b₀ :: b₁ :: List.ofFn v := by
   rw [ofFn_cons, ofFn_cons]
 
 /-- Exclusive-or with `c` leaves a Boolean `p` unchanged exactly when `c` is false. -/
@@ -416,7 +419,10 @@ theorem parity_noisy_coin_actual_error_and_worst_path_time :
             some (parityBool x) then (1 : ℝ) else 0) =
           (if (b₀ && b₁) = false then (1 : ℝ) else 0) := by
       intro b₀ b₁ v
-      rw [ofFn_finBoolBoolProdEquiv]
+      have henum : List.ofFn (finBoolBoolProdEquiv x.length (b₀, b₁, v)) =
+          b₀ :: b₁ :: List.ofFn v :=
+        ofFn_finBoolBoolProdEquiv x.length b₀ b₁ v
+      rw [henum]
       rw [show coinTapeRun parityNoisyCoinMachine parityNoisyAccept (x.map some)
             (b₀ :: b₁ :: List.ofFn v) =
           (some (parityNoisyAccept (parityNoisyScanLabel (b₀ && b₁) (parityBool x))),
@@ -609,8 +615,8 @@ theorem parity_real_tape_p_bpp_consumers :
         @ite Bool ((fun x => parityBool x = true) input) inst true false = parityBool input := by
       intro inst
       cases h : parityBool input with
-      | false => rw [if_neg (by show ¬ (parityBool input = true); rw [h]; decide)]
-      | true => rw [if_pos h]
+      | false => rw [ite_eq_right (by show ¬ (parityBool input = true); rw [h]; decide)]
+      | true => rw [ite_eq_left h]
     rw [htarget]
     have hpad := fairTapeSuccess_eq_of_forall_isSome parityNoisyCoinMachine parityNoisyAccept
       (input.map some) (input.length + 2) (parityBool input)
@@ -645,8 +651,8 @@ theorem parity_real_tape_p_bpp_consumers :
         @ite Bool ((fun x => parityBool x = false) input) inst true false = !parityBool input := by
       intro inst
       cases h : parityBool input with
-      | false => rw [if_pos h]; rfl
-      | true => rw [if_neg (by show ¬ (parityBool input = false); rw [h]; decide)]; rfl
+      | false => rw [ite_eq_left h]; rfl
+      | true => rw [ite_eq_right (by show ¬ (parityBool input = false); rw [h]; decide)]; rfl
     rw [htarget]
     have hflip : fairTapeSuccess parityNoisyCoinMachine (fun l => !parityNoisyAccept l)
         (input.map some) (2 * input.length ^ 1 + 2) (!parityBool input) =

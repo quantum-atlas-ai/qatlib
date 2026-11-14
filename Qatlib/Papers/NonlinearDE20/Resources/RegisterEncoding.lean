@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.Resources.LabelWidth
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import Qatlib.Papers.NonlinearDE20.Resources.LabelWidth
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Encoding finite labels into qubit registers

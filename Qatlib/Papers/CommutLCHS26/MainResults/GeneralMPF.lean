@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+
+@[expose] public section
 
 /-!
 # Integer-node multi-product formulas

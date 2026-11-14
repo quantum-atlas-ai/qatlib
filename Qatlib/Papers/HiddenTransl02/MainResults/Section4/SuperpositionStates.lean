@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Uniform subgroup and coset states
@@ -73,6 +77,7 @@ theorem norm_uniformAmplitude :
   unfold uniformAmplitude
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hsqrt.le]
 
+omit [Fintype G] [DecidableEq G] in
 /-- The subgroup-state amplitude at `x` is nonzero exactly when `x ∈ H`. -/
 theorem subgroupState_ne_zero_iff {x : G} :
     subgroupState H x ≠ 0 ↔ x ∈ H := by
@@ -142,6 +147,7 @@ section Coset
 
 variable (H : Subgroup G) [Fintype H]
 
+omit [Fintype G] [DecidableEq G] in
 /-- The coset-state amplitude at `x` is nonzero exactly when `u⁻¹ * x ∈ H`. -/
 theorem cosetState_ne_zero_iff (u : G) {x : G} :
     cosetState u H x ≠ 0 ↔ u⁻¹ * x ∈ H := by

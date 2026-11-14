@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.GCDMonoid.Finset
-import Mathlib.Data.ZMod.Basic
-import Mathlib.GroupTheory.Coset.Card
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.GCDMonoid.Finset
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.GroupTheory.Coset.Card
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ theorem exists_int_combo_gcd_finset {α : Type*} (s : Finset α) (f : α → ℕ
       refine Finset.sum_congr rfl ?_
       intro x hx
       have hx' : x ≠ a := by rintro rfl; exact ha hx
-      simp only [hx', if_false]
+      simp only [hx', ite_false]
       ring
     rw [hbeta, hsum, ← hc]
     ring

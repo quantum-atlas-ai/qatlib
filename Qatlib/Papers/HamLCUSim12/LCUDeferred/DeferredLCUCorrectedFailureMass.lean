@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedHami
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedHami
+
+@[expose] public section
 
 /-!
 # Failure mass as a signed mixture of state means

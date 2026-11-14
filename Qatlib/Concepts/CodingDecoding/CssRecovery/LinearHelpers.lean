@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Linear hashes for syndrome correction
@@ -114,7 +118,7 @@ theorem finite_linear_matrix_hash_scaled_correction
     exact finite_linear_matrix_hash_smul_sum A g digits
   rw [hsum, hbase]
   funext j
-  simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  simp only [Pi.add_apply, Pi.sub_apply]
   ring
 
 /-- Correction vectors whose hashes form a scaled coordinate grid remove the prescribed
@@ -186,7 +190,7 @@ theorem finite_linear_matrix_hash_kernel_combination
     finiteLinearMatrixHash A
         (fun i => ∑ p : P, digits p * g p i) = 0 := by
   rw [finite_linear_matrix_hash_smul_sum]
-  simpa [hkernel]
+  simp [hkernel]
 
 /-- Two vectors have the same hash when their difference lies in the hash kernel. -/
 theorem finite_linear_matrix_hash_eq_of_sub_kernel

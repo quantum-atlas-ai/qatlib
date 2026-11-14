@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseStat
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseStat
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Threshold-sector pseudoinverse construction
@@ -71,6 +75,7 @@ variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 private noncomputable def sectorCoefficient (δ x : ℝ) : ℂ :=
   ((1 : ℝ) - thresholdIndicator 0 x + thresholdIndicator δ x : ℂ)
 
+omit [DecidableEq O] in
 /-- Expresses the complement of the right threshold band between zero and δ as a diagonal
 operator in the right singular basis. -/
 private theorem rightSector_eq (A : Matrix O I ℂ) (δ : ℝ) :
@@ -131,6 +136,7 @@ private theorem leftSector_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     fun τ => (leftThresholdProjection_isOrthogonalProjector A τ).2
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_sub, Matrix.conjTranspose_one, hl 0, hl δ]
 
+omit [DecidableEq O] in
 /-- The diagonal matrix of threshold-sector coefficients at the singular values is self-adjoint. -/
 private theorem sectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun i : Fin (Fintype.card I) => sectorCoefficient δ (matrixSingularValues A i)))ᴴ
@@ -142,6 +148,7 @@ private theorem sectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ 
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
 
+omit [DecidableEq O] in
 /-- The entries of the left singular-basis change matrix are the inner products with the left
 singular vectors. -/
 private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
@@ -161,7 +168,7 @@ private theorem leftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : �
   ext o i
   rw [leftSector_eq, Matrix.mul_assoc, Matrix.mul_assoc, leftCompanion_gram_entries]
   simp only [Matrix.mul_apply, Matrix.of_apply, Matrix.diagonal_apply, mul_ite, ite_mul,
-    mul_zero, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    mul_zero, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   by_cases hi : (i : ℕ) < Module.finrank ℂ A.toEuclideanLin.range
   · have hO : (i : ℕ) < Fintype.card O :=
       lt_of_lt_of_le hi (by simpa using! Submodule.finrank_le A.toEuclideanLin.range)
@@ -175,8 +182,8 @@ private theorem leftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : �
     refine Eq.trans (Finset.sum_eq_single_of_mem (⟨(i : ℕ), hO⟩ : Fin (Fintype.card O))
       (Finset.mem_univ _) ?_) ?_
     · intro b _ hb
-      rw [if_neg hb]
-    · rw [if_pos rfl, hWk]
+      rw [ite_eq_right hb]
+    · rw [ite_eq_left rfl, hWk]
   · have hσ0 : matrixSingularValues A i = 0 :=
       A.toEuclideanLin.singularValues_eq_zero_iff_le_finrank_range.mpr (by omega)
     have h0 : leftSingularColumns A o i = 0 := by
@@ -186,7 +193,7 @@ private theorem leftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : �
 
 /-- For 0 < ε ≤ δ ≤ 1/2, a polynomial vanishing at zero and approximating (δ/2)/x on [δ, 1] has
 scalar sector-weighted error at most ε at every t in [0, 1] satisfying t = 0 or δ ≤ t. -/
-private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hεδ : ε ≤ δ) (hδ : δ ≤ 1/2)
+private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hεδ : ε ≤ δ) (_hδ : δ ≤ 1/2)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
     {t : ℝ} (ht0 : 0 ≤ t) (htgap : t = 0 ∨ δ ≤ t) (ht1 : t ≤ 1) :
@@ -196,10 +203,10 @@ private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hε�
   rcases htgap with rfl | hδt
   · have hind0 : thresholdIndicator 0 0 = 0 := by
       simp only [thresholdIndicator]
-      rw [if_neg (show ¬((0 : ℝ)^2 < (0 : ℝ)^2) by norm_num)]
+      rw [ite_eq_right (show ¬((0 : ℝ)^2 < (0 : ℝ)^2) by norm_num)]
     have hindδ : thresholdIndicator δ 0 = 0 := by
       simp only [thresholdIndicator]
-      rw [if_neg (show ¬(δ^2 < (0 : ℝ)^2) by nlinarith [sq_nonneg δ])]
+      rw [ite_eq_right (show ¬(δ^2 < (0 : ℝ)^2) by nlinarith [sq_nonneg δ])]
     simp only [sectorCoefficient, hind0, hindδ]
     rw [heval0]
     simpa using! hε.le
@@ -207,10 +214,10 @@ private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hε�
     · rw [hte]
       have hind0 : thresholdIndicator 0 δ = 1 := by
         simp only [thresholdIndicator]
-        rw [if_pos (show (0 : ℝ)^2 < δ^2 by nlinarith)]
+        rw [ite_eq_left (show (0 : ℝ)^2 < δ^2 by nlinarith)]
       have hindδ : thresholdIndicator δ δ = 0 := by
         simp only [thresholdIndicator]
-        rw [if_neg (show ¬(δ^2 < δ^2) by exact lt_irrefl _)]
+        rw [ite_eq_right (show ¬(δ^2 < δ^2) by exact lt_irrefl _)]
       simp only [sectorCoefficient, hind0, hindδ]
       simpa using! hε.le
     · have hδlt : δ < t := by
@@ -220,10 +227,10 @@ private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hε�
       have htpos : 0 < t := lt_of_lt_of_le hδpos hδt
       have hind0 : thresholdIndicator 0 t = 1 := by
         simp only [thresholdIndicator]
-        rw [if_pos (show (0 : ℝ)^2 < t^2 by nlinarith [htpos])]
+        rw [ite_eq_left (show (0 : ℝ)^2 < t^2 by nlinarith [htpos])]
       have hindδ : thresholdIndicator δ t = 1 := by
         simp only [thresholdIndicator]
-        rw [if_pos (show δ^2 < t^2 by nlinarith [hδlt, hδpos.le, htpos.le])]
+        rw [ite_eq_left (show δ^2 < t^2 by nlinarith [hδlt, hδpos.le, htpos.le])]
       have h1 : ((δ : ℂ) / 2) * ((t : ℂ)⁻¹) = ((δ / 2 / t : ℝ) : ℂ) := by
         rw [Complex.ofReal_div, Complex.ofReal_div]
         field_simp

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineBitBounds
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalGaussianProgram
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowProgram
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowsProgram
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineBitBounds
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalGaussianProgram
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowProgram
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowsProgram
+
+@[expose] public section
 
 /-!
 # Native execution costs for rational word programs

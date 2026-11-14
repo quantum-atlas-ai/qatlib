@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,7 +90,7 @@ theorem lpnSumFactor (η : ℝ) :
   rw [lpnUniv]
   rw [Finset.sum_insert (by simp : (0 : ZMod 2) ∉ ({1} : Finset (ZMod 2)))]
   rw [Finset.sum_singleton]
-  simp only [if_true, if_neg (show (1 : ZMod 2) ≠ 0 by decide)]
+  simp only [ite_true, ite_eq_right (show (1 : ZMod 2) ≠ 0 by decide)]
   ring
 
 /-- Linearity of the parity function over `GF(2)`:
@@ -183,7 +187,7 @@ def lpnErrorRate (η ζ : ℝ) : ℝ := η * (1 - ζ) + ζ * (1 - η)
 `ζ_a ∈ [0,1]` (the paper's constant noise rate `η < 1/2`).
 Source: arXiv:1407.5088v1, Sec. IV B, Eq. (10), p. 4
 ("the LPN problem with noise rate η' ∈ [η, 1-η]"). -/
-theorem lpnErrorRate_mem_interval (η ζ : ℝ) (hη0 : 0 ≤ η) (hη : η ≤ 1 / 2)
+theorem lpnErrorRate_mem_interval (η ζ : ℝ) (_hη0 : 0 ≤ η) (hη : η ≤ 1 / 2)
     (hζ0 : 0 ≤ ζ) (hζ1 : ζ ≤ 1) :
     η ≤ lpnErrorRate η ζ ∧ lpnErrorRate η ζ ≤ 1 - η := by
   have h1 : (0 : ℝ) ≤ 1 - 2 * η := by linarith

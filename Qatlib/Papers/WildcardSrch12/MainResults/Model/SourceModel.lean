@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
-import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
-import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
+public import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+public import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+
+@[expose] public section
 
 open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
@@ -123,7 +127,7 @@ theorem embedOn_eq_iff {n : ℕ} (x y : BitStr n) (S : Finset (Fin n)) :
   constructor
   · intro h i hi
     have := congrFun h i
-    simp only [embedOn, hi, if_true] at this
+    simp only [embedOn, hi, ite_true] at this
     exact Finset.mem_filter.mpr ⟨Finset.mem_univ i, this⟩
   · intro h
     funext i

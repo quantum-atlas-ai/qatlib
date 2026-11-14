@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # A zero-fuel obstruction to generalized recovery
@@ -44,7 +48,7 @@ theorem theorem2_10_obstruction : ¬ Theorem2_10Contract := by
   let p : Fin 2 → ℝ := fun h => if h = 0 then 3 / 4 else 1 / 4
   have hp : ∀ h, 0 < p h := by intro h; fin_cases h <;> norm_num [p]
   have hs : (∑ h, p h) = 1 := by
-    change (∑ h : Fin 2, p h) = 1
+
     norm_num [p, Fin.sum_univ_two]
   have hl2 : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'
   have hIeq : multiInfo (k := 1) p = queryInfo (3 / 4) := by

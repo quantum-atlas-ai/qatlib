@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.FramedBinaryAddition
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.FramedBinaryAddition
+
+@[expose] public section
 
 /-!
 # Canonical natural-number addition machines
@@ -228,10 +232,7 @@ theorem read_call (which : Bool) (n : ℕ) (tail other out : Qatlib.Concepts.Bit
     cases which <;> cases j <;> first
     | rfl
     | exact (hj .reader rfl).elim
-    | exact (hj .markers rfl).elim
-    | exact (hj .payload rfl).elim
-    | exact (hj .value rfl).elim
-    | exact (hj .temporary rfl).elim
+    | exact (hj .value  rfl).elim
     | exact (hj .output rfl).elim
 
 /-- Transfers reversed raw input to the reader stack, clears raw input, and reaches the first
@@ -302,8 +303,7 @@ theorem add_call (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v 
   · intro j hj
     cases j <;> first
     | rfl
-    | exact (hj 0 rfl).elim
-    | exact (hj 1 rfl).elim
+    | exact (hj  1 rfl).elim
     | exact (hj 2 rfl).elim
     | exact (hj 3 rfl).elim
 
@@ -350,9 +350,7 @@ theorem emit_call (n : ℕ) (v : Local) :
   · intro j hj
     cases j <;> first
     | rfl
-    | exact (hj 0 rfl).elim
-    | exact (hj 1 rfl).elim
-    | exact (hj 2 rfl).elim
+    | exact (hj  2 rfl).elim
 
 /-- Clears the remaining binary payload of `n` while preserving its reversed canonical output
 encoding and reaches completion within the stated quadratic budget. -/

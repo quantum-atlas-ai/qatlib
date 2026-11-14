@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Spectral bounds and the absorbing walk bridge
@@ -290,31 +295,31 @@ private theorem absorbingFrameProjector_apply {I : Type} [Fintype I] [DecidableE
        else 0) := by
   rw [szegedyFrameProjector_apply (absorbingKernel P S) z x y]
   by_cases hx : x ∉ S
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     have h1 : (Real.sqrt (absorbingKernel P S x y) : ℂ) = (Real.sqrt (P x y) : ℂ) := by
-      rw [absorbingKernel_sqrt P S, if_pos hx]
+      rw [absorbingKernel_sqrt P S, ite_eq_left hx]
     have h2 : ∀ y' : I, (Real.sqrt (absorbingKernel P S x y') : ℂ) =
         (Real.sqrt (P x y') : ℂ) := by
       intro y'
-      rw [absorbingKernel_sqrt P S, if_pos hx]
+      rw [absorbingKernel_sqrt P S, ite_eq_left hx]
     simp only [h1, h2]
   · have hx0 : x ∈ S := by simpa using! hx
     have hz0 : z (x, x) = 0 := hz x hx0
     have hsum : ∑ y' : I, (Real.sqrt (absorbingKernel P S x y') : ℂ) * z (x, y') = 0 := by
       rw [Finset.sum_eq_single x]
-      · rw [absorbingKernel_sqrt P S, if_neg hx, if_pos rfl, one_mul]
+      · rw [absorbingKernel_sqrt P S, ite_eq_right hx, ite_eq_left rfl, one_mul]
         exact hz0
       · intro b _ hb
-        rw [absorbingKernel_sqrt P S, if_neg hx, if_neg hb]
+        rw [absorbingKernel_sqrt P S, ite_eq_right hx, ite_eq_right hb]
         simp
       · intro hcon
         exact absurd (Finset.mem_univ x) hcon
-    rw [if_neg hx]
-    rw [absorbingKernel_sqrt P S, if_neg hx]
+    rw [ite_eq_right hx]
+    rw [absorbingKernel_sqrt P S, ite_eq_right hx]
     by_cases h : y = x
-    · rw [if_pos h, hsum]
+    · rw [ite_eq_left h, hsum]
       simp
-    · rw [if_neg h, hsum]
+    · rw [ite_eq_right h, hsum]
       simp
 
 /-- The absorbing frame projector and the unmarked frame projector agree on the trap complement. -/

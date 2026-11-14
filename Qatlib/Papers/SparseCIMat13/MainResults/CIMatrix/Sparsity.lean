@@ -9,13 +9,17 @@ Copyright: paper-layer formalization for SparseCIMat13.
 Source: B. Toloui and P. J. Love, "Quantum Algorithms for Quantum Chemistry based on the
 sparsity of the CI-matrix", arXiv:1312.2579 (2013), Section II p.4, Eqs. (9)-(10).
 -/
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Cast
-import Mathlib.Data.Fintype.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Rat.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Cast
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

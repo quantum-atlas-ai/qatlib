@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SmithIntermediateBitGrowth
-import Mathlib.Data.Nat.Size
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SmithIntermediateBitGrowth
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Entry and bit bounds for Smith reduction runs

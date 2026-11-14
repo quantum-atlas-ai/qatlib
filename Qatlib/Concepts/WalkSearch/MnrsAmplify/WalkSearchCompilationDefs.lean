@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DataAugmentedSearchConsumers
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DataAugmentedSearchConsumers
+
+@[expose] public section
 
 /-!
 # Finite-word walk search accounts

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidRationalBridge
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidRationalBridge
+
+@[expose] public section
 
 /-!
 # Paid Rational Codec

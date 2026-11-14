@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
+
+@[expose] public section
 
 /-!
 # Fresh-trial amplification for pseudoinverse preparation

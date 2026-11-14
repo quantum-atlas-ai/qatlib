@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.QConvexOpt18.MainResults.HullBound.SourceHullBound
-import Qatlib.Papers.QConvexOpt18.MainResults.SubgradientGap.SourceSubgradientGap
+module
+
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.QConvexOpt18.MainResults.HullBound.SourceHullBound
+public import Qatlib.Papers.QConvexOpt18.MainResults.SubgradientGap.SourceSubgradientGap
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,10 +86,10 @@ theorem l1Ball_subset_convexHull_symCoordSet {n : ℕ} (i0 : Fin n) (r : ℝ) (h
     ext j
     by_cases h : j = i0
     · simp only [Pi.add_apply, Pi.smul_apply, Pi.neg_apply, Pi.zero_apply, coordVec,
-        Pi.single_apply, h, if_true, smul_eq_mul]
+        Pi.single_apply, h, ite_true, smul_eq_mul]
       ring
     · simp only [Pi.add_apply, Pi.smul_apply, Pi.neg_apply, Pi.zero_apply, coordVec,
-        Pi.single_apply, h, if_false, smul_eq_mul]
+        Pi.single_apply, h, ite_false, smul_eq_mul]
       ring
   have h0C : (0 : Fin n → ℝ) ∈ convexHull ℝ (symCoordSet (n := n) r) := by
     have hmem := hC (subset_convexHull ℝ _ hpos) (subset_convexHull ℝ _ hneg)
@@ -128,23 +132,23 @@ theorem l1Ball_subset_convexHull_symCoordSet {n : ℕ} (i0 : Fin n) (r : ℝ) (h
       by_cases hij : i = j
       · rw [hij]
         by_cases hvj : 0 ≤ v j
-        · simp only [if_pos hvj, Pi.smul_apply, coordVec_apply_self, smul_eq_mul,
+        · simp only [ite_eq_left hvj, Pi.smul_apply, coordVec_apply_self, smul_eq_mul,
             abs_of_nonneg hvj]
           field_simp
           simp
-        · simp only [if_neg hvj, Pi.neg_apply, Pi.smul_apply, coordVec_apply_self,
+        · simp only [ite_eq_right hvj, Pi.neg_apply, Pi.smul_apply, coordVec_apply_self,
             smul_eq_mul, abs_of_neg (lt_of_not_ge hvj)]
           field_simp
           simp
-      · rw [if_neg hij]
+      · rw [ite_eq_right hij]
         have hz : (coordVec i) j = 0 := coordVec_apply_ne (Ne.symm hij)
         by_cases hvj : 0 ≤ v i
-        · simp only [if_pos hvj, Pi.smul_apply, hz, smul_eq_mul, mul_zero]
-        · simp only [if_neg hvj, Pi.neg_apply, Pi.smul_apply, hz, smul_eq_mul, mul_zero,
+        · simp only [ite_eq_left hvj, Pi.smul_apply, hz, smul_eq_mul, mul_zero]
+        · simp only [ite_eq_right hvj, Pi.neg_apply, Pi.smul_apply, hz, smul_eq_mul, mul_zero,
             neg_zero]
     have hp0 : (w none) * (p none) j = 0 := by simp [hpdef]
     rw [hp0, Finset.sum_congr rfl (fun i _ => hterm i), Finset.sum_ite_eq',
-      if_pos (Finset.mem_univ j)]
+      ite_eq_left (Finset.mem_univ j)]
     simp
   have hmem : Finset.univ.centerMass w p ∈ convexHull ℝ (Set.range p) :=
     Finset.centerMass_mem_convexHull (t := Finset.univ) (w := w) hw0
@@ -157,9 +161,9 @@ theorem l1Ball_subset_convexHull_symCoordSet {n : ℕ} (i0 : Fin n) (r : ℝ) (h
     | some i =>
       simp only [hpdef]
       by_cases h : 0 ≤ v i
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         exact subset_convexHull ℝ _ ⟨i, Or.inl rfl⟩
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         exact subset_convexHull ℝ _ ⟨i, Or.inr rfl⟩
   have hcm : Finset.univ.centerMass w p = v := by
     rw [Finset.centerMass_eq_of_sum_1 (t := Finset.univ) (w := w) (z := p) (by simpa using hw1)]
@@ -193,11 +197,10 @@ theorem source_linearApprox_error {n : ℕ} (f : (Fin n → ℝ) → ℝ) (z : F
     have hd : ConvexOn ℝ s0
         (fun w => f (z + w) - f z - ∑ i, w i * finDiffGradCoord f z r2 i) := by
       have h := (htransl.add hlin).add_const (- f z)
-      convert h using 1 <;> first
-      | rfl
-      | (funext w
-         simp [Pi.add_apply, LinearMap.neg_apply, gradDot_apply, finDiffGrad,
-           sub_eq_add_neg, add_comm, add_left_comm, add_assoc])
+      convert h using 1
+      funext w
+      simp [Pi.add_apply, gradDot_apply, finDiffGrad,
+        sub_eq_add_neg, add_comm, add_left_comm]
     have hst : convexHull ℝ (symCoordSet (n := k + 1) r2) ⊆ s0 := by
       have hgen : symCoordSet (n := k + 1) r2 ⊆ {v : Fin (k + 1) → ℝ | l1Norm v ≤ r2} := by
         rintro v ⟨i, rfl | rfl⟩

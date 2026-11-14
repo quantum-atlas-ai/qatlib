@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.LinearCombination
-import Qatlib.Papers.AnyonicSpin06.MainResults.TemperleyLieb
-import Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.LinearCombination
+public import Qatlib.Papers.AnyonicSpin06.MainResults.TemperleyLieb
+public import Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
+
+@[expose] public section
 
 /-!
 # Fibonacci generators from Temperley–Lieb matrices

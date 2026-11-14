@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+@[expose] public section
 
 /-!
 # Filtering degenerate zero-phase subspaces
@@ -222,7 +226,7 @@ theorem degenerate_diagonal_filter_bounds
     intro j _
     by_cases hj : j ∈ T
     · simp [d, hj]
-    · simp only [d, if_neg hj, norm_mul, mul_pow]
+    · simp only [d, ite_eq_right hj, norm_mul, mul_pow]
       simpa only [mul_comm] using mul_le_mul_of_nonneg_left
         (pow_le_pow_left₀ (norm_nonneg _) (hbound j hj) 2) (sq_nonneg ‖c j‖)
   have hnorm : ‖toEuclidean_fromVec z‖ ^ 2 = a + ∑ j, ‖d j‖ ^ 2 := by

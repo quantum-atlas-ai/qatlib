@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+
+@[expose] public section
 
 /-!
 # The interrupted search-attempt contract

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Tactic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Tactic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -354,7 +358,7 @@ theorem mass_mono (μ : FinDist X) {P Q : X → Prop} [DecidablePred P] [Decidab
   by_cases hP : P x
   · have hQ : Q x := h x hP
     simp [hP, hQ]
-  · simp only [hP, if_false]
+  · simp only [hP, ite_false]
     by_cases hQ : Q x <;> simp [hQ, μ.nonneg x]
 
 /-- The union bound for two events. -/
@@ -398,11 +402,11 @@ theorem mass_abs_dev_le (μ : FinDist X) (f : X → ℝ) (ε : ℝ) (hε : 0 < �
           μ.prob x * ((f x - μ.expect f) ^ 2 / ε ^ 2) := by
       intro x
       by_cases h : 1 ≤ (f x - μ.expect f) ^ 2 / ε ^ 2
-      · simp only [h, if_true]
+      · simp only [h, ite_true]
         calc μ.prob x = μ.prob x * 1 := by ring
           _ ≤ μ.prob x * ((f x - μ.expect f) ^ 2 / ε ^ 2) :=
               mul_le_mul_of_nonneg_left h (μ.nonneg x)
-      · simp only [h, if_false]
+      · simp only [h, ite_false]
         exact mul_nonneg (μ.nonneg x) (by positivity)
     calc ∑ x : X, (if 1 ≤ (f x - μ.expect f) ^ 2 / ε ^ 2 then μ.prob x else 0)
         ≤ ∑ x : X, μ.prob x * ((f x - μ.expect f) ^ 2 / ε ^ 2) :=

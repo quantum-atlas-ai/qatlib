@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Random code phase states and proposed time expressions

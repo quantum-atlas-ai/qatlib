@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Qatlib.Papers.HiddenPoly07.MainResults.GoodSetCardinality
+module
+
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Qatlib.Papers.HiddenPoly07.MainResults.GoodSetCardinality
+
+@[expose] public section
 
 /-!
 # HiddenPoly07.MainResults — the good set `X_good = (F^×)^n` of Prop. 4.1

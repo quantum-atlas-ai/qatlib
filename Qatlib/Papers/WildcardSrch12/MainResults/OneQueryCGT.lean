@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WildcardSrch12.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.WildcardSrch12.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,9 +90,9 @@ theorem sign_prod_eq {n : ℕ} (x S : BitStr n) :
       simp [h, hmem]
   rw [h1, Finset.prod_ite_mem_eq T (fun _ => (-1 : ℝ)), Finset.prod_const]
   by_cases hodd : Odd T.card
-  · rw [if_pos hodd]
+  · rw [ite_eq_left hodd]
     exact Odd.neg_one_pow hodd
-  · rw [if_neg hodd]
+  · rw [ite_eq_right hodd]
     rcases Nat.even_or_odd T.card with he | ho
     · exact Even.neg_one_pow he
     · exact absurd ho hodd
@@ -144,7 +148,7 @@ theorem prod_kernel_eq_sum {n : ℕ} (u v : BitStr n) :
   by_cases huv : u i = v i
   · rw [huv]
     by_cases hv : v i <;> norm_num [hv]
-  · rw [if_neg huv]
+  · rw [ite_eq_right huv]
     have hcases : (u i = true ∧ v i = false) ∨ (u i = false ∧ v i = true) := by
       rcases hu : u i with _ | _ <;> rcases hv : v i with _ | _ <;> simp_all
     rcases hcases with ⟨hu, hv⟩ | ⟨hu, hv⟩
@@ -166,9 +170,9 @@ theorem walsh_orthogonality {n : ℕ} (u v : BitStr n) :
   rw [Finset.sum_congr rfl (fun s _ => hker s), ← prod_kernel_eq_sum]
   by_cases huv : u = v
   · subst huv
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp [Finset.prod_const]
-  · rw [if_neg huv]
+  · rw [ite_eq_right huv]
     obtain ⟨i, hi⟩ : ∃ i, u i ≠ v i := Function.ne_iff.mp huv
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
 
@@ -196,7 +200,7 @@ theorem cgtPhaseFunction_eq_walshKernel {n : ℕ} (x : BitStr n)
   -- true coordinate in total
   set T : Finset (Fin n) := Finset.univ.filter (fun i => x i && S i) with hT
   by_cases h : cgtReply x (Finset.univ.filter (fun i => S i))
-  · rw [if_pos h, if_pos (by
+  · rw [ite_eq_left h, ite_eq_left (by
       have hex : ∃ i ∈ Finset.univ.filter (fun i => S i), x i = true :=
         of_decide_eq_true (by simpa [cgtReply] using h)
       obtain ⟨i, hiS, hxi⟩ := hex
@@ -215,7 +219,7 @@ theorem cgtPhaseFunction_eq_walshKernel {n : ℕ} (x : BitStr n)
           _ ≤ 1 := hx
       have hpos : 0 < T.card := Finset.card_pos.mpr ⟨i, hmem⟩
       exact ⟨0, by omega⟩)]
-  · rw [if_neg h, if_neg (by
+  · rw [ite_eq_right h, ite_eq_right (by
       intro hodd
       -- an odd cardinality forces a selected `true` coordinate
       have hpos : 0 < T.card := Nat.pos_of_ne_zero (by
@@ -246,9 +250,9 @@ theorem lemma4_one_query_exact {n : ℕ} (x : BitStr n) (y : BitStr n)
   rw [Finset.sum_congr rfl (fun s _ => by rw [walshKernel_comm s y])]
   rw [walsh_orthogonality]
   by_cases hyx : y = x
-  · rw [if_pos hyx, if_pos hyx.symm]
+  · rw [ite_eq_left hyx, ite_eq_left hyx.symm]
     have h2 : (0 : ℝ) < (2 : ℝ) ^ n := pow_pos (by norm_num) n
     field_simp
-  · rw [if_neg hyx, if_neg (Ne.symm hyx), mul_zero]
+  · rw [ite_eq_right hyx, ite_eq_right (Ne.symm hyx), mul_zero]
 
 end Qatlib.Papers.WildcardSrch12.MainResults.OneQueryCGT

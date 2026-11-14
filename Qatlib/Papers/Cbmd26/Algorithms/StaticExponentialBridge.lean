@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
-import Qatlib.Papers.Cbmd26.Algorithms.PropagatorSpectralBridge
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.PropagatorSpectralBridge
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Polynomial QSVT approximations of static exponentials

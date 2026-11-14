@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DecisionTrees97.MainResults.FiniteGraphPassage
+module
+
+public import Qatlib.Papers.DecisionTrees97.MainResults.FiniteGraphPassage
+
+@[expose] public section
 
 /-!
 # Mass conservation for the classical graph kernel
@@ -95,7 +99,7 @@ the kernel at `t`. See [FarhiGutmann1998]. -/
 theorem sourceKernel_hasDerivAt (t : ℝ) :
     HasDerivAt (fun s : ℝ => NormedSpace.exp ((-s : ℝ) • G.lapMatrix ℂ))
       ((-G.lapMatrix ℂ) * NormedSpace.exp ((-t : ℝ) • G.lapMatrix ℂ)) t := by
-  letI : NormedAlgebra ℝ (Matrix V V ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
+  let : NormedAlgebra ℝ (Matrix V V ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
   simpa only [smul_neg, neg_smul] using
     (hasDerivAt_exp_smul_const' (-G.lapMatrix ℂ) t)
 
@@ -124,7 +128,7 @@ theorem sourceKernel_add (s t : ℝ) :
 [FarhiGutmann1998]. -/
 theorem sourceKernel_column_sum_one (t : ℝ) (a : V) :
     ∑ b : V, NormedSpace.exp ((-t : ℝ) • G.lapMatrix ℂ) b a = 1 := by
-  letI : NormedAlgebra ℝ (Matrix V V ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
+  let : NormedAlgebra ℝ (Matrix V V ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
   set A : Matrix V V ℂ := -G.lapMatrix ℂ with hA
   have hcol : ∀ c : V, ∑ b : V, A b c = 0 := by
     intro c

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedStat
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedStat
+
+@[expose] public section
 
 /-!
 # Prefix mass threshold for finite priors
@@ -44,11 +48,11 @@ lemma zoo_bayes_prefix_mass_step {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (hk : k
         (if i.val < k then a i else 0) + (if i.val = k then a i else 0) := by
     intro i
     by_cases h1 : i.val < k
-    · rw [if_pos (Nat.lt_trans h1 (Nat.lt_succ_self k)), if_pos h1, if_neg (Nat.ne_of_lt h1),
+    · rw [ite_eq_left (Nat.lt_trans h1 (Nat.lt_succ_self k)), ite_eq_left h1, ite_eq_right (Nat.ne_of_lt h1),
         add_zero]
     · by_cases h2 : i.val = k
-      · rw [if_pos (show i.val < k + 1 by omega), if_neg h1, if_pos h2, zero_add]
-      · rw [if_neg (show ¬ i.val < k + 1 by omega), if_neg h1, if_neg h2, add_zero]
+      · rw [ite_eq_left (show i.val < k + 1 by omega), ite_eq_right h1, ite_eq_left h2, zero_add]
+      · rw [ite_eq_right (show ¬ i.val < k + 1 by omega), ite_eq_right h1, ite_eq_right h2, add_zero]
   calc (∑ i : Fin n, if i.val < k + 1 then a i else 0)
       = ∑ i : Fin n, ((if i.val < k then a i else 0) + (if i.val = k then a i else 0)) :=
         Finset.sum_congr rfl fun i _ => hpoint i
@@ -72,7 +76,7 @@ lemma zoo_bayes_prefix_mass_zero {n : ℕ} (a : Fin n → ℝ) :
 the total weight. -/
 lemma zoo_bayes_prefix_mass_total {n : ℕ} (a : Fin n → ℝ) :
     (∑ i : Fin n, if i.val < n then a i else 0) = ∑ i : Fin n, a i :=
-  Finset.sum_congr rfl fun i _ => if_pos i.isLt
+  Finset.sum_congr rfl fun i _ => ite_eq_left i.isLt
 
 /-- For n > 0, the prefix sum over indices strictly below one equals the weight at index zero. -/
 lemma zoo_bayes_prefix_mass_one {n : ℕ} (a : Fin n → ℝ) (hn : 0 < n) :

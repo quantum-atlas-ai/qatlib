@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
+
+@[expose] public section
 
 /-!
 # Explicit solution of the scalar Taylor system
@@ -102,7 +106,7 @@ theorem scalarRow_zero :
   · rw [hentry 0]
     simp
   · intro c hc_mem hc
-    rw [hentry c, if_neg (Ne.symm hc)]
+    rw [hentry c, ite_eq_right (Ne.symm hc)]
     ring
 
 /-- A positive-order history row subtracts `lam / j` times the preceding coordinate from the
@@ -129,22 +133,22 @@ theorem scalarRow_step (a j : ℕ) (ha : a < m) (hj1 : 1 ≤ j) (hjk : j ≤ k)
       rw [Nat.dvd_iff_mod_eq_zero, hmod]
       omega
     have hp : ¬ (m * (k + 1) < ℓ ∧ c + 1 = ℓ) := by omega
-    simp only [scalarKernelEntry, hmod, hs, if_neg hj, if_neg hp, sub_zero]
+    simp only [scalarKernelEntry, hmod, hs, ite_eq_right hj, ite_eq_right hp, sub_zero]
   have hdiag : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if ℓ = c then (1 : ℂ) else 0) * x c = x ℓ := by
     rw [Finset.sum_eq_single_of_mem ℓ (Finset.mem_range.mpr hlt)]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       ring
     · intro c _ hc
-      rw [if_neg (Ne.symm hc)]
+      rw [ite_eq_right (Ne.symm hc)]
       ring
   have hstep : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if c + 1 = ℓ then lam / ((j : ℕ) : ℂ) else 0) * x c
       = (lam / ((j : ℕ) : ℂ)) * x (ℓ - 1) := by
     rw [Finset.sum_eq_single_of_mem (ℓ - 1) (Finset.mem_range.mpr (by omega))]
-    · rw [if_pos (by omega : (ℓ - 1) + 1 = ℓ)]
+    · rw [ite_eq_left (by omega : (ℓ - 1) + 1 = ℓ)]
     · intro c _ hc
-      rw [if_neg (by omega : ¬ (c + 1 = ℓ))]
+      rw [ite_eq_right (by omega : ¬ (c + 1 = ℓ))]
       ring
   simp only [hentry, sub_mul, Finset.sum_sub_distrib]
   rw [hdiag, hstep]
@@ -173,15 +177,15 @@ theorem scalarRow_jump (a : ℕ) (ha1 : 1 ≤ a) (ham : a ≤ m)
         rw [hℓ, Nat.mul_comm]; exact Nat.dvd_mul_right (k + 1) a]
     have hp : ¬ (m * (k + 1) < ℓ ∧ c + 1 = ℓ) := by omega
     simp only [scalarKernelEntry]
-    rw [if_neg hs, if_neg hp]
+    rw [ite_eq_right hs, ite_eq_right hp]
     simp only [hj, sub_zero]
   have hdiag : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if ℓ = c then (1 : ℂ) else 0) * x c = x ℓ := by
     rw [Finset.sum_eq_single_of_mem ℓ (Finset.mem_range.mpr hlt)]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       ring
     · intro c _ hc
-      rw [if_neg (Ne.symm hc)]
+      rw [ite_eq_right (Ne.symm hc)]
       ring
   have hjump : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if ℓ - (k + 1) ≤ c ∧ c < ℓ then (1 : ℂ) else 0) * x c
@@ -192,9 +196,9 @@ theorem scalarRow_jump (a : ℕ) (ha1 : 1 ≤ a) (ham : a ≤ m)
           = if ℓ - (k + 1) ≤ c ∧ c < ℓ then x c else 0 := by
       intro c _
       by_cases hwin : ℓ - (k + 1) ≤ c ∧ c < ℓ
-      · rw [if_pos hwin, if_pos hwin]
+      · rw [ite_eq_left hwin, ite_eq_left hwin]
         ring
-      · rw [if_neg hwin, if_neg hwin]
+      · rw [ite_eq_right hwin, ite_eq_right hwin]
         ring
     rw [Finset.sum_congr rfl (fun c hc => hrew c hc), ← Finset.sum_filter]
     refine Finset.sum_bij'
@@ -247,23 +251,23 @@ theorem scalarRow_pad (q : ℕ) (hq1 : 1 ≤ q) (hqp : q ≤ p)
       · intro h; exact h.2
       · intro h; exact ⟨by omega, h⟩
     simp only [scalarKernelEntry]
-    rw [if_neg hs, if_neg hj]
+    rw [ite_eq_right hs, ite_eq_right hj]
     simp only [hp, sub_zero]
   have hdiag : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if ℓ = c then (1 : ℂ) else 0) * x c = x ℓ := by
     rw [Finset.sum_eq_single_of_mem ℓ (Finset.mem_range.mpr hlt)]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       ring
     · intro c _ hc
-      rw [if_neg (Ne.symm hc)]
+      rw [ite_eq_right (Ne.symm hc)]
       ring
   have hstep : ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
       (if c + 1 = ℓ then (1 : ℂ) else 0) * x c = x (ℓ - 1) := by
     rw [Finset.sum_eq_single_of_mem (ℓ - 1) (Finset.mem_range.mpr (by omega))]
-    · rw [if_pos (by omega : (ℓ - 1) + 1 = ℓ)]
+    · rw [ite_eq_left (by omega : (ℓ - 1) + 1 = ℓ)]
       ring
     · intro c _ hc
-      rw [if_neg (by omega : ¬ (c + 1 = ℓ))]
+      rw [ite_eq_right (by omega : ¬ (c + 1 = ℓ))]
       ring
   simp only [hentry, sub_mul, Finset.sum_sub_distrib]
   rw [hdiag, hstep]
@@ -343,7 +347,7 @@ theorem scalarSolve_pad (q : ℕ) (hq1 : 1 ≤ q) (hqp : q ≤ p) :
   have hnlt : ¬ (m * (k + 1) + q < m * (k + 1)) := by omega
   have hne : ¬ (m * (k + 1) + q = m * (k + 1)) := by omega
   have hle : m * (k + 1) + q ≤ m * (k + 1) + p := by omega
-  simp only [scalarSolve, hnlt, hne, hle, if_false, Nat.add_sub_cancel_left]
+  simp only [scalarSolve, hnlt, hne, hle, ite_false, Nat.add_sub_cancel_left]
   rfl
 
 end Values
@@ -442,7 +446,7 @@ theorem scalarJump_finish (k : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) (ha1
           taylorTransPoly k (i + 1) lam * r ((a - 1) * (k + 1) + i + 1) := by
     rw [show (a - 1) + 1 = a from by omega]
     simp only [scalarJumpTerm]
-    rw [if_neg (by omega : ¬ (a = 0))]
+    rw [ite_eq_right (by omega : ¬ (a = 0))]
   rw [hJa, show ((a - 1) + 1) * (k + 1) = a * (k + 1) from by
     rw [show (a - 1) + 1 = a from by omega]]
   ring

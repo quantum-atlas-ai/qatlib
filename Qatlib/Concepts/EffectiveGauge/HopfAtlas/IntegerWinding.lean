@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+
+@[expose] public section
 
 /-!
 # Actual periodic integer-winding lifts of constant spins

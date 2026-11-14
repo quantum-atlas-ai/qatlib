@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+module
+
+public import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+
+@[expose] public section
 
 /-!
 # Continuous curvelet algorithm estimates
@@ -121,7 +125,7 @@ theorem source_theorem6
 final error at most `μ`, the final accuracy event has a positive constant lower bound when
 `S = 9.4 ^ niter`. This is the iteration-combination step for Theorem 7 of [Liu2009]. -/
 theorem source_theorem7
-    (n : ℕ) (hn : 4 ≤ n) (μ : ℝ) (hμ : 0 < μ)
+    (n : ℕ) (_hn : 4 ≤ n) (μ : ℝ) (_hμ : 0 < μ)
     (niter : ℕ) (hniter : 0 < niter) (S : ℝ) (hS : 1 ≤ S)
     (hSdef : S = (9.4 : ℝ) ^ niter)
     [MeasurableSpace (EuclideanSpace ℝ (Fin n))]

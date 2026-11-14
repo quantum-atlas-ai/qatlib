@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.OgpLandscape
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.QaoaValue
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.NeighborhoodGrowth
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.OgpLandscape
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.QaoaValue
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.NeighborhoodGrowth
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

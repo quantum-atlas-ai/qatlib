@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -83,7 +87,7 @@ theorem lemma13_oracleImplementation (n m s : ℕ) (A : Fin m → Operator n) (�
           |estA ω i - (Matrix.trace (A i * ρ)).re| ≤ h) ∧
           |estC ω - (Matrix.trace (A ⟨0, hm⟩ * ρ)).re| ≤ h
       · simp [hP]
-      · rw [if_neg hP]
+      · rw [ite_eq_right hP]
         by_cases hQ : ∀ i : Fin m, |estA ω i - (Matrix.trace (A i * ρ)).re| ≤ h
         · simp [hQ, hlaw.1 ω]
         · simp [hQ]

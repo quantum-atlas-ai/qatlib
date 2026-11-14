@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
-import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+
+@[expose] public section
 
 /-!
 # Final logarithmic query bounds for static CBMD

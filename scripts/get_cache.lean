@@ -4,6 +4,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
+module
+
+
+public section
 open IO Process
 
 def runCmd (cmd : String) (args : Array String) (env : Array (String × Option String) := #[]) : IO UInt32 := do

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ namespace Qatlib.Papers.EllipticPDELi26.MainResults.MultilevelAllocation
 obeys  `(1/ε) (∑_ℓ √c_ℓ)² ≤ ∑_ℓ c_ℓ / ε_ℓ`.  This is Titu's lemma (equivalently
 Cauchy–Schwarz applied to `√ε_ℓ` and `√(c_ℓ/ε_ℓ)`), followed by `∑ ε_ℓ ≤ ε`. -/
 theorem source_mlmc_amplitude_cost_lower {ι : Type*} [Fintype ι] [Nonempty ι]
-    (c budget : ι → ℝ) (ε : ℝ) (hc : ∀ l, 0 ≤ c l) (hε : 0 < ε)
+    (c budget : ι → ℝ) (ε : ℝ) (hc : ∀ l, 0 ≤ c l) (_hε : 0 < ε)
     (hbudget_pos : ∀ l, 0 < budget l) (hbudget : ∑ l, budget l ≤ ε) :
     (∑ l, Real.sqrt (c l)) ^ 2 / ε ≤ ∑ l, c l / budget l := by
   have hsum_pos : 0 < ∑ l, budget l :=
@@ -119,7 +123,7 @@ theorem source_mlmc_sampling_cost_lower {ι : Type*} [Fintype ι] [Nonempty ι]
 its variance satisfies `v_ℓ ≤ C α_ℓ²` with `C ≥ 0`, then the sampling-cost weight obeys
 `√(τ_ℓ v_ℓ) ≤ √C · √τ_ℓ · α_ℓ`.  Summing this gives the worst-case bound (4.5). -/
 theorem source_mlmc_sampling_scale
-    (τ v C α : ℝ) (hτ : 0 ≤ τ) (hv : 0 ≤ v) (hC : 0 ≤ C) (hα : 0 ≤ α)
+    (τ v C α : ℝ) (hτ : 0 ≤ τ) (_hv : 0 ≤ v) (hC : 0 ≤ C) (hα : 0 ≤ α)
     (hvar : v ≤ C * α ^ 2) :
     Real.sqrt (τ * v) ≤ Real.sqrt C * Real.sqrt τ * α := by
   have hmono : Real.sqrt (τ * v) ≤ Real.sqrt (τ * (C * α ^ 2)) := by

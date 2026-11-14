@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.DatabaseQuery
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.DatabaseQuery
+
+@[expose] public section
 
 /-!
 # Algorithm words with recording databases
@@ -149,7 +153,7 @@ theorem initial_supported (initial : EuclideanSpace ℂ (Registers W X P)) :
   have h : db ≠ (fun _ => none) := by
     intro he
     simp [he,occupied] at hdb
-  rw [initialDatabaseState_apply,if_neg h]
+  rw [initialDatabaseState_apply,ite_eq_right h]
 omit [Nonempty L] in
 
 /-- An algorithm gate acting only on registers preserves a bound on the number of occupied

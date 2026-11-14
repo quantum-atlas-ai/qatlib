@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurement
-import Qatlib.Concepts.MbqcFlow.FlowDecision.GramSquareRootBound
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurement
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.GramSquareRootBound
+
+@[expose] public section
 
 /-!
 # Pretty-good measurement probabilities for pure ensembles

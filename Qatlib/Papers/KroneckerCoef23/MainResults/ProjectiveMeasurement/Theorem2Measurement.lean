@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KroneckerCoef23.MainResults.ProjectiveMeasurement.BinaryMeasurement
-import Qatlib.Papers.KroneckerCoef23.MainResults.RowSumConjugation.ConjugationRowSum
+module
+
+public import Qatlib.Papers.KroneckerCoef23.MainResults.ProjectiveMeasurement.BinaryMeasurement
+public import Qatlib.Papers.KroneckerCoef23.MainResults.RowSumConjugation.ConjugationRowSum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ identity `d_χ R_χ = Tr(Π^c_χ)` used for the QMA containment of Corollary 2.
 
 The projector property `Π^c_χ · Π^c_χ = Π^c_χ` is the paper's Eq. (49)–(51)
 (evaluated for the conjugation representation) and is taken as hypothesis. -/
-theorem theorem2_projective_measurement (χ : G → ℂ) (hd : charDim χ ≠ 0)
+theorem theorem2_projective_measurement (χ : G → ℂ) (_hd : charDim χ ≠ 0)
     (hproj : conjProjector χ * conjProjector χ = conjProjector χ) :
     (binaryEffect (conjProjector χ) true * binaryEffect (conjProjector χ) true
         = binaryEffect (conjProjector χ) true) ∧

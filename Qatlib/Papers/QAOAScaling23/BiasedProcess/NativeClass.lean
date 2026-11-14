@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.LowerTarget
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.CompletionRow
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.LowerTarget
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.CompletionRow
+
+@[expose] public section
 
 /-!
 # Cost-class marginals of native threshold search
@@ -139,7 +143,7 @@ theorem native_class_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup 
   apply Finset.sum_congr rfl
   intro i _
   by_cases hi : lowerRank cost (costRank cost current).val i = some j
-  · rw [if_pos hi,if_pos hi]
+  · rw [ite_eq_left hi,ite_eq_left hi]
     have hlt : costRank cost i < costRank cost current := by
       have he := (lowerRank_some cost _ i j).mp hi
       change (costRank cost i).val < (costRank cost current).val

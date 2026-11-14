@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
-import Mathlib.Algebra.Group.ForwardDiff
-import Mathlib.Data.Nat.Choose.Sum
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
+public import Mathlib.Algebra.Group.ForwardDiff
+public import Mathlib.Data.Nat.Choose.Sum
+
+@[expose] public section
 
 /-!
 # Binomial algebra for central differences

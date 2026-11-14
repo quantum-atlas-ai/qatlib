@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+
+@[expose] public section
 
 /-!
 # Product state preparation

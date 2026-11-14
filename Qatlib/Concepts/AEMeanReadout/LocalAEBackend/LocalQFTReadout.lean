@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Measurement guarantees for local Fourier circuits
@@ -67,8 +71,8 @@ theorem relabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [
   show (Ket i) (e.symm x) = Ket (e i) x
   simp only [Ket]
   by_cases h : e.symm x = i
-  · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
-  · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
+  · rw [ite_eq_left h, ite_eq_left ((Equiv.symm_apply_eq e).mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
 /-- Relabeling a quantum state by an equivalence preserves normalization. -/
 theorem relabelState_normalized {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]

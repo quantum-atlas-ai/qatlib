@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Positive semidefinite overlap bound
@@ -41,10 +45,10 @@ theorem psd_weighted_overlap_diagonal (m : ℕ) (M : Matrix (Fin m) (Fin m) ℂ)
     (∑ i, ∑ j, (σ i : ℂ) * M i j * (σ j : ℂ)).re ≤
       (∑ i, σ i * Real.sqrt (M i i).re) ^ 2 := by
   classical
-  letI := M.toSeminormedAddCommGroup hM
-  letI := M.toInnerProductSpace hM
-  letI : Norm (Fin m → ℂ) := (M.toSeminormedAddCommGroup hM).toNorm
-  letI : NormedSpace ℂ (Fin m → ℂ) := (M.toInnerProductSpace hM).toNormedSpace
+  let := M.toSeminormedAddCommGroup hM
+  let := M.toInnerProductSpace hM
+  let : Norm (Fin m → ℂ) := (M.toSeminormedAddCommGroup hM).toNorm
+  let : NormedSpace ℂ (Fin m → ℂ) := (M.toInnerProductSpace hM).toNormedSpace
   let v : Fin m → ℂ := fun i => (σ i : ℂ)
   have hn (w : Fin m → ℂ) : ‖w‖ = Real.sqrt ((M *ᵥ w) ⬝ᵥ star w).re := by
     rw [norm_eq_sqrt_re_inner (𝕜 := ℂ)]

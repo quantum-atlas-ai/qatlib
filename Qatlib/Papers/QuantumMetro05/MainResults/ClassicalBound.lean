@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumMetro05.MainResults.Source
+module
+
+public import Qatlib.Papers.QuantumMetro05.MainResults.Source
+
+@[expose] public section
 
 /-!
 # Separable metrology precision
@@ -87,7 +91,7 @@ theorem productLaw_expect_coord {N d : ℕ} (q : Fin N → FinDist (Fin d))
       h (ω k) = ∏ j, (if j = k then h (ω j) else 1) := by
     intro ω
     rw [Finset.prod_eq_single k]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro j _ hjk; simp [hjk]
     · intro hcon; exact absurd (Finset.mem_univ k) hcon
   have hex := productLaw_expect_prod q (fun j x => if j = k then h x else 1)
@@ -99,7 +103,7 @@ theorem productLaw_expect_coord {N d : ℕ} (q : Fin N → FinDist (Fin d))
         rw [Finset.prod_eq_single k]
         · simp
         · intro j _ hjk
-          simp only [hjk, if_false, mul_one]
+          simp only [hjk, ite_false, mul_one]
           simpa using (q j).sum_one
         · intro hcon; exact absurd (Finset.mem_univ k) hcon
 
@@ -136,16 +140,16 @@ theorem separables_variance_additive {N d : ℕ} (q : Fin N → FinDist (Fin d))
     intro j k
     by_cases hjk : j = k
     · subst hjk
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       have hg : (q j).variance (H j)
           = ∑ x, (q j).prob x * (H j x - (q j).expect (H j)) ^ 2 := rfl
       rw [hg]
       rw [← productLaw_expect_coord q j
         (fun x => (H j x - (q j).expect (H j)) ^ 2)]
       refine Finset.sum_congr rfl fun ω _ => ?_
-      beta_reduce
+
       ring
-    · rw [if_neg hjk]
+    · rw [ite_eq_right hjk]
       have hprod := productLaw_expect_prod q
         (fun m x => if m = j then (H j x - (q j).expect (H j))
                     else if m = k then (H k x - (q k).expect (H k)) else 1)

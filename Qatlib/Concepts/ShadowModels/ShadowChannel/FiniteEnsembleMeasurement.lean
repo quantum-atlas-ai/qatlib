@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+
+@[expose] public section
 
 /-!
 # Finite ensemble measurement instruments
@@ -57,6 +61,7 @@ operator indexed by `o.1`. -/
 noncomputable def ensembleProjector (U : X → Operator D) (o : X × Fin D) : Operator D :=
   (U o.1)ᴴ * Projector {o.2} * U o.1
 
+omit [Fintype X] in
 /-- Every conjugated ensemble basis projector is Hermitian. -/
 theorem ensembleProjector_conjTranspose (U : X → Operator D) (o : X × Fin D) :
     (ensembleProjector U o)ᴴ = ensembleProjector U o := by
@@ -64,18 +69,21 @@ theorem ensembleProjector_conjTranspose (U : X → Operator D) (o : X × Fin D) 
     Matrix.conjTranspose_conjTranspose, projector_conjTranspose]
   simp only [Matrix.mul_assoc]
 
+omit [Fintype X] in
 /-- For a unitary ensemble member, its conjugate transpose times itself is the identity. -/
 theorem ensemble_unitary_conj_mul (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : X) : (U a)ᴴ * U a = 1 := by
   have h := Matrix.mem_unitaryGroup_iff'.mp (hU a)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+omit [Fintype X] in
 /-- For a unitary ensemble member, its product with its conjugate transpose is the identity. -/
 theorem ensemble_unitary_mul_conj (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : X) : U a * (U a)ᴴ = 1 := by
   have h := Matrix.mem_unitaryGroup_iff.mp (hU a)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+omit [Fintype X] in
 /-- Conjugated basis projectors are idempotent when the ensemble operators are unitary. -/
 theorem ensembleProjector_idem (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) :
@@ -89,6 +97,7 @@ theorem ensembleProjector_idem (U : X → Operator D)
     _ = ensembleProjector U o := by
         rw [projector_mul_self, ensembleProjector]
 
+omit [Fintype X] in
 /-- Every backward-conjugated ensemble basis projector is positive semidefinite. -/
 theorem ensembleProjector_posSemidef (U : X → Operator D) (o : X × Fin D) :
     (ensembleProjector U o).PosSemidef := by
@@ -109,6 +118,7 @@ theorem trace_projector_singleton (b : Fin D) :
   rw [Projector, Matrix.trace_diagonal]
   simp
 
+omit [Fintype X] in
 /-- Each ensemble basis projector has trace one when the ensemble operators are unitary. -/
 theorem ensembleProjector_trace (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) :
@@ -130,6 +140,7 @@ theorem projectors_singleton_sum : ∑ b : Fin D, Projector ({b} : Finset (Fin D
     simp
   · simp [hij]
 
+omit [Fintype X] in
 /-- For a fixed unitary ensemble member, summing its conjugated basis projectors over outcomes
 gives the identity. -/
 theorem ensembleProjector_sum_axis (U : X → Operator D)
@@ -163,10 +174,11 @@ theorem trace_projector_singleton_mul (b : Fin D) (M : Operator D) :
     Matrix.trace (Projector ({b} : Finset (Fin D)) * M) = M b b := by
   simp [Matrix.trace, Projector]
 
+omit [Fintype X] in
 /-- Sandwiching an operator between a unitary-conjugated basis projector gives that projector
 scaled by its trace pairing with the operator. -/
 theorem ensembleProjector_conj_eq_trace_smul (U : X → Operator D)
-    (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) (A : Operator D) :
+    (_hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) (A : Operator D) :
     ensembleProjector U o * A * ensembleProjector U o
       = Matrix.trace (ensembleProjector U o * A) • ensembleProjector U o := by
   have key : ensembleProjector U o * A
@@ -442,6 +454,7 @@ noncomputable def ensembleFreshResourceCounts (U : X → Operator D) {m : ℕ}
   (leaves.length, (leaves.map (fun l => l.gates)).sum,
     (leaves.map (fun l => l.measurements)).sum, (leaves.map (fun l => l.queries)).sum)
 
+omit [Fintype X] in
 /-- A sequence of `m` ensemble records uses `m` fresh records, `2*m` gates, `m` measurements,
 and zero queries. -/
 theorem ensembleFreshResourceCounts_spec (U : X → Operator D) {m : ℕ}
@@ -458,6 +471,7 @@ theorem ensembleInstrument_actual_branch (p : FinDist X) (U : X → Operator D)
       ((Real.sqrt (p.prob o.1) : ℂ) • (ensembleAxisLeaf (U o.1) o.2).operator)ᴴ := by
   rw [ensembleInstrument_branch, ensembleKraus_actual_leaf_bridge]
 
+omit [Fintype X] in
 /-- Across `K` groups of `L` ensemble records, the total fresh-record, gate, measurement, and
 query counts are `K*L`, `2*(K*L)`, `K*L`, and zero. -/
 theorem ensemble_grouped_actual_resources (U : X → Operator D) {L K : ℕ}

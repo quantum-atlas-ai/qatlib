@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SolovayKitaev05.MainResults.FixedGateSynthesisDefs
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesis
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateCompiler
+module
+
+public import Qatlib.Papers.SolovayKitaev05.MainResults.FixedGateSynthesisDefs
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesis
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateCompiler
+
+@[expose] public section
 
 /-!
 # Fixed-gate synthesis acceptance and resource ledgers

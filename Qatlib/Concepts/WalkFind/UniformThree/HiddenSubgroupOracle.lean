@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.WalkFind.UniformThree.ConventionBridge
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+module
+
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.WalkFind.UniformThree.ConventionBridge
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+@[expose] public section
 
 /-!
 # Hidden Subgroup Oracle Branches
@@ -81,10 +85,10 @@ theorem measureProb_addOracleLabelBranch_univ (f : G → R) (ψ : QState G) (z :
   intro x _
   rw [BornProb, addOracleLabelBranch_apply]
   by_cases h : f x = z
-  · rw [if_pos h.symm, if_pos h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
     rfl
   · have hz : z ≠ f x := fun hz => h hz.symm
-    rw [if_neg hz, if_neg h]
+    rw [ite_eq_right hz, ite_eq_right h]
     simp
 
 omit [AddCommGroup G] in
@@ -130,7 +134,7 @@ theorem addOracleLabelBranch_uniform_eq_smul_coset
   by_cases hx : x - s ∈ H
   · have hfx : f x = f s := (hf x s).2 hx
     have hz : f s = f x := hfx.symm
-    simp only [if_pos hz, if_pos hx]
+    simp only [ite_eq_left hz, ite_eq_left hx]
     have hH : (Real.sqrt (Fintype.card H : ℝ) : ℂ) ≠ 0 := by
       exact_mod_cast (Real.sqrt_pos.mpr (show (0 : ℝ) < Fintype.card H by
         exact_mod_cast Fintype.card_pos)).ne'
@@ -179,13 +183,13 @@ theorem conditionalState_addOracle_hidden_label
   have hsqrt : (Real.sqrt ((Fintype.card H : ℝ) / (Fintype.card G : ℝ)) : ℂ) ≠ 0 := by
     exact_mod_cast (Real.sqrt_pos.mpr hpos).ne'
   unfold ConditionalState
-  rw [hprob, if_pos hpos]
+  rw [hprob, ite_eq_left hpos]
   congr 1
   funext x
   change (Real.sqrt (MeasureProb (addOracleLabelBranch f (Uniform G) (f s))
       Finset.univ) : ℂ)⁻¹ *
       Collapse (addOracleLabelBranch f (Uniform G) (f s)) Finset.univ x = _
-  rw [hprob, collapse_apply, if_pos (Finset.mem_univ x),
+  rw [hprob, collapse_apply, ite_eq_left (Finset.mem_univ x),
     addOracleLabelBranch_uniform_eq_smul_coset f H hf s]
   change (Real.sqrt ((Fintype.card H : ℝ) / (Fintype.card G : ℝ)) : ℂ)⁻¹ *
       (cosetBranchScale H * abelianCosetState H s x) = _

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.ReversibleSorter
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.ReversibleSorter
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 /-!
 # Uniform rank states and permutation relabeling

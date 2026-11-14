@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftProgram
+module
+
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftProgram
+
+@[expose] public section
 
 /-!
 # Specification of digit budget qDRIFT

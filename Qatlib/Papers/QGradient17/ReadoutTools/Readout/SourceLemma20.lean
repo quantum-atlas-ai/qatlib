@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutOpti
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutOpti
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
+
+@[expose] public section
 
 /-!
 # Fourier cases for a finite arithmetic progression

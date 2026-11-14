@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3UniversalityTheorem1Quan
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStre
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3UniversalityTheorem1Quan
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStre
+
+@[expose] public section
 
 /-!
 # Dependencies for machine-source constructions

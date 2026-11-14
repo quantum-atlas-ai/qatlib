@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Norm bound for a controlled single-wire gate
@@ -133,8 +137,8 @@ theorem elementary_controlled_distance {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (
     rw [elementary_apply_ket]
     simp only [M]
     by_cases hzw : z.1=w.1
-    · simp only [if_pos hzw,one_mul]
-    · simp only [if_neg hzw,zero_mul]
+    · simp only [ite_eq_left hzw,one_mul]
+    · simp only [ite_eq_right hzw,zero_mul]
   have hsub : M-1=TensorGate (diagonal (fun y => if a y then (1 : ℂ) else 0)) (U-1) := by
     ext ⟨y,b⟩ ⟨z,d⟩
     simp only [M,Matrix.sub_apply,Matrix.one_apply,TensorGate]

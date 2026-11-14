@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
-import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoalTigh
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+public import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoal
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fourier counting circuits and Born accuracy

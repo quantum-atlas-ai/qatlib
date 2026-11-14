@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientGridExecution
-import Mathlib.Data.List.Nodup
-import Mathlib.Data.List.ProdSigma
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientGridExecution
+public import Mathlib.Data.List.Nodup
+public import Mathlib.Data.List.ProdSigma
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

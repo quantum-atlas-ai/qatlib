@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceReadoutStat
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTaylorBiasQuan
-import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceReadoutStat
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTaylorBiasQuan
+public import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Polynomial payoff readout concentration
@@ -57,9 +61,9 @@ private theorem event_le_of_subset {X : Type*} (p : PMF X) (E F : X → Prop)
   apply ENNReal.tsum_le_tsum
   intro x
   by_cases hx : E x
-  · simp only [if_pos hx, if_pos (h x hx), mul_one]
+  · simp only [ite_eq_left hx, ite_eq_left (h x hx), mul_one]
     exact le_rfl
-  · simp only [if_neg hx, mul_zero]
+  · simp only [ite_eq_right hx, mul_zero]
     positivity
 
 /-- For unitary preparation and payoffs in `[0, 1]`, the polynomial rotation mean differs from

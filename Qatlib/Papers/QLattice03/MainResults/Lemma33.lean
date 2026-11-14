@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Defs
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # QLattice03 — Lemma 3.3: coefficient bound for the shortest vector
@@ -71,7 +75,7 @@ absolute value.  See the module docstring: this abstraction of
 LLL-reducedness does not yet constrain the basis, so this is a specification
 placeholder rather than the paper's lemma. -/
 def shortestVector_coeff_bound {n : ℕ} (b : LatticeBasis n) (u : Fin n → ℤ)
-    (hLLL : IsLLLReduced b) (hu : IsShortestVector b u) : Prop :=
+    (_hLLL : IsLLLReduced b) (_hu : IsShortestVector b u) : Prop :=
   ∃ c : Fin n → ℤ, (∀ j, u j = ∑ i : Fin n, c i * b i j) ∧
     ∀ i, |c i| ≤ (2 : ℤ) ^ (2 * n)
 

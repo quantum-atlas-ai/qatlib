@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.Analysis.Complex.HasPrimitives
-import Mathlib.Analysis.Complex.RealDeriv
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Analysis.Complex.CauchyIntegral
+public import Mathlib.Analysis.Complex.HasPrimitives
+public import Mathlib.Analysis.Complex.RealDeriv
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixContour.ContourCalc

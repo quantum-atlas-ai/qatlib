@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 /-!
 # Counted parity query algorithm
@@ -923,7 +927,7 @@ end Circuit
 section Arithmetic
 
 /-- Convert a Boolean value to the natural number 0 or 1. -/
-private def b2n (b : Bool) : ℕ := if b then 1 else 0
+def b2n (b : Bool) : ℕ := if b then 1 else 0
 
 /-- The integer value of XOR plus twice the product of the two bit values equals their sum. -/
 private theorem b2n_xor_add (x y : Bool) :
@@ -982,7 +986,7 @@ private theorem sum_range_split (g : ℕ → ℕ) : ∀ N : ℕ,
     exact (key m).2
 
 /-- The natural number value of input bit `k`, extended by zero beyond the input length. -/
-private def bitAt {N : ℕ} (f : Fin N → Bool) (k : ℕ) : ℕ :=
+def bitAt {N : ℕ} (f : Fin N → Bool) (k : ℕ) : ℕ :=
   if h : k < N then b2n (f ⟨k, h⟩) else 0
 
 /-- The last input bit when the input length is odd, and `false` when it is even. -/

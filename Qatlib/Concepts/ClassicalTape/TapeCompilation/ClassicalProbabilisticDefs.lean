@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
-import Mathlib.Computability.TuringMachine.StackTuringMachine
+module
+
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+public import Mathlib.Computability.TuringMachine.StackTuringMachine
+
+@[expose] public section
 
 /-!
 # Machine definitions for copying, reset, and majority repetition

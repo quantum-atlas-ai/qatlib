@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OpenProblems21.MainResults.OracleModels
+module
+
+public import Qatlib.Papers.OpenProblems21.MainResults.OracleModels
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

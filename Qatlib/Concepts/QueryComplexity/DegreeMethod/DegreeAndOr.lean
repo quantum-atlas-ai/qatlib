@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 /-!
 # Exact polynomial degree bounds for AND and OR
@@ -58,11 +62,11 @@ private theorem cube_monomial_top_sum {I : Type} [Fintype I] [DecidableEq I]
         (fun i b => (if b then (1 : ℝ) else -1)*(if b then (1 : ℝ) else 0)^d i)).symm
   rw [hp]
   by_cases h : ∀ i, d i ≠ 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     apply Finset.prod_eq_one
     intro i _
     simp [h i]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     obtain ⟨i,hi⟩ := not_forall.mp h
     have hdi : d i=0 := not_ne_iff.mp hi
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hdi])

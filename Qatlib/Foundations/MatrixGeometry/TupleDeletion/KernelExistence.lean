@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+
+@[expose] public section
 
 /-!
 # A bottom eigenvector for tuple adjacency

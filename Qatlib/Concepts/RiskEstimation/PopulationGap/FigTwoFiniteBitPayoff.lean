@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.FigTwoFiniteBitPayoff
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedReadoutQuan
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.FigTwoFiniteBitPayoff
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedReadoutQuan
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerQuan
+
+@[expose] public section
 
 /-!
 # Polynomial payoff readout with finite-bit error allowance

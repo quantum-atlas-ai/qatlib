@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -104,7 +108,7 @@ def theorem11_blockEncoding_timeEvolvedM_statement
     (M : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (α ε εM t : ℝ) (na : ℕ)
     (B_M : ControlledBlockEncoding (2 ^ n) M α εM)
-    (hα : 0 < α) (hε : 0 < ε) : Prop :=
+    (_hα : 0 < α) (_hε : 0 < ε) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (timeEvolvedM h M t) α (ε + εM),
       B.m = n + B_M.m + 10 ∧
       B.cost.usesOfUM = 1 ∧
@@ -123,7 +127,7 @@ def theorem17_timeEvolvedM2_resources_statement
     (M : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (α ε εM t₁ t₂ : ℝ) (na : ℕ)
     (B_M : ControlledBlockEncoding (2 ^ n) M α εM)
-    (hα : 0 < α) (hε : 0 < ε) : Prop :=
+    (_hα : 0 < α) (_hε : 0 < ε) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (timeEvolvedM2 h M t₁ t₂) α (ε + εM),
       B.m = n + B_M.m + 10 ∧
       B.cost.usesOfUM = 1 ∧

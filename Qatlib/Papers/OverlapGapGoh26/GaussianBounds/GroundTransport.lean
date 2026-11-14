@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.ContinuousPath
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.ContinuousPath
+
+@[expose] public section
 
 /-!
 # Transport bounds for cube ground energies

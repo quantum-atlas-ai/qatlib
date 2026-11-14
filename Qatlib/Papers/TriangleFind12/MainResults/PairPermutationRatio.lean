@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Logic.Equiv.Fintype
-import Mathlib.Data.Fintype.Perm
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Group
+module
+
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.Logic.Equiv.Fintype
+public import Mathlib.Data.Fintype.Perm
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Group
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

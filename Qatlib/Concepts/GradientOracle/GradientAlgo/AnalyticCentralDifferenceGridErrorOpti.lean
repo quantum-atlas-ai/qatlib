@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridTerms
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceExceptionalUnion
+module
+
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridTerms
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceExceptionalUnion
+
+@[expose] public section
 
 /-!
 # Analytic central-difference error on a grid
@@ -42,7 +46,7 @@ theorem analyticCentralDifferenceGridError : AnalyticCentralDifferenceGridError 
   · subst d
     have hpoint (z : Fin 0 → Fin M) : gridPoint 0 M R z=0 := Subsingleton.elim _ _
     have hcoeff : (∑ l∈Finset.Ico (-(m : ℤ)) ((m : ℤ)+1),centralDiffCoeff m l)=0 := by
-      simpa only [pow_zero,mul_one,if_neg (by norm_num : (0 : ℕ)≠1)] using!
+      simpa only [pow_zero,mul_one,ite_eq_right (by norm_num : (0 : ℕ)≠1)] using!
           centralDifferenceExactness m hm 0 (by omega)
     have hstencil : centralDiffApply m f (0 : EuclideanSpace ℝ (Fin 0))=0 := by
       dsimp [centralDiffApply]

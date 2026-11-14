@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+@[expose] public section
 
 /-!
 # Variance certification from a rational pilot
@@ -343,7 +347,7 @@ theorem unknown_variance_pilot_actual_born_certificate_failure
       intro omega _
       have hn : 0 ≤ p.probOf omega := Finset.prod_nonneg fun i _ => p.nonneg _
       by_cases he : E omega <;> by_cases hf : F omega <;>
-        dsimp only [E, F] at he hf ⊢ <;> simp only [he, hf, if_true, if_false, or_true, true_or,
+        dsimp only [E, F] at he hf ⊢ <;> simp only [he, hf, ite_true, ite_false, or_true, true_or,
             false_or] <;> linarith
     _ ≤ 2/((N : ℝ)*(nu : ℝ)^2) := by
       calc

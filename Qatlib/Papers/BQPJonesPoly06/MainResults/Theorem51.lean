@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Theorem31
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Theorem31
+
+@[expose] public section
 
 /-!
 # Parameter-dependent Jones hardness reduction
@@ -82,7 +86,7 @@ theorem theorem51_reduction (k n : ℕ) (hk : 4 < k) (V : JonesValue n)
 six, the supplied encoding and scaling data yield Jones promise BQP hardness at `p n`
 [AharonovArad2011, Theorem 5.1][AharonovArad2011]. -/
 theorem theorem51_bqpHard (p : ℕ → ℕ) (_hp : PolyBound p) (n : ℕ)
-    (hk4 : ∀ l, 4 < p l) (hk6 : ∀ l, p l ≠ 6) (V : JonesValue n)
+    (hk4 : ∀ l, 4 < p l) (_hk6 : ∀ l, p l ≠ 6) (V : JonesValue n)
     (E : BraidEncodingK n (p n)) (hΔ : 0 < deltaScale (p n) n)
     (hscale : ∀ b : BraidWord n, ‖V b‖ = deltaScale (p n) n * E.amp b)
     (heps : E.eps ≤ 1 / 20) :

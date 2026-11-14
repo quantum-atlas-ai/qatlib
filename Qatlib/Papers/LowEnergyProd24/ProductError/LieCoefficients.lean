@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.LieTerms
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.FactorialWeights
-import Mathlib.Algebra.Order.Antidiag.Prod
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.LieTerms
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.FactorialWeights
+public import Mathlib.Algebra.Order.Antidiag.Prod
+
+@[expose] public section
 
 /-!
 # Finite Lie coefficients and their absolute mass
@@ -118,8 +122,8 @@ theorem lieMass_bound (stages : List (ℝ × Fin M)) (n : ℕ) :
     by_cases hn : n=0
     · subst n
       simpa only [Finset.Nat.antidiagonal_zero, Finset.sum_singleton, pow_zero, Nat.factorial_zero,
-        Nat.cast_one, div_one, one_mul, if_true, mul_one, add_comm] using add_le_add_left (ih 0) |stage.1|
-    · rw [if_neg hn]
+        Nat.cast_one, div_one, one_mul, ite_true, mul_one, add_comm] using add_le_add_left (ih 0) |stage.1|
+    · rw [ite_eq_right hn]
       calc
         _ ≤ ∑ ij ∈ Finset.HasAntidiagonal.antidiagonal n,
             (|stage.1|^ij.1/(ij.1.factorial : ℝ)) *

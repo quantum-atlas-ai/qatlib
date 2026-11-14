@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.LCUContractionSubgoalStat
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.LCUContractionSubgoalStat
+
+@[expose] public section
 
 /-!
 # Prepared LCU workspace corner identity
@@ -32,6 +36,6 @@ open Qatlib
 /-- A prepared LCU workspace with nonnegative weights summing to one has selected ancilla corner
 `(∑ j, w j • U j) *ᵥ ψ`, establishing `LCUContractionSubgoal`. -/
 theorem lcuContractionSubgoal : LCUContractionSubgoal :=
-  fun J I _ _ _ _ U w hw _ P j0 hP ψ => Qatlib.Concepts.BlockEncoding.LinearCombination.lcu_corner_apply U hw hP ψ
+  fun _J _I _ _ _ _ U _w hw _ _P _j0 hP ψ => Qatlib.Concepts.BlockEncoding.LinearCombination.lcu_corner_apply U hw hP ψ
 
 end Qatlib.Papers.HamLCUSim12.Multiproduct

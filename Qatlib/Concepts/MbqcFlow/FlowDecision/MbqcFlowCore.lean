@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Correctness of finite MBQC flow search
@@ -60,17 +64,17 @@ theorem flowCorrection_pauliWire {n : ℕ} (G : MbqcGraph n) (f : Fin n → Opti
     MbqcPauliWire (flowCorrection G f s u) := by
   unfold flowCorrection
   by_cases hx : ∃ v : Fin n, s v = true ∧ f v = some u
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     by_cases hz : ∃ v w : Fin n, s v = true ∧ f v = some w ∧ u ≠ v ∧ mbqcAdj G w u
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       exact Or.inr (Or.inr (Or.inr rfl))
-    · rw [if_neg hz, mul_one]
+    · rw [ite_eq_right hz, mul_one]
       exact Or.inr (Or.inl rfl)
-  · rw [if_neg hx]
+  · rw [ite_eq_right hx]
     by_cases hz : ∃ v w : Fin n, s v = true ∧ f v = some w ∧ u ≠ v ∧ mbqcAdj G w u
-    · rw [if_pos hz, one_mul]
+    · rw [ite_eq_left hz, one_mul]
       exact Or.inr (Or.inr (Or.inl rfl))
-    · rw [if_neg hz, one_mul]
+    · rw [ite_eq_right hz, one_mul]
       exact Or.inl rfl
 
 /-- If all correction dependencies satisfy the stated F2 and F3 order conditions,

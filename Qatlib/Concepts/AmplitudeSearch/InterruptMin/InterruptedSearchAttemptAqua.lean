@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptStat
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptionCounterexampleContracts
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptStat
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptionCounterexampleContracts
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
+
+@[expose] public section
 
 /-!
 # Observed traces of interrupted search attempts
@@ -94,7 +98,16 @@ theorem phaseCall_traces {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix (I × Bool) (I × Bool) ℂ) (C : Circuit (I × Bool))
     (A : Finset I) (ψ : QState (I × Bool)) :
     observedTraces O (observedOfCircuit C (searchPhaseObservation A)) ψ =
-      List.ofFn (phaseTrace A (Run O C ψ) (QueryCount C) (GateCount C)) := by
+      List.ofFn (fun o : Fin (Fintype.card I) =>
+        ({ state := Collapse (Run O C ψ)
+            (Finset.univ.filter (fun x => Fintype.equivFin I x.1 = o))
+           accepted := decide ((Fintype.equivFin I).symm o ∈ A)
+           queries := QueryCount C
+           gates := GateCount C
+           measurements := 1
+           outcomes := [(Fintype.card I, o.val)] } : BranchTrace (I × Bool))) := by
+  change observedTraces O (observedOfCircuit C (searchPhaseObservation A)) ψ =
+    List.ofFn (phaseTrace A (Run O C ψ) (QueryCount C) (GateCount C))
   induction C generalizing ψ with
   | nil =>
     simp only [observedOfCircuit, searchPhaseObservation, observedTraces, List.map_singleton,
@@ -132,7 +145,7 @@ theorem phaseCall_acceptance {I : Type} [Fintype I] [DecidableEq I]
     observedAcceptance O (observedOfCircuit C (searchPhaseObservation A)) ψ =
       MeasureProb (Run O C ψ) (A ×ˢ Finset.univ) := by
   rw [observedAcceptance_eq_sum, acceptance_sum_if, phaseCall_traces]
-  simp only [List.map_ofFn, List.sum_ofFn, Function.comp_def, phaseTrace, decide_eq_true_eq]
+  simp only [List.map_ofFn, List.sum_ofFn, Function.comp_def, decide_eq_true_eq]
   simp_rw [branchMass, measureProb_collapse, Finset.inter_univ]
   have hset : A ×ˢ (Finset.univ : Finset Bool) =
       Finset.univ.filter (fun x : I × Bool => x.1 ∈ A) := by ext x; simp
@@ -160,7 +173,7 @@ theorem phaseCall_acceptance {I : Type} [Fintype I] [DecidableEq I]
         simp [Ne.symm ho]
       · intro hn
         exact (hn (Finset.mem_univ _)).elim
-    simpa only [hx, if_true] using hsum
+    simpa only [hx, ite_true] using hsum
   · have hsum : (∑ o : Fin (Fintype.card I),
         if (Fintype.equivFin I).symm o ∈ A then
           (if Fintype.equivFin I x.1 = o then BornProb (Run O C ψ) x else 0) else 0) = 0 := by
@@ -170,7 +183,7 @@ theorem phaseCall_acceptance {I : Type} [Fintype I] [DecidableEq I]
       · subst o
         simp [hx]
       · simp [he]
-    simpa only [hx, if_false] using hsum
+    simpa only [hx, ite_false] using hsum
 
 /-- Establishes the query-prefix observation, query-count, normalization, success-comparison,
 and reconstruction guarantees in `InterruptedSearchAttempt` for the minimum-search setting
@@ -208,7 +221,7 @@ theorem interruptedSearchAttempt : InterruptedSearchAttempt := by
     change QueryCount D = min j r
     rw [queryPrefix_queryCount, hC]
   · rw [hp, phaseCall_traces]
-    simp only [List.map_ofFn, List.sum_ofFn, Function.comp_def, phaseTrace]
+    simp only [List.map_ofFn, List.sum_ofFn, Function.comp_def]
     rw [sum_measureProb_collapse_partition]
     exact measureProb_univ hDnorm
   · by_cases hjr : j ≤ r

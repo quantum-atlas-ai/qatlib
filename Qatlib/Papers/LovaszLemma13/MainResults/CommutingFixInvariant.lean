@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.List.Basic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.List.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

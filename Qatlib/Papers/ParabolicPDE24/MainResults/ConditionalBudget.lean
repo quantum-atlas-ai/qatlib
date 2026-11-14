@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParabolicPDE24.MainResults.InitialLayer
-import Qatlib.Papers.ParabolicPDE24.MainResults.Normalization
+module
+
+public import Qatlib.Papers.ParabolicPDE24.MainResults.InitialLayer
+public import Qatlib.Papers.ParabolicPDE24.MainResults.Normalization
+
+@[expose] public section
 
 /-!
 # Conditional multimode heat-error budgets

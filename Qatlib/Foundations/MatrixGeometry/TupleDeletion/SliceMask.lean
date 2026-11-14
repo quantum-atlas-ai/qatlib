@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+
+@[expose] public section
 
 /-!
 # Injectivity masks for pair resampling
@@ -47,7 +51,7 @@ theorem sliceMask_pairSlice (v : InjectiveTuple I L → ℂ) (f : I → L) (i j 
   change (if Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2) then
     extend v (Function.update (Function.update f i p.val.1) j p.val.2) else 0)=_
   by_cases h : Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2)
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     rfl
   · change _=extend v (Function.update (Function.update f i p.val.1) j p.val.2)
     simp [h,extend]
@@ -63,7 +67,7 @@ theorem sliceMask_expectation (v : InjectiveTuple I L → ℂ) (f : I → L) (i 
   rw [RCLike.inner_apply',RCLike.inner_apply']
   by_cases h : Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2)
   · change star (pairSlice v f i j p)*(if Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2) then u p else 0)=_
-    rw [if_pos h]
+    rw [ite_eq_left h]
     rfl
   · have hz : pairSlice v f i j p=0 := by
       change extend v (Function.update (Function.update f i p.val.1) j p.val.2)=0
@@ -82,10 +86,10 @@ theorem sliceMask_cross (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I)
   by_cases h : Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2)
   · change star (if Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2) then R (pairSlice v f i j) p else 0)*
       (if Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2) then S (pairSlice v f i j) p else 0)=_
-    rw [if_pos h,if_pos h]
+    rw [ite_eq_left h,ite_eq_left h]
     rfl
-  · have hmR : sliceMask f i j (R (pairSlice v f i j)) p=0 := if_neg h
-    have hmS : sliceMask f i j (S (pairSlice v f i j)) p=0 := if_neg h
+  · have hmR : sliceMask f i j (R (pairSlice v f i j)) p=0 := ite_eq_right h
+    have hmS : sliceMask f i j (S (pairSlice v f i j)) p=0 := ite_eq_right h
     rcases pairSlice_invalid_output v f i j hij p h with hr | hs
     · rw [hmR,hr];simp
     · rw [hmS,hs];simp

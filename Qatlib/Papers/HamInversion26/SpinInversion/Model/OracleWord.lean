@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,8 +92,8 @@ def prependGate (g : Matrix H H ℂ) : {q : ℕ} → Word H q → Word H q
     (U : Matrix H H ℂ) :
     eval (prependGate g W) U = g * eval W U := by
   induction W with
-  | done g0 => simp [prependGate, eval]
-  | step g0 rest ih => simp [prependGate, eval, ih, Matrix.mul_assoc]
+  | done g0 => simp [prependGate]
+  | step g0 rest ih => simp [prependGate, Matrix.mul_assoc]
 
 /-- Run `W₂` after `W₁`; the query counts add and the gate at the seam merges. -/
 def seq : {q₁ q₂ : ℕ} → Word H q₁ → Word H q₂ → Word H (q₁ + q₂)
@@ -103,7 +107,7 @@ theorem eval_seq {q₁ q₂ : ℕ} (W₁ : Word H q₁) (W₂ : Word H q₂)
   induction W₂ with
   | done g => simp [seq, eval_prependGate]
   | step g rest ih =>
-    simp [seq, eval, ih, Matrix.mul_assoc]
+    simp [seq, ih, Matrix.mul_assoc]
 
 /-- Condition `ξ ι = 1` makes `(ι, ξ)` an isometric embedding followed by its compression. -/
 def IsCompression {K : Type*} [Fintype K] [DecidableEq K]
@@ -125,7 +129,7 @@ theorem eval_conj {K : Type*} [Fintype K] [DecidableEq K]
   intro q W
   induction W with
   | done g =>
-    simp [conj, eval]
+    simp [conj]
   | step g rest ih =>
     simp only [conj, eval]
     rw [ih]
@@ -150,12 +154,12 @@ theorem eval_kron (M : Type*) [Fintype M] [DecidableEq M]
         (1 : Matrix M M ℂ) ⊗ₖ eval W U := by
   intro q W
   induction W with
-  | done g => simp [kronLeft, eval]
+  | done g => simp [kronLeft]
   | step g rest ih =>
     simp only [kronLeft, eval]
     rw [ih,
       ← Matrix.mul_kronecker_mul, ← Matrix.mul_kronecker_mul]
-    simp [Matrix.one_mul]
+    simp []
 
 end Word
 

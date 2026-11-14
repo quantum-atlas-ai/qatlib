@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SphereNets.Multilinear
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.FiniteTupleTail
+module
+
+public import Qatlib.Foundations.MatrixGeometry.SphereNets.Multilinear
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.FiniteTupleTail
+
+@[expose] public section
 
 /-!
 # Gaussian operator norm bounds for tensor forms

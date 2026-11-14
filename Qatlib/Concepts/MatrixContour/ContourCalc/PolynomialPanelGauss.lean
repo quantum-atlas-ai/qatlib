@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
-import Qatlib.Foundations.OpCalculus.ContourCalc.BanachPolynomial
-import Mathlib.Algebra.Polynomial.Eval.Degree
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
+public import Qatlib.Foundations.OpCalculus.ContourCalc.BanachPolynomial
+public import Mathlib.Algebra.Polynomial.Eval.Degree
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixContour.ContourCalc

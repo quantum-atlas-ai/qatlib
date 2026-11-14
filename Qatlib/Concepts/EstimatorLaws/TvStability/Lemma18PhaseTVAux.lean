@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+@[expose] public section
 
 /-!
 # Phase-kernel estimates for total variation

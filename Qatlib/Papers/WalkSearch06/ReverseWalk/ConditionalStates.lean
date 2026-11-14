@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSearch06.ReverseWalk.TimeReversal
+module
+
+public import Qatlib.Papers.WalkSearch06.ReverseWalk.TimeReversal
+
+@[expose] public section
 
 /-!
 # Conditional walk lifts and the time-reversed discriminant
@@ -73,6 +77,7 @@ theorem gram_entry_eq_discriminant (P : Matrix X X ℝ) (π : X → ℝ)
 noncomputable def swapVec {X : Type*} (v : X × X → ℂ) : X × X → ℂ :=
   fun p => v (p.2, p.1)
 
+omit [Fintype X] in
 /-- For positive weights satisfying detailed balance, the reversed conditional lift equals the
 coordinate swap of the forward lift. See [Definition 1 (Quantum
 walk)][MagniezNayakRolandSantha2011]. -/

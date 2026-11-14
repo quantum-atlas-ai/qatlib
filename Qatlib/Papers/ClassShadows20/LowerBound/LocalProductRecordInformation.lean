@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Information bounds for local product records
@@ -298,7 +302,7 @@ lemma local_product_record_moment_fano_supported
     have hswap : ∀ u, (∑ x, ∑ ω, if dec u ω = x then μ.prob u / M * R.prob ω else 0) =
         ∑ ω, ∑ x, if dec u ω = x then μ.prob u / M * R.prob ω else 0 := fun u => Finset.sum_comm
     simp_rw [hswap]
-    simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
     simp only [← Finset.mul_sum, R.sum_one, mul_one, ← Finset.sum_div, μ.sum_one]
   have hgoodjoint : 1-δ ≤ ∑ z ∈ Finset.univ.filter E, p z := by
     rw [Finset.sum_filter, Fintype.sum_prod_type]

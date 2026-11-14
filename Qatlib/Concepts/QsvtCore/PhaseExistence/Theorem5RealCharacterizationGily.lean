@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationStat
-import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationStat
+public import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+@[expose] public section
 
 /-!
 # Real parts of completed signal-processing pairs

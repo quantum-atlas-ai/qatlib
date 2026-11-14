@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
-import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructure
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
-import Mathlib.Analysis.Normed.Lp.WithLp
-import Mathlib.LinearAlgebra.Lagrange
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
-import Qatlib.Concepts.ChannelTheory.TwirlChannel
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+public import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructureContext
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+public import Mathlib.Analysis.Normed.Lp.WithLp
+public import Mathlib.LinearAlgebra.Lagrange
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+public import Qatlib.Concepts.ChannelTheory.TwirlChannel
+
+@[expose] public section
 
 /-!
 # Supporting imports for QSVT approximation

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.PositivePropagators
-import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorGrowth
-import Mathlib.Probability.Distributions.Beta
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.PositivePropagators
+public import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorGrowth
+public import Mathlib.Probability.Distributions.Beta
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+
+@[expose] public section
 
 /-!
 # Airy propagators as beta mixtures
@@ -62,7 +66,7 @@ private theorem beta_integral_eq_density {E : Type*} [NormedAddCommGroup E] [Nor
 /-- The real beta density integrates to one when both shape parameters are positive. -/
 private theorem integral_betaPDFReal {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) :
     (∫ x, betaPDFReal α β x) = 1 := by
-  letI := isProbabilityMeasureBeta hα hβ
+  let := isProbabilityMeasureBeta hα hβ
   have h : (∫ _x : ℝ, (1 : ℝ) ∂betaMeasure α β) = 1 := by simp
   rw [beta_integral_eq_density hα hβ] at h
   simpa only [smul_eq_mul, mul_one] using! h
@@ -73,7 +77,7 @@ private theorem beta_moment_density {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) 
     betaPDFReal α β x * x ^ n =
       (beta (α + n) β / beta α β) * betaPDFReal (α + n) β x := by
   by_cases hx : 0 < x ∧ x < 1
-  · simp only [betaPDFReal, if_pos hx]
+  · simp only [betaPDFReal, ite_eq_left hx]
     rw [show α + (n : ℝ) - 1 = (α - 1) + n by ring,
       Real.rpow_add hx.1, Real.rpow_natCast]
     have h1 := ne_of_gt (beta_pos hα hβ)
@@ -265,7 +269,7 @@ theorem airyPropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) (ht 
   have h := norm_integral_le_of_norm_le_const (μ := airyMixMeasure) (C := 1)
     (f := fun u : ℝ => wavePropagator (x : ℂ)
       ((airyTimeScale t : ℂ) * (Real.sqrt u : ℂ))) (Eventually.of_forall (fun u => by
-        (try dsimp only)
+
         rw [← Complex.ofReal_mul]
         exact wavePropagator_scalar_nonneg_norm_le_one x _ hx))
   simpa using! h
@@ -281,7 +285,7 @@ theorem airyPropagator_posSemidef_norm_le_one {n : Type*} [Fintype n] [Decidable
   have h := norm_integral_le_of_norm_le_const (μ := airyMixMeasure) (C := 1)
     (f := fun u : ℝ => wavePropagator A
       ((airyTimeScale t : ℂ) * (Real.sqrt u : ℂ))) (Eventually.of_forall (fun u => by
-        (try dsimp only)
+
         rw [← Complex.ofReal_mul]
         exact wavePropagator_posSemidef_norm_le_one A hA _))
   simpa using! h

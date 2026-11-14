@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ImaginaryFlow.LeastSquares.ComplexAnsatz
-import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+module
+
+public import Qatlib.Concepts.ImaginaryFlow.LeastSquares.ComplexAnsatz
+public import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+
+@[expose] public section
 
 /-!
 # McLachlan equations for a complex transcorrelated ansatz

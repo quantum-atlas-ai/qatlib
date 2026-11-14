@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedOpExp08.MainResults.SegmentSelection
+module
+
+public import Qatlib.Papers.OrderedOpExp08.MainResults.SegmentSelection
+
+@[expose] public section
 
 /-!
 # Finite Suzuki decompositions with prescribed error

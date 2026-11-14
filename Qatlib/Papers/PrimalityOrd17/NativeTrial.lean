@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OrderPrimality.Certificates
-import Qatlib.Concepts.OrderPrimality.UniformTrial
-import Qatlib.Papers.PrimalityOrd17.TotientBound
+module
+
+public import Qatlib.Foundations.OrderPrimality.Certificates
+public import Qatlib.Concepts.OrderPrimality.UniformTrial
+public import Qatlib.Papers.PrimalityOrd17.TotientBound
+
+@[expose] public section
 
 /-!
 # Native order certificates and trial probabilities

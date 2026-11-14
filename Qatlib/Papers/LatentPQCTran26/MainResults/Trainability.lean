@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.Overlap
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.Overlap
+
+@[expose] public section
 
 /-!
 # Trainability from gradient-rich coverage

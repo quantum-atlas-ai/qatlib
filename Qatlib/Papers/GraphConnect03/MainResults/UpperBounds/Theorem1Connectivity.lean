@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.MainResults.Defs
-import Qatlib.Papers.GraphConnect03.MainResults.UpperBounds.DFSSpanningTree
+module
+
+public import Qatlib.Papers.GraphConnect03.MainResults.Defs
+public import Qatlib.Papers.GraphConnect03.MainResults.UpperBounds.DFSSpanningTree
+
+@[expose] public section
 
 /-!
 # Bounds for DFS connectivity cost expressions

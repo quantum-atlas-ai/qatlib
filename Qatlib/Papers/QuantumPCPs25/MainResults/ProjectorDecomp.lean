@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,7 +75,7 @@ lemma one_diagonal (k : ℕ) :
   by_cases h : x = y
   · subst h
     simp only [Matrix.one_apply, Matrix.diagonal_apply]
-  · simp [Matrix.one_apply_ne h, Matrix.diagonal_apply, if_neg h]
+  · simp [Matrix.one_apply_ne h, Matrix.diagonal_apply, ite_eq_right h]
 
 /-- Pointwise sums of diagonal matrices are diagonal. -/
 lemma add_diagonal (k : ℕ) (f g : F2k k → ℂ) :
@@ -79,7 +83,7 @@ lemma add_diagonal (k : ℕ) (f g : F2k k → ℂ) :
   ext x y
   by_cases h : x = y
   · subst h; simp [Matrix.diagonal]
-  · simp [Matrix.diagonal_apply, if_neg h]
+  · simp [Matrix.diagonal_apply, ite_eq_right h]
 
 /-- Scalar multiples of diagonal matrices are diagonal. -/
 lemma smul_diagonal (k : ℕ) (c : ℂ) (f : F2k k → ℂ) :
@@ -87,7 +91,7 @@ lemma smul_diagonal (k : ℕ) (c : ℂ) (f : F2k k → ℂ) :
   ext x y
   by_cases h : x = y
   · subst h; simp [Matrix.diagonal]
-  · simp [Matrix.diagonal_apply, if_neg h]
+  · simp [Matrix.diagonal_apply, ite_eq_right h]
 
 /-- Products of diagonal matrices are diagonal (pointwise product). -/
 lemma mul_diagonal (k : ℕ) (f g : F2k k → ℂ) :
@@ -99,10 +103,10 @@ lemma mul_diagonal (k : ℕ) (f g : F2k k → ℂ) :
     rw [Finset.sum_eq_single x]
     · simp
     · intro b _ hb
-      simp [if_neg (Ne.symm hb), if_neg hb]
+      simp [ite_eq_right (Ne.symm hb), ite_eq_right hb]
     · intro h
       exact absurd (Finset.mem_univ x) h
-  · simp [Matrix.diagonal_apply, if_neg h]
+  · simp [Matrix.diagonal_apply, ite_eq_right h]
 
 /-- Pointwise factor identity:
 `(1 + (−1)^{q_i} (−1)^{x_i})/2 = 1[x_i = q_i]`. -/
@@ -112,7 +116,7 @@ lemma factor_eq_indicator (b c : ZMod 2) :
   have hv1 : (ZMod.val (1 : ZMod 2)) = 1 := by decide
   rcases z2_cases b with rfl | rfl <;> rcases z2_cases c with rfl | rfl
   all_goals simp only [sgn, hv0, hv1]
-  all_goals try rw [if_neg (by decide)]
+  all_goals try rw [ite_eq_right (by decide)]
   all_goals norm_num
 
 /-- **Lemma 7, product form (corrected sign)**:
@@ -129,14 +133,14 @@ theorem lemma7_product (k : ℕ) (q : F2k k) :
     rw [Finset.prod_congr rfl (fun i _ => factor_eq_indicator (q i) (x i))]
     by_cases hxq : x = q
     · subst hxq
-      rw [Finset.prod_eq_one (fun i _ => if_pos rfl)]
+      rw [Finset.prod_eq_one (fun i _ => ite_eq_left rfl)]
       simp
     · obtain ⟨i, hi⟩ : ∃ i, x i ≠ q i := by
         by_contra hc
         push Not at hc
         exact hxq (funext fun i => hc i)
-      rw [Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi), if_neg hxq]
-  · simp [piQ, Matrix.diagonal_apply, if_neg h]
+      rw [Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi), ite_eq_right hxq]
+  · simp [piQ, Matrix.diagonal_apply, ite_eq_right h]
 
 /-- Finite sums of diagonal matrices are the diagonals of pointwise sums. -/
 lemma sum_diagonal (k : ℕ) (ι : Type*) [Fintype ι] (g : ι → (F2k k → ℂ)) :

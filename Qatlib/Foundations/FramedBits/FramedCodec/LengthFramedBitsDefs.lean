@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.List.Basic
-import Mathlib.Data.List.TakeDrop
-import Mathlib.Algebra.BigOperators.Group.List.Basic
-import Mathlib.Data.Int.Basic
-import Mathlib.Data.Nat.Bits
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.List.TakeDrop
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Data.Nat.Bits
+
+@[expose] public section
 
 /-!
 # Length-framed bit strings, lists, and integers

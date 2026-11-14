@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.LccEnergy.CorrelationEnergy
+module
+
+public import Qatlib.Papers.HHLManyBody22.LccEnergy.CorrelationEnergy
+
+@[expose] public section
 
 /-!
 # Projected linearized coupled cluster amplitudes and energy

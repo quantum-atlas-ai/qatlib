@@ -4,104 +4,108 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Disjoint
-import Mathlib.Order.Lattice
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Disjoint
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Progress estimates for quantum adversary lower bounds
@@ -375,7 +379,7 @@ theorem progress_initial {α : Type*} [DecidableEq α] (X Y : Finset α) (R : Fi
     Real.sqrt_mul (by norm_num) _
   have hs2 : Real.sqrt 2 * Real.sqrt 2 = 2 := by
     have := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
-    simpa [sq] using this
+    simp
   have hprod : Real.sqrt (2 * (X.card : ℝ)) * Real.sqrt (2 * (Y.card : ℝ)) =
       2 * Real.sqrt (X.card : ℝ) * Real.sqrt (Y.card : ℝ) := by
     rw [hs2X, hs2Y]
@@ -391,9 +395,9 @@ theorem progress_initial {α : Type*} [DecidableEq α] (X Y : Finset α) (R : Fi
     obtain ⟨hxX, hyY⟩ := hRsub p hp
     have hxY : p.1 ∉ Y := fun h => (Finset.disjoint_left.mp hdisj) hxX h
     have hay : initialAmplitude X Y p.2 = (Real.sqrt (2 * (Y.card : ℝ)))⁻¹ := by
-      rw [initialAmplitude, if_neg (fun h => (Finset.disjoint_left.mp hdisj) h hyY), if_pos hyY]
+      rw [initialAmplitude, ite_eq_right (fun h => (Finset.disjoint_left.mp hdisj) h hyY), ite_eq_left hyY]
     have hax : initialAmplitude X Y p.1 = (Real.sqrt (2 * (X.card : ℝ)))⁻¹ := by
-      rw [initialAmplitude, if_pos hxX]
+      rw [initialAmplitude, ite_eq_left hxX]
     have hspX : 0 < Real.sqrt (2 * (X.card : ℝ)) := Real.sqrt_pos.mpr (by positivity)
     have hspY : 0 < Real.sqrt (2 * (Y.card : ℝ)) := Real.sqrt_pos.mpr (by positivity)
     rw [initialState, initialState, hax, hay, norm_mul, Complex.norm_real, Complex.norm_real,
@@ -456,7 +460,7 @@ theorem final_progress_le {α : Type*} (R : Finset (α × α)) (ε : ℝ)
 /-- The stated one-step, initial, and final progress bounds imply `(1 - 2*sqrt (ε*(1-ε))) * S0 ≤
 T*B`. -/
 theorem adversary_lower_bound {S : ℕ → ℝ} {T : ℕ} {B S0 ε : ℝ}
-    (hε0 : 0 ≤ ε) (hε : ε ≤ 1 / 2)
+    (_hε0 : 0 ≤ ε) (hε : ε ≤ 1 / 2)
     (hstep : ∀ k < T, S k - S (k + 1) ≤ B)
     (h0 : S0 ≤ S 0)
     (hT : S T ≤ 2 * Real.sqrt (ε * (1 - ε)) * S 0) :
@@ -509,10 +513,10 @@ theorem rhoEntry_phaseQuery {ι : Type*} [Fintype ι] {n : ℕ}
       if x i = y i then rhoEntry ψ x y else -rhoEntry ψ x y := by
   unfold rhoEntry phaseQuery
   by_cases hxy : x i = y i
-  · rw [if_pos hxy]
+  · rw [ite_eq_left hxy]
     refine Finset.sum_congr rfl (fun iw _ => ?_)
     by_cases hx : x i <;> by_cases hy : y i <;> simp_all
-  · rw [if_neg hxy, ← Finset.sum_neg_distrib]
+  · rw [ite_eq_right hxy, ← Finset.sum_neg_distrib]
     refine Finset.sum_congr rfl (fun iw _ => ?_)
     by_cases hx : x i <;> by_cases hy : y i <;> simp_all
 
@@ -525,7 +529,7 @@ theorem rhoEntry_norm_le {ι : Type*} [Fintype ι] {α : Type*}
   unfold rhoEntry
   calc ‖∑ iw, star (ψ iw x) * ψ iw y‖
       ≤ ∑ iw, ‖star (ψ iw x) * ψ iw y‖ := norm_sum_le _ _
-    _ = ∑ iw, ‖ψ iw x‖ * ‖ψ iw y‖ := by simp [norm_mul]
+    _ = ∑ iw, ‖ψ iw x‖ * ‖ψ iw y‖ := by simp []
     _ ≤ Real.sqrt (∑ iw, ‖ψ iw x‖ ^ 2) * Real.sqrt (∑ iw, ‖ψ iw y‖ ^ 2) :=
         Real.sum_mul_le_sqrt_mul_sqrt _ _ _
 
@@ -593,8 +597,8 @@ theorem progress_step_le {ι : Type*} [Fintype ι] {n : ℕ}
     intro p hp
     rw [rhoEntry_phaseQuery]
     by_cases h : p.1 i = p.2 i
-    · rw [if_pos h, if_pos h]; simp
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]; simp
+    · rw [ite_eq_right h, ite_eq_right h]
       rw [show -rhoEntry ψ p.1 p.2 - rhoEntry ψ p.1 p.2 = -(2 * rhoEntry ψ p.1 p.2) by ring,
         norm_neg, norm_mul, Complex.norm_ofNat]
   rw [Finset.sum_congr rfl hterm]
@@ -768,8 +772,8 @@ theorem progress_step_le_lmax {ι : Type*} [Fintype ι] {n : ℕ}
     intro p hp
     rw [rhoEntry_phaseQuery]
     by_cases h : p.1 i = p.2 i
-    · rw [if_pos h, if_pos h]; simp
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]; simp
+    · rw [ite_eq_right h, ite_eq_right h]
       rw [show -rhoEntry ψ p.1 p.2 - rhoEntry ψ p.1 p.2 = -(2 * rhoEntry ψ p.1 p.2) by ring,
         norm_neg, norm_mul, Complex.norm_ofNat]
   rw [Finset.sum_congr rfl hterm]

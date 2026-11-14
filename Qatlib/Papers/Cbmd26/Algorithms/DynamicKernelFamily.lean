@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
-import Qatlib.Papers.Cbmd26.Algorithms.StaticKernelFamily
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticKernelFamily
+
+@[expose] public section
 
 /-!
 # Finite kernel sums for time-dependent evolution

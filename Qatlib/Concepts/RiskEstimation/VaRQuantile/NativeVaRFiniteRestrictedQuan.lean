@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Rational readout value-at-risk bounds

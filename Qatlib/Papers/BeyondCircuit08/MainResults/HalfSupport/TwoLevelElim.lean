@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BeyondCircuit08.MainResults.HalfSupport.Basic
+module
+
+public import Qatlib.Papers.BeyondCircuit08.MainResults.HalfSupport.Basic
+
+@[expose] public section
 
 /-!
 # Two-level unitary elimination
@@ -69,7 +73,7 @@ lemma elemOp_row_j (i j : Fin m) (hij : i ≠ j) (a b c d : ℂ) (s : Fin m) :
     elemOp i j a b c d j s = (if s = i then c else if s = j then d else 0) := by
   unfold elemOp
   simp only [Matrix.of_apply]
-  rw [if_neg (Ne.symm hij)]
+  rw [ite_eq_right (Ne.symm hij)]
   simp
 
 /-- Every row outside the two selected indices agrees with the corresponding identity row. -/
@@ -78,12 +82,12 @@ lemma elemOp_row_other (i j r : Fin m) (hr : r ≠ i) (hrj : r ≠ j) (a b c d :
     elemOp i j a b c d r s = (if r = s then 1 else 0) := by
   unfold elemOp
   simp only [Matrix.of_apply]
-  rw [if_neg hr, if_neg hrj]
+  rw [ite_eq_right hr, ite_eq_right hrj]
 
 /-- A finite sum supported at two distinct indices, with the stated values `x` and `y`, equals
 `x + y`. -/
 private lemma sum_two_terms {ι : Type*} [Fintype ι] [DecidableEq ι]
-    (i j : ι) (hij : i ≠ j) (f : ι → ℂ) (x y : ℂ)
+    (i j : ι) (_hij : i ≠ j) (f : ι → ℂ) (x y : ℂ)
     (hf : ∀ s, f s = (if s = i then x else 0) + (if s = j then y else 0)) :
     ∑ s, f s = x + y := by
   rw [Finset.sum_congr rfl (fun s _ => hf s), Finset.sum_add_distrib,
@@ -101,10 +105,10 @@ lemma elemOp_mul_apply_i (U : Matrix (Fin m) (Fin m) ℂ) (i j : Fin m)
   simp only [elemOp_row_i]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- Left multiplication by `elemOp` replaces row `j` by `c` times row `i` plus `d` times row
@@ -118,15 +122,15 @@ lemma elemOp_mul_apply_j (U : Matrix (Fin m) (Fin m) ℂ) (i j : Fin m)
   simp only [elemOp_row_j i j hij]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- Left multiplication by `elemOp` leaves every row outside the two selected indices unchanged. -/
 lemma elemOp_mul_apply_other (U : Matrix (Fin m) (Fin m) ℂ) (i j r : Fin m)
-    (hij : i ≠ j) (hr : r ≠ i) (hrj : r ≠ j) (a b c d : ℂ) (k : Fin m) :
+    (_hij : i ≠ j) (hr : r ≠ i) (hrj : r ≠ j) (a b c d : ℂ) (k : Fin m) :
     (elemOp i j a b c d * U) r k = U r k := by
   rw [Matrix.mul_apply]
   have hterm : ∀ s : Fin m,
@@ -150,10 +154,10 @@ private lemma elemOp_sum_ii (i j : Fin m) (hij : i ≠ j) (a b c d : ℂ) :
   simp only [elemOp_row_i]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- The sum of row `i` entries times conjugates of row `j` entries is `a * star c + b * star d`. -/
@@ -166,10 +170,10 @@ private lemma elemOp_sum_ij (i j : Fin m) (hij : i ≠ j) (a b c d : ℂ) :
   simp only [elemOp_row_i, elemOp_row_j i j hij]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- The sum of row `j` entries times conjugates of row `i` entries is `c * star a + d * star b`. -/
@@ -182,10 +186,10 @@ private lemma elemOp_sum_ji (i j : Fin m) (hij : i ≠ j) (a b c d : ℂ) :
   simp only [elemOp_row_j i j hij, elemOp_row_i]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- The sum of entries of row `j` times their conjugates is `c * star c + d * star d`. -/
@@ -198,10 +202,10 @@ private lemma elemOp_sum_jj (i j : Fin m) (hij : i ≠ j) (a b c d : ℂ) :
   simp only [elemOp_row_j i j hij]
   by_cases hsi : s = i
   · rw [hsi]
-    simp [hij, Ne.symm hij]
+    simp [hij]
   · by_cases hsj : s = j
     · rw [hsj]
-      simp [hij, Ne.symm hij]
+      simp [Ne.symm hij]
     · simp [hsi, hsj]
 
 /-- An identity row outside the selected indices has sum of squared absolute values equal to
@@ -276,11 +280,11 @@ private lemma elemOp_sum_i_std (i j q : Fin m) (hqi : q ≠ i) (hqj : q ≠ j)
     · rw [hsq]
       simp
     · have hqs : ¬ q = s := fun h => hsq h.symm
-      rw [if_neg hqs, if_neg hsq]
+      rw [ite_eq_right hqs, ite_eq_right hsq]
       simp
   rw [Finset.sum_congr rfl (fun s _ => h s), Finset.sum_ite_eq']
   rw [elemOp_row_i]
-  simp [hqi, hqj, Ne.symm hqi, Ne.symm hqj]
+  simp [hqi, hqj]
 
 /-- For distinct selected indices, row `j` has zero conjugate pairing with an identity row
 outside those indices. -/
@@ -295,11 +299,11 @@ private lemma elemOp_sum_j_std (i j q : Fin m) (hij : i ≠ j) (hqi : q ≠ i) (
     · rw [hsq]
       simp
     · have hqs : ¬ q = s := fun h => hsq h.symm
-      rw [if_neg hqs, if_neg hsq]
+      rw [ite_eq_right hqs, ite_eq_right hsq]
       simp
   rw [Finset.sum_congr rfl (fun s _ => h s), Finset.sum_ite_eq']
   rw [elemOp_row_j i j hij]
-  simp [hqi, hqj, Ne.symm hqi, Ne.symm hqj]
+  simp [hqi, hqj]
 
 /-- For distinct indices, embedding a block satisfying `IsUnitaryBlock` gives a matrix in the
 unitary group [Jordan2008]. -/
@@ -319,35 +323,35 @@ theorem elemOp_mem_unitaryGroup (i j : Fin m) (hij : i ≠ j) {a b c d : ℂ}
     · by_cases hqj : q = j
       · rw [hqj]
         rw [elemOp_sum_ij i j hij, h.2.2.1]
-        simp [hij, Ne.symm hij]
+        simp [hij]
       · rw [elemOp_sum_i_std i j q hqi hqj]
-        simp [hqi, Ne.symm hqi]
+        simp [Ne.symm hqi]
   · by_cases hpj : p = j
     · rw [hpj]
       by_cases hqi : q = i
       · rw [hqi]
         rw [elemOp_sum_ji i j hij, h.2.2.2]
-        simp [hij, Ne.symm hij]
+        simp [Ne.symm hij]
       · by_cases hqj : q = j
         · rw [hqj]
           rw [elemOp_sum_jj i j hij, h.2.1]
           simp
         · rw [elemOp_sum_j_std i j q hij hqi hqj]
-          simp [hqj, Ne.symm hqj]
+          simp [Ne.symm hqj]
     · by_cases hqi : q = i
       · rw [hqi]
         have hzero : elemOp i j a b c d i p = 0 := by
           rw [elemOp_row_i]
           simp [hpi, hpj]
         rw [elemOp_sum_std_any i j p i hpi hpj, hzero, star_zero]
-        simp [hpi, Ne.symm hpi]
+        simp [hpi]
       · by_cases hqj : q = j
         · rw [hqj]
           have hzero : elemOp i j a b c d j p = 0 := by
             rw [elemOp_row_j i j hij]
             simp [hpi, hpj]
           rw [elemOp_sum_std_any i j p j hpi hpj, hzero, star_zero]
-          simp [hpj, Ne.symm hpj]
+          simp [hpj]
         · by_cases hpq : p = q
           · rw [hpq]
             rw [elemOp_sum_std_same i j q hqi hqj]
@@ -499,11 +503,11 @@ lemma elemOp_twoLevel_fixes (U : Matrix (Fin m) (Fin m) ℂ) {S : Finset (Fin m)
     by_cases hpi : p = i
     · rw [hpi]
       rw [elemOp_row_i]
-      simp [hqi, hqj, Ne.symm hqi, Ne.symm hqj]
+      simp [hqi, hqj, Ne.symm hqi]
     · by_cases hpj : p = j
       · rw [hpj]
         rw [elemOp_row_j i j hij]
-        simp [hqi, hqj, Ne.symm hqi, Ne.symm hqj]
+        simp [hqi, hqj, Ne.symm hqj]
       · rw [elemOp_row_other i j p hpi hpj]
   · have hpi : p ≠ i := fun h => hpS (h.symm ▸ hi)
     have hpj : p ≠ j := fun h => hpS (h.symm ▸ hj)

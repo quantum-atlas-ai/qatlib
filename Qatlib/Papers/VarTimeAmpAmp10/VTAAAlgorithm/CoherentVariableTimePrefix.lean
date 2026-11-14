@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimePaidStages
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTime
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimePaidStages
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTime
+
+@[expose] public section
 
 /-!
 # Coherent prefixes as paid circuits
@@ -105,7 +109,7 @@ theorem paidPrefix_legal (f : CoherentVtFrame H m) (n : ℕ) (hn : n ≤ m) :
 theorem frame_oracles_unitary (f : CoherentVtFrame H m) :
     ∀ k < m, baseOracles f k ∈ unitaryGroup H ℂ := by
   intro k hk
-  simp only [baseOracles, dif_pos hk]
+  simp only [baseOracles, dite_eq_left hk]
   exact f.baseUnitary ⟨k, hk⟩
 
 /-- Executing the adjoint paid prefix after the forward prefix restores any workspace state. -/

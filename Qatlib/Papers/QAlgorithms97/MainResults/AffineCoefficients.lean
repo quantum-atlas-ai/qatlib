@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.DeutschJozsa
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.SingleQuery97.MainResults.FourierLayers
-import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.DeutschJozsa
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.SingleQuery97.MainResults.FourierLayers
+public import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
+
+@[expose] public section
 
 /-!
 # Recovering binary affine coefficients

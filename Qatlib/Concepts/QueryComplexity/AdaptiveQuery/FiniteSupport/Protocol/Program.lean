@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointTranscript
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointTranscript
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,7 +37,7 @@ open Qatlib Matrix
 open scoped BigOperators Classical ComplexOrder
 
 /-- Construction for selector in the program model. -/
-private def selector {D R : ℕ} (a : Fin R) : Instrument (Fin R) D D :=
+def selector {D R : ℕ} (a : Fin R) : Instrument (Fin R) D D :=
   let K := fun o : Fin R => if o=a then (1 : Operator D) else 0
   Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument.ofKraus K (by
     have he (o : Fin R) : (K o).conjTranspose*K o=if o=a then (1 : Operator D) else 0 := by

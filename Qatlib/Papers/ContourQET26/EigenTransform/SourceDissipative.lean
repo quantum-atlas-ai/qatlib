@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.DotProduct
+module
+
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,7 +43,7 @@ lemma star_dotProduct_self_eq_ofReal_sum_normSq {N : ℕ} (v : Fin N → ℂ) :
   exact Finset.sum_congr rfl fun i _ =>
     show star v i * v i = ((Complex.normSq (v i) : ℝ) : ℂ) by
       rw [Complex.normSq_apply, Complex.ext_iff]
-      constructor <;> simp <;> ring
+      constructor <;> simp; ring
 
 /-- Complex Loewner negative semidefiniteness in quadratic-form form: `-(A + A†)` has
 nonnegative real quadratic form on every vector.  This is the complex counterpart of the
@@ -66,7 +70,7 @@ theorem lemma11_re_nonpos {N : ℕ} (A : Matrix (Fin N) (Fin N) ℂ)
     refine Finset.sum_pos' (fun i _ => Complex.normSq_nonneg (v i)) ?_
     obtain ⟨i, hi⟩ : ∃ i, v i ≠ 0 := by
       by_contra hall
-      push_neg at hall
+      push Not at hall
       exact hv (funext hall)
     exact ⟨i, Finset.mem_univ i, Complex.normSq_pos.mpr hi⟩
   have hAterm : star v ⬝ᵥ (A *ᵥ v) = lam * s := by
@@ -102,7 +106,7 @@ theorem lemma11_re_nonpos {N : ℕ} (A : Matrix (Fin N) (Fin N) ℂ)
   rw [hre] at hnonneg
   have hprod : lam.re * s.re ≤ 0 := by nlinarith
   by_contra h
-  push_neg at h
+  push Not at h
   have hlt : 0 < lam.re * s.re := mul_pos h hspos
   linarith
 

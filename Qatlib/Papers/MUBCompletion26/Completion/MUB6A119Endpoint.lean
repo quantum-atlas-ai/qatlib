@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Certificate
+module
+
+public import Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Certificate
+
+@[expose] public section
 
 /-!
 # Conditional obstruction from enclosed candidate rays

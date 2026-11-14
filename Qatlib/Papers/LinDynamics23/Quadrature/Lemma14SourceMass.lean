@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
-import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
+public import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,9 +90,9 @@ theorem lemma14_source_coefficient_mass {I : Type} [Fintype I]
     intro a
     refine ciSup_le (fun k => ?_)
     by_cases hk : k ∈ Icc a (a + h)
-    · haveI : Nonempty (k ∈ Icc a (a + h)) := ⟨hk⟩
+    · have _ : Nonempty (k ∈ Icc a (a + h)) := ⟨hk⟩
       exact ciSup_le (fun _ => hderiv k)
-    · haveI : IsEmpty (k ∈ Icc a (a + h)) := ⟨fun hj => hk hj⟩
+    · have _ : IsEmpty (k ∈ Icc a (a + h)) := ⟨fun hj => hk hj⟩
       rw [iSup_of_empty', Real.sSup_empty]
       exact hD0
   have hrpow : h ^ ((2 : ℝ) * Q + 1) = h ^ (2 * Q + 1) := by
@@ -155,7 +159,7 @@ theorem lemma14_source_coefficient_mass {I : Type} [Fintype I]
             (((2 * Q + 1 : ℕ) : ℝ) * (((2 * Q).factorial : ℕ) : ℝ) ^ 3) * D) := by
         rw [Finset.sum_add_distrib]
         congr 1
-        simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+        simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
     _ = (∫ x in (0 : ℝ)..T, g x) +
           (M : ℝ) * (((Q.factorial : ℝ) ^ 4 * h ^ (2 * Q + 1)) /
             (((2 * Q + 1 : ℕ) : ℝ) * (((2 * Q).factorial : ℕ) : ℝ) ^ 3) * D) := by

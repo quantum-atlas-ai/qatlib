@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.PhaseReadoutSynthesisDefs
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.PhaseReadoutSynthesisDefs
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+
+@[expose] public section
 
 /-!
 # Consistency tests for paired phase records

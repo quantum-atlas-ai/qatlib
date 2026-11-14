@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+module
+
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+@[expose] public section
 
 /-!
 # Specification of universal local graph compilation

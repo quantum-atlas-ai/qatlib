@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedHiddenMixture
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedHiddenMixture
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Compiling finite random seeds into observed circuits
@@ -87,6 +91,7 @@ private theorem seed_sqrt_mass (p : FinDist (Fin s)) (j : Fin s) :
     Complex.normSq (Real.sqrt (p.prob j) : ℂ) = p.prob j := by
   rw [Complex.normSq_ofReal, Real.mul_self_sqrt (p.nonneg j)]
 
+omit [DecidableEq I] in
 /-- Attaching the square-root seed state to a normalized data state preserves normalization. -/
 theorem seedObservedInput_normalized (p : FinDist (Fin s)) (psi : QState I)
     (hpsi : Normalized psi) : Normalized (seedObservedInput p psi) := by
@@ -94,6 +99,7 @@ theorem seedObservedInput_normalized (p : FinDist (Fin s)) (psi : QState I)
   change (∑ j, ‖(Real.sqrt (p.prob j) : ℂ)‖ ^ 2) = 1
   simpa only [← Complex.normSq_eq_norm_sq, seed_sqrt_mass] using p.sum_one
 
+omit [Fintype I] [DecidableEq I] in
 /-- A hidden-table oracle with the same matrix in every seed block equals that matrix tensored
 with the identity on the seed register. -/
 private theorem seed_hiddenOracle (O : Matrix I I ℂ) :
@@ -102,7 +108,7 @@ private theorem seed_hiddenOracle (O : Matrix I I ℂ) :
   rcases x with ⟨i, a⟩
   rcases y with ⟨k, b⟩
   by_cases h : a = b <;>
-    simp [hiddenTableOracle, tensorGate_apply, Matrix.one_apply, h]
+    simp [hiddenTableOracle, tensorGate_apply,  h]
 
 /-- Collapsing the input to seed `j` leaves `psi` tensored with the seed basis vector weighted
 by the square root of `p.prob j`. -/

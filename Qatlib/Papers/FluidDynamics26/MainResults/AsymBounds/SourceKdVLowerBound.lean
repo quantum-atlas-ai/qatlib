@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
-import Qatlib.Papers.FluidDynamics26.MainResults.FidelityMetric.SourceFidelityMetricCore
-import Qatlib.Papers.FluidDynamics26.MainResults.AsymBounds.SourceHistoryReduction
+module
+
+public import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+public import Qatlib.Papers.FluidDynamics26.MainResults.FidelityMetric.SourceFidelityMetricCore
+public import Qatlib.Papers.FluidDynamics26.MainResults.AsymBounds.SourceHistoryReduction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

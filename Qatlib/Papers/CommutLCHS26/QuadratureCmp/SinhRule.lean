@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
-import Mathlib.Analysis.SpecialFunctions.Arsinh
-import Mathlib.MeasureTheory.Function.JacobianOneDim
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
+public import Mathlib.Analysis.SpecialFunctions.Arsinh
+public import Mathlib.MeasureTheory.Function.JacobianOneDim
+
+@[expose] public section
 
 /-!
 # Sinh-transformed quadrature and tail bounds

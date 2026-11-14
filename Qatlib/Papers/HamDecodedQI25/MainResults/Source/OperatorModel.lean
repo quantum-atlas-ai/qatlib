@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamDecodedQI25.MainResults.Source.PaperModel
-import QuantumInfo.ForMathlib.HermitianMat.LogExp
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.HamDecodedQI25.MainResults.Source.PaperModel
+public import QuantumInfo.ForMathlib.HermitianMat.LogExp
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

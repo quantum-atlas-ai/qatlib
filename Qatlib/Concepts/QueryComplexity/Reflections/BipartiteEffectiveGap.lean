@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Data.Matrix.ColumnRowPartitioned
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapContracts
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Data.Matrix.ColumnRowPartitioned
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapContracts
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Counterexample to the uncorrected bipartite gap contract
@@ -110,7 +114,7 @@ private theorem reflections_zero_gap_kernel_coordinate
     · have hn : (if |ρ i| ≤ 0 then ‖V r i‖^2 else 0) ≤
           ∑ j : Fin k, if |ρ j| ≤ 0 then ‖V r j‖^2 else 0 :=
         Finset.single_le_sum (f := fun j => if |ρ j| ≤ 0 then ‖V r j‖^2 else 0)
-          (fun j _ => by (try dsimp only); split_ifs <;> positivity) (Finset.mem_univ i)
+          (fun j _ => by  split_ifs <;> positivity) (Finset.mem_univ i)
       have hs : ‖V r i‖^2 ≤ 0 := by simpa [hρ] using hn.trans hgap
       have hnorm : ‖V r i‖=0 := by nlinarith [norm_nonneg (V r i)]
       rw [norm_eq_zero.mp hnorm, zero_mul]

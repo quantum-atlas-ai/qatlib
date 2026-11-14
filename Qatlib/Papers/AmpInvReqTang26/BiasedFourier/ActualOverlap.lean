@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+
+@[expose] public section
 
 /-!
 # Second moments of biased Fourier overlaps
@@ -142,7 +146,7 @@ theorem actual_offdiag_budget (q : ℕ) (hq : 1 < q) (eps : ℝ)
       intro j
       by_cases h : j=k <;> simp [h]
     rw [Finset.sum_congr rfl (fun j _ => heq j), Finset.sum_add_distrib]
-    simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true, hself]
+    simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true, hself]
   have hm := actual_gram_second_moment q hq eps he0 he1 k
   change (∑ j, B j) = _ at hm
   rw [actual_weight_second_moment q (by omega) eps, hsplit] at hm

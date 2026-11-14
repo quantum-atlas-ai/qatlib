@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedStat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedStat
+
+@[expose] public section
 
 /-!
 # LCU success bounds and saturating circuits
@@ -513,26 +517,30 @@ private noncomputable def cwSqrtTwoThirds : ℂ := ((Real.sqrt (2 / 3) : ℝ) : 
 private noncomputable def cwSqrtOneThird : ℂ := ((Real.sqrt (1 / 3) : ℝ) : ℂ)
 
 /-- The product of `cwSqrtTwoThirds` with itself equals `2 / 3`. -/
-theorem cwSqrtTwoThirds_sq : cwSqrtTwoThirds * cwSqrtTwoThirds = 2 / 3 := by
+theorem cwSqrtTwoThirds_sq :
+    ((Real.sqrt (2 / 3) : ℝ) : ℂ) * ((Real.sqrt (2 / 3) : ℝ) : ℂ) = 2 / 3 := by
+  change cwSqrtTwoThirds * cwSqrtTwoThirds = 2 / 3
   unfold cwSqrtTwoThirds
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   push_cast
   norm_num
 
 /-- The product of `cwSqrtOneThird` with itself equals `1 / 3`. -/
-theorem cwSqrtOneThird_sq : cwSqrtOneThird * cwSqrtOneThird = 1 / 3 := by
+theorem cwSqrtOneThird_sq :
+    ((Real.sqrt (1 / 3) : ℝ) : ℂ) * ((Real.sqrt (1 / 3) : ℝ) : ℂ) = 1 / 3 := by
+  change cwSqrtOneThird * cwSqrtOneThird = 1 / 3
   unfold cwSqrtOneThird
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   push_cast
   norm_num
 
 /-- The square of `cwSqrtTwoThirds` equals `2 / 3`. -/
-theorem cwSqrtTwoThirds_pow : cwSqrtTwoThirds ^ 2 = 2 / 3 := by
+theorem cwSqrtTwoThirds_pow : ((Real.sqrt (2 / 3) : ℝ) : ℂ) ^ 2 = 2 / 3 := by
   rw [pow_two]
   exact cwSqrtTwoThirds_sq
 
 /-- The square of `cwSqrtOneThird` equals `1 / 3`. -/
-theorem cwSqrtOneThird_pow : cwSqrtOneThird ^ 2 = 1 / 3 := by
+theorem cwSqrtOneThird_pow : ((Real.sqrt (1 / 3) : ℝ) : ℂ) ^ 2 = 1 / 3 := by
   rw [pow_two]
   exact cwSqrtOneThird_sq
 
@@ -552,15 +560,20 @@ theorem scalarOne_mem_unitaryGroup {z : ℂ} (hz : ‖z‖ = 1) :
 entries `-√(1 / 3)` and `√(1 / 3)`. -/
 noncomputable def cwRotation : Matrix Bool Bool ℂ :=
   Matrix.of fun j m =>
-    if j then (if m then cwSqrtTwoThirds else cwSqrtOneThird)
-    else if m then -cwSqrtOneThird else cwSqrtTwoThirds
+    if j then (if m then ((Real.sqrt (2 / 3) : ℝ) : ℂ) else ((Real.sqrt (1 / 3) : ℝ) : ℂ))
+    else if m then -((Real.sqrt (1 / 3) : ℝ) : ℂ) else ((Real.sqrt (2 / 3) : ℝ) : ℂ)
 
 /-- The explicit Boolean-indexed rotation `cwRotation` is unitary. -/
 theorem cwRotation_unitary : cwRotation ∈ Matrix.unitaryGroup Bool ℂ := by
   have hreal : ∀ j m : Bool, (starRingEnd ℂ) (cwRotation j m) = cwRotation j m := by
     intro j m
-    simp only [cwRotation, Matrix.of_apply, cwSqrtTwoThirds, cwSqrtOneThird]
+    simp only [cwRotation, Matrix.of_apply]
     rcases j <;> rcases m <;> simp [Complex.conj_ofReal]
+  have hentry (j m : Bool) : cwRotation j m =
+      (if j then (if m then cwSqrtTwoThirds else cwSqrtOneThird)
+        else if m then -cwSqrtOneThird else cwSqrtTwoThirds) := rfl
+  have htwo : cwSqrtTwoThirds * cwSqrtTwoThirds = (2 / 3 : ℂ) := cwSqrtTwoThirds_sq
+  have hone : cwSqrtOneThird * cwSqrtOneThird = (1 / 3 : ℂ) := cwSqrtOneThird_sq
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   ext j m
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Fintype.sum_bool,
@@ -568,8 +581,8 @@ theorem cwRotation_unitary : cwRotation ∈ Matrix.unitaryGroup Bool ℂ := by
   simp only [← starRingEnd_apply]
   rw [hreal false j, hreal true j]
   rcases j <;> rcases m <;>
-    simp only [cwRotation, Matrix.of_apply] <;>
-    simp [cwSqrtTwoThirds_sq, cwSqrtOneThird_sq] <;>
+    simp only [hentry] <;>
+    simp [htwo, hone] <;>
     norm_num <;>
     ring
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkDiff01.MainResults.ClassicalBound
-import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+module
+
+public import Qatlib.Papers.QWalkDiff01.MainResults.ClassicalBound
+public import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+
+@[expose] public section
 
 /-!
 # Classical and quantum propagation separation

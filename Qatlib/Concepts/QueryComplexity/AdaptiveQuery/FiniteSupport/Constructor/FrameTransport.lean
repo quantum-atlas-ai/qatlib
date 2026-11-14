@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.ConstructorPromise
-import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructure
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.ConstructorPromise
+public import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructureContext
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

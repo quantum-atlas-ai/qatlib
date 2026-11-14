@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Expansion of the diagonal Coulomb expression

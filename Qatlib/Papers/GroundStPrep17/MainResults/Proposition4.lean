@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroundStPrep17.MainResults.CostLedger
+module
+
+public import Qatlib.Papers.GroundStPrep17.MainResults.CostLedger
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ def filteringPrecision (Δ φ0 ε : ℝ) : ℝ :=
   Δ / Real.sqrt (Real.log (1 / (φ0 * ε)) ^ 3 * Real.log (Real.log (1 / (φ0 * ε))))
 
 /-- Positivity of the precision (C4) in the regime `log(1/(|φ₀|ε)) ≥ e`. -/
-lemma filteringPrecision_pos {Δ φ0 ε : ℝ} (hΔ : 0 < Δ) (hφ0 : 0 < φ0) (hε : 0 < ε)
+lemma filteringPrecision_pos {Δ φ0 ε : ℝ} (hΔ : 0 < Δ) (_hφ0 : 0 < φ0) (_hε : 0 < ε)
     (hL : Real.exp 1 ≤ Real.log (1 / (φ0 * ε))) :
     0 < filteringPrecision Δ φ0 ε := by
   have h1 : 0 < Real.log (1 / (φ0 * ε)) := by linarith [Real.exp_pos 1]

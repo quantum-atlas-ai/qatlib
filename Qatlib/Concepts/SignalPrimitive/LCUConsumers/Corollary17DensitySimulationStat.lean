@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+
+@[expose] public section
 
 /-!
 # Purified Density Simulation Contract

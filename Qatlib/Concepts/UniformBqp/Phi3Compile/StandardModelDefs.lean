@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Computability.TuringMachine.Tape
-import Mathlib.Computability.TuringMachine.PostTuringMachine
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Computability.TuringMachine.Tape
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Uniform circuit and tape-machine specifications

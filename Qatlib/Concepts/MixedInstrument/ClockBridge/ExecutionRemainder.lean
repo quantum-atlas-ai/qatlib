@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.ExecutionRemainderDefs
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.ExecutionRemainderDefs
+
+@[expose] public section
 
 /-!
 # Execution charge identities
@@ -60,7 +64,7 @@ theorem clause16_endpoint :
     (∀ {S O X : Type} [Fintype S] [Fintype X] {D E : ℕ} (P : JointProgram S O X D E),
       jointFiniteBitCharge P = maxCharge P) ∧
     (∀ {S O X : Type} [Fintype X] {D E : ℕ} (P : JointProgram S O X D E) (s : S)
-      (h : P.cost s = 0), zeroPriceBranch P s ∧ P.cost s = 0) ∧
+      (_h : P.cost s = 0), zeroPriceBranch P s ∧ P.cost s = 0) ∧
     (∀ {D E : ℕ} (k m : ℕ) {X : Type} [Fintype X] (I : Instrument X D E),
       (fairBitProgram k m I).cost () = k) := by
   refine ⟨?_, ?_, ?_⟩

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+
+@[expose] public section
 
 /-!
 # Discrete descending-rank run laws
@@ -138,8 +142,8 @@ theorem runMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N)
     cases t with
     | zero =>
       have hc : HasSum (fun x : Ω × List Ω => law.runMass skip 0 (x.1 :: x.2)) 0 := by
-        simpa only [runMass, if_pos rfl] using! hasSum_zero
-      simpa only [runMass, if_pos rfl, add_zero] using!
+        simpa only [runMass, ite_eq_left rfl] using! hasSum_zero
+      simpa only [runMass, ite_eq_left rfl, add_zero] using!
         list_run_hasSum (law.runMass skip 0) 0 hc
     | succ t =>
       have hfib (x : Ω) : HasSum (fun xs => law.runMass skip (t + 1) (x :: xs))
@@ -149,15 +153,15 @@ theorem runMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N)
             lt_of_le_of_lt (skip.le_rank _) hx
           have htail := ih _ hnext (lt_trans hnext htN)
           have h := htail.mul_left (law.mass (t + 1) x)
-          simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), if_pos hx, mul_one] using h
+          simpa only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), ite_eq_left hx, mul_one] using h
         · have hz := law.lower_support (t + 1) (by omega) htN x hx
-          simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), if_neg hx, hz] using hasSum_zero
+          simpa only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), ite_eq_right hx, hz] using hasSum_zero
       have hcons := nonnegative_product_sum
         (fun x xs => law.runMass skip (t + 1) (x :: xs))
         (fun x xs => law.runMass_nonneg skip (t + 1) htN (x :: xs))
         _ 1 hfib (law.normalized (t + 1) (by omega) htN)
       have h := list_run_hasSum (law.runMass skip (t + 1)) 1 hcons
-      simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), zero_add] using h
+      simpa only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), zero_add] using h
 
 /-- The candidate threshold remaining after applying the rank skip along a list of calls. -/
 def finalCandidateCount (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ) : List Ω → ℕ
@@ -179,7 +183,7 @@ theorem runMass_terminates (law : RankedCallLaw N Ω) (skip : RankSkip N)
     by_cases hx : (law.outputRank x).val < t
     · have hnext : skip.next (law.outputRank x) < t := lt_of_le_of_lt (skip.le_rank _) hx
       have hprod : 0 < law.mass t x * law.runMass skip (skip.next (law.outputRank x)) xs := by
-        simpa only [runMass, if_neg ht, if_pos hx] using hm
+        simpa only [runMass, ite_eq_right ht, ite_eq_left hx] using hm
       have htail : 0 < law.runMass skip (skip.next (law.outputRank x)) xs := by
         rcases mul_pos_iff.mp hprod with h | h
         · exact h.2
@@ -188,7 +192,7 @@ theorem runMass_terminates (law : RankedCallLaw N Ω) (skip : RankSkip N)
       refine ⟨h.1, ?_⟩
       simp only [List.length_cons]
       omega
-    · simp only [runMass, if_neg ht, if_neg hx] at hm
+    · simp only [runMass, ite_eq_right ht, ite_eq_right hx] at hm
       linarith
 
 /-- The run mass obtained by choosing an initial rank uniformly and applying its skipped

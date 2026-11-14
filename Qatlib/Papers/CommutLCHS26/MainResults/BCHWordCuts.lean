@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
+
+@[expose] public section
 
 /-!
 # Word coefficients and prefix cuts
@@ -90,8 +94,8 @@ theorem wordCoeff_mul (p q : WordAlg α) (w : List α) :
     (p * q).coeff (FreeMonoid.ofList w) = ∑ i ∈ Finset.range (w.length + 1),
       p.coeff (FreeMonoid.ofList (w.take i)) * q.coeff (FreeMonoid.ofList (w.drop i)) := by
   classical
-  change (p * q) (FreeMonoid.ofList w) = _
-  rw [MonoidAlgebra.mul_apply_antidiagonal p q (FreeMonoid.ofList w)
+
+  rw [MonoidAlgebra.coeff_mul_antidiag p q (FreeMonoid.ofList w)
     (cuts w) (fun {p} => mem_cuts_iff w p.1 p.2)]
   unfold cuts
   rw [Finset.sum_image (cutPair_injective w)]
@@ -195,15 +199,15 @@ theorem wordCoefficient_generator (a : α) (w : List α) :
   unfold wordCoefficient
   rw [generatorSeries, PowerSeries.coeff_mk, letter_pow]
   change (w.length.factorial : ℚ)⁻¹ * word (List.replicate w.length a) (FreeMonoid.ofList w) = _
-  rw [word, MonoidAlgebra.single_apply]
+  rw [word, MonoidAlgebra.coeff_single, Finsupp.single_apply]
   by_cases h : w = List.replicate w.length a
   · have he : FreeMonoid.ofList (List.replicate w.length a) = FreeMonoid.ofList w := congrArg _ h.symm
-    rw [if_pos he, if_pos h, mul_one]
+    rw [ite_eq_left he, ite_eq_left h, mul_one]
   · have he : FreeMonoid.ofList (List.replicate w.length a) ≠ FreeMonoid.ofList w := by
       intro heq
       apply h
       simpa only [FreeMonoid.toList_ofList] using (congrArg FreeMonoid.toList heq).symm
-    rw [if_neg he, if_neg h, mul_zero]
+    rw [ite_eq_right he, ite_eq_right h, mul_zero]
 
 omit [DecidableEq α] in
 
@@ -241,7 +245,7 @@ theorem wordCoefficient_word_cons (a : α) (xs : List α) (b : α) (w : List α)
       intro he
       have h := List.nodup_replicate.mp (he ▸ ht)
       omega
-    rw [wordCoefficient_generator, if_neg hn, zero_mul]
+    rw [wordCoefficient_generator, ite_eq_right hn, zero_mul]
   · simp only [List.length_cons, Finset.mem_range, Nat.zero_lt_succ, not_true_eq_false,
       IsEmpty.forall_iff]
 

@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Prime.Basic
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Reconstruction predicates and orbit counting
@@ -99,7 +103,7 @@ def HiddenConjugatesMeasurementReconstructible (G : Type) [Group G]
 /-- The existence of finite laws and a decoder that recovers each conjugating parameter on an
 event of probability at least one half. -/
 def HiddenConjugatesFullyReconstructible (G : Type) [Group G]
-    (H : Subgroup G) : Prop :=
+    (_H : Subgroup G) : Prop :=
   ∃ (Ω : Type) (_ : Fintype Ω) (law : G → FinLaw Ω) (dec : Ω → G),
     ∀ b : G, ∃ F : Finset Ω,
       (∀ ω ∈ F, dec ω = b) ∧ (1 / 2 : ℝ) ≤ ∑ ω ∈ F, (law b).prob ω
@@ -187,7 +191,7 @@ theorem cos_ge_half_of_high (p x : ℕ) (hp : 0 < p) (hx : 5 * (p : ℝ) / 6 ≤
 ε) * q` of the associated residues lie strictly between `p/6` and `5p/6`. -/
 theorem counting_of_gauss_bound
     (p q : ℕ) (hp : 0 < p) (f : ℕ → ℕ) (hf : ∀ t, f t < p)
-    (ε B : ℝ) (hε : 0 < ε) (hB0 : 0 ≤ B)
+    (ε B : ℝ) (_hε : 0 < ε) (_hB0 : 0 ≤ B)
     (hGauss : ‖∑ t ∈ Finset.range q, qroot p ^ (f t)‖ ≤ B)
     (hBq : B ≤ (3 / 2) * ε * q) :
     (1 / 3 - ε) * (q : ℝ) ≤
@@ -204,16 +208,15 @@ theorem counting_of_gauss_bound
       ((1 / 2 : ℝ) - (3 / 2) * (if t ∈ S then 1 else 0)) ≤ (qroot p ^ (f t)).re := by
     intro t ht
     by_cases hb : t ∈ S
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       have := re_qroot_pow_ge_neg_one p (f t)
-      push_cast
       linarith
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       have hnb : ¬ (p / 6 < (f t : ℝ) ∧ (f t : ℝ) < 5 * (p : ℝ) / 6) :=
         fun hP => hb ((hSmem t ht).2 hP)
       have hgood : (f t : ℝ) ≤ p / 6 ∨ 5 * (p : ℝ) / 6 ≤ f t := by
         by_contra h
-        push_neg at h
+        push Not at h
         exact hnb h
       rw [re_qroot_pow]
       rcases hgood with hlow | hhigh
@@ -258,7 +261,7 @@ theorem counting_of_gauss_bound
   rw [hval] at hlb
   have hsplit : (q : ℝ) / 2 - (3 / 2) * (S.card : ℝ) ≤ B := le_trans hlb hrele
   have hfin : (1 / 3 - ε) * (q : ℝ) ≤ (S.card : ℝ) := by
-    nlinarith [hsplit, hBq, hε, hB0]
+    nlinarith [hsplit, hBq, _hε, _hB0]
   exact hfin
 
 /-- The natural representative of the residue `a^t * k` modulo `p`. -/
@@ -272,7 +275,7 @@ noncomputable def gaussSum (p : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) (q : ℕ) : �
 /-- For positive `p`, every orbit residue is strictly smaller than `p`. -/
 theorem orbitResidue_lt (p : ℕ) (hp : 0 < p) (a : (ZMod p)ˣ) (k : ZMod p)
     (t : ℕ) : orbitResidue p a k t < p := by
-  haveI : NeZero p := ⟨Nat.pos_iff_ne_zero.mp hp⟩
+  have : NeZero p := ⟨Nat.pos_iff_ne_zero.mp hp⟩
   unfold orbitResidue
   exact ZMod.val_lt _
 

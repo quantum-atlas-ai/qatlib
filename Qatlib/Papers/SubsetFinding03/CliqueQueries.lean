@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Query-cost bounds for clique finding
@@ -123,7 +127,7 @@ theorem directCost_le (N M L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N)
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hsplit, hcomb] at h1
 
   have hB : (M : ℝ) ^ ((3 : ℝ) / 2) ≤
@@ -135,7 +139,7 @@ theorem directCost_le (N M L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N)
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hcomb] at h1
   have hterm : ((N : ℝ) / (M : ℝ)) ^ ((L : ℝ) / 2) * (M : ℝ) ^ ((3 : ℝ) / 2) ≤
       (2 : ℝ) ^ ((L : ℝ) / 2) * (N : ℝ) ^ ((2 * (L : ℝ)) / ((L : ℝ) + 1)) := by
@@ -263,7 +267,7 @@ theorem recursiveCost_le (N M L : ℕ) (hL : 2 ≤ L) (hN : 4 ≤ N)
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hsplit, hcomb] at h1
 
   have hMA : (M : ℝ) ^ (((L : ℝ) - 1) / (L : ℝ)) ≤
@@ -275,7 +279,7 @@ theorem recursiveCost_le (N M L : ℕ) (hL : 2 ≤ L) (hN : 4 ≤ N)
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hcomb] at h1
 
   have hMB : (M : ℝ) ^ ((3 : ℝ) / 2) ≤
@@ -287,7 +291,7 @@ theorem recursiveCost_le (N M L : ℕ) (hL : 2 ≤ L) (hN : 4 ≤ N)
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hcomb] at h1
   have hsqrt : Real.sqrt (N : ℝ) = (N : ℝ) ^ ((1 : ℝ) / 2) := Real.sqrt_eq_rpow _
 
@@ -470,7 +474,7 @@ theorem note_added_cost_bound (L : ℕ) (hL : 2 ≤ L) :
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hsplit, hcomb] at h1
 
   have hMA : (M : ℝ) ^ (((L : ℝ) - 1) / (L : ℝ)) ≤
@@ -482,7 +486,7 @@ theorem note_added_cost_bound (L : ℕ) (hL : 2 ≤ L) :
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hcomb] at h1
 
   have hMB : (M : ℝ) ^ ((3 : ℝ) / 2) ≤
@@ -494,7 +498,7 @@ theorem note_added_cost_bound (L : ℕ) (hL : 2 ≤ L) :
       rw [← Real.rpow_mul hN0]
       congr 1
       field_simp
-      try ring
+
     rwa [hcomb] at h1
   have hsqrt : Real.sqrt (N : ℝ) = (N : ℝ) ^ ((1 : ℝ) / 2) := Real.sqrt_eq_rpow _
 

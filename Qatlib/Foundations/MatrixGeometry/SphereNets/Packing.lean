@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Sébastien Gouëzel, Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Covering.BesicovitchVectorSpace
-import Mathlib.Topology.MetricSpace.CoveringNumbers
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Mathlib.MeasureTheory.Covering.BesicovitchVectorSpace
+public import Mathlib.Topology.MetricSpace.CoveringNumbers
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Volume bounds for separated finite sets

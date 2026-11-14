@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+
+@[expose] public section
 
 /-!
 # Ordered tensor gradients and head fields

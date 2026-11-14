@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
-import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
+public import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+
+@[expose] public section
 
 /-!
 # Circuit implementation of the inner term preparation

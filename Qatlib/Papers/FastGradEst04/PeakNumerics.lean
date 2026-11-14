@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Field.Basic
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Field.Basic
+
+@[expose] public section
 
 /-!
 # Peak variance and rotated-square geometry

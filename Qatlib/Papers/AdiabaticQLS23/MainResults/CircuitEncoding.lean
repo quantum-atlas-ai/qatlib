@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticQLS23.MainResults.CircuitGates
-import Qatlib.Papers.AdiabaticQLS23.MainResults.OraclePrimitives
+module
+
+public import Qatlib.Papers.AdiabaticQLS23.MainResults.CircuitGates
+public import Qatlib.Papers.AdiabaticQLS23.MainResults.OraclePrimitives
+
+@[expose] public section
 
 /-!
 # Circuit compression for the supplied QLS oracles

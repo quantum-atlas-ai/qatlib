@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DysonSegmentEvolution
-import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DysonSegmentEvolution
+public import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+@[expose] public section
 
 /-!
 # Grouping Dyson grid evolution into segments

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditConverseTools
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPositiveBranches
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditConverseTools
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPositiveBranches
+
+@[expose] public section
 
 /-!
 # The qudit teleportation resource marginal converse

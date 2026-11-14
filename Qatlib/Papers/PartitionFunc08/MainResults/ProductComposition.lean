@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+module
+
+public import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+@[expose] public section
 
 /-!
 # Probability bound for products of estimators
@@ -84,7 +88,7 @@ theorem lemma3_product_composition
     linarith
   refine le_trans hinter (measureReal_mono ?_)
   intro ω hω
-  simp only [Set.mem_iInter, hA, relAccEvent, Set.mem_setOf_eq] at hω ⊢
+  simp only [Set.mem_iInter, hA, relAccEvent, Set.mem_ofPred_eq] at hω ⊢
   exact prod_rel_acc hℓ hε0 hε1 hα hω
 
 end Qatlib.Papers.PartitionFunc08.MainResults.ProductComposition

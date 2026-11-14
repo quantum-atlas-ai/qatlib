@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

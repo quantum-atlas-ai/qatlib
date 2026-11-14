@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportStat
-import Qatlib.Concepts.WalkFind.UniqueCollision.SearchReadoutAux
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportStat
+public import Qatlib.Concepts.WalkFind.UniqueCollision.SearchReadoutAux
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+
+@[expose] public section
 
 /-!
 # Transport between Johnson-walk state spaces
@@ -153,15 +157,15 @@ theorem jwEmbedMat_mulVec (N r : ℕ) (v : JRState N r → ℂ) (p : JRState' N 
   simp only [Matrix.mulVec, dotProduct, jwEmbedMat_equiv, ite_mul, one_mul, zero_mul]
   have he (q : JRState N r) : p = jwInsertEquiv N r q ↔ (jwInsertEquiv N r).symm p = q := by
     exact (jwInsertEquiv N r).symm_apply_eq.symm
-  simp only [he, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  simp only [he, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- Applying the dropping matrix evaluates the input at its image under `jwInsertEquiv`. -/
 theorem jwDropMat_mulVec (N r : ℕ) (v : JRState' N r → ℂ) (q : JRState N r) :
     (jwDropMat N r *ᵥ v) q = v (jwInsertEquiv N r q) := by
   simp only [Matrix.mulVec, dotProduct, jwDropMat_equiv, ite_mul, one_mul, zero_mul]
   have he (p : JRState' N r) : q = (jwInsertEquiv N r).symm p ↔ jwInsertEquiv N r q = p := by
-    exact (jwInsertEquiv N r).apply_eq_iff_eq_symm_apply.symm
-  simp only [he, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    exact (jwInsertEquiv N r).eq_symm_apply
+  simp only [he, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- Dropping after embedding gives the identity matrix on `JRState`. -/
 theorem jwDropMat_mul_embed (N r : ℕ) : jwDropMat N r * jwEmbedMat N r = 1 := by
@@ -241,7 +245,7 @@ private theorem fiberDiffusion_constant {α β : Type} [Fintype α] [DecidableEq
     rw [← Finset.sum_mul, Finset.sum_boole]
     rw [← Fintype.card_subtype, hc p]
   rw [hsum]
-  simp only [ite_mul, one_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  simp only [ite_mul, one_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   have hdn : (d : ℂ) ≠ 0 := by exact_mod_cast ne_of_gt hd
   field_simp
   ring
@@ -506,7 +510,7 @@ theorem jwPsiBigAt_inner (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       Complex.normSq_eq_norm_sq,← Complex.ofReal_sum]
     rw [jwPsiBigAt_normSq k N r hkr hkNr I hI]
     rfl
-  · rw [if_neg hij]
+  · rw [ite_eq_right hij]
     exact jwPsiBigAt_orthogonal k N r I i j hij
 
 /-- When `I.card = k`, every full state has a type represented by a reduced coordinate. -/
@@ -569,7 +573,7 @@ theorem jwBigDiff1_apply (N r : ℕ) (v : JRState N r → ℂ) (p : JRState N r)
   rw [he]
   simp only [Matrix.mulVec,dotProduct,Matrix.of_apply,sub_mul,Finset.sum_sub_distrib,
     mul_assoc,← Finset.mul_sum,ite_mul,one_mul,zero_mul,Finset.sum_ite_eq,
-    Finset.mem_univ,if_true]
+    Finset.mem_univ,ite_true]
 
 /-- Counts full states with a prescribed type and the same subset as a fixed state. -/
 theorem jwFixedOutsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState N r)
@@ -580,7 +584,7 @@ theorem jwFixedOutsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState N 
   have hf (S : Finset (Fin N)) :
       (S.filter fun x => decide (x ∈ I)) = S ∩ I := by ext x; simp
   by_cases hj : (p.1.1 ∩ I).card = j
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     let e : {q : JRState N r // p.1.1 = q.1.1 ∧ jwTypeOf I q = (j,l)} ≃
         {y : Fin N // y ∉ p.1.1 ∧ decide (y ∈ I) = l} :=
       { toFun := fun q => ⟨q.1.1.2,by simpa only [q.2.1] using q.1.2.2,
@@ -597,7 +601,7 @@ theorem jwFixedOutsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState N 
         right_inv := by intro y; rfl }
     rw [Fintype.card_congr e]
     simpa [hj] using jwOutsideTypeFiber_card N r I p.1.1 p.2.1 l
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     apply Fintype.card_eq_zero_iff.mpr
     refine ⟨fun q => ?_⟩
     have h := congrArg Prod.fst q.2.2
@@ -778,7 +782,7 @@ theorem jwBigDiff2_apply (N r : ℕ) (v : JRState' N r → ℂ) (p : JRState' N 
   rw [he]
   simp only [Matrix.mulVec,dotProduct,Matrix.of_apply,sub_mul,Finset.sum_sub_distrib,
     mul_assoc,← Finset.mul_sum,ite_mul,one_mul,zero_mul,Finset.sum_ite_eq,
-    Finset.mem_univ,if_true]
+    Finset.mem_univ,ite_true]
 
 /-- Under the stated population conditions, the first full diffusion acts on type vectors with
 coefficients given by `jwStep1`. -/
@@ -795,7 +799,7 @@ theorem jwBigDiff1_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   have hpi : (p.1.1 ∩ I).card = (jwPsiCoord k i).1 := by
     simpa only [jwTypeOf,hf] using congrArg Prod.fst hi
   by_cases hj : (jwPsiCoord k i).1 = (jwPsiCoord k jt).1
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     by_cases hjk : (jwPsiCoord k jt).1 = k
     · have ht : jwPsiCoord k jt = (k,false) := by
         apply Prod.ext hjk
@@ -842,7 +846,7 @@ theorem jwBigDiff1_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       rw [← hc (jwPsiCoord k i).2,← hc (jwPsiCoord k jt).2,← he,hab] at hn
       have htype : jwTypeOf I p = ((jwPsiCoord k jt).1,(jwPsiCoord k jt).2) ↔
           (jwPsiCoord k i).2 = (jwPsiCoord k jt).2 := by rw [hi]; simp [Prod.ext_iff,hj]
-      rw [hpi,if_pos hj,jwPsiBig,if_congr htype rfl rfl,hj]
+      rw [hpi,ite_eq_left hj,jwPsiBig,if_congr htype rfl rfl,hj]
 
       convert hn.symm using 1
       all_goals dsimp only [a,b,j]
@@ -858,7 +862,7 @@ theorem jwFixedInsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState' N 
     Fintype.card {q : JRState' N r // p.1.1 = q.1.1 ∧ jwTypeOfInserted I q = (j,l)} =
       if (p.1.1 ∩ I).card = j then (if l then j else r+1-j) else 0 := by
   by_cases hj : (p.1.1 ∩ I).card = j
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     let e : {q : JRState' N r // p.1.1 = q.1.1 ∧ jwTypeOfInserted I q = (j,l)} ≃
         {y : Fin N // y ∈ p.1.1 ∧ decide (y ∈ I) = l} :=
       { toFun := fun q => ⟨q.1.1.2,by simpa only [q.2.1] using q.1.2.2,
@@ -873,7 +877,7 @@ theorem jwFixedInsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState' N 
         right_inv := by intro y; rfl }
     rw [Fintype.card_congr e]
     simpa [hj] using jwInsideTypeFiber_card N r I p.1.1 p.2.1 l
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     apply Fintype.card_eq_zero_iff.mpr
     refine ⟨fun q => ?_⟩
     have hj' : (q.1.1.1 ∩ I).card = j := congrArg Prod.fst q.2.2
@@ -941,8 +945,8 @@ theorem jwCnt_phi_population (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   have he := congrArg Prod.fst (jwPhiCoord_eq_psi k i)
   have hb : (jwPhiCoord k i).2 = (jwPsiCoord k i).2 := rfl
   by_cases h : (jwPsiCoord k i).2 = true
-  · have hpos : 1 ≤ (jwPhiCoord k i).1 := by simp only [h,if_true] at he; omega
-    have hj : (jwPsiCoord k i).1 = (jwPhiCoord k i).1-1 := by simp only [h,if_true] at he; omega
+  · have hpos : 1 ≤ (jwPhiCoord k i).1 := by simp only [h,ite_true] at he; omega
+    have hj : (jwPsiCoord k i).1 = (jwPhiCoord k i).1-1 := by simp only [h,ite_true] at he; omega
     rw [h,hj,jwCnt_inserted_true k N r (jwPhiCoord k i).1 hpos (by omega) hφ]
     simp [hb,h]
   · have hfalse : (jwPsiCoord k i).2 = false := Bool.eq_false_iff.mpr h
@@ -965,7 +969,7 @@ theorem jwBigDiff2_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   have hpi : ((jwInsertEquiv N r p).1.1 ∩ I).card = (jwPhiCoord k i).1 :=
     congrArg Prod.fst hin
   by_cases hj : (jwPhiCoord k i).1 = (jwPhiCoord k jt).1
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     by_cases hj0 : (jwPhiCoord k jt).1 = 0
     · have ht : jwPhiCoord k jt = (0,false) := by
         apply Prod.ext hj0
@@ -1020,7 +1024,7 @@ theorem jwBigDiff2_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       rw [← hc i hj,← hc jt rfl,← he,hab] at hn
       have htype : jwTypeOfInserted I (jwInsertEquiv N r p) = jwPhiCoord k jt ↔
           (jwPhiCoord k i).2 = (jwPhiCoord k jt).2 := by rw [hin]; simp [Prod.ext_iff,hj]
-      simp only [hpi,if_pos hj]
+      simp only [hpi,ite_eq_left hj]
       simp only [htype]
       convert hn.symm using 1
       all_goals dsimp only [a,b,j]

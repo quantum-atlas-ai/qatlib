@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -162,14 +166,14 @@ theorem xFlip_isHermitian {n : ℕ} (i : Fin n) : (xFlip i).IsHermitian := by
   · have h' : σ = Function.update τ i (!τ i) := by
       rw [h]
       exact (update_flip_flip σ i).symm
-    rw [if_pos h, if_pos h']
+    rw [ite_eq_left h, ite_eq_left h']
     simp
   · have h' : σ ≠ Function.update τ i (!τ i) := by
       intro hc
       apply h
       rw [hc]
       exact (update_flip_flip τ i).symm
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
     simp
 
 /-- `HX` of Eq. (2): the transverse field `Σ_i (1 - σˣ_i)/2`. -/

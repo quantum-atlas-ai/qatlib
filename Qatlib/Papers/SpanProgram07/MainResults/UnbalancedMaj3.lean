@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Unbalanced three-input majority witnesses

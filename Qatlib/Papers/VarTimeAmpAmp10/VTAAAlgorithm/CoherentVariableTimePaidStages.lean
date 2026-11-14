@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeKernel
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeKernel
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+
+@[expose] public section
 
 /-!
 # Paid words for coherent variable-time stages
@@ -57,6 +61,7 @@ open scoped Classical BigOperators
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+omit [Fintype H] in
 /-- Control on workspace label zero is the relabeling of Boolean false-flag control. -/
 theorem source_controlled_zero_relabel (U : Matrix H H ℂ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.controlled U ({0} : Finset (Fin 2)) =
@@ -82,6 +87,7 @@ theorem source_controlled_zero_mul (U V : Matrix H H ℂ) :
   rw [← Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul,
       flagFalseControl_mul]
 
+omit [Fintype H] [DecidableEq H] in
 /-- Relabeling a clean Boolean-flag state gives the clean two-label workspace embedding. -/
 theorem cleanFlag_relabel (ψ : QState H) :
     relabelState (paidFlagEquiv (H := H)) (cleanFlag ψ) = Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) ψ := by
@@ -135,6 +141,7 @@ theorem paidStage_clean (oracles : ℕ → Matrix H H ℂ) (P target : Matrix H 
   rw [applyGate_mul, applyGate_mul, paid_stage_clean_state _ _ hP hcomm]
   exact cleanFlag_relabel _
 
+omit [Fintype H] in
 /-- The paid stage word makes exactly one call to its designated slot and uses four known gates. -/
 theorem paidStage_calls (P target : Matrix H H ℂ) (slot : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (paidStageWord P target slot) slot = 1 ∧
@@ -142,6 +149,7 @@ theorem paidStage_calls (P target : Matrix H H ℂ) (slot : ℕ) :
   simp [paidStageWord, Qatlib.Concepts.QlsReadoutSpec.Amplification.calls,
       Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount]
 
+omit [Fintype H] in
 /-- The paid stage word makes no calls to any slot distinct from its designated slot. -/
 theorem paidStage_other_calls (P target : Matrix H H ℂ) (slot k : ℕ) (hk : k ≠ slot) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (paidStageWord P target slot) k = 0 := by
@@ -163,6 +171,7 @@ theorem paidStage_legal (P target : Matrix H H ℂ) (slot slots : ℕ)
   · exact hR
   · exact hN
 
+omit [Fintype H] in
 /-- The syntactic adjoint of the paid stage word reverses its gates, takes their conjugate
 transposes, and replaces its forward call by an adjoint call. -/
 theorem paidStage_adjoint_syntax (P target : Matrix H H ℂ) (slot : ℕ) :
@@ -174,6 +183,7 @@ theorem paidStage_adjoint_syntax (P target : Matrix H H ℂ) (slot : ℕ) :
         Qatlib.Concepts.QlsReadoutSpec.Amplification.Step.known ((relabelGate (paidFlagEquiv (H := H)) (cppNot P))ᴴ)] := by
   rfl
 
+omit [Fintype H] in
 /-- The adjoint stage word contains exactly one inverse-call step and one call to its designated
 slot. -/
 theorem paidStage_adjoint_inverse_calls (P target : Matrix H H ℂ) (slot : ℕ) :

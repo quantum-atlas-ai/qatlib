@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch25.MainResults.SourceLemma29Initial
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
-import Mathlib.LinearAlgebra.Matrix.Hadamard
+module
+
+public import Qatlib.Papers.OrderedSearch25.MainResults.SourceLemma29Initial
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+
+@[expose] public section
 
 /-!
 # The cyclic trace `Tr_j` on `2n × 2n` matrices
@@ -82,23 +86,28 @@ theorem cycTrace_zero (j : Fin N) : cycTrace (0 : Matrix (Fin N) (Fin N) ℂ) j 
   rw [cycTrace_eq_sum]
   simp
 
+omit [NeZero N] in
 /-- A modular arithmetic identity: adding `x + z` and `y + N - z` modulo `N`
 agrees with adding `x + y`. -/
-theorem nat_add_sub_key (x y z : ℕ) (hz : z ≤ N) :
+theorem nat_add_sub_key {N : ℕ} [_instNeZero : NeZero N] (x y z : ℕ) (hz : z ≤ N) :
     ((x + z) % N + (y + N - z) % N) % N = (x + y) % N := by
   rw [← Nat.add_mod]
   have h : (x + z) + (y + N - z) = (x + y) + N := by omega
   rw [h, Nat.add_mod_right]
 
+omit [NeZero N] in
 /-- A modular arithmetic identity: a summand already below `N` may be added
 outside the modulus. -/
-theorem nat_mod_add_lt {y : ℕ} (hy : y < N) (x : ℕ) : (x % N + y) % N = (x + y) % N := by
+theorem nat_mod_add_lt {N : ℕ} [_instNeZero : NeZero N] {y : ℕ} (hy : y < N) (x : ℕ) :
+    (x % N + y) % N = (x + y) % N := by
   nth_rewrite 2 [Nat.add_mod]
   rw [Nat.mod_eq_of_lt hy]
 
+omit [NeZero N] in
 /-- A modular arithmetic identity: a summand may be reduced modulo `N` before
 adding. -/
-theorem nat_add_mod_right (x y : ℕ) : (x + y % N) % N = (x + y) % N := by
+theorem nat_add_mod_right {N : ℕ} [_instNeZero : NeZero N] (x y : ℕ) :
+    (x + y % N) % N = (x + y) % N := by
   rw [Nat.add_mod x (y % N), Nat.mod_mod, Nat.add_mod x y]
 
 /-- The residue of `b - a` in `Fin N`, written so that it never leaves `ℕ`. -/

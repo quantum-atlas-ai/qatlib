@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+module
+
+public import Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
+
+@[expose] public section
 
 /-!
 # Optimized weighted adversary bounds
@@ -37,7 +41,7 @@ set_option autoImplicit false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Foundations.PureStateMath
 
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.AdversaryBounds.OptimizedAdv
@@ -159,7 +163,7 @@ private theorem advDomainEmbedding_filter {κ : Type} [DecidableEq κ]
   classical
   ext u v
   by_cases hd : inputY u i ≠ inputY v i
-  · simp only [weightedAdvFilter, if_pos hd, Matrix.mul_apply, Finset.sum_mul,
+  · simp only [weightedAdvFilter, ite_eq_left hd, Matrix.mul_apply, Finset.sum_mul,
       Matrix.conjTranspose_apply]
     apply Finset.sum_congr rfl
     intro y _
@@ -171,7 +175,7 @@ private theorem advDomainEmbedding_filter {κ : Type} [DecidableEq κ]
         exact hd
       simp [advDomainEmbedding, hx, hy, he]
     all_goals simp [advDomainEmbedding, hx, hy]
-  · simp only [weightedAdvFilter, if_neg hd, Matrix.mul_apply, Finset.sum_mul,
+  · simp only [weightedAdvFilter, ite_eq_right hd, Matrix.mul_apply, Finset.sum_mul,
       Matrix.conjTranspose_apply]
     symm
     apply Finset.sum_eq_zero
@@ -309,13 +313,13 @@ theorem advNonneg_witness_le_minimaxTerm
   classical
   have hne : Γ ≠ 0 := by intro he; simp [he] at hpos
   obtain ⟨x₀, hx⟩ := Function.ne_iff.mp hne
-  letI : Nonempty X := ⟨x₀⟩
+  let : Nonempty X := ⟨x₀⟩
   have hκ : Nonempty κ := by
     by_contra he
-    letI : IsEmpty κ := not_nonempty_iff.mp he
+    let : IsEmpty κ := not_nonempty_iff.mp he
     have hh := hp1 x₀
     simp at hh
-  letI : Nonempty κ := hκ
+  let : Nonempty κ := hκ
   have hΓ : Γ.IsHermitian := by
     apply Matrix.IsHermitian.ext
     intro x y
@@ -373,8 +377,8 @@ theorem advNonneg_witness_le_minimaxTerm
         apply Finset.sum_congr rfl
         intro y _
         by_cases hi : input x i ≠ input y i
-        · rw [if_pos hi, Real.sqrt_mul (hp0 x i)]
-          simp only [advFilterR, if_pos hi]
+        · rw [ite_eq_left hi, Real.sqrt_mul (hp0 x i)]
+          simp only [advFilterR, ite_eq_left hi]
           ring
         · simp [advFilterR, hi]
       _ = ∑ x, ∑ y, ∑ i, (Γ x y*δ x*δ y)*
@@ -422,16 +426,16 @@ private theorem advWitnessValueR_nonneg {κ : Type} [Fintype κ] [DecidableEq κ
     0 ≤ advWitnessValueR input α Γ := by
   classical
   rcases isEmpty_or_nonempty κ with hκ | hκ
-  · letI := hκ
+  · let := hκ
     simp [advWitnessValueR]
-  · letI := hκ
+  · let := hκ
     exact le_ciInf (fun i => div_nonneg (mul_nonneg (hα i) (norm_nonneg Γ)) (norm_nonneg _))
 
 /-- A real witness with zero operator norm has witness value zero. -/
 private theorem advWitnessValueR_norm_zero {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (α : κ → ℝ) (Γ : Matrix X X ℝ) (hΓ : ‖Γ‖ = 0) :
     advWitnessValueR input α Γ = 0 := by
-  rcases isEmpty_or_nonempty κ with hκ | hκ <;> letI := hκ <;>
+  rcases isEmpty_or_nonempty κ with hκ | hκ <;> let := hκ <;>
     simp [advWitnessValueR, hΓ]
 
 /-- For positive coordinate costs and positive witness norm, the product of the real witness
@@ -442,9 +446,9 @@ private theorem advWitnessValueR_mul_filter_sup_le_one {κ : Type} [Fintype κ] 
     advWitnessValueR input α Γ * (⨆ i, ‖advFilterR input Γ i‖/(‖Γ‖*α i)) ≤ 1 := by
   classical
   rcases isEmpty_or_nonempty κ with hκ | hκ
-  · letI := hκ
+  · let := hκ
     simp [advWitnessValueR]
-  · letI := hκ
+  · let := hκ
     let f (i : κ) := ‖advFilterR input Γ i‖/(‖Γ‖*α i)
     obtain ⟨j,_,hj⟩ := Finset.exists_max_image Finset.univ f Finset.univ_nonempty
     have he : (⨆ i, f i) = f j := le_antisymm
@@ -511,7 +515,7 @@ theorem advNonneg_le_of_certificates {κ : Type} [Fintype κ] [DecidableEq κ]
     have hcposR (x : X) : 0 < ((c x).card : ℝ) := by exact_mod_cast hcpos x
     have hCpos : 0 < C := (hcposR a).trans_le (hcard a)
     obtain ⟨j₀,hj₀,_⟩ := hc a b hab
-    letI : Nonempty κ := ⟨j₀⟩
+    let : Nonempty κ := ⟨j₀⟩
     let p (x : X) (i : κ) : ℝ := if i ∈ c x then 1/((c x).card : ℝ) else 0
     have hp0 (x : X) (i : κ) : 0 ≤ p x i := by dsimp [p]; split_ifs <;> positivity
     have hp1 (x : X) : ∑ i, p x i = 1 := by
@@ -533,7 +537,7 @@ theorem advNonneg_le_of_certificates {κ : Type} [Fintype κ] [DecidableEq κ]
             ∑ i : κ, if input x i ≠ input y i then Real.sqrt (p x i*p y i)/(1:ℝ) else 0
           exact Finset.single_le_sum (f := fun (i : κ) =>
             if input x i ≠ input y i then Real.sqrt (p x i*p y i)/(1:ℝ) else 0)
-            (fun i _ => by (try dsimp only); split_ifs <;> positivity) (Finset.mem_univ j)
+            (fun i _ => by  split_ifs <;> positivity) (Finset.mem_univ j)
     unfold advNonneg
     refine iSup_le fun Γ => ?_
     by_cases hzero : ‖Γ.val‖ = 0
@@ -581,7 +585,7 @@ end RealWeakDuality
 private theorem advWitnessValue_norm_zero {Z κ : Type} [Fintype Z] [DecidableEq Z]
     [Fintype κ] [DecidableEq κ] (input : Z → κ → Bool) (α : κ → ℝ)
     (A : Matrix Z Z ℂ) (hA : ‖A‖ = 0) : advWitnessValue input α A = 0 := by
-  rcases isEmpty_or_nonempty κ with hκ | hκ <;> letI := hκ <;> simp [advWitnessValue,hA]
+  rcases isEmpty_or_nonempty κ with hκ | hκ <;> let := hκ <;> simp [advWitnessValue,hA]
 
 /-- For positive `β` and `δ`, if `ENNReal.ofReal β` is below the optimized adversary value,
 there is a Hermitian output-zero witness of positive norm with value at least `β - δ`. -/
@@ -635,9 +639,9 @@ theorem advPlus_composition_ge
   have hv : 0 < v := not_le.mp hv0
   have hk : Nonempty (Fin k) := by
     by_contra hh
-    letI : IsEmpty (Fin k) := not_nonempty_iff.mp hh
+    let : IsEmpty (Fin k) := not_nonempty_iff.mp hh
     simp [v,advWitnessValue] at hv
-  letI : Nonempty (Fin k) := hk
+  let : Nonempty (Fin k) := hk
   have hβpos (i : Fin k) : 0 < β i := by
     have hb : v ≤ β i*‖A.val‖/‖weightedAdvFilter (fun t => t) A.val i‖ :=
       ciInf_le (Set.finite_range (fun i : Fin k => β i*‖A.val‖/‖weightedAdvFilter (fun t => t) A.val i‖)).bddBelow i
@@ -663,7 +667,7 @@ theorem advPlus_composition_ge
       fun x y he => weightedAdvGamma_same_output_zero g f A.val Gg A.property.2 x y he
     let WB : {B : Matrix ((i : Fin k) → X i) ((i : Fin k) → X i) ℂ //
       B.IsHermitian ∧ ∀ x y, f (fun i => g i (x i)) = f (fun i => g i (y i)) → B x y = 0} := ⟨B,hB,hz⟩
-    letI : Nonempty ((i : Fin k) × Fin (n i)) := ⟨⟨Classical.arbitrary _,⟨0,hne _⟩⟩⟩
+    let : Nonempty ((i : Fin k) × Fin (n i)) := ⟨⟨Classical.arbitrary _,⟨0,hne _⟩⟩⟩
     have hval : v-δ*R ≤ advWitnessValue (weightedAdvInput gin) α B := by
       apply le_ciInf
       intro c

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.TraceConcent.Lemma27
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.TraceConcent.Lemma27
+
+@[expose] public section
 
 /-!
 # Mean and concentration of the biased trace ensemble

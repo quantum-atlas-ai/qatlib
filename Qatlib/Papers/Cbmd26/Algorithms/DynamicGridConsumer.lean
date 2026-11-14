@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DysonGridSegments
-import Qatlib.Papers.Cbmd26.Algorithms.DysonGridCircuitBridge
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
-import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridDysonError
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DysonGridSegments
+public import Qatlib.Papers.Cbmd26.Algorithms.DysonGridCircuitBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
+public import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridDysonError
+
+@[expose] public section
 
 /-!
 # Counted simulation on supplied time grids

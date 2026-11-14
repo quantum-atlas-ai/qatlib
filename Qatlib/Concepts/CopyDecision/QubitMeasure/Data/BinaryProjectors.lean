@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.GeneralPOVM
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.GeneralPOVM
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 /-!
 # Binary Projectors
@@ -141,12 +145,12 @@ def binaryPOVM (i j : Fin 3) (hij : i≠j) (p q : ℝ)
     have hP := binaryPlus_idempotent i j hij hQ
     have hH := (binaryPlus_hermitian i j p q).eq
     by_cases ha : a=0
-    · simp only [ha, if_pos]
+    · simp only [ha, ite_eq_left]
       apply HermitianMat.zero_le_iff.2
       change (binaryPlusMatrix i j p q).PosSemidef
       have h := Matrix.posSemidef_conjTranspose_mul_self (binaryPlusMatrix i j p q)
       rwa [hH, hP] at h
-    · simp only [ha, if_false]
+    · simp only [ha, ite_false]
       apply HermitianMat.zero_le_iff.2
       change ((1:QubitMatrix)-binaryPlusMatrix i j p q).PosSemidef
       have hm : ((1:QubitMatrix)-binaryPlusMatrix i j p q)*

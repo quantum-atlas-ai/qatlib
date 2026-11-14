@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWordDefs
+module
+
+public import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWordDefs
+
+@[expose] public section
 
 /-!
 # Trace contraction and channel word error bounds
@@ -66,8 +70,8 @@ matrix. -/
 theorem dilation_traceNorm {I : Type} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ) :
     (dilation X).traceNorm = 2 * X.traceNorm := by
   classical
-  letI : DecidableEq I := Classical.decEq I
-  letI : DecidableEq (I ⊕ I) := Classical.decEq (I ⊕ I)
+  let : DecidableEq I := Classical.decEq I
+  let : DecidableEq (I ⊕ I) := Classical.decEq (I ⊕ I)
   let L : Matrix (I ⊕ I) I ℂ := fun a b => match a with
     | .inl i => if i=b then 1 else 0
     | .inr _ => 0

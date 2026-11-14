@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 /-!
 # Local fermionic gates and covariance data
@@ -122,9 +126,9 @@ theorem jwPauliWord_local {n : ℕ} (i : Fin n) (y x : Reg n)
   have hk0 : jwSiteFactor i k y x = 0 := by
     unfold jwSiteFactor
     by_cases hlt : k < i
-    · rw [if_pos hlt, if_neg hkx]
+    · rw [ite_eq_left hlt, ite_eq_right hkx]
     · have hilt : i < k := by omega
-      rw [if_neg hlt, if_pos hilt, if_neg hkx]
+      rw [ite_eq_right hlt, ite_eq_left hilt, ite_eq_right hkx]
   calc (∏ j : Fin n, jwSiteFactor i j y x)
       = (∏ j ∈ (Finset.univ : Finset (Fin n)).erase k, jwSiteFactor i j y x)
           * jwSiteFactor i k y x := by
@@ -261,7 +265,7 @@ def localGateSumBitCost {n : ℕ} : LocalGateSum n → ℕ
 sum. -/
 def localGateSumSpaceCost {n : ℕ} : LocalGateSum n → ℕ
   | [] => 0
-  | (_, gl) :: rest => max n (localGateSumSpaceCost rest)
+  | (_, _gl) :: rest => max n (localGateSumSpaceCost rest)
 
 /-- The finite set of ordered mode pairs whose first index is strictly smaller than the second. -/
 def modePairs (n : ℕ) : Finset (Fin n × Fin n) :=
@@ -424,7 +428,7 @@ theorem majoranaIndices_eq {n : ℕ} (i j : Fin n) (b c : Fin 2) :
   constructor
   · intro h
     have hv := congrArg Fin.val h
-    simp only [majoranaIndices, Fin.mk.injEq] at hv
+    simp only [majoranaIndices] at hv
     have hbc : b.val = c.val := by omega
     have hij : i.val = j.val := by omega
     exact ⟨Fin.ext hij, Fin.ext hbc⟩

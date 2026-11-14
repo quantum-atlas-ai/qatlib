@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+module
+
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+
+@[expose] public section
 
 /-!
 # Dihedral sieve theorem interface

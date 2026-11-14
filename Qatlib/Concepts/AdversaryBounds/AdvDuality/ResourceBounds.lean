@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsRefinedDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
+module
+
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsRefinedDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
+
+@[expose] public section
 
 /-!
 # Resource ledger endpoints

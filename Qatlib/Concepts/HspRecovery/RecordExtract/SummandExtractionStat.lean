@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.CharacterTransform
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.CharacterTransform
+
+@[expose] public section
 
 /-!
 # Specification of regular summand extraction

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.GaugePositivePhase
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhasePositiveWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.GaugePositivePhase
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhasePositiveWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,7 +103,7 @@ theorem materializeReferencePreparation_gauge_word_bound (v : SpatialPoint → S
     let r : Fin 8 := ⟨z.length,by omega⟩
     have h := materializeReferencePreparation_reference_bound v hv hu hp source hs bounds hb prepared hrun
       eta he he1 B hB mu hm hg hoff hmargin r z rfl y
-    simpa only [R,storedPhaseValue,dif_pos (show z.length<8 by omega)] using h
+    simpa only [R,storedPhaseValue,dite_eq_left (show z.length<8 by omega)] using h
   have hC6 (j i : Fin 3) (y : SpatialPoint) (_hy : InUnitCube y) :
       ‖spatialWordPartial (normalizedConnectionReal q j) (List.replicate 6 i) y‖ ≤ (cache.connectionBounds[6] : ℝ) :=
     materializeReferencePreparation_connection_bound v hv hu hp source hs bounds hb prepared hrun

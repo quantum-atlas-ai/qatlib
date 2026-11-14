@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Qatlib.Papers.ShallowAdvWu26.ShallowPower.LightCone
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Qatlib.Papers.ShallowAdvWu26.ShallowPower.LightCone
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

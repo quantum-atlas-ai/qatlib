@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Theorem10.Theorem10Walk
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Theorem10.Theorem10Walk
+
+@[expose] public section
 
 /-!
 # Postselection mass and endpoint weights
@@ -75,7 +79,7 @@ theorem rowSum_pow_ge (G : Matrix ι ι ℝ) (hG : ∀ x y, 0 ≤ G x y)
       rw [Finset.sum_eq_single x]
       · simp
       · intro b _ hb
-        rw [Matrix.one_apply, if_neg (Ne.symm hb)]
+        rw [Matrix.one_apply, ite_eq_right (Ne.symm hb)]
       · intro h; exact absurd (Finset.mem_univ _) h
   | succ L ih =>
       rw [rowSum_pow_succ]

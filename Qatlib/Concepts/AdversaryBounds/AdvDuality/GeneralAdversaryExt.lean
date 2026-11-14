@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+@[expose] public section
 
 /-!
 # General adversary extension imports
@@ -94,7 +98,7 @@ variable [DecidableEq X]
 end MinimaxGram
 
 section EqualitySdp
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]

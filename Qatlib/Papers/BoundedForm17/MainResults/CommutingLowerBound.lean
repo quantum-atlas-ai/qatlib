@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BoundedForm17.MainResults.CbTensorAux
+module
+
+public import Qatlib.Papers.BoundedForm17.MainResults.CbTensorAux
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

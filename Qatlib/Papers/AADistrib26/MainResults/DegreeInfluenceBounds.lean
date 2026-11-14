@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSwapInfluence
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
+module
+
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSwapInfluence
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

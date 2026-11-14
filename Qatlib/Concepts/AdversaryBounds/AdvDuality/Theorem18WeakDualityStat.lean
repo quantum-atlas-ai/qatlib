@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+module
+
+public import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+@[expose] public section
 
 /-!
 # Statement of adversary weak duality
@@ -39,7 +43,7 @@ with [Hoyer, Lee, and Spalek, Theorem 18][HoyerLeeSpalek2007]. -/
 def Theorem18WeakDuality : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X]
     (κ : Type) [Fintype κ] [DecidableEq κ]
-    (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ) (hα : ∀ i, 0 < α i),
+    (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ) (_hα : ∀ i, 0 < α i),
     advNonneg input g α ≤ minimaxAlpha input g α
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

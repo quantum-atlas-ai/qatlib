@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHashData
-import Mathlib.GroupTheory.Index
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic.ByContra
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHashData
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic.ByContra
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Collision probabilities for finite linear hashes
@@ -104,7 +108,7 @@ theorem finite_linear_matrix_hash_collision
       (fun i j => if i = i₀ then y j / (v - w) i₀ else 0) (v - w) = y
     funext j
     simp only [finiteLinearMatrixHash, ite_mul, zero_mul, Finset.sum_ite_eq',
-      Finset.mem_univ, if_true]
+      Finset.mem_univ, ite_true]
     exact div_mul_cancel₀ (y j) hi₀
   have hdiff (A : Matrix I J K) :
       finiteLinearMatrixHash A v - finiteLinearMatrixHash A w = F A := by

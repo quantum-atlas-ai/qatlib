@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.ApproxProducts
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.InnerProductSpace.Adjoint
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.ApproxProducts
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+
+@[expose] public section
 
 /-!
 # Bridge generators and finite-word approximation
@@ -41,7 +45,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDim
 identity on its orthogonal complement. -/
 def SpecialUnitary (A : Submodule ℂ E) : Set (E →L[ℂ] E) :=
   { T | ∃ U : A ≃ₗᵢ[ℂ] A, LinearMap.det (U : A →ₗ[ℂ] A) = 1 ∧
-      ∀ x, T x = ((U (A.orthogonalProjection x) : A) : E) + (x - A.starProjection x) }
+      ∀ x, T x = ((U (A.orthogonalProjectionOnto x) : A) : E) + (x - A.starProjection x) }
 
 /-- The continuous linear maps induced by determinant-one linear isometric equivalences of the
 ambient space. -/
@@ -63,16 +67,26 @@ def ApproximableBy (S : Set (E →L[ℂ] E)) (T : E →L[ℂ] E) : Prop :=
 def bridgeGenerators (A B : Submodule ℂ E) (W : E ≃ₗᵢ[ℂ] E) : Set (E →L[ℂ] E) :=
   SpecialUnitary A ∪ SpecialUnitary B ∪ {(W : E →L[ℂ] E)}
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E] in
 /-- Evaluating concatenated words is composition of their evaluations, with the first word
 acting after the second. -/
-theorem evalWord_append {ι : Type*} (ρ : ι → E → E) (w₁ w₂ : List ι) (x : E) :
+theorem evalWord_append {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E]
+    [_instFiniteDimensionalComplexE : FiniteDimensional ℂ E]
+    {ι : Type*} (ρ : ι → E → E) (w₁ w₂ : List ι) (x : E) :
     evalWord ρ (w₁ ++ w₂) x = evalWord ρ w₁ (evalWord ρ w₂ x) := by
   induction w₁ with
   | nil => rfl
   | cons i w ih => simp only [List.cons_append, evalWord_cons, ih]
 
+omit [InnerProductSpace ℂ E] [FiniteDimensional ℂ E] in
 /-- A word of maps that do not increase norms also does not increase norms. -/
-theorem evalWord_norm_le {ι : Type*} (ρ : ι → E → E) (w : List ι)
+theorem evalWord_norm_le {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E]
+    [_instFiniteDimensionalComplexE : FiniteDimensional ℂ E]
+    {ι : Type*} (ρ : ι → E → E) (w : List ι)
     (h : ∀ i ∈ w, ∀ x, ‖ρ i x‖ ≤ ‖x‖) (x : E) :
     ‖evalWord ρ w x‖ ≤ ‖x‖ := by
   induction w with
@@ -83,8 +97,13 @@ theorem evalWord_norm_le {ι : Type*} (ρ : ι → E → E) (w : List ι)
       have hw : ∀ j ∈ w, ∀ x, ‖ρ j x‖ ≤ ‖x‖ := fun j hj => h j (by simp [hj])
       exact (hi _).trans (ih hw)
 
+omit [FiniteDimensional ℂ E] in
 /-- The identity map is approximable by words from any generator set. -/
-theorem ApproximableBy.id (S : Set (E →L[ℂ] E)) :
+theorem ApproximableBy.id {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E]
+    [_instFiniteDimensionalComplexE : FiniteDimensional ℂ E]
+    (S : Set (E →L[ℂ] E)) :
     ApproximableBy S (1 : E →L[ℂ] E) := by
   intro ε hε
   refine ⟨[], by simp, ?_⟩
@@ -95,8 +114,13 @@ theorem ApproximableBy.id (S : Set (E →L[ℂ] E)) :
   rw [hnil, hone, sub_self, norm_zero]
   exact mul_nonneg (le_of_lt hε) (norm_nonneg x)
 
+omit [FiniteDimensional ℂ E] in
 /-- Every member of a generator set is approximable by words from that set. -/
-theorem ApproximableBy.of_mem {S : Set (E →L[ℂ] E)} {T : E →L[ℂ] E} (hT : T ∈ S) :
+theorem ApproximableBy.of_mem {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceComplexE : InnerProductSpace ℂ E]
+    [_instFiniteDimensionalComplexE : FiniteDimensional ℂ E]
+    {S : Set (E →L[ℂ] E)} {T : E →L[ℂ] E} (hT : T ∈ S) :
     ApproximableBy S T := by
   intro ε hε
   refine ⟨([T] : List (E →L[ℂ] E)), by simpa using hT, ?_⟩
@@ -170,7 +194,7 @@ theorem exists_preserved_vector {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     ∃ v ∈ B, v ≠ 0 ∧ (W v : E) ∈ B := by
 
   let f : B →L[ℂ] A :=
-    A.orthogonalProjection.comp ((W : E →L[ℂ] E).comp B.subtypeL)
+    A.orthogonalProjectionOnto.comp ((W : E →L[ℂ] E).comp B.subtypeL)
   have hnotinj : ¬ Function.Injective f := by
     intro hinj
     have hle : Module.finrank ℂ B ≤ Module.finrank ℂ A :=
@@ -191,7 +215,7 @@ theorem exists_preserved_vector {A B : Submodule ℂ E} (hBA : Aᗮ = B)
       rw [map_sub, hfxy, sub_self]
     have hproj : A.starProjection (W (((x - y : B) : E))) = 0 := by
       rw [Submodule.starProjection_apply]
-      have hval : (A.orthogonalProjection (W (((x - y : B) : E))) : A) = 0 := hf0
+      have hval : (A.orthogonalProjectionOnto (W (((x - y : B) : E))) : A) = 0 := hf0
       simpa using congrArg (fun z : A => (z : E)) hval
     have hmem : W (((x - y : B) : E)) ∈ Aᗮ := by
       have horth : W (((x - y : B) : E)) -
@@ -214,22 +238,22 @@ theorem specialUnitary_norm {A : Submodule ℂ E} {T : E →L[ℂ] E}
   have hxdec : p + (x - p) = x := by abel
   have horth1 : inner ℂ p (x - p) = 0 :=
     Submodule.inner_right_of_mem_orthogonal (K := A) hpA hborth
-  have hsplit : ((U (A.orthogonalProjection x) : A) : E) = ((U ⟨p, hpA⟩ : A) : E) := by
+  have hsplit : ((U (A.orthogonalProjectionOnto x) : A) : E) = ((U ⟨p, hpA⟩ : A) : E) := by
     congr 2
-  have hnorm_first : ‖((U (A.orthogonalProjection x) : A) : E)‖ = ‖p‖ := by
+  have hnorm_first : ‖((U (A.orthogonalProjectionOnto x) : A) : E)‖ = ‖p‖ := by
     rw [hsplit, Submodule.norm_coe, U.norm_map, ← Submodule.norm_coe]
-  have hfirstA : ((U (A.orthogonalProjection x) : A) : E) ∈ A := Subtype.coe_prop _
-  have horth2 : inner ℂ (((U (A.orthogonalProjection x) : A) : E)) (x - p) = 0 :=
+  have hfirstA : ((U (A.orthogonalProjectionOnto x) : A) : E) ∈ A := Subtype.coe_prop _
+  have horth2 : inner ℂ (((U (A.orthogonalProjectionOnto x) : A) : E)) (x - p) = 0 :=
     Submodule.inner_right_of_mem_orthogonal (K := A) hfirstA hborth
   have hpythT := norm_add_sq_eq_norm_sq_add_norm_sq_of_inner_eq_zero
-    (((U (A.orthogonalProjection x) : A) : E)) (x - p) horth2
+    (((U (A.orthogonalProjectionOnto x) : A) : E)) (x - p) horth2
   have hpythX := norm_add_sq_eq_norm_sq_add_norm_sq_of_inner_eq_zero p (x - p) horth1
   rw [hxdec] at hpythX
   rw [hnorm_first] at hpythT
-  have h2prod : ‖((U (A.orthogonalProjection x) : A) : E) + (x - p)‖ *
-      ‖((U (A.orthogonalProjection x) : A) : E) + (x - p)‖ = ‖x‖ * ‖x‖ := by
+  have h2prod : ‖((U (A.orthogonalProjectionOnto x) : A) : E) + (x - p)‖ *
+      ‖((U (A.orthogonalProjectionOnto x) : A) : E) + (x - p)‖ = ‖x‖ * ‖x‖ := by
     rw [hpythX]; exact hpythT
-  have h2 : ‖((U (A.orthogonalProjection x) : A) : E) + (x - p)‖ ^ 2 = ‖x‖ ^ 2 := by
+  have h2 : ‖((U (A.orthogonalProjectionOnto x) : A) : E) + (x - p)‖ ^ 2 = ‖x‖ ^ 2 := by
     rw [pow_two, pow_two]; exact h2prod
   have hres := congrArg Real.sqrt h2
   rwa [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at hres

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulationLowc
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary17DensitySimulationLowc
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulationLowc
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary17DensitySimulationLowc
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+public import Mathlib.Tactic
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 open Qatlib.Concepts.BlockEncoding.LinearCombination

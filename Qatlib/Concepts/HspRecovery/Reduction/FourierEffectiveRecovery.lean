@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecoveryDefs
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecoveryDefs
+
+@[expose] public section
 
 /-!
 # Two-register Fourier phase recovery
@@ -70,6 +74,7 @@ theorem recordOracle_unitary (M N : ℕ) (U : Matrix I I ℂ)
   tensorGate_unitary (by simp)
     (Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle_unitary (tensorGate_unitary (by simp) hU))
 
+omit [DecidableEq I] in
 /-- Tensoring an eigenstate with an arbitrary spectator state preserves its eigenvalue under the
 identity tensored with `U`. -/
 theorem spectator_eigen {J : Type} [Fintype J] [DecidableEq J]

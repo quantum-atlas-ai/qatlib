@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AndersonLoc09.MainResults.MainResult
+module
+
+public import Qatlib.Papers.AndersonLoc09.MainResults.MainResult
+
+@[expose] public section
 
 /-!
 # Asymptotics of the gap parameters

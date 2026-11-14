@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.StoredReferenceFrame
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeededConnectionGrid
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.AutomaticCoefficientPreparation
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.StoredReferenceFrame
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeededConnectionGrid
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.AutomaticCoefficientPreparation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

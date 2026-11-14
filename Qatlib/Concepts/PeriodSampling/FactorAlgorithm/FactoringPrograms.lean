@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.ContinuedFractionOrderConsumers
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.ContinuedFractionOrderConsumers
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+
+@[expose] public section
 
 /-!
 # Finite probability model for factoring attempts
@@ -130,9 +134,9 @@ noncomputable def attemptLaw (N M k : ℕ) [NeZero N] (hM : 0 < M)
     · unfold attemptMass
       show ((2 ^ k : ℝ))⁻¹ * (if decodeUnit N k b = none then 1 else 0) ≥ 0
       by_cases hb : decodeUnit N k b = none
-      · simp only [if_pos hb]
+      · simp only [ite_eq_left hb]
         exact mul_nonneg (inv_nonneg.2 (pow_nonneg (by norm_num : (0:ℝ) ≤ 2) k)) zero_le_one
-      · simp only [if_neg hb]
+      · simp only [ite_eq_right hb]
         exact mul_nonneg (inv_nonneg.2 (pow_nonneg (by norm_num : (0:ℝ) ≤ 2) k)) (by norm_num)
     · unfold attemptMass
       exact mul_nonneg (inv_nonneg.2 (pow_nonneg (by norm_num : (0:ℝ) ≤ 2) k))

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.LinearSystemCostModelDefs
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.LinearSystemCostModelDefs
+
+@[expose] public section
 
 /-!
 # Signed dyadic quantization
@@ -80,11 +84,11 @@ theorem signedQuantizeReal_error (k : ℕ) (t : ℝ) :
     |t - ((signedQuantizeReal k t : ℚ) : ℝ)| < (1 / 2 : ℝ) ^ k := by
   unfold signedQuantizeReal
   by_cases ht : 0 ≤ t
-  · rw [if_pos ht]
+  · rw [ite_eq_left ht]
     have h := quantizeReal_nonneg_error k t ht
     rw [abs_of_nonneg h.1]
     exact h.2
-  · rw [if_neg ht]
+  · rw [ite_eq_right ht]
     have h := quantizeReal_nonneg_error k (-t) (by linarith)
     have heq : t - ((-(quantizeReal k (-t)) : ℚ) : ℝ)
         = -((-t) - ((quantizeReal k (-t) : ℚ) : ℝ)) := by

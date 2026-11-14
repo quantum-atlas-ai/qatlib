@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+@[expose] public section
 
 /-!
 # Expected iteration bounds for exponential search

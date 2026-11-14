@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireParityFeedback
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireParityFeedback
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+
+@[expose] public section
 
 /-!
 # Adaptive Euler patterns on cluster chains
@@ -703,7 +707,7 @@ private theorem adaptive_leaf_physics (zs : List ℂ) (F : Bool × Bool × ℂ)
     simp only [hf,Qatlib.Foundations.PureStateMath.Ket]
     by_cases h0 : x 0=ω 0 <;>
       by_cases ht : (fun j => Fin.tail x (Fin.castSucc j))=Fin.tail ω <;>
-        simp only [h0,ht,if_true,if_false,and_true,and_false,
+        simp only [h0,ht,ite_true,ite_false,and_true,and_false,
           one_mul,zero_mul]
     ring
 

@@ -4,36 +4,40 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.Even
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Nat.Even
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Pi
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.Tactic
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
+module
+
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.Even
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Nat.Even
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Pi
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+
+@[expose] public section
 
 /-!
 # Binary chaining tags and XOR periods
@@ -198,7 +202,7 @@ theorem cbc_prefix_zblocks (π : Block n → Block n) (pref : List (Block n))
   induction k with
   | zero =>
       have h1 : ¬ Even (0 + 1) := by simp
-      rw [zblocks, List.range_zero, List.map_nil, List.append_nil, if_neg h1]
+      rw [zblocks, List.range_zero, List.map_nil, List.append_nil, ite_eq_right h1]
       simpa [piter] using hβ
   | succ k ih =>
       rw [zblocks_succ, ← List.append_assoc]
@@ -207,15 +211,15 @@ theorem cbc_prefix_zblocks (π : Block n → Block n) (pref : List (Block n))
         exact hpref (List.append_eq_nil_iff.mp h).1
       rw [cbc_append π _ hne, ih]
       by_cases hk : Even (k + 1)
-      · rw [if_pos hk]
-        rw [if_neg (show ¬ Even (k + 1 + 1) by
+      · rw [ite_eq_left hk]
+        rw [ite_eq_right (show ¬ Even (k + 1 + 1) by
           rw [Nat.even_add_one]
           exact not_not_intro hk)]
         rw [piter_succ_apply]
         congr 1
         rw [add_add_self_left]
-      · rw [if_neg hk]
-        rw [if_pos (show Even (k + 1 + 1) by
+      · rw [ite_eq_right hk]
+        rw [ite_eq_left (show Even (k + 1 + 1) by
           rw [Nat.even_add_one]
           exact hk)]
         rw [piter_succ_apply]
@@ -297,9 +301,9 @@ theorem gfun_period (π : Block n → Block n) (m j : ℕ) (α β : Block n) :
   intro u
   rcases u with ⟨b, x⟩
   cases b
-  · simp only [gfun, bxorShift, if_true, if_false, Bool.not_false, Bool.false_eq_true]
+  · simp only [gfun, bxorShift, ite_true, ite_false, Bool.not_false, Bool.false_eq_true]
     rw [add_shift_cancel_aux₁]
-  · simp only [gfun, bxorShift, if_true, if_false, Bool.not_true, Bool.false_eq_true]
+  · simp only [gfun, bxorShift, ite_true, ite_false, Bool.not_true, Bool.false_eq_true]
     rw [add_shift_cancel_aux₂]
 
 end Qatlib.Concepts.CipherCircuits.ChainingTags

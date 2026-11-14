@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Scalar two-level perturbation models
@@ -197,7 +201,7 @@ theorem case2_overlap_halfGap_relation (C N k μ : ℝ) (hN : 0 < N) (hk : 0 < k
   have hsqkm : Real.sqrt k * Real.sqrt k = k := Real.mul_self_sqrt hk.le
   field_simp
   try simp only [hsqN]
-  try ring
+
 
 /-- For positive `N`, substituting unit overlap, half-gap `1 / √N`, and time `π√N / 2` into the
 scalar sine law gives one. -/

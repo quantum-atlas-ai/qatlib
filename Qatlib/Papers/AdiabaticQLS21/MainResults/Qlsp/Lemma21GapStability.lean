@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Setup.OperatorModel
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Qlsp.Lemma20ScheduleC1C2
+module
+
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Setup.OperatorModel
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Qlsp.Lemma20ScheduleC1C2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

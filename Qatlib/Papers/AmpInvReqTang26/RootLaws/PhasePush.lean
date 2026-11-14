@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TorusMoments.PhasePush
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TorusMoments.PhasePush
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+
+@[expose] public section
 
 /-!
 # Pushforward of the finite biased phase law

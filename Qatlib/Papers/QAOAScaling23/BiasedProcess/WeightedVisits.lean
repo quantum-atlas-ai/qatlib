@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.Execution
-import Qatlib.Papers.QAOAScaling23.WeightedCost.Telescope
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.Execution
+public import Qatlib.Papers.QAOAScaling23.WeightedCost.Telescope
+
+@[expose] public section
 
 /-!
 # Weighted visit probabilities for descending traces
@@ -93,7 +97,7 @@ theorem weighted_harmonic (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     by_cases hjr : j<r
     · rw [ih hjr]
       have hneq : r≠j := by omega
-      simp only [hitValue,show ¬r<j by omega,hneq,if_false]
+      simp only [hitValue,show ¬r<j by omega,hneq,ite_false]
       rw [show prefixSum q (r+1)=prefixSum q r+q r by simp [prefixSum,Finset.sum_range_succ]]
       change prefixSum q r * (q j/prefixSum q (j+1)) + q r * (q j/prefixSum q (j+1)) = _
       ring
@@ -104,7 +108,7 @@ theorem weighted_harmonic (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
         intro i _
         simp [hitValue,i.isLt]
       rw [hz]
-      simp only [hitValue,lt_self_iff_false,if_false,if_true,mul_one,zero_add]
+      simp only [hitValue,lt_self_iff_false,ite_false,ite_true,mul_one,zero_add]
       have hp := prefix_positive q h0 hnn (r+1) (by omega)
       field_simp
 
@@ -146,7 +150,7 @@ theorem descend_visit_mean (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
           intro i _
           simp [hitValue,show i.val<j by omega]
         rw [hz]
-        simp only [hitValue,hlt,show r+1≠j by omega,if_true,if_false,zero_add]
+        simp only [hitValue,hlt,show r+1≠j by omega,ite_true,ite_false,zero_add]
       · by_cases heq : r+1=j
         · subst j
           have hz : (∑ i : Fin (r+1), (q i.val/prefixSum q (r+1))*hitValue q (r+1) i.val)=0 := by
@@ -162,7 +166,7 @@ theorem descend_visit_mean (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
             simp_rw [div_mul_eq_mul_div]
             rw [← Finset.sum_div,wh]
             field_simp [ne_of_gt hp]
-          simpa only [hitValue,hlt,heq,if_false,zero_add] using hsum
+          simpa only [hitValue,hlt,heq,ite_false,zero_add] using hsum
 
 /-- When the initial rank law has weights `q`, the expected visits to rank `j` equal `q j /
 prefixSum q (j + 1)`. This is the biased-descent visit formula used in [ShaydulinEtAl2024]. -/

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+
+@[expose] public section
 
 /-!
 # Bit-flip strings and stoquastic sign conditions

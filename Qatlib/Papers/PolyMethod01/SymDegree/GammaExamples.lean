@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricBandCost
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
-import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactDegree
+module
+
+public import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricBandCost
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
+public import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactDegree
+
+@[expose] public section
 
 /-!
 # Jump parameters for OR and majority
@@ -80,7 +84,7 @@ theorem layerVal_orValue {k : ℕ} (hk : k ≤ n) :
     layerVal (@orValue n) k = decide (1 ≤ k) := by
   classical
   unfold layerVal
-  rw [dif_pos hk]
+  rw [dite_eq_left hk]
   have hspec := Classical.choose_spec (exists_word_weight (n := n) (k := k) hk)
   rw [orValue_eq_decide, hspec]
 
@@ -146,7 +150,7 @@ theorem layerVal_majority {k : ℕ} (hk : k ≤ n) :
     layerVal (MajorityBounds.majorityValue (n := n)) k = decide (n < 2 * k) := by
   classical
   unfold layerVal
-  rw [dif_pos hk]
+  rw [dite_eq_left hk]
   have hspec := Classical.choose_spec (exists_word_weight (n := n) (k := k) hk)
   have hcard :
       (Finset.univ.filter (fun i =>

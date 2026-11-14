@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+
+@[expose] public section
 
 /-!
 # Stability of Hermitian Hamiltonian evolution
@@ -60,13 +64,14 @@ theorem hermitian_evolution_noncommuting_stability_fintype
 
   have hf (s : ℝ) : HasDerivAt f (U s * (A-B) * V s) s := by
     convert! (hU s).mul (hV s) using 1
+
     noncomm_ring
   have he (K : Matrix I I ℂ) (s : ℝ) :
       NormedSpace.exp (s • ((-Complex.I * (t : ℂ)) • K)) =
         HamiltonianEvolution K (s*t) := by
     congr 1
     ext i j
-    simp [Matrix.smul_apply, Complex.real_smul]
+    simp [ Matrix.smul_apply, Complex.real_smul]
     ring
   have hnU (s : ℝ) : ‖U s‖ ≤ 1 := by
     rw [show U s = HamiltonianEvolution H (s*t) from he H s]

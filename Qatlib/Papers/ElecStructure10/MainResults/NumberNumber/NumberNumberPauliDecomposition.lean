@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElecStructure10.MainResults.PauliAlgebra.PauliOperators
+module
+
+public import Qatlib.Papers.ElecStructure10.MainResults.PauliAlgebra.PauliOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,9 +192,9 @@ theorem eq17_numberNumber_pauli_decomposition (c : Fin n → Fin n → ℂ)
               ((1 : Matrix (Reg n) (Reg n) ℂ) - zOp p - zOp q + zOp p * zOp q) else 0) := by
     intro p q
     by_cases h : p < q
-    · rw [if_pos h, if_pos h, numberOp_mul_eq_quarter p q]
+    · rw [ite_eq_left h, ite_eq_left h, numberOp_mul_eq_quarter p q]
       rw [smul_smul, smul_smul, mul_comm (c p q) (1 / 4)]
-    · rw [if_neg h, if_neg h, smul_zero]
+    · rw [ite_eq_right h, ite_eq_right h, smul_zero]
   simp_rw [hterm]
   simp_rw [← Finset.smul_sum]
   -- (ii) split the summand into constant / single-`z` / `zz`
@@ -202,7 +206,7 @@ theorem eq17_numberNumber_pauli_decomposition (c : Fin n → Fin n → ℂ)
           + (if p < q then c p q • (zOp p * zOp q) else 0) := by
     intro p q
     by_cases h : p < q
-    · rw [if_pos h, if_pos h, if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h, ite_eq_left h, ite_eq_left h]
       exact smul_collapse (c p q) 1 (zOp p) (zOp q) (zOp p * zOp q)
     · simp [h]
   simp_rw [hsplit]

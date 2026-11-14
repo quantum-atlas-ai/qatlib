@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+
+@[expose] public section
 
 /-!
 # Certified clipping bounds for pilot estimators

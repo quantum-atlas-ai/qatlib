@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.NativeEndpoint
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.NativeEndpoint
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Native dihedral oracle and instruction semantics

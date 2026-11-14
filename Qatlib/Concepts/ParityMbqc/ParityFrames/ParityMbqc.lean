@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ParityMbqc.ParityFrames.ParityMbqcDefs
+module
+
+public import Qatlib.Concepts.ParityMbqc.ParityFrames.ParityMbqcDefs
+
+@[expose] public section
 
 /-!
 # Pauli frames and parity corrections for measurement patterns
@@ -84,12 +88,12 @@ theorem frame_mul {n : ℕ} (x z x' z' : Reg n) :
   simp only [Matrix.mul_apply, frame, pauliFrameGateB_entry,
     Matrix.smul_apply, smul_eq_mul]
   rw [Finset.sum_eq_single (frameShift (x',z') v)]
-  · rw [if_pos rfl, hs]
+  · rw [ite_eq_left rfl, hs]
     by_cases hw : w = frameShift (bxor x x', bxor z z') v
-    · rw [if_pos hw, if_pos hw, hp]
+    · rw [ite_eq_left hw, ite_eq_left hw, hp]
     · simp [hw]
   · intro u _ hu
-    rw [if_neg hu, mul_zero]
+    rw [ite_eq_right hu, mul_zero]
   · intro hu
     exact (hu (Finset.mem_univ _)).elim
 

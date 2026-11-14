@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.BinaryAdaptive
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.CausalPolicy
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.BinaryAdaptive
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.CausalPolicy
+
+@[expose] public section
 
 /-!
 # Anti Trine Upper
@@ -28,7 +32,7 @@ lemma trinePureMatrix_idempotent (i : Fin 3) :
     trinePureMatrix i*trinePureMatrix i=trinePureMatrix i := by
   have hn : (∑ k, trineState i k*star (trineState i k))=1 := by
     change inner ℂ (trineState i) (trineState i)=1
-    rw [trineState_gram, if_pos rfl]
+    rw [trineState_gram, ite_eq_left rfl]
   ext r c
   change (∑ k, (trineState i r*star (trineState i k))*(trineState i k*star (trineState i c)))=_
   calc
@@ -54,9 +58,9 @@ def antiTrineEffect (i : Fin 3) : HermitianMat (Fin 2) ℂ :=
 /-- The stated copy-decision construction satisfies `antiTrineMatrix_sum` with the complete displayed premises. -/
 lemma antiTrineMatrix_sum : ∑ i, antiTrineMatrix i=1 := by
   have he : trinePureMatrix 0+trinePureMatrix 1+trinePureMatrix 2=(3/2:ℂ) • (1:QubitMatrix) := by
-    have h0 := (trinePureMatrix_explicit 0).trans (if_pos rfl)
-    have h1 := ((trinePureMatrix_explicit 1).trans (if_neg (by decide))).trans (if_pos rfl)
-    have h2 := ((trinePureMatrix_explicit 2).trans (if_neg (by decide))).trans (if_neg (by decide))
+    have h0 := (trinePureMatrix_explicit 0).trans (ite_eq_left rfl)
+    have h1 := ((trinePureMatrix_explicit 1).trans (ite_eq_right (by decide))).trans (ite_eq_left rfl)
+    have h2 := ((trinePureMatrix_explicit 2).trans (ite_eq_right (by decide))).trans (ite_eq_right (by decide))
     rw [h0, h1, h2]
     ext r c
     fin_cases r <;> fin_cases c <;> norm_num [Matrix.one_apply]

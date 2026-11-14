@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Matrix.Block
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Analysis.Matrix.Normed
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Analysis.Matrix.Normed
+
+@[expose] public section
 
 /-!
 # Absorbing blocks and Johnson eigenvalue formulas

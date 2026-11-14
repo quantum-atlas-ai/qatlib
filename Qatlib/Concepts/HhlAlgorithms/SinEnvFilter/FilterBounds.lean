@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
+module
+
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
+
+@[expose] public section
 
 /-!
 # Three-state HHL filter bounds
@@ -73,6 +77,6 @@ theorem source_corrected_filter_stability (κ t₀ δ lam lam' : ℝ)
       (1/(2*κ)) lam lam' hd
   have hk : (1/(2*(1/(2*κ))) : ℝ) = κ := by field_simp
   rw [hk, hδ, div_pow] at h
-  convert! h using 1 <;> ring
+  convert! h using 1; ring
 
 end Qatlib.Concepts.HhlAlgorithms.SinEnvFilter

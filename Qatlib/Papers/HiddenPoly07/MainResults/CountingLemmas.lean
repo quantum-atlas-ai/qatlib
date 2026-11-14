@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.SchwartzZippel
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Algebra.MvPolynomial.SchwartzZippel
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Finite-field counting estimates

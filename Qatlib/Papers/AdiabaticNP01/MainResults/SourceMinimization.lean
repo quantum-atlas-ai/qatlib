@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticNP01.MainResults.SourceGroundState
-import Qatlib.Papers.AdiabaticNP01.MainResults.SourceRepetition
+module
+
+public import Qatlib.Papers.AdiabaticNP01.MainResults.SourceGroundState
+public import Qatlib.Papers.AdiabaticNP01.MainResults.SourceRepetition
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

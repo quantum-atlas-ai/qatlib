@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
-import Mathlib.RingTheory.MvPolynomial.Homogeneous
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
+public import Mathlib.RingTheory.MvPolynomial.Homogeneous
+
+@[expose] public section
 
 /-!
 # Homogeneous polynomials for forward-query circuits

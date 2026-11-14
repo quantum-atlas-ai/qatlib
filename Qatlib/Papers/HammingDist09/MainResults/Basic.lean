@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Set.Card
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.SemiringInverse
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Set.Card
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.SemiringInverse
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Hamming-distance concepts and learning matrices
@@ -780,14 +784,14 @@ lemma compl_compl {n : ℕ} (x : Word n) : compl (compl x) = x := by
 lemma hatX_hatX_of_even {n : ℕ} (hn : Even n) (x : Word n) : hatX (hatX x) = x := by
   unfold hatX
   by_cases hx : wt x % 2 = 0
-  · rw [if_pos hx, if_pos hx]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, ite_eq_left hx]
+  · rw [ite_eq_right hx]
     have hwc : wt (compl x) % 2 = 1 := by
       rw [wt_compl]
       obtain ⟨k, hk⟩ := hn
       have hle : wt x ≤ n := wt_le x
       omega
-    rw [if_neg (by omega : ¬ wt (compl x) % 2 = 0)]
+    rw [ite_eq_right (by omega : ¬ wt (compl x) % 2 = 0)]
     exact compl_compl x
 
 /-- The binary dot product is additive in its first argument. -/
@@ -831,7 +835,7 @@ lemma sum_neg_one_pow_dot {n : ℕ} (b : Word n) :
       = if b = 0 then (Fintype.card (Word n) : ℂ) else 0 := by
   by_cases hb : b = 0
   · subst hb
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hzero : ∀ x : Word n, dot (0 : Word n) x = 0 := by
       intro x; simp [dot]
     have hone : ∀ x : Word n, (-1 : ℂ) ^ (dot (0 : Word n) x).val = 1 := by
@@ -840,7 +844,7 @@ lemma sum_neg_one_pow_dot {n : ℕ} (b : Word n) :
       norm_num
     rw [Finset.sum_congr rfl (fun x _ => hone x)]
     simp
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     obtain ⟨i, hi⟩ := exists_ne_of_ne hb
     have hbi : b i = 1 := by
       rcases zmod2_eq_zero_or_one (b i) with h | h
@@ -909,17 +913,17 @@ theorem theorem_3_2_amplitude {n : ℕ} (hn : Even n) (a y : Word n) :
   rw [hsum2, ← Finset.mul_sum]
   by_cases hya : y = a
   · subst y
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hzero : a + a = 0 := by
       funext k
       exact zmod2_add_self (a k)
-    rw [sum_neg_one_pow_dot (a + a), if_pos hzero]
+    rw [sum_neg_one_pow_dot (a + a), ite_eq_left hzero]
     congr 1
     rw [show Fintype.card (Word n) = 2 ^ n by
       rw [Fintype.card_fun]; simp [ZMod.card, Fintype.card_fin]]
     push_cast
     ring
-  · rw [if_neg hya]
+  · rw [ite_eq_right hya]
     have hne : a + y ≠ 0 := by
       intro h
       apply hya
@@ -928,7 +932,7 @@ theorem theorem_3_2_amplitude {n : ℕ} (hn : Even n) (a y : Word n) :
         funext k
         exact (zmod2_add_self (a k)).symm
       exact add_left_cancel h1
-    rw [sum_neg_one_pow_dot (a + y), if_neg hne, mul_zero]
+    rw [sum_neg_one_pow_dot (a + y), ite_eq_right hne, mul_zero]
 
 /-- Every natural power of complex minus one has squared norm one. -/
 lemma normSq_neg_one_pow (k : ℕ) : Complex.normSq ((-1 : ℂ) ^ k) = 1 := by
@@ -952,13 +956,13 @@ theorem theorem_3_2 {n : ℕ} (hn : Even n) (a : Word n) :
     rw [hamp y]
     by_cases h : y = a
     · subst y
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       calc ((2 : ℂ) ^ n)⁻¹ * ((-1 : ℂ) ^ (b1 (wt a)) * (2 : ℂ) ^ n)
           = (-1 : ℂ) ^ (b1 (wt a)) * (((2 : ℂ) ^ n)⁻¹ * (2 : ℂ) ^ n) := by ring
         _ = (-1 : ℂ) ^ (b1 (wt a)) := by rw [inv_mul_cancel₀ hpow, mul_one]
-    · rw [if_neg h, mul_zero, if_neg h]
+    · rw [ite_eq_right h, mul_zero, ite_eq_right h]
   · unfold algNormAmp
-    rw [hamp a, if_pos rfl]
+    rw [hamp a, ite_eq_left rfl]
     have hcancel : ((2 : ℂ) ^ n)⁻¹ * ((-1 : ℂ) ^ (b1 (wt a)) * (2 : ℂ) ^ n)
         = (-1 : ℂ) ^ (b1 (wt a)) := by
       rw [mul_comm ((-1 : ℂ) ^ (b1 (wt a))) ((2 : ℂ) ^ n), ← mul_assoc,
@@ -966,7 +970,7 @@ theorem theorem_3_2 {n : ℕ} (hn : Even n) (a : Word n) :
     rw [hcancel, normSq_neg_one_pow]
   · intro y hy
     unfold algNormAmp
-    rw [hamp y, if_neg hy]
+    rw [hamp y, ite_eq_right hy]
     simp only [mul_zero, Complex.normSq_zero]
 
 /-- The number of inputs on which two Boolean concepts in the family `f` differ. -/

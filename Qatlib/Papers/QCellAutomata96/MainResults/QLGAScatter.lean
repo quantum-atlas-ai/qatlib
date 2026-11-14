@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.LinearAlgebra.Matrix.Diagonal
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.LinearAlgebra.Matrix.Diagonal
+
+@[expose] public section
 
 /-!
 # Number-conserving lattice-gas scattering
@@ -189,7 +193,7 @@ theorem scatterMatrix_comm_particleNumber (θ α β : ℝ) :
     scatterMatrix θ α β * particleNumberOp = particleNumberOp * scatterMatrix θ α β := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [scatterMatrix, particleNumberOp, Matrix.mul_apply, Matrix.diagonal] <;>
+    simp [scatterMatrix, particleNumberOp, Matrix.mul_apply, Matrix.diagonal];
     ring
 
 /-- The two-by-two submatrix on pair-state labels one and two. -/

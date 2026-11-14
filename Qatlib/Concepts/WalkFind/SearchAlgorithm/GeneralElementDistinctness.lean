@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.GeneralElementDistinctnessDefs
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.GeneralElementDistinctnessDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # General element-distinctness bookkeeping

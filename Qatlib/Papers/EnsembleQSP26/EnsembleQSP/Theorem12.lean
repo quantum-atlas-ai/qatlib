@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.SourceModel
+module
+
+public import Qatlib.Papers.EnsembleQSP26.EnsembleQSP.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,9 +65,12 @@ theorem theorem12_ensemble_mean {d : ℕ} (μs : Fin d → FinDist Ω)
   exact matProd_smul d (fun j => (μs j).expect (fun x => Real.cos (e j x)))
     (fun j => zRot (φ j) * R)
 
+omit [DecidableEq Ω] in
+
 /-- Top-left block extraction commutes with the ensemble expectation
 (linearity used in Eq. (B15)). -/
-theorem matExpect_block {S Rb : Type*} (μ : FinDist Ω) (r0 : Rb)
+theorem matExpect_block {Ω : Type*} [_scopeInst0 : Fintype Ω] [_scopeInst1 : DecidableEq Ω]
+    {S Rb : Type*} (μ : FinDist Ω) (r0 : Rb)
     (U : Ω → Matrix (S × Rb) (S × Rb) ℂ) :
     matExpect μ (fun ω => fun i j => U ω (i, r0) (j, r0))
       = fun i j => (matExpect μ U) (i, r0) (j, r0) := by

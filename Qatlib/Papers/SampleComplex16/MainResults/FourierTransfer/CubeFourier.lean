@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -137,9 +141,9 @@ theorem realInner_gramVector {m : ℕ} (hm : 0 < m) {β : ℝ} (hβ0 : 0 ≤ β)
       (∑ b : Bool, gramVector β x (some (i, b)) * gramVector β y (some (i, b))) =
         if x i = y i then β / m else 0 := by
     by_cases h : x i = y i
-    · rw [if_pos h, Fintype.sum_bool]
+    · rw [ite_eq_left h, Fintype.sum_bool]
       cases hx : x i <;> cases hy : y i <;> simp_all [gramVector]
-    · rw [if_neg h, Fintype.sum_bool]
+    · rw [ite_eq_right h, Fintype.sum_bool]
       cases hx : x i <;> cases hy : y i <;> simp_all [gramVector]
   have hcube : (∑ i : Fin m, (if (x i == y i) then (0 : ℝ) else 1)) =
       (cubeDist x y : ℝ) := by

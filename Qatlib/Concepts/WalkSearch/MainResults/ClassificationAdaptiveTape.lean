@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
-import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveTapeUnionBound
-import Qatlib.Concepts.WalkSearch.MainResults.DegreeFailureEvent
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+public import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveTapeUnionBound
+public import Qatlib.Concepts.WalkSearch.MainResults.DegreeFailureEvent
+
+@[expose] public section
 
 /-!
 # Adaptive tape bounds for classification
@@ -107,7 +111,7 @@ theorem classifyScan_bad_tests_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (h�
         ¬classifyScanTestsCorrect G sgs τ dHi dLo K c t stape Finset.univ.toList S)).card*n^3≤
           2*n*Fintype.card (Fin n→Fin K→Fin c→Fin n) := by
   intro K c dHi dLo hc G sgs τ stape S
-  letI : NeZero n := ⟨by omega⟩
+  let : NeZero n := ⟨by omega⟩
   have herr : ∀ v state,(Finset.univ.filter (fun row : Fin K→Fin c→Fin n=>¬scanTapeCorrect G τ dHi dLo K c v state row)).card*n^3≤
       2*Fintype.card (Fin K→Fin c→Fin n) := by
     intro v state
@@ -116,8 +120,8 @@ theorem classifyScan_bad_tests_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (h�
     | some S=>
       dsimp only [scanTapeCorrect]
       by_cases he : pairsAt (drainedPairSet S τ).edges v=∅
-      · simp only [if_pos he,not_true_eq_false,Finset.filter_false,Finset.card_empty,zero_mul,Nat.zero_le]
-      · simpa only [if_neg he] using degreeTest_failure_card_positive n δ hn hδ hδ1 hc
+      · simp only [ite_eq_left he,not_true_eq_false,Finset.filter_false,Finset.card_empty,zero_mul,Nat.zero_le]
+      · simpa only [ite_eq_right he] using degreeTest_failure_card_positive n δ hn hδ hδ1 hc
           (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v
   have hh:=adaptiveTape_bad_card_bound (scanTapeNext G sgs τ K c stape) (scanTapeCorrect G τ dHi dLo K c)
     (n^3) 2 herr Finset.univ.toList Finset.univ.nodup_toList (some S)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.CompiledJump
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.CompiledJump
+
+@[expose] public section
 
 /-!
 # Decoding native PRN frames
@@ -47,7 +51,7 @@ theorem dataBits_frame {n k : ℕ} (bits : Reg k) (x : ZMod (2^n)) :
     dataBits n k (frame bits x) = encode n x := by
   funext j
   have hj : j.val < (n+1)+k := by have := j.isLt; omega
-  simp only [dataBits,frame,booleanDAGInput,dif_pos hj]
+  simp only [dataBits,frame,booleanDAGInput,dite_eq_left hj]
   have he : (⟨j.val,hj⟩ : Fin ((n+1)+k)) = Fin.castAdd k j := Fin.ext rfl
   rw [he,Fin.append_left]
 

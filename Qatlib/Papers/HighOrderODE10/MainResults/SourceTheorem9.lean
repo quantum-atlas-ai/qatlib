@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceTheorem7
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma8
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma4
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceTheorem7
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma8
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma4
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,9 +96,9 @@ theorem theorem9_mainComplexity
     (Nx : ℝ) (cmethod psucc : ℝ)
     (hNx : 1 < Nx) (hs : 1 ≤ s) (hM : 0 < M) (hΔt : 0 ≤ Δt)
     (hkappaV : 0 ≤ kappaV) (hxin : 0 ≤ xinNorm) (hb : 0 ≤ bNorm)
-    (hε : 0 < ε) (hεL : 0 < εL)
-    (horder : 0 < m.order)
-    (hNt : 1 ≤ Nt) (hNtLower : M * Δt ≤ Nt)
+    (hε : 0 < ε) (_hεL : 0 < εL)
+    (_horder : 0 < m.order)
+    (hNt : 1 ≤ Nt) (_hNtLower : M * Δt ≤ Nt)
     (hkappa : 0 ≤ kappa)
     (hcmethod : 0 < cmethod)
     (hkappaBound : kappa ≤ cmethod * Nt * kappaV)

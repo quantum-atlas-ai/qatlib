@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.XProgram
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.XProgram
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Weight enumerators for zero-output probabilities
@@ -126,7 +130,7 @@ theorem WEP_eq_weightCount {k : ℕ} (K : Finset (Fin k → Bool)) (x y : ℂ) :
         rw [Finset.sum_eq_single (wPath a)]
         · simp
         · intro m _ hm
-          rw [if_neg (fun h => hm h.symm)]
+          rw [ite_eq_right (fun h => hm h.symm)]
         · intro h
           exact absurd (Finset.mem_range.mpr (Nat.lt_succ_of_le (wPath_le a))) h
     _ = ∑ m ∈ Finset.range (k + 1), ∑ a ∈ K,

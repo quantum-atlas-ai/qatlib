@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundSourceCall
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundSourceCall
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -115,19 +119,19 @@ theorem emit_prefix {states : ℕ}
     have hi : emitConfig states replies stop flag n=
         ⟨some (.emit stop i 0),default,sourceState (PaidBoundBank.remaining (activeReplies replies stop) n)
           ((PaidBoundBank.emitted (activeReplies replies stop) n).reverse++[flag]) (fun _ => [])⟩ := by
-      simp only [emitConfig,emitLabel,dif_pos hns,i]
+      simp only [emitConfig,emitLabel,dite_eq_left hns,i]
     have hl : emitLabel (states := states) stop (n+1)=afterEmit stop i := by
       dsimp only [emitLabel,afterEmit,i]
       by_cases h : n<stop.val
-      · simp only [dif_pos h,dif_pos (show n+1≤stop.val by omega)]
-      · simp only [dif_neg h,dif_neg (show ¬n+1≤stop.val by omega)]
+      · simp only [dite_eq_left h,dite_eq_left (show n+1≤stop.val by omega)]
+      · simp only [dite_eq_right h,dite_eq_right (show ¬n+1≤stop.val by omega)]
     have ho : emitConfig states replies stop flag (n+1)=
         ⟨some (afterEmit stop i),default,sourceState (PaidBoundBank.remaining (activeReplies replies stop) (n+1))
           ((activeReplies replies stop i).reverse++
             ((PaidBoundBank.emitted (activeReplies replies stop) n).reverse++[flag])) (fun _ => [])⟩ := by
-      simp only [emitConfig,hl,PaidBoundBank.emitted,dif_pos hn9,List.reverse_append,List.append_assoc,i]
+      simp only [emitConfig,hl,PaidBoundBank.emitted,dite_eq_left hn9,List.reverse_append,List.append_assoc,i]
     rw [←hi,←ho] at ee
-    simpa only [emitPrefixBudget,dif_pos hns] using (ih (by omega)).trans ee
+    simpa only [emitPrefixBudget,dite_eq_left hns] using (ih (by omega)).trans ee
 
 /-- Original `empty_output` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
 private theorem empty_output (out : CanonicalCodec.Bits) :
@@ -160,7 +164,7 @@ theorem emit_active {states : ℕ}
   have hi : emitConfig states replies stop flag 0=
       ⟨some (.emit stop 0 0),default,sourceState (activeReplies replies stop) [flag] (fun _ => [])⟩ := by
     have h0 : PaidBoundBank.remaining (activeReplies replies stop) 0=activeReplies replies stop := by
-      funext j; exact if_neg (Nat.not_lt_zero j.val)
+      funext j; exact ite_eq_right (Nat.not_lt_zero j.val)
     simp [emitConfig,emitLabel,h0,PaidBoundBank.emitted]
   have hz : PaidBoundBank.remaining (activeReplies replies stop) (stop.val+1)=(fun _ => []) := by
     funext j

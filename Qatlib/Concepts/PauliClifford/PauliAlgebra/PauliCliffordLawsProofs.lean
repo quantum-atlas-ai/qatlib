@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsDefs
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsDefs
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+
+@[expose] public section
 
 /-!
 # Pauli matrix identities and legal Clifford conjugation
@@ -409,8 +413,8 @@ theorem smul_mul_left'' {ι : Type*} [Fintype ι] [DecidableEq ι] (c : ℂ)
 /-- The sum over `Fin n` of a `ZMod 4` value supported only at site `i` is that value. -/
 theorem sum_ite_single4 {n : ℕ} (i : Fin n) (c : ZMod 4) :
     ∑ k : Fin n, (if k = i then c else 0) = c := by
-  rw [Finset.sum_eq_single i (fun k _ hk => by rw [if_neg hk])
-      (fun h => absurd (Finset.mem_univ i) h), if_pos rfl]
+  rw [Finset.sum_eq_single i (fun k _ hk => by rw [ite_eq_right hk])
+      (fun h => absurd (Finset.mem_univ i) h), ite_eq_left rfl]
 
 /-- A complex scalar multiplying the factor at a single site can be factored out of the full
 product matrix. -/
@@ -434,8 +438,8 @@ theorem productMatrix_if_smul {n : ℕ} (i : Fin n) (c : ℂ) (B : Matrix Bool B
       = ∏ k ∈ Finset.univ.erase i, (if k = i then B else A k) (x k) (y k) := by
     refine Finset.prod_congr rfl fun k hk => ?_
     rw [Finset.mem_erase] at hk
-    rw [if_neg hk.1, if_neg hk.1]
-  rw [hL, hR, hE, if_pos rfl, if_pos rfl, Matrix.smul_apply, smul_eq_mul, mul_assoc]
+    rw [ite_eq_right hk.1, ite_eq_right hk.1]
+  rw [hL, hR, hE, ite_eq_left rfl, ite_eq_left rfl, Matrix.smul_apply, smul_eq_mul, mul_assoc]
 
 /-- Applying `P1` to a Pauli word with one conditional site replacement is the corresponding
 conditional replacement of its single-site matrices. -/
@@ -475,19 +479,19 @@ theorem cliffordGateOp_H (n : ℕ) (i : Fin n) :
   ext x y
   by_cases hx : ∀ j : Fin n, j ≠ i → x j = y j
   · simp only [cliffordGateOp, productMatrix]
-    rw [if_pos hx,
+    rw [ite_eq_left hx,
       Finset.prod_eq_single i (fun k _ hk => by
-        rw [if_neg hk, Matrix.one_apply, if_pos (hx k hk)])
-        (fun h => absurd (Finset.mem_univ i) h), if_pos rfl]
+        rw [ite_eq_right hk, Matrix.one_apply, ite_eq_left (hx k hk)])
+        (fun h => absurd (Finset.mem_univ i) h), ite_eq_left rfl]
   · have hcond : ¬ ∀ j : Fin n, j ≠ i → x j = y j := hx
     push Not at hx
     obtain ⟨k, hk, hxy⟩ := hx
-    simp only [cliffordGateOp, productMatrix, if_neg hcond]
+    simp only [cliffordGateOp, productMatrix, ite_eq_right hcond]
     exact (Finset.prod_eq_zero
       (f := fun t => (if t = i then Hadamard else (1 : Matrix Bool Bool ℂ)) (x t) (y t))
       (Finset.mem_univ k)
       (by show (if k = i then Hadamard else (1 : Matrix Bool Bool ℂ)) (x k) (y k) = 0
-          rw [if_neg hk, Matrix.one_apply, if_neg hxy])).symm
+          rw [ite_eq_right hk, Matrix.one_apply, ite_eq_right hxy])).symm
 
 /-- The S gate on site `i` is the product matrix with an `sGate` factor at `i` and identity
 factors elsewhere. -/
@@ -497,19 +501,19 @@ theorem cliffordGateOp_S (n : ℕ) (i : Fin n) :
   ext x y
   by_cases hx : ∀ j : Fin n, j ≠ i → x j = y j
   · simp only [cliffordGateOp, productMatrix]
-    rw [if_pos hx,
+    rw [ite_eq_left hx,
       Finset.prod_eq_single i (fun k _ hk => by
-        rw [if_neg hk, Matrix.one_apply, if_pos (hx k hk)])
-        (fun h => absurd (Finset.mem_univ i) h), if_pos rfl]
+        rw [ite_eq_right hk, Matrix.one_apply, ite_eq_left (hx k hk)])
+        (fun h => absurd (Finset.mem_univ i) h), ite_eq_left rfl]
   · have hcond : ¬ ∀ j : Fin n, j ≠ i → x j = y j := hx
     push Not at hx
     obtain ⟨k, hk, hxy⟩ := hx
-    simp only [cliffordGateOp, productMatrix, if_neg hcond]
+    simp only [cliffordGateOp, productMatrix, ite_eq_right hcond]
     exact (Finset.prod_eq_zero
       (f := fun t => (if t = i then sGate else (1 : Matrix Bool Bool ℂ)) (x t) (y t))
       (Finset.mem_univ k)
       (by show (if k = i then sGate else (1 : Matrix Bool Bool ℂ)) (x k) (y k) = 0
-          rw [if_neg hk, Matrix.one_apply, if_neg hxy])).symm
+          rw [ite_eq_right hk, Matrix.one_apply, ite_eq_right hxy])).symm
 
 /-- The product of two inverse square roots of two in the complex numbers is one half. -/
 theorem sqrt2_inv_sq : ((Real.sqrt 2 : ℂ))⁻¹ * ((Real.sqrt 2 : ℂ))⁻¹
@@ -636,9 +640,9 @@ theorem cliffordGateOp_H_conj {n : ℕ} (i : Fin n) (p : PauliElem n) :
               • P1 (conjHWord (p.word i)) else P1 (p.word k) := by
       funext k
       by_cases hk : k = i
-      · rw [hk, if_pos rfl, if_pos rfl, if_pos rfl]
+      · rw [hk, ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
         exact hadamard_conj_P1 (p.word i)
-      · rw [if_neg hk, if_neg hk, if_neg hk]
+      · rw [ite_eq_right hk, ite_eq_right hk, ite_eq_right hk]
     rw [hsite, productMatrix_if_smul]
   rw [cliffordGateOp_H, productMatrix_adjoint]
   have hAd : productMatrix (fun k => (if k = i then Hadamard else (1 : Matrix Bool Bool ℂ))ᴴ)
@@ -676,9 +680,9 @@ theorem cliffordGateOp_S_conj {n : ℕ} (i : Fin n) (p : PauliElem n) :
               • P1 (conjSWord (p.word i)) else P1 (p.word k) := by
       funext k
       by_cases hk : k = i
-      · rw [hk, if_pos rfl, if_pos rfl, if_pos rfl]
+      · rw [hk, ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
         exact sGate_conj_P1 (p.word i)
-      · rw [if_neg hk, if_neg hk, if_neg hk]
+      · rw [ite_eq_right hk, ite_eq_right hk, ite_eq_right hk]
     rw [hsite, productMatrix_if_smul]
   rw [cliffordGateOp_S, productMatrix_adjoint]
   have hAd : productMatrix (fun k => (if k = i then sGate else (1 : Matrix Bool Bool ℂ))ᴴ)
@@ -731,14 +735,14 @@ theorem cliffordGateOp_CNOT_apply {n : ℕ} (i j : Fin n) (hij : i ≠ j) (x y :
   by_cases hrest : ∀ k : Fin n, k ≠ i ∧ k ≠ j → x k = y k
   · have hji : j ≠ i := Ne.symm hij
     by_cases hx : x = cnotT i j y
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have h1 : x i = y i := by rw [hx]; exact cnotT_apply_self i j y
       have h2 : x j = (y j ^^ y i) := by rw [hx]; exact cnotT_apply_other i j hji y
-      simp only [cliffordGateOp, if_pos hrest, CNOT, permMatrix, Matrix.of_apply,
+      simp only [cliffordGateOp, ite_eq_left hrest, CNOT, permMatrix, Matrix.of_apply,
         cnotFlip]
-      rw [h1, h2, if_pos rfl]
-    · rw [if_neg hx]
-      simp only [cliffordGateOp, if_pos hrest, CNOT, permMatrix, Matrix.of_apply,
+      rw [h1, h2, ite_eq_left rfl]
+    · rw [ite_eq_right hx]
+      simp only [cliffordGateOp, ite_eq_left hrest, CNOT, permMatrix, Matrix.of_apply,
         cnotFlip]
       have hne : ¬((x i, x j) = (y i, y j ^^ y i)) := by
         intro heq
@@ -750,18 +754,18 @@ theorem cliffordGateOp_CNOT_apply {n : ℕ} (i j : Fin n) (hij : i ≠ j) (x y :
           simp [cnotT, heq.1]
         · by_cases hkj : k = j
           · rw [hkj]
-            simp only [cnotT, if_neg hji]
+            simp only [cnotT, ite_eq_right hji]
             exact heq.2
-          · simp only [cnotT, if_neg hki, if_neg hkj]
+          · simp only [cnotT, ite_eq_right hki, ite_eq_right hkj]
             exact hrest k ⟨hki, hkj⟩
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
   · have hne : x ≠ cnotT i j y := by
       intro heq
       obtain ⟨k, hk⟩ := Classical.not_forall.mp hrest
       refine hk fun hboth => ?_
       rw [heq]
-      simp only [cnotT, if_neg hboth.1, if_neg hboth.2]
-    simp only [cliffordGateOp, if_neg hrest, if_neg hne]
+      simp only [cnotT, ite_eq_right hboth.1, ite_eq_right hboth.2]
+    simp only [cliffordGateOp, ite_eq_right hrest, ite_eq_right hne]
 
 /-- For distinct control and target sites, left multiplication by CNOT reindexes the rows of a
 matrix by `cnotT i j`. -/
@@ -776,10 +780,10 @@ theorem cnot_mul_apply {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     · exfalso
       have h1 : cnotT i j x = b := by rw [h, cnotT_involutive i j b]
       exact hb h1.symm
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       simp
   rw [Finset.sum_eq_single (cnotT i j x) (fun b _ hb => key b hb)
-    (fun h => absurd (Finset.mem_univ _) h), if_pos ((cnotT_involutive i j x).symm),
+    (fun h => absurd (Finset.mem_univ _) h), ite_eq_left ((cnotT_involutive i j x).symm),
     one_mul]
 
 /-- A CNOT matrix with distinct control and target sites equals its conjugate transpose. -/
@@ -789,8 +793,8 @@ theorem cnot_conjTranspose {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   rw [Matrix.conjTranspose_apply, cliffordGateOp_CNOT_apply i j hij,
     cliffordGateOp_CNOT_apply i j hij]
   by_cases h : y = cnotT i j x
-  · rw [if_pos h, star_one, if_pos (by rw [h, cnotT_involutive i j x])]
-  · rw [if_neg h, star_zero, if_neg (fun he => h (by rw [he, cnotT_involutive i j y]))]
+  · rw [ite_eq_left h, star_one, ite_eq_left (by rw [h, cnotT_involutive i j x])]
+  · rw [ite_eq_right h, star_zero, ite_eq_right (fun he => h (by rw [he, cnotT_involutive i j y]))]
 
 /-- A CNOT matrix with distinct control and target sites squares to the identity. -/
 theorem cnot_mul_self {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
@@ -798,8 +802,8 @@ theorem cnot_mul_self {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   ext x y
   simp only [Matrix.mul_apply, cliffordGateOp_CNOT_apply i j hij, Matrix.one_apply]
   rw [Finset.sum_eq_single (cnotT i j y)
-    (fun b _ hb => by rw [if_neg hb]; simp)
-    (fun h => absurd (Finset.mem_univ _) h), if_pos rfl, mul_one,
+    (fun b _ hb => by rw [ite_eq_right hb]; simp)
+    (fun h => absurd (Finset.mem_univ _) h), ite_eq_left rfl, mul_one,
     cnotT_involutive i j y]
 
 /-- A CNOT matrix with distinct control and target sites is unitary. -/
@@ -824,10 +828,10 @@ theorem cnot_conj_entry {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   simp only [cnot_mul_apply i j hij M x, h2]
   rw [Finset.sum_eq_single (cnotT i j y)
     (fun b _ hb => by
-      rw [if_neg (fun he => hb (by rw [he, cnotT_involutive i j b]))]
+      rw [ite_eq_right (fun he => hb (by rw [he, cnotT_involutive i j b]))]
       simp)
     (fun h => absurd (Finset.mem_univ _) h),
-    if_pos ((cnotT_involutive i j y).symm), mul_one]
+    ite_eq_left ((cnotT_involutive i j y).symm), mul_one]
 
 /-- The two-site Pauli matrix entries after the CNOT bit transformation equal the updated Pauli
 entries multiplied by the phase specified by `cnotPhaseCorrection`. -/
@@ -886,10 +890,10 @@ theorem cliffordGateOp_CNOT_conj {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p : Pa
     refine prod_mod_two i j hij _ _ _ ?_ ?_
     · rw [cnotT_apply_self i j x, cnotT_apply_self i j y,
         cnotT_apply_other i j hji x, cnotT_apply_other i j hji y,
-        if_pos rfl, if_neg hji, if_pos rfl, mul_assoc]
+        ite_eq_left rfl, ite_eq_right hji, ite_eq_left rfl, mul_assoc]
       exact P1_cnot_core (p.word i) (p.word j) (x i) (x j) (y i) (y j)
     · intro k hk
-      simp only [cnotT, if_neg hk.1, if_neg hk.2]
+      simp only [cnotT, ite_eq_right hk.1, ite_eq_right hk.2]
   rw [hprod, I_pow_val_add]
   ring
 

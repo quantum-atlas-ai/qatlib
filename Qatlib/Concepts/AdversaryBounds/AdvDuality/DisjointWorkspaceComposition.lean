@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import QuantumInfo.ForMathlib.Isometry
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import QuantumInfo.ForMathlib.Isometry
+
+@[expose] public section
+set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
 
 /-!
 # Composition on disjoint workspaces
@@ -69,7 +75,12 @@ theorem liftL_mul_liftR {a b : ℕ} (M : Operator a) (N : Operator b) :
   have h : tensorLiftL M * tensorLiftR N =
       (TensorGate M (1 : Operator b) * TensorGate (1 : Operator a) N).submatrix
         finProdFinEquiv.symm finProdFinEquiv.symm :=
-    Matrix.submatrix_mul_equiv _ _ _ _ _
+    by
+      change (TensorGate M (1 : Operator b)).submatrix finProdFinEquiv.symm finProdFinEquiv.symm *
+        (TensorGate (1 : Operator a) N).submatrix finProdFinEquiv.symm finProdFinEquiv.symm = _
+      exact
+        (Matrix.submatrix_mul_equiv (TensorGate M (1 : Operator b))
+          (TensorGate (1 : Operator a) N) finProdFinEquiv.symm finProdFinEquiv.symm finProdFinEquiv.symm)
   rw [h, tensorGate_mul, Matrix.mul_one, Matrix.one_mul]
   rfl
 
@@ -81,7 +92,12 @@ theorem liftR_mul_liftL {a b : ℕ} (M : Operator a) (N : Operator b) :
   have h : tensorLiftR N * tensorLiftL M =
       (TensorGate (1 : Operator a) N * TensorGate M (1 : Operator b)).submatrix
         finProdFinEquiv.symm finProdFinEquiv.symm :=
-    Matrix.submatrix_mul_equiv _ _ _ _ _
+    by
+      change (TensorGate (1 : Operator a) N).submatrix finProdFinEquiv.symm finProdFinEquiv.symm *
+        (TensorGate M (1 : Operator b)).submatrix finProdFinEquiv.symm finProdFinEquiv.symm = _
+      exact
+        (Matrix.submatrix_mul_equiv (TensorGate (1 : Operator a) N)
+          (TensorGate M (1 : Operator b)) finProdFinEquiv.symm finProdFinEquiv.symm finProdFinEquiv.symm)
   rw [h, tensorGate_mul, Matrix.one_mul, Matrix.mul_one]
   rfl
 
@@ -480,7 +496,7 @@ private theorem equivRows_isometry (e : α ≃ β) : (equivRows e).Isometry := b
         simp [h1, h2]
       · simp [h1]
     simp only [Matrix.conjTranspose_apply, equivRows, star_indicator, Matrix.mul_apply,
-      Matrix.one_apply, hzero, Finset.sum_const_zero, hjj, if_false]
+      Matrix.one_apply, hzero, Finset.sum_const_zero, hjj, ite_false]
 
 /-- Reindexing a square matrix by an equivalence preserves its trace norm. -/
 theorem traceNorm_reindex (e : α ≃ β) (A : Matrix α α ℂ) :

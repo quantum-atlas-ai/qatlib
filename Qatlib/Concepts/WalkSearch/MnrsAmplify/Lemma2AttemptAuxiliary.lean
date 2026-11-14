@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Sear
+module
+
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Search
+
+@[expose] public section
 
 /-!
 # Auxiliary bounds for tolerant amplification

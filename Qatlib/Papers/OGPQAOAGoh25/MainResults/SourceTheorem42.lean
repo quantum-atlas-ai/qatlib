@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,10 +50,10 @@ Theorem 3.5: there is `ηOGP < ηOPT` such that for every depth schedule
 one, at most some level `L ≤ ηOGP` up to an arbitrarily small slack. Then for
 every `ε > 0` the same holds with the deterministic threshold `ηOGP + ε`. -/
 theorem theorem42
-    {q : ℕ} (hq4 : 4 ≤ q) (hqeven : Even q)
-    (D : ℕ) (hD : 0 < D)
+    {q : ℕ} (_hq4 : 4 ≤ q) (_hqeven : Even q)
+    (D : ℕ) (_hD : 0 < D)
     (reg : ∀ n : ℕ, FinDist (Instance n q))
-    (hRegLaw : ∀ n : ℕ, IsRegularLaw (reg n) D)
+    (_hRegLaw : ∀ n : ℕ, IsRegularLaw (reg n) D)
     (ηOPT : ℝ)
     (hBound : ∃ ηOGP : ℝ, ηOGP < ηOPT ∧
       ∀ (p : ℕ → ℕ),

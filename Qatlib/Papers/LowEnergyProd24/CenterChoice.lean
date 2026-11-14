@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.AffineCenter
-import Qatlib.Papers.LowEnergyProd24.LocalModel.LocalData
+module
+
+public import Qatlib.Foundations.MatrixGeometry.AffineCenter
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.LocalData
+
+@[expose] public section
 
 /-!
 # Optimal scalar centers for local interactions

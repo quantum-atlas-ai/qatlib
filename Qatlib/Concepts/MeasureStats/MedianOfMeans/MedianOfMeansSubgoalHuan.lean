@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalStat
+module
+
+public import Qatlib.Concepts.MeasureStats.MedianOfMeans.MedianOfMeansSubgoalStat
+
+@[expose] public section
 
 /-!
 # Median-of-means concentration
@@ -30,7 +34,7 @@ open Qatlib
 /-- The median-of-means failure probability is at most `δ` under the variance budget and the
 block-count bound in `MedianOfMeansSubgoal`. -/
 theorem medianOfMeansSubgoal : MedianOfMeansSubgoal := fun
-  X _ _ p f L M hL hM ε δ hε hδ hvar hMδ =>
+  _X _ _ p f _L _M hL hM ε _δ hε _hδ hvar hMδ =>
     (Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.median_of_means_concentration p f hL hM ε hε hvar).trans hMδ
 
 end Qatlib.Concepts.MeasureStats.MedianOfMeans

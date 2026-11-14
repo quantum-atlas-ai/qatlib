@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+
+@[expose] public section
 
 /-!
 # Grover iterates preserving oracle tokens

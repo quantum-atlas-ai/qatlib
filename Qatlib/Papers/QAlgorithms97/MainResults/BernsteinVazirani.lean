@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+
+@[expose] public section
 
 /-!
 # Bernstein-Vazirani and affine parity queries

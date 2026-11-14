@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.DensityBridge
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualTwistBias
-import Qatlib.Papers.AmpInvReqTang26.QueryBounds.Tasks
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.DensityBridge
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualTwistBias
+public import Qatlib.Papers.AmpInvReqTang26.QueryBounds.Tasks
+
+@[expose] public section
 
 /-!
 # Transport of the twisted source query bound

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
-import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
+public import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+
+@[expose] public section
 
 /-!
 # Interfaces and cost accounts for quantum walk search
@@ -40,6 +44,7 @@ also formulates counterexample and endpoint statements as propositions.
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
+set_option linter.unusedVariables false
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.Spectral

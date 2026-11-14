@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerPolygonL2
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerPolygonL2
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+
+@[expose] public section
 open Qatlib.Concepts.MatrixContour.ContourCalc
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonPrimitive
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonResolventReduction
@@ -55,7 +59,7 @@ private theorem star_weightedVelocity_integrable (R : C(PanelTime,Matrix I I ℂ
     (weightedVelocity_integrable R u f n)
 
 /-- The identity or estimate `conjugateWeight` holds with the displayed separation, geometry and norm hypotheses. -/
-private theorem conjugateWeight (f : C(PanelTime,ℂ)) : Continuous (fun t => star (f t)) :=
+theorem conjugateWeight (f : C(PanelTime,ℂ)) : Continuous (fun t => star (f t)) :=
   continuous_star.comp f.continuous
 
 /-- Construction for bar Weight in the double layer cauchy model. -/

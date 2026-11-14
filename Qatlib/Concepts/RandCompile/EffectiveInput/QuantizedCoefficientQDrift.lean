@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
-import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # qDRIFT with signed dyadic coefficient quantization
@@ -232,7 +236,7 @@ theorem quantized_qdrift_actual_reference_error (L D b n R r : ℕ)
     intro j _
     rw [Matrix.conjTranspose_smul, (hK j).1.eq]
     congr 1
-    simp [RCLike.star_def]
+    simp
   have hH : H.IsHermitian := quantized_real_generator_hermitian h K (fun j => (hK j).1)
   have h1 := fair_bit_qdrift_derived_sampling_and_analytic_error L D n R r
     (dyadicWeights b a) j0 (dyadicSignedTerms b a K) (t/(2 : ℝ)^b) X hW hn
@@ -281,7 +285,7 @@ theorem quantized_qdrift_zero_and_path_ledger (L D b n R : ℕ) (a : Fin L → �
         _ ≤ ∑ _ : Fin n, L*R := Finset.sum_le_sum (fun k _ =>
           ((fair_bit_qdrift_actual_coin_path_cost L R (dyadicWeights b a) j0 hw).1 (ω k)).2)
         _ = _ := by simp [Nat.mul_assoc]
-    · simp only [fairQdriftCircuit, if_neg (ne_of_gt hw)]
+    · simp only [fairQdriftCircuit, ite_eq_right (ne_of_gt hw)]
       exact (mixture_path_circuit_semantics_cost _ n _ (0 : QState (Fin D))).2.2.1
 
 /-- With positive quantized mass and Hermitian contraction terms, every sampled circuit is
@@ -343,7 +347,7 @@ theorem quantized_qdrift_computed_budget (L D b T s r : ℕ)
     intro j _
     rw [Matrix.conjTranspose_smul, (hK j).1.eq]
     congr 1
-    simp [RCLike.star_def]
+    simp
   have hH : H.IsHermitian := quantized_real_generator_hermitian h K (fun j => (hK j).1)
   have h1 := fairQdrift_computed_budget_trace L D T s r (dyadicWeights b a) j0
     (dyadicSignedTerms b a K) (t/(2 : ℝ)^b) X hW ht'

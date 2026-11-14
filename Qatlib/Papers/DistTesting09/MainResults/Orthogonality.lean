@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistTesting09.MainResults.Defs
-import Qatlib.Papers.DistTesting09.MainResults.Concentration
+module
+
+public import Qatlib.Papers.DistTesting09.MainResults.Defs
+public import Qatlib.Papers.DistTesting09.MainResults.Concentration
+
+@[expose] public section
 
 /-!
 # Orthogonality testing estimates
@@ -80,7 +84,7 @@ theorem probEvent_union_le (p : Dist N) (M : ℕ)
   apply Finset.sum_le_sum
   intro S _
   have hprob : 0 ≤ p.probOf S := Finset.prod_nonneg fun i _ => p.nonneg _
-  by_cases hE : E S <;> by_cases hF : F S <;> simp [hE, hF] <;> linarith
+  by_cases hE : E S <;> by_cases hF : F S <;> simp [hE, hF]; linarith
 
 /-- The excess of the `p` mass over the `q` mass on any finite set is at most half their L1
 distance. -/
@@ -133,7 +137,7 @@ theorem exp_neg_sixteen_add_exp_neg_one_le_half :
         pow_le_pow_left₀ (by norm_num) he.le 16
       have h916 : Real.exp 16 = (Real.exp 1) ^ 16 := by
         have h := Real.exp_nat_mul (1 : ℝ) 16
-        simpa using! h
+        simp
       rw [h916]
       norm_num at hpow ⊢
       linarith
@@ -360,25 +364,25 @@ theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < �
       apply Finset.sum_le_sum
       intro a _
       by_cases ha : S a ∈ G
-      · simp only [ha, if_true]
+      · simp only [ha, ite_true]
         positivity
-      · simp only [ha, if_false]
+      · simp only [ha, ite_false]
         have hmem : S a ∈ B ∨ S a ∈ C := by
           by_cases hb : S a ∈ B
           · exact Or.inl hb
           · have hc : S a ∈ C := by
               by_contra hcc
               have hGmem : S a ∈ G := by
-                simp only [G, goodIdx, B, C, Finset.mem_filter, Finset.mem_univ,
+                simp only [G, goodIdx,  Finset.mem_filter, Finset.mem_univ,
                   true_and]
                 exact ⟨hb, hcc⟩
               exact ha hGmem
             exact Or.inr hc
         rcases hmem with hb | hc
-        · simp only [hb, if_true]
+        · simp only [hb, ite_true]
           have : (0 : ℝ) ≤ (if S a ∈ C then (1 : ℝ) else 0) := by positivity
           linarith
-        · simp only [hc, if_true]
+        · simp only [hc, ite_true]
           have : (0 : ℝ) ≤ (if S a ∈ B then (1 : ℝ) else 0) := by positivity
           linarith
     have hGcount : ε * (M : ℝ) / 16 ≤ hitCount G S := by linarith
@@ -390,7 +394,7 @@ theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < �
       apply Finset.sum_le_sum
       intro a _
       by_cases ha : S a ∈ G
-      · simp only [ha, if_true, one_mul]
+      · simp only [ha, ite_true, one_mul]
         have hq : ε / 4 * p.prob (S a) ≤ q.prob (S a) := by
           by_contra hlt
           have hlt' : q.prob (S a) < ε / 4 * p.prob (S a) := not_le.mp hlt
@@ -406,9 +410,9 @@ theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < �
             exact hle'
           exact (Finset.mem_filter.mp ha).2.2 hmem
         have hEq : ε / 4 * (ε / (32 * (N : ℝ))) = ε ^ 2 / (2 ^ 7 * (N : ℝ)) := by
-          field_simp <;> ring
+          field_simp; ring
         nlinarith [hq, hp, hε, hNpos]
-      · simp only [ha, if_false, zero_mul]
+      · simp only [ha, ite_false, zero_mul]
         exact q.nonneg _
     have hcount_eq' : hitCount G S = (∑ a : Fin M, if S a ∈ G then (1 : ℝ) else 0) := by
       simp only [hitCount]
@@ -420,7 +424,7 @@ theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < �
       positivity
     have hEq2 : (ε * (M : ℝ) / 16) * (ε ^ 2 / (2 ^ 7 * (N : ℝ)))
         = ε ^ 3 * (M : ℝ) / (2 ^ 11 * (N : ℝ)) := by
-      field_simp <;> ring
+      field_simp; ring
     linarith [hstep1, hpoint]
   exact le_trans hgood_ge (probEvent_mono p good _ (fun S hS => hgood_imp S hS))
 

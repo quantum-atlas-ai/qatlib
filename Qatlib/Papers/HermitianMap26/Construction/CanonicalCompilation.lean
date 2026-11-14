@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.MainResult
-import Qatlib.Papers.HermitianMap26.Construction.Variance
-import Qatlib.Concepts.KrausCompile.SignedChoi
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.MainResult
+public import Qatlib.Papers.HermitianMap26.Construction.Variance
+public import Qatlib.Concepts.KrausCompile.SignedChoi
+
+@[expose] public section
 
 /-!
 # Compilation at intrinsic Choi rank

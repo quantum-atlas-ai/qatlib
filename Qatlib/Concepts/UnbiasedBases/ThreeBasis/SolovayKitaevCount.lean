@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTWords
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SolovayKitaevStep
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CommutatorDecomposition
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTWords
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SolovayKitaevStep
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CommutatorDecomposition
+
+@[expose] public section
 
 /-!
 # Solovay–Kitaev error and word-length bounds

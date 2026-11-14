@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -78,11 +82,11 @@ theorem one_sample_prob_ge
         intro ω
         refine mul_le_mul_of_nonneg_left ?_ (hP0 ω)
         by_cases hω : C0 ≤ C ω
-        · rw [if_pos hω]
+        · rw [ite_eq_left hω]
           have h1 : (C ω : ℝ) ≤ (M : ℝ) := by exact_mod_cast hCtop ω
           have h2 : (1 : ℝ) ≤ (C0 : ℝ) := by exact_mod_cast hC0pos
           linarith
-        · rw [if_neg hω, mul_zero, add_zero]
+        · rw [ite_eq_right hω, mul_zero, add_zero]
           have hle : C ω ≤ C0 - 1 := by omega
           have hcast : (C ω : ℝ) ≤ ((C0 - 1 : ℕ) : ℝ) := by exact_mod_cast hle
           rw [Nat.cast_sub hC0pos] at hcast
@@ -95,7 +99,8 @@ theorem one_sample_prob_ge
       have hsplit : ∀ ω, P ω * (((C0 : ℝ) - 1) + (M : ℝ) * (if C0 ≤ C ω then 1 else 0)) =
           P ω * ((C0 : ℝ) - 1) + (M : ℝ) * (if C0 ≤ C ω then P ω else 0) := by
         intro ω
-        by_cases hω : C0 ≤ C ω <;> simp [hω] <;> ring
+        by_cases hω : C0 ≤ C ω <;> simp [hω]
+        all_goals ring
       have hRHS :
           ∑ ω, P ω * (((C0 : ℝ) - 1) + (M : ℝ) * (if C0 ≤ C ω then 1 else 0)) =
             ((C0 : ℝ) - 1) + (M : ℝ) *
@@ -127,7 +132,7 @@ probability `p₀ ≥ 1/M`, then `N` independent trials produce the threshold cu
 probability `1 − (1 − p₀)^N`; whenever `(1 − 1/M)^N ≤ 1/3` this is at least
 `2/3`.  The product-measure identity for independent trials is standard and is
 recorded here at the level of success probabilities. -/
-theorem repeated_success_ge (p₀ : ℝ) (M N : ℕ) (hM : 1 ≤ M)
+theorem repeated_success_ge (p₀ : ℝ) (M N : ℕ) (_hM : 1 ≤ M)
     (hp0 : (1 : ℝ) / M ≤ p₀) (hp1 : p₀ ≤ 1)
     (hN : (1 - (1 : ℝ) / M) ^ N ≤ 1 / 3) :
     (2 : ℝ) / 3 ≤ 1 - (1 - p₀) ^ N := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinatePair
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FiniteGap
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.KernelExistence
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinatePair
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FiniteGap
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.KernelExistence
+
+@[expose] public section
 
 /-!
 # A quadratic gap for the deletion Gram operator

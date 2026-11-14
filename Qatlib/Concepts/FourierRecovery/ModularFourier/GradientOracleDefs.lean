@@ -4,209 +4,213 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Amplification
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Qatlib.Concepts.CoherentSim.CoherentOAA.CoherentSimulationDefs
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
-import Qatlib.Concepts.MbqcFlow.FlowDecision.AdaptiveQueryLower
-import Qatlib.Concepts.MbqcFlow.FlowDecision.BiasedPauliShadowConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.CertifiedPilotCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.CoarseAcceptance
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DiagonalTraceDistance
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccess
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessExt
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessRefined
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveNumericPrepareChain
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EnergyReadoutConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EnsembleUStatisticHigherMoments
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatistics
-import Qatlib.Concepts.MbqcFlow.FlowDecision.StoppingReference
-import Qatlib.Concepts.MbqcFlow.FlowDecision.GramSquareRootBound
-import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalShadowConfidenceConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowClause2
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowExt
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetwork
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCCDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNativeDefs
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MbqcFlow.FlowDecision.NoisyHadamardMixture
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PauliShadowConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.Physlib
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurement
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementFrame
-import Qatlib.Concepts.MbqcFlow.FlowDecision.ProposalUnitary
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureStateOverlap
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PurificationProduct
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticObservableConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MbqcFlow.FlowDecision.RectangularSchattenHolder
-import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamond
-import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamondDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.SparseAccessProgram
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TensorShadowConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowConsumers
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowStatistics
-import Qatlib.Concepts.SignalPrimitive.GridGradient.GradientSourceContinuationDefs
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.ReferenceError.MixturePaths
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.HspRecovery.Reduction.ReductionDefs
-import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryDefs
-import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryRefinedDefs
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardFourierBridge
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSampling
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSamplingEvent
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanQuotientRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryHitting
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryRank
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryTail
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonSampling
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecoveryDefs
-import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
-import Qatlib.Concepts.HspRecovery.Reduction.CyclicRecoveryConsumers
-import Qatlib.Concepts.HspRecovery.Reduction.DistinctFourierNoiseConsumers
-import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecovery
-import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecoveryDefs
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
-import Qatlib.Concepts.HspRecovery.Reduction.KnownQubitPhaseReadout
-import Qatlib.Concepts.HspRecovery.Reduction.ModularReversibleWord
-import Qatlib.Concepts.HspRecovery.Reduction.NativeEndpoint
-import Qatlib.Concepts.HspRecovery.Reduction.PairLCMFactorConsumers
-import Qatlib.Concepts.HspRecovery.Reduction.PhaseReadoutSynthesisDefs
-import Qatlib.Concepts.HspRecovery.Reduction.PowerTwoSlopeProgram
-import Qatlib.Concepts.HspRecovery.Reduction.RandomBaseFactorConsumers
-import Qatlib.Concepts.HspRecovery.Reduction.ReversibleBandClassifier
-import Qatlib.Concepts.HspRecovery.Reduction.SmithWholePivotRun
-import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthDihe
-import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthStat
-import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsDihe
-import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsStat
-import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentStat
-import Qatlib.Concepts.HspRecovery.Reduction.Reductions
-import Qatlib.Concepts.HspRecovery.Reduction.TwirlingCounterexample
-import Qatlib.Concepts.GradientOracle.ValueKickback
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormLowc
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormStat
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
-import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
-import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
-import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
-import Qatlib.Concepts.QspSimulation.Achievability.Compilation
-import Qatlib.Concepts.QspSimulation.Achievability.HamiltonianSimulation
-import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxContractObstructions
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxEndpointNormalization
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxReal
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceWord
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSufficiencyObstruction
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxTransfer
-import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
-import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
-import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedStat
-import Qatlib.Concepts.QspSimulation.Achievability.QspSimulationDefs
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspRefined
-import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
-import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeStat
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
-import Qatlib.Concepts.QspSimulation.JacobiAnger.SimQspDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Concepts.CopyEvolution.Discriminate.ConditionalOutput
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyEvolutionConsumer
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
-import Qatlib.Concepts.CopyEvolution.Discriminate.DiamondMeasurementSuccessHelstrom
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
-import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Amplification
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.CoherentSimulationDefs
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.AdaptiveQueryLower
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.BiasedPauliShadowConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.CertifiedPilotCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.CoarseAcceptance
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DiagonalTraceDistance
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccess
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessExt
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessRefined
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveNumericPrepareChain
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EnergyReadoutConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EnsembleUStatisticHigherMoments
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatistics
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.StoppingReference
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.GramSquareRootBound
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalShadowConfidenceConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowClause2
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowExt
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetwork
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCCDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNativeDefs
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.NoisyHadamardMixture
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PauliShadowConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.Physlib
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurement
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementFrame
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.ProposalUnitary
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureStateOverlap
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PurificationProduct
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticObservableConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.RectangularSchattenHolder
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamond
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamondDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.SparseAccessProgram
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TensorShadowConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowConsumers
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowStatistics
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.GradientSourceContinuationDefs
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.ReferenceError.MixturePaths
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.HspRecovery.Reduction.ReductionDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryRefinedDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardFourierBridge
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSampling
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSamplingEvent
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanQuotientRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryHitting
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryRank
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryTail
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonSampling
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+public import Qatlib.Concepts.HspRecovery.Reduction.CyclicRecoveryConsumers
+public import Qatlib.Concepts.HspRecovery.Reduction.DistinctFourierNoiseConsumers
+public import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecovery
+public import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.KnownQubitPhaseReadout
+public import Qatlib.Concepts.HspRecovery.Reduction.ModularReversibleWord
+public import Qatlib.Concepts.HspRecovery.Reduction.NativeEndpoint
+public import Qatlib.Concepts.HspRecovery.Reduction.PairLCMFactorConsumers
+public import Qatlib.Concepts.HspRecovery.Reduction.PhaseReadoutSynthesisDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.PowerTwoSlopeProgram
+public import Qatlib.Concepts.HspRecovery.Reduction.RandomBaseFactorConsumers
+public import Qatlib.Concepts.HspRecovery.Reduction.ReversibleBandClassifier
+public import Qatlib.Concepts.HspRecovery.Reduction.SmithWholePivotRun
+public import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.DescentQueryGrowthStat
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsStat
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentStat
+public import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+public import Qatlib.Concepts.HspRecovery.Reduction.TwirlingCounterexample
+public import Qatlib.Concepts.GradientOracle.ValueKickback
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormStat
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
+public import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+public import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+public import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+public import Qatlib.Concepts.QspSimulation.Achievability.Compilation
+public import Qatlib.Concepts.QspSimulation.Achievability.HamiltonianSimulation
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxContractObstructions
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxEndpointNormalization
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxReal
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceWord
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSufficiencyObstruction
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxTransfer
+public import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+public import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedStat
+public import Qatlib.Concepts.QspSimulation.Achievability.QspSimulationDefs
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspRefined
+public import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeStat
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.SimQspDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ConditionalOutput
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyEvolutionConsumer
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+public import Qatlib.Concepts.CopyEvolution.Discriminate.DiamondMeasurementSuccessHelstrom
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
+
+@[expose] public section
 
 /-!
 # Oracle phase conventions and readout specifications
@@ -232,6 +236,7 @@ accuracy, dyadic outputs, and resource counts.
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws

@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+@[expose] public section
 
 /-!
 # Expected Query Bounds for Instrument Machines
@@ -83,7 +87,7 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 open Qatlib
@@ -278,7 +282,7 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 open Qatlib
@@ -328,11 +332,11 @@ theorem instrumentMachineHaltMass_le_decoded_unroll {C Y : Type} [DecidableEq Y]
     (RCLike.nonneg_iff.mp (instrumentMachineTraces_posSemidef M O T c rho hrho t ht).trace_nonneg).1
   simp only [instrumentMachineOutputDecoder,instrumentMachineReplay_correct M O T c rho t ht]
   cases hh : t.endpoint.halted
-  · simp only [Bool.false_and,Bool.false_eq_true,if_false]
+  · simp only [Bool.false_and,Bool.false_eq_true,ite_false]
     split_ifs
     · exact hn
     · exact le_rfl
-  · simp only [Bool.true_and,if_true]
+  · simp only [Bool.true_and,ite_true]
     exact le_rfl
 end
 noncomputable section

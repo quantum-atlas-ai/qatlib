@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.GelfandFormula
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Topology.Order.Compact
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.Normed.Algebra.GelfandFormula
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Exponential stability from spectral negativity
@@ -166,7 +170,7 @@ theorem exponential_stability_of_negative_spectrum (a : B)
     (hneg : ∀ z ∈ spectrum ℂ a, z.re < 0) :
     ∃ C μ : ℝ, 1 ≤ C ∧ 0 < μ ∧
       ∀ t : ℝ, 0 ≤ t → ‖exp ((t : ℂ) • a)‖ ≤ C * Real.exp (-μ * t) := by
-  letI : NormedAlgebra ℚ B := .restrictScalars ℚ ℂ B
+  let : NormedAlgebra ℚ B := .restrictScalars ℚ ℂ B
   obtain ⟨h, hh, hrad⟩ := exists_small_euler_step a hneg
   let b : B := 1 + (h : ℂ) • a
   obtain ⟨q, hq0, hq1, C, hC, hp⟩ := geometric_norm_powers b hrad

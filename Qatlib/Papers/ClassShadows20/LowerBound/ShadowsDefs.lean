@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
-import Qatlib.Papers.ClassShadows20.LowerBound.StatisticsDefs
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalStat
-import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingSubgoalStat
-import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+public import Qatlib.Papers.ClassShadows20.LowerBound.StatisticsDefs
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalStat
+public import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingSubgoalStat
+public import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+
+@[expose] public section
 
 /-!
 # Shadow norms and lower bound data

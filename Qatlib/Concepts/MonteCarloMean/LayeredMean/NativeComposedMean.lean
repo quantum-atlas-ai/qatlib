@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Mathlib.Data.Fin.Tuple.Sort
+module
+
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Mathlib.Data.Fin.Tuple.Sort
+
+@[expose] public section
 
 /-!
 # Rational readout for composed layered means

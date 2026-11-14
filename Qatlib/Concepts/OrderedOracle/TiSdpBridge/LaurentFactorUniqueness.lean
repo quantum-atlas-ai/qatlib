@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCayleyTransport
-import Mathlib.Algebra.Polynomial.Reverse
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCayleyTransport
+public import Mathlib.Algebra.Polynomial.Reverse
+
+@[expose] public section
 
 /-!
 # Uniqueness of polynomial circle factors
@@ -70,7 +74,7 @@ conjugate of `P` evaluated at the conjugate reciprocal of `z`. -/
 private theorem circleStarReverse_eval (P : Polynomial ℂ) (d : ℕ) (hP : P.natDegree≤d)
     (z : ℂ) (hz : z≠0) :
     (circleStarReverse P d).eval z=z^d*star (P.eval (star (z⁻¹))) := by
-  letI : Invertible (z⁻¹) := invertibleOfNonzero (inv_ne_zero hz)
+  let : Invertible (z⁻¹) := invertibleOfNonzero (inv_ne_zero hz)
   have he := Polynomial.eval₂_reflect_mul_pow (RingHom.id ℂ) (z⁻¹) d
     (conjugatePolynomial P) (Polynomial.natDegree_map_le.trans hP)
   simp only [invOf_eq_inv,inv_inv,Polynomial.eval₂_id] at he
@@ -150,7 +154,7 @@ private theorem closed_disk_associated : ∀ n : ℕ, ∀ P Q : Polynomial ℂ,
       exact hPc hrP
     have hrQ : Q.IsRoot r := by
       have hc := congrArg (fun A : Polynomial ℂ => A.eval r) he
-      (try dsimp only at hc)
+
       rw [eval_mul,eval_mul,hrP,zero_mul] at hc
       rcases mul_eq_zero.mp hc.symm with h | h
       · exact h
@@ -176,13 +180,13 @@ private theorem closed_disk_associated : ∀ n : ℕ, ∀ P Q : Polynomial ℂ,
     have hP₁c : P₁.eval 0≠0 := by
       intro h
       have hc := congrArg (fun A : Polynomial ℂ => A.eval 0) hP
-      (try dsimp only at hc)
+
       rw [eval_mul,h,mul_zero] at hc
       exact hPc hc
     have hQ₁c : Q₁.eval 0≠0 := by
       intro h
       have hc := congrArg (fun A : Polynomial ℂ => A.eval 0) hQ
-      (try dsimp only at hc)
+
       rw [eval_mul,h,mul_zero] at hc
       exact hQc hc
     have hdegP : P.natDegree=1+P₁.natDegree := by

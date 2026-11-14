@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,7 +53,7 @@ theorem exists_unique_metric_distribution {A : Type} [Fintype A] (q : ℕ) (hq :
   have hcardpos : (1 : ℝ) < (Fintype.card A : ℝ) := by exact_mod_cast hcard
   -- the minimum weight m is positive and bounds every w a from below
   have hcardA : 0 < Fintype.card A := by omega
-  haveI : Nonempty A := Fintype.card_pos_iff.mp hcardA
+  have : Nonempty A := Fintype.card_pos_iff.mp hcardA
   have hne : (Finset.univ.image w).Nonempty := Finset.image_nonempty.mpr Finset.univ_nonempty
   set m := (Finset.univ.image w).min' hne with hmdef
   have hmle : ∀ a, m ≤ w a := fun a =>

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
-import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
-import Mathlib.Data.Nat.BitIndices
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
+public import Mathlib.Data.Nat.BitIndices
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Arithmetic words and Fourier recovery records
@@ -123,8 +127,8 @@ noncomputable def arithGateInv {N : ℕ} : ArithGate N → ArithGate N
   | .carry => .carry
   | .cadd i => .csub i
   | .csub i => .cadd i
-  | .mulConst k => .mulConst (if h : IsUnit k then k⁻¹ else k)
-  | .cmulConst i k => .cmulConst i (if h : IsUnit k then k⁻¹ else k)
+  | .mulConst k => .mulConst (if _h : IsUnit k then k⁻¹ else k)
+  | .cmulConst i k => .cmulConst i (if _h : IsUnit k then k⁻¹ else k)
   | .rot a t => .rot (-a) t
 
 /-- The real rotation angle `2*π*num/2^t` specified by an integer numerator and a dyadic
@@ -144,7 +148,7 @@ def bitIndexFin {N : ℕ} (hN : 0 < N) (i : ℕ) : Fin N := ⟨i % N, Nat.mod_lt
 
 /-- The control indices and constants `a^(2^i)` associated with the nonzero bit positions of the
 exponent. -/
-def modexpFactors {N : ℕ} (hN : 0 < N) (a : ZMod N) (e : ℕ) (h : e < 2 ^ N) :
+def modexpFactors {N : ℕ} (hN : 0 < N) (a : ZMod N) (e : ℕ) (_h : e < 2 ^ N) :
     List (Fin N × ZMod N) :=
   (e.bitIndices).map fun i => (bitIndexFin hN i, a ^ (2 ^ i))
 
@@ -329,6 +333,6 @@ def cyclicRejectionEvent {N : ℕ} (hN : 0 < N) (xs : List (ZMod N))
   (cyclicDecodedSet hN xs : Set (ZMod N)) ≠ (H : Set (ZMod N))
 
 /-- The empty list of cyclic samples. -/
-def cyclicZeroSample {N : ℕ} (hN : 0 < N) : List (ZMod N) := []
+def cyclicZeroSample {N : ℕ} (_hN : 0 < N) : List (ZMod N) := []
 
 end Qatlib.Concepts.SpectralFilter.PhaseReadout

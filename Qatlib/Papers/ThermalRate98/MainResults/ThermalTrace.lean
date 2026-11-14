@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.PhysicalFlux
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Algebra.Star.UnitaryStarAlgAut
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.PhysicalFlux
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Algebra.Star.UnitaryStarAlgAut
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+@[expose] public section
 
 /-!
 # Thermal matrix exponentials and flux traces
@@ -66,7 +70,7 @@ theorem physical_scaled_exp (z : ℂ) (H V : Matrix I I ℂ) (E : I → ℝ)
   let W : unitary (Matrix I I ℂ) := ⟨V,hV⟩
   let f := Unitary.conjStarAlgAut ℂ (Matrix I I ℂ) W
   let B := Matrix.diagonal (fun i => z*(E i : ℂ))
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   have hm := NormedSpace.map_exp f f.toAlgEquiv.toLinearMap.continuous_of_finiteDimensional B
   have he : f B = z • H := by
     rw [hH]

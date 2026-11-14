@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GWSpeedupYuan25.MainResults.Definitions
-import Qatlib.Papers.GWSpeedupYuan25.MainResults.Relaxation.DiagonalConstraints
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Papers.GWSpeedupYuan25.MainResults.Definitions
+public import Qatlib.Papers.GWSpeedupYuan25.MainResults.Relaxation.DiagonalConstraints
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

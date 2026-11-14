@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.CopyEvolution.Discriminate.ConditionalOutput
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ConditionalOutput
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Controlled copy evolution
@@ -366,7 +370,7 @@ theorem ketFalseTensor_copyB (D : ℕ) (X : Operator D) (ρ : Operator D) :
   ext ⟨b, i, c⟩ ⟨b', i', c'⟩
   cases b <;> cases b' <;>
     simp [select, Matrix.of_apply, tensorCopyB_apply, tensorGate_apply, outerProduct_apply,
-      Qatlib.Foundations.PureStateMath.Ket, Complex.star_def]
+      Qatlib.Foundations.PureStateMath.Ket]
 
 /-- The raw controlled gate has identity in the false block and partial swap in the true block. -/
 theorem rawGate_select (D : ℕ) (θ : ℝ) :
@@ -381,7 +385,7 @@ private theorem select_conj_select (V W' : Bool → Matrix (Fin D × Fin D) (Fin
   rw [parallel_select_mul, parallel_select_adjoint, parallel_select_mul]
 
 /-- Conjugation by the identity leaves every two-register matrix unchanged. -/
-private theorem rawGate_conj_false (D : ℕ) (θ : ℝ) :
+private theorem rawGate_conj_false (D : ℕ) (_θ : ℝ) :
     ∀ M : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
       (1 : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) * M *
         (1 : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ)ᴴ = M := by
@@ -411,7 +415,7 @@ private theorem traceRightB_ketFalse_select (D : ℕ) (X : Operator D) (ρ : Ope
       = select (fun b : Bool => if b then 0 else X) := by
   ext ⟨b, i⟩ ⟨b', i'⟩
   cases b <;> cases b'
-  · simp only [select, Matrix.of_apply, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
+  · simp only [select, Matrix.of_apply, Bool.false_eq_true, ↓reduceIte,
       traceRightB_apply, tensorGate_apply]
     exact sum_diag_eq ρ (X i i') hρ
   · simp [select, Matrix.of_apply, traceRightB_apply]
@@ -434,8 +438,8 @@ theorem controlledCopyRawMap_ketFalse (D : ℕ) (ρ : Operator D) (θ : ℝ) (X 
     apply congrArg (fun f : Bool → Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ => select f)
     funext b
     cases b
-    · simp [rawGate_conj_false]
-    · simp [rawGate_conj_zero]
+    · simp
+    · simp
   unfold controlledCopyRawMap
   rw [hconj, ketFalseTensor_eq_select, traceRightB_ketFalse_select D X ρ hρ]
 
@@ -502,7 +506,7 @@ theorem select_mul_apply {J : Type} [Fintype J] (V : Bool → Matrix J J ℂ)
       = (V b * M.submatrix (fun p => (b, p)) (fun q => (c, q))) u v := by
   cases b <;> cases c <;>
     simp [Matrix.mul_apply, select, Matrix.of_apply, Matrix.submatrix_apply,
-      Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, Bool.true_eq_false]
+      Fintype.sum_prod_type, Bool.false_eq_true, Bool.true_eq_false]
 
 /-- Conjugation by a block selection sends the `(b, c)` block to its product with `V b` on the
 left and `(V c)ᴴ` on the right. -/
@@ -511,10 +515,10 @@ theorem select_conj_apply {J : Type} [Fintype J] (V : Bool → Matrix J J ℂ)
     (select V * M * (select V)ᴴ) (b, u) (c, v)
       = (V b * M.submatrix (fun p => (b, p)) (fun q => (c, q)) * (V c)ᴴ) u v := by
   cases b <;> cases c <;>
-    simp [Matrix.mul_apply, Matrix.conjTranspose_apply, Complex.star_def,
-      select_mul_apply, select, Matrix.of_apply, Matrix.submatrix_apply,
-      Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, Bool.true_eq_false,
-      Finset.mul_sum, Finset.sum_mul]
+    simp [Matrix.mul_apply, Matrix.conjTranspose_apply,
+      select, Matrix.of_apply, Matrix.submatrix_apply,
+      Fintype.sum_prod_type, Bool.false_eq_true, Bool.true_eq_false,
+      Finset.sum_mul]
 
 /-- Each control block of the controlled-swap conjugation is obtained by multiplying the
 corresponding input block by the selected partial-swap gates. -/
@@ -537,16 +541,15 @@ theorem controlledCopyRawMap_ff (D : ℕ) (ρ : Operator D) (θ : ℝ)
     intro c
     rw [rawGate_select, select_conj_apply]
     simp only [Bool.false_eq_true, ↓reduceIte, Matrix.one_mul, Matrix.conjTranspose_one,
-      Matrix.mul_one, Matrix.mul_apply, Matrix.submatrix_apply, tensorCopyB_apply,
+      Matrix.mul_apply, Matrix.submatrix_apply, tensorCopyB_apply,
       Matrix.one_apply]
     rw [Fintype.sum_eq_single (j, c)]
     · simp
     · intro x hx
-      rw [if_neg hx]
+      rw [ite_eq_right hx]
       ring
   unfold controlledCopyRawMap
   rw [traceRightB_apply]
-  simp only [Prod.fst, Prod.snd]
   rw [Fintype.sum_congr _ _ (fun c => hstep c)]
   exact sum_diag_eq ρ (A (false, i) (false, j)) hρ
 
@@ -588,11 +591,11 @@ theorem traceRight_swap (σ ρ : Operator D) (θ : ℝ) (hρ : Matrix.trace ρ =
     Matrix.one_mul, ← partialTrace_eq_traceRight, partialTrace_sub, partialTrace_smul,
     (partial_swap_cross_partial_traces σ ρ).2]
   simp only [Matrix.sub_apply, Matrix.smul_apply, Matrix.trace, partialTrace_tensorGate,
-    Matrix.one_apply, one_mul, neg_smul, smul_eq_mul]
+    smul_eq_mul]
   simp [htrace]
 
 /-- The false-true control block of a control-data matrix. -/
-private def AFT (A : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) : Operator D :=
+def AFT (A : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) : Operator D :=
   A.submatrix (fun p => (false, p)) (fun q => (true, q))
 
 /-- For trace-one `ρ`, the false-true output block is the cosine-scaled input block plus `i sin
@@ -614,22 +617,21 @@ theorem controlledCopyRawMap_ft (ρ : Operator D) (θ : ℝ)
       = (TensorGate (AFT A) ρ * (partialSwapMatrix D θ)ᴴ) (i, c) (j, c) := by
     intro c
     rw [rawGate_select, select_conj_apply]
-    simp only [Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte, Matrix.one_mul,
-      Matrix.conjTranspose_one, Matrix.mul_one, Matrix.mul_apply, Matrix.submatrix_apply,
-      tensorCopyB_apply, AFT, TensorGate, Matrix.kroneckerMap_apply, Fintype.sum_eq_single]
+    simp only [Bool.false_eq_true, ↓reduceIte, Matrix.one_mul,
+      Matrix.mul_apply, Matrix.submatrix_apply,
+      tensorCopyB_apply, AFT, TensorGate, Matrix.kroneckerMap_apply]
   have hmain : controlledCopyRawMap ρ θ A (false, i) (true, j)
       = Matrix.traceRight (TensorGate (AFT A) ρ * (partialSwapMatrix D θ)ᴴ) i j := by
     unfold controlledCopyRawMap
     rw [traceRightB_apply]
-    simp only [Prod.fst, Prod.snd]
+    dsimp only
     rw [Fintype.sum_congr _ _ (fun c => hstep c)]
     rfl
   rw [hmain, traceRight_swap_conj _ _ _ hρ]
-  simp only [Matrix.smul_apply, Matrix.trace, partialTrace_tensorGate, AFT,
-    Matrix.submatrix_apply]
+  simp only [AFT, Matrix.submatrix_apply]
 
 /-- The true-true control block of a control-data matrix. -/
-private def ATT (A : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) : Operator D :=
+def ATT (A : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) : Operator D :=
   A.submatrix (fun p => (true, p)) (fun q => (true, q))
 
 /-- The true-true block of the raw controlled-copy map is the partial-swap output of the
@@ -645,14 +647,13 @@ theorem controlledCopyRawMap_tt (ρ : Operator D) (θ : ℝ)
           (partialSwapMatrix D θ)ᴴ) (i, c) (j, c) := by
     intro c
     rw [rawGate_select, select_conj_apply]
-    simp only [Bool.true_eq_false, ↓reduceIte, Matrix.mul_apply, Matrix.submatrix_apply,
+    simp only [↓reduceIte, Matrix.mul_apply, Matrix.submatrix_apply,
       tensorCopyB_apply, ATT, TensorGate, Matrix.kroneckerMap_apply]
   have hmain : controlledCopyRawMap ρ θ A (true, i) (true, j)
       = Matrix.traceRight
           (partialSwapMatrix D θ * TensorGate (ATT A) ρ * (partialSwapMatrix D θ)ᴴ) i j := by
     unfold controlledCopyRawMap
     rw [traceRightB_apply]
-    simp only [Prod.fst, Prod.snd]
     rw [Fintype.sum_congr _ _ (fun c => hstep c)]
     rfl
   rw [hmain, partialSwapOutput, ← partialTrace_eq_traceRight]
@@ -687,7 +688,6 @@ theorem controlledCopyRawMap_tf (ρ : Operator D) (θ : ℝ)
       = Matrix.traceRight (partialSwapMatrix D θ * TensorGate (AFtf A) ρ) i j := by
     unfold controlledCopyRawMap
     rw [traceRightB_apply]
-    simp only [Prod.fst, Prod.snd]
     rw [Fintype.sum_congr _ _ (fun c => hstep c)]
     rfl
   exact hmain
@@ -781,8 +781,7 @@ private theorem trueControl_norm_le_one :
   have he : outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool) =
       Matrix.diagonal (fun b : Bool => if b then (1 : ℂ) else 0) := by
     ext b c
-    cases b <;> cases c <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket,
-        Matrix.diagonal_apply]
+    cases b <;> cases c <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket]
   rw [he, Matrix.l2_opNorm_diagonal]
   exact (pi_norm_le_iff_of_nonneg zero_le_one).mpr (by intro b; cases b <;> simp)
 
@@ -828,7 +827,7 @@ theorem controlledSwapRawGate_expansion (D : ℕ) (θ : ℝ) :
   cases b <;> cases c <;>
     simp [controlledSwapRawGate, select, controlledSwapProjector, controlledSwapGenerator,
       outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket, tensorGate_apply, partialSwapMatrix, Matrix.one_apply,
-      Matrix.smul_apply, Matrix.add_apply, Matrix.sub_apply] <;> split_ifs <;> ring
+      Matrix.smul_apply, Matrix.add_apply, Matrix.sub_apply]; split_ifs <;> ring
 
 /-- Both `|cos θ - 1|` and `|sin θ - θ|` are bounded by `θ ^ 2`. -/
 private theorem controlled_trig_quadratic (θ : ℝ) :
@@ -950,8 +949,7 @@ private theorem controlled_sandwich_remainder
   have he : U * X * Uᴴ - X + (Complex.I * (θ : ℂ)) • (H * X - X * H) =
       (U - 1 - A) * X * Uᴴ + A * X * (Uᴴ - 1) + X * (U - 1 - A)ᴴ := by
     have hm : (Complex.I * (θ : ℂ)) • (H * X - X * H) = -(A * X) + X * A := by
-      simp [A, neg_mul, neg_smul, smul_sub, Matrix.smul_mul, Matrix.mul_smul,
-        sub_eq_add_neg]
+      simp [A, neg_mul, neg_smul, sub_eq_add_neg]
     rw [hm, Matrix.conjTranspose_sub, Matrix.conjTranspose_sub,
       Matrix.conjTranspose_one, hAH]
     noncomm_ring
@@ -1028,10 +1026,9 @@ theorem controlledCopy_reference_actual_bridge (D r : ℕ) (ρ : Operator D) (θ
     tensorWithCopyRegister_apply, conjMap_apply, traceRightRegisterLM_apply,
     controlledCopyReferenceGate, relabelGate_apply', Matrix.traceRight, Matrix.of_apply,
     Matrix.mul_apply, Matrix.conjTranspose_apply, Fintype.sum_prod_type,
-    tensorGate_apply, Matrix.one_apply]
-  simp only [controlledCopyReferenceEquiv, Equiv.coe_fn_mk, Equiv.coe_fn_symm_mk]
-  simp [tensorGate_apply, Matrix.one_apply, Fintype.sum_prod_type,
-    Finset.sum_mul, Finset.mul_sum, apply_ite, mul_ite, ite_mul]
+    tensorGate_apply]
+  simp only [controlledCopyReferenceEquiv, Equiv.coe_fn_symm_mk]
+  simp [tensorGate_apply, Matrix.one_apply, Finset.sum_mul, apply_ite, ite_mul]
 
 section ControlledReferenceTaylor
 
@@ -1098,7 +1095,7 @@ private theorem controlledReferenceGate_remainder_shape (D r : ℕ) (θ : ℝ) (
   change relabelGate _ _ - 1 + c • relabelGate _ _ = _
   rw [← hid]
   ext ⟨⟨a, i⟩, k⟩ ⟨⟨b, j⟩, l⟩
-  simp only [relabelGate_apply', controlledCopyReferenceEquiv, Equiv.coe_fn_mk,
+  simp only [relabelGate_apply', controlledCopyReferenceEquiv,
     Equiv.coe_fn_symm_mk, tensorGate_apply, Matrix.add_apply,
     Matrix.sub_apply, Matrix.smul_apply, copyRelabelEquiv]
   ring
@@ -1157,7 +1154,7 @@ theorem controlledCopy_generator_trace_left (D : ℕ) (ρ : Operator D)
   ext ⟨b,i⟩ ⟨c,j⟩
   rw [traceRightB_apply, controlledSwapGenerator_select,
     controlledDensityGenerator_select, select_mul_apply]
-  simp only [Prod.fst, Prod.snd]
+  dsimp only
   have hs (k : Fin D) := select_mul_apply
     (fun b : Bool => if b then swapRegisterMatrix D else 0) (tensorCopyB ρ A)
       b c (i,k) (j,k)
@@ -1219,8 +1216,8 @@ private theorem spectator_generator_trace_left (D r : ℕ) (ρ : Operator D)
   ext ⟨a,i⟩ ⟨b,j⟩
   simp only [Matrix.traceRight, Matrix.of_apply, Matrix.mul_apply,
     Fintype.sum_prod_type, relabelGate_apply', controlledCopyReferenceEquiv,
-    Equiv.coe_fn_mk, Equiv.coe_fn_symm_mk, tensorGate_apply, Matrix.one_apply]
-  simp [tensorGate_apply, Matrix.one_apply, mul_ite, ite_mul, Finset.sum_mul, Finset.mul_sum]
+    Equiv.coe_fn_symm_mk, tensorGate_apply, Matrix.one_apply]
+  simp [ite_mul]
 
 /-- Tracing the reference generator times `TensorGate X ρ` gives left multiplication by the
 reference extension of `controlledCopyHamiltonian`. -/
@@ -1262,7 +1259,7 @@ theorem copy_controlled_exp (D : ℕ) (ρ : Operator D) (θ : ℝ) :
     NormedSpace.exp ((-Complex.I * (θ : ℂ)) •
       TensorGate (outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool)) ρ) =
       controlOracle (hamiltonianEvolution ρ θ) := by
-  letI : NormedAlgebra ℚ (Matrix (Fin D) (Fin D) ℂ) :=
+  let : NormedAlgebra ℚ (Matrix (Fin D) (Fin D) ℂ) :=
     NormedAlgebra.restrictScalars ℚ ℂ _
   have hs : Continuous (copySelectRingHom (I := Fin D)) :=
     (copySelectLM (I := Fin D)).continuous_of_finiteDimensional
@@ -1287,14 +1284,14 @@ theorem copy_controlled_exp (D : ℕ) (ρ : Operator D) (θ : ℝ) :
     (continuous_apply b)
     (fun b : Bool => if b then (-Complex.I * (θ : ℂ)) • ρ else 0)
   refine hp.trans ?_
-  cases b <;> simp only [Pi.evalRingHom_apply, Bool.false_eq_true, if_false, if_true,
+  cases b <;> simp only [Pi.evalRingHom_apply, Bool.false_eq_true, ite_false, ite_true,
       NormedSpace.exp_zero, hamiltonianEvolution]
 
 /-- The matrix exponential commutes with relabeling. -/
 private theorem relabel_exp {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     NormedSpace.exp (relabelGate e A) = relabelGate e (NormedSpace.exp A) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   exact (NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e)
     (Matrix.reindexAlgEquiv ℂ ℂ e).toLinearMap.continuous_of_finiteDimensional A).symm
 
@@ -1327,8 +1324,7 @@ private theorem copyHamiltonian_norm_le_one (D : ℕ) (ρ : Operator D) (hρ : I
     have he : outerProduct (Qatlib.Foundations.PureStateMath.Ket true : QState Bool) =
         Matrix.diagonal (fun b : Bool => if b then (1 : ℂ) else 0) := by
       ext b c
-      cases b <;> cases c <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket,
-          Matrix.diagonal_apply]
+      cases b <;> cases c <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket]
     rw [he, Matrix.l2_opNorm_diagonal]
     exact (pi_norm_le_iff_of_nonneg zero_le_one).mpr (by intro b; cases b <;> simp)
   nlinarith [density_l2_opNorm_le_one ρ hρ,
@@ -1366,7 +1362,7 @@ private theorem controlled_remainder_hermitian
 private theorem traceRight_star {I J : Type*} [Fintype I] [Fintype J]
     (X : Matrix (I × J) (I × J) ℂ) : (Matrix.traceRight X)ᴴ = Matrix.traceRight Xᴴ := by
   ext i j
-  simp [Matrix.traceRight, Matrix.conjTranspose_apply, map_sum]
+  simp [Matrix.traceRight, Matrix.conjTranspose_apply]
 
 /-- For a density operator and Hermitian input, tracing right multiplication by the reference
 generator gives right multiplication by the reference-extended controlled Hamiltonian. -/
@@ -1378,7 +1374,7 @@ private theorem copy_reference_generator_trace_right (D r : ℕ) (ρ : Operator 
   have h := congrArg Matrix.conjTranspose (controlledCopy_reference_generator_trace_left D r ρ X)
   have hH : (controlledCopyReferenceGenerator D r).IsHermitian := by
     show (controlledCopyReferenceGenerator D r)ᴴ = _
-    simp only [controlledCopyReferenceGenerator, relabelGate_apply']
+    simp only [controlledCopyReferenceGenerator]
     exact controlledReferenceGenerator_hermitian D r
   rw [traceRight_star, Matrix.conjTranspose_mul, tensorGate_conjTranspose,
     hX.eq, hρ.1.isHermitian.eq, hH.eq, Matrix.conjTranspose_mul,
@@ -1658,7 +1654,7 @@ private theorem delta_star_mul_delta {n : Type} [Fintype n] [DecidableEq n]
     Fintype.sum_eq_single a (fun k hk => by
       show (starRingEnd ℂ) (if k = a then 1 else 0) * (if k = a then 1 else 0) = 0
       simp [hk])
-  simpa using! h1
+  simp
 
 /-- The inner product of two distinct coordinate delta vectors is zero. -/
 private theorem delta_star_mul_delta_ne {n : Type} [Fintype n] [DecidableEq n]
@@ -1666,9 +1662,9 @@ private theorem delta_star_mul_delta_ne {n : Type} [Fintype n] [DecidableEq n]
     (∑ k, (starRingEnd ℂ) (if k = a then 1 else 0) * (if k = b then 1 else 0)) = 0 := by
   refine Fintype.sum_eq_zero _ fun k => ?_
   by_cases hk : k = a
-  · rw [if_pos hk, if_neg (fun hkb => h (hk.symm.trans hkb))]
+  · rw [ite_eq_left hk, ite_eq_right (fun hkb => h (hk.symm.trans hkb))]
     simp
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     simp
 
 /-- The embedding into the true control sector is an isometry. -/
@@ -1683,7 +1679,7 @@ theorem trueSectorι_isometry (D : ℕ) : (trueSectorι D).Isometry := by
   by_cases hij : trueSectorIdx D i = trueSectorIdx D j
   · have h1 := delta_star_mul_delta hij
     have hij' : i = j := trueSectorIdx_inj D hij
-    simp only [hij', if_true] at h1 ⊢
+    simp only [hij', ite_true] at h1 ⊢
     exact h1
   · have h1 := delta_star_mul_delta_ne hij
     have hij' : i ≠ j := fun h => hij (by rw [h])

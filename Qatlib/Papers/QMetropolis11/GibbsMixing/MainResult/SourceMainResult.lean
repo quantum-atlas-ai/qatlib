@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
-import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalQuan
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+module
+
+public import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
+public import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalQuan
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

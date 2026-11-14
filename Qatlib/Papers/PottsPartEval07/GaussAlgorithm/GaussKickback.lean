@@ -4,43 +4,47 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.NumberTheory.MulChar.Basic
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.NumberTheory.MulChar.Basic
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Gauss-sum phase kickback identities
@@ -77,8 +81,12 @@ noncomputable def gaussSum (χ : MulChar F ℂ) (e : AddChar F ℂ) (β : F) : �
 /-- The unnormalized amplitude function of a multiplicative-character state. -/
 noncomputable def characterState (χ : MulChar F ℂ) : F → ℂ := fun x => χ x
 
+omit [Field F] [Fintype F] in
 /-- A multiplicative character has nonzero value at every nonzero field element. -/
-theorem mulChar_apply_ne_zero {χ : MulChar F ℂ} {y : F} (hy : y ≠ 0) : χ y ≠ 0 := by
+theorem mulChar_apply_ne_zero {F : Type*}
+    [_instFieldF : Field F]
+    [_instFintypeF : Fintype F]
+    {χ : MulChar F ℂ} {y : F} (hy : y ≠ 0) : χ y ≠ 0 := by
   have hu : IsUnit y := isUnit_iff_ne_zero.mpr hy
   have hcoe : χ y = (χ.toUnitHom hu.unit : ℂ) := by
     rw [MulChar.coe_toUnitHom, hu.unit_spec]
@@ -128,7 +136,7 @@ theorem kickback (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠
 /-- The kickback identity with normalization factor `N⁻¹` has scalar factor `gaussSum χ e β *
 N⁻¹` [GeraciLidar2008]. -/
 theorem kickback_normalised (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠ 0)
-    (N : ℂ) (hN : N ≠ 0) :
+    (N : ℂ) (_hN : N ≠ 0) :
     χ y ^ 2 * ((N⁻¹) * ∑ x : F, χ x * e (β * x * y))
       = (gaussSum χ e β * N⁻¹) * (χ y) := by
   have hχy : χ y ≠ 0 := mulChar_apply_ne_zero hy

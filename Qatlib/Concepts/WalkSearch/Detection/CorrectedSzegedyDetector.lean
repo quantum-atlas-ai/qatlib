@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+module
+
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+
+@[expose] public section
 
 /-!
 # Corrected Szegedy detector and resource bounds
@@ -177,7 +181,7 @@ private theorem detectionCounts_append {I : Type} (xs ys : List (DetectionStep I
       (detectionCounts xs).2.1+(detectionCounts ys).2.1,(detectionCounts xs).2.2+(detectionCounts ys).2.2) := by
   induction xs with
   | nil => simp [detectionCounts]
-  | cons x xs ih => cases x <;> simp [detectionCounts,ih,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
+  | cons x xs ih => cases x <;> simp [detectionCounts,ih,Nat.add_comm,Nat.add_left_comm]
 
 /-- Concatenating `K` copies of a detector word multiplies each of its three resource counts by
 `K`. -/
@@ -186,7 +190,7 @@ private theorem detectionCounts_replicate {I : Type} (xs : List (DetectionStep I
       K*(detectionCounts xs).2.1,K*(detectionCounts xs).2.2) := by
   induction K with
   | zero => simp [detectionCounts]
-  | succ K ih => simp [List.replicate_succ,detectionCounts_append,ih,Nat.add_mul,Nat.add_comm,Nat.add_left_comm]
+  | succ K ih => simp [List.replicate_succ,detectionCounts_append,ih,Nat.add_mul,Nat.add_comm]
 
 /-- The power-`K` detector program has `4 * K + 1` row-access instructions, `4 * K + 1` marker
 instructions, and `4 * K + 2` fixed gates. -/
@@ -296,7 +300,7 @@ theorem detectionUnmarkedInitial_norm_sq {I : Type} [Fintype I] [DecidableEq I] 
     simp only [detectionUnmarkedInitial,collapse_apply,Finset.mem_filter,Finset.mem_univ,
       true_and,detectionInitial_apply]
     by_cases hi : i∉S
-    · simp only [hi,not_false_eq_true,if_true,norm_mul,mul_pow,hc,Complex.norm_real,Real.norm_eq_abs,
+    · simp only [hi,not_false_eq_true,ite_true,norm_mul,mul_pow,hc,Complex.norm_real,Real.norm_eq_abs,
         abs_of_nonneg (Real.sqrt_nonneg _)]
       simp_rw [Real.sq_sqrt (hP.1 i _)]
       rw [← Finset.sum_mul,hP.2,one_mul]
@@ -341,7 +345,7 @@ private theorem detection_row_initial_clean {I : Type} [Fintype I] [DecidableEq 
   rcases v with ⟨b,c,x,y⟩
   cases b <;> cases c <;>
     simp [detectionCleanState,Matrix.mulVec,dotProduct,
-      Fintype.sum_prod_type,Matrix.kroneckerMap,Matrix.one_apply,ite_mul,ite_and]
+      Fintype.sum_prod_type,Matrix.kroneckerMap,Matrix.one_apply,ite_mul]
 
 /-- The detector Hadamard maps clean branch amplitudes to their normalized sum and difference. -/
 private theorem detection_hadamard_clean {I : Type} [Fintype I] [DecidableEq I]
@@ -423,9 +427,11 @@ theorem detection_prepared_unmarked_reflection {I : Type} [Fintype I] [Decidable
     ext xy zw
     by_cases h : xy=zw
     · subst zw
-      by_cases hxy : xy.1∉S ∧ xy.2=j <;>
-        simp [ReflectionAbout,Matrix.diagonal_apply,Matrix.one_apply,hxy] <;> ring
-    · simp [ReflectionAbout,Matrix.diagonal_apply,Matrix.one_apply,h]
+      by_cases hxy : xy.1∉S ∧ xy.2=j
+      · simp [ReflectionAbout,hxy]
+        norm_num
+      · simp [ReflectionAbout,hxy]
+    · simp [ReflectionAbout,h]
   have hUU : U*Uᴴ=1 := by
     simpa only [Matrix.star_eq_conjTranspose] using! hU.2
   rw [hD,ReflectionAbout,Matrix.mul_sub,Matrix.mul_smul,Matrix.sub_mul,Matrix.smul_mul,
@@ -453,7 +459,7 @@ theorem detectionReflectionWord_clean {I : Type} [Fintype I] [DecidableEq I]
   funext b
   cases b
   · rfl
-  · simp only [Bool.true_eq,if_true,Matrix.mulVec_mulVec]
+  · simp only [ite_true,Matrix.mulVec_mulVec]
     rw [← Matrix.mul_assoc,detection_prepared_unmarked_reflection P S j U hU hp]
 
 /-- The evaluation of concatenated detector words is the product of their evaluations. -/
@@ -484,7 +490,7 @@ theorem detectionWalkWord_clean {I : Type} [Fintype I] [DecidableEq I]
   funext b
   cases b
   · rfl
-  · simp only [if_true,Matrix.mulVec_mulVec,correctedMarkedWalk,Matrix.mul_assoc]
+  · simp only [ite_true,Matrix.mulVec_mulVec,correctedMarkedWalk,Matrix.mul_assoc]
 
 /-- For a unitary row preparation, `K` repeated walk words apply the `K`th power of the
 corrected marked walk to the true-control branch of a clean state. -/
@@ -510,7 +516,7 @@ private theorem detection_repeated_walk_clean {I : Type} [Fintype I] [DecidableE
     funext b
     cases b
     · rfl
-    · simp only [if_true,Matrix.mulVec_mulVec,pow_succ']
+    · simp only [ite_true,Matrix.mulVec_mulVec,pow_succ']
 
 /-- If `U` prepares the Szegedy row states from anchor `j`, its initial instruction maps
 `detectionStart j` to the clean state with false-control branch `detectionInitial P` and
@@ -526,14 +532,14 @@ private theorem detection_initial_word {I : Type} [Fintype I] [DecidableEq I]
     rcases v with ⟨b,c,x,y⟩
     cases b <;> cases c <;>
       simp [detectionStart,detectionCleanState,szegedyFrame,Matrix.mulVec,dotProduct,
-        Fintype.sum_prod_type,ite_mul,ite_and]
+        ite_mul,ite_and]
   rw [hstart]
   change ((1 : Matrix Bool Bool ℂ)⊗ₖ((1 : Matrix Bool Bool ℂ)⊗ₖU)) *ᵥ _ = _
   rw [detection_row_initial_clean]
   congr 1
   funext b
   cases b
-  · simp only [Bool.false_eq_true,if_false,Matrix.mulVec_mulVec,szegedyPreparation_mul_frame U hp]
+  · simp only [Bool.false_eq_true,ite_false,Matrix.mulVec_mulVec,szegedyPreparation_mul_frame U hp]
     rfl
   · simp
 
@@ -616,7 +622,6 @@ theorem correctedMarkedWalk_empty_fixed {I : Type} [Fintype I] [DecidableEq I]
     rfl
   have hS : (SwapGate : Matrix (I×I) (I×I) ℂ) *ᵥ detectionInitial P=detectionInitial P := by
     funext xy
-    change (SwapGate *ᵥ detectionInitial P) xy = _
     rw [applyGate_swapGate]
     change detectionInitial P (xy.2,xy.1)=detectionInitial P xy
     rw [detectionInitial_apply,detectionInitial_apply,hSym xy.2 xy.1]
@@ -691,7 +696,7 @@ private theorem detection_synthesis_norm_sq_le {H J : Type} [Fintype H] [Decidab
   apply Finset.sum_le_sum
   intro i _
   by_cases hp : p i
-  · simp only [if_pos hp,one_mul,Pi.star_apply,Complex.star_def,← Complex.normSq_eq_conj_mul_self,Complex.ofReal_re,
+  · simp only [ite_eq_left hp,one_mul,Pi.star_apply,Complex.star_def,← Complex.normSq_eq_conj_mul_self,Complex.ofReal_re,
       Complex.normSq_eq_norm_sq]
     exact le_rfl
   · simp [hp]
@@ -784,7 +789,7 @@ private theorem detection_frame_right_inverse {H J : Type} [Fintype H] [Decidabl
     [Fintype J] [DecidableEq J] (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (A : Matrix H J ℂ) (t : J→ℝ) (hA : IsIsometry A)
     (ht : Aᴴ*Q*A=diagonal (fun i=>(t i:ℂ))) (hb : ∀ i,t i∈Set.Icc 0 1)
-    (g : ℝ) (hg : 0<g) (hg1 : g≤1) (hgap : ∀ i,t i≤1-g) (x : QState J) :
+    (g : ℝ) (hg : 0<g) (_hg1 : g≤1) (hgap : ∀ i,t i≤1-g) (x : QState J) :
     ∃ r : QState H,
       A*ᵥx = r-(ReflectionAbout Q*ReflectionAbout (A*Aᴴ))*ᵥr ∧
       4*g*‖toEuclidean_fromVec r‖^2 ≤ ‖toEuclidean_fromVec (A*ᵥx)‖^2 := by
@@ -835,7 +840,7 @@ private theorem detection_frame_right_inverse {H J : Type} [Fintype H] [Decidabl
     rw [Matrix.mulVec_mulVec,Matrix.mul_assoc,hAB,Matrix.mul_zero,Matrix.zero_mulVec]
   have hPr : ReflectionAbout (A*Aᴴ)*ᵥr=A*ᵥhalf-B*ᵥy := by
     simp only [ReflectionAbout,r,Matrix.sub_mulVec,Matrix.smul_mulVec,Matrix.mulVec_add,
-      hPfix,hPzero,Matrix.one_mulVec,add_zero]
+      hPfix,hPzero,Matrix.one_mulVec]
     module
   have hWr : (ReflectionAbout Q*ReflectionAbout (A*Aᴴ))*ᵥr=-(A*ᵥhalf-B*ᵥy) := by
     rw [← Matrix.mulVec_mulVec,hPr]
@@ -894,7 +899,7 @@ most `c²`. -/
 private theorem detection_frame_compression_bound {H J K : Type}
     [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
     (F : Matrix H J ℂ) (A : Matrix H K ℂ) (S : Matrix H H ℂ)
-    (hF : IsIsometry F) (hA : IsIsometry A) (hAP : A*Aᴴ=F*Fᴴ)
+    (_hF : IsIsometry F) (hA : IsIsometry A) (hAP : A*Aᴴ=F*Fᴴ)
     (hS : Sᴴ=S) (c : ℝ) (hc : 0≤c) (hG : ‖Fᴴ*S*F‖≤c) :
     ‖Aᴴ*(detectionMM S F*(detectionMM S F)ᴴ)*A‖ ≤ c^2 := by
   let X : Matrix J K ℂ := detectionMM Fᴴ A
@@ -913,7 +918,7 @@ private theorem detection_frame_compression_bound {H J K : Type}
   have hY : Y=detectionMM G X := by
     calc
       _ = detectionMM (detectionMM Fᴴ S) (detectionMM (F*Fᴴ) A) := by rw [hFA]
-      _ = _ := by simp only [Y,G,X,detectionMM,Matrix.mul_assoc]
+      _ = _ := by simp only [G,X,detectionMM,Matrix.mul_assoc]
   have hYn : ‖Y‖≤c := by
     rw [hY]
     exact (Matrix.l2_opNorm_mul G X).trans
@@ -1065,14 +1070,14 @@ private theorem detection_interference_accept_formula {I : Type} [Fintype I] [De
     cases b <;> cases c <;> by_cases hx : xy.1∈S <;>
       simp [detectionMarkPermutation,detectionInterference,hx]
   simp only [MeasureProb,detectionAccept,Finset.sum_filter,BornProb,Fintype.sum_prod_type,
-    Fintype.sum_bool,Finset.mem_filter,Finset.mem_univ,true_and]
+    Fintype.sum_bool]
   simp only [hcoord]
   simp only [← Finset.sum_add_distrib]
   apply Finset.sum_congr rfl
   intro x _
   apply Finset.sum_congr rfl
   intro y _
-  by_cases hx : x∈S <;> simp [hx] <;> ring
+  by_cases hx : x∈S <;> simp [hx]
 
 /-- The marked interference state's acceptance weight is at least one quarter of the squared
 walk displacement and at least one half of the input's marked measurement weight. -/
@@ -1098,7 +1103,7 @@ private theorem detection_interference_accept_lower {I : Type} [Fintype I] [Deci
     apply Finset.sum_le_sum
     intro xy _
     by_cases hx : xy.1∈S
-    · simp only [Finset.mem_filter,Finset.mem_univ,true_and,hx,if_true,BornProb]
+    · simp only [hx,ite_true,BornProb]
       let a : ℂ := (u xy+(W^K*ᵥu) xy)/2
       let b : ℂ := (u xy-(W^K*ᵥu) xy)/2
       have he : a+b=u xy := by dsimp [a,b]; ring
@@ -1250,9 +1255,7 @@ theorem corrected_szegedy_actual_random_power_detection :
       have hm := mul_le_mul hen hpn (by norm_num : (0:ℝ)≤15/16) (by linarith : 0≤1-η)
       nlinarith
   · intro k
-    rw [detectionProgram_actual_counts]
-    have hk := k.isLt
-    simp only [Prod.fst,Prod.snd]
+    simp only [detectionProgram_actual_counts]
     omega
 
 end Qatlib.Concepts.WalkSearch.Detection

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiemCircuit26.ShiftRules.GradientCoefficient
+module
+
+public import Qatlib.Papers.RiemCircuit26.ShiftRules.GradientCoefficient
+
+@[expose] public section
 
 /-!
 # Hessian parameter-shift coefficients
@@ -177,8 +181,7 @@ theorem conjEvol_add_pi_div_two {p : ℕ} (P ψ : Mat p) (hP : Pᴴ = P) (hP2 : 
     simp
   have hexp : (1 + X) * ψ * (1 - X) + (1 - X) * ψ * (1 + X) =
       (2 : ℝ) • (ψ + P * ψ * P) := by
-    change (1 + X) * ψ * (1 - X) + (1 - X) * ψ * (1 + X) =
-      (2 : ℝ) • (ψ + P * ψ * P)
+
     rw [show (1 + X) * ψ * (1 - X) = ψ - ψ * X + X * ψ - X * ψ * X by noncomm_ring,
       show (1 - X) * ψ * (1 + X) = ψ + ψ * X - X * ψ - X * ψ * X by noncomm_ring, hX]
     module

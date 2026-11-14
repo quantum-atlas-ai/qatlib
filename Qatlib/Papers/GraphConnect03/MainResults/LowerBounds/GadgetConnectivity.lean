@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.ParityReduce
-import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.Theorem4StrongConnectivity
+module
+
+public import Qatlib.Papers.GraphConnect03.ParityReduce
+public import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.Theorem4StrongConnectivity
+
+@[expose] public section
 
 /-!
 # Connectivity of the parity-clique gadget
@@ -125,20 +129,20 @@ theorem step [NeZero p] {s s' : GadgetVertex p k}
         refine ⟨t + 1, ?_⟩
         rw [Function.iterate_succ_apply', hq']
         simp only [parityEquiv_apply, parityStep]
-        simp only [gadgetNbr, if_pos hcond] at hj
+        simp only [gadgetNbr, ite_eq_left hcond] at hj
         exact hj
       · right
         simp only [gadgetNbr] at hj
-        rw [if_neg hcond] at hj
+        rw [ite_eq_right hcond] at hj
         exact ⟨j, hj.symm⟩
   · obtain ⟨j, hj⟩ := he
     by_cases hcond : j = 0
     · left
       refine ⟨0, ?_⟩
-      simp only [gadgetNbr, if_pos hcond] at hj
+      simp only [gadgetNbr, ite_eq_left hcond] at hj
       simpa using hj
     · right
-      simp only [gadgetNbr, if_neg hcond] at hj
+      simp only [gadgetNbr, ite_eq_right hcond] at hj
       exact ⟨u + j, hj.symm⟩
 
 end OrbitOrClique

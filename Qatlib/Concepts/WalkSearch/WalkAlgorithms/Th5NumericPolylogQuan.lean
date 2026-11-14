@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogStat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogStat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Numerical bound for subgraph candidate search

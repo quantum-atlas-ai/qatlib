@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
-import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
+public import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Walk Branch Extraction and Error Bounds
@@ -109,10 +113,10 @@ theorem lcEigenAngles_saturated (s : ℝ) (hs : |s| = 1) :
     lcPositiveEigenAngle s = Real.pi - Real.arcsin s := by
   rcases abs_eq (show (0 : ℝ) ≤ 1 by norm_num) |>.mp hs with h | h
   · rw [h, lcPositiveEigenAngle, Real.arcsin_one]
-    rw [if_pos (by positivity : 0 ≤ Real.pi / 2)]
+    rw [ite_eq_left (by positivity : 0 ≤ Real.pi / 2)]
     ring
   · rw [h, lcPositiveEigenAngle, Real.arcsin_neg_one]
-    rw [if_neg (by linarith [Real.pi_pos] : ¬0 ≤ -(Real.pi / 2))]
+    rw [ite_eq_right (by linarith [Real.pi_pos] : ¬0 ≤ -(Real.pi / 2))]
     ring
 
 section Helpers
@@ -232,8 +236,9 @@ theorem lcSimWord_frame_action (L : Matrix W I ℂ) (V : Matrix W W ℂ)
   simp only [Matrix.mulVec_smul, Matrix.mulVec_add]
   rw [lcSimWord_extracted_branch L V wp θp hV hwp phis hlen,
     lcSimWord_extracted_branch L V wm θm hV hwm phis hlen]
-  simp only [Matrix.mulVec_smul, Matrix.mulVec_add, smul_smul]
+  simp only [ smul_smul]
 
+omit [DecidableEq W] in
 /-- For orthogonal normalized vectors `wp` and `wm`, the squared Euclidean norm of `a • wp + b •
 wm` is `‖a‖ ^ 2 + ‖b‖ ^ 2`. -/
 theorem lcOrthogonal_normSq (wp wm : W → ℂ) (a b : ℂ)
@@ -257,6 +262,7 @@ theorem lcOrthogonal_normSq (wp wm : W → ℂ) (a b : ℂ)
     zero_add, add_zero, Complex.add_re]
   simp only [Complex.star_def, Complex.mul_conj, Complex.normSq_eq_norm_sq, Complex.ofReal_re]
 
+omit [DecidableEq W] in
 /-- A balanced phased combination of two orthogonal normalized vectors has Euclidean norm at
 most `ε` when both scalar error coefficients have norm at most the nonnegative `ε`. -/
 theorem lcBalanced_error_bound (wp wm : W → ℂ) (ap am ε : ℝ) (a b : ℂ)
@@ -288,6 +294,7 @@ theorem lcBalanced_error_bound (wp wm : W → ℂ) (ap am ε : ℝ) (a b : ℂ)
     ((Complex.exp (Complex.I * (ap : ℂ)) * a) • wp +
      (Complex.exp (Complex.I * (am : ℂ)) * b) • wm)))]
 
+omit [DecidableEq I] in
 /-- If an output vector is within Euclidean distance `ε` of a unit-modulus multiple of a
 normalized vector, with `0 ≤ ε ≤ 1 / 2`, then its squared coordinate error is at most `ε ^
 2` and its total squared norm is at least `1 - 2 * ε`. -/

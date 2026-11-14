@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Contractions from Gram matrix domination

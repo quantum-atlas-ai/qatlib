@@ -4,20 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Algebra.Group.Subgroup.Ker
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Data.ZMod.Basic
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Mathlib.GroupTheory.FiniteAbelian.Basic
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.QuotientGroup.Defs
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Algebra.Group.Subgroup.Ker
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Abelian factor groups and Fourier annihilators
@@ -54,9 +59,10 @@ section Annihilator
 variable {A B : Type*} [AddCommGroup A] [AddCommGroup B] [Fintype A] [Fintype B]
   (f : A →+ B)
 
+omit [Fintype A] [Fintype B] in
 /-- A character in the kernel annihilator has equal values at two elements whose difference lies
 in the kernel. -/
-theorem annihilator_apply_eq_of_sub_mem_ker (χ : AddChar A ℂ)
+theorem annihilator_apply_eq_of_sub_mem_ker {A B : Type*} [_inst0 : AddCommGroup A] [_inst1 : AddCommGroup B] [_inst2 : Fintype A] [_inst3 : Fintype B] (f : A →+ B) (χ : AddChar A ℂ)
     (hχ : χ ∈ characterAnnihilator f.ker) {a b : A} (h : a - b ∈ f.ker) :
     χ a = χ b := by
   have h1 : χ (a - b) = 1 := (mem_characterAnnihilator f.ker χ).mp hχ ⟨a - b, h⟩
@@ -102,9 +108,10 @@ def rangeCharToAnnihilator : AddChar f.range ℂ →+ ↥(characterAnnihilator f
   map_zero' := Subtype.ext (map_zero (precompHom f))
   map_add' ψ φ := Subtype.ext (map_add (precompHom f) ψ φ)
 
+omit [Fintype A] [Fintype B] in
 /-- Evaluating a pulled back range character at a gives the original character evaluated at
 `qRange` f a. -/
-@[simp] theorem rangeCharToAnnihilator_apply (ψ : AddChar f.range ℂ) (a : A) :
+@[simp] theorem rangeCharToAnnihilator_apply {A B : Type*} [_inst0 : AddCommGroup A] [_inst1 : AddCommGroup B] [_inst2 : Fintype A] [_inst3 : Fintype B] (f : A →+ B) (ψ : AddChar f.range ℂ) (a : A) :
     (rangeCharToAnnihilator f ψ).1 a = ψ (qRange f a) := rfl
 
 /-- Pullback from range characters to the kernel annihilator is injective. -/
@@ -120,8 +127,9 @@ theorem rangeCharToAnnihilator_injective :
   rw [hq] at h1
   exact h1
 
+omit [Fintype B] in
 /-- The cardinalities of the kernel annihilator and the kernel multiply to the cardinality of A. -/
-theorem annihilator_card_mul_ker_card :
+theorem annihilator_card_mul_ker_card {A B : Type*} [_inst0 : AddCommGroup A] [_inst1 : AddCommGroup B] [_inst2 : Fintype A] [_inst3 : Fintype B] (f : A →+ B) :
     Nat.card ↥(characterAnnihilator f.ker) * Nat.card ↥f.ker = Nat.card A := by
   have h := card_characterAnnihilator (H := f.ker)
   simp only [Fintype.card_eq_nat_card] at h
@@ -136,8 +144,8 @@ theorem natCard_annihilator_eq_card_range :
     rw [AddSubgroup.index_ker f] at h1
     rw [Nat.mul_comm (Nat.card ↥f.range) (Nat.card ↥f.ker)]
     exact h1
-  haveI : Nonempty A := ⟨0⟩
-  haveI : Nonempty ↥f.ker := ⟨⟨0, (AddMonoidHom.mem_ker).mpr (map_zero f)⟩⟩
+  have : Nonempty A := ⟨0⟩
+  have : Nonempty ↥f.ker := ⟨⟨0, (AddMonoidHom.mem_ker).mpr (map_zero f)⟩⟩
   have hkpos : 0 < Nat.card ↥f.ker := Nat.card_pos
   exact Nat.eq_of_mul_eq_mul_right hkpos
     (by rw [annihilator_card_mul_ker_card f, hrange])
@@ -218,12 +226,12 @@ theorem fig2OutcomeProb_eq_of_mem (χ : AddChar A ℂ)
     fig2OutcomeProb f χ =
       ((Nat.card ↥(characterAnnihilator f.ker) : ℝ))⁻¹ := by
   classical
-  haveI : Nonempty A := ⟨0⟩
-  haveI : Nonempty ↥f.ker :=
+  have : Nonempty A := ⟨0⟩
+  have : Nonempty ↥f.ker :=
     ⟨⟨0, (AddMonoidHom.mem_ker).mpr (map_zero f)⟩⟩
-  haveI : Nonempty ↥(characterAnnihilator f.ker) :=
+  have : Nonempty ↥(characterAnnihilator f.ker) :=
     ⟨⟨0, by rw [mem_characterAnnihilator]; intro h; simp⟩⟩
-  rw [fig2OutcomeProb, bornProb_abelianQFT_cosetState, if_pos hχ]
+  rw [fig2OutcomeProb, bornProb_abelianQFT_cosetState, ite_eq_left hχ]
   simp only [Fintype.card_eq_nat_card]
   have hcards : (Nat.card ↥(characterAnnihilator f.ker) : ℝ) * (Nat.card ↥f.ker : ℝ)
       = (Nat.card A : ℝ) := by
@@ -243,12 +251,13 @@ theorem fig2OutcomeProb_eq_of_mem (χ : AddChar A ℂ)
   rw [mul_comm ((Nat.card ↥(characterAnnihilator f.ker) : ℝ)⁻¹) ((Nat.card A : ℝ)⁻¹)]
   rw [← mul_assoc, mul_inv_cancel₀ hAR, one_mul]
 
+omit [Fintype B] in
 /-- A character outside the kernel annihilator has Fourier outcome probability zero. See
 [Watrous2001]. -/
-theorem fig2OutcomeProb_eq_of_not_mem (χ : AddChar A ℂ)
+theorem fig2OutcomeProb_eq_of_not_mem {A B : Type*} [_inst0 : AddCommGroup A] [_inst1 : AddCommGroup B] [_inst2 : Fintype A] [_inst3 : Fintype B] (f : A →+ B) (χ : AddChar A ℂ)
     (hχ : χ ∉ characterAnnihilator f.ker) :
     fig2OutcomeProb f χ = 0 := by
-  rw [fig2OutcomeProb, bornProb_abelianQFT_cosetState, if_neg hχ]
+  rw [fig2OutcomeProb, bornProb_abelianQFT_cosetState, ite_eq_right hχ]
 
 end Figure2
 
@@ -273,7 +282,7 @@ theorem addSubgroup_fin_generated_by_k {k N : ℕ} [NeZero N]
     refine ⟨fun i => (v i).val, ?_⟩
     funext i
     show (((v i).val : ℤ) : ZMod N) = v i
-    simpa using ZMod.natCast_zmod_val (v i)
+    simp
   let S' := S.comap π
   have hS' : S'.map π = S := AddSubgroup.map_comap_eq_self_of_surjective hπ S
   let Nsub : Submodule ℤ (Fin k → ℤ) := AddSubgroup.toIntSubmodule S'
@@ -447,7 +456,7 @@ theorem finite_abelian_primePower_decomposition (M : Type*) [AddCommGroup M] [Fi
 /-- Chooses a finite family of positive prime power cyclic orders and an additive equivalence
 realizing a finite abelian group as their product. -/
 theorem abelian_structure_exists (M : Type*) [AddCommGroup M] [Fintype M] :
-    ∃ (m : ℕ) (q : Fin m → ℕ) (θ : M ≃+ (∀ j : Fin m, ZMod (q j))),
+    ∃ (m : ℕ) (q : Fin m → ℕ) (_θ : M ≃+ (∀ j : Fin m, ZMod (q j))),
       ∀ j, ∃ p e : ℕ, p.Prime ∧ 0 < e ∧ q j = p ^ e := by
   obtain ⟨m, q, hq, ⟨θ⟩⟩ := finite_abelian_primePower_decomposition M
   exact ⟨m, q, θ, hq⟩

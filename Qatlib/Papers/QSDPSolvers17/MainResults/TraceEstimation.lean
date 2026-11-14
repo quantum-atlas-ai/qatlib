@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -60,7 +64,7 @@ theorem swap_test_copies_eq (B ε : ℝ) (m : ℕ) :
 /-- **Lemma 10, sample complexity.**  `S_Tr(B, ε) = O(B² log m/ε²)`: the SWAP-test
 estimator uses at most `8 B² (ln m + 1)/ε²` copies of `ρ`, an explicit `O(B² log m/ε²)`
 bound with constant `8`. -/
-theorem trace_estimation_copy_bound {B ε : ℝ} (hB : 0 ≤ B) (hε : 0 < ε) {m : ℕ}
+theorem trace_estimation_copy_bound {B ε : ℝ} (_hB : 0 ≤ B) (hε : 0 < ε) {m : ℕ}
     (hm : 2 ≤ m) :
     swapTestCopies B ε m ≤ 8 * B ^ 2 * (Real.log m + 1) / ε ^ 2 := by
   have hm1 : (1 : ℝ) ≤ m := by exact_mod_cast (le_trans (by norm_num : 1 ≤ 2) hm)
@@ -124,6 +128,8 @@ theorem mixture_preparation_identity (A : ι → Operator D) (v : ι → ℝ)
     _ = ((∑ k, v k)⁻¹) • ∑ j, A j := by
         rw [Finset.smul_sum]
 
+omit [Fintype ι] in
+
 /-- **Lemma 11, preparation count.**  With `|S|` mixture components the preparation uses
 `|S| + 1` copies of the component states: one for each index in `S`, plus one extra copy
 for the overall trace normalization. -/
@@ -142,7 +148,7 @@ noncomputable def samplerPolylog (n r B ε : ℝ) : ℝ :=
 at most `(Φ+1) · poly(log n, r_K, B_K, 1/ε) = Õ(Φ · poly(...))` gates (the `+1` is the
 extra normalization copy of Lemma 11). -/
 theorem gibbs_sampler_cost (Φ n r B ε T₀ : ℝ) (hΦ : 0 ≤ Φ)
-    (hT₀ : 0 ≤ T₀) (hper : T₀ ≤ samplerPolylog n r B ε) :
+    (_hT₀ : 0 ≤ T₀) (hper : T₀ ≤ samplerPolylog n r B ε) :
     (Φ + 1) * T₀ ≤ (Φ + 1) * samplerPolylog n r B ε :=
   mul_le_mul_of_nonneg_left hper (by linarith)
 
@@ -150,7 +156,7 @@ theorem gibbs_sampler_cost (Φ n r B ε T₀ : ℝ) (hΦ : 0 ≤ Φ)
 `(Φ+1) · samplerPolylog ≤ 2 · (Φ+1) · samplerPolylog`.  Combined with
 `gibbs_sampler_cost` this records the `Φ`-scaling of Lemma 12. -/
 theorem gibbs_sampler_cost_scale (Φ n r B ε : ℝ) (hΦ : 0 ≤ Φ) (hn : 1 ≤ n) (hr : 0 ≤ r)
-    (hB : 0 ≤ B) (hε : 0 < ε) :
+    (hB : 0 ≤ B) (_hε : 0 < ε) :
     (Φ + 1) * samplerPolylog n r B ε ≤ 2 * ((Φ + 1) * samplerPolylog n r B ε) := by
   have hpoly : 0 ≤ samplerPolylog n r B ε := by
     have hlog : 0 ≤ Real.log n + 1 := by

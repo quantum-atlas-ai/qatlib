@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastMixing26.MainResults.ClusterExpansion.SourceClusterExpansion
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.FastMixing26.MainResults.ClusterExpansion.SourceClusterExpansion
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

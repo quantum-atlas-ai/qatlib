@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLowerBound00.MainResults.Model.AdversaryD
+module
+
+public import Qatlib.Papers.QLowerBound00.MainResults.Model.AdversaryD
+
+@[expose] public section
 
 /-!
 # Finite-alphabet adversary lower bound
@@ -138,12 +142,12 @@ theorem source_theorem6 {n d Z : ℕ} (hd : 0 < d) {β : Type*} [DecidableEq β]
     rw [Finset.sum_congr rfl (fun iw _ => hterm iw), ← Finset.mul_sum, hnorm k x, mul_one]
   have hαX : ∀ x ∈ X, α x ^ 2 = (2 * (X.card : ℝ))⁻¹ := by
     intro x hx
-    simp only [α, initialAmplitude, if_pos hx]
+    simp only [α, initialAmplitude, ite_eq_left hx]
     rw [inv_pow, Real.sq_sqrt (by positivity)]
   have hαY : ∀ y ∈ Y, α y ^ 2 = (2 * (Y.card : ℝ))⁻¹ := by
     intro y hy
     have hyX : y ∉ X := fun h => (Finset.disjoint_left.mp hdisj) h hy
-    simp only [α, initialAmplitude, if_neg hyX, if_pos hy]
+    simp only [α, initialAmplitude, ite_eq_right hyX, ite_eq_left hy]
     rw [inv_pow, Real.sq_sqrt (by positivity)]
   have hmass_le : ∀ k, (∑ iw, ∑ x ∈ X, ‖φ k iw x‖ ^ 2) +
       (∑ iw, ∑ y ∈ Y, ‖φ k iw y‖ ^ 2) ≤ 1 := by

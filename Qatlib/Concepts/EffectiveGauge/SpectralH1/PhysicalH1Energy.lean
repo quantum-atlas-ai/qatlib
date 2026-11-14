@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierEnergyTail
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierEnergyTail
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

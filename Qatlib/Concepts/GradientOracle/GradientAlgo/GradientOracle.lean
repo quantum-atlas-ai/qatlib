@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+
+@[expose] public section
 
 /-!
 # Fourier gradient readout and implementation guarantees
@@ -91,7 +95,7 @@ theorem g8 :
             (Finset.univ.filter (fun z => ∀ j : Fin d,
               phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w)) ≥
           1 - 16 * (d : ℝ) / ((M : ℝ) * w)) ∧
-    (∀ (M : ℕ) (φ w : ℝ) (hM : 0 < M) (hw : 0 < w),
+    (∀ (M : ℕ) (φ w : ℝ) (_hM : 0 < M) (_hw : 0 < w),
       (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
         w < phaseDistance φ ((y.val : ℝ) / (M : ℝ))), ‖qpeKernel M φ y‖ ^ 2) ≤
         16 / ((M : ℝ) * w))) ∧
@@ -120,7 +124,7 @@ theorem g8 :
               phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w)) ≥
           1 - readoutErrorBudget d M w δ) ∧
 
-  (∀ (d M : ℕ) (hM : 0 < M) (K k : ℕ),
+  (∀ (d M : ℕ) (_hM : 0 < M) (K k : ℕ),
     IsUnitaryCircuit (fullRangeGradientProgram d M K k) ∧
       QueryCount (fullRangeGradientProgram d M K k) = 1 ∧
       GateCount (fullRangeGradientProgram d M K k) = 2 * d + 1) ∧

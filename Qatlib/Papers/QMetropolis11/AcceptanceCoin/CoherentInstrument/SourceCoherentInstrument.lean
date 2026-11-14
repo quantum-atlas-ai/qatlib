@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
-import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalQuan
+module
+
+public import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
+public import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

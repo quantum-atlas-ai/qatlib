@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Qatlib.Papers.ZeroSumGames19.MainResults.MatrixWeights.SourceLemma1
-import Mathlib.MeasureTheory.Measure.Real
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Qatlib.Papers.ZeroSumGames19.MainResults.MatrixWeights.SourceLemma1
+public import Mathlib.MeasureTheory.Measure.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,7 +45,7 @@ open Qatlib.Papers.ZeroSumGames19.MainResults.MatrixWeights
     sparse-oracle queries is the data-structure half, recorded here as the
     total-cost arithmetic against the contract. -/
 theorem source_lemma4_content
-    {n m s d : ℕ} (hn : 0 < n) (hm : 0 < m) (hs : 0 < s) (hd : 0 < d)
+    {n m s d : ℕ} (hn : 0 < n) (hm : 0 < m) (_hs : 0 < s) (_hd : 0 < d)
     (A : PayoffMatrix n m)
     {ε δ : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1) (hδ0 : 0 < δ) (hδ1 : δ < 1 / 3)
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]

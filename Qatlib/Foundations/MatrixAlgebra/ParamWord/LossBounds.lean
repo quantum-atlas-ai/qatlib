@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordBounds
-import Mathlib.Analysis.InnerProductSpace.Calculus
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordBounds
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+
+@[expose] public section
 
 /-!
 # Bounds for quadratic expectation losses
@@ -118,7 +122,7 @@ theorem expectationD_lipschitz_bound (T : H→L[ℝ]H) (S : E→H) (DS : E→E�
       inner ℝ (S y) (T (DS x v-DS y v))+
       inner ℝ (DS x v-DS y v) (T (S x))+
       inner ℝ (DS y v) (T (S x-S y)) := by
-    simp only [expectationD,ContinuousLinearMap.sub_apply,ContinuousLinearMap.add_apply,
+    simp only [expectationD,_root_.sub_apply,_root_.add_apply,
       ContinuousLinearMap.comp_apply,innerSL_apply_apply,map_sub,inner_sub_left,inner_sub_right]
     rw [real_inner_comm (T (S x)) (DS x v),real_inner_comm (T (S y)) (DS y v)]
     ring

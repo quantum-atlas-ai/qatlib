@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultivarMean21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.MultivarMean21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,10 +36,10 @@ Output-error and resource specification corresponding to proposition3.2.
 its output semantics and recorded resource usage. No such implementation or
 existence proof is supplied here; the legacy records alone do not restrict access
 to the full input. -/
-def proposition3_2_statement {d : ℕ} (hd : 0 < d) (L2 α ε : ℝ) (m : ℕ)
-    (hL2 : 0 < L2) (hL2' : L2 ≤ 1) (hm : 1 / L2 ≤ (m : ℝ))
-    (hα : 0 < α) (hα' : α < 1) (hε : 0 < ε) (hε' : ε < 1)
-    (r : FinRV d) (hbound : r.BoundedL2) (hmean : r.expectedNorm ≤ L2)
+def proposition3_2_statement {d : ℕ} (_hd : 0 < d) (L2 α ε : ℝ) (m : ℕ)
+    (_hL2 : 0 < L2) (_hL2' : L2 ≤ 1) (_hm : 1 / L2 ≤ (m : ℝ))
+    (_hα : 0 < α) (_hα' : α < 1) (_hε : 0 < ε) (_hε' : ε < 1)
+    (r : FinRV d) (_hbound : r.BoundedL2) (_hmean : r.expectedNorm ≤ L2)
     (Implemented : PhaseEncoding d → Prop) : Prop :=
     ∃ PE : PhaseEncoding d,
       Implemented PE ∧

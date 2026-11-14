@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDimension
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDimension
+
+@[expose] public section
 
 /-!
 # Canonical zero-state stabilizer generators
@@ -53,7 +57,7 @@ theorem zero_row_symp (n : ℕ) (i : Fin n) :
       simp [rowSympVec,symplecticVec,zeroTableau,Row.decode,letter,symplecticX,h]
   · funext j
     by_cases h : j=i <;>
-      simp [rowSympVec,symplecticVec,zeroTableau,Row.decode,letter,symplecticZ,Pi.single_apply,h]
+      simp [rowSympVec,symplecticVec,zeroTableau,Row.decode,letter,symplecticZ,h]
 
 /-- The zero tableau is consistent. -/
 theorem zero_tableau_consistent (n : ℕ) : ConsistentTableau (zeroTableau n) := by

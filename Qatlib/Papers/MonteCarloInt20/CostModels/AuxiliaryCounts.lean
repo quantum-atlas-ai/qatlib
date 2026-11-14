@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
+
+@[expose] public section
 
 /-!
 # Auxiliary operation counts in nested amplitude estimation
@@ -85,7 +89,7 @@ theorem expanded_aux_counts {I : Type} [Fintype I] [DecidableEq I]
     cases a <;> simp only [List.flatMap_cons,accessCount_append,expandOuterStep,accessCount_lift,
       accessCount_adjoint,hr,aeForwardAccesses,aeBackwardAccesses] at * <;>
       simp only [accessCount,List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,
-        if_neg hf,if_neg ho,zero_add,add_zero,Nat.add_mul,Nat.one_mul] at * <;> omega
+        ite_eq_right hf,ite_eq_right ho,zero_add,add_zero,Nat.add_mul,Nat.one_mul] at * <;> omega
 
 /-- For positive inner and outer sizes, each of the payoff-rotation and sample-Hadamard tags
 occurs exactly `2 * N - 1` times in the nested word. -/

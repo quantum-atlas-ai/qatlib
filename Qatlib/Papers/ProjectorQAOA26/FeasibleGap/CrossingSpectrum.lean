@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformResidual
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.UniquePole
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformResidual
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.UniquePole
+
+@[expose] public section
 
 /-!
 # Locating the lowest eigenvalues at the crossing

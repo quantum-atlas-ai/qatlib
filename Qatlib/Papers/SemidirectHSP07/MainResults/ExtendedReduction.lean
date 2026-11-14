@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.ReductionSource
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.Commutator.Basic
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.ReductionSource
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.GroupTheory.Commutator.Basic
+
+@[expose] public section
 
 /-!
 # Abelian quotient and normal candidate subgroups

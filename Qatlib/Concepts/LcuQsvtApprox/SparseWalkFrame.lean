@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
-import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
-import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
-import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedLowc
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+module
+
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedLowc
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+
+@[expose] public section
 
 /-!
 # Polynomial synthesis and spectral walk frames
@@ -580,7 +584,7 @@ theorem lqWalkL_dot_R {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     have hcong : (∑ x : Fin m, (if x = i then (1 : ℂ) else 0) * T x j)
         = ∑ x : Fin m, (if i = x then T x j else 0) :=
       Finset.sum_congr rfl fun x _ => h x
-    rw [hcong, Finset.sum_ite_eq, if_pos (Finset.mem_univ i)]
+    rw [hcong, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ i)]
   rw [e2, hsum, hfinal]
 
 /-- The zero-zero block of `lqWalkS T N` is `T`. -/
@@ -749,7 +753,7 @@ theorem lqWalkS_mul_L {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
       have hcong2 : (∑ k, T p k * (if k = j then (1 : ℂ) else 0))
           = ∑ k, (if j = k then T p k else 0) :=
         Finset.sum_congr rfl fun k _ => hite k
-      rw [hcong2, Finset.sum_ite_eq, if_pos (Finset.mem_univ j)]
+      rw [hcong2, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ j)]
     have e2 : (∑ k, lqWalkS T N (0, p) (1, k) * lqWalkL ((1 : Fin 2), k) j) = (0 : ℂ) := by
       refine Finset.sum_eq_zero fun k _ => ?_
       simp [lqWalkS, lqWalkL, Matrix.of_apply]
@@ -775,7 +779,7 @@ theorem lqWalkS_mul_L {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
       have hcong2 : (∑ k, N p k * (if k = j then (1 : ℂ) else 0))
           = ∑ k, (if j = k then N p k else 0) :=
         Finset.sum_congr rfl fun k _ => hite k
-      rw [hcong2, Finset.sum_ite_eq, if_pos (Finset.mem_univ j)]
+      rw [hcong2, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ j)]
     have e2 : (∑ k, lqWalkS T N (1, p) (1, k) * lqWalkL ((1 : Fin 2), k) j) = (0 : ℂ) := by
       refine Finset.sum_eq_zero fun k _ => ?_
       simp [lqWalkS, lqWalkL, Matrix.of_apply]

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem coefficient_length_lower_bound
         · linarith
       have hgt : q * (1 - q) ≥ q0 * (1 - q0) := by nlinarith [hfactor]
       exact le_trans (min_le_left _ _) hgt
-    · push_neg at hqh
+    · push Not at hqh
       have hfactor : 0 ≤ (q - rN) * (1 - q - rN) := by
         apply mul_nonneg
         · linarith

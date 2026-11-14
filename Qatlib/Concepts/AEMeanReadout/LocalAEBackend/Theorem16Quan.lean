@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Stat
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Stat
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Exact search under a cardinality promise
@@ -455,7 +459,7 @@ theorem bhmt_theorem16_promise_exact : BHMTTh16.Theorem16 := by
         = (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.ratio a,
           Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.program
             (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.iterations a)) := by
-      simp [Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design, if_neg ha1eq]
+      simp [Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design, ite_eq_right ha1eq]
     have hbud := promise_design_mark_budget a
     rw [hdesign] at hbud
     dsimp only at hbud

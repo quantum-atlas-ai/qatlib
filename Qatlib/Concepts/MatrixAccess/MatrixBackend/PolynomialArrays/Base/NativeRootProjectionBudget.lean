@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceBitPrecision
-import Mathlib.RingTheory.Polynomial.Resultant.Basic
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
-import Mathlib.Analysis.Polynomial.CauchyBound
-import Mathlib.FieldTheory.Separable
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceBitPrecision
+public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
+public import Mathlib.Analysis.Polynomial.CauchyBound
+public import Mathlib.FieldTheory.Separable
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -165,7 +169,7 @@ structure RootProjectionContext where
   yProjection : List ℤ
 
 /-- Construction for root Projection List Max in the native root projection budget model. -/
-private def rootProjectionListMax (xs : List ℕ) : ℕ := xs.foldl max 0
+def rootProjectionListMax (xs : List ℕ) : ℕ := xs.foldl max 0
 /-- Construction for root Projection Degree in the native root projection budget model. -/
 def rootProjectionDegree (f : List ℤ) : ℕ := f.length-1
 /-- Construction for root Projection Height in the native root projection budget model. -/

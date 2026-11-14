@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgForm09.MainResults.Model.Formula
+module
+
+public import Qatlib.Papers.SpanProgForm09.MainResults.Model.Formula
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,7 +192,7 @@ structure IsDirectSumComposition (P : SpanProgram n V I) {m : Fin n → ℕ} {W 
     [Fintype W] [DecidableEq W] [Fintype J] [DecidableEq J]
     (Qin : (j : Fin n) → Bool → SpanProgram (m j) W J)
     (Q : SpanProgram (∑ j, m j) (V ⊕ ((j : Fin n) → Bool → W))
-      (I ⊕ ((j : Fin n) × Bool × J))) : Prop where
+      (I ⊕ ((_j : Fin n) × Bool × J))) : Prop where
   /-- The composed target restricts to the outer target on the `V` summand. -/
   target_inl : ∀ v, Q.target (Sum.inl v) = P.target v
   /-- The composed target vanishes on the inner summand. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.Normed.Group.Submodule
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.Normed.Group.Submodule
+
+@[expose] public section
 
 /-!
 # Precision for partial unitary operators
@@ -113,10 +117,11 @@ theorem partialInv_error (U U' : PartialOp E) (δ : ℝ) (h : Represents U U' δ
   let ξ' : U'.dom := U'.iso.symm ⟨(η : E), h.cod_le η.2⟩
   have hξ : (U.iso ξ : E) = (η : E) := by
     have hh := U.iso.apply_symm_apply η
-    simpa [ξ] using congrArg (fun z : U.cod => (z : E)) hh
+    simp [ξ]
   have hξ' : (U'.iso ξ' : E) = (η : E) := by
-    have hh := U'.iso.apply_symm_apply ⟨(η : E), h.cod_le η.2⟩
-    simpa [ξ'] using congrArg (fun z : U'.cod => (z : E)) hh
+    have hh
+  := U'.iso.apply_symm_apply ⟨(η : E), h.cod_le η.2⟩
+    simp [ ξ' ]
   have hiso : ‖(ξ' : E) - (ξ : E)‖
       = ‖(U'.iso ξ' : E) - (U'.iso ⟨ξ, h.dom_le ξ.2⟩ : E)‖ := by
     have hmap : U'.iso (ξ' - ⟨ξ, h.dom_le ξ.2⟩)

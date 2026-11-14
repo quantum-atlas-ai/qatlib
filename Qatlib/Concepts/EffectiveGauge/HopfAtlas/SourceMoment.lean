@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceJetCurvature
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanCube
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceJetCurvature
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanCube
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

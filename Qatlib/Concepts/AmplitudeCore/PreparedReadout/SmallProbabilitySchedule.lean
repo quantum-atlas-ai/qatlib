@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.Floor.Ring
-import Lean.Elab.Tactic.Omega
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Lean.Elab.Tactic.Omega
+
+@[expose] public section
 
 /-!
 # Dyadic schedules for small-probability estimation

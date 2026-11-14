@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+
+@[expose] public section
 
 /-!
 # Hamming graph witnesses for alphabet interrogation
@@ -91,8 +95,8 @@ private theorem alphabetFilter_sum_perm {n a : ℕ} [NeZero a] (i : Fin n) :
   by_cases hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1 ∧ x i ≠ y i
   · have hd : x i - y i ≠ 0 := sub_ne_zero.mpr hc.2
     rw [Finset.sum_eq_single (x i - y i)]
-    · simp only [alphabetFilter, if_pos hc.2, alphabetCubeGamma, if_pos hc.1,
-        permMatrix, Matrix.of_apply, if_pos (alphabet_single_diff x y i hc.1 hc.2)]
+    · simp only [alphabetFilter, ite_eq_left hc.2, alphabetCubeGamma, ite_eq_left hc.1,
+        permMatrix, Matrix.of_apply, ite_eq_left (alphabet_single_diff x y i hc.1 hc.2)]
     · intro c _ hcd
       have hne : x ≠ alphabetCoordinateShift i c y := by
         intro h
@@ -122,7 +126,7 @@ private theorem alphabetCubeGamma_sum (n a : ℕ) [NeZero a] :
   ext x y
   simp only [Matrix.sum_apply, alphabetFilter, alphabetCubeGamma]
   by_cases hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     rw [← Finset.sum_filter]
     simp [hc]
   · simp [hc]

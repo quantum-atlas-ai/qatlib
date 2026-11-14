@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Integrated threshold amplification bounds
@@ -309,7 +313,7 @@ theorem integratedThresholdPolynomial_scalar_bounds (γ δ ε : ℝ) (k : ℕ)
       nlinarith
     have hind : thresholdIndicator τ x = 0 := by
       unfold thresholdIndicator
-      rw [if_neg (by linarith : ¬ τ ^ 2 < x ^ 2)]
+      rw [ite_eq_right (by linarith : ¬ τ ^ 2 < x ^ 2)]
     have hgap : g ≤ |x ^ 2 - τ ^ 2| := by
       rw [abs_of_nonpos (by linarith)]
       linarith
@@ -332,7 +336,7 @@ theorem integratedThresholdPolynomial_scalar_bounds (γ δ ε : ℝ) (k : ℕ)
       nlinarith
     have hind : thresholdIndicator τ x = 1 := by
       unfold thresholdIndicator
-      rw [if_pos (by linarith : τ ^ 2 < x ^ 2)]
+      rw [ite_eq_left (by linarith : τ ^ 2 < x ^ 2)]
     have hgap : g ≤ |x ^ 2 - τ ^ 2| := hsep.trans (le_abs_self _)
     have he := thresholdPolynomial_error_le k hτ hgpos hgap
       (abs_le.mpr ⟨by linarith [hu.1], hx.2⟩)

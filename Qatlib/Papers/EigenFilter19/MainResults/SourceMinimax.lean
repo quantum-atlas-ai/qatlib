@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EigenFilter19.MainResults.SourceChebyshevBound
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Qatlib.Papers.EigenFilter19.MainResults.SourceChebyshevBound
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

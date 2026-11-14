@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Theorem 1 and Corollary 2: free-light-cone dense-output truncation
@@ -250,7 +254,7 @@ condition (21) and the light-cone condition (22), the dense-output truncation
 error at `R` is at most `ε`. -/
 theorem corollary2_truncation_radius
     {err : ℝ → ℝ} {n T α D η ε C C₀ : ℝ}
-    (hC : 0 < C) (hC₀ : 0 < C₀) (hn : 0 < n)
+    (_hC : 0 < C) (_hC₀ : 0 < C₀) (_hn : 0 < n)
     (hR : 1 ≤ corollary2Radius n T ε α D η)
     (hLC : T < (C₀ / n) *
       (corollary2Radius n T ε α D η) ^ (min 1 ((α - D - η) / 3)))

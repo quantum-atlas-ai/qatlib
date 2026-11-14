@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateTransfer03.MainResults.Source.CartesianPropagator
-import Qatlib.Papers.StateTransfer03.MainResults.Source.PairChainTransfer
+module
+
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.CartesianPropagator
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.PairChainTransfer
+
+@[expose] public section
 
 /-!
 # Constant-time transfer in hypercube spectral models

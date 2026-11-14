@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicReferenceWord
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordConnection
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPeriodic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicReferenceWord
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordConnection
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPeriodic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -121,7 +125,7 @@ theorem materializeReferencePreparation_connection_bound (v : SpatialPoint → S
   have hBq (z : List (Fin 3)) (hz : z.length ≤ w.length+1) :
       ‖spatialWordPartial (fun y => q (physicalPeriod • y)) z x‖ ≤ F z.length := by
     have hzlt : z.length<8 := by omega
-    simpa only [F,storedPhaseValue,dif_pos hzlt] using
+    simpa only [F,storedPhaseValue,dite_eq_left hzlt] using
       materializeReferencePreparation_reference_bound v hv hu hp source hs bounds hb prepared hrun eta he he1
         B hB mu hm hg hoff hmargin ⟨z.length,hzlt⟩ z rfl x
   have hbound := connection_word_bound _ (hq.comp (contDiff_id.const_smul physicalPeriod)) i F w x hBq

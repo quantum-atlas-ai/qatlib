@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Diagonal powers as spectral moments
@@ -50,10 +54,10 @@ theorem hermitian_pow_diagonal_eq
   set D : Matrix I I ℝ := diagonal (fun k => hA.eigenvalues k) with hDdef
   have hUU : U * star U = 1 := by
     have h := Unitary.mul_star_self_of_mem (hA.eigenvectorUnitary).2
-    simpa [hUdef] using h
+    simp [hUdef]
   have hU'U : star U * U = 1 := by
     have h := Unitary.star_mul_self_of_mem (hA.eigenvectorUnitary).2
-    simpa [hUdef] using h
+    simp [hUdef]
   have hA' : A = U * D * star U := by
     have h := hA.spectral_theorem
     rw [Unitary.conjStarAlgAut_apply] at h
@@ -110,7 +114,7 @@ theorem eigenvector_row_weights_sum_one
   set U : Matrix I I ℝ := (hA.eigenvectorUnitary : Matrix I I ℝ) with hUdef
   have hUU : U * star U = 1 := by
     have h := Unitary.mul_star_self_of_mem (hA.eigenvectorUnitary).2
-    simpa [hUdef] using h
+    simp [hUdef]
   have hentry := congrFun (congrFun hUU j) j
   rw [Matrix.mul_apply] at hentry
   have hUsj : ∀ a, star U a j = U j a := by

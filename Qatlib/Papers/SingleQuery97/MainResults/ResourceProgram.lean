@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.CompiledProgram
-import Qatlib.Papers.SingleQuery97.MainResults.WalshResources
-import Qatlib.Papers.SingleQuery97.MainResults.BalancedQueries
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.CompiledProgram
+public import Qatlib.Papers.SingleQuery97.MainResults.WalshResources
+public import Qatlib.Papers.SingleQuery97.MainResults.BalancedQueries
+
+@[expose] public section
 
 /-!
 # Sparse one-query programs and measured resource guarantees

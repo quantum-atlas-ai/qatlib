@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Reversing oracle circuits
@@ -63,6 +67,8 @@ theorem reverseCircuit_cons (s : Step I) (C : Circuit I) :
     ReverseCircuit (s :: C) = ReverseCircuit C ++ [reverseStep s] := by
   simp [ReverseCircuit]
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Circuit reversal preserves the number of fixed gates. -/
 theorem gateCount_reverseCircuit (C : Circuit I) : GateCount (ReverseCircuit C) = GateCount C := by
   induction C with
@@ -71,6 +77,8 @@ theorem gateCount_reverseCircuit (C : Circuit I) : GateCount (ReverseCircuit C) 
     cases s with
     | gate U => rw [reverseCircuit_cons, gateCount_append, ih]; simp [reverseStep]
     | query => rw [reverseCircuit_cons, gateCount_append, ih]; simp [reverseStep]
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Circuit reversal preserves the number of oracle queries. -/
 theorem queryCount_reverseCircuit (C : Circuit I) : QueryCount (ReverseCircuit C) = QueryCount C := by

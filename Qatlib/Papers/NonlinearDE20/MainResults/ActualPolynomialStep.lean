@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.MainResults.ClassicalEuler
-import Qatlib.Papers.NonlinearDE20.PolynomialStep.NonlinearProgramConsumer
+module
+
+public import Qatlib.Papers.NonlinearDE20.MainResults.ClassicalEuler
+public import Qatlib.Papers.NonlinearDE20.PolynomialStep.NonlinearProgramConsumer
+
+@[expose] public section
 
 /-!
 # Normalized polynomial steps in the classical Euler convention

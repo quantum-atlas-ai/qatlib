@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.WaveAngularGrowth
-import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.WaveAngularGrowth
+public import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+@[expose] public section
 
 /-!
 # Angular growth of Bessel and Airy propagators
@@ -56,7 +60,7 @@ theorem besselPropagator_matrix_angular (L H : Matrix n n ℂ) (hH : H.PosDef)
     (a := (0 : ℝ)) (b := Real.pi) (C := Real.exp (t * waveAngularRate L H r))
     (f := fun θ => wavePropagator (L + r ^ 2 • H) ((t : ℂ) * (Real.sin θ : ℂ)))
     (fun θ hθ => by
-      (try dsimp only)
+
       have hθ'' : θ ∈ Ioc (0 : ℝ) Real.pi := by simpa only [uIoc_of_le Real.pi_pos.le] using! hθ
       have hθ' : θ ∈ Icc (0 : ℝ) Real.pi := ⟨hθ''.1.le, hθ''.2⟩
       rw [← Complex.ofReal_mul]

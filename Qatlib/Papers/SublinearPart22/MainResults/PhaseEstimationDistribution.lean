@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,7 @@ theorem qpeOutcomeProb_eq_outcomeMass_of_pos
     (t : ℕ) (θ : ℝ) (i : Fin t) (ht : 0 < t)
     (hd : 0 < bhmt11CircleDist θ ((i.val : ℝ) / (t : ℝ))) :
     qpeOutcomeProb t θ i = bhmt11OutcomeMass t θ i := by
-  rw [qpeOutcomeProb, if_neg (ne_of_gt hd),
+  rw [qpeOutcomeProb, ite_eq_right (ne_of_gt hd),
     bhmt_phase_estimation_theorem11_mass_formula t θ ht i hd]
 
 /-- `sin (5π/8) = cos (π/8)`. -/
@@ -122,7 +126,7 @@ private lemma qpe_prob_lower_of_pos
   have htR : (8 : ℝ) ≤ (t : ℝ) := by exact_mod_cast ht
   have htpos : (0 : ℝ) < (t : ℝ) := by exact_mod_cast ht0
   set D := bhmt11CircleDist θ ((i.val : ℝ) / (t : ℝ)) with hD
-  rw [qpeOutcomeProb, if_neg (ne_of_gt hd)]
+  rw [qpeOutcomeProb, ite_eq_right (ne_of_gt hd)]
   set y : ℝ := D * Real.pi with hy
   set x : ℝ := (t : ℝ) * D * Real.pi with hx
   have hx_eq : x = (t : ℝ) * y := by rw [hx, hy]; ring
@@ -224,7 +228,7 @@ private lemma qpe_prob_upper_of_pos
   have htpos : (0 : ℝ) < (t : ℝ) := by exact_mod_cast ht0
   set D := bhmt11CircleDist θ ((i.val : ℝ) / (t : ℝ)) with hD
   have hdU : D ≤ 1 / 2 := (bhmt_phase_estimation_theorem11_distance_bounds θ _).2
-  rw [qpeOutcomeProb, if_neg (ne_of_gt hd)]
+  rw [qpeOutcomeProb, ite_eq_right (ne_of_gt hd)]
   set y : ℝ := D * Real.pi with hy
   set x : ℝ := (t : ℝ) * D * Real.pi with hx
   have hypos : 0 < y := by rw [hy]; positivity
@@ -309,7 +313,7 @@ theorem corollaryA2_qpe_probability_bounds
   constructor
   · intro hle
     by_cases hzero : Δ = 0
-    · rw [qpeOutcomeProb, if_pos hzero]
+    · rw [qpeOutcomeProb, ite_eq_left hzero]
       norm_num
     · exact qpe_prob_lower_of_pos t ht θ i (lt_of_le_of_ne hDnn (Ne.symm hzero)) hle
   · intro hge

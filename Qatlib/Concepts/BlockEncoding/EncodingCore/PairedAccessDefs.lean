@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedPrepareAccess
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstruction
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedPrepareAccess
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstruction
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+
+@[expose] public section
 
 /-!
 # Paired sparse-access tables and encoding words
@@ -94,13 +98,13 @@ noncomputable def rowTableFun (D : SparseAccess I O sr sc) (i : I) :
 theorem rowTableFun_inl (D : SparseAccess I O sr sc) (i : I) (o : O)
     (h : ∃ kx : Fin sr, D.rowPos i kx = .inl o) :
     rowTableFun D i (.inl o) = .inr (rowSlotOfAddr D i o h) := by
-  simp [rowTableFun, dif_pos h]
+  simp [rowTableFun, dite_eq_left h]
 
 /-- The extended row table fixes a column address absent from the row-position list. -/
 theorem rowTableFun_inl_of_not (D : SparseAccess I O sr sc) (i : I) (o : O)
     (h : ¬ (∃ kx : Fin sr, D.rowPos i kx = .inl o)) :
     rowTableFun D i (.inl o) = .inl o := by
-  simp [rowTableFun, dif_neg h]
+  simp [rowTableFun, dite_eq_right h]
 
 /-- Under legal sparse access, a row padding link from `k` to `k'` has the reverse link from
 `k'` to `k`. -/
@@ -233,13 +237,13 @@ noncomputable def colTableFun (D : SparseAccess I O sr sc) (j : O) :
 theorem colTableFun_inl (D : SparseAccess I O sr sc) (j : O) (i : I)
     (h : ∃ cx : Fin sc, D.colPos cx j = .inl i) :
     colTableFun D j (.inl i) = .inr (colSlotOfAddr D j i h) := by
-  simp [colTableFun, dif_pos h]
+  simp [colTableFun, dite_eq_left h]
 
 /-- The extended column table fixes a row address absent from the column-position list. -/
 theorem colTableFun_inl_of_not (D : SparseAccess I O sr sc) (j : O) (i : I)
     (h : ¬ (∃ cx : Fin sc, D.colPos cx j = .inl i)) :
     colTableFun D j (.inl i) = .inl i := by
-  simp [colTableFun, dif_neg h]
+  simp [colTableFun, dite_eq_right h]
 
 /-- Under legal sparse access, any column slot mapping to a padding address maps to its own
 tagged slot. -/

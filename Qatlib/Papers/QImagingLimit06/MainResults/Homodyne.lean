@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
+module
+
+public import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
+
+@[expose] public section
 
 /-!
 # Homodyne signal and resolution formulas

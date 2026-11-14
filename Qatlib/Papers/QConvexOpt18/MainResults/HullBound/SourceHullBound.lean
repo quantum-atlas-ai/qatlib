@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Papers.QConvexOpt18.MainResults.FiniteDiff.SourceFiniteDiff
+module
+
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Papers.QConvexOpt18.MainResults.FiniteDiff.SourceFiniteDiff
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

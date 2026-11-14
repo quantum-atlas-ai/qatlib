@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
-import Mathlib.Probability.Distributions.Uniform
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
+public import Mathlib.Probability.Distributions.Uniform
+
+@[expose] public section
 
 /-!
 # Exact costs for alternating randomized retries
@@ -146,7 +150,7 @@ theorem alternatingRetry_budget_four :
       PMF.pure (.inr true,2) := by
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 4 false (by decide)]
   simp only [alternatingRetryKernel, PMF.pure_bind, alternatingRetryCost, Bool.false_eq_true,
-    if_false]
+    ite_false]
   rw [weightedBudgetRun_pending _ _ 2 true (by decide),
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
@@ -156,9 +160,9 @@ theorem alternatingRetry_budget_five :
       (alternatingRetryKernel true).map (fun d => (d,5)) := by
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 5 false (by decide)]
   simp only [alternatingRetryKernel, PMF.pure_bind, alternatingRetryCost, Bool.false_eq_true,
-    if_false]
+    ite_false]
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 3 true (by decide)]
-  simp only [alternatingRetryCost, if_true, Nat.sub_self, weightedBudgetRun_zero,
+  simp only [alternatingRetryCost, ite_true, Nat.sub_self, weightedBudgetRun_zero,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
   change CostedLaw.charge 2 ((alternatingRetryKernel true).map (fun d => (d,3))) = _
   simp only [CostedLaw.charge, alternatingRetryKernel, PMF.map_comp, Function.comp_def]
@@ -175,10 +179,10 @@ theorem alternatingRetry_budget_ten_halt :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun alternatingRetryKernel alternatingRetryCost 10 (.inr false) (.inl (),10) = 1/4 := by
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 10 false (by decide)]
   simp only [alternatingRetryKernel, PMF.pure_bind, alternatingRetryCost, Bool.false_eq_true,
-    if_false, Qatlib.Concepts.StoppingCore.BranchCostCore.charge_point_mass]
+    ite_false, Qatlib.Concepts.StoppingCore.BranchCostCore.charge_point_mass]
   norm_num
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 8 true (by decide)]
-  simp only [alternatingRetryCost, if_true]
+  simp only [alternatingRetryCost, ite_true]
   norm_num
   rw [Qatlib.Concepts.StoppingCore.BranchCostCore.charge_point_mass]
   norm_num

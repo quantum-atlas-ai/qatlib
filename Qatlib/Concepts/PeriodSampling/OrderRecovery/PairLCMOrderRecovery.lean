@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.ReducedOrderDenominator
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.ReducedOrderDenominator
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
+
+@[expose] public section
 
 /-!
 # Order recovery from two reduced denominators
@@ -103,37 +107,45 @@ theorem pair_lcm_order_soundness_and_actual_work :
     cases hq : (pairLCMOrderDecode N M a (y,z)).1 with
     | none => simp [hq] at hd
     | some q => exact orderFactor_sound N a q d (by simpa [hq] using! hd)
-  refine ⟨?_, ?_, ?_, hfac⟩
-  all_goals
-    have hx := reducedOrderDecode_count N M y
-    have hy := reducedOrderDecode_count N M z
-    unfold pairLCMOrderDecode
-    (try dsimp only)
-    cases hd : (reducedOrderDecode N M y).1 with
+  rw [← and_assoc, ← and_assoc]
+  refine ⟨?_, hfac⟩
+  have hx := reducedOrderDecode_count N M y
+  have hy := reducedOrderDecode_count N M z
+  cases hd : (reducedOrderDecode N M y).1 with
+  | none =>
+    simp only [pairLCMOrderDecode, hd]
+    refine ⟨⟨?_, Nat.zero_le _⟩, ?_⟩
+    · calc
+        _ ≤ N * (N + 1) / 2 + N * (N + 1) / 2 := Nat.add_le_add hx hy
+        _ = 2 * (N * (N + 1) / 2) := by omega
+        _ ≤ N * (N + 1) := Nat.mul_div_le _ _
+    · simp
+  | some x =>
+    obtain ⟨p,q⟩ := x
+    have hq := reducedOrderDecode_sound N M y p q hd
+    cases he : (reducedOrderDecode N M z).1 with
     | none =>
-      simp
-      all_goals omega
+      simp only [pairLCMOrderDecode, hd, he]
+      refine ⟨⟨?_, Nat.zero_le _⟩, ?_⟩
+      · calc
+          _ ≤ N * (N + 1) / 2 + N * (N + 1) / 2 := Nat.add_le_add hx hy
+          _ = 2 * (N * (N + 1) / 2) := by omega
+          _ ≤ N * (N + 1) := Nat.mul_div_le _ _
+      · simp
     | some x =>
-      obtain ⟨p,q⟩ := x
-      have hq := reducedOrderDecode_sound N M y p q hd
-      cases he : (reducedOrderDecode N M z).1 with
-      | none =>
-        simp
-        all_goals omega
-      | some x =>
-        obtain ⟨u,v⟩ := x
-        have hv := reducedOrderDecode_sound N M z u v he
-        (try dsimp only)
-        first
-        | omega
-        | exact (Nat.lcm_le_mul hq.1 hv.1).trans (by simpa [pow_two] using! Nat.mul_le_mul hq.2 hv.2)
-        | intro j hj
-          split at hj
-          · cases Option.some.inj hj
-            exact ⟨Nat.lcm_pos hq.1 hv.1, by
-              simpa [orderVerificationProduct_eq_pow] using!
-                ‹orderVerificationProduct N a (Nat.lcm q v)=1›⟩
-          · simp at hj
+      obtain ⟨u,v⟩ := x
+      have hv := reducedOrderDecode_sound N M z u v he
+      simp only [pairLCMOrderDecode, hd, he]
+      refine ⟨⟨?_, ?_⟩, ?_⟩
+      · omega
+      · exact (Nat.lcm_le_mul hq.1 hv.1).trans (by simpa [pow_two] using! Nat.mul_le_mul hq.2 hv.2)
+      · intro j hj
+        split at hj
+        · cases Option.some.inj hj
+          exact ⟨Nat.lcm_pos hq.1 hv.1, by
+            simpa [orderVerificationProduct_eq_pow] using!
+              ‹orderVerificationProduct N a (Nat.lcm q v)=1›⟩
+        · simp at hj
 /-- The set of pairs of indices below `r` both divisible by `d`. -/
 private def orderDivisiblePairs (r d : ℕ) : Finset (Fin r×Fin r) :=
   Finset.univ.filter fun st => d ∣ st.1.val ∧ d ∣ st.2.val

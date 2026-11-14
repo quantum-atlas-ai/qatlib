@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
+module
+
+public import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
+
+@[expose] public section
 
 /-!
 # Fair-bit sampling and dyadic approximation
@@ -71,7 +75,6 @@ theorem memberDecode_uniform (S : MemberSampler) (i : Fin S.size) :
   have hsize0 : (S.size : ℝ) ≠ 0 := ne_of_gt hsize
   have hmass0 : fairBitMass S.fairBits ≠ 0 := ne_of_gt hmass
   field_simp
-  <;> ring_nf
 
 /-- Every member has uniform conditional probability `1 / S.size` after normalization by the
 acceptance mass. -/
@@ -115,7 +118,7 @@ theorem rejection_terminates (S : MemberSampler) (t : ℕ) :
   exact pow_le_one₀ (rejectionTail_nonneg S) hle
 
 /-- The recorded fair-bit count equals itself for every supplied bit-string index. -/
-theorem memberDecode_fairBits (S : MemberSampler) (j : Fin (2 ^ S.fairBits)) :
+theorem memberDecode_fairBits (S : MemberSampler) (_j : Fin (2 ^ S.fairBits)) :
     S.fairBits = S.fairBits := rfl
 
 /-- The uniform distribution on twenty-four indices. -/
@@ -191,18 +194,18 @@ theorem designSampler_law_eq_designEnsemble (i : Fin 24) :
 /-- Multiplying the absolute value of a real number by `quantSign` recovers that number. -/
 theorem quantSign_mul_abs (x : ℝ) : quantSign x * |x| = x := by
   by_cases h : 0 ≤ x
-  · rw [quantSign, if_pos h, abs_of_nonneg h]
+  · rw [quantSign, ite_eq_left h, abs_of_nonneg h]
     ring
   · have hx : x < 0 := lt_of_not_ge h
-    rw [quantSign, if_neg h, abs_of_neg hx]
+    rw [quantSign, ite_eq_right h, abs_of_neg hx]
     ring
 
 /-- The absolute value of `quantSign x` is one. -/
 theorem abs_quantSign (x : ℝ) : |quantSign x| = 1 := by
   by_cases h : 0 ≤ x
-  · rw [quantSign, if_pos h]
+  · rw [quantSign, ite_eq_left h]
     norm_num
-  · rw [quantSign, if_neg h]
+  · rw [quantSign, ite_eq_right h]
     norm_num
 
 /-- The signed dyadic approximation of a negative real number is nonpositive. -/
@@ -211,7 +214,7 @@ theorem roundedDyadic_neg (k : ℕ) (x : ℝ) (hx : x < 0) :
   have hM : 0 < fairBitMass k := fairBitMass_pos k
   have hfloor : (0 : ℝ) ≤ (Nat.floor (fairBitMass k * |x|) : ℕ) := by positivity
   have hsign : quantSign x = -1 := by
-    rw [quantSign, if_neg (by linarith : ¬(0 ≤ x))]
+    rw [quantSign, ite_eq_right (by linarith : ¬(0 ≤ x))]
   rw [roundedDyadic, hsign]
   have hnonneg : (0 : ℝ) ≤ (Nat.floor (fairBitMass k * |x|) : ℕ) := by positivity
   have hden : 0 < fairBitMass k := hM
@@ -314,7 +317,7 @@ theorem theorem5WrapperAllowance_nonneg (d r : ℕ) (α : ℝ) (hr : 0 < r) (hrd
 /-- With positive allowance, the assumed bound of `N` below by demand divided by allowance
 implies that demand is at most `N` times allowance. -/
 theorem theorem5_wrapper (N M d r : ℕ) (δ α : ℝ)
-    (hr : 0 < r) (hrd : r ≤ d) (hα : 0 < α)
+    (_hr : 0 < r) (_hrd : r ≤ d) (_hα : 0 < α)
     (hallow : 0 < Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α)
     (hN : (N : ℝ) ≥ Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperDemand M δ /
         Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α) :

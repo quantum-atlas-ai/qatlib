@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.BlochBranch
-import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.BlochBranch
+public import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # External potential phase generators
@@ -75,8 +79,8 @@ theorem externalPhaseOn_unitary {N : ℕ} (i : Fin N) (θ : ℝ) :
   apply diagonal_phase_unitary
   intro x
   by_cases hx : x i
-  · rw [if_pos hx]; exact externalPhase_normSq θ
-  · rw [if_neg hx]; exact Complex.normSq_one
+  · rw [ite_eq_left hx]; exact externalPhase_normSq θ
+  · rw [ite_eq_right hx]; exact Complex.normSq_one
 
 /-- The phase `exp (-(s * U) * I)` has derivative `-U * I` at zero. -/
 theorem externalPhase_hasDerivAt (U : ℝ) :

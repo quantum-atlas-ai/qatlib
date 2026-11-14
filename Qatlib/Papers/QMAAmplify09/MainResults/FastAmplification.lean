@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMAAmplify09.MainResults.Defs
-import Qatlib.Papers.QMAAmplify09.MainResults.MedianLemma
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Papers.QMAAmplify09.MainResults.Defs
+public import Qatlib.Papers.QMAAmplify09.MainResults.MedianLemma
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Phase separation and fast QMA amplification

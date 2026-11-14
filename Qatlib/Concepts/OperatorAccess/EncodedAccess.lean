@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.QueryWordCore.AdjointCircuits
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Positive operator encodings from purified access
@@ -90,11 +94,13 @@ theorem purifiedDensity_sum (psi : QState (A × I)) :
   ext i j
   simp [purifiedDensity, outerProduct_apply, Matrix.sum_apply]
 
+omit [DecidableEq A] [DecidableEq I] in
 /-- The reduced matrix of any state vector is positive semidefinite. -/
 theorem purifiedDensity_posSemidef (psi : QState (A × I)) : (purifiedDensity psi).PosSemidef := by
   rw [purifiedDensity_sum]
   exact Matrix.posSemidef_sum _ (fun a ha => outerProduct_posSemidef _)
 
+omit [DecidableEq A] [DecidableEq I] in
 /-- The trace of the reduced matrix is the complex cast of the sum of squared norms of the state
 amplitudes. -/
 theorem purifiedDensity_trace (psi : QState (A × I)) :

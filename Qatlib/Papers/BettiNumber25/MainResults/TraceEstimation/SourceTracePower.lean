@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -133,14 +137,14 @@ theorem Dpow_conjTranspose_mul_self (D : Matrix (Fin N) (Fin N) ℂ) (d : ℕ) (
     (Dpow D d)ᴴ * Dpow D d = (Dᴴ * D) ^ d := by
   unfold Dpow
   by_cases hEven : Even d
-  · simp only [hEven, if_true]
+  · simp only [hEven, ite_true]
     rw [conjTranspose_pow_conjTranspose_mul_self]
     rw [← pow_add]
     obtain ⟨m, hm⟩ := hEven
     subst hm
     congr 1
     omega
-  · simp only [hEven, if_false]
+  · simp only [hEven, ite_false]
     obtain ⟨m, hm⟩ := Nat.not_even_iff_odd.mp hEven
     subst hm
     have hdiv : (2 * m + 1 - 1) / 2 = m := by omega

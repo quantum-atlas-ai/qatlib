@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.ExchangeSign
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Measurement
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.ExchangeSign
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Measurement
+
+@[expose] public section
 
 /-!
 # Composition of first-quantized resource counts

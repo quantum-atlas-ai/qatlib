@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2SegmentationCorrectedStat
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedSimu
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Segmentation
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2SegmentationCorrectedStat
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedSimu
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Segmentation
+
+@[expose] public section
 
 /-!
 # Amplified log-two segmentation

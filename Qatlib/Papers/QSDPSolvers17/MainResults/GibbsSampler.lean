@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,7 +103,7 @@ The multiplicative-error guarantee `|Zest - Z| ≤ ε·Z` is the output of Algor
 (Cauchy–Schwarz via (F.7)–(F.10)); it implies the two-sided bracket
 `(1-ε)Z ≤ Zest ≤ (1+ε)Z`.  The budget is a `poly(log n, r_K, B, ε⁻¹, ξ⁻¹)`. -/
 theorem partition_function_lemma (n r B ε ξ Z Zest gates : ℝ)
-    (hn : 1 ≤ n) (hr : 0 ≤ r) (hB : 0 ≤ B) (hε : 0 < ε) (hZ : 0 < Z)
+    (hn : 1 ≤ n) (hr : 0 ≤ r) (hB : 0 ≤ B) (hε : 0 < ε) (_hZ : 0 < Z)
     (hξ : 0 < ξ) (hξ004 : ξ ≤ 0.04)
     (hgate : gates ≤ partitionGateBudget n r B ε ξ)
     (hest : |Zest - Z| ≤ ε * Z) :
@@ -138,7 +142,7 @@ noncomputable def gibbsGateBudget (n r B ε : ℝ) : ℝ :=
 The error analysis of (F.14)–(F.17) gives `dist ≤ 4δ` at threshold `δ`; choosing
 `δ = ε/4` yields `dist ≤ ε`.  The budget is a `poly(log n, r_K, B, ε⁻¹)`. -/
 theorem gibbs_state_preparation (n r B ε dist : ℝ) (hn : 1 ≤ n) (hr : 0 ≤ r)
-    (hB : 0 ≤ B) (hε : 0 < ε) (hdist : dist ≤ 4 * (ε / 4)) :
+    (hB : 0 ≤ B) (_hε : 0 < ε) (hdist : dist ≤ 4 * (ε / 4)) :
     ∃ gates : ℝ, gates = gibbsGateBudget n r B ε ∧ 0 ≤ gates ∧ dist ≤ ε ∧
       0 ≤ r + 1 ∧ 0 ≤ B + 1 := by
   refine ⟨gibbsGateBudget n r B ε, rfl, ?_, by linarith, by linarith, by linarith⟩
@@ -171,7 +175,7 @@ The good-shift property `hgood : 2rξ ≤ 0.04` gives success probability at lea
 `0.96`; the eigenstate-accuracy statement is the hypothesis `hacc` inherited from
 Ta-Shma's theorem; the copy/gate counts are proved nonnegative. -/
 theorem consistent_phase_estimation (n r a ξ δ dist C₀ : ℝ)
-    (hn : 1 ≤ n) (hr : 0 ≤ r) (ha : 0 ≤ a) (hξ : 0 < ξ) (hδ : 0 < δ) (hC0 : 0 < C₀)
+    (hn : 1 ≤ n) (_hr : 0 ≤ r) (ha : 0 ≤ a) (hξ : 0 < ξ) (hδ : 0 < δ) (_hC0 : 0 < C₀)
     (hgood : 2 * r * ξ ≤ 0.04)
     {ι : Type*} (f : ℝ → ℝ → ℝ) (lam : ι → ℝ) (s : ℝ)
     (hacc : ∀ i, |f s (lam i) - lam i| < δ)

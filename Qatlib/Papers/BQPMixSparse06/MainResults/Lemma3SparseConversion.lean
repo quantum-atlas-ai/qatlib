@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Sparsity of the unsigned block conversion
@@ -47,7 +51,7 @@ lemma gammaBlock_entry_zero_or_one (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1)
     (s t : Fin 2) : gammaBlock a s t = 0 ∨ gammaBlock a s t = 1 := by
   rcases ha with rfl | rfl | rfl
   · exact Or.inl (by simp [gammaBlock])
-  · fin_cases s <;> fin_cases t <;> simp [gammaBlock, Matrix.one_apply]
+  · fin_cases s <;> fin_cases t <;> simp [gammaBlock]
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock]
 
 /-- The block conversion of a matrix with entries in `{-1, 0, 1}` has only zero and one entries. -/

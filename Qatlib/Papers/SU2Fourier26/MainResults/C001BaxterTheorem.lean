@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceNLFTModel
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceNLFTModel
+
+@[expose] public section
 
 /-!
 # Theorem 1: the `SU(2)`-Baxter theorem (c001)

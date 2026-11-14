@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Hermitian dilation of rectangular systems
@@ -44,10 +48,10 @@ noncomputable def hermitianDilation {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : Matrix (O ⊕ I) (O ⊕ I) ℂ :=
   Matrix.of fun p q =>
     match p, q with
-    | Sum.inl o, Sum.inl o' => 0
+    | Sum.inl _o, Sum.inl _o' => 0
     | Sum.inl o, Sum.inr i => A o i
     | Sum.inr i, Sum.inl o => star (A o i)
-    | Sum.inr i, Sum.inr i' => 0
+    | Sum.inr _i, Sum.inr _i' => 0
 
 /-- The embedding of a right-hand side into the output summand, with zero coordinates in the
 input summand. -/

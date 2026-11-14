@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.PolynomialStep.ActualEulerVariance
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+module
+
+public import Qatlib.Papers.NonlinearDE20.PolynomialStep.ActualEulerVariance
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+
+@[expose] public section
 
 /-!
 # Discarding the environment contracts Euler error

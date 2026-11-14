@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
-import Qatlib.Papers.QWalkGraphs00.MainResults.Times
-import Mathlib.Data.ZMod.Basic
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # The coined quantum walk on the odd cycle (Theorems 4.1, 4.2 and 5.3)

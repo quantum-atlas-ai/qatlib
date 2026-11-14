@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiagPowerBQP06.MainResults.Defs
-import Qatlib.Papers.DiagPowerBQP06.MainResults.Hardness
-import Qatlib.Papers.DiagPowerBQP06.MainResults.EntryRestriction
-import Qatlib.Papers.DiagPowerBQP06.MainResults.OffDiagonal
-import Qatlib.Papers.DiagPowerBQP06.MainResults.SpectralMoment
-import Qatlib.Papers.DiagPowerBQP06.MainResults.ReadoutBound
-import Qatlib.Papers.DiagPowerBQP06.MainResults.Sampling
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.Defs
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.Hardness
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.EntryRestriction
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.OffDiagonal
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.SpectralMoment
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.ReadoutBound
+public import Qatlib.Papers.DiagPowerBQP06.MainResults.Sampling
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Sampling counts and estimation composition

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -114,7 +118,7 @@ theorem chebyshev_l1_le (k : ℕ) :
       norm_num [Finset.sum_range_succ, coeff_X]
     rw [hX]
     have hle : (1 : ℝ) ≤ 1 + Real.sqrt 2 := by linarith [Real.sqrt_nonneg 2]
-    simpa using hle
+    simpa only [pow_one] using hle
   refine Nat.twoStepInduction (motive := fun k =>
     l1 (Chebyshev.T ℝ k) ≤ (1 + Real.sqrt 2) ^ k) hbase0 hbase1 ?_ k
   · intro n ih ih1

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+module
+
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+@[expose] public section
 
 /-!
 # An integrated lower bound for adiabatic search
@@ -56,7 +60,7 @@ bound imply `T ≥ ε * (N - 1) / (4 * sqrt N)`, as in the optimality argument o
 [RolandCerf2002]. -/
 theorem source_optimality_lower_bound
     (N : ℕ) (ε T : ℝ) (s f A : ℝ → ℝ)
-    (hN : 2 ≤ N) (hε : 0 < ε) (hT : 0 ≤ T)
+    (hN : 2 ≤ N) (_hε : 0 < ε) (hT : 0 ≤ T)
     (hs1 : ∀ t, s t ≤ 1)
     (hA0 : A 0 = 0)
     (hderiv : ∀ t ∈ Set.uIcc (0 : ℝ) T, HasDerivAt A (f t) t)

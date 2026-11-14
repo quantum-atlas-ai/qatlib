@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockMinimumExecutor
-import Qatlib.Concepts.AmplitudeSearch.Amplification.TiedGroupBounds
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockMinimumExecutor
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.TiedGroupBounds
+
+@[expose] public section
 
 /-!
 # Global minimum search

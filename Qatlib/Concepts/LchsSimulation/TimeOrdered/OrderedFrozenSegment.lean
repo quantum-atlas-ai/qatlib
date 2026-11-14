@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Frozen-segment bounds for ordered evolution
@@ -175,7 +179,7 @@ theorem orderedEvolution_frozen_segment_error_on_segment
     simp only [G, orderedSegmentClamp_eq hu]
   have hp := orderedEvolution_congr_on_segment
     (fun u => Complex.I • G u) (fun u => Complex.I • H u) hst (by
-      intro u hu; (try dsimp only); rw [he u hu])
+      intro u hu;  rw [he u hu])
   have hint : (∫ u in s..t, ‖G u - G s‖) = ∫ u in s..t, ‖H u - H s‖ := by
     apply intervalIntegral.integral_congr
     intro u hu

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,8 +54,8 @@ theorem isSolvable_semidirect_of_abelian_cyclic
     {A C : Type*} [Group A] [Group C] [IsCyclic C]
     (φ : C →* MulAut A) (hA : ∀ a b : A, a * b = b * a) :
     Group.IsSolvable (A ⋊[φ] C) := by
-  haveI : Group.IsSolvable A := Group.isSolvable_of_comm hA
-  haveI : Group.IsSolvable C := isSolvable_of_isCyclic C
+  have : Group.IsSolvable A := Group.isSolvable_of_comm hA
+  have : Group.IsSolvable C := isSolvable_of_isCyclic C
   refine Group.isSolvable_of_ker_le_range (SemidirectProduct.inl : A →* A ⋊[φ] C)
     (SemidirectProduct.rightHom : A ⋊[φ] C →* C) ?_
   rw [SemidirectProduct.range_inl_eq_ker_rightHom]

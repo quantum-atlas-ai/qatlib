@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+
+@[expose] public section
 
 /-!
 # Gaussian tails for repeated index energies
@@ -58,7 +62,7 @@ theorem repeated_subgaussian {r N : ℕ} (hN:0<N) (u:Fin N→ℝ) (hu:u∈hilber
   have hw (k:Fin (r+1)→Fin N) : (w k)^2 ≤ if Function.Injective k then 0 else 1 := by
     by_cases hk:Function.Injective k
     · simp [w,hk]
-    · simp only [w,if_neg hk]
+    · simp only [w,ite_eq_right hk]
       rw [← Finset.prod_pow]
       apply Finset.prod_le_one₀ (fun a _=>sq_nonneg _)
       intro a _

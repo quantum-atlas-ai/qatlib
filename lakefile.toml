@@ -2,12 +2,14 @@ name = "Qatlib"
 defaultTargets = ["Qatlib"]
 enableArtifactCache = true
 platformIndependent = true
+restoreAllArtifacts = false
 allowNonModules = true
 lintDriver = "lint"
 testDriver = "test"
 
 [leanOptions]
 autoImplicit = false
+warningAsError = true
 
 [[require]]
 name = "mathlib"
@@ -21,6 +23,7 @@ rev = "v4.35.0"
 
 [[lean_lib]]
 name = "Qatlib"
+requiresModuleSystem = true
 
 [[lean_exe]]
 name = "get_cache"

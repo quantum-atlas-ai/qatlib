@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Prepare-select-unprepare linear combinations

@@ -4,27 +4,31 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CrouzeixLS26.AccessLower.MarkedHalmosRange
-import Mathlib.Order.Interval.Finset.Nat
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.BasisFrame
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.ConstructorPromise
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.FrameTransport
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.SlackPromise
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.TranslatedPromise
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.AnswerTransport
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.TruncatedPromise
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.ExpectedCost
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.MarkedSupport.MarkedColumns
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.BudgetTruncation
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.OutputReadout
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.PreparedRepeat
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.Program
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.SourceWordTransport
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointAmplify
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointTranscript
-import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
-import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRangeConvex
+module
+
+public import Qatlib.Papers.CrouzeixLS26.AccessLower.MarkedHalmosRange
+public import Mathlib.Order.Interval.Finset.Nat
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.BasisFrame
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.ConstructorPromise
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.FrameTransport
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.SlackPromise
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.TranslatedPromise
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.AnswerTransport
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor.TruncatedPromise
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.ExpectedCost
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.MarkedSupport.MarkedColumns
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.BudgetTruncation
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.OutputReadout
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.PreparedRepeat
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.Program
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.SourceWordTransport
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointAmplify
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointTranscript
+public import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
+public import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRangeConvex
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ open Qatlib Matrix
 open scoped BigOperators Classical ComplexOrder
 
 /-- Construction for phase Den in the rational phase support model. -/
-private def phaseDen (t : ℝ) : ℂ := 1-Complex.I*(t : ℂ)
+def phaseDen (t : ℝ) : ℂ := 1-Complex.I*(t : ℂ)
 /-- Construction for rational Phase in the rational phase support model. -/
 def rationalPhase (t : ℝ) : ℂ := star (phaseDen t)/phaseDen t
 
@@ -140,7 +144,6 @@ theorem grid_hit_span (H : ℕ) (hH : 0<H) (τ : ℝ) (center : ℂ) (i j : Fin 
   rw [norm_sub_rev center (gridPhase H j)] at ht
   have hd : ‖gridPhase H i-gridPhase H j‖ ≤ 4*Real.sqrt τ := by linarith
   have hp : |phaseParameter H i-phaseParameter H j| ≤ (5/2 : ℝ)*Real.sqrt τ := by
-    change |phaseParameter H i-phaseParameter H j| ≤ _
     change |phaseParameter H i-phaseParameter H j| ≤ (5/8 : ℝ)*‖gridPhase H i-gridPhase H j‖ at hs
     linarith
   rw [phaseParameter,phaseParameter,←sub_div,abs_div,abs_of_pos (by positivity : (0 : ℝ)<2*H)] at hp

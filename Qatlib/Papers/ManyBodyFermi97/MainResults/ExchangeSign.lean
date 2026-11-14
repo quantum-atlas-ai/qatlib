@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Antisymmetrization
-import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
-import Mathlib.GroupTheory.Perm.Support
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Antisymmetrization
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
+public import Mathlib.GroupTheory.Perm.Support
+
+@[expose] public section
 
 /-!
 # Exchange signs and antisymmetrization cost schedules
@@ -83,7 +87,7 @@ theorem orbit_branch_count (n : ℕ) :
   antisym_state_count n
 
 /-- For n, q ≥ 1, the step-two cost model is at most n²q² [AbramsLloyd1997]. -/
-theorem antisym_step_two_le {n q : ℕ} (hn : 1 ≤ n) (hq : 1 ≤ q) :
+theorem antisym_step_two_le {n q : ℕ} (hn : 1 ≤ n) (_hq : 1 ≤ q) :
     antisymStepTwoCost n q ≤ n ^ 2 * q ^ 2 := by
   unfold antisymStepTwoCost
   exact Nat.mul_le_mul_right _ (sq_ge_self hn)

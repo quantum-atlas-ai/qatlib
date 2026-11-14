@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # LCU Qubitization Invariant Plane

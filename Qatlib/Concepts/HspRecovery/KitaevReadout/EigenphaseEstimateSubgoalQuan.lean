@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
-import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestConcentrationSubgoalQuan
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestConcentrationSubgoalQuan
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Accuracy of the Hadamard test phase estimator
@@ -116,7 +120,7 @@ private theorem sample_halves (φ : ℝ) (s : ℕ) (E F : (Fin s → Bool) → P
     apply Finset.sum_congr rfl
     intro a _
     by_cases h : E a
-    · simp only [if_pos h, ← Finset.mul_sum,
+    · simp only [ite_eq_left h, ← Finset.mul_sum,
         Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf, mul_one]
     · simp [h]
   · rw [one_draw_event (eigenphaseSampleLaw φ s)
@@ -130,7 +134,7 @@ private theorem sample_halves (φ : ℝ) (s : ℕ) (E F : (Fin s → Bool) → P
     apply Finset.sum_congr rfl
     intro b _
     by_cases h : F b
-    · simp only [if_pos h, ← Finset.sum_mul,
+    · simp only [ite_eq_left h, ← Finset.sum_mul,
         Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf, one_mul]
     · simp [h]
 

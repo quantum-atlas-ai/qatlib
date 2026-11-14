@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.MainTheorem.VariableTimeAmplificationDefs
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverLowerBoundInstance
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.LowerBoundModels
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.MainTheorem.VariableTimeAmplificationDefs
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverLowerBoundInstance
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.LowerBoundModels
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Overlap products and variable-time amplification bounds
@@ -111,7 +116,7 @@ theorem VtOverlapChain.head_pos {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m)
     unfold remainingStopMass
     exact Finset.sum_nonneg fun j _ => by
       by_cases h : i < j
-      · simp only [h, if_pos]
+      · simp only [h, ite_eq_left]
         exact oc.chain.stopMassNonneg j
       · simp only [h]
         exact le_rfl
@@ -160,7 +165,7 @@ theorem VtOverlapChain.overlap_ratio_identity {m : ℕ} (oc : VtOverlapChain m)
     unfold remainingStopMass
     exact Finset.sum_nonneg fun j _ => by
       by_cases h : i < j
-      · simp only [h, if_pos]
+      · simp only [h, ite_eq_left]
         exact oc.chain.stopMassNonneg j
       · simp only [h]
         exact le_rfl
@@ -182,7 +187,7 @@ theorem lemma3_product_bound {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i
     unfold remainingStopMass
     exact Finset.sum_nonneg fun j _ => by
       by_cases h : i < j
-      · simp only [h, if_pos]
+      · simp only [h, ite_eq_left]
         exact oc.chain.stopMassNonneg j
       · simp only [h]
         exact le_rfl

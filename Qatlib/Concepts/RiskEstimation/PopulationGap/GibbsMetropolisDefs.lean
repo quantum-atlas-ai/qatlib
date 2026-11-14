@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionStat
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionStat
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Quantum Metropolis branches and resource ledgers
@@ -109,7 +113,7 @@ noncomputable def unknownHJointProb {D : ℕ} (A : Operator D) (t : ℝ) (M : �
 
 /-- The sum of diagonal input weights in the supplied vectors, each multiplied by the phase
 estimation mass of its supplied energy. -/
-noncomputable def unknownHEigenProb {D : ℕ} (A : Operator D) (t : ℝ) (M : ℕ)
+noncomputable def unknownHEigenProb {D : ℕ} (_A : Operator D) (t : ℝ) (M : ℕ)
     (ψ : Fin D → QState (Fin D)) (eig : Fin D → ℝ) (ρ : Operator D) (z : Fin M) : ℝ :=
   ∑ i, (Inner (ψ i) (ρ *ᵥ ψ i)).re * qpeBornMass M (phaseOfEnergy t (eig i)) z
 
@@ -151,7 +155,7 @@ noncomputable def temmeR {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (s : Bool) (i 
 
 /-- Reads a one based coin history position when it lies between one and `n`, and returns false
 otherwise. -/
-def temmeCoinAt {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (n : ℕ) (s : Fin n → Bool) (m : ℕ) : Bool :=
+def temmeCoinAt {D : ℕ} (_E : Fin D → ℝ) (_β : ℝ) (n : ℕ) (s : Fin n → Bool) (m : ℕ) : Bool :=
   if h : 0 < m ∧ m ≤ n then s ⟨m - 1, by omega⟩ else false
 
 /-- The list of coin operators along the right energy history followed by those along the

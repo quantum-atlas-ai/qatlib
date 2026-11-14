@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Hadamard
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Matrix feasibility for query computations

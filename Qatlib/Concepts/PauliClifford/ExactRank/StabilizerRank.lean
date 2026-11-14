@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.InformationTheory.Hamming
-import Mathlib.LinearAlgebra.AffineSpace.Combination
-import Mathlib.Tactic.Ext
-import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.InformationTheory.Hamming
+public import Mathlib.LinearAlgebra.AffineSpace.Combination
+public import Mathlib.Tactic.Ext
+public import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
+
+@[expose] public section
 
 /-!
 # Stabilizer-function decompositions on the Boolean cube
@@ -88,7 +92,7 @@ private theorem stabilizer_delta {n : ℕ} (p : BooleanVec n) :
     IsStabilizerFun (fun x => if x=p then (1 : ℂ) else 0) := by
   refine ⟨0,0,0,0,affineSpan (ZMod 2) ({p} : Set (BooleanVec n)),?_⟩
   ext x
-  simp [booleanDot,quadFun,AffineSubspace.mem_affineSpan_singleton]
+  simp [booleanDot,quadFun]
 
 /-- Every complex-valued function on the Boolean cube has a finite complex linear decomposition
 into functions satisfying `IsStabilizerFun`. -/

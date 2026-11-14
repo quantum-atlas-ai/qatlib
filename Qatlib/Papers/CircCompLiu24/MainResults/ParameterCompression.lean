@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CircCompLiu24.MainResults.ParameterCompressionModel
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.Asymptotics.Defs
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.CircCompLiu24.MainResults.ParameterCompressionModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.Asymptotics.Defs
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

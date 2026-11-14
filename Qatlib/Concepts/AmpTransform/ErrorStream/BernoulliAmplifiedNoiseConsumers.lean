@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoise
-import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoiseConsumers
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoise
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoiseConsumers
+
+@[expose] public section
 
 /-!
 # Bernoulli noise averages for amplified QFT circuits

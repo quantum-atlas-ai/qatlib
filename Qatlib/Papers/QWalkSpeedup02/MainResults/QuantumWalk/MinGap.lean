@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Weighted path eigenfunction ansatzes and gap estimates
@@ -140,13 +144,13 @@ lemma ansatzFun_zero (n : ℕ) (p s : ℝ) : ansatzFun n p s 0 = 0 := by
 /-- At indices `1 ≤ c ≤ n`, the sine ansatz equals `sin(p*c)`. -/
 lemma ansatzFun_left {n : ℕ} {p s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : c ≤ n) :
     ansatzFun n p s c = Real.sin (p * (c : ℝ)) := by
-  simp only [ansatzFun, if_neg (show c ≠ 0 by omega), if_pos hcn]
+  simp only [ansatzFun, ite_eq_right (show c ≠ 0 by omega), ite_eq_left hcn]
 
 /-- At positive indices `c > n`, the sine ansatz equals the reflected sine value multiplied by
 `s`. -/
 lemma ansatzFun_right {n : ℕ} {p s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : n < c) :
     ansatzFun n p s c = s * Real.sin (p * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))) := by
-  simp only [ansatzFun, if_neg (show c ≠ 0 by omega), if_neg (show ¬ c ≤ n by omega)]
+  simp only [ansatzFun, ite_eq_right (show c ≠ 0 by omega), ite_eq_right (show ¬ c ≤ n by omega)]
 
 /-- The sum of the sine values at `p*(c-1)` and `p*(c+1)` equals `2 * cos p * sin(p*c)`. -/
 lemma sin_shift_add (p : ℝ) (c : ℝ) :
@@ -344,13 +348,13 @@ lemma sinhFun_zero (n : ℕ) (k s : ℝ) : sinhFun n k s 0 = 0 := by
 /-- At indices `1 ≤ c ≤ n`, the hyperbolic-sine ansatz equals `sinh(k*c)`. -/
 lemma sinhFun_left {n : ℕ} {k s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : c ≤ n) :
     sinhFun n k s c = Real.sinh (k * (c : ℝ)) := by
-  simp only [sinhFun, if_neg (show c ≠ 0 by omega), if_pos hcn]
+  simp only [sinhFun, ite_eq_right (show c ≠ 0 by omega), ite_eq_left hcn]
 
 /-- At positive indices `c > n`, the hyperbolic-sine ansatz equals the reflected hyperbolic-sine
 value multiplied by `s`. -/
 lemma sinhFun_right {n : ℕ} {k s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : n < c) :
     sinhFun n k s c = s * Real.sinh (k * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))) := by
-  simp only [sinhFun, if_neg (show c ≠ 0 by omega), if_neg (show ¬ c ≤ n by omega)]
+  simp only [sinhFun, ite_eq_right (show c ≠ 0 by omega), ite_eq_right (show ¬ c ≤ n by omega)]
 
 /-- The hyperbolic-sine values at `k*(c-1)` and `k*(c+1)` sum to `2 * cosh k * sinh(k*c)`. -/
 lemma sinh_shift_add (k c : ℝ) :

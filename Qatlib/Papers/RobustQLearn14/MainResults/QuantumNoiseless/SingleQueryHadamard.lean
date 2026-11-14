@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,7 +77,7 @@ theorem realSign_zero : realSign 0 = 1 := by simp [realSign]
 Source: arXiv:1407.5088v1, Sec. III, p. 3 (Walsh--Hadamard signs). -/
 theorem realSign_one : realSign 1 = -1 := by
   unfold realSign
-  rw [if_neg (by decide : (1 : ZMod 2) ≠ 0)]
+  rw [ite_eq_right (by decide : (1 : ZMod 2) ≠ 0)]
 
 /-- Additivity of the sign character on `GF(2)`.
 Source: arXiv:1407.5088v1, Sec. III, p. 3 (`(-1)^{z+z'} = (-1)^z (-1)^{z'}`). -/
@@ -106,9 +110,9 @@ Source: arXiv:1407.5088v1, Sec. III, p. 3 (one-bit character orthogonality). -/
 theorem sum_realSign_mul (c : ZMod 2) :
     (∑ y : ZMod 2, realSign (c * y)) = if c = 0 then 2 else 0 := by
   rcases zmod2_eq_zero_or_one c with rfl | rfl
-  · rw [if_pos rfl, univ_zmod2]
+  · rw [ite_eq_left rfl, univ_zmod2]
     simp [realSign]
-  · rw [if_neg (by decide : (1 : ZMod 2) ≠ 0), univ_zmod2]
+  · rw [ite_eq_right (by decide : (1 : ZMod 2) ≠ 0), univ_zmod2]
     simp [realSign]
 
 /-- Character orthogonality on the Boolean cube:
@@ -136,7 +140,7 @@ theorem sum_char_orthogonality {n : ℕ} (u : Fin n → ZMod 2) :
   by_cases hu : u = 0
   · subst hu
     simp [Finset.prod_const, Fintype.card_fin]
-  · rw [if_neg hu]
+  · rw [ite_eq_right hu]
     have hex : ∃ i, u i ≠ 0 := by
       by_contra h
       apply hu
@@ -165,9 +169,9 @@ theorem hadamardAmplitude_eq {n : ℕ} (a y : Fin n → ZMod 2) (b : ZMod 2) :
   unfold hadamardAmplitude
   rw [sum_char_orthogonality]
   by_cases hu : (fun i : Fin n => y i + b * a i) = 0
-  · rw [if_pos hu, if_pos hu, mul_assoc,
+  · rw [ite_eq_left hu, ite_eq_left hu, mul_assoc,
       inv_mul_cancel₀ (pow_ne_zero n (by norm_num : (2 : ℝ) ≠ 0))]
-  · rw [if_neg hu, if_neg hu]
+  · rw [ite_eq_right hu, ite_eq_right hu]
     ring
 
 /-- An indicator times `1/√2` is the indicator with value `1/√2`.
@@ -233,21 +237,21 @@ theorem hadamard_example_amplitude {n : ℕ} (a y : Fin n → ZMod 2) (b : ZMod 
           simp only [one_mul, Pi.zero_apply]
           exact zmod2_add_self (a i)
   by_cases hA : y = 0 ∧ b = 0
-  · rw [if_pos hA]
+  · rw [ite_eq_left hA]
     have hu : (fun i : Fin n => y i + b * a i) = 0 := hiff.mpr (Or.inl hA)
-    rw [if_pos hu]
-  · rw [if_neg hA]
+    rw [ite_eq_left hu]
+  · rw [ite_eq_right hA]
     by_cases hB : y = a ∧ b = 1
-    · rw [if_pos hB]
+    · rw [ite_eq_left hB]
       have hu : (fun i : Fin n => y i + b * a i) = 0 := hiff.mpr (Or.inr hB)
-      rw [if_pos hu]
-    · rw [if_neg hB]
+      rw [ite_eq_left hu]
+    · rw [ite_eq_right hB]
       have hu : ¬ ((fun i : Fin n => y i + b * a i) = 0) := by
         intro h
         rcases hiff.mp h with h' | h'
         · exact hA h'
         · exact hB h'
-      rw [if_neg hu]
+      rw [ite_eq_right hu]
 
 /-- `c003` consequence: the probability of the measurement outcome `(a, 1)`,
 whose query register carries `a`, is `1/2`.  Source: arXiv:1407.5088v1,

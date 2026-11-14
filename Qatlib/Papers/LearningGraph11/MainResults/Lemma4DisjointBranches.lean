@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+module
+
+public import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,8 +50,10 @@ variable {V E Y ι : Type*} [Fintype V] [Fintype E] [Fintype Y] [Fintype ι]
 def pieceIn (S : Finset E) (part : E → ι) (i : ι) : Finset E :=
   S.filter (fun e => part e = i)
 
+omit [Fintype E] [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 /-- Regrouping a sum over a slice along the branch partition. -/
-theorem sum_pieceIn (S : Finset E) (part : E → ι) (f : E → ℝ) :
+theorem sum_pieceIn {E ι : Type*} [_fintypeE : Fintype E] [Fintype ι]
+    [DecidableEq ι] [_nonempty : Nonempty ι] (S : Finset E) (part : E → ι) (f : E → ℝ) :
     ∑ i, ∑ e ∈ pieceIn S part i, f e = ∑ e ∈ S, f e := by
   simpa [pieceIn] using (Finset.sum_fiberwise S part f)
 
@@ -115,9 +121,9 @@ theorem source_lemma_4_slice
     intro y
     set T : ℝ := ∑ e ∈ S, p y e with hT
     by_cases hT0 : T = 0
-    · rw [posComplexityAtW, if_pos (by simpa [hT] using hT0)]
+    · rw [posComplexityAtW, ite_eq_left (by simpa [hT] using hT0)]
       exact div_nonneg hM1_nonneg (Nat.cast_nonneg c)
-    · rw [posComplexityAtW, if_neg (by simpa [hT] using hT0)]
+    · rw [posComplexityAtW, ite_eq_right (by simpa [hT] using hT0)]
       rw [← sum_pieceIn S part (fun e => (len e : ℝ) / w e * (p y e / T) ^ 2)]
       have hzeroV : ∀ v, v ∉ Vset →
           ∑ e ∈ pieceIn S part v, (len e : ℝ) / w e * (p y e / T) ^ 2 = 0 := by
@@ -143,7 +149,7 @@ theorem source_lemma_4_slice
         have hσc : (c : ℝ) * (∑ e ∈ pieceIn S part v, p y e) = T := by
           rw [hσ]
           field_simp
-        rw [posComplexityAtW, if_neg hσne, Finset.mul_sum]
+        rw [posComplexityAtW, ite_eq_right hσne, Finset.mul_sum]
         apply Finset.sum_congr rfl
         intro e he
         have hwne : w e ≠ 0 := ne_of_gt (hw e)

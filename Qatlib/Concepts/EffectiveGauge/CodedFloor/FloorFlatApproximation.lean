@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
+
+@[expose] public section
 
 /-!
 # Floor Flat Approximation
@@ -45,7 +49,7 @@ theorem floorFlatApproximation_error (n : ℕ) (p tolerance : ℚ) (ht : 0<toler
   rw [congrFun (iteratedDeriv_expNegInvGlue n) (p : ℝ)]
   by_cases hp : p ≤ 0
   · have hpR : (p : ℝ) ≤ 0 := Rat.cast_nonpos.mpr hp
-    simp only [floorFlatApproximation,if_pos hp,Rat.cast_zero,expNegInvGlue.zero_of_nonpos hpR,
+    simp only [floorFlatApproximation,ite_eq_left hp,Rat.cast_zero,expNegInvGlue.zero_of_nonpos hpR,
       mul_zero,sub_self,abs_zero]
     exact htR.le
   · let c := floorFlatPolynomialValue n p⁻¹
@@ -57,11 +61,11 @@ theorem floorFlatApproximation_error (n : ℕ) (p tolerance : ℚ) (ht : 0<toler
       ((rationalNegativeExp p⁻¹ (tolerance/(|c|+1))).error : ℝ) ≤ (tolerance/(|c|+1) : ℚ))
     have hc : (c : ℝ)=(cutoffRealPolynomial n).eval (p : ℝ)⁻¹ := by
       simpa only [c,Rat.cast_inv] using floorFlatPolynomialValue_cast n p⁻¹
-    rw [floorFlatApproximation,if_neg hp]
+    rw [floorFlatApproximation,ite_eq_right hp]
     change |((c*(rationalNegativeExp p⁻¹ (tolerance/(|c|+1))).value : ℚ) : ℝ)-
       (cutoffRealPolynomial n).eval (p : ℝ)⁻¹*expNegInvGlue (p : ℝ)| ≤ _
     rw [← hc]
-    simp only [Rat.cast_mul,expNegInvGlue,if_neg hpR]
+    simp only [Rat.cast_mul,expNegInvGlue,ite_eq_right hpR]
     rw [← mul_sub,abs_mul]
     have heR : |((rationalNegativeExp p⁻¹ (tolerance/(|c|+1))).value : ℝ)-
         Real.exp (-(p : ℝ)⁻¹)| ≤ (tolerance : ℝ)/(|(c : ℝ)|+1) := by

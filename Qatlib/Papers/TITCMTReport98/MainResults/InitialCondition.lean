@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TITCMTReport98.MainResults.SqrtSchedule
-import Qatlib.Papers.TITCMTReport98.MainResults.InverseSchedule
+module
+
+public import Qatlib.Papers.TITCMTReport98.MainResults.SqrtSchedule
+public import Qatlib.Papers.TITCMTReport98.MainResults.InverseSchedule
+
+@[expose] public section
 
 /-!
 # Cancellation of square-root-schedule modes

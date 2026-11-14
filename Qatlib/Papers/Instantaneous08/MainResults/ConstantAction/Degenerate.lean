@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.XProgram
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.XProgram
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Degenerate action angles in X-programs
@@ -91,7 +95,7 @@ theorem pathSum_eq_single_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     rw [hsample]
     by_cases hx : x = 0
     · simp [hx, pathWeight, pathCoeff]
-    · rw [if_neg (Ne.symm hx), if_neg hx]
+    · rw [ite_eq_right (Ne.symm hx), ite_eq_right hx]
       simp
   · intro b _ hb
     have hex : ∃ i, b i = true := by
@@ -117,7 +121,7 @@ theorem pathSum_eq_single_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
 theorem prob_eq_one_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) :
     prob p θ 0 = 1 := by
-  rw [prob, circuit_eq_pathSum, pathSum_eq_single_of_multiple_pi p θ hθ 0, if_pos rfl]
+  rw [prob, circuit_eq_pathSum, pathSum_eq_single_of_multiple_pi p θ hθ 0, ite_eq_left rfl]
   rw [map_prod Complex.normSq]
   refine Finset.prod_eq_one fun i _ => ?_
   rw [Complex.normSq_ofReal, ← sq]
@@ -127,7 +131,7 @@ theorem prob_eq_one_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
 theorem prob_eq_zero_of_ne_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) {x : F2Vec n}
     (hx : x ≠ 0) : prob p θ x = 0 := by
-  rw [prob, circuit_eq_pathSum, pathSum_eq_single_of_multiple_pi p θ hθ x, if_neg hx]
+  rw [prob, circuit_eq_pathSum, pathSum_eq_single_of_multiple_pi p θ hθ x, ite_eq_right hx]
   simp
 
 /-- When every angle is an integer multiple of π, the collision probability equals one. See
@@ -158,7 +162,7 @@ theorem pathSum_eq_single_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec n)
     rw [hsample]
     by_cases hx : x = totalRow p
     · simp [hx, pathWeight, pathCoeff]
-    · rw [if_neg (Ne.symm hx), if_neg hx]
+    · rw [ite_eq_right (Ne.symm hx), ite_eq_right hx]
       simp
   · intro b _ hb
     have hex : ∃ i, b i = false := by
@@ -186,7 +190,7 @@ theorem prob_eq_one_totalRow_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec 
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) :
     prob p θ (totalRow p) = 1 := by
   rw [prob, circuit_eq_pathSum,
-    pathSum_eq_single_of_odd_pi_div_two p θ hθ (totalRow p), if_pos rfl]
+    pathSum_eq_single_of_odd_pi_div_two p θ hθ (totalRow p), ite_eq_left rfl]
   rw [map_prod Complex.normSq]
   refine Finset.prod_eq_one fun i _ => ?_
   have hsin := sin_sq_eq_one_of_odd_mul_pi_div_two (hθ i)
@@ -201,7 +205,7 @@ theorem prob_eq_zero_of_ne_totalRow_of_odd_pi_div_two {n k : ℕ}
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) {x : F2Vec n}
     (hx : x ≠ totalRow p) : prob p θ x = 0 := by
   rw [prob, circuit_eq_pathSum,
-    pathSum_eq_single_of_odd_pi_div_two p θ hθ x, if_neg hx]
+    pathSum_eq_single_of_odd_pi_div_two p θ hθ x, ite_eq_right hx]
   simp
 
 /-- When every angle is an odd multiple of π/2, the collision probability equals one. See

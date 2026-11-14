@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.PlannedRetry
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.PlannedRetry
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Couplings for planned retries at different budgets
@@ -118,8 +122,8 @@ theorem pmf_map_apply_eq {α β : Type*} (p : PMF α) (g : α → β) (a : β) :
     rw [PMF.map_apply, PMF.bind_apply]
     refine tsum_congr fun b => ?_
     by_cases hab : a = g b
-    · rw [if_pos hab, PMF.pure_apply, if_pos hab, mul_one]
-    · rw [if_neg hab, PMF.pure_apply, if_neg hab, mul_zero]
+    · rw [ite_eq_left hab, PMF.pure_apply, ite_eq_left hab, mul_one]
+    · rw [ite_eq_right hab, PMF.pure_apply, ite_eq_right hab, mul_zero]
   rw [h, PMF.bind_apply]
 
 /-- For `q ≤ C`, subtracting `C - q` from `C` recovers `q`. -/
@@ -148,17 +152,17 @@ theorem costedRun_apply (K : PlannedRetry State Output) (budget : ℕ) (s : Stat
       · by_cases hy : budget - b.2 = q
         · have hc : (some o, q) = (some o, budget - b.2) := Prod.ext rfl hy.symm
           have hbeq : b = (some o, budget - q) := Prod.ext hx (nat_sub_eq_of_le hr hq hy)
-          rw [hx, PMF.pure_apply, if_pos hc, mul_one, if_pos hbeq, hbeq]
+          rw [hx, PMF.pure_apply, ite_eq_left hc, mul_one, ite_eq_left hbeq, hbeq]
         · have hne : b ≠ (some o, budget - q) := by
             intro hh
             exact hy (by rw [hh, nat_sub_sub_of_le hq])
-          rw [PMF.pure_apply, if_neg (fun hh => hy (congrArg Prod.snd hh).symm), mul_zero,
-            if_neg hne]
+          rw [PMF.pure_apply, ite_eq_right (fun hh => hy (congrArg Prod.snd hh).symm), mul_zero,
+            ite_eq_right hne]
       · have hne : b ≠ (some o, budget - q) := by
           intro hh
           exact hx (congrArg Prod.fst hh)
-        rw [PMF.pure_apply, if_neg (fun hh => hx (congrArg Prod.fst hh).symm), mul_zero,
-          if_neg hne]
+        rw [PMF.pure_apply, ite_eq_right (fun hh => hx (congrArg Prod.fst hh).symm), mul_zero,
+          ite_eq_right hne]
     · have hb0 : K.run budget s b = 0 := by
         refine (PMF.apply_eq_zero_iff (K.run budget s) b).mpr ?_
         intro hb
@@ -166,7 +170,7 @@ theorem costedRun_apply (K : PlannedRetry State Output) (budget : ℕ) (s : Stat
       have hne : b ≠ (some o, budget - q) := by
         intro hh
         exact hr (by rw [hh]; exact Nat.sub_le _ _)
-      rw [hb0, zero_mul, if_neg hne]
+      rw [hb0, zero_mul, ite_eq_right hne]
   rw [hstep]
   have hcol : ∑' (b : Option Output × ℕ),
       (if b = (some o, budget - q) then K.run budget s (some o, budget - q) else 0)
@@ -176,8 +180,8 @@ theorem costedRun_apply (K : PlannedRetry State Output) (budget : ℕ) (s : Stat
         if b = (some o, budget - q) then K.run budget s (some o, budget - q) else 0)
       (some o, budget - q) (fun b hb => by
         show (if b = (some o, budget - q) then K.run budget s (some o, budget - q) else 0) = 0
-        rw [if_neg hb])
-    simpa only [if_pos rfl] using! h
+        rw [ite_eq_right hb])
+    simpa only [ite_eq_left rfl] using! h
   rw [hcol]
 
 /-- For `B ≤ C`, the left and right marginals of `coupledRetry K B C s` are the retry laws with
@@ -197,7 +201,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
       funext p
       by_cases hB : (K.cost st p : ℕ) ≤ b
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · simp only [dif_pos hB, dif_pos hC, PMF.map_bind]
+        · simp only [dite_eq_left hB, dite_eq_left hC, PMF.map_bind]
           apply congrArg
             (fun (g : Option Output → PMF (Option Output × ℕ)) => (K.perform st p).bind g)
           funext o
@@ -209,7 +213,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
               (b - (K.cost st p : ℕ)) (K.retry st p) (nat_sub_mono_le hbc)
         · exact absurd (le_trans_of_le hB hbc) hC
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · simp only [dif_neg hB, dif_pos hC, PMF.map_bind]
+        · simp only [dite_eq_right hB, dite_eq_left hC, PMF.map_bind]
           have hfrz := coupledRetry_frozen_left K b (c - (K.cost st p : ℕ)) (K.retry st p)
           have hinner : (fun o : Option Output => PMF.map Prod.fst
                 (match o with
@@ -224,7 +228,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
             | some a => rw [PMF.pure_map]
             | none => exact hfrz
           rw [hinner, PMF.bind_const]
-        · simp only [dif_neg hB, dif_neg hC, PMF.pure_map]
+        · simp only [dite_eq_right hB, dite_eq_right hC, PMF.pure_map]
   refine ⟨hleft C B s hBC, ?_⟩
   have hright : ∀ (c : ℕ) (b : ℕ) (st : State), b ≤ c →
       (coupledRetry K b c st).map Prod.snd = K.run c st := by
@@ -237,7 +241,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
       funext p
       by_cases hB : (K.cost st p : ℕ) ≤ b
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · simp only [dif_pos hB, dif_pos hC, PMF.map_bind]
+        · simp only [dite_eq_left hB, dite_eq_left hC, PMF.map_bind]
           apply congrArg
             (fun (g : Option Output → PMF (Option Output × ℕ)) => (K.perform st p).bind g)
           funext o
@@ -249,7 +253,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
               (b - (K.cost st p : ℕ)) (K.retry st p) (nat_sub_mono_le hbc)
         · exact absurd (le_trans_of_le hB hbc) hC
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · simp only [dif_neg hB, dif_pos hC, PMF.map_bind]
+        · simp only [dite_eq_right hB, dite_eq_left hC, PMF.map_bind]
           have hfrz := coupledRetry_frozen_right K b (c - (K.cost st p : ℕ)) (K.retry st p)
           have hinner : (fun o : Option Output => PMF.map Prod.snd
                 (match o with
@@ -267,7 +271,7 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
             | none => exact hfrz
           rw [hinner]
           rfl
-        · simp only [dif_neg hB, dif_neg hC, PMF.pure_map]
+        · simp only [dite_eq_right hB, dite_eq_right hC, PMF.pure_map]
   exact hright C B s hBC
 
 /-- The total spend `b - r` is the subsequent spend after paying `cost`, plus that initial cost,
@@ -335,7 +339,7 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
       obtain ⟨p, _, hp⟩ := (PMF.mem_support_bind_iff _ _ w).mp hw
       by_cases hB : (K.cost st p : ℕ) ≤ b
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · rw [dif_pos hB, dif_pos hC] at hp
+        · rw [dite_eq_left hB, dite_eq_left hC] at hp
           obtain ⟨o, _, hw'⟩ := (PMF.mem_support_bind_iff _ _ w).mp hp
           cases o with
           | some a =>
@@ -347,12 +351,12 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
             obtain ⟨h1, h2⟩ := ih (c - (K.cost st p : ℕ))
               (nat_sub_lt_budget (K.cost st p).pos hC) (b - (K.cost st p : ℕ)) (K.retry st p) w hw'
             exact ⟨Nat.le_trans h1 (Nat.sub_le _ _), Nat.le_trans h2 (Nat.sub_le _ _)⟩
-        · rw [dif_pos hB, dif_neg hC] at hp
+        · rw [dite_eq_left hB, dite_eq_right hC] at hp
           have heq : w = ((none, b), (none, c)) := (PMF.mem_support_pure_iff _ _).mp hp
           subst w
           exact ⟨Nat.le_refl _, Nat.le_refl _⟩
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · rw [dif_neg hB, dif_pos hC] at hp
+        · rw [dite_eq_right hB, dite_eq_left hC] at hp
           obtain ⟨o, _, hw'⟩ := (PMF.mem_support_bind_iff _ _ w).mp hp
           cases o with
           | some a =>
@@ -366,7 +370,7 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
             obtain ⟨hr2⟩ := K.run_remaining (c - (K.cost st p : ℕ)) (K.retry st p) r hr
             subst w
             exact ⟨Nat.le_refl _, Nat.le_trans hr2 (Nat.sub_le _ _)⟩
-        · rw [dif_neg hB, dif_neg hC] at hp
+        · rw [dite_eq_right hB, dite_eq_right hC] at hp
           have heq : w = ((none, b), (none, c)) := (PMF.mem_support_pure_iff _ _).mp hp
           subst w
           exact ⟨Nat.le_refl _, Nat.le_refl _⟩
@@ -382,7 +386,7 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
       obtain ⟨p, _, hp⟩ := (PMF.mem_support_bind_iff _ _ w).mp hw
       by_cases hB : (K.cost st p : ℕ) ≤ b
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · rw [dif_pos hB, dif_pos hC] at hp
+        · rw [dite_eq_left hB, dite_eq_left hC] at hp
           obtain ⟨o, _, hw'⟩ := (PMF.mem_support_bind_iff _ _ w).mp hp
           cases o with
           | some a =>
@@ -414,7 +418,7 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
                 exact congrArg (fun t : ℕ => t + (K.cost st p : ℕ)) h23
         · exact absurd (le_trans_of_le hB hbc) hC
       · by_cases hC : (K.cost st p : ℕ) ≤ c
-        · rw [dif_neg hB, dif_pos hC] at hp
+        · rw [dite_eq_right hB, dite_eq_left hC] at hp
           obtain ⟨o, _, hw'⟩ := (PMF.mem_support_bind_iff _ _ w).mp hp
           cases o with
           | some a =>
@@ -427,7 +431,7 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
             obtain ⟨hr2⟩ := K.run_remaining (c - (K.cost st p : ℕ)) (K.retry st p) r hr
             subst w
             exact ⟨nat_sub_self_le b c r.2, fun hs => absurd hs (by simp)⟩
-        · rw [dif_neg hB, dif_neg hC] at hp
+        · rw [dite_eq_right hB, dite_eq_right hC] at hp
           have heq : w = ((none, b), (none, c)) := (PMF.mem_support_pure_iff _ _).mp hp
           subst w
           exact ⟨nat_sub_self_le b c c, fun hs => absurd hs (by simp)⟩
@@ -456,9 +460,9 @@ theorem retry_output_event_budget_mono (K : PlannedRetry State Output) (B C : �
         refine ⟨o, ?_, hE⟩
         rw [hz21]
         exact ho
-      simp only [hs1, hsnd, if_true]
+      simp only [hs1, hsnd, ite_true]
       exact le_rfl
-    · simp only [hs, if_false, mul_zero]
+    · simp only [hs, ite_false, mul_zero]
       exact zero_le
   · have hz0 : (coupledRetry K B C s) z = 0 := (PMF.apply_eq_zero_iff _ _).mpr hsupp
     simp only [hz0, zero_mul]
@@ -478,7 +482,7 @@ theorem run_spend_stable (K : PlannedRetry State Output) : ∀ (B : ℕ) (C : �
     intro p
     by_cases hB : (K.cost s p : ℕ) ≤ B
     · by_cases hC : (K.cost s p : ℕ) ≤ C
-      · simp only [dif_pos hB, dif_pos hC]
+      · simp only [dite_eq_left hB, dite_eq_left hC]
         rw [PMF.bind_apply, PMF.bind_apply, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left]
         let f : Option Output → ℝ≥0∞ := fun t => (K.choose s) p *
           ((K.perform s p) t * (match t with
@@ -547,11 +551,11 @@ theorem run_spend_stable (K : PlannedRetry State Output) : ∀ (B : ℕ) (C : �
     · have hcostq : q < (K.cost s p : ℕ) := by
         by_contra hcon
         exact hB (Nat.le_trans (Nat.not_lt.mp hcon) hq)
-      simp only [dif_neg hB]
+      simp only [dite_eq_right hB]
       have hne : ¬ ((some o, B - q) = (none, B)) := by simp
-      rw [PMF.pure_apply, if_neg hne, mul_zero]
+      rw [PMF.pure_apply, ite_eq_right hne, mul_zero]
       by_cases hC : (K.cost s p : ℕ) ≤ C
-      · simp only [dif_pos hC, PMF.bind_apply]
+      · simp only [dite_eq_left hC, PMF.bind_apply]
         rw [← ENNReal.tsum_mul_left]
         symm
         rw [ENNReal.tsum_eq_zero]
@@ -568,17 +572,17 @@ theorem run_spend_stable (K : PlannedRetry State Output) : ∀ (B : ℕ) (C : �
               intro hh
               exact hB (((nat_sub_eq_of_eq (C := C) (r := K.cost s p) (q := q) hC
                 (le_trans hq hBC) (congrArg Prod.snd hh)) ▸ hq))
-            rw [PMF.pure_apply, if_neg hneC, mul_zero, mul_zero]
+            rw [PMF.pure_apply, ite_eq_right hneC, mul_zero, mul_zero]
           · have hneB : ¬ ((some o, C - q) = (some a, C - (K.cost s p : ℕ))) := by
               intro hh
               exact ha (Option.some.inj (congrArg Prod.fst hh).symm)
-            rw [PMF.pure_apply, if_neg hneB, mul_zero, mul_zero]
+            rw [PMF.pure_apply, ite_eq_right hneB, mul_zero, mul_zero]
         | none =>
           have hltC : C - (K.cost s p : ℕ) < C - q := nat_sub_lt_sub hC hcostq
           simp only [run_success_eq_zero_of_bgt _ _ _ o _ hltC, mul_zero, mul_zero]
-      · simp only [dif_neg hC]
+      · simp only [dite_eq_right hC]
         have hneC : ¬ ((some o, C - q) = (none, C)) := by simp
-        rw [PMF.pure_apply, if_neg hneC, mul_zero]
+        rw [PMF.pure_apply, ite_eq_right hneC, mul_zero]
 
 /-- For `q ≤ B ≤ C`, the costed retry laws at budgets `B` and `C` assign the same mass to the
 successful result `(some o, q)`. -/

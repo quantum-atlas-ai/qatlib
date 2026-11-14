@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogSampling
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Data.Nat.Totient
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogSampling
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,7 +80,7 @@ theorem cyclic_dlog_line_law (G : Type) [CommGroup G] [Fintype G] [DecidableEq G
     (hh : h = g ^ d.val) :
     (cyclicDlogRecordDist (Fintype.card G) (Additive.ofMul g) (Additive.ofMul h)).prob (a, b) =
       if b = d * a then (1 : ℝ) / (Fintype.card G : ℝ) else 0 := by
-  haveI : NeZero (Fintype.card G) := ⟨hne⟩
+  have hne0 : NeZero (Fintype.card G) := ⟨hne⟩
   refine mulDlogLineLaw (Fintype.card G) G g h d a b hr ?_ ?_ hh
   · rw [← horder]
     exact pow_orderOf_eq_one g
@@ -102,7 +106,7 @@ algorithm is assumed to know.  This is the paper's "for any odd prime power
 theorem units_prime_pow_generator (p α : ℕ) [NeZero (p ^ α)] (hp : p.Prime) (hp2 : p ≠ 2) :
     ∃ g : (ZMod (p ^ α))ˣ, orderOf g = Fintype.card (ZMod (p ^ α))ˣ ∧
       Fintype.card (ZMod (p ^ α))ˣ = Nat.totient (p ^ α) := by
-  haveI := units_prime_pow_isCyclic p α hp hp2
+  have hcyc := units_prime_pow_isCyclic p α hp hp2
   obtain ⟨g, hg⟩ := cyclic_generator_order (ZMod (p ^ α))ˣ
   exact ⟨g, hg, ZMod.card_units_eq_totient (p ^ α)⟩
 

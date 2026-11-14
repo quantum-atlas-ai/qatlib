@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PhaseExecution.Rational
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PhaseExecution.Rational
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

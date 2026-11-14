@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidPairMultiplication
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidPairMultiplication
+
+@[expose] public section
 
 /-!
 # Inversion of redundant fraction encodings
@@ -335,7 +339,7 @@ theorem copy_call (which : Bool) (args : Fin 4 → Qatlib.Concepts.BitWordCompil
   · intro k; cases which <;> fin_cases k <;> simp [copyCode, copyState, state,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Parsing.triple] at * <;> exact harg
   · intro j hj
-    cases which <;> cases j <;> first | rfl | exact (hj 1 rfl).elim | exact (hj 2 rfl).elim
+    cases which <;> cases j <;> first | rfl  | exact (hj 2 rfl).elim
 
 /-- The final comparator local state for the reversed canonical binary digits of `p` and `n`,
 with empty optional-symbol registers. -/
@@ -420,7 +424,7 @@ theorem drain_call (i : Fin 4) (args : Fin 4 → Qatlib.Concepts.BitWordCompiler
     getIO putIO (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ => rfl)
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.drainProgram (fun _ => rfl) v _ _ _ _ _ _ _ ⟨(args i).length + 1, hr, hc.le⟩ ?_ ?_ ?_
   · intro k; fin_cases k; rfl
-  · intro k; fin_cases k; simp [state]
+  · intro k; fin_cases k; simp [state, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.singleStack ]
   · intro j hj
     cases j with
     | arg j =>
@@ -619,21 +623,21 @@ theorem source_exec (p n r s : ℕ) :
     ⟨none, default, state a0 [] [] [] [] (output p n r s).reverse⟩ (10000 * (1 + L) ^ 2)
   rw [hi]
   by_cases hz : p = n
-  · simp only [if_pos hz] at eb
+  · simp only [ite_eq_left hz] at eb
     have e := (eb.trans (zero_call args v5)).trans (finish_call args zeroCodec.reverse v5 L hargs)
     have he := e.mono (show _ ≤ 10000 * (1 + L) ^ 2 by
       have hp : 0 < (1 + L) ^ 2 := by positivity
       dsimp only [L, bits] at hp ⊢
       omega)
-    simpa only [output, if_pos hz] using! he
-  · simp only [if_neg hz] at eb
+    simpa only [output, ite_eq_left hz] using! he
+  · simp only [ite_eq_right hz] at eb
     have em := emit_swapped p n r s v5
     have e := (eb.trans em).trans (finish_call args _ v5 L hargs)
     have he := e.mono (show _ ≤ 10000 * (1 + L) ^ 2 by
       have hp : 0 < (1 + L) ^ 2 := by positivity
       dsimp only [L, bits] at hp ⊢
       omega)
-    simpa only [output, if_neg hz] using! he
+    simpa only [output, ite_eq_right hz] using! he
 
 /-- The fixed four-field zero encoding has length six. -/
 theorem zeroCodec_length : zeroCodec.length = 6 := by decide +kernel
@@ -644,9 +648,9 @@ theorem output_length (p n r s : ℕ) : (output p n r s).length ≤ (input p n r
   have hm : 4 ≤ (input p n r s).length := by
     simp only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits_length] at hl; omega
   by_cases hz : p = n
-  · simp only [output, if_pos hz, zeroCodec_length]
+  · simp only [output, ite_eq_left hz, zeroCodec_length]
     omega
-  · simp only [output, if_neg hz, List.length_append]
+  · simp only [output, ite_eq_right hz, List.length_append]
     omega
 
 /-- There is a finite-state tape machine implementing `input p n r s` to `output p n r s` for

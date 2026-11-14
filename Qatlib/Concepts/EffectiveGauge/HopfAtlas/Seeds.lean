@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-! # Positive-margin point seeds derived from the spin, not a supplied lift -/
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelBounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.EulerSineProd
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelBounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.EulerSineProd
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Euler product bounds for kernel normalization

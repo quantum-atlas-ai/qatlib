@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,10 +86,10 @@ theorem momentumSq_of_ansatz
       = (1 - (m * c ^ 2 * τ / ℏ) ^ 2) * Real.sin (ℓ * k) ^ 2 * (ℏ ^ 2 / τ ^ 2) := by
     rw [hsq]
   have hcoef : (p * c * τ / ℏ) ^ 2 * (ℏ ^ 2 / τ ^ 2) = p ^ 2 * c ^ 2 := by
-    field_simp <;> ring
+    field_simp
   have hrhs : (1 - (m * c ^ 2 * τ / ℏ) ^ 2) * Real.sin (ℓ * k) ^ 2 * (ℏ ^ 2 / τ ^ 2)
       = (ℏ ^ 2 / τ ^ 2 - (m * c ^ 2) ^ 2) * Real.sin (ℓ * k) ^ 2 := by
-    field_simp <;> ring
+    field_simp
   rw [← hcoef, key, hrhs]
 
 end

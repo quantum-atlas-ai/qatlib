@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StringRewrite07.MainResults.Source
+module
+
+public import Qatlib.Papers.StringRewrite07.MainResults.Source
+
+@[expose] public section
 
 /-!
 # Endpoint symmetries of path spectral formulas

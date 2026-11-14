@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
-import Qatlib.Papers.Cbmd26.Algorithms.ComplexPolynomialSplit
+module
+
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+public import Qatlib.Papers.Cbmd26.Algorithms.ComplexPolynomialSplit
+
+@[expose] public section
 
 /-!
 # Uniform QSVT Phases for Complex Polynomials

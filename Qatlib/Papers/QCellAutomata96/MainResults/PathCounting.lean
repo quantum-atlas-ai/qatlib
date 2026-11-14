@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCellAutomata96.MainResults.PropagatorPathSum
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Interval
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Data.Nat.Choose.Basic
+module
+
+public import Qatlib.Papers.QCellAutomata96.MainResults.PropagatorPathSum
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Interval
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Data.Nat.Choose.Basic
+
+@[expose] public section
 
 /-!
 # Combinatorial multiplicities in propagator sums

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,7 +46,7 @@ variable {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
 /-- RiccatiWang26, Proposition B.9 (p. 58), Eq. (B.24), positivity part.  The CARE coefficient
 bound `uCARE = (a + √(a² + g0 q̄))/g0` used to normalize the CARE solution is nonnegative for
 `g0 > 0` and `q̄ ≥ 0`. -/
-theorem care_bound_nonneg (a qbar g0 : ℝ) (hg0 : 0 < g0) (hq : 0 ≤ qbar) (hprod : 0 ≤ g0 * qbar) :
+theorem care_bound_nonneg (a qbar g0 : ℝ) (hg0 : 0 < g0) (_hq : 0 ≤ qbar) (hprod : 0 ≤ g0 * qbar) :
     0 ≤ (a + Real.sqrt (a ^ 2 + g0 * qbar)) / g0 := by
   have hsq : Real.sqrt (a ^ 2) ≤ Real.sqrt (a ^ 2 + g0 * qbar) := by
     apply Real.sqrt_le_sqrt
@@ -54,27 +58,33 @@ theorem care_bound_nonneg (a qbar g0 : ℝ) (hg0 : 0 < g0) (hq : 0 ≤ qbar) (hp
 
 /-! ## The CARE Hamiltonian preserves the graph of the stabilizing solution -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Block form of `H_CARE * [I; X]`. -/
-lemma careHamiltonian_mul_graph_eq (A G Q X : Sq n) :
+lemma careHamiltonian_mul_graph_eq
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (A G Q X : Sq n) :
     careHamiltonian A G Q * graph X = blockCol (A - G * X) (-Q - Aᴴ * X) := by
   ext i j
   rcases i with i | i <;>
     simp [careHamiltonian, graph, blockCol, Matrix.mul_apply, Fintype.sum_sum_type,
       Matrix.sub_apply, Matrix.neg_apply, Matrix.one_apply, sub_eq_add_neg]
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Block form of `[I; X] * M`. -/
-lemma graph_mul_eq (X M : Sq n) :
+lemma graph_mul_eq
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (X M : Sq n) :
     graph X * M = blockCol M (X * M) := by
   ext i j
   rcases i with i | i <;>
-    simp [graph, blockCol, Matrix.mul_apply, Fintype.sum_sum_type, Matrix.one_apply]
+    simp [graph, blockCol, Matrix.mul_apply, Matrix.one_apply]
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Multiplying a block column on the right by a square matrix. -/
-lemma blockCol_mul_eq (M N Y : Sq n) :
+lemma blockCol_mul_eq
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (M N Y : Sq n) :
     blockCol M N * Y = blockCol (M * Y) (N * Y) := by
   ext i j
   rcases i with i | i <;>
-    simp [blockCol, Matrix.mul_apply, Fintype.sum_sum_type]
+    simp [blockCol, Matrix.mul_apply]
 
 /-- RiccatiWang26, Lemma 3.6 / Lemma B.13, invariant-graph form (Eqs. (3.22), (B.35)).  If `X`
 is a stabilizing CARE solution, then the CARE Hamiltonian maps the graph `[I; X]` into
@@ -109,16 +119,20 @@ def pencilL (A G : Sq n) : Matrix (Sum n n) (Sum n n) ℂ
   | Sum.inr _, Sum.inl _ => 0
   | Sum.inr i, Sum.inr j => Aᴴ i j
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Block form of `L * [I; X]`. -/
-lemma pencilL_mul_graph (A G X : Sq n) :
+lemma pencilL_mul_graph
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (A G X : Sq n) :
     pencilL A G * graph X = blockCol (1 + G * X) (Aᴴ * X) := by
   ext i j
   rcases i with i | i <;>
     simp [pencilL, graph, blockCol, Matrix.mul_apply, Fintype.sum_sum_type,
       Matrix.add_apply, Matrix.one_apply]
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Block form of `M * [I; X]`. -/
-lemma pencilM_mul_graph (A Q X : Sq n) :
+lemma pencilM_mul_graph
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n] (A Q X : Sq n) :
     pencilM A Q * graph X = blockCol A (-Q + X) := by
   ext i j
   rcases i with i | i <;>
@@ -153,7 +167,7 @@ theorem darePencil_graph_invariance (A G Q X : Sq n)
 `q0 + 2ωp - ḡp² > 0` makes the displayed initialization bound
 `(ω + √(ω² + ḡ q0) - ḡ p) / √(ḡ² + (ω + √(ω² + ḡ q0))²)` strictly positive. -/
 theorem proposition_B_12_dre_initialization
-    (ω gbar q0 p : ℝ) (hgbar : 0 < gbar) (hq0 : 0 < q0) (hp : 0 ≤ p)
+    (ω gbar q0 p : ℝ) (hgbar : 0 < gbar) (hq0 : 0 < q0) (_hp : 0 ≤ p)
     (hpos : 0 < q0 + 2 * ω * p - gbar * p ^ 2) :
     0 < (ω + Real.sqrt (ω ^ 2 + gbar * q0) - gbar * p) /
         Real.sqrt (gbar ^ 2 + (ω + Real.sqrt (ω ^ 2 + gbar * q0)) ^ 2) := by
@@ -166,7 +180,7 @@ theorem proposition_B_12_dre_initialization
     by_cases hx : 0 ≤ gbar * p - ω
     · have := (Real.lt_sqrt hx).mpr hsq
       linarith
-    · push_neg at hx
+    · push Not at hx
       linarith
   have hden : 0 < Real.sqrt (gbar ^ 2 + (ω + Real.sqrt (ω ^ 2 + gbar * q0)) ^ 2) := by
     apply Real.sqrt_pos.mpr
@@ -175,13 +189,15 @@ theorem proposition_B_12_dre_initialization
 
 /-! ## Proposition B.14: positivity of the RR initialization bound -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Proposition B.14 (p. 64), Eq. (B.38), positivity part.  The displayed
 lower bound `√(1+q0²)/(1+uDARE vDARE) · √(g0/vDARE)` on `σmin(Π> R0)` is strictly positive
 whenever the DARE coefficient bounds satisfy `uDARE, vDARE, q0, g0 > 0`. -/
 theorem proposition_B_14_rr_initialization
-    (P0 : Sq n) (Pigt : Matrix (Sum n n) (Sum n n) ℂ) (R0 : Matrix (Sum n n) n ℂ)
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
+    (P0 : Sq n) (_Pigt : Matrix (Sum n n) (Sum n n) ℂ) (_R0 : Matrix (Sum n n) n ℂ)
     (uDARE vDARE q0 g0 : ℝ)
-    (hP0 : IsPSD P0) (hu : 0 < uDARE) (hv : 0 < vDARE) (hq : 0 < q0) (hg : 0 < g0) :
+    (_hP0 : IsPSD P0) (hu : 0 < uDARE) (hv : 0 < vDARE) (_hq : 0 < q0) (hg : 0 < g0) :
     0 < Real.sqrt (1 + q0 ^ 2) / (1 + uDARE * vDARE) * Real.sqrt (g0 / vDARE) := by
   have h1 : 0 < 1 + q0 ^ 2 := by nlinarith [sq_nonneg q0]
   have h2 : 0 < 1 + uDARE * vDARE := by nlinarith [mul_pos hu hv]

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
-import Mathlib.Data.Finset.SDiff
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
+public import Mathlib.Data.Finset.SDiff
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.Field.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,10 +103,10 @@ theorem cube_sum_mul_monomial (S T : Finset (Fin n)) (x : Fin n → F) :
         = if i ∈ S then (if i ∈ T then (1 : F) else 0) else (if i ∈ T then x i else 1) := by
     intro i
     by_cases hiS : i ∈ S
-    · simp only [hiS, if_true]
+    · simp only [hiS, ite_true]
       rw [Fintype.sum_bool]
       by_cases hiT : i ∈ T <;> simp [hiT]
-    · simp only [hiS, if_false]
+    · simp only [hiS, ite_false]
       simp
   rw [Finset.prod_congr rfl (fun i _ => hfac i)]
   -- Split the product into the `S` part and its complement.
@@ -129,10 +133,10 @@ theorem cube_sum_mul_monomial (S T : Finset (Fin n)) (x : Fin n → F) :
         by_cases hst : S ⊆ T
         · have h' : ∀ i ∈ (Finset.univ : Finset (Fin n)).filter (fun i => i ∈ S), i ∈ T :=
             hiff.mpr hst
-          rw [if_pos h', if_pos hst]
+          rw [ite_eq_left h', ite_eq_left hst]
         · have h' : ¬ (∀ i ∈ (Finset.univ : Finset (Fin n)).filter (fun i => i ∈ S), i ∈ T) :=
             fun hc => hst (hiff.mp hc)
-          rw [if_neg h', if_neg hst]
+          rw [ite_eq_right h', ite_eq_right hst]
   have hc : (∏ i ∈ (Finset.univ : Finset (Fin n)).filter (fun i => ¬ i ∈ S),
         (if i ∈ S then (if i ∈ T then (1 : F) else 0) else (if i ∈ T then x i else 1)))
       = ∏ i ∈ T \ S, x i := by
@@ -212,7 +216,7 @@ theorem lemma4_expansion
         have hle'T : S.card ≤ T.card := Finset.card_le_card hST
         omega
       rw [hdeg T hTcard, zero_mul]
-    · rw [if_neg hST, mul_zero]
+    · rw [ite_eq_right hST, mul_zero]
   have hsumE : (∑ T : Finset (Fin n), α T * (if S ⊆ T then ∏ i ∈ T \ S, x i else 0))
       = ∑ T ∈ E, α T * (if S ⊆ T then ∏ i ∈ T \ S, x i else 0) := by
     refine (Finset.sum_subset (Finset.subset_univ E) ?_).symm
@@ -240,14 +244,14 @@ theorem lemma4_expansion
   rw [Finset.sum_image hinj]
   -- Simplify the two kinds of terms.
   have htermS : α S * (if S ⊆ S then ∏ i ∈ S \ S, x i else 0) = α S := by
-    rw [if_pos (Finset.Subset.refl S), Finset.sdiff_self, Finset.prod_empty, mul_one]
+    rw [ite_eq_left (Finset.Subset.refl S), Finset.sdiff_self, Finset.prod_empty, mul_one]
   rw [htermS]
   congr 1
   apply Finset.sum_congr rfl
   intro k hk
   have hkS : k ∉ S := (Finset.mem_sdiff.mp hk).2
   have hsub : S ⊆ insert k S := Finset.subset_insert k S
-  rw [if_pos hsub]
+  rw [ite_eq_left hsub]
   have hdiff : insert k S \ S = {k} := by
     ext i
     simp only [Finset.mem_sdiff, Finset.mem_insert, Finset.mem_singleton]

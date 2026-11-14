@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.Variance
-import Mathlib.MeasureTheory.Integral.Pi
+module
+
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Integral.Pi
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

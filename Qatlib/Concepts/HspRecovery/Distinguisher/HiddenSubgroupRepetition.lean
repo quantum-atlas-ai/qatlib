@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Fresh repetitions of hidden subgroup sampling
@@ -75,10 +79,10 @@ theorem hiddenSubgroupSampleLaw_apply (f : G → R) (e : G ≃ AddChar G ℂ)
   simp only [hiddenSubgroupSampleLaw, hiddenSubgroupJointLaw, PMF.map_apply,
     tsum_fintype, Fintype.sum_prod_type, bornDistribution_apply,
     show ∀ x : G, χ = e x ↔ x = e.symm χ from fun x => by
-      rw [eq_comm, Equiv.apply_eq_iff_eq_symm_apply]]
+      rw [eq_comm, ← Equiv.eq_symm_apply]]
   simp only [MarginalProbLeft, MeasureProb, Finset.sum_product, Finset.sum_singleton]
   rw [Finset.sum_comm]
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   exact (ENNReal.ofReal_sum_of_nonneg (fun (z : R) _ =>
     bornProb_nonneg
       (Run (AddOracle f) (hiddenSubgroupSamplingCircuit (R := R) e)

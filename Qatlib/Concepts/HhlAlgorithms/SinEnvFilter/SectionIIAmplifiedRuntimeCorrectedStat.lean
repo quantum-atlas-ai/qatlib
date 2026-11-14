@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeAmplifiedDefinitions
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeAmplifiedDefinitions
+
+@[expose] public section
 
 /-!
 # Specification of corrected HHL amplification bounds

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Mathlib.LinearAlgebra.Matrix.DotProduct
-import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+public import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+
+@[expose] public section
 
 /-!
 # Endpoint and idle spectral sectors

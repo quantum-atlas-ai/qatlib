@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.AffineLift.TensorSumEvolution
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import Qatlib.Papers.NonlinearDE20.AffineLift.TensorSumEvolution
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Branch selection and homogeneous-state normalization

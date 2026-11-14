@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CosineOutputQueryBudget
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Foundations.CbmdAnalysis.Core.AiryMatrixProjection
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CosineOutputQueryBudget
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Foundations.CbmdAnalysis.Core.AiryMatrixProjection
+
+@[expose] public section
 
 /-!
 # Paper normalizations for second-order propagators

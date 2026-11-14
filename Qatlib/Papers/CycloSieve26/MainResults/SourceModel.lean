@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

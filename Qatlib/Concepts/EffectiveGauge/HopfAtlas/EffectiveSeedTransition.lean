@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CoarseSeedAtlas
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RescaledLine
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeedChartTransfer
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.TerminalCircleSamples
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CoarseSeedAtlas
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RescaledLine
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SeedChartTransfer
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.TerminalCircleSamples
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
-import Qatlib.Concepts.LaurentPolys.CircleComplement
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+public import Qatlib.Concepts.LaurentPolys.CircleComplement
+
+@[expose] public section
 
 /-!
 # Complex Laurent coefficients and circle factors
@@ -75,16 +79,16 @@ theorem complexLaurentEval_genTrace {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
     simp only [Finset.mem_Icc] at hj
     omega
   unfold complexLaurentCoefficient
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   by_cases hjz : j < 0
   · have he : star (genTrace A (j.natAbs : ℤ)) = genTrace A j := by
       have hg := genTrace_neg_of_isHermitian A hA (j.natAbs : ℤ)
       rw [show -((j.natAbs : ℤ)) = j from by omega] at hg
       exact hg.symm
     rw [he]
-    simp only [if_pos hjz]
+    simp only [ite_eq_left hjz]
   · have hnabs : (⟨j.natAbs, hlt⟩ : Fin n).val = j := Int.natAbs_of_nonneg (by omega)
-    simp only [hnabs, if_neg hjz]
+    simp only [hnabs, ite_eq_right hjz]
 
 /-- Agreement of two complex Laurent evaluations on the unit circle implies equality of each
 entry of their finite coefficient vectors. -/
@@ -100,7 +104,7 @@ theorem complexLaurent_coeff_eq_of_eval_eq {n : ℕ} (a b : Fin n → ℂ)
       have h1 : ((j : ℤ)).natAbs = ((j : ℕ) : ℤ) := Int.natAbs_of_nonneg (by omega)
       exact_mod_cast h1
     unfold complexLaurentCoefficient
-    rw [hnabs, dif_pos j.isLt, if_neg (by omega)]
+    rw [hnabs, dite_eq_left j.isLt, ite_eq_right (by omega)]
   have hwin : ∀ z : ℂ, ‖z‖ = 1 →
       ∑ j ∈ Finset.Icc (-(n : ℤ)+1) ((n : ℤ)-1),
         (complexLaurentCoefficient a j - complexLaurentCoefficient b j) * z ^ j = 0 := by
@@ -138,7 +142,7 @@ theorem complexLaurent_coeff_eq_of_eval_eq {n : ℕ} (a b : Fin n → ℂ)
       complexLaurentCoefficient a (j : ℤ) = complexLaurentCoefficient b (j : ℤ) := by
     have he := heven j
     have ho := hodd j
-    simp only [hj, if_false, pow_zero, one_mul, pow_one, neg_one_mul] at he ho
+    simp only [hj, ite_false, pow_zero, one_mul, pow_one, neg_one_mul] at he ho
     have h2 : (complexLaurentCoefficient a (j : ℤ) - complexLaurentCoefficient b (j : ℤ)) * 2
         = 0 := by linear_combination he + ho
     rcases mul_eq_zero.mp h2 with h | h
@@ -196,7 +200,7 @@ theorem genTrace_eq_zero_of_natAbs_ge {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
 the original vector entry. -/
 theorem complexLaurentCoefficient_nat {n : ℕ} (a : Fin n → ℂ) (i : Fin n) :
     complexLaurentCoefficient a (i.val : ℤ) = a i := by
-  simp only [complexLaurentCoefficient, Int.natAbs_natCast, dif_pos i.isLt]
+  simp only [complexLaurentCoefficient, Int.natAbs_natCast, dite_eq_left i.isLt]
   simp
 
 /-- Evaluating the coefficient polynomial gives the finite sum of `p i * z^i.val`. -/
@@ -211,14 +215,14 @@ theorem laurentCoefficientPolynomial_coeff {n : ℕ} (p : Fin n → ℂ) (k : �
   unfold laurentCoefficientPolynomial
   rw [Polynomial.finsetSum_coeff]
   by_cases hk : k<n
-  · rw [dif_pos hk]
+  · rw [dite_eq_left hk]
     rw [Finset.sum_eq_single (⟨k,hk⟩ : Fin n)]
     · simp
     · intro i _ hi
       have hv : i.val≠k := by intro h; apply hi; exact Fin.ext h
       simp [Polynomial.coeff_monomial,hv]
     · simp
-  · rw [dif_neg hk]
+  · rw [dite_eq_right hk]
     apply Finset.sum_eq_zero
     intro i _
     have hv : i.val≠k := by have := i.isLt; omega
@@ -258,13 +262,13 @@ theorem genTrace_eq_complexLaurentCoefficient_of_positive {n : ℕ} (a : Fin n �
     genTrace A j = complexLaurentCoefficient a j := by
   by_cases hj : j.natAbs < n
   · unfold complexLaurentCoefficient
-    rw [dif_pos hj]
+    rw [dite_eq_left hj]
     by_cases hneg : j < 0
-    · rw [if_pos hneg]
+    · rw [ite_eq_left hneg]
       have he : j = -(j.natAbs : ℤ) := by omega
       conv_lhs => rw [he]
       rw [genTrace_neg_of_isHermitian A hA, h ⟨j.natAbs,hj⟩]
-    · rw [if_neg hneg]
+    · rw [ite_eq_right hneg]
       have he : j = (j.natAbs : ℤ) := by omega
       conv_lhs => rw [he]
       exact h ⟨j.natAbs,hj⟩

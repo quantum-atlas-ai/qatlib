@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
+
+@[expose] public section
 
 /-!
 # Operator norm of rank-one differences

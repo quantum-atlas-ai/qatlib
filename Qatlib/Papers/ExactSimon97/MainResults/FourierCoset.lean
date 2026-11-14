@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.ShrinkLemma
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.ShrinkLemma
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Walsh transforms of phased binary coset states
@@ -294,9 +298,9 @@ theorem sum_phaseCoset_eq {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
         apply Finset.sum_congr rfl
         intro x _
         by_cases hx : x - x₀ ∈ S
-        · rw [if_pos hx]
+        · rw [ite_eq_left hx]
           simp [phaseCoset, hx]
-        · rw [if_neg hx]
+        · rw [ite_eq_right hx]
           simp [phaseCoset, hx]
       _ = ∑ x ∈ Finset.univ.filter (fun x => x - x₀ ∈ S),
             F x * (normFactor S * charFun g x) := by
@@ -378,8 +382,8 @@ theorem walshHadamard_phaseCoset {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
   · have hy' : y - h ∈ ortho K := by
       rw [boolVec_sub_eq_add]
       exact hy
-    rw [if_pos hy]
-    simp only [phaseCoset, if_pos hy']
+    rw [ite_eq_left hy]
+    simp only [phaseCoset, ite_eq_left hy']
     rw [signPair_comm]
     have hsplit : charFun (y + h) g = charFun g y * charFun g h := by
       rw [charFun_add, charFun_comm y g, charFun_comm h g]
@@ -399,7 +403,7 @@ theorem walshHadamard_phaseCoset {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
       apply hy
       rw [← boolVec_sub_eq_add]
       exact hcon
-    rw [if_neg hy]
+    rw [ite_eq_right hy]
     simp [phaseCoset, hy']
 
 end Qatlib.Papers.ExactSimon97.MainResults

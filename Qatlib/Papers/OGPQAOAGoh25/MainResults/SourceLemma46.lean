@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,11 +85,11 @@ one at most a `δ`-fraction of vertices is broken by the edge addition — then
 with probability tending to one at least a `1 - δ` fraction of the `l n`-local
 neighbourhoods remains treelike after adding edges. -/
 theorem lemma46
-    {q : ℕ} (hq : 2 ≤ q)
+    {q : ℕ} (_hq : 2 ≤ q)
     (μ : ∀ n : ℕ, FinDist (Instance n q))
     (addEdges : ∀ n : ℕ, Instance n q → Instance n q)
     (l : ℕ → ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hl : ∀ᶠ n : ℕ in atTop, (l n : ℝ) ≤ ε * Real.log n)
+    (_hl : ∀ᶠ n : ℕ in atTop, (l n : ℝ) ≤ ε * Real.log n)
     (hbreaks : ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,
       1 - δ ≤ mass (μ n) (fun I =>
         (I.breaksTreeCount (addEdges n I) (l n) : ℝ) ≤ δ * (n : ℝ))) :

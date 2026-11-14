@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductLogEstimates
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundStat
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductLogEstimates
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundStat
+
+@[expose] public section
 
 /-!
 # Multiproduct coefficient estimates from analytic inputs

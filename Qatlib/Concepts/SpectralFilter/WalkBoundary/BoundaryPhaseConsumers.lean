@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
-import Qatlib.Concepts.SpectralFilter.WalkBoundary.SzegedyAccessConsumers
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+module
+
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+public import Qatlib.Concepts.SpectralFilter.WalkBoundary.SzegedyAccessConsumers
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+@[expose] public section
 
 /-!
 # Phase readout at Szegedy walk boundaries

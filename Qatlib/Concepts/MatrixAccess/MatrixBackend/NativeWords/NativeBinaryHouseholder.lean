@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBinaryPairUnitary
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBinaryPairUnitary
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

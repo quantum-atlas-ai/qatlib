@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PottsTutte07.MainResults.ComplexityDefs
+module
+
+public import Qatlib.Papers.PottsTutte07.MainResults.ComplexityDefs
+
+@[expose] public section
 
 /-!
 # Entrywise matrix distance and word estimates

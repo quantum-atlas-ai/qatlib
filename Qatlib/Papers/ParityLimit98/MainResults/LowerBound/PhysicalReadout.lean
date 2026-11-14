@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ActualBalance
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ActualBalance
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Physical projective readout for parity
@@ -130,7 +134,7 @@ theorem projectorCorrectness_centered {n : ℕ} {W : Type} [Fintype W] [Decidabl
     projectorCorrectness C ψ P f = 1 / 2 + boolSign f * (projectorAcceptance C ψ P f - 1 / 2) := by
   have h := projectorAcceptance_conservation C hC ψ hn P hP f
   rw [projectorCorrectness, boolSign_eq_ite]
-  cases parityOddB f <;> simp only [Bool.false_eq_true, if_false, if_true, one_mul, neg_one_mul] <;>
+  cases parityOddB f <;> simp only [Bool.false_eq_true, ite_false, ite_true, one_mul, neg_one_mul] <;>
     linarith
 
 /-- If `2 * QueryCount C < n`, the uniform average correctness of a normalized unitary circuit
@@ -158,10 +162,10 @@ theorem physical_positive_bias_query_bound {n : ℕ} {W : Type} [Fintype W] [Dec
     n ≤ 2 * QueryCount C := by
   apply projector_positive_bias_query_bound C ψ P ε hε
   · intro f hf
-    simpa only [projectorCorrectness, hf, Bool.false_eq_true, if_false] using hs f
+    simpa only [projectorCorrectness, hf, Bool.false_eq_true, ite_false] using hs f
   · intro f hf
     have h := hs f
-    simp only [projectorCorrectness, hf, if_true] at h
+    simp only [projectorCorrectness, hf, ite_true] at h
     have hc := projectorAcceptance_conservation C hC ψ hn P hP f
     linarith
 
@@ -176,9 +180,9 @@ theorem physical_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (hs : ∀ f, 1 / 2 ≤ projectorCorrectness C ψ P f) :
     ∀ f, projectorAcceptance C ψ P f = 1 / 2 ∧ projectorAcceptance C ψ (1 - P) f = 1 / 2 := by
   have hhalf := projector_half_rigidity C ψ P hk (fun f hf => by
-    simpa only [projectorCorrectness, hf, Bool.false_eq_true, if_false] using hs f) (fun f hf => by
+    simpa only [projectorCorrectness, hf, Bool.false_eq_true, ite_false] using hs f) (fun f hf => by
       have h := hs f
-      simp only [projectorCorrectness, hf, if_true] at h
+      simp only [projectorCorrectness, hf, ite_true] at h
       have hc := projectorAcceptance_conservation C hC ψ hn P hP f
       linarith)
   intro f

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,8 +85,8 @@ theorem query_product_error_le (A B : ℕ → E →L[ℂ] E)
             (A n).comp (queryProduct A n - queryProduct B n) +
               (A n - B n).comp (queryProduct B n) := by
         ext x
-        simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.sub_apply,
-          ContinuousLinearMap.add_apply, map_sub]
+        simp only [ContinuousLinearMap.comp_apply, _root_.sub_apply,
+          _root_.add_apply, map_sub]
         abel
       rw [hdecomp]
       have h1 : ‖(A n).comp (queryProduct A n - queryProduct B n)‖ ≤

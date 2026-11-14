@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceDirectionalErrorStat
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorOpti
-import Mathlib.Analysis.Calculus.ContDiff.Basic
+module
+
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceDirectionalErrorStat
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorOpti
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+
+@[expose] public section
 
 /-!
 # Directional central-difference error

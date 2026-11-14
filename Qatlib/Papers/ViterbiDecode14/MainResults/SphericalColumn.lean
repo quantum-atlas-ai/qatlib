@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -84,12 +88,12 @@ theorem sum_univ_two {ι M : Type*} [Fintype ι] [DecidableEq ι] [AddCommMonoid
     intro x
     by_cases hxa : x = a
     · subst hxa
-      rw [if_pos rfl, if_neg hab, add_zero]
+      rw [ite_eq_left rfl, ite_eq_right hab, add_zero]
     · by_cases hxb : x = b
       · subst hxb
-        rw [if_neg (Ne.symm hab), if_pos rfl]
+        rw [ite_eq_right (Ne.symm hab), ite_eq_left rfl]
         simp
-      · rw [if_neg hxa, if_neg hxb, hf x hxa hxb]
+      · rw [ite_eq_right hxa, ite_eq_right hxb, hf x hxa hxb]
         simp
   have hsplitSum : ∑ x : ι, f x =
       (∑ x : ι, if x = a then f x else 0) +
@@ -176,7 +180,7 @@ theorem twoLevelRy_row_off (K : ℕ) (θ : ℝ) (j : ℕ) (r c : Fin (K+1))
     (hr0 : r.val ≠ 0) (hrj : r.val ≠ j + 1) :
     twoLevelRy K θ j r c = if r = c then 1 else 0 := by
   unfold twoLevelRy
-  rw [if_neg hr0, if_neg hrj]
+  rw [ite_eq_right hr0, ite_eq_right hrj]
   by_cases h : r = c
   · subst h
     simp
@@ -226,7 +230,7 @@ theorem twoLevelRy_mem_unitaryGroup (K : ℕ) (θ : ℝ) {j : ℕ} (hj : j < K) 
         m ≠ (⟨j + 1, by omega⟩ : Fin (K+1)) →
         twoLevelRy K θ j m (0 : Fin (K+1)) * twoLevelRy K θ j m c = 0 := by
       intro m hm0 hmx
-      rw [hcol0 m, if_neg hm0, if_neg hmx, zero_mul]
+      rw [hcol0 m, ite_eq_right hm0, ite_eq_right hmx, zero_mul]
     have hsum : ∑ m : Fin (K+1),
         twoLevelRy K θ j m (0 : Fin (K+1)) * twoLevelRy K θ j m c =
         twoLevelRy K θ j (0 : Fin (K+1)) (0 : Fin (K+1)) *
@@ -262,7 +266,7 @@ theorem twoLevelRy_mem_unitaryGroup (K : ℕ) (θ : ℝ) {j : ℕ} (hj : j < K) 
           twoLevelRy K θ j m (⟨j + 1, by omega⟩ : Fin (K+1)) *
               twoLevelRy K θ j m c = 0 := by
         intro m hm0 hmx
-        rw [hcolx m, if_neg hm0, if_neg hmx, zero_mul]
+        rw [hcolx m, ite_eq_right hm0, ite_eq_right hmx, zero_mul]
       have hsum : ∑ m : Fin (K+1),
           twoLevelRy K θ j m (⟨j + 1, by omega⟩ : Fin (K+1)) *
               twoLevelRy K θ j m c =
@@ -301,7 +305,7 @@ theorem twoLevelRy_mem_unitaryGroup (K : ℕ) (θ : ℝ) {j : ℕ} (hj : j < K) 
         fun m => twoLevelRy_eq_ite K θ j m r hrval0 hrvalx
       simp only [hAr, ite_mul, one_mul, zero_mul]
       rw [Finset.sum_ite_eq']
-      simp only [Finset.mem_univ, if_true]
+      simp only [Finset.mem_univ, ite_true]
       exact twoLevelRy_row_off K θ j r c hrval0 hrvalx
 
 /-- A column strictly beyond the rotations already applied is untouched: this is the
@@ -329,14 +333,14 @@ theorem prefixProd_col_fresh (K : ℕ) (θ : ℕ → ℝ) :
       rw [twoLevelRy_eq_ite K (θ k) k m c hc0 hcj]
       by_cases hm : m = c <;> simp [hm]
     rw [Finset.sum_congr rfl (fun m _ => hterm m), Finset.sum_ite_eq']
-    simp only [Finset.mem_univ, if_true]
+    simp only [Finset.mem_univ, ite_true]
     exact ih c (by omega) i
 
 /-- The Eq. (9) entries vanish beyond the rotations already applied. -/
 theorem colEntry_eq_zero_of_lt (K k : ℕ) (θ : ℕ → ℝ) (i : Fin (K+1))
     (h : k < i.val) : colEntry K k θ i = 0 := by
   unfold colEntry
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
 
 /-- One more rotation appends the new slot `|k+1⟩` and scales the old column by
 `cos θ_k`, exactly the recursion the source reads off the block form of the product. -/
@@ -350,7 +354,7 @@ theorem colEntry_succ (K k : ℕ) (θ : ℕ → ℝ) (i : Fin (K+1)) :
     have hprod : ∏ j ∈ Finset.Ico i.val (k + 1), Real.cos (θ j) =
         (∏ j ∈ Finset.Ico i.val k, Real.cos (θ j)) * Real.cos (θ k) :=
       Finset.prod_Ico_succ_top hle _
-    rw [if_pos hle', if_pos hle, if_neg hne, hprod]
+    rw [ite_eq_left hle', ite_eq_left hle, ite_eq_right hne, hprod]
     ring
   · by_cases heq : i.val = k + 1
     · have hle' : i.val ≤ k + 1 := by omega
@@ -360,11 +364,11 @@ theorem colEntry_succ (K k : ℕ) (θ : ℕ → ℝ) (i : Fin (K+1)) :
       have hsin : (if i.val = 0 then (1 : ℝ) else Real.sin (θ (i.val - 1))) =
           Real.sin (θ k) := by
         have hne0 : i.val ≠ 0 := by omega
-        rw [if_neg hne0, show i.val - 1 = k from by omega]
-      rw [if_pos hle', if_neg hle, if_pos heq, hprod, hsin]
+        rw [ite_eq_right hne0, show i.val - 1 = k from by omega]
+      rw [ite_eq_left hle', ite_eq_right hle, ite_eq_left heq, hprod, hsin]
       ring
     · have hnot : ¬ i.val ≤ k + 1 := by omega
-      rw [if_neg hnot, if_neg hle, if_neg heq]
+      rw [ite_eq_right hnot, ite_eq_right hle, ite_eq_right heq]
       ring
 
 /-- Eq. (9): the first column of `V = ∏_{j<K} R_y(θ_j)_{|0⟩,|j+1⟩}` is the source's
@@ -398,12 +402,12 @@ theorem prefixProd_col_zero (K : ℕ) (θ : ℕ → ℝ) :
       rw [twoLevelRy_col_zero]
       by_cases h0 : m.val = 0
       · have hne : m.val ≠ k + 1 := by omega
-        rw [if_pos h0, if_pos h0, if_neg hne]
+        rw [ite_eq_left h0, ite_eq_left h0, ite_eq_right hne]
         ring
       · by_cases h1 : m.val = k + 1
-        · rw [if_neg h0, if_pos h1, if_neg h0, if_pos h1]
+        · rw [ite_eq_right h0, ite_eq_left h1, ite_eq_right h0, ite_eq_left h1]
           ring
-        · rw [if_neg h0, if_neg h1, if_neg h0, if_neg h1]
+        · rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h0, ite_eq_right h1]
           ring
     rw [Finset.sum_congr rfl (fun m _ => hsplit m), Finset.sum_add_distrib]
     have hS1 : (∑ m : Fin (K+1),
@@ -413,27 +417,27 @@ theorem prefixProd_col_zero (K : ℕ) (θ : ℕ → ℝ) :
       · simp
       · intro b _ hb
         have hb0 : b.val ≠ 0 := fun h => hb (Fin.ext (by simpa using h))
-        rw [if_neg hb0]
+        rw [ite_eq_right hb0]
       · intro h
         simp at h
     have hS2 : (∑ m : Fin (K+1),
         (if m.val = k + 1 then prefixProd K θ k i m * Real.sin (θ k) else 0)) =
         (if i = (⟨k + 1, by omega⟩ : Fin (K+1)) then 1 else 0) * Real.sin (θ k) := by
       rw [Finset.sum_eq_single (⟨k + 1, by omega⟩ : Fin (K+1))]
-      · rw [if_pos rfl,
+      · rw [ite_eq_left rfl,
           prefixProd_col_fresh K θ k ⟨k + 1, by omega⟩ (by simp) i]
       · intro b _ hb
         have hbne : b.val ≠ k + 1 := fun h => hb (Fin.ext h)
-        rw [if_neg hbne]
+        rw [ite_eq_right hbne]
       · intro h
         simp at h
     rw [hS1, hS2, colEntry_succ, ih (by omega)]
     by_cases hi : i.val = k + 1
     · have hie : i = (⟨k + 1, by omega⟩ : Fin (K+1)) := Fin.ext hi
-      rw [if_pos hi, if_pos hie, colEntry_eq_zero_of_lt K k θ i (by omega)]
+      rw [ite_eq_left hi, ite_eq_left hie, colEntry_eq_zero_of_lt K k θ i (by omega)]
       ring
     · have hie : i ≠ (⟨k + 1, by omega⟩ : Fin (K+1)) := fun h => hi (by rw [h])
-      rw [if_neg hi, if_neg hie]
+      rw [ite_eq_right hi, ite_eq_right hie]
       ring
 
 /-- The Eq. (9) vector has unit Euclidean norm: it is a point of the unit sphere of
@@ -451,7 +455,7 @@ theorem colEntry_sq_sum (K : ℕ) (θ : ℕ → ℝ) :
         rcases Nat.eq_zero_or_pos b.val with h0 | h0
         · exact absurd (Fin.ext h0) hb
         · exact h0
-      rw [colEntry, if_neg (by omega)]
+      rw [colEntry, ite_eq_right (by omega)]
       ring
     · intro h
       simp at h
@@ -474,11 +478,11 @@ theorem colEntry_sq_sum (K : ℕ) (θ : ℕ → ℝ) :
         2 * (colEntry K k θ i * Real.cos (θ k)) *
           (if i.val = k + 1 then Real.sin (θ k) else 0)) = 0 := by
       rw [Finset.sum_eq_single (⟨k + 1, by omega⟩ : Fin (K+1))]
-      · rw [if_pos rfl, colEntry_eq_zero_of_lt K k θ (⟨k + 1, by omega⟩) (by simp)]
+      · rw [ite_eq_left rfl, colEntry_eq_zero_of_lt K k θ (⟨k + 1, by omega⟩) (by simp)]
         ring
       · intro b _ hb
         have hbne : b.val ≠ k + 1 := fun h => hb (Fin.ext h)
-        rw [if_neg hbne]
+        rw [ite_eq_right hbne]
         ring
       · intro h
         simp at h
@@ -486,10 +490,10 @@ theorem colEntry_sq_sum (K : ℕ) (θ : ℕ → ℝ) :
         (if i.val = k + 1 then Real.sin (θ k) else 0) ^ 2) =
         (Real.sin (θ k)) ^ 2 := by
       rw [Finset.sum_eq_single (⟨k + 1, by omega⟩ : Fin (K+1))]
-      · rw [if_pos rfl]
+      · rw [ite_eq_left rfl]
       · intro b _ hb
         have hbne : b.val ≠ k + 1 := fun h => hb (Fin.ext h)
-        rw [if_neg hbne]
+        rw [ite_eq_right hbne]
         ring
       · intro h
         simp at h
@@ -504,15 +508,15 @@ theorem colEntry_congr (K K' k : ℕ) (θ θ' : ℕ → ℝ) (i : Fin (K+1)) (i'
   unfold colEntry
   rw [hval]
   by_cases h : i'.val ≤ k
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     congr 1
     · exact Finset.prod_congr rfl (fun j hj => by
         rw [hθ j (Finset.mem_Ico.mp hj).2])
     · by_cases h0 : i'.val = 0
-      · rw [if_pos h0, if_pos h0]
-      · rw [if_neg h0, if_neg h0]
+      · rw [ite_eq_left h0, ite_eq_left h0]
+      · rw [ite_eq_right h0, ite_eq_right h0]
         rw [hθ (i'.val - 1) (by omega)]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The single-rotation column of Eq. (9) is `(cos θ_0, sin θ_0)`: its `|0⟩` entry. -/
 theorem colEntry_one_cos (θ : ℕ → ℝ) :
@@ -610,15 +614,15 @@ theorem exists_angles : ∀ K : ℕ, 1 ≤ K → ∀ ψ : Fin (K+1) → ℝ,
         refine ⟨fun j => if j = n then t else 0, ?_⟩
         intro i
         rw [colEntry_succ]
-        simp only [if_true]
+        simp only [ite_true]
         by_cases hi : i.val = n + 1
         · have hie : i = Fin.last (n+1) := Fin.ext hi
-          rw [if_pos hi, hie,
+          rw [ite_eq_left hi, hie,
             colEntry_eq_zero_of_lt (n+1) n (fun j => if j = n then t else 0)
               (Fin.last (n+1)) (by simp)]
           rw [zero_mul, zero_add]
           exact hsin
-        · rw [if_neg hi]
+        · rw [ite_eq_right hi]
           have hzero : ψ i = 0 := by
             have hcast : (Fin.castSucc (⟨i.val, by omega⟩ : Fin (n+1)) : Fin ((n+1)+1)) = i :=
               Fin.ext rfl
@@ -639,20 +643,20 @@ theorem exists_angles : ∀ K : ℕ, 1 ≤ K → ∀ ψ : Fin (K+1) → ℝ,
         refine ⟨fun j => if j = n then t else θ' j, ?_⟩
         intro i
         rw [colEntry_succ]
-        simp only [if_true]
+        simp only [ite_true]
         by_cases hi : i.val = n + 1
         · have hie : i = Fin.last (n+1) := Fin.ext hi
-          rw [if_pos hi, hie,
+          rw [ite_eq_left hi, hie,
             colEntry_eq_zero_of_lt (n+1) n (fun j => if j = n then t else θ' j)
               (Fin.last (n+1)) (by simp)]
           rw [zero_mul, zero_add]
           exact hsin
-        · rw [if_neg hi]
+        · rw [ite_eq_right hi]
           have hcongr := colEntry_congr (n+1) n n
             (fun j => if j = n then t else θ' j) θ' i ⟨i.val, by omega⟩ rfl
             (fun j hj => by
               have hjn : j ≠ n := by omega
-              simp only [hjn, if_false])
+              simp only [hjn, ite_false])
           rw [hcongr, hθ' ⟨i.val, by omega⟩]
           show ψ (Fin.castSucc ⟨i.val, by omega⟩) / Real.cos t * Real.cos t + 0 = ψ i
           rw [div_mul_cancel₀ _ hc0, add_zero]

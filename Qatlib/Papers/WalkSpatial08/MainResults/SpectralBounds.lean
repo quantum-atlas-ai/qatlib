@@ -4,131 +4,135 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.Rat
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Interval.Finset.SuccPred
-import Mathlib.Algebra.Order.IsBotOne
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Ring.Unbundled.Rat
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Order.Sub.Defs
-import Mathlib.Algebra.Order.SuccPred
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.NNRat.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Rat.BigOperators
-import Mathlib.Data.Rat.Cast.CharZero
-import Mathlib.Data.Rat.Cast.Defs
-import Mathlib.Data.Rat.Defs
-import Mathlib.Data.Rat.Init
-import Mathlib.Logic.Function.Defs
-import Mathlib.NumberTheory.Harmonic.Bounds
-import Mathlib.NumberTheory.Harmonic.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Interval.Finset.Basic
-import Mathlib.Order.Interval.Finset.Defs
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Order.Lattice
-import Mathlib.Order.Lattice.Nat
-import Mathlib.Order.Nat
-import Mathlib.Order.RelClasses
-import Mathlib.Order.SuccPred.Nat
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.OfScientific
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
-import Qatlib.Papers.WalkSpatial08.MainResults.ControlledWalkDefs
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.Rat
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Interval.Finset.SuccPred
+public import Mathlib.Algebra.Order.IsBotOne
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Ring.Unbundled.Rat
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Order.Sub.Defs
+public import Mathlib.Algebra.Order.SuccPred
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.NNRat.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Rat.BigOperators
+public import Mathlib.Data.Rat.Cast.CharZero
+public import Mathlib.Data.Rat.Cast.Defs
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Data.Rat.Init
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.NumberTheory.Harmonic.Bounds
+public import Mathlib.NumberTheory.Harmonic.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Interval.Finset.Basic
+public import Mathlib.Order.Interval.Finset.Defs
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.Lattice.Nat
+public import Mathlib.Order.Nat
+public import Mathlib.Order.RelClasses
+public import Mathlib.Order.SuccPred.Nat
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.OfScientific
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
+public import Qatlib.Papers.WalkSpatial08.MainResults.ControlledWalkDefs
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Lattice spectral sums and balanced control bounds
@@ -455,7 +459,7 @@ theorem latticeSize_real (n : ℕ) : ((latticeSize n : ℕ) : ℝ) = (n : ℝ) *
   simp [latticeSize, Nat.cast_mul]
 
 /-- For positive side length, the lattice logarithm is twice the logarithm of the side length. -/
-theorem logLattice_eq_two_log {n : ℕ} (hn : 0 < n) :
+theorem logLattice_eq_two_log {n : ℕ} (_hn : 0 < n) :
     logLattice n = 2 * Real.log (n : ℝ) := by
   unfold logLattice
   rw [latticeSize_real, show (n : ℝ) * (n : ℝ) = (n : ℝ) ^ 2 by ring, Real.log_pow]
@@ -1049,7 +1053,6 @@ theorem tan_sq_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
   have hLne : logLattice n ≠ 0 := hL.ne'
   rw [Real.tan_eq_sin_div_cos, div_pow, hsin, hcos]
   field_simp
-  try ring
 
 /-- For lattice logarithm at least one, `sqrt (5 * logLattice n - 1)` lies between twice and
 three times `sqrt (logLattice n)`. -/
@@ -1096,7 +1099,6 @@ theorem alphaDeltaStar_eq {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) :
     rw [Real.sqrt_div' (5 * logLattice n - 1) (by norm_num : (0 : ℝ) ≤ 4), h4]
   rw [hsq]
   field_simp
-  try ring
 
 /-- For positive side length and lattice logarithm at least one, the balanced phase increment is
 at least two thirds of the inverse square root of `latticeSize n * logLattice n`. See [Main
@@ -1122,8 +1124,7 @@ theorem alphaDeltaStar_lower {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) 
     positivity
   rw [show (2 / 3) * (1 / (Real.sqrt (latticeSize n : ℝ) * Real.sqrt (logLattice n))) =
       2 / (Real.sqrt (latticeSize n : ℝ) * (3 * Real.sqrt (logLattice n))) by
-    field_simp
-    try ring]
+    field_simp]
   rw [div_le_div_iff₀ hX hY]
   have hmul : Real.sqrt (latticeSize n : ℝ) * Real.sqrt (5 * logLattice n - 1) ≤
       Real.sqrt (latticeSize n : ℝ) * (3 * Real.sqrt (logLattice n)) :=

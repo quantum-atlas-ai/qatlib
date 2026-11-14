@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
-import Qatlib.Concepts.CoherentSim.ResetDiscard.EffectiveTimeDependent
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.EffectiveTimeDependent
+
+@[expose] public section
 
 /-!
 # Grid-word coefficient and preparation definitions

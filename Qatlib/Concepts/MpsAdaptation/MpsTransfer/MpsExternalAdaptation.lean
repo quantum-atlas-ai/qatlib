@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationProofs
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationConsumers
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationProofs
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationConsumers
+
+@[expose] public section
 
 /-!
 # Ordered MPS transfer and open-boundary overlaps

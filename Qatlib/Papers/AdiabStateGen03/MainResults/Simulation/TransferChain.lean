@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
+
+@[expose] public section
 
 /-!
 # Finite chains of state transfers

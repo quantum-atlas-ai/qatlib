@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+module
+
+public import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+
+@[expose] public section
 
 /-!
 # Effective fidelity search and exact-resampling schedules
@@ -230,9 +234,9 @@ theorem gext2 :
       apply Finset.sum_eq_zero
       intro i _
       by_cases hi : 0 < π i
-      · rw [if_pos hi, hn' i hi]
+      · rw [ite_eq_left hi, hn' i hi]
         ring
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
     linarith
   obtain ⟨i₀, hi₀π, hi₀σ⟩ := hex
   have hfillH : 0 < waterFill π σ (computedWaterHigh π σ) i₀ := by
@@ -246,7 +250,7 @@ theorem gext2 :
   have hfidH : computedFidelity π σ (computedWaterHigh π σ)
       = computedDot π σ (computedWaterHigh π σ) ^ 2 / computedMass π σ (computedWaterHigh π σ) := by
     unfold computedFidelity
-    rw [if_neg (ne_of_gt hmassH)]
+    rw [ite_eq_right (ne_of_gt hmassH)]
   have hnrH : ¬ fidelityReaches π σ p (computedWaterHigh π σ) := by
     intro hc
     unfold fidelityReaches at hc

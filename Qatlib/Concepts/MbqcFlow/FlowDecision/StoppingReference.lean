@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+
+@[expose] public section
 
 /-!
 # Stopping events for instrument executions
@@ -274,7 +278,7 @@ theorem finiteEventMap_succ (I : C→Instrument L D D) (dest : C→L→O⊕C) (p
   apply LinearMap.ext
   intro ρ
   simp only [finiteEventMap,eventBranchMap,LinearMap.sum_apply,Finset.sum_filter]
-  letI : ∀ l : L, Fintype (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
+  let : ∀ l : L, Fintype (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
     fun l => childFintype dest n (dest c l)
   change (∑ p : (l : L) × (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c'),
     (if Ev (leafRecord dest price (n+1) c p) then (pathInstrument I dest (n+1) c).branch p else 0) ρ) = _
@@ -332,7 +336,7 @@ theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (de
     apply LinearMap.ext
     intro ρ
     simp only [finiteEventMap,eventBranchMap,LinearMap.sum_apply,Finset.sum_filter]
-    letI : ∀ l : L, Fintype (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
+    let : ∀ l : L, Fintype (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
       fun l => childFintype dest n (dest c l)
     change (∑ p : (l : L) × (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c'),
       (if leafRecord dest price (n+1) c p=(Sum.inl o,k) then
@@ -366,7 +370,7 @@ theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (de
       | inr c' =>
         dsimp only [J,R,K]
         by_cases hfit : price c l≤k
-        · rw [if_pos hfit]
+        · rw [ite_eq_left hfit]
           have hc (p : Leaf dest n c') : price c l+leafCharge dest price n c' p=k ↔
               leafCharge dest price n c' p=k-price c l := by omega
           have hh :=
@@ -377,15 +381,15 @@ theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (de
           apply Finset.sum_congr rfl
           intro p _
           by_cases hz : leafRecord dest price n c' p=(Sum.inl o,k-price c l)
-          · rw [if_pos hz]
+          · rw [ite_eq_left hz]
             have hz' : (leafResult dest n c' p,price c l+leafCharge dest price n c' p)=(Sum.inl o,k) := by
               have hz1 := congrArg Prod.fst hz
               have hz2 := congrArg Prod.snd hz
               apply Prod.ext
               · exact hz1
               · exact (hc p).mpr hz2
-            rw [if_pos hz']
-          · rw [if_neg hz]
+            rw [ite_eq_left hz']
+          · rw [ite_eq_right hz]
             have hz' : ¬ (leafResult dest n c' p,price c l+leafCharge dest price n c' p)=(Sum.inl o,k) := by
               intro hh
               apply hz
@@ -393,26 +397,26 @@ theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (de
               have hh1 := congrArg (fun z : (O⊕C)×ℕ => z.1) hh
               have hh2 := congrArg (fun z : (O⊕C)×ℕ => z.2) hh
               exact Prod.ext hh1 ((hc p).mp hh2)
-            simp only [if_neg hz',LinearMap.zero_apply]
-        · rw [if_neg hfit]
+            simp only [ite_eq_right hz',LinearMap.zero_apply]
+        · rw [ite_eq_right hfit]
           apply Finset.sum_eq_zero
           intro p _
           have hbad : ¬ (leafResult dest n c' p,price c l+leafCharge dest price n c' p)=(Sum.inl o,k) := by
             intro hz
             have hcost := congrArg Prod.snd hz
             omega
-          simp only [if_neg hbad]
+          simp only [ite_eq_right hbad]
     convert! hchild (dest c l) using 1
     · apply Finset.sum_congr rfl
       intro p _
       dsimp only [J,R,K,leafRecord,leafResult,leafCharge,pathInstrument,Instrument.feedForward]
       split_ifs <;> rfl
     · by_cases hfit : price c l≤k
-      · simp only [if_pos hfit]
+      · simp only [ite_eq_left hfit]
         cases he : dest c l with
         | inl out => (try dsimp only); split_ifs <;> rfl
         | inr c' => rfl
-      · simp only [if_neg hfit,LinearMap.zero_apply]
+      · simp only [ite_eq_right hfit,LinearMap.zero_apply]
 
 /-- The predicate selecting halted records whose output and charge satisfy `E`. -/
 def haltPredicate (E : O×ℕ→Prop) (z : (O⊕C)×ℕ) : Prop :=
@@ -513,7 +517,7 @@ theorem exactEventLayer_bound (I : C→Instrument L D D) (dest : C→L→O⊕C) 
   intro N ρ hρ
   have hh := congrArg (fun T : Operator D→ₗ[ℂ]Operator D => (Matrix.trace (T ρ)).re)
     (exactEventLayer_sum I dest price N c E)
-  (try dsimp only at hh)
+
   rw [LinearMap.sum_apply,Matrix.trace_sum,Complex.re_sum] at hh
   rw [hh]
   exact finite_event_tni I dest price N c (haltPredicate E) hρ

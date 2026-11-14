@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SeqEntangle05.MainResults.MPSDefs
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
+module
+
+public import Qatlib.Papers.SeqEntangle05.MainResults.MPSDefs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+
+@[expose] public section
 
 /-!
 # Factorization into sequential isometries
@@ -70,9 +74,9 @@ theorem orthonormal_sum_inner_smul_of_mem_span
     | mem z hz =>
         obtain ⟨i, rfl⟩ := hz
         rw [Finset.sum_eq_single i]
-        · rw [orthonormal_iff_ite.mp hv i i, if_pos rfl, one_smul]
+        · rw [orthonormal_iff_ite.mp hv i i, ite_eq_left rfl, one_smul]
         · intro j _ hji
-          rw [orthonormal_iff_ite.mp hv j i, if_neg hji, zero_smul]
+          rw [orthonormal_iff_ite.mp hv j i, ite_eq_right hji, zero_smul]
         · intro hi
           exact absurd (Finset.mem_univ i) hi
     | zero => simp
@@ -114,7 +118,7 @@ theorem blockFactorization (D : ℕ) : BlockFactorization D := by
   let idx : Set (Fin (Module.finrank ℂ E)) := {i | i.val < r}
   let v : Fin (Module.finrank ℂ E) → E := fun i =>
     if h : i.val < r then (bW ⟨i.val, h⟩ : E) else 0
-  have hv : Orthonormal ℂ (idx.restrict v) := by
+  have hv : Orthonormal ℂ (idx.domRestrict v) := by
     let e : idx → Fin r := fun i => ⟨i.val, i.prop⟩
     have he : Function.Injective e := by
       intro a b hab
@@ -123,10 +127,10 @@ theorem blockFactorization (D : ℕ) : BlockFactorization D := by
     have hbase : Orthonormal ℂ (fun i : Fin r => ((bW i : W) : E)) :=
       bW.orthonormal.comp_linearIsometry W.subtypeₗᵢ
     have hcomp : Orthonormal ℂ (fun i : idx => ((bW (e i) : W) : E)) := hbase.comp e he
-    have hfun : (idx.restrict v) = (fun i : idx => ((bW (e i) : W) : E)) := by
+    have hfun : (idx.domRestrict v) = (fun i : idx => ((bW (e i) : W) : E)) := by
       funext i
-      simp only [Set.restrict, v, e]
-      exact dif_pos i.prop
+      simp only [Set.domRestrict, v, e]
+      exact dite_eq_left i.prop
     rw [hfun]
     exact hcomp
   obtain ⟨b', hb'⟩ := Orthonormal.exists_orthonormalBasis_extension_of_card_eq
@@ -153,7 +157,7 @@ theorem blockFactorization (D : ℕ) : BlockFactorization D := by
     show b' (emb ⟨i.val, hiD⟩) = (bW i : E)
     rw [heq]
     simp only [v]
-    rw [dif_pos i.isLt]
+    rw [dite_eq_left i.isLt]
   have hAsub : ∀ β : Fin D, col β ∈ Wv := by
     intro β
     have hxW : col β ∈ W := Submodule.subset_span ⟨β, rfl⟩

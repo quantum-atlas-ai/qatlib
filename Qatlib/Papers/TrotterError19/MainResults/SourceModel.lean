@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

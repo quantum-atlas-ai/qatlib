@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCounts
-import Qatlib.Concepts.UniformBqp.Phi3Compile.MachineSource
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCounts
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.MachineSource
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Rational phases and finite execution data

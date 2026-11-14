@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajorityVocabulary
-import Mathlib.Computability.Partrec
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajorityVocabulary
+public import Mathlib.Computability.Partrec
+
+@[expose] public section
 
 /-!
 # Finite-tape majority compilation
@@ -116,7 +120,7 @@ theorem encodeMachine_length (Q : ℕ)
 theorem rowIndex_lt (Q : ℕ) (c : Bool) (q : Fin (Q + 1)) (a : Option Bool) :
     rowIndex Q c q a < 6 * (Q + 1) := by
   have hs := symbolIndex_lt a
-  cases c <;> simp only [rowIndex, Bool.toNat, cond_false, cond_true] <;> omega
+  cases c <;> simp only [rowIndex, Bool.toNat, Bool.cond_false, Bool.cond_true] <;> omega
 
 /-- The row index determines its coin, control label, and tape symbol through the specified
 threshold, quotient, and remainder operations. -/
@@ -132,7 +136,7 @@ theorem rowIndex_coordinates (Q : ℕ) (c : Bool) (q : Fin (Q + 1)) (a : Option 
     unfold rowIndex
     omega
   refine ⟨?_, ?_, ?_⟩
-  · cases c <;> simp only [rowIndex, Bool.toNat, cond_false, cond_true,
+  · cases c <;> simp only [rowIndex, Bool.toNat, Bool.cond_false, Bool.cond_true,
       decide_eq_false_iff_not, decide_eq_true_eq] <;> omega
   · rw [hd]
     cases c <;> simp [Nat.mod_eq_of_lt q.isLt]
@@ -1807,7 +1811,6 @@ theorem independentMajorityMass_zero {Γ Λ : Type*} [Inhabited Γ] [Inhabited �
   rw [majorityBit_one]
   have h := source_vote_eq_target M a input (List.ofFn (ω 0)) target (ht (ω 0))
   simp only [Equiv.funUnique_apply, Fin.default_eq_zero, h]
-  (try rfl)
 
 /-- A bit in a fresh coin block is the bit at the corresponding index under `finProdFinEquiv`. -/
 @[simp] theorem freshBlocks_apply (N t : ℕ) (coins : Fin (N * t) → Bool)
@@ -1964,7 +1967,7 @@ theorem homeAt_write_work (T : Turing.Tape MarkerCell) (off : ℤ) (b : Option B
   by_cases hi : i = 0
   · subst i
     simpa using! h 0
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     exact h i
 
 /-- Updating the side flag for a left move preserves `SideAt` at the decremented offset. -/
@@ -1994,7 +1997,7 @@ theorem markerCopyResult_home (input : List Bool) : HomeAt (markerCopyResult inp
   rw [Turing.Tape.write_nth]
   by_cases hi : i = 0
   · simp [hi]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     have hm : ((Turing.Tape.mk₁ (input.map fun b => (some b, some b, false))).nth i).2.2 = false := by
       change ((Turing.TM0.init (input.map fun b => (some b, some b, false)) :
         Turing.TM0.Cfg MarkerCell (Fin 1)).Tape.nth i).2.2 = false
@@ -2466,11 +2469,9 @@ theorem homing_coinConfig_budget {Λ : Type} [Inhabited Λ]
     rw [← hsplit] at h
     obtain ⟨hs, hr, ht, ho⟩ := h
     refine ⟨home, hm, hs, ?_, ?_, ho⟩
-    · (try dsimp only)
-      rw [hr, List.length_take, min_eq_left hklen]
+    · rw [hr, List.length_take, min_eq_left hklen]
       omega
-    · (try dsimp only)
-      rw [hr, ht]
+    · rw [hr, ht]
 
 /-- Relabeling states by an equivalence commutes with `coinConfigRunAux`: the stopped
 configuration is relabeled, while the read and transition counts are unchanged. -/
@@ -2692,11 +2693,9 @@ theorem prepareHoming_source_output (Q : ℕ)
     exact hreadout.symm.trans (by
       simpa [prepareHomingAccept, sourcePhaseAccept] using! hbit)
   · refine ⟨prepareHomingLabels Q (.inr q), home, hm, hfinal, ?_, ?_⟩
-    · (try dsimp only)
-      rw [hread]
+    · rw [hread]
       omega
-    · (try dsimp only)
-      rw [htrans, hread, ht]
+    · rw [htrans, hread, ht]
 
 /-- Converting `homingCoinWords input t p` to a list concatenates the preparation word, the
 dispatch bit, the source word of length `t`, and the homing padding word of length `t + 1`
@@ -3269,11 +3268,9 @@ theorem trackRound_source_output {N : ℕ} (j : Fin N) (Q : ℕ)
       · intro k hkj
         exact track_coin_blank_other j k hkj (prepareHomingCoinTable Q M a)
           (List.ofFn front ++ switch :: tail) _ final (tracksInput_blank k input) hwstop
-      · (try dsimp only)
-        rw [hread]
+      · rw [hread]
         exact hr
-      · (try dsimp only)
-        rw [htrans, hread]
+      · rw [htrans, hread]
         exact ht
 
 /-- The first marker copy step is identical whether the initial input tape already has its home
@@ -3494,7 +3491,7 @@ theorem markedInputTape_home (input : List Bool) : HomeAt (markedInputTape input
   rw [Turing.Tape.write_nth]
   by_cases hi : i = 0
   · simp [hi]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     have hm : ((Turing.Tape.mk₁ (markerInput input)).nth i).2.2 = false := by
       change ((Turing.TM0.init (markerInput input) : Turing.TM0.Cfg MarkerCell (Fin 1)).Tape.nth i).2.2 = false
       rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.init_nth]
@@ -3655,11 +3652,9 @@ theorem trackRound_fresh_execution {N : ℕ} (j : Fin N) (Q : ℕ)
       have hblank := track_coin_blank_other j k hkj (prepareHomingCoinTable Q M a)
         (List.ofFn front ++ switch :: tail) ⟨0, T⟩ final hb hstop
       exact ⟨hblank, blankTrack_fresh_view j k input final.Tape hprotected hblank⟩
-    · (try dsimp only)
-      rw [hread]
+    · rw [hread]
       exact hr
-    · (try dsimp only)
-      rw [htrans, hread]
+    · rw [htrans, hread]
       exact ht
 
 /-- Below the bound `N`, `boundedSucc N` increments the underlying natural value by exactly one. -/
@@ -3982,12 +3977,10 @@ theorem rounds_total_from (N Q : ℕ)
       rw [← hsplit] at hstage
       obtain ⟨hstageStop, hstageReads, hstageTransitions⟩ := hstage
       refine ⟨final, hstageStop.trans hs, hfinal, ?_, ?_⟩
-      · (try dsimp only)
-        rw [hstageReads, List.length_take, min_eq_left hklen]
+      · rw [hstageReads, List.length_take, min_eq_left hklen]
         change (coinConfigRunAux (roundsTable N Q M a) tail ⟨next, roundFinal.Tape⟩).reads ≤ _ at hr
         nlinarith
-      · (try dsimp only)
-        rw [hstageTransitions, hstageReads, htr]
+      · rw [hstageTransitions, hstageReads, htr]
 
 /-- If the source has common halting and is total on all length `t` words, the rounds machine on
 the initial multitrack input stops at round index `N` with any coin list of length at least
@@ -5279,7 +5272,7 @@ theorem tapeAt_head (l : List (Option Bool)) (n : ℕ) : (tapeAt l n).head = l.g
   rw [Turing.Tape.move_right_n_head]
   change ((Turing.TM0.init l : Turing.TM0.Cfg (Option Bool) (Fin 1)).Tape.nth (n : ℤ)) = _
   rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.init_nth]
-  rw [if_neg (by omega : ¬ (n : ℤ) < 0)]
+  rw [ite_eq_right (by omega : ¬ (n : ℤ) < 0)]
   simp only [Int.toNat_natCast, List.getI_eq_getElem?_getD, List.getD_eq_getElem?_getD]
   rfl
 
@@ -7504,8 +7497,6 @@ theorem expandInputTable_record (N : ℕ) (q : ExpandState N) (s : Option Bool) 
         | rw [expandLabels_nat]
         | rw [expandQueueLabels_update]
         | rw [expandQueueLabels_push]
-        | rw [expandQueueLabels_digit_encode]
-        | rw [expandQueueLabels_zero]
         | rw [actionIndex_write])
     all_goals try dsimp [actionIndex, symbolIndex]
     all_goals simp_all [symbolIndex]
@@ -7519,7 +7510,6 @@ theorem expandInputTable_record (N : ℕ) (q : ExpandState N) (s : Option Bool) 
         | rw [expandLabels_nat]
         | rw [expandQueueLabels_update]
         | rw [expandQueueLabels_push]
-        | rw [expandQueueLabels_digit_encode]
         | rw [expandQueueLabels_zero]
         | rw [actionIndex_write])
     all_goals try dsimp [actionIndex, symbolIndex]
@@ -7749,7 +7739,7 @@ theorem expandedSequenceTable_right_record (N : ℕ) (next : Code) (coin : Bool)
     rcases p with ⟨q', action⟩
     simp only [Option.map_some, encodeTransition, expandedSequenceLabels_inr_val]
     have hn : 5 * q'.val + actionIndex action + 1 ≠ 0 := by omega
-    rw [if_neg hn]
+    rw [ite_eq_right hn]
     omega
 
 /-- The encoded native expansion transition at control label `q` and symbol `s` is `expandRowNat
@@ -8109,7 +8099,7 @@ theorem bitSimTable_ready_record_nat (N Q : ℕ)
     have hq := wideRecordNat_source N Q next action
     have ha := wideRecordNat_action N Q next action
     dsimp only [bitSimStepNat]
-    rw [if_neg hn, hq, ha]
+    rw [ite_eq_right hn, hq, ha]
     cases action with
     | move dir =>
       cases dir <;> simp [wideActionNat, encodeTransition, bitSimLabels_nat, actionIndex_write]
@@ -8469,9 +8459,7 @@ theorem trackRoundTable_copy_record_nat (N : ℕ) (j : Fin N) (code : Code) (coi
       repeat' (first
         | rw [prepareHomingLabels_inl_val]
         | rw [prepareHomingLabels_inr_val]
-        | rw [cellBuffer_writeTrack_nat]
-        | rw [writeTrack_focusTrack]
-        | rw [Fin.default_eq_zero])
+        | rw [cellBuffer_writeTrack_nat])
     all_goals simp_all [symbolIndex]
   | some b =>
     cases b <;> dsimp [markerCopyTable, fillCell, focusTrack]
@@ -8482,9 +8470,7 @@ theorem trackRoundTable_copy_record_nat (N : ℕ) (j : Fin N) (code : Code) (coi
       repeat' (first
         | rw [prepareHomingLabels_inl_val]
         | rw [prepareHomingLabels_inr_val]
-        | rw [cellBuffer_writeTrack_nat]
-        | rw [writeTrack_focusTrack]
-        | rw [Fin.default_eq_zero])
+        | rw [cellBuffer_writeTrack_nat])
     all_goals simp_all [symbolIndex]
 
 set_option maxHeartbeats 1200000 in
@@ -8577,8 +8563,7 @@ theorem trackRoundTable_source_record_nat (N : ℕ) (j : Fin N) (code : Code) (c
       repeat' (first
         | rw [prepareHomingLabels_inr_val]
         | rw [homingLabels_inr_val]
-        | rw [cellBuffer_writeTrack_nat]
-        | rw [writeTrack_focusTrack])
+        | rw [cellBuffer_writeTrack_nat])
     all_goals simp_all [readout]
     all_goals split_ifs <;> omega
   | some p =>
@@ -8729,7 +8714,7 @@ theorem roundsTable_record_nat (N : ℕ) (code : Code) (coin : Bool)
       rw [h] at hr
       rw [← hr]
       have hn : wideRecordNat N (some (next, action)) ≠ 0 := by simp [wideRecordNat]
-      rw [if_neg hn, wideRecordNat_source, wideRecordNat_action]
+      rw [ite_eq_right hn, wideRecordNat_source, wideRecordNat_action]
       simp only [Option.map_some, wideRecordNat, roundsLabels_nat]
   · simp only [roundsTable, hj, ↓reduceDIte, Option.map_none, wideRecordNat, roundsStepNat,
       ↓reduceIte]

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedOriginal
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedOriginal
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +35,7 @@ def samples (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     FinDist ((H × P) × (Fin n → GlobalRecord E)) :=
   TrainedMain.trainedLaw (independentPairLaw p pilot) u v hu hv (fun z => words z.1 z.2) n
 
+omit [DecidableEq E] in
 /-- Complete original `samples_expect` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
 theorem samples_expect (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
@@ -49,6 +54,7 @@ def step [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool �
     (update : H → P → (Fin n → GlobalRecord E) → H) : FinDist H :=
   PilotProjection.pushLaw (samples p pilot u v hu hv words n) (fun z => update z.1.1 z.1.2 z.2)
 
+omit [DecidableEq E] in
 /-- Complete original `step_keep` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
 theorem step_keep [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
@@ -69,6 +75,7 @@ theorem step_keep [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E �
   dsimp only
   rw [← Finset.sum_mul,FinDist.sum_one,one_mul]
 
+omit [DecidableEq E] in
 /-- Complete original `step_bound` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
 theorem step_bound [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
@@ -91,6 +98,7 @@ theorem step_bound [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E 
       unfold FinDist.expect
       rw [← Finset.sum_mul,p.sum_one,one_mul]
 
+omit [DecidableEq E] in
 /-- Complete original `empty_words_expect` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
 theorem empty_words_expect (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)

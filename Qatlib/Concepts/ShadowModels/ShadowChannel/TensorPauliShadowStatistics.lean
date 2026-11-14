@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+
+@[expose] public section
 
 /-!
 # Tensor Pauli shadow statistics
@@ -130,20 +134,20 @@ theorem tensorPauliLocalSecondMomentEffect (w : Option (Fin 3)) :
       ((3 : ℂ) ^ (if w.isSome then 1 else 0)) • (1 : Operator 2) := by
   simp_rw [tensorPauliLocalValue_sq]
   rcases w with _ | a
-  · simp only [Option.isSome_none, Bool.false_eq_true, if_false, pow_zero, one_smul]
+  · simp only [Option.isSome_none, Bool.false_eq_true, ite_false, pow_zero, one_smul]
     rw [← pauliRecordKraus_complete]
     exact Finset.sum_congr rfl fun o _ => by
       simpa using (pauliRecordKraus_conj_mul o).symm
   · rw [Fintype.sum_prod_type]
-    simp only [Option.isSome_some, if_true, pow_one]
+    simp only [Option.isSome_some, ite_true, pow_one]
     have hh : ∀ b : Fin 3,
         (∑ s : Bool, Complex.ofReal (if b = a then (9 : ℝ) else 0) •
           ((1 / 3 : ℂ) • PauliProjector b s)) =
         if b = a then (3 : ℂ) • (1 : Operator 2) else 0 := by
       intro b
       by_cases h : b = a
-      · rw [if_pos h]
-        simp_rw [if_pos h]
+      · rw [ite_eq_left h]
+        simp_rw [ite_eq_left h]
         rw [← Finset.smul_sum, ← Finset.smul_sum, pauliProjector_sum]
         ext i j
         norm_num [Matrix.smul_apply]
@@ -171,8 +175,8 @@ theorem tensorPauliDeltaProduct {n : ℕ} {α : Type*} [DecidableEq α]
   · subst y
     simp
   · obtain ⟨i, hi⟩ := Function.ne_iff.mp h
-    rw [if_neg h]
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    rw [ite_eq_right h]
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- The tensor Pauli measurement and reconstruction formula recovers any matrix on the qubit
 register. -/

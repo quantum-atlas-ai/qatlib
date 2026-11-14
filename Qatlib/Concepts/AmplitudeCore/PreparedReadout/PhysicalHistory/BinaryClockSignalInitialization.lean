@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # Gate initialization of the signal simulator frame
@@ -74,10 +78,11 @@ abbrev SimulatorSpace (H : Type) := BinaryClockSignalWord.SimulatorSpace H
 
 /-- Rectangular complex matrix multiplication with its intermediate finite index type specified
 explicitly. -/
-private noncomputable abbrev matmul {X Y Z : Type} [Fintype Y]
+private noncomputable abbrev matrixMul {X Y Z : Type} [Fintype Y]
     (M : Matrix X Y ℂ) (N : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid M N
+local notation "matmul" => matrixMul
 
 /-- Embed `F` into the simulator register with all three flags false. -/
 noncomputable def baseFrame {H I : Type} (F : Matrix H I ℂ) :
@@ -230,10 +235,10 @@ theorem intertwining (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ)
   ext ⟨a,b,c,h⟩ i
   rw [simulatorFrame_entry]
   cases a
-  · simpa [matmul, Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
+  · simpa [Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
       baseFrame, Matrix.diagonal_apply, Matrix.one_apply, mul_ite, ite_mul, mul_assoc] using!
       congrArg (fun z : ℂ => z * F h i) (two_h_phase b c)
-  · simp [matmul, Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
+  · simp [Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
       baseFrame, Matrix.diagonal_apply, Matrix.one_apply, mul_ite, ite_mul]
 
 /-- The initialization word sends every state embedded by `baseFrame F` to the same state
@@ -256,7 +261,7 @@ theorem inverse_intertwining
   calc
     _ = matmul ((evaluate W word)ᴴ * evaluate W word) (baseFrame F) :=
       (Matrix.mul_assoc _ _ _).symm
-    _ = _ := by simp only [hu, matmul, Matrix.one_mul]
+    _ = _ := by simp only [hu, Matrix.one_mul]
 
 end Frames
 

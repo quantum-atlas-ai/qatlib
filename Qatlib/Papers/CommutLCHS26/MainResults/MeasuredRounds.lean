@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
+module
+
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
+
+@[expose] public section
 
 /-!
 # Repeated measured rounds
@@ -93,7 +97,7 @@ theorem selective_step (U P : Matrix H H ℂ) (x : QState H) :
       ext i
       simp only [Pi.smul_apply, Complex.real_smul, smul_eq_mul]
     rw [conditionalState_eq_some_of_ne_zero hx, Option.bind_some, he]
-    simp only [ProjectiveConditionalState, ProjectiveBranch, if_true, ApplyGate, Matrix.mulVec_smul]
+    simp only [ProjectiveConditionalState, ProjectiveBranch, ite_true, ApplyGate, Matrix.mulVec_smul]
     exact Qatlib.Concepts.HhlAlgorithms.GridExactHHL.conditionalState_smul (inv_pos.mpr hn) _
 
 omit [DecidableEq I] in

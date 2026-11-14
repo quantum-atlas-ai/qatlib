@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
-import Qatlib.Papers.JuntaLearning07.MainResults.ParsevalIdentity
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
+public import Qatlib.Papers.JuntaLearning07.MainResults.ParsevalIdentity
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Fourier-sampling transcripts and junta tests

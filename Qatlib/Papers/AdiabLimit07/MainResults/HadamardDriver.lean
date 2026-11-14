@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.InnerProductSpace.Calculus
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+
+@[expose] public section
 
 /-!
 # Hadamard basis dynamics and runtime bounds
@@ -297,16 +301,19 @@ theorem inner_conj_symm (ψ φ : QState I) : QInner ψ φ = star (QInner φ ψ) 
   intro i _
   simp [mul_comm, star_mul]
 
+omit [DecidableEq I] in
 /-- The coordinate inner product is additive in its first argument. -/
 theorem inner_add_left (ψ φ χ : QState I) :
     QInner (ψ + φ) χ = QInner ψ χ + QInner φ χ := by
   rw [inner_conj_symm, inner_add_right, star_add, ← inner_conj_symm, ← inner_conj_symm]
 
+omit [DecidableEq I] in
 /-- Scaling the first argument multiplies the inner product by the conjugate scalar. -/
 theorem inner_smul_left (ψ φ : QState I) (a : ℂ) :
     QInner (a • ψ) φ = (star a) * QInner ψ φ := by
   rw [inner_conj_symm, inner_smul_right, star_mul, ← inner_conj_symm, mul_comm]
 
+omit [DecidableEq I] in
 /-- The inner product of a state with itself is the complex coercion of its squared norm. -/
 theorem inner_self_nrmSq (ψ : QState I) : QInner ψ ψ = (nrmSq ψ : ℂ) := by
   rw [QInner, Qatlib.Foundations.PureStateMath.inner_self,
@@ -329,12 +336,14 @@ theorem inner_norm_le (ψ φ : QState I) :
         Real.sum_mul_le_sqrt_mul_sqrt _ _ _
     _ = Real.sqrt (nrmSq ψ) * Real.sqrt (nrmSq φ) := by rw [nrmSq, nrmSq]
 
+omit [DecidableEq I] in
 /-- The coordinate inner product preserves subtraction in its second argument. -/
 theorem inner_sub_right (ψ φ χ : QState I) :
     QInner ψ (φ - χ) = QInner ψ φ - QInner ψ χ := by
   rw [sub_eq_add_neg, inner_add_right, ← neg_one_smul ℂ χ, inner_smul_right]
   ring
 
+omit [DecidableEq I] in
 /-- The coordinate inner product preserves subtraction in its first argument. -/
 theorem inner_sub_left (ψ φ χ : QState I) :
     QInner (ψ - φ) χ = QInner ψ χ - QInner φ χ := by
@@ -342,6 +351,7 @@ theorem inner_sub_left (ψ φ χ : QState I) :
   simp
   rw [sub_eq_add_neg]
 
+omit [DecidableEq I] in
 /-- For two orthonormal vectors, the sum of squared overlaps with any vector is at most its
 squared norm. -/
 theorem bessel2 (e f z : QState I)
@@ -404,6 +414,7 @@ example (M : ℂ) : ‖star M‖ = ‖M‖ := by simp
 
 example (a b : ℝ) (h : (a : ℂ) = (b : ℂ)) : a = b := Complex.ofReal_inj.mp h
 
+omit [DecidableEq I] in
 /-- For unit vectors `x` and `y`, their squared overlaps with `z` sum to at most `(1 + ‖QInner x
 y‖) * nrmSq z` [IoannouMosca2008]. -/
 theorem twoAmplitudeBound (x y z : QState I)
@@ -527,6 +538,7 @@ theorem twoAmplitudeBound (x y z : QState I)
             linarith
     simpa [ha, hb, hρ, hp] using hfin
 
+omit [DecidableEq I] in
 /-- If `x` and `y` are unit vectors and `nrmSq z ≤ 1`, their squared overlaps with `z` sum to at
 most `1 + ‖QInner x y‖` [IoannouMosca2008]. -/
 theorem eq29_twoState (x y z : QState I)

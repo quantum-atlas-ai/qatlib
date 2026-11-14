@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceFubini
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.Gaussian
-import Mathlib.MeasureTheory.Integral.Pi
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceFubini
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.Gaussian
+public import Mathlib.MeasureTheory.Integral.Pi
+
+@[expose] public section
 
 /-!
 # Scalar pair coordinates for Gaussian moments

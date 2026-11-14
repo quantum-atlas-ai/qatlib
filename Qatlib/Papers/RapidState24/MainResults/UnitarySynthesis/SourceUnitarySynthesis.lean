@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Cast.Order.Field
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.Data.Matrix.Diagonal
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Data.Matrix.Diagonal
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -101,7 +105,7 @@ overview on p. 4.
 The paper fixes `Λ` to a power of two and chooses it of order `√N`; the proof
 below takes `Λ = 2^{⌊log₂ √N⌋ + 1}`, which is the least power of two strictly
 larger than `√N` and hence within a factor two of optimal. -/
-theorem qrom_cost_sqrt (N b : ℕ) (hN : 1 ≤ N) (hb : 1 ≤ b) :
+theorem qrom_cost_sqrt (N b : ℕ) (hN : 1 ≤ N) (_hb : 1 ≤ b) :
     ∃ Λ : ℕ, (∃ k : ℕ, Λ = 2 ^ k) ∧
       qromToffoliCost N b Λ ≤ ((2 : ℝ) ^ (b + 1) + 1) * Real.sqrt (N : ℝ) + 2 := by
   let m : ℕ := Nat.sqrt N
@@ -135,7 +139,7 @@ theorem qrom_cost_sqrt (N b : ℕ) (hN : 1 ≤ N) (hb : 1 ≤ b) :
   have hΛ_pos : (0 : ℝ) < (Λ : ℝ) := by
     have : 0 < Λ := by
       have hpos : 0 < 2 ^ k := pow_pos (by norm_num) _
-      simpa [Λ] using hpos
+      simp [Λ]
     exact_mod_cast this
   have hΛ_gtR : (m : ℝ) < (Λ : ℝ) := by exact_mod_cast hpow2_gt
   have hΛ_leR : (Λ : ℝ) ≤ 2 * (m : ℝ) := by exact_mod_cast hpow2_le
@@ -266,7 +270,7 @@ theorem column_scheme_count (d : ℕ) (hd : 1 ≤ d) : (d - 1) + 1 = d := by
 after the `d − 1` halving steps the remaining dimension is `χ = N_un/d`, and the
 overall column count is `N_un/d`.  Section III.B, p. 13 ("the correct first `χ`
 columns of a matrix of size `N_un = dχ`"). -/
-theorem column_dimension (N d : ℕ) (hd : 1 ≤ d) (hdiv : d ∣ N) :
+theorem column_dimension (N d : ℕ) (_hd : 1 ≤ d) (hdiv : d ∣ N) :
     N / d * d = N :=
   Nat.div_mul_cancel hdiv
 
@@ -274,7 +278,7 @@ theorem column_dimension (N d : ℕ) (hd : 1 ≤ d) (hdiv : d ∣ N) :
 `d − 1` copies of the half-dimension cost, so the total cost is multiplied by
 `d − 1`.  Paper Section III.B, pp. 13–14 ("We can solve the case for `d > 2` by
 iterating the procedure, and the cost is multiplied by `d − 1`"). -/
-theorem column_cost_multiplier (d : ℕ) (hd : 1 ≤ d) :
+theorem column_cost_multiplier (d : ℕ) (_hd : 1 ≤ d) :
     ∃ c : ℕ, c = d - 1 := ⟨d - 1, rfl⟩
 
 end Qatlib.Papers.RapidState24.MainResults.UnitarySynthesis

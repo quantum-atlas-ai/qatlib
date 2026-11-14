@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.Support
-import Mathlib.Combinatorics.Nullstellensatz
+module
+
+public import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.Support
+public import Mathlib.Combinatorics.Nullstellensatz
+
+@[expose] public section
 
 /-!
 # Integer polynomial representatives of Boolean functions
@@ -61,11 +65,11 @@ private theorem booleanIndicator_eval {I R : Type} [Fintype I] [DecidableEq I]
   rw [map_prod]
   by_cases h : x=y
   · subst x
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     apply Finset.prod_eq_one
     intro i _
     cases hy : y i <;> simp [booleanPoint,hy]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     obtain ⟨i,hi⟩ : ∃ i, x i ≠ y i := Function.ne_iff.mp h
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     cases hx : x i <;> cases hy : y i <;> simp_all [booleanPoint]

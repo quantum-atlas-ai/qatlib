@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingQuan
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingQuan
+
+@[expose] public section
 
 /-!
 # Wire transport and Φ3 translation

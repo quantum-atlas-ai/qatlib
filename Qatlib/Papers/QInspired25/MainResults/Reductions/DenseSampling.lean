@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Algebra.WalshHadamard
-import Qatlib.Papers.QInspired25.MainResults.Simulation.CoordinatorSimulation
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Algebra.WalshHadamard
+public import Qatlib.Papers.QInspired25.MainResults.Simulation.CoordinatorSimulation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -121,9 +125,8 @@ theorem denseA_frobSq {n : ℕ} (f : (Fin n → Bool) → Bool) :
   simp only [hstep, walsh_rowNorm, mul_one]
   have hsq : ∀ x : Fin n → Bool, (if f x then (-1 : ℝ) else 1) ^ 2 = 1 := by
     intro x; by_cases hf : f x <;> simp [hf]
-  simp only [hsq, Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_one]
+  simp only [hsq, Finset.sum_const, Finset.card_univ]
   rw [Fintype.card_pi_const, Fintype.card_bool]
-  push_cast
   ring
 
 /-! ## §3. The vector `b = |g⟩` and `γ` -/

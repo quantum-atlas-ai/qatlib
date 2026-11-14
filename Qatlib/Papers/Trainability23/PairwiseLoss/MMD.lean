@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Papers.Trainability23.VarianceScaling.FiniteEnsemble
-import Qatlib.Papers.Trainability23.PairwiseLoss.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Papers.Trainability23.VarianceScaling.FiniteEnsemble
+public import Qatlib.Papers.Trainability23.PairwiseLoss.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Finite kernel discrepancy losses

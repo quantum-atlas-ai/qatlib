@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly05.MainResults.PathModelTrace
-import Qatlib.Papers.JonesPoly05.MainResults.EstimatorTail
+module
+
+public import Qatlib.Papers.JonesPoly05.MainResults.PathModelTrace
+public import Qatlib.Papers.JonesPoly05.MainResults.EstimatorTail
+
+@[expose] public section
 
 /-!
 # Conditional trace-closure estimation
@@ -44,7 +48,7 @@ open Qatlib.Papers.JonesPoly05.MainResults.Estimator
 possess a positive sample count with error probability at most δ at any positive threshold
 ε; see [AharonovJonesLandau2009]. -/
 theorem claim37_hadamard_estimator
-    {n : ℕ} {A d : ℂ} (hd : d ≠ 0) (B : BraidWord n)
+    {n : ℕ} {A d : ℂ} (_hd : d ≠ 0) (B : BraidWord n)
     (X : Type) [Fintype X] [DecidableEq X] (p : FinDist X) (re im : X → ℝ)
     (hre : ∀ x, re x ∈ Set.Icc (-1) 1) (him : ∀ x, im x ∈ Set.Icc (-1) 1)
     (hre_mean : p.expect re = (markovTrace A d B).re)

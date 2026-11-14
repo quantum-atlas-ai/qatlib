@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
+module
+
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
+
+@[expose] public section
 
 /-!
 # Rational signed mean estimation
@@ -206,10 +210,10 @@ theorem native_pilot_joint_rational_output :
   have hρ : (0 : ℝ) ≤ (143/144 : ℝ)^r := by positivity
   have hpoint (ω : Fin N → I) : bad ω ≤ (if B ω then 1 else 0)+(143/144 : ℝ)^r := by
     by_cases hB : B ω
-    · rw [if_pos hB]
+    · rw [ite_eq_left hB]
       dsimp only [bad]
       exact (native_probEvent_le_one _ _ _).trans (by linarith)
-    · rw [if_neg hB, zero_add]
+    · rw [ite_eq_right hB, zero_add]
       have hs :=
           (unknown_variance_pilot_native_moments_and_scale I N h f ν ω hN hf hν hν1).2.2.2.2.1
       have hp :=

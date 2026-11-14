@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedFeedbackConsumer
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedFeedbackConsumer
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Fair coin word weights

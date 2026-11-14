@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Asymptotic query complexity for free systems (arXiv:2609.40094v1, p.11-12)
@@ -64,7 +68,7 @@ complexity formula yields `query_base = query_trunc = O(T³ log(1/δ)/ε)`, with
 theorem theorem2_leading_order
     {queryBase queryTrunc : ℝ → ℝ} {K C T ε δ Hb Ht : ℝ}
     (hT : 0 ≤ T) (hε : 0 < ε)
-    (hK : 0 ≤ K) (hC : 0 ≤ C)
+    (_hK : 0 ≤ K) (hC : 0 ≤ C)
     (hHb0 : 0 ≤ Hb) (hHb : Hb ≤ K) (hHt0 : 0 ≤ Ht) (hHt : Ht ≤ K)
     (hlog : 0 ≤ Real.log (1 / δ))
     (hbase : ∀ H, 0 ≤ H → H ≤ K →

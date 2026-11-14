@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnstrRandom10.MainResults.StoquasticGroundTransform
+module
+
+public import Qatlib.Papers.UnstrRandom10.MainResults.StoquasticGroundTransform
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -77,10 +81,10 @@ theorem stoquastic_positive_eigenvector_lowest (H : Matrix ι ι ℝ) (hH : IsSt
           rfl
         · have hji : ¬ j = i := fun h => hij h.symm
           simp only [Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul, Matrix.one_apply, hij,
-            hji, if_false, mul_zero, sub_zero]
+            hji, ite_false, mul_zero, sub_zero]
           exact hHsym i j
       · simp only [Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul, Matrix.one_apply, hij,
-          if_false, mul_zero, sub_zero]
+          ite_false, mul_zero, sub_zero]
         exact hHoff i j hij
     have hker : (H - E • (1 : Matrix ι ι ℝ)) *ᵥ ψ = 0 := by
       rw [sub_mulVec, smul_mulVec, one_mulVec, hEig, sub_self]
@@ -112,9 +116,9 @@ theorem stoquastic_eigenvalue_ge_min_quotient (H : Matrix ι ι ℝ) (hH : IsSto
       · subst hij
         rfl
       · have hji : ¬ j = i := fun h => hij h.symm
-        simp only [Matrix.sub_apply, diagonal_apply, hij, hji, if_false, sub_zero]
+        simp only [Matrix.sub_apply, diagonal_apply, hij, hji, ite_false, sub_zero]
         exact hHsym i j
-    · simp only [Matrix.sub_apply, diagonal_apply, hij, if_false, sub_zero]
+    · simp only [Matrix.sub_apply, diagonal_apply, hij, ite_false, sub_zero]
       exact hHoff i j hij
   have hker : (H - diagonal d) *ᵥ φ = 0 := by
     ext z

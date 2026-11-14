@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonThirdBound
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonThirdBound
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -111,13 +115,13 @@ theorem normalizedGaugePhase_positive_bound (q : QuaternionField) (hq : ContDiff
   have hne : w≠[] := by intro h; simp only [h,List.length_nil] at hw0; omega
   have heq : normalizedGaugePhase q hq hp n=(fun y => (A y+chi y)+(-chi 0)) := by
     funext y
-    simp only [normalizedGaugePhase,A,chi,ContinuousLinearMap.smul_apply,smul_eq_mul]
+    simp only [normalizedGaugePhase,A,chi,_root_.smul_apply,smul_eq_mul]
     ring
   have hword : spatialWordPartial (normalizedGaugePhase q hq hp n) w x=
       spatialWordPartial (fun y => A y) w x+spatialWordPartial chi w x := by
     rw [heq,spatialWordPartial_add _ _ (A.contDiff.add hc) contDiff_const,
       spatialWordPartial_add _ _ A.contDiff hc,spatialWordPartial_const]
-    simp only [hne,if_false,add_zero]
+    simp only [hne,ite_false,add_zero]
   have hlin : ‖spatialWordPartial (fun y => A y) w x‖ ≤
       if w.length=1 then 7*(gaugeWindingSize n : ℝ) else 0 := by
     cases w with
@@ -126,13 +130,13 @@ theorem normalizedGaugePhase_positive_bound (q : QuaternionField) (hq : ContDiff
       cases rest with
       | nil =>
         simp only [spatialWordPartial_linear_real,List.length_cons,List.length_nil,zero_add,ite_true]
-        simp only [A,ContinuousLinearMap.smul_apply,smul_eq_mul,windingLinear_basis,Real.norm_eq_abs]
+        simp only [A,_root_.smul_apply,smul_eq_mul,windingLinear_basis,Real.norm_eq_abs]
         rw [abs_mul,abs_of_pos physicalPeriod_pos]
         have hL : physicalPeriod ≤ 7 := by dsimp only [physicalPeriod]; linarith [Real.pi_lt_d2]
         exact mul_le_mul hL (gaugeWindingSize_bound n i) (abs_nonneg _) (by norm_num)
       | cons j rest =>
         have hn : (i::j::rest).length≠1 := by simp only [List.length_cons]; omega
-        simpa only [spatialWordPartial_linear_real,if_neg hn,norm_zero] using (le_refl (0 : ℝ))
+        simpa only [spatialWordPartial_linear_real,ite_eq_right hn,norm_zero] using (le_refl (0 : ℝ))
   have hchi := normalizedConnectionPoisson_word_bound_third q hq hp (C6 : ℝ) hC6 w hw x
   rw [hword]
   have hsum := (norm_add_le _ _).trans (add_le_add hlin hchi)

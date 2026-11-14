@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+@[expose] public section
 
 /-!
 # Reaction region readout
@@ -51,20 +55,22 @@ amplitude. -/
 noncomputable def locatedState (ψ : QState X) (R : X → ι) : QState (X × ι) :=
   fun p => if p.2 = R p.1 then ψ p.1 else 0
 
+omit [DecidableEq X] [Fintype ι] in
 /-- Measuring region label `i` in the located state gives `regionProb ψ R i`. -/
 theorem measureProb_locatedState_region (ψ : QState X) (R : X → ι) (i : ι) :
     MeasureProb (locatedState ψ R) (Finset.univ ×ˢ ({i} : Finset ι)) =
       regionProb ψ R i := by
   unfold MeasureProb regionProb locatedState BornProb
   rw [Finset.sum_product]
-  simp only [Finset.mem_singleton, Finset.sum_singleton]
+  simp only [Finset.sum_singleton]
   rw [Finset.sum_filter]
   refine Finset.sum_congr rfl fun x _ => ?_
   by_cases h : R x = i
-  · rw [if_pos h.symm, if_pos h]
-  · rw [if_neg (fun hi : i = R x => h hi.symm), if_neg h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
+  · rw [ite_eq_right (fun hi : i = R x => h hi.symm), ite_eq_right h]
     simp
 
+omit [DecidableEq X] in
 /-- The region probabilities of a normalized state sum to one. -/
 theorem sum_regionProb (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
     ∑ i, regionProb ψ R i = 1 := by
@@ -79,11 +85,12 @@ theorem sum_regionProb (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
         rw [Finset.sum_eq_single (R x)]
         · simp
         · intro i _ hi
-          rw [if_neg (fun h : R x = i => hi h.symm)]
+          rw [ite_eq_right (fun h : R x = i => hi h.symm)]
         · intro h
           exact absurd (Finset.mem_univ (R x)) h
     _ = 1 := hψ
 
+omit [DecidableEq X] in
 /-- Attaching a deterministic region label preserves normalization of the state. -/
 theorem locatedState_normalized (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
     Normalized (locatedState ψ R) := by
@@ -101,6 +108,7 @@ theorem locatedState_normalized (ψ : QState X) (R : X → ι) (hψ : Normalized
     _ = ∑ x : X, ‖ψ x‖ ^ 2 := Finset.sum_congr rfl fun x _ => hinner x
     _ = 1 := hψ
 
+omit [DecidableEq X] in
 /-- For a normalized state, the region ancilla measurement gives the region probabilities, which
 sum to one [KassalEtAl2008]. -/
 theorem reaction_region_probability (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :

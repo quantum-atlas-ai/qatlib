@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Data.Nat.Size
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Counted Boolean arithmetic data

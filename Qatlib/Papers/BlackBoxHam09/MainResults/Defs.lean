@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+@[expose] public section
 
 /-!
 # Black-box Hamiltonians and simulation budgets
@@ -75,11 +79,13 @@ each column by Hermitian symmetry. -/
 def IsColumnSparse (H : Ham ι) (D : ℕ) : Prop :=
   ∀ j : ι, (Finset.univ.filter (fun k : ι => H.mat j k ≠ 0)).card ≤ D
 
+omit [DecidableEq ι] in
 /-- The maximum entry norm of a Hamiltonian is nonnegative. -/
 theorem maxEntryNorm_nonneg (H : Ham ι) : 0 ≤ maxEntryNorm H := by
   unfold maxEntryNorm
   exact Real.sSup_nonneg (by rintro _ ⟨p, rfl⟩; exact norm_nonneg _)
 
+omit [DecidableEq ι] in
 /-- The magnitude of each Hamiltonian entry is bounded by `maxEntryNorm`. -/
 theorem norm_entry_le_maxEntryNorm (H : Ham ι) (j k : ι) :
     ‖H.mat j k‖ ≤ maxEntryNorm H := by
@@ -95,6 +101,7 @@ def band (H : Ham ι) (a b : ℝ) : Matrix ι ι ℂ :=
 def magThresholds (H : Ham ι) : Finset ℝ :=
   insert 0 (Finset.univ.image fun p : ι × ι => ‖H.mat p.1 p.2‖)
 
+omit [DecidableEq ι] in
 /-- The set of magnitude thresholds is nonempty because it contains zero. -/
 theorem magThresholds_nonempty (H : Ham ι) : (magThresholds H).Nonempty :=
   ⟨0, Finset.mem_insert_self 0 _⟩
@@ -110,15 +117,17 @@ def breakNorm (H : Ham ι) : ℝ :=
 /-- The band-growth quantity `breakNorm` is at least one. -/
 theorem breakNorm_ge_one (H : Ham ι) : 1 ≤ breakNorm H := le_max_left _ _
 
+omit [DecidableEq ι] in
 /-- An entry of `band H a b` equals the corresponding entry of `H` when its magnitude lies in
 `(a, b]`, and is zero otherwise. -/
 theorem band_apply (H : Ham ι) (a b : ℝ) (j k : ι) :
     band H a b j k = if a < ‖H.mat j k‖ ∧ ‖H.mat j k‖ ≤ b then H.mat j k else 0 := rfl
 
+omit [DecidableEq ι] in
 /-- A magnitude band is the zero matrix when its upper threshold is at most its lower threshold. -/
 theorem band_eq_zero_of_le (H : Ham ι) {a b : ℝ} (h : b ≤ a) : band H a b = 0 := by
   ext j k
-  rw [band_apply, Matrix.zero_apply, if_neg]
+  rw [band_apply, Matrix.zero_apply, ite_eq_right]
   rintro ⟨h1, h2⟩
   linarith
 
@@ -150,10 +159,11 @@ theorem band_threshold_div_le_breakNorm (H : Ham ι) {a b : ℝ}
         (fun b' => (magThresholds H).sup' (magThresholds_nonempty H) (fun a => ‖band H a b'‖)))
         / spectralNorm H) := by
     unfold breakNorm
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
   rw [hbr]
   exact le_trans hratio (le_max_right _ _)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Real scalar multiplication of a complex matrix agrees with multiplication by the scalar cast
 to `ℂ`. -/
 theorem real_smul_eq_complex_smul (r : ℝ) (A : Matrix ι ι ℂ) :
@@ -216,11 +226,13 @@ def oraclePerm (φ : ι × ι → Reg L) (p : Register ι L) : Register ι L :=
 def valueOracle (φ : ι × ι → Reg L) : Matrix (Register ι L) (Register ι L) ℂ :=
   fun p q => if q = oraclePerm φ p then 1 else 0
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Applying the value-register oracle permutation twice restores every register basis label. -/
 @[simp] theorem oraclePerm_involutive (φ : ι × ι → Reg L) (p : Register ι L) :
     oraclePerm φ (oraclePerm φ p) = p := by
   simp [oraclePerm, regXor_regXor]
 
+omit [Fintype ι] in
 /-- The row of `valueOracle φ` indexed by `(j, k, z)` is the basis vector at `(j, k, regXor z (φ
 (j, k)))`. -/
 theorem valueOracle_apply (φ : ι × ι → Reg L) (j k : ι) (z : Reg L) :
@@ -241,21 +253,22 @@ theorem valueOracle_mul_self (φ : ι × ι → Reg L) :
   rw [Finset.sum_eq_single (oraclePerm φ p)]
   · have h1 : valueOracle φ p (oraclePerm φ p) = 1 := by
       show (if oraclePerm φ p = oraclePerm φ p then (1 : ℂ) else 0) = 1
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     have h2 : valueOracle φ (oraclePerm φ p) q = (if q = p then 1 else 0) := by
       show (if q = oraclePerm φ (oraclePerm φ p) then (1 : ℂ) else 0) = _
       rw [oraclePerm_involutive]
     rw [h1, one_mul, h2]
     by_cases h : q = p
-    · rw [if_pos h, if_pos h.symm]
-    · rw [if_neg h, if_neg (fun hpq => h hpq.symm)]
+    · rw [ite_eq_left h, ite_eq_left h.symm]
+    · rw [ite_eq_right h, ite_eq_right (fun hpq => h hpq.symm)]
   · intro r _ hr
     have hpr : valueOracle φ p r = 0 := by
       show (if r = oraclePerm φ p then (1 : ℂ) else 0) = 0
-      rw [if_neg hr]
+      rw [ite_eq_right hr]
     rw [hpr, zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+omit [Fintype ι] in
 /-- The value-oracle matrix equals its transpose. -/
 theorem valueOracle_transpose (φ : ι × ι → Reg L) :
     (valueOracle φ)ᵀ = valueOracle φ := by
@@ -265,14 +278,15 @@ theorem valueOracle_transpose (φ : ι × ι → Reg L) :
   · have hq' : q = oraclePerm φ p := by rw [hq, oraclePerm_involutive]
     show (if p = oraclePerm φ q then (1 : ℂ) else 0) =
       (if q = oraclePerm φ p then (1 : ℂ) else 0)
-    rw [if_pos hq, if_pos hq']
+    rw [ite_eq_left hq, ite_eq_left hq']
   · have hq' : q ≠ oraclePerm φ p := by
       intro h
       exact hq (by rw [h]; exact (oraclePerm_involutive φ p).symm)
     show (if p = oraclePerm φ q then (1 : ℂ) else 0) =
       (if q = oraclePerm φ p then (1 : ℂ) else 0)
-    rw [if_neg hq, if_neg hq']
+    rw [ite_eq_right hq, ite_eq_right hq']
 
+omit [Fintype ι] in
 /-- The value-oracle matrix is self-adjoint. -/
 theorem valueOracle_star (φ : ι × ι → Reg L) :
     star (valueOracle φ) = valueOracle φ := by
@@ -282,14 +296,14 @@ theorem valueOracle_star (φ : ι × ι → Reg L) :
   · have hq' : q = oraclePerm φ p := by rw [hq, oraclePerm_involutive]
     show star (if p = oraclePerm φ q then (1 : ℂ) else 0) =
       (if q = oraclePerm φ p then (1 : ℂ) else 0)
-    rw [if_pos hq, if_pos hq']
+    rw [ite_eq_left hq, ite_eq_left hq']
     simp
   · have hq' : q ≠ oraclePerm φ p := by
       intro h
       exact hq (by rw [h]; exact (oraclePerm_involutive φ p).symm)
     show star (if p = oraclePerm φ q then (1 : ℂ) else 0) =
       (if q = oraclePerm φ p then (1 : ℂ) else 0)
-    rw [if_neg hq, if_neg hq']
+    rw [ite_eq_right hq, ite_eq_right hq']
     simp
 
 /-- The XOR value-oracle matrix is unitary. -/
@@ -347,21 +361,26 @@ def IsUnitaryCircuit2 : Circuit2 ι L → Prop
   | Step2.queryH :: C => IsUnitaryCircuit2 C
   | Step2.queryF :: C => IsUnitaryCircuit2 C
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The empty circuit has zero oracle queries. -/
 @[simp] theorem queryCount2_nil : QueryCount2 ([] : Circuit2 ι L) = 0 := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Prepending a fixed gate leaves the oracle-query count unchanged. -/
 @[simp] theorem queryCount2_gate (U : Matrix (Register ι L) (Register ι L) ℂ) (C : Circuit2 ι L) :
     QueryCount2 (Step2.gate U :: C) = QueryCount2 C := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Prepending a Hamiltonian-oracle query increases the query count by one. -/
 @[simp] theorem queryCount2_queryH (C : Circuit2 ι L) :
     QueryCount2 (Step2.queryH :: C) = QueryCount2 C + 1 := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Prepending a second-oracle query increases the query count by one. -/
 @[simp] theorem queryCount2_queryF (C : Circuit2 ι L) :
     QueryCount2 (Step2.queryF :: C) = QueryCount2 C + 1 := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The query count of concatenated circuits is the sum of their query counts. -/
 theorem queryCount2_append (C D : Circuit2 ι L) :
     QueryCount2 (C ++ D) = QueryCount2 C + QueryCount2 D := by
@@ -374,6 +393,7 @@ def RepeatCircuit2 (C : Circuit2 ι L) : ℕ → Circuit2 ι L
   | 0 => []
   | k + 1 => C ++ RepeatCircuit2 C k
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Repeating a circuit `k` times multiplies its query count by `k`. -/
 theorem queryCount2_repeatCircuit (C : Circuit2 ι L) (k : ℕ) :
     QueryCount2 (RepeatCircuit2 C k) = k * QueryCount2 C := by
@@ -423,6 +443,7 @@ def SimulableWithin (BB : BlackBox ι D L) (t δ q : ℝ) : Prop :=
     (QueryCount2 C : ℝ) ≤ q ∧
     simulationError (implementedMap BB C) (evolution BB.H t) ≤ δ
 
+omit [DecidableEq ι] [Inhabited ι] in
 /-- The simulation error between two matrices is at most the sum of their errors through an
 intermediate matrix. -/
 theorem simulationError_triangle (K M E : Matrix ι ι ℂ) :
@@ -447,12 +468,14 @@ def sigmaRow (H : Ham ι) (j : ι) : ℝ := ∑ k, ‖H.mat j k‖
 /-- The supremum norm of a real function on the finite index type. -/
 def maxAbs (x : ι → ℝ) : ℝ := ‖x‖
 
+omit [DecidableEq ι] [Inhabited ι] in
 /-- The supremum norm `maxAbs x` is nonnegative. -/
 theorem maxAbs_nonneg (x : ι → ℝ) : 0 ≤ maxAbs x := norm_nonneg x
 
 /-- The complex diagonal matrix whose diagonal entries are the real values of `x`. -/
 def diagMatrix (x : ι → ℝ) : Matrix ι ι ℂ := Matrix.diagonal fun j => (x j : ℂ)
 
+omit [Inhabited ι] in
 /-- The operator norm of `diagMatrix x` equals the supremum norm `maxAbs x`. -/
 theorem diagMatrix_norm (x : ι → ℝ) : ‖diagMatrix x‖ = maxAbs x := by
   unfold diagMatrix maxAbs
@@ -464,6 +487,7 @@ of `H` by `1 + X` on both sides. -/
 def sandwich (H : Ham ι) (x : ι → ℝ) : Matrix ι ι ℂ :=
   diagMatrix x * H.mat + H.mat * diagMatrix x + diagMatrix x * H.mat * diagMatrix x
 
+omit [Inhabited ι] in
 /-- For nonnegative `ε` and positive `Λ1`, the scaled sandwich norm is at most `(ε *
 spectralNorm H / Λ1) * (2 * maxAbs x + (maxAbs x)^2)`, as used in [Berry and Childs, Lemma
 7][BerryChilds2012]. -/
@@ -502,6 +526,7 @@ theorem sandwich_norm_le (H : Ham ι) (x : ι → ℝ) (ε Λ1 : ℝ) (hε : 0 �
   rw [← heq]
   exact mul_le_mul_of_nonneg_left hsum (by positivity)
 
+omit [Inhabited ι] in
 /-- If `0 < ε ≤ 1`, `maxAbs x ≤ ε`, `Λ1 > 0`, and `t ≥ 0`, the scaled sandwich error accumulated
 over `t * Λ1 / ε` steps is at most `3 * spectralNorm H * t * ε`; see [Berry and Childs,
 Lemma 7][BerryChilds2012]. -/

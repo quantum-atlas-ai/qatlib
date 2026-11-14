@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.SecondQuantizedHubbard
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.SecondQuantizedHubbard
+
+@[expose] public section
 
 /-!
 # Fermionic hopping and parity circuit counts

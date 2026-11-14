@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Paths
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Card
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Paths
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Path-containment problems and the color-coding reduction
@@ -371,13 +375,13 @@ theorem card_fun_agree_on {α β : Type*} [Fintype α] [DecidableEq α] [Fintype
       fun h => ⟨fun a => if ha : a ∈ S then g a else h ⟨a, ha⟩, ?_⟩, ?_, ?_⟩
     · intro a ha
       dsimp only
-      rw [dif_pos ha]
+      rw [dite_eq_left ha]
     · intro f; apply Subtype.ext; funext a; by_cases ha : a ∈ S
-      · dsimp only; rw [dif_pos ha]; exact (f.2 a ha).symm
-      · dsimp only; rw [dif_neg ha]
+      · dsimp only; rw [dite_eq_left ha]; exact (f.2 a ha).symm
+      · dsimp only; rw [dite_eq_right ha]
     · intro f; funext x; by_cases hx : x.1 ∈ S
       · exact absurd hx x.2
-      · dsimp only; rw [dif_neg hx]
+      · dsimp only; rw [dite_eq_right hx]
   have h2 : Fintype.card {a : α // a ∉ S} = Fintype.card α - S.card := by
     rw [Fintype.card_subtype]
     rw [show (Finset.univ.filter (fun a => a ∉ S)) = Sᶜ from by ext a; simp]
@@ -405,7 +409,7 @@ theorem pathColor_get {V : Type*} [DecidableEq V] {A : V → V → Prop} {s t : 
     (p : DirWalk A s t k) (hp : p.IsSimple) (i : Fin (k + 1)) :
     pathColor p (p.verts.get ⟨i.1, by rw [DirWalk.length_verts]; exact i.2⟩) = i := by
   unfold pathColor
-  rw [dif_pos (List.get_mem _ _)]
+  rw [dite_eq_left (List.get_mem _ _)]
   apply Fin.ext
   exact List.get_idxOf hp ⟨i.1, by rw [DirWalk.length_verts]; exact i.2⟩
 
@@ -459,7 +463,7 @@ theorem colorMatches_of_agrees {V : Type*} [DecidableEq V] {A : V → V → Prop
   rw [hagree v hmem]
   have hval : (pathColor p v : ℕ) = p.verts.idxOf v := by
     unfold pathColor
-    rw [dif_pos hmem]
+    rw [dite_eq_left hmem]
   rw [hval, hidx]
   omega
 

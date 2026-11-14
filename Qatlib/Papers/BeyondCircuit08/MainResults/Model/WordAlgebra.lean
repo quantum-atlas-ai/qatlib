@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.BeyondCircuit08.MainResults.Model.Basic
+
+@[expose] public section
 
 /-!
 # Products and crossing counts of braid words

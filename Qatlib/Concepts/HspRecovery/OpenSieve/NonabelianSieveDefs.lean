@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieve
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
-import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
-import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsDihe
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
-import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionDihe
-import Mathlib.GroupTheory.FiniteAbelian.Basic
-import Mathlib.Data.Multiset.Pi
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieve
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+public import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsDihe
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+public import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionDihe
+public import Mathlib.GroupTheory.FiniteAbelian.Basic
+public import Mathlib.Data.Multiset.Pi
+
+@[expose] public section
 
 /-!
 # Definitions for dihedral recovery and radix sieves
@@ -257,7 +261,7 @@ noncomputable def productDifferenceBasis {ι : Type} [Fintype ι] (n : ι → �
 /-- The subset of `A` whose image under the additive equivalence `e` lies in `D i` at every
 coordinate `i`. -/
 noncomputable def abelianDifferenceBasis {A : Type} [AddCommGroup A] [Fintype A] {ι : Type} [Fintype ι]
-    (n : ι → ℕ) (hn : ∀ i, NeZero (n i)) (D : ∀ i, Finset (ZMod (n i)))
+    (n : ι → ℕ) (_hn : ∀ i, NeZero (n i)) (D : ∀ i, Finset (ZMod (n i)))
     (e : A ≃+ ((i : ι) → ZMod (n i))) : Finset A := by
   classical
   exact (Finset.univ.filter fun x => ∀ i, (e x) i ∈ D i)
@@ -835,7 +839,7 @@ def radixReadoutValue (r : ℕ) : List (ZMod r) → ℕ
 /-- The optional amplitude ratio `χ true / χ false`, returning `none` when the amplitude `χ
 false` is zero. -/
 noncomputable def radixBranchPhase (χ : QState Bool) : Option ℂ :=
-  if h : χ false = 0 then none else some (χ true / χ false)
+  if _h : χ false = 0 then none else some (χ true / χ false)
 
 /-- The first residue `t` in the finite enumeration of `ZMod r` whose phase `radixRootOfUnity r
 t.val` equals the amplitude ratio from `radixBranchPhase χ`. The result is `none` if that

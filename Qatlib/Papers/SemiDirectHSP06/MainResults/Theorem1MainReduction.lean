@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.SdpSplitTrivialFirst
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Ring.Prod
-import Mathlib.Algebra.Group.Equiv.TypeTags
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.SdpSplitTrivialFirst
+public import Mathlib.Data.Nat.Prime.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Ring.Prod
+public import Mathlib.Algebra.Group.Equiv.TypeTags
+
+@[expose] public section
 
 /-!
 # Chinese remainder coordinates for a conditional semidirect-product decomposition

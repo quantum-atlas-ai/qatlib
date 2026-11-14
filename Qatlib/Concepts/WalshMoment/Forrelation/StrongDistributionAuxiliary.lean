@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Character energies and strong Bernoulli weights

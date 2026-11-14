@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Level-set vectors and overlap estimates
@@ -43,10 +47,12 @@ variable {X Y : Type*} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 /-- The finite set of inputs mapped to `y` by `f`. -/
 def levelSet (f : X → Y) (y : Y) : Finset X := univ.filter fun x => f x = y
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Membership in a level set is equivalent to the corresponding function-value equation. -/
 theorem mem_levelSet {f : X → Y} {y : Y} {x : X} : x ∈ levelSet f y ↔ f x = y := by
   simp [levelSet]
 
+omit [Fintype Y] in
 /-- Level sets of the same function at distinct values are disjoint. -/
 theorem levelSet_disjoint {f : X → Y} {y y' : Y} (h : y ≠ y') :
     Disjoint (levelSet f y) (levelSet f y') := by
@@ -57,6 +63,7 @@ theorem levelSet_disjoint {f : X → Y} {y y' : Y} (h : y ≠ y') :
   rintro ⟨hx, hx'⟩
   exact h (hx.symm.trans hx')
 
+omit [DecidableEq X] in
 /-- The sum of the cardinalities of all level sets equals the cardinality of the domain. -/
 theorem card_eq_sum_levelSet (f : X → Y) :
     (∑ y, (levelSet f y).card) = Fintype.card X := by
@@ -88,6 +95,7 @@ level set giving the zero vector. -/
 noncomputable def levelKet (f : X → Y) (y : Y) : X → ℂ :=
   fun x => if f x = y then ((Real.sqrt ((levelSet f y).card : ℝ)) : ℂ)⁻¹ else 0
 
+omit [Fintype Y] in
 /-- The inner product of two level-set vectors is their overlap size divided by the product of
 the square roots of their level-set sizes. -/
 theorem levelKet_inner (f f' : X → Y) (y y' : Y) :
@@ -118,6 +126,7 @@ theorem levelKet_inner (f f' : X → Y) (y y' : Y) :
   push_cast
   rw [div_eq_mul_inv, mul_inv]
 
+omit [DecidableEq Y] in
 /-- For a nonnegative array bounded by `δ`, if at most `β * |Y| ^ 2` entries are at least `α ≥
 0`, its sum of squares is at most `(α ^ 2 + β * δ ^ 2) * |Y| ^ 2`. -/
 theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
@@ -129,10 +138,10 @@ theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
   have hpt : ∀ y y', κ y y' ^ 2 ≤ α ^ 2 + (if α ≤ κ y y' then δ ^ 2 else 0) := by
     intro y y'
     by_cases h : α ≤ κ y y'
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have h1 : κ y y' ^ 2 ≤ δ ^ 2 := by nlinarith [hκ0 y y', hδ y y']
       linarith [sq_nonneg α]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have h1 : κ y y' ≤ α := le_of_not_ge h
       have h2 : κ y y' ^ 2 ≤ α ^ 2 := by nlinarith [hκ0 y y', hα]
       linarith
@@ -147,8 +156,8 @@ theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
     have hpt (y y' : Y) : (if α ≤ κ y y' then δ ^ 2 else 0) =
         δ ^ 2 * (if α ≤ κ y y' then (1 : ℝ) else 0) := by
       by_cases h : α ≤ κ y y'
-      · rw [if_pos h, if_pos h, mul_one]
-      · rw [if_neg h, if_neg h, mul_zero]
+      · rw [ite_eq_left h, ite_eq_left h, mul_one]
+      · rw [ite_eq_right h, ite_eq_right h, mul_zero]
     simp_rw [hpt]
     rw [Finset.mul_sum]
     simp_rw [Finset.mul_sum]
@@ -170,6 +179,7 @@ theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
             mul_le_mul_of_nonneg_left hcount (by positivity)
           nlinarith [h1]
 
+omit [DecidableEq Y] in
 /-- For a nonnegative array with row sums `sz y ≤ δ`, if at most `β * |Y|` rows contain an entry
 at least `α ≥ 0`, the sum of squared entries divided by their row sizes is at most `(α + β *
 δ) * |Y|`. -/
@@ -239,7 +249,7 @@ theorem pair_sq_div_sum_le (κ : Y → Y → ℝ) (sz : Y → ℕ) (α β δ : �
         refine Finset.sum_le_sum fun y _ => ?_
         by_cases h : ∃ y', α ≤ κ y y'
         · simp [h]
-        · simp only [h, if_false]
+        · simp only [h, ite_false]
           exact hgood y h
       _ ≤ ∑ _y : Y, α := by
         refine Finset.sum_le_sum fun y _ => ?_
@@ -253,7 +263,7 @@ theorem pair_sq_div_sum_le (κ : Y → Y → ℝ) (sz : Y → ℕ) (α β δ : �
           ∑ y, if ∃ y', α ≤ κ y y' then δ else 0 := by
         refine Finset.sum_le_sum fun y _ => ?_
         by_cases h : ∃ y', α ≤ κ y y'
-        · simp only [h, if_true]
+        · simp only [h, ite_true]
           exact hbadrow y h
         · simp [h]
       _ = δ * ∑ y, if ∃ y', α ≤ κ y y' then (1 : ℝ) else 0 := by

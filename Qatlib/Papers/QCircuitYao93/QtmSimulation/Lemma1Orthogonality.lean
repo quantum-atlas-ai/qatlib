@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StandardModel.WindowSim.GUnitExistenceQuan
+module
+
+public import Qatlib.Foundations.StandardDefs.WindowSim.GUnitExistenceQuan
+
+@[expose] public section
 
 /-!
 # Orthogonality of local QTM transition families
@@ -115,13 +119,13 @@ theorem headBasis_eq_Ket (q : Q) (a b c : A) :
   funext z
   simp only [headBasis, Ket]
   by_cases h : z 1 = (1, some q, a) ∧ z 0 = (0, none, b) ∧ z 2 = (0, none, c)
-  · rw [if_pos h, if_pos]
+  · rw [ite_eq_left h, ite_eq_left]
     funext j
     fin_cases j
     · simpa [wH] using h.2.1
     · simpa [wH] using h.1
     · simpa [wH] using h.2.2
-  · rw [if_neg h, if_neg]
+  · rw [ite_eq_right h, ite_eq_right]
     intro hz
     exact h (by rw [hz]; exact wH_spec q a b c)
 
@@ -190,7 +194,7 @@ theorem lemma1_transition_orthonormal {Q A : Type} [Fintype Q] [DecidableEq Q]
     rw [headBasis_eq_Ket, bra_ket_left]
     exact stepSuperposition_at_wH M q' q a' b' c' a b c
   · intro q a b c z hI
-    rw [headBasis_eq_Ket, bra_ket_ket, if_neg]
+    rw [headBasis_eq_Ket, bra_ket_ket, ite_eq_right]
     intro h
     apply hI.1
     rw [← h]
@@ -203,7 +207,7 @@ theorem lemma1_transition_orthonormal {Q A : Type} [Fintype Q] [DecidableEq Q]
           exact congrArg (bra (G *ᵥ headBasis q a b c)) hz.symm
       _ = bra (headBasis q a b c) (Ket z) := bra_mulVec_unitary hG _ _
       _ = 0 := by
-          rw [headBasis_eq_Ket, bra_ket_ket, if_neg]
+          rw [headBasis_eq_Ket, bra_ket_ket, ite_eq_right]
           intro h
           apply hI.1
           rw [← h]

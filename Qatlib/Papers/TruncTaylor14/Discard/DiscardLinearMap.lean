@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TruncTaylor14.Discard.DiscardActualSimulationSimu
-import Qatlib.Concepts.ReferenceError.DensityToRaw.FiniteReferenceDensityError
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+module
+
+public import Qatlib.Papers.TruncTaylor14.Discard.DiscardActualSimulationSimu
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.FiniteReferenceDensityError
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+@[expose] public section
 
 /-!
 # Linear-map semantics of Taylor discard simulation

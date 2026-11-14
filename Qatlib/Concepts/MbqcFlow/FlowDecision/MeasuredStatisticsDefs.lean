@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
+
+@[expose] public section
 
 /-!
 # Product sampling and statistics of POVM records
@@ -58,18 +62,20 @@ density operator `ρ`. -/
 noncomputable def povmSampleLaw (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} : FinDist (Fin n → O) where
   prob ω := (povmRecordLaw E ρ hρ).probOf ω
-  nonneg ω := Finset.prod_nonneg fun i _ => (povmRecordLaw E ρ hρ).nonneg _
+  nonneg _ω := Finset.prod_nonneg fun _i _ => (povmRecordLaw E ρ hρ).nonneg _
   sum_one := (povmRecordLaw E ρ hρ).sum_probOf n
 
 /-- The probability of a sample record under `povmSampleLaw` is its product probability under
 `povmRecordLaw`. -/
-theorem povmSampleLaw_prob (E : FinitePOVM O D) (ρ : Operator D)
+theorem povmSampleLaw_prob {O : Type} [Fintype O] [_povmDecidableEq : DecidableEq O] {D : ℕ}
+    (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (ω : Fin n → O) :
     (povmSampleLaw E ρ hρ).prob ω = (povmRecordLaw E ρ hρ).probOf ω := rfl
 
 /-- The expectation of an event indicator under `povmSampleLaw` equals its product-law event
 probability. -/
-theorem povmSampleLaw_event (E : FinitePOVM O D) (ρ : Operator D)
+theorem povmSampleLaw_event {O : Type} [Fintype O] [_povmDecidableEq : DecidableEq O] {D : ℕ}
+    (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (Ev : (Fin n → O) → Prop) [DecidablePred Ev] :
     (povmSampleLaw E ρ hρ).expect (fun ω : Fin n → O => if Ev ω then 1 else 0)
       = Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := n) (povmRecordLaw E ρ hρ) Ev := by
@@ -108,7 +114,8 @@ theorem povm_sample_mean_variance (E : FinitePOVM O D)
   exact h1
 
 /-- The POVM moment effect associated with the reconstructed statistic is positive semidefinite. -/
-theorem povmMomentEffect_posSemidef (E : FinitePOVM O D)
+theorem povmMomentEffect_posSemidef
+    {O : Type} [Fintype O] [_povmDecidableEq : DecidableEq O] {D : ℕ} (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (A : Operator D) :
     (povmMomentEffect E hM A).PosSemidef := by
   rw [povmMomentEffect]
@@ -250,8 +257,7 @@ theorem prod_split_selected {n k : ℕ} (idx : Fin k → Fin n) (hidx : Function
   have hrest : (∏ j ∈ (Finset.univ : Finset (Fin n)) \ S, F j) = 1 := by
     refine Finset.prod_eq_one (fun j hj => ?_)
     have hnot : ∀ t, idx t ≠ j := by
-      intro t
-      intro hcontra
+      intro t hcontra
       exact (Finset.mem_sdiff.mp hj).2
         (Finset.mem_image.mpr ⟨t, Finset.mem_univ t, hcontra⟩)
     exact hfree j hnot
@@ -281,7 +287,7 @@ theorem povm_joint_marginal (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
           have hsingle : (∏ j : Fin n, (if idx t = j then (if ω j = y t then (1 : ℝ) else 0) else 1))
               = (if idx t = idx t then (if ω (idx t) = y t then (1 : ℝ) else 0) else 1) := by
             refine Finset.prod_eq_single (idx t) (fun b hb hne => ?_) (fun h => ?_)
-            · rw [if_neg (Ne.symm hne)]
+            · rw [ite_eq_right (Ne.symm hne)]
             · exact absurd (Finset.mem_univ (idx t)) h
           rw [hsingle]
           simp
@@ -311,16 +317,14 @@ theorem povm_joint_marginal (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
       (fun j => ∑ x, p.prob x * (∏ t' : Fin k,
         (if idx t' = j then (if x = y t' then (1 : ℝ) else 0) else 1)))
       (fun t => p.prob (y t)) (fun t => ?_) (fun j hne => ?_)
-    · (try dsimp only)
-      have hsum : (∑ x, p.prob x * (∏ t' : Fin k,
+    · have hsum : (∑ x, p.prob x * (∏ t' : Fin k,
           (if idx t' = idx t then (if x = y t' then (1 : ℝ) else 0) else 1)))
           = ∑ x, p.prob x * (if x = y t then (1 : ℝ) else 0) := by
         refine Finset.sum_congr rfl fun x _ => ?_
         exact congrArg (fun z => p.prob x * z) (hsel t x)
       rw [hsum]
       exact prob_ite_sum p (y t)
-    · (try dsimp only)
-      have hsum : (∑ x, p.prob x * (∏ t' : Fin k,
+    · have hsum : (∑ x, p.prob x * (∏ t' : Fin k,
           (if idx t' = j then (if x = y t' then (1 : ℝ) else 0) else 1)))
           = ∑ x, p.prob x * 1 := by
         refine Finset.sum_congr rfl fun x _ => ?_
@@ -363,7 +367,7 @@ theorem povm_joint_expect (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
               (f := fun t => (if ω (idx t) = y t then (1 : ℝ) else 0))
               (s := (Finset.univ : Finset (Fin k))) (Finset.mem_univ t) ?_
             show (if ω (idx t) = y t then (1 : ℝ) else 0) = 0
-            rw [if_neg (Ne.symm ht)]
+            rw [ite_eq_right (Ne.symm ht)]
           exact hz'
         rw [hz, zero_mul]
       · exact absurd (Finset.mem_univ (fun t => ω (idx t))) hy
@@ -438,7 +442,7 @@ theorem povmUStatisticK_unbiased_scaled (p : FinDist O) {n k : ℕ} (h : (Fin k 
             (∑ ω : Fin n → O, p.probOf ω * h (fun s => ω (t s))) else 0) := by
           refine Finset.sum_congr rfl fun t _ => ?_
           by_cases ht : Function.Injective t
-          · simp only [ht, if_pos]
+          · simp only [ht, ite_eq_left]
           · simp [ht]
   have hjoint : ∀ t : Fin k → Fin n, Function.Injective t →
       (∑ ω : Fin n → O, p.probOf ω * h (fun s => ω (t s))) = kernelMeanK p h := by
@@ -468,7 +472,7 @@ theorem povmUStatisticK_unbiased_scaled (p : FinDist O) {n k : ℕ} (h : (Fin k 
     _ = ∑ t : Fin k → Fin n, (if Function.Injective t then kernelMeanK p h else 0) := by
         refine Finset.sum_congr rfl fun t _ => ?_
         by_cases ht : Function.Injective t
-        · simp only [ht, if_pos]
+        · simp only [ht, ite_eq_left]
           exact hjoint t ht
         · simp [ht]
     _ = ((distinctTupleCount n k : ℕ) : ℝ) * kernelMeanK p h := hcount'

@@ -4,7 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefinedDefs
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefinedDefs
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+set_option linter.unusedSimpArgs false
+
+@[expose] public section
+set_option linter.unnecessarySeqFocus false
 
 /-!
 # Refined ordered commutator expansions
@@ -218,7 +229,7 @@ theorem clause49_lift_level (s k : ℕ) (q' : List ℕ) (hk0 : 0 < k) (hks : k �
         have hval' : sk.val ≤ b.val := by rw [hsk]; exact hval
         exact Fin.mk_le_mk.mpr hval'
       exact hle (S.min' hnonempty) (Finset.min'_mem S hnonempty)
-  rw [compositionLevel, dif_pos (hSdef ▸ hnonempty), hmin, hsk]
+  rw [compositionLevel, dite_eq_left (hSdef ▸ hnonempty), hmin, hsk]
   omega
 
 omit [DecidableEq I] in
@@ -355,9 +366,9 @@ theorem clause49_lift_at (s k : ℕ) (q' : List ℕ) (i : Fin s) :
     (if i.val + 1 ≤ k then q'.getD i.val 0 else 0)
   rw [h1]
   by_cases hc : i.val + 1 ≤ k
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     congr 1
-  · simp only [if_neg hc]
+  · simp only [ite_eq_right hc]
 
 /-- Lifting a grouped list of admissible length produces its grouped repetition as the ordered
 composition word. -/
@@ -388,7 +399,7 @@ theorem clause49_grouped_flat_word (xs : List (Matrix I I ℂ)) (q' : List ℕ)
       show List.replicate (if i.val + 1 ≤ q'.length then q'.getD i.val 0 else 0)
           (srcGen xs (i.val + 1)) = []
       have hcond : ¬(i.val + 1 ≤ q'.length) := by omega
-      rw [if_neg hcond, List.replicate_zero])
+      rw [ite_eq_right hcond, List.replicate_zero])
   have hlift : (fun i : Fin xs.length =>
         List.replicate
           (groupedLift xs.length q'.length q' ⟨xs.length - 1 - i.val, by omega⟩)
@@ -409,7 +420,7 @@ theorem clause49_grouped_flat_word (xs : List (Matrix I I ℂ)) (q' : List ℕ)
   have hv : (Fin.castLE h i).val = i.val := rfl
   rw [hv]
   have hi1 : i.val + 1 ≤ q'.length := by omega
-  rw [if_pos hi1]
+  rw [ite_eq_left hi1]
 
 /-- The nested commutators formed from the lifted ordered word and the grouped repetition agree. -/
 theorem clause49_grouped_flat_nested_comm (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
@@ -476,17 +487,17 @@ theorem clause49_grouped_factorial_prod {s k : ℕ} (hk : k ≤ s) (q' : List �
       rw [hdecomp]
       by_cases hk1 : k = s + 1
       · subst hk1
-        rw [clause49_lift_head, if_pos (by omega : s + 1 ≤ s + 1)]
+        rw [clause49_lift_head, ite_eq_left (by omega : s + 1 ≤ s + 1)]
         have hright : ∀ i : Fin s, groupedLift s s (q'.take s) i =
             (q'.take s).getD (s - i.val - 1) 0 := by
           intro i
           simp only [groupedLift]
           show (if s - i.val ≤ s then (q'.take s).getD (s - i.val - 1) 0 else 0) = _
-          rw [if_pos (by omega)]
+          rw [ite_eq_left (by omega)]
         have htail : (fun i : Fin s => ((groupedLift (s + 1) (s + 1) q' i.succ).factorial : ℝ)) =
             (fun i : Fin s => ((groupedLift s s (q'.take s) i).factorial : ℝ)) := by
           funext i
-          rw [clause49_lift_tail, if_pos (by omega : s - i.val ≤ s + 1), hright i]
+          rw [clause49_lift_tail, ite_eq_left (by omega : s - i.val ≤ s + 1), hright i]
           have hget : q'.getD (s - i.val - 1) 0 = (q'.take s).getD (s - i.val - 1) 0 :=
             (clause49_getD_take q' s (s - i.val - 1) (by omega)).symm
           rw [hget]
@@ -534,7 +545,7 @@ theorem clause49_grouped_factorial_prod {s k : ℕ} (hk : k ≤ s) (q' : List �
         intro j hj
         rw [hget j]
       · have hkn : k ≤ s := by omega
-        rw [clause49_lift_head, if_neg (by omega : ¬(s + 1 ≤ k))]
+        rw [clause49_lift_head, ite_eq_right (by omega : ¬(s + 1 ≤ k))]
         have hright : ∀ i : Fin s, groupedLift s k q' i =
             if s - i.val ≤ k then q'.getD (s - i.val - 1) 0 else 0 := by
           intro i
@@ -743,14 +754,14 @@ theorem clause49_getD_lastD {α : Type} (l : List α) (d : α) (hl : 0 < l.lengt
 theorem clause49_support_min_of_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hks : k ≤ s)
     (hne : (compositionSupport q).Nonempty) (hlevel : compositionLevel q = k) :
     ((compositionSupport q).min' hne).val = s - k := by
-  rw [compositionLevel, dif_pos hne] at hlevel
+  rw [compositionLevel, dite_eq_left hne] at hlevel
   omega
 
 /-- A composition of positive level has nonempty support. -/
 theorem clause49_support_nonempty_of_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 ≤ k)
     (hlevel : compositionLevel q = k) : (compositionSupport q).Nonempty := by
   by_contra hne
-  rw [compositionLevel, dif_neg hne] at hlevel
+  rw [compositionLevel, dite_eq_right hne] at hlevel
   omega
 
 /-- Every coordinate below the minimum support index vanishes. -/
@@ -822,7 +833,7 @@ theorem clause49_lift_take_repr {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 
     have hj : s - i.val - 1 < k := by omega
     have hjlt : s - i.val - 1 < s := by omega
     show (if s - i.val ≤ k then ((sourceParts s q).take k).getD (s - i.val - 1) 0 else 0) = q i
-    rw [if_pos hcond]
+    rw [ite_eq_left hcond]
     rw [clause49_getD_take _ k (s - i.val - 1) hj]
     rw [clause49_sourceParts_getD q (s - i.val - 1) hjlt]
     congr 1
@@ -831,7 +842,7 @@ theorem clause49_lift_take_repr {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 
     omega
   · have hlt : i.val < s - k := by omega
     show (if s - i.val ≤ k then ((sourceParts s q).take k).getD (s - i.val - 1) 0 else 0) = q i
-    rw [if_neg hcond]
+    rw [ite_eq_right hcond]
     exact (clause49_eq_zero_below_level q k hks hne hmin i hlt).symm
 
 /-- Lifting the grouped representative recovers a composition of positive level `k`. -/
@@ -879,8 +890,8 @@ theorem clause49_sum_lift {s k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) (q' : List 
     apply Finset.sum_congr rfl
     intro j hj
     by_cases hc : j.val + 1 ≤ k
-    · rw [if_pos hc]
-    · rw [if_neg hc]
+    · rw [ite_eq_left hc]
+    · rw [ite_eq_right hc]
       have hle : q'.length ≤ j.val := by omega
       exact (List.getD_eq_default q' 0 hle).symm
   rw [hdrop]
@@ -944,14 +955,14 @@ theorem clause49_lift_injective {s k : ℕ} (hks : k ≤ s) (q'₁ q'₂ : List 
         have hjv : (⟨j, hjlt⟩ : Fin s).val = j := rfl
         rw [hjv]
         exact hjk
-      rw [if_pos hc]
+      rw [ite_eq_left hc]
     have h2j : groupedLift s k q'₂ ⟨s - 1 - j, by omega⟩ = q'₂.getD j 0 := by
       rw [clause49_lift_at (i := ⟨j, hjlt⟩)]
       have hc : (⟨j, hjlt⟩ : Fin s).val + 1 ≤ k := by
         have hjv : (⟨j, hjlt⟩ : Fin s).val = j := rfl
         rw [hjv]
         exact hjk
-      rw [if_pos hc]
+      rw [ite_eq_left hc]
     have h3 : groupedLift s k q'₁ ⟨s - 1 - j, by omega⟩ =
         groupedLift s k q'₂ ⟨s - 1 - j, by omega⟩ := by
       rw [heq]
@@ -2177,7 +2188,7 @@ theorem clause53_gap_le {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Ope
       ‖H x y - longRangeTruncated D Λ R H x y‖ ≤ C / (1 + (R : ℝ)) ^ α := by
     intro x y h
     have htrunc : longRangeTruncated D Λ R H x y = 0 := by
-      rw [longRangeTruncated, if_neg (by omega)]
+      rw [longRangeTruncated, ite_eq_right (by omega)]
     rw [htrunc, sub_zero]
     have hfam' := hfam.2.2 x y
     have hdist : (1 + (R : ℝ)) ≤ 1 + (torusDist Λ x y : ℝ) := by
@@ -2204,7 +2215,7 @@ theorem clause53_gap_le {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Ope
       refine Finset.sum_le_sum fun y _ => ?_
       by_cases h : R < torusDist Λ x y
       · exact hpair' x y h
-      · rw [longRangeTruncated, if_pos (by omega), sub_self, norm_zero]
+      · rw [longRangeTruncated, ite_eq_left (by omega), sub_self, norm_zero]
         exact div_nonneg hC (by positivity)
     _ = (Λ : ℝ) ^ 2 * C / (1 + (R : ℝ)) ^ α := by
       have h1 : (∑ y : Fin Λ, C / (1 + (R : ℝ)) ^ α)
@@ -2530,22 +2541,22 @@ theorem clause52Proper_update {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : 
     clause52Proper F (fun j => if j.val = k then some c else a j) := by
   intro j m ci cm hj hm hjm hconf
   by_cases hj' : j.val = k
-  · simp only [if_pos hj'] at hj
+  · simp only [ite_eq_left hj'] at hj
     have hcj : c = ci := by simpa using! hj
     have hj_eq : j = ⟨k, hk⟩ := Fin.ext hj'
     by_cases hm' : m.val = k
-    · simp only [if_pos hm'] at hm
+    · simp only [ite_eq_left hm'] at hm
       exact fun _ => hjm (Fin.ext (by omega))
-    · simp only [if_neg hm'] at hm
+    · simp only [ite_eq_right hm'] at hm
       have hne : m.val ≠ k := hm'
       rw [hj_eq] at hconf
       have hconf' : clause52Conflict F ⟨k, hk⟩ m := hconf
       have hne' : cm ≠ c := hfresh m cm hm hne hconf'
       rw [← hcj]
       exact fun h => hne' h.symm
-  · simp only [if_neg hj'] at hj
+  · simp only [ite_eq_right hj'] at hj
     by_cases hm' : m.val = k
-    · simp only [if_pos hm'] at hm
+    · simp only [ite_eq_left hm'] at hm
       have hcm : c = cm := by simpa using! hm
       have hne : j.val ≠ k := hj'
       have hm_eq : m = ⟨k, hk⟩ := Fin.ext hm'
@@ -2554,7 +2565,7 @@ theorem clause52Proper_update {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : 
       have hne' : ci ≠ c := hfresh j ci hj hne hconf'
       rw [← hcm]
       exact hne'
-    · simp only [if_neg hm'] at hm
+    · simp only [ite_eq_right hm'] at hm
       exact hproper j m ci cm hj hm hjm hconf
 
 /-- Coloring the first `k` terms preserves a proper partial coloring. -/
@@ -2601,10 +2612,10 @@ theorem clause52ColourUpTo_some {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
       intro hk a i hi
       by_cases hik : i.val = k
       · simp only [clause52ColourUpTo]
-        rw [if_pos hik]
+        rw [ite_eq_left hik]
         exact ⟨clause52FirstFit F ⟨k, by omega⟩ (clause52ColourUpTo F k (by omega) a), rfl⟩
       · simp only [clause52ColourUpTo]
-        rw [if_neg hik]
+        rw [ite_eq_right hik]
         exact ih _ _ i (by omega)
 
 /-- The complete coloring assigns a color to every term. -/
@@ -2629,9 +2640,9 @@ theorem clause52ColourUpTo_layer {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
       by_cases hik : i.val = k
       · have hi_eq : i = ⟨k, by omega⟩ := Fin.ext hik
         simp only [clause52ColourUpTo]
-        rw [if_pos hik, hi_eq]
+        rw [ite_eq_left hik, hi_eq]
       · simp only [clause52ColourUpTo]
-        rw [if_neg hik]
+        rw [ite_eq_right hik]
         exact ih _ _ i (by omega)
 
 /-- The selected layer of a term equals its first-fit color after processing earlier terms. -/

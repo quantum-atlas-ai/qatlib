@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QComplexity97.MachineModel.QtmPrecision
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.QComplexity97.MachineModel.QtmPrecision
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Accumulation of transition perturbations

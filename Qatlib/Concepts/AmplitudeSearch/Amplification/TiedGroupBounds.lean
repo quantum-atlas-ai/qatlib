@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Mathlib.Analysis.Asymptotics.Defs
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Mathlib.Analysis.Asymptotics.Defs
+
+@[expose] public section
 
 /-!
 # Square-root bounds for minimum-search clocks

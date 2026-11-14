@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.StateDefs
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.GoodVectorCount
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.Reduction
+module
+
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.StateDefs
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.GoodVectorCount
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.Reduction
+
+@[expose] public section
 
 /-!
 # Density of hiding families
@@ -89,8 +93,8 @@ theorem hiding_density {W : WeylData G p} (hz : S.z = W.z) (a : Fin 4 → G) :
     ((p - 9 : ℕ) : ℚ) / (2 * (p : ℚ)) ≤
       ((S.hidesSet W a).card : ℚ) / ((p : ℚ) ^ 4) := by
   classical
-  haveI : Fact p.Prime := ⟨S.prime⟩
-  haveI : NeZero p := ⟨S.prime.ne_zero⟩
+  have : Fact p.Prime := ⟨S.prime⟩
+  have : NeZero p := ⟨S.prime.ne_zero⟩
   have hcard : (goodSet p).card ≤ (S.hidesSet W a).card :=
     Finset.card_le_card (S.goodSet_subset_hidesSet hz a)
   have hQ : ((goodSet p).card : ℚ) / ((p : ℚ) ^ 4) ≤

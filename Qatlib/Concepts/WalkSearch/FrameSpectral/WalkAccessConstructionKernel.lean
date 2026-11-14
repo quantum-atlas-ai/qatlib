@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionCircuitLemmas
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionCircuitLemmas
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Lazy matching kernel and register identities
@@ -58,13 +63,13 @@ namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 lemma lazyKernel_eq_half {m : ℕ} {x y : Reg m} (h : lazyLowAgrees x y) :
     lazyMatchingKernel m x y = (1 / 2 : ℝ) := by
   rw [lazyMatchingKernel]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- If two registers fail to agree below the top bit, their lazy matching kernel entry is zero. -/
 lemma lazyKernel_eq_zero {m : ℕ} {x y : Reg m} (h : ¬ lazyLowAgrees x y) :
     lazyMatchingKernel m x y = 0 := by
   rw [lazyMatchingKernel]
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- Lower-bit agreement gives a lazy matching kernel entry of one half. -/
 lemma lazyKernel_of_lowAgrees {m : ℕ} {x y : Reg m} (h : lazyLowAgrees x y) :
@@ -83,7 +88,7 @@ lemma lazyRowBasis_top {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (b : Bool) :
   have h : m - 1 + 1 = m := by omega
   show (if (lazyTopIndex m hm).val + 1 = m then b else x (lazyTopIndex m hm)) = b
   rw [htop]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Replacing the top bit of a register preserves agreement with the original register at all
 lower coordinates. -/
@@ -91,7 +96,7 @@ lemma lazyRowBasis_lowAgrees {m : ℕ} (x : Reg m) (b : Bool) :
     lazyLowAgrees x (lazyRowBasis x b) := by
   intro i hi
   simp only [lazyRowBasis]
-  rw [if_neg (by omega : ¬ i.val + 1 = m)]
+  rw [ite_eq_right (by omega : ¬ i.val + 1 = m)]
 
 /-- For positive register width, replacing the top bit by false and by true gives distinct
 registers. -/
@@ -118,12 +123,12 @@ lemma lazyLowAgrees_iff {m : ℕ} (x y : Reg m) (hm : 1 ≤ m) :
       rw [hieq, lazyRowBasis_top hm x _]
     · have hi2 : i.val + 1 < m := by omega
       simp only [lazyRowBasis]
-      rw [if_neg hi]
+      rw [ite_eq_right hi]
       exact h i hi2
   · intro h i hi
     rw [h]
     simp only [lazyRowBasis]
-    rw [if_neg (by omega : ¬ i.val + 1 = m)]
+    rw [ite_eq_right (by omega : ¬ i.val + 1 = m)]
 
 /-- The real square root of one half is the reciprocal of the square root of two. -/
 lemma real_sqrt_half : Real.sqrt (1 / 2 : ℝ) = (Real.sqrt 2 : ℝ)⁻¹ := by
@@ -240,21 +245,21 @@ lemma cnotFold_highCnotPairs_apply {m : ℕ} (hm : 1 ≤ m) (r : Reg (m + m)) (j
       else if j.val = m + m - 1 then r j
       else r j ^^ r ⟨j.val - m, by omega⟩ := by
   by_cases h1 : j.val < m
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     refine cnotFold_other (highCnotPairs m) r j ?_
     intro p hp
     obtain ⟨i, hp1, hp2⟩ := (mem_highCnotPairs p).mp hp
     intro hh
     exact absurd (congrArg Fin.val hh) (by omega)
-  · rw [if_neg h1]
+  · rw [ite_eq_right h1]
     by_cases h2 : j.val = m + m - 1
-    · rw [if_pos h2]
+    · rw [ite_eq_left h2]
       refine cnotFold_other (highCnotPairs m) r j ?_
       intro p hp
       obtain ⟨i, hp1, hp2⟩ := (mem_highCnotPairs p).mp hp
       intro hh
       exact absurd (congrArg Fin.val hh) (by omega)
-    · rw [if_neg h2]
+    · rw [ite_eq_right h2]
       have hk : j.val - m < m - 1 := by omega
       have ht : (⟨j.val, by omega⟩ : Fin (m + m)).val = m + (j.val - m) := by
         have hv : (⟨j.val, by omega⟩ : Fin (m + m)).val = j.val := rfl
@@ -274,7 +279,7 @@ lemma lazyRowRecord_apply_vertex {m : ℕ} (x : Reg m) (j : Fin (m + m)) (h : j.
     lazyRowRecord m x j = x ⟨j.val, h⟩ := by
   rw [lazyRowRecord]
   rw [cnotFold_highCnotPairs_apply (m := m) (by omega : 1 ≤ m) _ j]
-  rw [if_pos h]
+  rw [ite_eq_left h]
   exact regPad_apply x j h
 
 /-- The final workspace bit of a lazy row record is false. -/
@@ -283,9 +288,9 @@ lemma lazyRowRecord_apply_top {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : Fin (m +
     lazyRowRecord m x j = false := by
   rw [lazyRowRecord]
   rw [cnotFold_highCnotPairs_apply (m := m) hm _ j]
-  rw [if_neg (by omega : ¬ j.val < m), if_pos h]
+  rw [ite_eq_right (by omega : ¬ j.val < m), ite_eq_left h]
   rw [regPad_apply']
-  rw [dif_neg (by omega : ¬ j.val < m)]
+  rw [dite_eq_right (by omega : ¬ j.val < m)]
 
 /-- Every second-register coordinate below the final bit of a lazy row record equals the
 corresponding vertex bit. -/
@@ -294,13 +299,13 @@ lemma lazyRowRecord_apply_agreement {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : Fi
     lazyRowRecord m x j = x ⟨j.val - m, by omega⟩ := by
   rw [lazyRowRecord]
   rw [cnotFold_highCnotPairs_apply (m := m) hm _ j]
-  rw [if_neg (by omega : ¬ j.val < m), if_neg h2]
+  rw [ite_eq_right (by omega : ¬ j.val < m), ite_eq_right h2]
   have h1 : (regPad (m + m) m x) j = false := by
     rw [regPad_apply']
-    rw [dif_neg (by omega : ¬ j.val < m)]
+    rw [dite_eq_right (by omega : ¬ j.val < m)]
   have h3 : (regPad (m + m) m x) ⟨j.val - m, by omega⟩ = x ⟨j.val - m, by omega⟩ := by
     rw [regPad_apply']
-    rw [dif_pos (by omega : j.val - m < m)]
+    rw [dite_eq_left (by omega : j.val - m < m)]
   rw [h1, h3]
   simp only [Bool.false_xor]
 
@@ -308,7 +313,7 @@ lemma lazyRowRecord_apply_agreement {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : Fi
 lemma lazyRowBasis_of_val {m : ℕ} (x : Reg m) (b : Bool) (i : Fin m) (h : i.val + 1 = m) :
     lazyRowBasis x b i = b := by
   simp only [lazyRowBasis]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- At the top coordinate, the base index register has bit equal to the parity of `j`. -/
 lemma lazyMatchingIndexNat_distinguished {m : ℕ} (j : ℕ) (w : Fin m) (hw : w.val + 1 = m) :
@@ -354,18 +359,18 @@ lemma cnotFold_baseRecord {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : ℕ) :
   funext w
   rw [cnotFold_highCnotPairs_apply (m := m) hm _ w]
   by_cases h1 : w.val < m
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     rw [regCat_apply_left x (lazyMatchingIndexNat j) w h1,
       regCat_apply_left x (lazyMatchingNeighbourNat x j) w h1]
   · by_cases h2 : w.val = m + m - 1
-    · rw [if_neg h1, if_pos h2]
+    · rw [ite_eq_right h1, ite_eq_left h2]
       have hwm : m ≤ w.val := by omega
       rw [regCat_apply_right x (lazyMatchingIndexNat j) w hwm,
         regCat_apply_right x (lazyMatchingNeighbourNat x j) w hwm]
       exact lazyMatchingIndexNat_eq_neighbour j x _ (by
         have hv : ((⟨w.val - m, by omega⟩ : Fin m)).val = w.val - m := rfl
         omega)
-    · rw [if_neg h1, if_neg h2]
+    · rw [ite_eq_right h1, ite_eq_right h2]
       have hwm : m ≤ w.val := by omega
       have hlt : w.val - m < m := by omega
       have hne : (w.val - m) + 1 ≠ m := by omega

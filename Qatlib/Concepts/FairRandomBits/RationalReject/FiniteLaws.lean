@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Dyadic sampling from rational cumulative laws
@@ -205,7 +209,7 @@ theorem sampleProgram_paths (C : RationalCDF N) (b : ℕ)
     have hzero : Qatlib.Concepts.FairRandomBits.FiniteCoinExecution.fairBitsCosted b bc = 0 := by
       change Qatlib.Concepts.FairRandomBits.FiniteCoinExecution.fairBitsCosted b (bc.1, bc.2) = 0
       rw [Qatlib.Concepts.FairRandomBits.FiniteCoinExecution.fair_bit_program_joint_distribution,
-          if_neg hne]
+          ite_eq_right hne]
     exact ((PMF.mem_support_iff _ _).mp hbc) hzero
   exact ⟨sampleCounted_no_rejection C b bc.1, (sampleCounted_comparisons C b bc.1).1, hc⟩
 

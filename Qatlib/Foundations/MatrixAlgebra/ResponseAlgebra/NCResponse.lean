@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponseData
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Finsupp.BigOperators
-import Lean.Elab.Tactic.Omega
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponseData
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Finsupp.BigOperators
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Finite noncommutative polynomial responses

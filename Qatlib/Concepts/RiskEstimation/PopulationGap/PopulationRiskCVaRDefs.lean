@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+
+@[expose] public section
 
 /-!
 # Population tail moments and empirical confidence bounds
@@ -175,12 +179,12 @@ theorem probEvent_or_le {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) {
     have h0 := hq ω
     by_cases hA : A ω
     · by_cases hB : B ω
-      · rw [if_pos hA, if_pos hB]
+      · rw [ite_eq_left hA, ite_eq_left hB]
         linarith
-      · rw [if_pos hA, if_neg hB]
+      · rw [ite_eq_left hA, ite_eq_right hB]
         linarith
     · have hB : B ω := h.resolve_left hA
-      rw [if_neg hA, if_pos hB]
+      rw [ite_eq_right hA, ite_eq_left hB]
       linarith
   have hAeq : Finset.sum ((Finset.univ : Finset (Fin L → X)).filter (fun ω => A ω ∨ B ω))
         (fun ω => if A ω then p.probOf ω else 0)
@@ -202,9 +206,9 @@ theorem probEvent_or_le {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) {
             rw [Finset.mem_filter]
             exact ⟨Finset.mem_univ _, hA⟩
           exact hnot hm
-        · rw [if_neg hA]
+        · rw [ite_eq_right hA]
     rw [← hsub]
-    exact Finset.sum_congr rfl (fun ω hω => by rw [if_pos (Finset.mem_filter.mp hω).2])
+    exact Finset.sum_congr rfl (fun ω hω => by rw [ite_eq_left (Finset.mem_filter.mp hω).2])
   have hBeq : Finset.sum ((Finset.univ : Finset (Fin L → X)).filter (fun ω => A ω ∨ B ω))
         (fun ω => if B ω then p.probOf ω else 0)
       = Finset.sum ((Finset.univ : Finset (Fin L → X)).filter (fun ω => B ω))
@@ -225,9 +229,9 @@ theorem probEvent_or_le {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) {
             rw [Finset.mem_filter]
             exact ⟨Finset.mem_univ _, hB⟩
           exact hnot hm
-        · rw [if_neg hB]
+        · rw [ite_eq_right hB]
     rw [← hsub]
-    exact Finset.sum_congr rfl (fun ω hω => by rw [if_pos (Finset.mem_filter.mp hω).2])
+    exact Finset.sum_congr rfl (fun ω hω => by rw [ite_eq_left (Finset.mem_filter.mp hω).2])
   unfold FinDist.probEvent
   calc
     Finset.sum ((Finset.univ : Finset (Fin L → X)).filter (fun ω => A ω ∨ B ω))
@@ -347,9 +351,9 @@ theorem population_cvar_ratio_stability {n N : ℕ} (p : FinDist (Option (Fin n)
       have h := riskTailPayoff_bounds loss t hloss (ω k)
       have hle : (loss (ω k) : ℝ) ≤ 1 := by exact_mod_cast (hloss (ω k)).2
       by_cases ht : loss (ω k) ≤ t
-      · simp only [riskTailPayoff, riskCDFPayoff, if_pos ht]
+      · simp only [riskTailPayoff, riskCDFPayoff, ite_eq_left ht]
         exact hle
-      · simp only [riskTailPayoff, riskCDFPayoff, if_neg ht]
+      · simp only [riskTailPayoff, riskCDFPayoff, ite_eq_right ht]
         norm_num
     have hsum : (∑ k, (riskTailPayoff loss t (ω k) : ℝ))
         ≤ ∑ k, riskCDFPayoff loss t (ω k) := Finset.sum_le_sum fun k _ => hpt k
@@ -459,19 +463,19 @@ theorem empirical_threshold_bad_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     · intro h
       rcases h with h | h
       · refine ⟨0, ?_⟩
-        simp only [E, if_pos rfl]
+        simp only [E, ite_eq_left rfl]
         exact h
       · refine ⟨1, ?_⟩
-        simp only [E, if_neg (by decide : ¬((1 : Fin 2) = 0))]
+        simp only [E, ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
         exact h
     · rintro ⟨i, hi⟩
       by_cases h0 : i = 0
       · subst h0
-        simp only [E, if_pos rfl] at hi
+        simp only [E, ite_eq_left rfl] at hi
         exact Or.inl hi
       · have h1 : i = 1 := by omega
         subst h1
-        simp only [E, if_neg (by decide : ¬((1 : Fin 2) = 0))] at hi
+        simp only [E, ite_eq_right (by decide : ¬((1 : Fin 2) = 0))] at hi
         exact Or.inr hi
   have h := p.union_bound (L := N) (M := 2) E
   have hs : FinDist.probEvent (L := N) p (fun ω : Fin N → Option (Fin n) =>

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Group.Constructions
-import Mathlib.Data.Rat.Encodable
-import Mathlib.Data.Nat.Bits
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Logic.Equiv.Finset
+module
+
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Group.Constructions
+public import Mathlib.Data.Rat.Encodable
+public import Mathlib.Data.Nat.Bits
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Logic.Equiv.Finset
+
+@[expose] public section
 
 /-!
 # Verifier and complexity predicates for stoquastic problems

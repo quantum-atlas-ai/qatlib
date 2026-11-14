@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Off-diagonal entries from quadratic forms
@@ -161,20 +165,20 @@ theorem bilin_basis_basis {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (i j : Fin 
 minus-state quadratic form equals twice the corresponding matrix entry. See
 [JanzingWocjan2006a]. -/
 theorem offdiag_quadratic_identity {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
-    (hB : B.IsHermitian) (i j : Fin N) (hij : i ≠ j) :
+    (hB : B.IsHermitian) (i j : Fin N) (_hij : i ≠ j) :
     quad B (plusState i j) - quad B (minusState i j) = 2 * B i j := by
   have hplus : quad B (plusState i j)
       = (Real.sqrt 2)⁻¹ * ((Real.sqrt 2)⁻¹ *
           ((B i i + B i j) + (B j i + B j j))) := by
     unfold quad plusState
     simp only [bilin_smul_left, bilin_smul_right, bilin_add_left, bilin_add_right,
-      bilin_basis_basis] <;> ring
+      bilin_basis_basis]; ring
   have hminus : quad B (minusState i j)
       = (Real.sqrt 2)⁻¹ * ((Real.sqrt 2)⁻¹ *
           ((B i i - B i j) - (B j i - B j j))) := by
     unfold quad minusState
     simp only [bilin_smul_left, bilin_smul_right, bilin_sub_left, bilin_sub_right,
-      bilin_basis_basis] <;> ring
+      bilin_basis_basis]; ring
   rw [hplus, hminus]
   have hsym : B j i = B i j := by
     simpa using hB.apply i j

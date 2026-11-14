@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Dirichlet
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Dirichlet
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+@[expose] public section
 
 /-!
 # Dirichlet-character phase changes

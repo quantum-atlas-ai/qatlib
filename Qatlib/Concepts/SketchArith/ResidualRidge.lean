@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.GramAction.SketchGramAction
+module
+
+public import Qatlib.Concepts.SketchArith.GramAction.SketchGramAction
+
+@[expose] public section
 
 /-!
 # Sketched ridge residuals through augmented Gram matrices

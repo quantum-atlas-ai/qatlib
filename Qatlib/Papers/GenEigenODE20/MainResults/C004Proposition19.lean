@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,8 +61,8 @@ theorem prop19_scale_pos (αA αB τ : ℝ) (p : ℕ)
 error at most `δ` and the frequency factor satisfies `τ⁻¹ p ≤ 3`, the combined
 error `δ_A + τ⁻¹ p δ_B` is at most `4δ`. -/
 theorem prop19_error_le_four (δA δB c δ : ℝ)
-    (hA : δA ≤ δ) (hB : δB ≤ δ) (hB0 : 0 ≤ δB) (hδ : 0 ≤ δ)
-    (hc0 : 0 ≤ c) (hc3 : c ≤ 3) :
+    (hA : δA ≤ δ) (hB : δB ≤ δ) (hB0 : 0 ≤ δB) (_hδ : 0 ≤ δ)
+    (_hc0 : 0 ≤ c) (hc3 : c ≤ 3) :
     δA + c * δB ≤ 4 * δ := by
   have hcB : c * δB ≤ 3 * δ := by
     have h1 : c * δB ≤ 3 * δB := by nlinarith

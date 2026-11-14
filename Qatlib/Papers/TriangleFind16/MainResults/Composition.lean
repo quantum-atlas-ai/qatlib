@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TriangleFind16.MainResults.CostModel
+module
+
+public import Qatlib.Papers.TriangleFind16.MainResults.CostModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -97,7 +101,6 @@ theorem orGraph_posCost (G : ∀ i : Fin n, FlowData (ι i)) (k : ℕ) (S : Fins
       have hc : (0 : ℝ) < (G i).posCost := hpos i
       have hw : (G i).w1 j ≠ 0 := hw1 i j
       field_simp
-      try ring
     rw [Finset.sum_congr rfl (fun j _ => hterm j), ← Finset.mul_sum]
     have hinner : ∑ j, (G i).p j ^ 2 / (G i).w1 j = (G i).posCost := rfl
     rw [hinner]
@@ -110,7 +113,7 @@ theorem orGraph_posCost (G : ∀ i : Fin n, FlowData (ι i)) (k : ℕ) (S : Fins
       (if i ∈ S then 1 / (k : ℝ) else 0) ^ 2 * (k : ℝ) = 0 := by
     refine Finset.sum_eq_zero fun i hi => ?_
     have hi' : ¬ i ∈ S := by simpa using hi
-    rw [if_neg hi']
+    rw [ite_eq_right hi']
     ring
   have hone : ∑ i ∈ Finset.univ.filter (fun i : Fin n => i ∈ S),
       (if i ∈ S then 1 / (k : ℝ) else 0) ^ 2 * (k : ℝ) = 1 := by
@@ -118,9 +121,8 @@ theorem orGraph_posCost (G : ∀ i : Fin n, FlowData (ι i)) (k : ℕ) (S : Fins
         (if i ∈ S then 1 / (k : ℝ) else 0) ^ 2 * (k : ℝ) = 1 / (k : ℝ) := by
       intro i hi
       have hi' : i ∈ S := by simpa using hi
-      rw [if_pos hi']
+      rw [ite_eq_left hi']
       field_simp
-      try ring
     rw [Finset.sum_congr rfl hstep]
     have hcard : (Finset.univ.filter (fun i : Fin n => i ∈ S)).card = k := by
       rw [← hScard]

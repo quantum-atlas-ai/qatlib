@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceComplexityInterface
+module
+
+public import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceComplexityInterface
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,8 +36,8 @@ The paper proves this by reducing search-with-wildcards to the sum-of-coordinate
 exactly that reduction: `Q.auxiliary` is the wildcard-query complexity, `Q.target` the
 membership-query complexity, and `Q.reduction` is the simulation inequality proved in
 Section 3.1; the cited wildcard bound enters through `hwild`. -/
-theorem source_theorem_3_2 (n : ℕ) (hn : 0 < n) (Q : QueryComplexityReduction)
-    (hε : Q.spec.ε = 1 / 3) (hsuccess : 9 / 10 ≤ Q.spec.success)
+theorem source_theorem_3_2 (n : ℕ) (_hn : 0 < n) (Q : QueryComplexityReduction)
+    (_hε : Q.spec.ε = 1 / 3) (_hsuccess : 9 / 10 ≤ Q.spec.success)
     (hwild : wildcardSearchLowerBound n ≤ Q.auxiliary) :
     wildcardSearchLowerBound n ≤ Q.target :=
   lower_bound_of_reduction hwild

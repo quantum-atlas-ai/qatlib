@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Basic
-import Mathlib.Tactic.Order
+module
+
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Tactic.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,19 +80,19 @@ theorem carry_set_hold_reset (W X E : ℕ) (hE : E ≤ 1) :
   rcases hE01 with rfl | rfl
   · by_cases hWX : W ≤ X
     · have hsum : W ≤ X + 0 := by omega
-      simp [ind, hWX, hsum]
+      simp [ind, hWX]
     · by_cases hX : X = W - 1
       · have hsum : ¬ W ≤ X + 0 := by omega
-        simp [ind, hWX, hX, hsum]
+        simp [ind, hX]
       · have hsum : ¬ W ≤ X + 0 := by omega
-        simp [ind, hWX, hX, hsum]
+        simp [ind, hWX, hX]
   · by_cases hWX : W ≤ X
     · have hsum : W ≤ X + 1 := by omega
       simp [ind, hWX, hsum]
     · by_cases hX : X = W - 1
       · have hWne : W ≠ 0 := by omega
         have hsub : W - 1 + 1 = W := Nat.sub_one_add_one hWne
-        simp [ind, hWX, hX, hsub]
+        simp [ind, hX, hsub]
       · have hsum : ¬ W ≤ X + 1 := by omega
         simp [ind, hWX, hX, hsum]
 

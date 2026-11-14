@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,7 +58,7 @@ def eventMass {X : Type*} [Fintype X] [DecidableEq X] (P : FinDist X)
 /-- **Markov's inequality** for a nonnegative score on a finite distribution:
 `c * Pr[c ≤ f] ≤ E[f]`.  This is the step leading to Eq. I.11. -/
 theorem markov_mass_le {X : Type*} [Fintype X] [DecidableEq X] (P : FinDist X)
-    (f : X → ℝ) (hf : ∀ x, 0 ≤ f x) (c : ℝ) (hc : 0 < c) :
+    (f : X → ℝ) (hf : ∀ x, 0 ≤ f x) (c : ℝ) (_hc : 0 < c) :
     c * eventMass P f c ≤ P.expect f := by
   classical
   rw [eventMass, Finset.mul_sum, FinDist.expect]

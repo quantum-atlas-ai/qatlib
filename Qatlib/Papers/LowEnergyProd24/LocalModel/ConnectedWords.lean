@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Nested
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Nested
+
+@[expose] public section
 
 /-!
 # Counting connected interaction words

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LearningGraph11.MainResults.Lemma3StagePartition
-import Qatlib.Papers.LearningGraph11.MainResults.Lemma4DisjointBranches
+module
+
+public import Qatlib.Papers.LearningGraph11.MainResults.Lemma3StagePartition
+public import Qatlib.Papers.LearningGraph11.MainResults.Lemma4DisjointBranches
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -221,7 +225,7 @@ theorem source_lemma_5
         have hσpos : 0 < ∑ e ∈ piece part v, p y e := hWpos y i v hvW
         have hσne : (∑ e ∈ piece part v, p y e) ≠ 0 := ne_of_gt hσpos
         have hgne : (g : ℝ) ≠ 0 := by exact_mod_cast hg.ne'
-        rw [posComplexityAtW, if_neg hσne]
+        rw [posComplexityAtW, ite_eq_right hσne]
         have hsum_supp :
             ∑ e ∈ piece part v, (len e : ℝ) / (1 : ℝ) *
                 (p y e / (∑ e ∈ piece part v, p y e)) ^ 2

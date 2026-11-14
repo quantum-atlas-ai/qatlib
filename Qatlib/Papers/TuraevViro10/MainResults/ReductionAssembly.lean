@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TuraevViro10.MainResults.BqpHardness
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.TuraevViro10.MainResults.BqpHardness
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Size accounting for a topological reduction word

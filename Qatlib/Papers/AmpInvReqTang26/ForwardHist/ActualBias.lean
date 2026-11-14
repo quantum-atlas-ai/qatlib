@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.RawPurifications
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.UnbiasedGram
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.RawPurifications
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.UnbiasedGram
+
+@[expose] public section
 
 /-!
 # Biased output domination and query lower bounds

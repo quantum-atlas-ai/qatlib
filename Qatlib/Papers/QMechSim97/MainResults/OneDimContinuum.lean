@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.Defs
-import Mathlib.Analysis.Asymptotics.Defs
-import Mathlib.Order.Filter.Basic
-import Mathlib.Topology.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.Defs
+public import Mathlib.Analysis.Asymptotics.Defs
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Topology.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # One-dimensional mass and collision identities

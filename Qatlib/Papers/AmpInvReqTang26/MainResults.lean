@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.ActualAccess
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.ActualAccess
+
+@[expose] public section
 
 /-!
 # Conditional scaling of inverse-free amplitude lower bounds

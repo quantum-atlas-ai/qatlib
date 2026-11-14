@@ -4,15 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Convex.SpecificFunctions.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -127,7 +132,7 @@ theorem arcsin_sqrt_le_pi_div_three_mul_sqrt
     (show 0 ≤ 1 - 2 * Real.sqrt y by linarith)
     (show 0 ≤ 2 * Real.sqrt y by positivity)
   have hsin : Real.sqrt y ≤ Real.sin (Real.pi / 3 * Real.sqrt y) := by
-    convert hc using 1 <;> simp [Real.sin_pi_div_six, smul_eq_mul] <;> ring
+    convert hc using 1; simp [Real.sin_pi_div_six, smul_eq_mul]; ring
   apply (Real.arcsin_le_iff_le_sin ?_ ?_).mpr hsin
   · exact ⟨by linarith, by linarith⟩
   · exact ⟨by nlinarith [Real.pi_pos, Real.sqrt_nonneg y], by nlinarith [Real.pi_pos]⟩
@@ -149,7 +154,7 @@ theorem hasDerivAt_recoveredProbability
       (1 / Real.sqrt (1 - y) * (1 / (2 * Real.sqrt y))) y := by
     convert (Real.hasDerivAt_arcsin (by linarith) (ne_of_lt hsy1)).comp y
       (Real.hasDerivAt_sqrt hy0.ne') using 1 <;>
-      first | rfl | simp [Function.comp, Real.sq_sqrt hy0.le]
+      first | rfl | simp [Real.sq_sqrt hy0.le]
   have hdiv := hbase.div_const g
   have hsin := hdiv.sin
   have hsq := hsin.pow 2

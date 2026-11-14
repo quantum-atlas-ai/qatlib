@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+
+@[expose] public section
 
 /-!
 # Population identities for Johnson diffusion
@@ -52,7 +56,7 @@ theorem jwD2_population_fixed (A B : ℝ) (hA : 0 ≤ A) (hB : 0 ≤ B) (hAB : 0
       ring
     rw [he, Real.sqrt_div (mul_nonneg hA hB), Real.sqrt_mul hA,
       Real.sqrt_sq_eq_abs, abs_of_pos hAB]
-  cases a <;> simp only [jwD2, Bool.false_eq_true, Bool.true_eq_false, if_true, if_false]
+  cases a <;> simp only [jwD2, Bool.false_eq_true, Bool.true_eq_false, ite_true, ite_false]
   all_goals rw [hs]
   all_goals norm_cast
   all_goals norm_num
@@ -71,7 +75,7 @@ theorem jwCnt_inserted_false (k N r j : ℕ) (hjr : j ≤ r) (hjk : j ≤ k)
   have h2 : N-k-(r-j) = N-r-(k-j) := by omega
   rw [h1,h2] at h
   unfold jwCnt
-  simp only [Bool.false_eq_true, if_false]
+  simp only [Bool.false_eq_true, ite_false]
   rw [mul_assoc, ← h, ← mul_assoc]
 
 /-- Under the stated index bounds, the true-type population at `j-1` equals `choose k j * choose
@@ -85,7 +89,7 @@ theorem jwCnt_inserted_true (k N r j : ℕ) (hj : 1 ≤ j) (hjr : j ≤ r+1)
   have h2 : r-(j-1) = r+1-j := by omega
   rw [h1] at h
   unfold jwCnt
-  simp only [if_true, h2]
+  simp only [ite_true, h2]
   calc
     _ = (Nat.choose k (j-1) * (k-(j-1))) * Nat.choose (N-k) (r+1-j) := by ring
     _ = _ := by rw [← h]; ring
@@ -141,7 +145,7 @@ theorem jw_unitary_pow_eigenvector_lift (m t : ℕ)
   have hvs : (⟨v, hvS⟩ : S) ≠ 0 := by
     intro h
     exact hv (congrArg Subtype.val h)
-  letI : Nontrivial S := nontrivial_of_ne _ _ hvs
+  let : Nontrivial S := nontrivial_of_ne _ _ hvs
   obtain ⟨μ, hμ⟩ := Module.End.exists_eigenvalue (f.restrict hS)
   obtain ⟨w, hw⟩ := hμ.exists_hasEigenvector
   have hw0 : (w : Fin m → ℂ) ≠ 0 := by

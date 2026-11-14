@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Noise intensity bounds and fresh-sample concentration
@@ -109,7 +113,7 @@ theorem noise_order_two_variance_counterexample :
   have h2 := noise_sequence_variance_corrected 2 2 (1 : ZMod 2) 0 1 (by decide)
   have hr : (2 : ZMod 2)*(1 : ZMod 2)=0 := by decide
   dsimp only at h2
-  rw [if_pos hr] at h2
+  rw [ite_eq_left hr] at h2
   norm_num at h1 h2
   norm_num [Fin.sum_univ_two]
   exact ⟨h1,h2⟩

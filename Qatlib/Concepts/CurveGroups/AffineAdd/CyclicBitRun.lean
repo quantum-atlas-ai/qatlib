@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.CurveGroups.AffineAdd.CheckedBits
-import Qatlib.Concepts.FiniteCounts.OffsetWord.MapChecked
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.CurveGroups.AffineAdd.CheckedBits
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.MapChecked
+
+@[expose] public section
 
 /-!
 # Bit execution errors on cyclic curve subgroups
@@ -86,7 +90,7 @@ theorem cyclic_bit_error_le (E : FieldEncoding K w) (P : (shortCurve a b).Point)
     ((PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h).toOuterMeasure
       {a0 | bitError E P m (List.ofFn k) (List.ofFn l) a0}).toReal ≤
       (8*(n+1) : ℕ) / (Fintype.card (AddSubgroup.zmultiples P) - 1 : ℕ) := by
-  letI := cyclicFintype P
+  let := cyclicFintype P
   let p0 := PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h
   have hmono := p0.toOuterMeasure.mono (bitError_subset E P m (List.ofFn k) (List.ofFn l))
   have hfin : p0.toOuterMeasure

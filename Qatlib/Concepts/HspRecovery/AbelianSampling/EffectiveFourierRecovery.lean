@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.EffectiveFourierRecoveryDefs
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.EffectiveFourierRecoveryDefs
+
+@[expose] public section
 
 /-!
 # Effective Fourier recovery and modular exponentiation
@@ -205,23 +209,23 @@ theorem modMulGate_bijective {n : ℕ} {c : ZMod n} (hc : IsUnit c) (b : Bool) :
     · intro x y hxy
       cases b with
       | true =>
-          simp only [modMulGate, if_pos True.intro] at hxy
+          simp only [modMulGate, ite_eq_left True.intro] at hxy
           calc x = ↑(hc.unit⁻¹) * ((↑hc.unit : ZMod n) * x) := by
                 rw [← mul_assoc, hunit', one_mul]
             _ = ↑(hc.unit⁻¹) * ((↑hc.unit : ZMod n) * y) := by rw [hxy]
             _ = y := by rw [← mul_assoc, hunit', one_mul]
       | false =>
-          simp only [modMulGate, if_neg (by simp : ¬ ((false : Bool) = true))] at hxy
+          simp only [modMulGate, ite_eq_right (by simp : ¬ ((false : Bool) = true))] at hxy
           exact hxy
     · intro x
       cases b with
       | true =>
           refine ⟨↑(hc.unit⁻¹) * x, ?_⟩
-          simp only [modMulGate, if_pos True.intro]
+          simp only [modMulGate, ite_eq_left True.intro]
           rw [← mul_assoc, hunit, one_mul]
       | false =>
           refine ⟨x, ?_⟩
-          simp only [modMulGate, if_neg (by simp : ¬ ((false : Bool) = true))]
+          simp only [modMulGate, ite_eq_right (by simp : ¬ ((false : Bool) = true))]
   have hspec : (↑hc.unit : ZMod n) = c := IsUnit.unit_spec hc
   have hgate : modMulGate c b = modMulGate (↑hc.unit : ZMod n) b := by
     funext x

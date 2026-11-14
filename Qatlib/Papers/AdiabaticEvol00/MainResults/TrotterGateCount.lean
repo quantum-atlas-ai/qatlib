@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Mathlib.Algebra.Order.Floor.Semiring
+module
+
+public import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Mathlib.Algebra.Order.Floor.Semiring
+
+@[expose] public section
 
 /-!
 # Product-formula error and factor counts

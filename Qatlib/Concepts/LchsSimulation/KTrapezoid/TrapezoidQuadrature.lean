@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQuadrature
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+module
+
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+
+@[expose] public section
 
 /-!
 # Banach-space trapezoidal quadrature estimates
@@ -95,7 +99,7 @@ theorem inh_trapezoid_cell_error
       have hl := hLip u ⟨hu.1.le, hu.2⟩
       rw [norm_smul, Real.norm_eq_abs]
       apply (mul_le_mul_of_nonneg_left hl (abs_nonneg _)).trans_eq
-      change |u - m| * (C * |u - m|) = C*(u-m)^2
+
       rw [← sq_abs]
       ring))
     ((by fun_prop : Continuous (fun u : ℝ => C*(u-m)^2)).intervalIntegrable _ _)
@@ -142,8 +146,8 @@ theorem inh_trap_sum_correction
         exact he (Fin.ext (by simpa [z] using! hj0))
       simp [inhTrapWeight, inhTrapNode, inhNode, hj, hj0, he, h]
   rw [Fin.sum_univ_castSucc]
-  simp only [hw, Finset.sum_sub_distrib, Finset.sum_ite_eq', Finset.mem_univ, if_true]
-  simp only [inhTrapWeight, Fin.val_last, or_true, if_true, hlast]
+  simp only [hw, Finset.sum_sub_distrib, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+  simp only [inhTrapWeight, Fin.val_last, or_true, ite_true, hlast]
   change (∑ l : Fin Mt, h • F (inhNode Mt s t l)) - (h/2) • F s + (h/2) • F t = _
   module
 

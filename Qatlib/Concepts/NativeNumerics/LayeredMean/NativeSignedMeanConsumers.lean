@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+module
+
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+
+@[expose] public section
 
 /-!
 # Native signed mean guarantees and resource counts

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 /-!
 # Common one-body actions preserve antisymmetry

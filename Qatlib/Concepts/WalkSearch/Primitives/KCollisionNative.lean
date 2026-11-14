@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+
+@[expose] public section
 
 /-!
 # Obstructions to unrestricted collision realization
@@ -49,7 +53,7 @@ theorem kCollision_native_empty_obstruction (kcs : KCollisionSolver) :
   obtain ⟨_circuit, start, _unitary, hnorm, _queries, _born⟩ :=
     h 0 1 1 0 0 0 (fun _ => false)
   have hn := hnorm (Classical.choice kcs.seedNe)
-  haveI : IsEmpty (Fin 1 → Fin 0) := ⟨fun f => Fin.elim0 (f 0)⟩
+  have : IsEmpty (Fin 1 → Fin 0) := ⟨fun f => Fin.elim0 (f 0)⟩
   simp [Normalized] at hn
 
 /-- The unrestricted native collision capability proposition `KCollisionNative` is false. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
-import Qatlib.Concepts.AmplitudeSearch.Amplification.InitializedBudgetCoupling
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.InitializedBudgetCoupling
+
+@[expose] public section
 
 /-!
 # Success at a charged minimum-finding budget

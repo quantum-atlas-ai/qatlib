@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Int.NatAbs
-import Mathlib.Data.Real.Archimedean
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.DyadicHorner.HornerError.DyadicHornerDefs
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Int.NatAbs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.DyadicHorner.HornerError.DyadicHornerDefs
+
+@[expose] public section
 
 /-!
 # Error and operation bounds for dyadic Horner evaluation

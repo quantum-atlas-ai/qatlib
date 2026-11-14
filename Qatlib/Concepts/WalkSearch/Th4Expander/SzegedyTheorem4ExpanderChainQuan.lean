@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
+module
+
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+@[expose] public section
 
 /-!
 # Regular-graph transition and frame support

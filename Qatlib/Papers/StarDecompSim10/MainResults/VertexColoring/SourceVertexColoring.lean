@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.BitIndices
-import Mathlib.Data.Nat.Bitwise
-import Qatlib.Papers.StarDecompSim10.MainResults.ForestDecomposition.SourceForestDecomposition
+module
+
+public import Mathlib.Data.Nat.BitIndices
+public import Mathlib.Data.Nat.Bitwise
+public import Qatlib.Papers.StarDecompSim10.MainResults.ForestDecomposition.SourceForestDecomposition
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,7 +92,11 @@ def topDiff (a b : ℕ) : ℕ := msb (a ^^^ b)
 /-- Distinct numbers differ at their most significant differing bit. -/
 theorem topDiff_testBit_ne {a b : ℕ} (h : a ≠ b) :
     a.testBit (topDiff a b) ≠ b.testBit (topDiff a b) := by
-  have hxor : a ^^^ b ≠ 0 := Nat.xor_ne_zero_iff.mpr h
+  have hxor : a ^^^ b ≠ 0 := by
+    intro hab
+    apply h
+    have ht := congrArg (fun x : ℕ => x ^^^ b) hab
+    simpa only [Nat.xor_assoc, Nat.xor_self, Nat.xor_zero, Nat.zero_xor] using ht
   have hspec : (a ^^^ b).testBit (topDiff a b) = true := msb_testBit _ hxor
   rw [Nat.testBit_xor] at hspec
   intro heq

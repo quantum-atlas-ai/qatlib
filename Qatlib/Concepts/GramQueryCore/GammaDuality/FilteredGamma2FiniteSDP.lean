@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
-import Mathlib.Analysis.Convex.Cone.Dual
+module
+
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+public import Mathlib.Analysis.Convex.Cone.Dual
+
+@[expose] public section
 
 /-!
 # Finite semidefinite geometry of filtered γ₂
@@ -99,7 +103,7 @@ theorem filteredGamma2_fixed_budget_boundary (X : Type) [Fintype X] [DecidableEq
   refine ⟨?_, filteredGamma2_le_of_gramFilteredCert⟩
   intro hval
   by_cases hX : Nonempty X
-  · letI := hX
+  · let := hX
     let energy (w : Gamma2FixedFamily X n) (z : X ⊕ X) : ℝ :=
       ∑ j, ∑ q, Complex.normSq (w j z q)
     let L (w : Gamma2FixedFamily X n) : Matrix X X ℂ := fun x y =>
@@ -167,7 +171,7 @@ theorem filteredGamma2_fixed_budget_boundary (X : Type) [Fintype X] [DecidableEq
       exact (Finset.le_sup' (f := energy w) (Finset.mem_univ (Sum.inr y))).trans hcost
     · intro x y
       exact (congrFun (congrFun hw.2 x) y).symm
-  · letI : IsEmpty X := not_nonempty_iff.mp hX
+  · let : IsEmpty X := not_nonempty_iff.mp hX
     have hA : A = 0 := by ext x; exact isEmptyElim x
     rw [hA]
     exact gramFilteredCert_zero Z hW
@@ -213,7 +217,7 @@ theorem gamma2_budget_set_compact (X : Type) [Fintype X] [DecidableEq X] (n : �
     fun_prop
   have hSc : IsClosed S := by
     dsimp [S]
-    rw [Set.setOf_forall]
+    rw [Set.ofPred_forall]
     apply isClosed_iInter
     intro z
     apply isClosed_le _ continuous_const
@@ -257,7 +261,7 @@ theorem gamma2_budget_separator (X : Type) [Fintype X] [DecidableEq X] (n : ℕ)
     (hA : ¬gramFilteredCert A Z W) :
     ∃ (l : StrongDual ℝ (Matrix X X ℂ)) (u : ℝ),
       (∀ B, gramFilteredCert B Z W → l B < u) ∧ u < l A := by
-  letI : LocallyConvexSpace ℝ (Matrix X X ℂ) := NormedSpace.toLocallyConvexSpace' ℂ
+  let : LocallyConvexSpace ℝ (Matrix X X ℂ) := NormedSpace.toLocallyConvexSpace' ℂ
   exact geometric_hahn_banach_closed_point (gamma2_budget_set_convex Z W)
     (gamma2_budget_set_compact X n Z W hW).isClosed hA
 
@@ -289,7 +293,7 @@ has operator norm at most one. -/
 theorem gamma2_psd_unit_block_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ)
     (hT : (Matrix.fromBlocks (1 : Matrix X X ℂ) T Tᴴ 1).PosSemidef) : ‖T‖ ≤ 1 := by
-  letI : Invertible (1 : Matrix X X ℂ) := invertibleOne
+  let : Invertible (1 : Matrix X X ℂ) := invertibleOne
   have hres := (Matrix.PosDef.fromBlocks₁₁ T (1 : Matrix X X ℂ)
     (Matrix.PosDef.one : (1 : Matrix X X ℂ).PosDef)).mp hT
   simp only [inv_one, Matrix.mul_one] at hres
@@ -311,7 +315,7 @@ theorem gamma2_inverse_sqrt_diagonal {a : ℝ} (ha : 0 ≤ a) :
   by_cases hz : a=0
   · simp [hz]
   · have hs : Real.sqrt a ≠ 0 := Real.sqrt_ne_zero'.mpr (lt_of_le_of_ne ha (Ne.symm hz))
-    rw [if_neg hz]
+    rw [ite_eq_right hz]
     field_simp
     nlinarith [Real.sq_sqrt ha]
 
@@ -346,7 +350,7 @@ theorem gamma2_psd_diagonal_rescale_norm_le {X : Type} [Fintype X] [DecidableEq 
         by_cases hxy : x=y
         · subst y
           simp only [B, c, z, Sum.elim_inl, Matrix.fromBlocks_apply₁₁, Matrix.diagonal_apply,
-            if_true, Complex.star_def, Complex.conj_ofReal, Matrix.one_apply_eq]
+            ite_true, Complex.star_def, Complex.conj_ofReal, Matrix.one_apply_eq]
           exact_mod_cast gamma2_inverse_sqrt_diagonal (ha x)
         · simp [B, c, z, hxy]
       | inr y =>
@@ -359,7 +363,7 @@ theorem gamma2_psd_diagonal_rescale_norm_le {X : Type} [Fintype X] [DecidableEq 
         by_cases hxy : x=y
         · subst y
           simp only [B, c, z, Sum.elim_inr, Matrix.fromBlocks_apply₂₂, Matrix.diagonal_apply,
-            if_true, Complex.star_def, Complex.conj_ofReal, Matrix.one_apply_eq]
+            ite_true, Complex.star_def, Complex.conj_ofReal, Matrix.one_apply_eq]
           exact_mod_cast gamma2_inverse_sqrt_diagonal (hb x)
         · simp [B, c, z, hxy]
   change ((Matrix.diagonal c)ᴴ*B*(Matrix.diagonal c)+Matrix.diagonal z).PosSemidef at hK
@@ -564,7 +568,7 @@ theorem gamma2_psd_set_closed (Y : Type) [Fintype Y] [DecidableEq Y] :
     · fun_prop
     · exact continuous_id
   · change IsClosed {B : Matrix Y Y ℂ | ∀ v, 0 ≤ star v ⬝ᵥ (B*ᵥv)}
-    rw [Set.setOf_forall]
+    rw [Set.ofPred_forall]
     apply isClosed_iInter
     intro v
     apply isClosed_le continuous_const
@@ -698,7 +702,7 @@ theorem gamma2SDPEpigraph_separator {X : Type} [Fintype X] [DecidableEq X] {n : 
     (hc : c ∉ gamma2SDPEpigraph Z) :
     ∃ l : StrongDual ℝ (Matrix X X ℂ × ((X ⊕ X) → ℝ)),
       (∀ d ∈ gamma2SDPEpigraph Z, 0 ≤ l d) ∧ l c < 0 := by
-  letI : LocallyConvexSpace ℝ (Matrix X X ℂ × ((X ⊕ X) → ℝ)) :=
+  let : LocallyConvexSpace ℝ (Matrix X X ℂ × ((X ⊕ X) → ℝ)) :=
     NormedSpace.toLocallyConvexSpace' ℝ
   let K : ProperCone ℝ (Matrix X X ℂ × ((X ⊕ X) → ℝ)) :=
     ⟨gamma2SDPEpigraphCone Z, gamma2SDPEpigraph_closed Z⟩
@@ -902,7 +906,7 @@ theorem gamma2_psd_separator_unnormalized {X : Type} [Fintype X] [DecidableEq X]
     have hzero : gamma2SDPPairing (0 : Matrix X X ℂ) N=0 := by simp [gamma2SDPPairing]
     rw [hzero, sub_zero] at hh
     simpa only [Pi.single_apply, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq',
-      Finset.mem_univ, if_true] using hh
+      Finset.mem_univ, ite_true] using hh
   let a : X → ℝ := fun x => α (Sum.inl x)
   let b : X → ℝ := fun y => α (Sum.inr y)
   have hblock (j : Fin n) : (gamma2SDPDualBlock a b (Z j) N).PosSemidef := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayQuan
+
+@[expose] public section
 
 /-!
 # Classical stopping comparison
@@ -49,7 +53,7 @@ private theorem empty_detection {I : Type} [Fintype I] [DecidableEq I] [Nonempty
   have hfix : stepAbsorbingLaw P ∅ (fun _ => 1 / (Fintype.card I : ℝ)) =
       fun _ => 1 / (Fintype.card I : ℝ) := by
     funext j
-    simp only [stepAbsorbingLaw, absorbingKernel, Finset.notMem_empty, if_false,
+    simp only [stepAbsorbingLaw, absorbingKernel, Finset.notMem_empty, ite_false,
       ← Finset.mul_sum]
     have hcol : (∑ i, P i j) = 1 := by simp only [hsym]; exact hrow j
     rw [hcol, mul_one]

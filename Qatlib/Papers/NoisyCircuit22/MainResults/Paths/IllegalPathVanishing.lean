@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
+module
+
+public import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ theorem source_lemma5_illegal_path_vanishing
         exact h ⟨h1, h0, hd⟩
       simp [hbndd x (s (Fin.last d)) hd]
     · simp [hbnd0 x (s 0) h0]
-  · push_neg at h1
+  · push Not at h1
     simp [hgate C s h1]
 
 end Qatlib.Papers.NoisyCircuit22.MainResults.Paths

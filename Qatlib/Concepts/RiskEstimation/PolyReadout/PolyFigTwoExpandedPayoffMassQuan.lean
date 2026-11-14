@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedPayoffMassStat
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedPayoffMassStat
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Flag mass of expanded polynomial preparation
@@ -57,7 +61,7 @@ private theorem data_gate_columns (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j 
     tensorGate_apply, Matrix.one_apply, Finset.sum_apply, Pi.smul_apply,
     smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket, Equiv.apply_eq_iff_eq, Prod.mk.injEq]
   by_cases hb : b = false <;> by_cases hw : w = (fun _ => false) <;>
-    simp [hb, hw, ite_mul, mul_ite, ite_and]
+    simp [hb, hw,  mul_ite]
 
 /-- The expanded angle word rotates the flag by the negated doubled payoff angle while restoring
 the work register. -/
@@ -95,7 +99,7 @@ private theorem preparation_entry (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ)
   simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket,
     Equiv.apply_eq_iff_eq, Prod.mk.injEq]
   by_cases hw : w = (fun _ => false) <;>
-    simp [hw, ite_and, ite_mul, mul_ite, Finset.mul_sum]
+    simp [hw, ite_and,  mul_ite]
 
 /-- The expanded preparation's good-flag probability equals the Born-weighted squared-sine
 polynomial payoff; see [WoernerEgger2019]. -/
@@ -120,12 +124,12 @@ theorem polyFigTwoExpandedPayoffMass : PolyFigTwoExpandedPayoffMass := by
       ‖(if w = (fun _ => false) then z else 0)‖^2 =
         if w = (fun _ => false) then ‖z‖^2 else 0 := by
     split_ifs <;> simp
-  simp only [Fintype.sum_bool, Bool.false_eq_true, if_true, if_false,
-    Finset.sum_const_zero, add_zero, zero_add]
+  simp only [Fintype.sum_bool, Bool.false_eq_true, ite_true, ite_false,
+    Finset.sum_const_zero, add_zero]
   apply Finset.sum_congr rfl
   intro x _
   rw [hrot x]
-  simp only [hn, Finset.sum_ite_eq', Finset.mem_univ, if_true, norm_mul,
+  simp only [hn, Finset.sum_ite_eq', Finset.mem_univ, ite_true, norm_mul,
     mul_pow, Complex.norm_real, Real.norm_eq_abs, sq_abs, mulVec_ket_apply]
 
 end Qatlib.Concepts.RiskEstimation.PolyReadout

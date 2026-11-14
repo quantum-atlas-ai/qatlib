@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironment
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironment
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Statistics of hidden oracle mixtures
@@ -108,6 +112,7 @@ private theorem traces_smul (O : Matrix I I ℂ) (P : ObservedCircuit I)
               { t with measurements := t.measurements + 1, outcomes := (2, 1) :: t.outcomes }))
             (ihTrue (ProjectiveBranch Q true psi)))
 
+omit [DecidableEq I] in
 /-- Scaling a branch state by a complex scalar multiplies its mass by the scalar's squared
 modulus. -/
 private theorem mass_smul (c : ℂ) (psi : QState I) :
@@ -117,6 +122,7 @@ private theorem mass_smul (c : ℂ) (psi : QState I) :
 
 variable [Fintype E] [DecidableEq E]
 
+omit [DecidableEq I] [DecidableEq E] in
 /-- The mass of a product-register state is the sum of the masses of its fixed environment
 slices. -/
 private theorem mass_slices (psi : QState (I × E)) :
@@ -124,6 +130,7 @@ private theorem mass_slices (psi : QState (I × E)) :
   simp only [branchMass, MeasureProb, BornProb, Fintype.sum_prod_type]
   exact Finset.sum_comm
 
+omit [DecidableEq E] in
 /-- Interchanges a list sum with a finite sum over environment coordinates. -/
 private theorem list_sum_finset_sum {A : Type*} (xs : List A) (f : A → E → ℝ) :
     (xs.map (fun x => ∑ a, f x a)).sum =

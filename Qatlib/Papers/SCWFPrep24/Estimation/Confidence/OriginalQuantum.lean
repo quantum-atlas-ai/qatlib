@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalPhysical
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PriorBasis
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalPhysical
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PriorBasis
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

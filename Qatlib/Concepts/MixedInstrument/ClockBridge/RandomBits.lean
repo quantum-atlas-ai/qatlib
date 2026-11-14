@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.FairBitRecords.RandomBitsDefs
+module
+
+public import Qatlib.Concepts.ShadowModels.FairBitRecords.RandomBitsDefs
+
+@[expose] public section
 
 /-!
 # Fair-bit sampling and measurement probabilities
@@ -64,7 +68,7 @@ theorem clause23_fair_bit_program {D E : ℕ} (k m : ℕ) {X : Type} [Fintype X]
 common fair-bit atom mass. -/
 theorem clause24_born_not_fair_bit {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
-    (k m : ℕ) (hm : m ≤ 2 ^ k)
+    (k m : ℕ) (_hm : m ≤ 2 ^ k)
     (hne : ∃ o₁ o₂ : O,
       (povmRecordLaw E ρ hρ).prob o₁ ≠ (povmRecordLaw E ρ hρ).prob o₂) :
     ∃ o : O, (povmRecordLaw E ρ hρ).prob o ≠ fairBitMassReal k := by
@@ -76,7 +80,7 @@ theorem clause24_born_not_fair_bit {O : Type} [Fintype O] [DecidableEq O] {D : �
 /-- Collects the accepted and rejected finite-coin masses, the fair-bit program transition and
 cost, and the reciprocal-power-of-two formula for `fairBitMass`. -/
 theorem clause23_endpoint :
-    (∀ (k m : ℕ) (hm : m ≤ 2 ^ k),
+    (∀ (k m : ℕ) (_hm : m ≤ 2 ^ k),
       (∀ i : Fin m, finiteCoinNext k m () (Sum.inl i) = fairBitMass k) ∧
       finiteCoinNext k m () (Sum.inr ()) = fairBitRejectedMass k m) ∧
     (∀ {D E : ℕ} (k m : ℕ) {X : Type} [Fintype X] (I : Instrument X D E),
@@ -96,8 +100,8 @@ the uniform fair-bit atom mass. -/
 theorem clause24_endpoint :
     (∀ {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
       (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
-      (k m : ℕ) (hm : m ≤ 2 ^ k)
-      (hne : ∃ o₁ o₂ : O,
+      (k m : ℕ) (_hm : m ≤ 2 ^ k)
+      (_hne : ∃ o₁ o₂ : O,
         (povmRecordLaw E ρ hρ).prob o₁ ≠ (povmRecordLaw E ρ hρ).prob o₂),
       ∃ o : O, (povmRecordLaw E ρ hρ).prob o ≠ fairBitMassReal k) := by
   intro O instF instD D E ρ hρ k m hm hne

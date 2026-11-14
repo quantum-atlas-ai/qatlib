@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Trial counts and amplified transform work
@@ -107,7 +111,7 @@ theorem qftSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
   have h1 : qftSuccessBound M N = 4 * M * (N - M) / N ^ 2 := by
     unfold qftSuccessBound
     field_simp
-    try ring_nf
+
   rw [h1]; positivity
 
 /-- The QHS scalar success bound is positive when `0 < M < N`. -/
@@ -117,7 +121,7 @@ theorem qhsSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
   have h1 : qhsSuccessBound M N = 2 * M * (N - M) / N ^ 2 := by
     unfold qhsSuccessBound
     field_simp
-    try ring_nf
+
   rw [h1]; positivity
 
 /-- For `0 < M < N` and positive success probability at most the QFT bound, the expected trial
@@ -129,7 +133,7 @@ theorem qft_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 <
   have hkey : qftSuccessBound M N = 4 * M * (N - M) / N ^ 2 := by
     unfold qftSuccessBound
     field_simp
-    try ring_nf
+
   have hinv : (qftSuccessBound M N)⁻¹ = N ^ 2 / (4 * M * (N - M)) := by
     rw [hkey]; field_simp
   have hstep : N / (4 * M) ≤ (qftSuccessBound M N)⁻¹ := by
@@ -154,7 +158,7 @@ theorem qhs_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 <
   have hkey : qhsSuccessBound M N = 2 * M * (N - M) / N ^ 2 := by
     unfold qhsSuccessBound
     field_simp
-    try ring_nf
+
   have hinv : (qhsSuccessBound M N)⁻¹ = N ^ 2 / (2 * M * (N - M)) := by
     rw [hkey]; field_simp
   have hstep : N / (2 * M) ≤ (qhsSuccessBound M N)⁻¹ := by

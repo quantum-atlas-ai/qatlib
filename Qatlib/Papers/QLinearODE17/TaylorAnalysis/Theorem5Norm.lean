@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Columns
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Columns
+
+@[expose] public section
 
 /-!
 # Operator norm of diagonal Taylor inverses

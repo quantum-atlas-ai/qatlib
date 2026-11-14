@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Tactic.Convert
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzStat
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Tactic.Convert
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzStat
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Lipschitz continuity of Hermitian evolution

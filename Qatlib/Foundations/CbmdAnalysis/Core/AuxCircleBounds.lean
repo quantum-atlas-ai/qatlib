@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
-import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
+public import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
+
+@[expose] public section
 
 /-!
 # Decay of auxiliary-regulator circle integrals

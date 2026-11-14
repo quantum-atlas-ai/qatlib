@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Qatlib.Concepts.SdpObjective.ObjectiveSearch.SdpObjectiveSearchDefs
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Qatlib.Concepts.SdpObjective.ObjectiveSearch.SdpObjectiveSearchDefs
+
+@[expose] public section
 
 /-!
 # Objective bisection for the diamond norm SDP
@@ -29,7 +33,7 @@ For the mathematical background, see [Watrous2018].
 -/
 
 set_option backward.isDefEq.respectTransparency false
-open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
+open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib.Concepts.SdpDuality.StrongDuality
@@ -38,7 +42,7 @@ open Qatlib.Concepts.SdpObjective.ObjectiveSearch
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.SdpObjective.ObjectiveSearch
-open Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpObjective.ObjectiveSearch
 open scoped BigOperators ComplexOrder
 

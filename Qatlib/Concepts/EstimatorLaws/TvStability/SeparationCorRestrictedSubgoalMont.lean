@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.EstimatorLaws.TvStability.SeparationCorRestrictedSubgoalStat
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma7Quan
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.EstimatorLaws.TvStability.SeparationCorRestrictedSubgoalStat
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma7Quan
+
+@[expose] public section
 
 /-!
 # Restricted amplitude separation bound

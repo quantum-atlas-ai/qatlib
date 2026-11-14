@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Factorization bounds for trace and diamond norms
@@ -172,7 +176,7 @@ theorem sum_amplifyFactor_mul_conjTranspose {D E r : ℕ}
           simp [Ne.symm ht]]
         simp
       rw [hcol]
-    simp only [Matrix.sum_apply, hentry, blockRep, hxy, if_true, Matrix.mul_apply,
+    simp only [Matrix.sum_apply, hentry, blockRep, hxy, ite_true, Matrix.mul_apply,
       conjTranspose_apply]
   · have h0 : ∀ j : Fin N, (amplifyFactor (r := r) (C j)
         * (amplifyFactor (r := r) (C j))ᴴ) x y = 0 := by
@@ -180,13 +184,13 @@ theorem sum_amplifyFactor_mul_conjTranspose {D E r : ℕ}
       simp only [Matrix.mul_apply, conjTranspose_apply, amplifyFactor, star_ite_zero]
       refine Finset.sum_eq_zero fun p _ => ?_
       by_cases h1 : x.2 = p.2
-      · rw [if_pos h1, if_neg]
+      · rw [ite_eq_left h1, ite_eq_right]
         · simp
         · intro h2
           exact hxy (h1.trans h2.symm)
-      · rw [if_neg h1, zero_mul]
+      · rw [ite_eq_right h1, zero_mul]
     simp only [Matrix.sum_apply, h0, Finset.sum_const_zero]
-    simp only [blockRep, hxy, if_false, Matrix.sum_apply]
+    simp only [blockRep, hxy, ite_false, Matrix.sum_apply]
 
 open EuclideanSpace in
 
@@ -369,8 +373,8 @@ private lemma conjTranspose_amplifyFactor {D E r : ℕ} (C : Matrix (Fin D) (Fin
   ext p q
   simp only [conjTranspose_apply, amplifyFactor, star_ite_zero]
   by_cases h : p.2 = q.2
-  · rw [if_pos h.symm, if_pos h]
-  · rw [if_neg (fun h2 => h h2.symm), if_neg h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
+  · rw [ite_eq_right (fun h2 => h h2.symm), ite_eq_right h]
 
 /-- The adjoint-product of an amplified factor is the block representation of the original
 factor's adjoint-product. -/

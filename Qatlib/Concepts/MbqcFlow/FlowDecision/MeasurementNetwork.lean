@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+
+@[expose] public section
 
 /-!
 # Execution laws for finite measurement networks
@@ -238,7 +242,7 @@ theorem event_resource_invariants (es : List NetworkEvent) :
           simpa [eventResources, transmittedWords] using
             And.intro ih.1 (And.intro ih.2.1 (And.intro ih.2.2.1 (congrArg (bits.length + ·) ih.2.2.2)))
       | teleport n hn o =>
-          letI := hn
+          let := hn
           have hc := quditProgramLeaf_counts n o
           simp only [eventResources, hc.2.2.1, hc.2.2.2.1]
           simp only [List.count_cons, List.length_cons]

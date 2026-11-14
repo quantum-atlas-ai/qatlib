@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Ring
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+module
+
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+
+@[expose] public section
 
 /-!
 # AdiabEquiv04 — amplification from history states to final states (Lemma 3.10)

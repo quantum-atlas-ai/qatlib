@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.MatrixAnalytic
-import Mathlib.Analysis.Calculus.FDeriv.Analytic
-import Mathlib.Analysis.Complex.RealDeriv
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.MatrixAnalytic
+public import Mathlib.Analysis.Calculus.FDeriv.Analytic
+public import Mathlib.Analysis.Complex.RealDeriv
+
+@[expose] public section
 
 /-!
 # Airy propagators and their differential equations

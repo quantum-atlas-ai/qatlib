@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
-import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStack
-import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStackDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+public import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStack
+public import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStackDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+
+@[expose] public section
 
 /-!
 # Oracle transition supports and billing definitions
@@ -98,7 +102,7 @@ def oracleCharge {Q A : Type*} (r : OracleRequest Q A) : OracleCharge Q A :=
   ⟨r, [.inputAccess, .labelCompare, .recordAccess]⟩
 
 /-- The fixed sum of the input, label, and record fees in tariff `t` for a charge. -/
-def OracleCharge.fee {Q A : Type*} (t : OracleTariff) (c : OracleCharge Q A) : ℝ :=
+def OracleCharge.fee {Q A : Type*} (t : OracleTariff) (_c : OracleCharge Q A) : ℝ :=
   t.inputFee + t.labelFee + t.recordFee
 
 /-- The sum of the fees of a list of oracle charges. -/

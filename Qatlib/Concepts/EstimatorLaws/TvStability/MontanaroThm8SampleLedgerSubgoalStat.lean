@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
+module
+
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
+
+@[expose] public section
 
 /-!
 # Relative-estimator ledger contract

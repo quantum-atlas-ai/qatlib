@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.AttemptAuxiliary
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.AttemptAuxiliary
+
+@[expose] public section
 
 /-!
 # Success probability of unit-based factoring attempts

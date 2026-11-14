@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalCircuits.MetricCover
-import Qatlib.Papers.QCircApprox95.MainResults.HaarFrames
+module
+
+public import Qatlib.Concepts.LocalCircuits.MetricCover
+public import Qatlib.Papers.QCircApprox95.MainResults.HaarFrames
+
+@[expose] public section
 
 /-!
 # Finite cover measure bounds and unitary nets

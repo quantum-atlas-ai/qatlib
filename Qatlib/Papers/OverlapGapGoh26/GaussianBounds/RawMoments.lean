@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawInput
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Tail
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawInput
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Tail
+
+@[expose] public section
 
 /-!
 # Uniform Gaussian moments of raw dynamics

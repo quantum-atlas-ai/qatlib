@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRejectionBound
-import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRejectionBound
+public import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
+
+@[expose] public section
 
 /-!
 # Counting failure events on complete algorithm tapes
@@ -114,8 +118,8 @@ theorem source_joint_sampling_bad_card (n : ℕ) (ε : ℝ) (hn : 0<n) (hε : 0<
       ¬sampledSurvivors G t.1 ⊆ thinPairs G.edges (Nat.floor ((n:ℝ)^(1-ε))))).card*n ≤
       Fintype.card (sourceCombTape n k K c sgs ets) := by
   intro k
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   have hh := source_event_fiber_bound (sourceTape_sample_equiv n k K c sgs ets)
     (fun t => ¬sampledSurvivors G t.1 ⊆ thinPairs G.edges (Nat.floor ((n:ℝ)^(1-ε)))) n 1 (by
     intro a
@@ -123,7 +127,10 @@ theorem source_joint_sampling_bad_card (n : ℕ) (ε : ℝ) (hn : 0<n) (hε : 0<
       (lemma3Sampling_withReplacement n ε hn hε hε1 hk G).le
 
   )
-  convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
+  convert! hh using 1 <;> (try simp only [one_mul])
+  congr 2
+  ext t
+  try simp
 
 /-- For a search family with exponent at least three, the number of full tapes with a bad
 preparation call times `(n * n + 1)^3` is at most `n` times the total tape count. -/
@@ -136,8 +143,8 @@ theorem source_joint_preparation_bad_card (n k K c τ : ℕ) (G : UGraph n)
       ¬preparationCallsGood G sgs t.2.1 (Finset.univ.image t.1).toList)).card*(n*n+1)^3 ≤
       n*Fintype.card (sourceCombTape n k K c sgs ets) := by
   intro sgs
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   have hh := source_event_fiber_bound (sourceTape_preparation_equiv n k K c sgs ets)
     (fun t => ¬preparationCallsGood G sgs t.2.1 (Finset.univ.image t.1).toList) ((n*n+1)^3) n (by
     intro a
@@ -146,7 +153,10 @@ theorem source_joint_preparation_bad_card (n k K c τ : ℕ) (G : UGraph n)
         (source_preparation_call_supported n τ) (Finset.univ.image a.1).toList
 
   )
-  convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
+  convert! hh using 1
+  congr 2
+  ext t
+  try simp
 
 /-- With the prescribed degree test parameters, the number of full tapes failing classification
 test correctness times `n^3` is at most `2 * n` times the total tape count. -/
@@ -164,8 +174,8 @@ theorem source_joint_degree_bad_card (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ
         ⟨sampledSurvivors G t.1,sampledSurvivors_symmetric G t.1⟩)).card*n^3 ≤
       (2*n)*Fintype.card (sourceCombTape n k K c sgs ets) := by
   intro K c dHi dLo
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   have hh := source_event_fiber_bound (sourceTape_degree_equiv n k K c sgs ets)
     (fun t => ¬classifyScanTestsCorrect G sgs τ dHi dLo K c t.2.2.1 t.2.2.2.1 Finset.univ.toList
       ⟨sampledSurvivors G t.1,sampledSurvivors_symmetric G t.1⟩) (n^3) (2*n) (by
@@ -175,7 +185,10 @@ theorem source_joint_degree_bad_card (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ
         ⟨sampledSurvivors G a.1,sampledSurvivors_symmetric G a.1⟩
 
   )
-  convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
+  convert! hh using 1
+  congr 2
+  ext t
+  try simp
 
 /-- For a scoped search family with exponent at least three, full tapes with a bad final
 triangle search seed satisfy `bad * (n * n + 1)^3 ≤ total`. -/
@@ -189,8 +202,8 @@ theorem source_joint_triangle_bad_card (n k K c τ : ℕ) (G : UGraph n)
         (triangleMarked G (sourceTapeClass G sgs ets k K c τ t).movedT.toFinset) 3 (n*n))).card*(n*n+1)^3 ≤
       Fintype.card (sourceCombTape n k K c sgs ets) := by
   intro sgs
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   have hh := source_event_fiber_bound (sourceTape_triangle_equiv n k K c sgs ets)
     (fun t => t.2.2.2.2.1 ∈ safeGroverBadSeeds sgs
       (triangleMarked G (sourceTapeClass G sgs ets k K c τ t).movedT.toFinset) 3 (n*n)) ((n*n+1)^3) 1 (by
@@ -205,10 +218,17 @@ theorem source_joint_triangle_bad_card (n k K c τ : ℕ) (G : UGraph n)
         safeGroverBadSeeds sgs (triangleMarked G T) 3 (n*n) := by ext ρ; simp
     have hf : (Finset.univ.filter (fun ρ : sgs.seed => ρ ∈ safeGroverBadSeeds sgs (triangleMarked G T) 3 (n*n))).card*(n*n+1)^3≤
         1*Fintype.card sgs.seed := by rw [he,one_mul]; exact hb
-    convert! hf using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext ρ <;> simp <;> rfl
+    convert! hf using 1
+    congr 2
+    ext ρ
+    simp
+    rfl
 
   )
-  convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
+  convert! hh using 1 <;> (try simp only [one_mul])
+  congr 2
+  ext t
+  try simp
 
 /-- The classification edge set meets its graph mass promise and contains a graph triangle, but
 the final promised edge search returns `none`. -/
@@ -226,8 +246,8 @@ theorem source_joint_edge_bad_card (n k K c dHi dLo τ tThin : ℕ) (G : UGraph 
     letI:=ets.seedFin n
     (Finset.univ.filter (sourceEdgeBad G sgs ets k K c dHi dLo τ tThin)).card*(n*n+1)^3 ≤
       Fintype.card (sourceCombTape n k K c sgs ets) := by
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   have hh := source_event_fiber_bound (sourceTape_edge_equiv n k K c sgs ets)
     (sourceEdgeBad G sgs ets k K c dHi dLo τ tThin) ((n*n+1)^3) 1 (by
     intro a
@@ -249,11 +269,14 @@ theorem source_joint_edge_bad_card (n k K c dHi dLo τ tThin : ℕ) (G : UGraph 
           tauto
         rw [he]
         simp
-    convert! hb using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext ρ <;>
-      simp [sourceTape_edge_equiv,sourceEdgeBad,sourceTapeClass,E,M]
+    convert! hb using 1
+    congr 2
+    ext ρ
+    simp [E,M]
 
   )
-  convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
+  convert! hh using 1
+  try simp only [one_mul]
 
 /-- For `3 ≤ n`, the five stated bounds on the error counts and `r ≤ b0 + b1 + b2 + b3 + b4`
 imply `r * n ≤ 2 * Ω`. -/
@@ -299,8 +322,8 @@ theorem sourceComb_reject_card_from_local_bounds (n k K c dHi dLo τ tThin : ℕ
     (Finset.univ.filter (sourceCombRejects G sgs ets k K c dHi dLo τ tThin)).card*n ≤
       2*Fintype.card (sourceCombTape n k K c sgs ets) := by
   intro sgs
-  letI:=sgs.seedFin
-  letI:=ets.seedFin n
+  let:=sgs.seedFin
+  let:=ets.seedFin n
   intro h0 h2
   let B0 :=
       Finset.univ.filter

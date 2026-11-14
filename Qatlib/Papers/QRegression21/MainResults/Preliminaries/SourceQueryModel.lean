@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,8 +36,8 @@ open Qatlib.Papers.QRegression21.MainResults
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def theorem_2_4_min_finding_statement {d : ℕ} (v : Fin d → ℝ) (δ₁ δ₂ ε : ℝ)
-    (hδ₁ : 0 < δ₁) (hδ₁' : δ₁ < 1) (hδ₂ : 0 < δ₂) (hδ₂' : δ₂ < 1)
-    (hε : 0 < ε) (hε' : ε < 1)
+    (_hδ₁ : 0 < δ₁) (_hδ₁' : δ₁ < 1) (_hδ₂ : 0 < δ₂) (_hδ₂' : δ₂ < 1)
+    (_hε : 0 < ε) (_hε' : ε < 1)
     (Realizes : RunProfile → (Fin d → Prop) → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg (fun j => ∀ k, v j ≤ v k + 2 * ε) ∧
       alg.successProb ≥ 1 - δ₁ - 1000 * Real.log (1 / δ₁) * Real.sqrt (2 * (d : ℝ) * δ₂) ∧
@@ -51,7 +55,7 @@ def IsSparse (p : ℕ) (D : Fin p → Bool) (s : ℕ) : Prop :=
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def theorem_2_13_sparse_unitary_statement {p s : ℕ} (D : Fin p → Bool) (hD : IsSparse p D s)
+def theorem_2_13_sparse_unitary_statement {p s : ℕ} (D : Fin p → Bool) (_hD : IsSparse p D s)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧ alg.gateCost ≤ 8 * (s : ℝ) * Real.log (p : ℝ)
 

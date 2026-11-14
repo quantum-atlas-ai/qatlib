@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 /-!
 # Robustness of Inverse Quantum Fourier Transform Phase Estimation (Theorem 3.12)
 

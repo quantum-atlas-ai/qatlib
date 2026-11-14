@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Coeff
-import Mathlib.Algebra.MvPolynomial.Variables
+module
+
+public import Mathlib.Algebra.MvPolynomial.Coeff
+public import Mathlib.Algebra.MvPolynomial.Variables
+
+@[expose] public section
 
 /-!
 # Squarefree coefficients on disjoint variable blocks
@@ -118,7 +122,7 @@ theorem coeff_prod_disjoint {ι : Type*} (I : Finset ι) (p : ι → MvPolynomia
     (∏ i ∈ I, p i).coeff (∑ i ∈ I, d i) = ∏ i ∈ I, (p i).coeff (d i) := by
   classical
   induction I using Finset.induction_on with
-  | empty => simp [coeff_one]
+  | empty => simp []
   | @insert i I hi ih =>
     rw [Finset.sum_insert hi, Finset.prod_insert hi, Finset.prod_insert hi]
     have hI : (↑I : Set ι).Pairwise (fun a b => Disjoint (s a) (s b)) :=
@@ -261,7 +265,7 @@ theorem coeff_mismatched_blocks [Nontrivial R] {ι : Type*} (I : Finset ι)
     (i : ι) (hi : i ∈ I) (hk : (s i).card ≠ k i) :
     (∏ a ∈ I, (∑ j ∈ s a, X j : MvPolynomial σ R) ^ k a).coeff (blockDegree I s) = 0 := by
   rw [coeff_position_blocks I s k hs]
-  exact Finset.prod_eq_zero hi (if_neg hk)
+  exact Finset.prod_eq_zero hi (ite_eq_right hk)
 
 /-- Dividing the full squarefree coefficient of matching disjoint rational variable blocks by
 the product of their factorials gives one. -/

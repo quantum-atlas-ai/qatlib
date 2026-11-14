@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Exponential words and interaction generators

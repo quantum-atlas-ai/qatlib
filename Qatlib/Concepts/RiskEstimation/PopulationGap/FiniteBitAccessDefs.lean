@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+
+@[expose] public section
 
 /-!
 # Dyadic loading and rational phase gates
@@ -214,7 +218,7 @@ theorem rz_sub_le (θ a : ℝ) : ‖Rz θ - Rz a‖ ≤ |θ - a| := by
   refine (pi_norm_le_iff_of_nonneg (by positivity)).2 ?_
   intro b
   by_cases hb : b
-  · simp only [hb, if_true]
+  · simp only [hb, ite_true]
     exact norm_exp_mul_I_sub_le θ a
   · simp [hb]
 

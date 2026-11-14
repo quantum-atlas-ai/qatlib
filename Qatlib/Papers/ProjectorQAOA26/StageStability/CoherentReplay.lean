@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.StageStability.ActualStages
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.ActualStages
+
+@[expose] public section
 
 /-!
 # Coherent replay of frozen state preparations
@@ -57,7 +61,7 @@ mixer exponential by the preparation unitary. -/
 theorem learnedMixer_prepared (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (v : I → ℂ) (β : ℝ) :
     mixerExp (learnedGenerator (U*ᵥv)) β=U*mixerExp (learnedGenerator v) β*Uᴴ := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
   let V : Matrix.unitaryGroup I ℂ:=⟨U,hU⟩
   let Q : (Matrix I I ℂ)ˣ:=Unitary.toUnits V
   have hinv : (↑Q⁻¹ : Matrix I I ℂ)=Uᴴ := rfl

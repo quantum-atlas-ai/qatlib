@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # A two-outcome measurement attaining trace distance
@@ -137,7 +141,7 @@ noncomputable def helstromPOVM {D : ℕ} (V : Operator D) (x : Fin D → ℝ)
     · simp only [ho, ↓reduceIte]
       rw [spectralPlus_conjTranspose, spectralPlus_mul_self V x hV]
       simp
-    · simp only [ho, if_false]
+    · simp only [ho, ite_false]
       rw [one_sub_spectralPlus_conjTranspose, one_sub_spectralPlus_mul_self V x hV]
       simp
 

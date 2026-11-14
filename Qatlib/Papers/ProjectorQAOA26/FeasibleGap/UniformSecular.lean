@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformDefs
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.SecularAlgebra
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.UniformCurve
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.LowestPair
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformDefs
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.SecularAlgebra
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.UniformCurve
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.LowestPair
+
+@[expose] public section
 
 /-!
 # Secular equations for the uniform-reference interpolation

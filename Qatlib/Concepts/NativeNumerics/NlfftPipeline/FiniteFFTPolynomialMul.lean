@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LaurentPolys.CanonicalComplementFFT
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
-import Mathlib.Data.Finset.NatAntidiagonal
+module
+
+public import Qatlib.Concepts.LaurentPolys.CanonicalComplementFFT
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+public import Mathlib.Data.Finset.NatAntidiagonal
+
+@[expose] public section
 
 /-!
 # Finite Fourier polynomial multiplication
@@ -83,17 +87,17 @@ theorem finiteCoefficientPolynomial_coeff (n : ℕ) (f : ℕ → ℂ) (i : ℕ) 
   unfold finiteCoefficientPolynomial
   rw [Polynomial.finsetSum_coeff]
   by_cases hi : i < n
-  · rw [if_pos hi, Finset.sum_eq_single (⟨i, hi⟩ : Fin n)]
-    · rw [Polynomial.coeff_monomial, if_pos rfl]
+  · rw [ite_eq_left hi, Finset.sum_eq_single (⟨i, hi⟩ : Fin n)]
+    · rw [Polynomial.coeff_monomial, ite_eq_left rfl]
     · intro b _ hb
-      rw [Polynomial.coeff_monomial, if_neg]
+      rw [Polynomial.coeff_monomial, ite_eq_right]
       intro hcon
       exact hb (Fin.val_inj.mp hcon)
     · intro hcon
       exact absurd (Finset.mem_univ _) hcon
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     refine Finset.sum_eq_zero fun j _ => ?_
-    rw [Polynomial.coeff_monomial, if_neg]
+    rw [Polynomial.coeff_monomial, ite_eq_right]
     intro hcon
     rw [← hcon] at hi
     exact hi j.isLt
@@ -104,16 +108,16 @@ theorem finiteCoefficientPolynomial_degree_lt (n : ℕ) (f : ℕ → ℂ) :
     (finiteCoefficientPolynomial n f).degree < (n : WithBot ℕ) := by
   rw [Polynomial.degree_lt_iff_coeff_zero]
   intro m hm
-  rw [finiteCoefficientPolynomial_coeff, if_neg (by omega)]
+  rw [finiteCoefficientPolynomial_coeff, ite_eq_right (by omega)]
 
 /-- Taking the first `n` coefficients of a polynomial equals reduction modulo `X^n`. -/
 theorem finiteCoefficientPrefix_eq_mod (n : ℕ) (p : Polynomial ℂ) :
     finiteCoefficientPrefix n p = p % X ^ n := by
   refine Polynomial.ext fun i => ?_
   by_cases hi : i < n
-  · rw [finiteCoefficientPrefix, finiteCoefficientPolynomial_coeff, if_pos hi,
+  · rw [finiteCoefficientPrefix, finiteCoefficientPolynomial_coeff, ite_eq_left hi,
       coeff_mod_X_pow p n i hi]
-  · rw [finiteCoefficientPrefix, finiteCoefficientPolynomial_coeff, if_neg hi]
+  · rw [finiteCoefficientPrefix, finiteCoefficientPolynomial_coeff, ite_eq_right hi]
     have hdeg : (p % X ^ n).degree < (n : WithBot ℕ) := by
       rw [← Polynomial.modByMonic_eq_mod p (Polynomial.monic_X_pow n)]
       have hlt := Polynomial.degree_modByMonic_lt p (Polynomial.monic_X_pow n)
@@ -127,9 +131,9 @@ theorem finiteCoefficientConjRev_eq (d : ℕ) (p : Polynomial ℂ) (hp : p.natDe
   refine Polynomial.ext fun i => ?_
   by_cases hi : i ≤ d
   · rw [finiteCoefficientConjRev, finiteCoefficientPolynomial_coeff,
-      if_pos (by omega : i < d + 1), conjRevN_coeff d p i hi]
+      ite_eq_left (by omega : i < d + 1), conjRevN_coeff d p i hi]
   · rw [finiteCoefficientConjRev, finiteCoefficientPolynomial_coeff,
-      if_neg (by omega : ¬ i < d + 1)]
+      ite_eq_right (by omega : ¬ i < d + 1)]
     have hd' := conjRevN_natDegree_le d p hp
     exact (Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)).symm
 
@@ -189,7 +193,7 @@ private theorem sum_exp_char (S : ℕ) (hS : 0 < S) (r : ℤ) :
     rw [hζ, ← Complex.exp_nat_mul, h2]
     exact expI_two_pi_int (-r)
   by_cases hd : (S : ℤ) ∣ r
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     obtain ⟨c, hc⟩ := hd
     have hζ1 : ζ = 1 := by
       have h3 : ((-2 * Real.pi * ((r : ℝ) / (S : ℝ))) * Complex.I)
@@ -209,7 +213,7 @@ private theorem sum_exp_char (S : ℕ) (hS : 0 < S) (r : ℤ) :
       _ = ∑ t ∈ Finset.range S, (1 : ℂ) :=
           Finset.sum_congr rfl fun t _ => by rw [hζ1]; simp
       _ = (S : ℂ) := by simp
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     have hζne : ζ ≠ 1 := by
       intro hcon
       apply hd
@@ -358,7 +362,7 @@ private theorem cyclic_convolution (S : ℕ) (hS : 0 < S) (a b : Fin S → ℂ) 
         obtain ⟨c, hc⟩ := hSd
         refine ⟨c + d, ?_⟩
         linear_combination hc + hd
-      rw [if_pos hn, if_pos hSd]
+      rw [ite_eq_left hn, ite_eq_left hSd]
       calc (((S : ℂ)⁻¹ * (a l) * (b l'))) * ((S : ℂ))
           = (((S : ℂ)⁻¹ * ((S : ℂ)))) * (a l * b l') := by ring
         _ = a l * b l' := by rw [inv_mul_cancel₀ hcSc, one_mul]
@@ -369,7 +373,7 @@ private theorem cyclic_convolution (S : ℕ) (hS : 0 < S) (a b : Fin S → ℂ) 
         obtain ⟨e, he⟩ := hcon
         refine ⟨e - d, ?_⟩
         linear_combination he - hd
-      rw [if_neg hn, if_neg hSd, mul_zero]
+      rw [ite_eq_right hn, ite_eq_right hSd, mul_zero]
 
   calc ((S : ℂ)⁻¹ * ∑ t : Fin S,
           (((∑ l : Fin S, a l * Complex.exp ((-2 * Real.pi * ((t.val * l.val : ℕ) / S : ℝ)) * Complex.I))
@@ -458,11 +462,11 @@ theorem finiteFFTPolynomialMul_semantics (q : ℕ) (A B : Polynomial ℂ)
   refine Polynomial.ext fun i => ?_
   rw [finiteCoefficientPolynomial_coeff]
   by_cases hi : i < 2 ^ q
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     refine Eq.trans (Eq.trans ?_ (cyclic_convolution (2 ^ q) hS
       (fun l => A.coeff l.val) (fun l => B.coeff l.val) i hi)) ?_
     · simp only [radixTwoFourier_semantics, exp_sem_bridge]
-    · (try dsimp only)
+    ·
       have hpair : ∀ l l' : Fin (2 ^ q),
           (if ((2 ^ q : ℕ) : ℤ) ∣ (((l : ℤ) + (l' : ℤ)) - (i : ℤ)) then A.coeff l.val * B.coeff l'.val else 0)
             = (if l.val + l'.val = i then A.coeff l.val * B.coeff l'.val else 0) := by
@@ -471,7 +475,7 @@ theorem finiteFFTPolynomialMul_semantics (q : ℕ) (A B : Polynomial ℂ)
         · have hd0 : ((2 ^ q : ℕ) : ℤ) ∣ (((l : ℤ) + (l' : ℤ)) - (i : ℤ)) := by
             rw [show (((l : ℤ) + (l' : ℤ)) - (i : ℤ)) = 0 from by omega]
             exact dvd_zero _
-          rw [if_pos hd0, if_pos hsum]
+          rw [ite_eq_left hd0, ite_eq_left hsum]
         · by_cases hd : ((2 ^ q : ℕ) : ℤ) ∣ (((l : ℤ) + (l' : ℤ)) - (i : ℤ))
           · rcases dvd_sub_range_cases (2 ^ q) l.val l'.val i hi
               (by have := l.isLt; have := l'.isLt; omega) hd with h1 | h1
@@ -482,8 +486,8 @@ theorem finiteFFTPolynomialMul_semantics (q : ℕ) (A B : Polynomial ℂ)
                 have hA1 := Polynomial.le_natDegree_of_ne_zero hA0
                 have hB1 := Polynomial.le_natDegree_of_ne_zero hB0
                 omega
-              rw [if_pos hd, if_neg hsum, hprod]
-          · rw [if_neg hd, if_neg hsum]
+              rw [ite_eq_left hd, ite_eq_right hsum, hprod]
+          · rw [ite_eq_right hd, ite_eq_right hsum]
       rw [Finset.sum_congr rfl fun l _ =>
         Finset.sum_congr rfl fun l' _ => hpair l l']
       rw [Polynomial.coeff_mul, sum_antidiagonal_eq_range (fun a b => A.coeff a * B.coeff b) i]
@@ -500,18 +504,18 @@ theorem finiteFFTPolynomialMul_semantics (q : ℕ) (A B : Polynomial ℂ)
         by_cases hai : a ≤ i
         · have hmem : (i - a) ∈ Finset.range (2 ^ q) := Finset.mem_range.mpr (by omega)
           rw [Finset.sum_eq_single (i - a)
-            (fun b _ hb => if_neg (by omega))
+            (fun b _ hb => ite_eq_right (by omega))
             (fun hcon => absurd hmem hcon)]
-          rw [if_pos (by omega), if_pos hai]
-        · rw [Finset.sum_eq_zero fun b _ => if_neg (by omega), if_neg hai]
+          rw [ite_eq_left (by omega), ite_eq_left hai]
+        · rw [Finset.sum_eq_zero fun b _ => ite_eq_right (by omega), ite_eq_right hai]
       rw [Finset.sum_congr rfl hin]
       rw [← Finset.sum_subset (Finset.range_subset_range.mpr (by omega : i + 1 ≤ 2 ^ q))
-        (fun a _ hx => if_neg (by
+        (fun a _ hx => ite_eq_right (by
           have hx' : i + 1 ≤ a := by simpa [Finset.mem_range] using! hx
           omega))]
       exact Finset.sum_congr rfl fun a ha =>
-        if_pos (Nat.lt_succ_iff.mp (Finset.mem_range.mp ha))
-  · rw [if_neg hi]
+        ite_eq_left (Nat.lt_succ_iff.mp (Finset.mem_range.mp ha))
+  · rw [ite_eq_right hi]
     refine (Polynomial.coeff_eq_zero_of_natDegree_lt ?_).symm
     have hAB : (A * B).natDegree ≤ A.natDegree + B.natDegree :=
       Polynomial.natDegree_mul_le

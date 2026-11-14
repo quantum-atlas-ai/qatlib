@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,12 +46,12 @@ schedule `p n ≤ ε log n`: if with probability tending to one at most a
 cycle-count estimate of eqs. (32)–(34)), then with probability tending to one at
 least a `1 - δ` fraction of the `p n`-local neighbourhoods are treelike. -/
 theorem lemma47
-    {q : ℕ} (hq : 2 ≤ q)
-    (lam : ℝ) (hlam : 1 < lam) (D : ℕ)
+    {q : ℕ} (_hq : 2 ≤ q)
+    (lam : ℝ) (_hlam : 1 < lam) (D : ℕ)
     (μ : ∀ n : ℕ, FinDist (Instance n q))
-    (hRegLaw : ∀ n : ℕ, IsRegularLaw (μ n) D)
-    (p : ℕ → ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hp : ∀ᶠ n : ℕ in atTop, (p n : ℝ) ≤ ε * Real.log n)
+    (_hRegLaw : ∀ n : ℕ, IsRegularLaw (μ n) D)
+    (p : ℕ → ℕ) (ε : ℝ) (_hε : 0 < ε)
+    (_hp : ∀ᶠ n : ℕ in atTop, (p n : ℝ) ≤ ε * Real.log n)
     (hbad : ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,
       1 - δ ≤ mass (μ n) (fun I => (I.badCount (p n) : ℝ) ≤ δ * (n : ℝ))) :
     ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,

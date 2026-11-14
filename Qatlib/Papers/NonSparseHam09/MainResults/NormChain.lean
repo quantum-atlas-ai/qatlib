@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Matrix norm comparison chain
@@ -52,6 +56,7 @@ omit [Nonempty ι] in
 operator-norm instance. -/
 lemma specNorm_eq_l2' {𝕜 : Type*} [RCLike 𝕜] (H : Matrix ι ι 𝕜) : specNorm H = ‖H‖ := rfl
 
+omit [Nonempty ι] in
 /-- The spectral norm of a real or complex matrix is nonnegative. -/
 lemma specNorm_nonneg {𝕜 : Type*} [RCLike 𝕜] (H : Matrix ι ι 𝕜) : 0 ≤ specNorm H := by
   rw [specNorm_eq_l2']
@@ -65,6 +70,7 @@ lemma le_maxNorm (H : Matrix ι ι ℂ) (i j : ι) : ‖H i j‖ ≤ maxNorm H :
     (Finset.le_sup' (fun i : ι => Finset.univ.sup' Finset.univ_nonempty
       (fun j : ι => ‖H i j‖)) (Finset.mem_univ i))
 
+omit [DecidableEq ι] in
 /-- The maximum-entry norm is nonnegative. -/
 lemma maxNorm_nonneg (H : Matrix ι ι ℂ) : 0 ≤ maxNorm H := by
   obtain ⟨i⟩ := (inferInstance : Nonempty ι)
@@ -145,6 +151,7 @@ lemma mcnNorm_le_specNorm (H : Matrix ι ι ℂ) : mcnNorm H ≤ specNorm H := b
     simp [Matrix.mulVec, dotProduct, Pi.single_apply]
   simpa [hsingle] using hmv
 
+omit [Nonempty ι] in
 /-- The spectral norm of a complex matrix is at most the spectral norm of its real entrywise
 absolute-value matrix. -/
 lemma specNorm_le_specNorm_abs (H : Matrix ι ι ℂ) :
@@ -317,6 +324,7 @@ lemma l1Norm_le_sqrt_card_mul_mcnNorm (H : Matrix ι ι ℂ) :
   refine hcol.trans (mul_le_mul_of_nonneg_left ?_ (Real.sqrt_nonneg _))
   exact Finset.le_sup' (fun j => Real.sqrt (∑ i : ι, ‖H i j‖ ^ 2)) (Finset.mem_univ j)
 
+omit [DecidableEq ι] in
 /-- The square root of the dimension times the maximum Euclidean column norm is at most the
 dimension times the maximum-entry norm. -/
 lemma sqrt_card_mul_mcnNorm_le_card_mul_maxNorm (H : Matrix ι ι ℂ) :
@@ -410,6 +418,7 @@ theorem lemma1_tight_identity :
     specNorm (1 : Matrix ι ι ℂ) = 1 ∧ specNorm (absMatrix (1 : Matrix ι ι ℂ)) = 1 :=
   ⟨maxNorm_one, mcnNorm_one, specNorm_one, specNorm_abs_one⟩
 
+omit [DecidableEq ι] in
 /-- The maximum-entry norm of the all-ones matrix is one. -/
 lemma maxNorm_const_one : maxNorm (fun _ _ : ι => (1 : ℂ)) = 1 := by
   refine le_antisymm ?_ ?_
@@ -452,6 +461,7 @@ lemma l1Norm_const_one : l1Norm (fun _ _ : ι => (1 : ℂ)) = (Fintype.card ι :
       (Finset.mem_univ j₀)
     rwa [hcol j₀] at h
 
+omit [DecidableEq ι] in
 /-- For the all-ones matrix in dimension `N`, the column-sum, maximum-column, and maximum-entry
 norms are `N`, `√N`, and one, respectively [ChildsKothari2010]. -/
 theorem lemma1_tight_allOnes :

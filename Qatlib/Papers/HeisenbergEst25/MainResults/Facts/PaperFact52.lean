@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HeisenbergEst25.MainResults.Model.ProtocolModel
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Papers.HeisenbergEst25.MainResults.Model.ProtocolModel
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

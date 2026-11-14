@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
+module
+
+public import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +42,7 @@ open Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+omit [DecidableEq ι] in
 /-- **Lemma 3.1** (arXiv:2608.25822v1, Lemma 3.1, p. 6; proof in Appendix A,
 Eqs. (13)–(15)).
 
@@ -52,7 +57,7 @@ is bounded by `gershgorinMax · ‖v‖²` is bounded by `(1 - R) μ(F₁) · �
 The hypothesis `hgersh` is exactly the Eq. (13) majorization; the proof is the
 scalar comparison with `gershgorinMax_le_muF1` together with non-negativity of
 the squared norm. -/
-theorem lemma31_carleman_dissipative
+theorem lemma31_carleman_dissipative {ι : Type*} [Fintype ι] [_decEq : DecidableEq ι]
     (p : CarlemanParams) (hp : p.Valid) (A : Matrix ι ι ℝ)
     (hgersh : ∀ v : ι → ℝ,
       dotProduct v (mulVec (A + transpose A) v) ≤ p.gershgorinMax * dotProduct v v) :

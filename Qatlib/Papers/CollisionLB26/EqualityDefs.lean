@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.EqualityOracle
-import Qatlib.Concepts.AdversaryBounds.LabelProgress.RelabelGram
+module
+
+public import Qatlib.Concepts.QueryComplexity.EqualityOracle
+public import Qatlib.Concepts.AdversaryBounds.LabelProgress.RelabelGram
+
+@[expose] public section
 
 /-!
 # Label symmetry of equality-oracle states

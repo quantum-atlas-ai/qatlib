@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,7 +126,7 @@ theorem theorem1_success (V : ℕ) (eps : ℝ) (hV : 1 ≤ V)
 asymptotically identical bound `κ²|V|²/(eε) + |V|`; the additive constant `3`
 is the ceiling slack `2·⌈x⌉ ≤ 2x + 2` plus `1`. -/
 theorem theorem1_measurement_count (kappa : ℝ) (V : ℕ) (eps : ℝ)
-    (hκ0 : 0 ≤ kappa) (hV : 0 < V) (heps : 0 < eps) :
+    (_hκ0 : 0 ≤ kappa) (hV : 0 < V) (heps : 0 < eps) :
     totalMeasurements kappa V eps ≤
       kappa ^ 2 * (V : ℝ) ^ 2 / (Real.exp 1 * eps) + 3 * (V : ℝ) := by
   unfold totalMeasurements
@@ -153,7 +157,7 @@ the `Õ`, so this is the source's `Õ(|V|²|E|²κ²/(εΔ) + |V| k d⁶)`.
 The hypothesis `3 ≤ |V|κ²/ε` is the regime in which the inner loop dominates
 (matching the source's reading of the Õ expression). -/
 theorem theorem1_runtime (polylog E Delta kappa eps : ℝ) (V k d : ℕ)
-    (hpl : 0 < polylog) (hE : 0 ≤ E) (hDelta : 0 < Delta)
+    (hpl : 0 < polylog) (_hE : 0 ≤ E) (hDelta : 0 < Delta)
     (hκ : 1 ≤ kappa) (hV : 0 < V) (heps : 0 < eps)
     (hVk : 3 ≤ (V : ℝ) * kappa ^ 2 / eps) :
     totalRuntime polylog E Delta kappa eps V k d ≤

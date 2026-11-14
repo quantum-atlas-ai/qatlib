@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+
+@[expose] public section
 
 /-!
 # Counted Bell teleportation circuits
@@ -197,18 +201,18 @@ noncomputable def teleportActualBranchMap (o : Bool × Bool) : Operator 2 →ₗ
 theorem teleportXcB_unitary (β : Bool) :
     teleportXcB β ∈ Matrix.unitaryGroup ((Bool × Bool) × Bool) ℂ := by
   cases β
-  · simp only [teleportXcB, if_neg (by decide : ¬(false = true)), tensorGate_one]
+  · simp only [teleportXcB, ite_eq_right (by decide : ¬(false = true)), tensorGate_one]
     exact Submonoid.one_mem _
-  · simp only [teleportXcB, if_true]
+  · simp only [teleportXcB, ite_true]
     exact tensorGate_unitary (Submonoid.one_mem _) pauliX_unitary
 
 /-- The conditional Pauli Z gate on Bob's Boolean register is unitary. -/
 theorem teleportZcB_unitary (α : Bool) :
     teleportZcB α ∈ Matrix.unitaryGroup ((Bool × Bool) × Bool) ℂ := by
   cases α
-  · simp only [teleportZcB, if_neg (by decide : ¬(false = true)), tensorGate_one]
+  · simp only [teleportZcB, ite_eq_right (by decide : ¬(false = true)), tensorGate_one]
     exact Submonoid.one_mem _
-  · simp only [teleportZcB, if_true]
+  · simp only [teleportZcB, ite_true]
     exact tensorGate_unitary (Submonoid.one_mem _) pauliZ_unitary
 
 /-- The flattened Bob X correction selected by an encoded outcome is unitary. -/
@@ -277,12 +281,12 @@ theorem teleportProjectorB_apply (o : Bool × Bool) (ψ : QState ((Bool × Bool)
       Finset.mem_filter, Finset.mem_univ, true_and, teleportAliceLabel_congr]
     by_cases hpq : teleportRegisterEquiv p = teleportRegisterEquiv q
     · have hpq' : p = q := Equiv.injective _ hpq
-      rw [if_pos hpq, if_pos hpq']
+      rw [ite_eq_left hpq, ite_eq_left hpq']
     · have hpq' : ¬ p = q := fun hc => hpq (by rw [hc])
-      rw [if_neg hpq]
+      rw [ite_eq_right hpq]
       by_cases hl : teleportOutcomeEquiv p.1 = teleportOutcomeEquiv (o.1, o.2)
-      · rw [if_pos hl, if_neg hpq']
-      · rw [if_neg hl]
+      · rw [ite_eq_left hl, ite_eq_right hpq']
+      · rw [ite_eq_right hl]
 
   funext p
   have hsum : ∑ q : ((Bool × Bool) × Bool), (teleportProjectorB o) p q * ψ q
@@ -290,13 +294,13 @@ theorem teleportProjectorB_apply (o : Bool × Bool) (ψ : QState ((Bool × Bool)
     Fintype.sum_eq_single p (fun q hq => by
       rw [hentry p q]
       by_cases hl : teleportOutcomeEquiv p.1 = teleportOutcomeEquiv (o.1, o.2)
-      · rw [if_pos hl, if_neg (fun hc => hq (by rw [hc])), zero_mul]
-      · rw [if_neg hl, zero_mul])
+      · rw [ite_eq_left hl, ite_eq_right (fun hc => hq (by rw [hc])), zero_mul]
+      · rw [ite_eq_right hl, zero_mul])
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
   rw [hsum, hentry p p]
   by_cases hl : teleportOutcomeEquiv p.1 = teleportOutcomeEquiv (o.1, o.2)
-  · rw [if_pos hl, if_pos hl, if_pos rfl, one_mul]
-  · rw [if_neg hl, if_neg hl, zero_mul]
+  · rw [ite_eq_left hl, ite_eq_left hl, ite_eq_left rfl, one_mul]
+  · rw [ite_eq_right hl, ite_eq_right hl, zero_mul]
 
 /-- The conditional X correction acts on amplitudes by replacing Bob's bit with its exclusive or
 with `β`. -/
@@ -351,15 +355,15 @@ theorem teleportLeafColumn (o : Bool × Bool) (i : Fin 2) :
     · have hne : ¬ (teleportOutcomeEquiv ((teleportRegisterEquiv.symm r).1.1,
             (teleportRegisterEquiv.symm r).1.2) = teleportOutcomeEquiv (o.1, o.2)) :=
           fun hcon => hβ (congrArg Prod.snd (teleportOutcomeEquiv.injective hcon))
-      rw [if_neg hne, mul_zero, Qatlib.Foundations.PureStateMath.Ket,
-        if_neg (fun hp => by
+      rw [ite_eq_right hne, mul_zero, Qatlib.Foundations.PureStateMath.Ket,
+        ite_eq_right (fun hp => by
           rw [Prod.mk.injEq] at hp
           exact hβ (congrArg Prod.snd hp.1)), mul_zero]
   · have hne : ¬ (teleportOutcomeEquiv ((teleportRegisterEquiv.symm r).1.1,
           (teleportRegisterEquiv.symm r).1.2) = teleportOutcomeEquiv (o.1, o.2)) :=
         fun hcon => hα (congrArg Prod.fst (teleportOutcomeEquiv.injective hcon))
-    rw [if_neg hne, mul_zero, Qatlib.Foundations.PureStateMath.Ket,
-      if_neg (fun hp => by
+    rw [ite_eq_right hne, mul_zero, Qatlib.Foundations.PureStateMath.Ket,
+      ite_eq_right (fun hp => by
         rw [Prod.mk.injEq] at hp
         exact hα (congrArg Prod.fst hp.1)), mul_zero]
 
@@ -379,14 +383,14 @@ theorem teleportMatUnit_decomp (ρ : Operator 2) :
     by_cases h1 : c = p.1 <;> by_cases h2 : c' = p.2 <;> simp [h1, h2]
   rw [Matrix.sum_apply, Finset.sum_congr rfl (fun p _ => hentry p),
     Fintype.sum_eq_single (c, c')]
-  · rw [if_pos ⟨rfl, rfl⟩]
+  · rw [ite_eq_left ⟨rfl, rfl⟩]
   · intro p hp
     have hnc : ¬ (c = p.1 ∧ c' = p.2) := by
       intro hc
       apply hp
       rw [Prod.mk.injEq]
       exact ⟨hc.1.symm, hc.2.symm⟩
-    rw [if_neg hnc]
+    rw [ite_eq_right hnc]
 
 /-- Embedding a matrix unit by the initial frame gives the outer matrix of the corresponding two
 frame columns. -/
@@ -401,10 +405,10 @@ theorem teleportFrame_matUnit (i j : Fin 2) :
     intro a
     rw [Fintype.sum_eq_single i]
     · by_cases haj : a = j
-      · rw [if_pos ⟨rfl, haj⟩, mul_one, if_pos haj]
-      · rw [if_neg (fun hc => haj hc.2), mul_zero, if_neg haj]
+      · rw [ite_eq_left ⟨rfl, haj⟩, mul_one, ite_eq_left haj]
+      · rw [ite_eq_right (fun hc => haj hc.2), mul_zero, ite_eq_right haj]
     · intro b hb
-      rw [if_neg (fun hc => hb hc.1), mul_zero]
+      rw [ite_eq_right (fun hc => hb hc.1), mul_zero]
   have houter : ∀ a : Fin 2,
       ((∑ b : Fin 2, teleportInitialFrame r b * (if b = i ∧ a = j then (1 : ℂ) else 0))
           * (starRingEnd ℂ) (teleportInitialFrame r' a))
@@ -414,9 +418,9 @@ theorem teleportFrame_matUnit (i j : Fin 2) :
   simp only [Matrix.mul_apply, conjTranspose_apply, teleportMatUnit, Matrix.of_apply,
     matOuter, RCLike.star_def]
   rw [Finset.sum_congr rfl fun a _ => houter a, Fintype.sum_eq_single j]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro a ha
-    rw [if_neg ha, zero_mul]
+    rw [ite_eq_right ha, zero_mul]
 
 /-- Tracing out a fixed Alice basis label from a basis ket bra matrix leaves the ket bra matrix
 on Bob's register. -/

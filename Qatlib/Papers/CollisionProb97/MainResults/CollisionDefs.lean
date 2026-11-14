@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Fintype.Card
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyTigh
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamily
+
+@[expose] public section
 
 /-!
 # Regular functions and collision budgets

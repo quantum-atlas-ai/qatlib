@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerReductionSubgoalStat
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerReductionSubgoalStat
+
+@[expose] public section
 
 /-!
 # Exact phase readout for stabilizer reduction
@@ -33,7 +37,7 @@ open Qatlib
 each term in a finite eigenvector superposition with eigenvalues on the `M`th root of unity
 grid. This establishes `AbelianStabilizerReductionSubgoal` in the setting of [Kitaev1995]. -/
 theorem abelianStabilizerReductionSubgoal : AbelianStabilizerReductionSubgoal :=
-  fun M hM Idx I _ _ _ _ U c ψ k heig =>
+  fun M hM _Idx _I _ _ _ _ U c ψ k heig =>
     Qatlib.Concepts.SpectralFilter.PhaseReadout.qpe_exact_readout_linear M hM U c ψ k heig
 
 end Qatlib.Concepts.HspRecovery.AbelianSampling

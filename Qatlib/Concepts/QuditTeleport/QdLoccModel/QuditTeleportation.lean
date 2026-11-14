@@ -4,26 +4,30 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationCommBound
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurity
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationWeyl
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurityAssembly
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationMEProtocol
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationCommBound
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurity
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationWeyl
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurityAssembly
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationMEProtocol
+
+@[expose] public section
 
 /-!
 # Qudit teleportation resources and communication
@@ -155,7 +159,7 @@ noncomputable def clause4Aux_conjLin (n : ℕ) (C : Operator n) : Operator n →
     simp [Matrix.mul_add, Matrix.add_mul]
   map_smul' := by
     intro c A
-    simp [Matrix.mul_smul, Matrix.smul_mul]
+    simp
 
 /-- A positive semidefinite resource enabling perfect teleportation in nonzero dimension with
 unitary corrections is a normalized pure state with maximally mixed receiver marginal
@@ -184,7 +188,7 @@ theorem clause4_clause1b : ∀ (n : ℕ) (u v : Fin n → QState (Fin n)),
   intro n u v hu hv
   rcases Nat.eq_zero_or_pos n with hn | hn
   · subst hn
-    haveI : IsEmpty (Fin 0 × Fin 0) := ⟨fun p => Fin.elim0 p.1⟩
+    have : IsEmpty (Fin 0 × Fin 0) := ⟨fun p => Fin.elim0 p.1⟩
     refine ⟨Fin 0 × Fin 0, inferInstance,
       { kraus := fun _ => 0
         krausComplete := by
@@ -198,7 +202,7 @@ theorem clause4_clause1b : ∀ (n : ℕ) (u v : Fin n → QState (Fin n)),
       simp only [Finset.univ_eq_empty, Finset.sum_empty]
       ext i j
       exact Fin.elim0 i
-  · haveI : NeZero n := ⟨ne_of_gt hn⟩
+  · have : NeZero n := ⟨ne_of_gt hn⟩
     set Ψ : QState (Fin n × Fin n) := quditMaxEntResource n u v
     set B : Fin n × Fin n → Operator n := fun o => quditResourceBranchKraus n Ψ o
     set U0 : Fin n × Fin n → Operator n := fun o => (n : ℂ) • (B o).conjTranspose

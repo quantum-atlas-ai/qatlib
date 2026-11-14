@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PauliCoefficientNormStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PauliCoefficientNormStat
+
+@[expose] public section
 
 /-!
 # Norms of real Pauli coefficient matrices
@@ -57,7 +61,7 @@ private theorem pauli_gram (a b c d : ℝ) :
   all_goals
     apply And.intro
   all_goals
-    first | trivial | ring
+     ring
 
 /-- The difference of two Pauli coefficient matrices is the Pauli coefficient matrix of their
 coefficient differences. -/

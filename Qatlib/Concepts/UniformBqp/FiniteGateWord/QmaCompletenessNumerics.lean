@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Floor.Ring
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Native dyadic coefficients for history operators

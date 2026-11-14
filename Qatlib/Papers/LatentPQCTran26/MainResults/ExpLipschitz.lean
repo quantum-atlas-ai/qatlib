@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+
+@[expose] public section
 
 /-!
 # Lipschitz continuity of Hermitian matrix exponentials

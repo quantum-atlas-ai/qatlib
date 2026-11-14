@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearch
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Probability laws for Bayesian rank updates
@@ -189,7 +194,7 @@ def priorPMF {n : ℕ} (a : Prior n) : PMF (Fin n) :=
 /-- The Bernoulli probability mass function of the noisy threshold answer for a fixed rank and
 cut. -/
 def answerPMF {n : ℕ} (η : Noise) (m c : Fin n) : PMF Bool :=
-  PMF.bernoulli (truthAnswerProb m c η.reliability) (clampProb_le _)
+  Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (truthAnswerProb m c η.reliability) (clampProb_le _)
 
 /-- The answer-channel probability equals the nonnegative extended-real embedding of the answer
 likelihood. -/
@@ -197,9 +202,10 @@ theorem answerPMF_apply {n : ℕ} (η : Noise) (m c : Fin n) (b : Bool) :
     answerPMF η m c b=ENNReal.ofReal (answerLikelihood m c η.reliability b) := by
   have hθ : (truthAnswerProb m c η.reliability:ℝ)=bayesTrueLikelihood c m η.reliability :=
     zoo_bayes_truth_answer_prob m c η.reliability η.positive.le η.below_one.le
+  rw [answerPMF]
+  erw [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply]
   cases b with
   | true =>
-    simp only [answerPMF,PMF.bernoulli_apply,Bool.cond_true]
     calc
       (truthAnswerProb m c η.reliability:ℝ≥0∞)=
           ENNReal.ofReal (truthAnswerProb m c η.reliability:ℝ) :=
@@ -208,7 +214,6 @@ theorem answerPMF_apply {n : ℕ} (η : Noise) (m c : Fin n) (b : Bool) :
         rw [hθ]
         rfl
   | false =>
-    simp only [answerPMF,PMF.bernoulli_apply,Bool.cond_false]
     have hfalse : 1-(truthAnswerProb m c η.reliability:ℝ)=
         answerLikelihood m c η.reliability false := by
       rw [hθ]
@@ -216,10 +221,10 @@ theorem answerPMF_apply {n : ℕ} (η : Noise) (m c : Fin n) (b : Bool) :
       · simp [answerLikelihood,bayesTrueLikelihood,bayesFalseLikelihood,h]
       · simp [answerLikelihood,bayesTrueLikelihood,bayesFalseLikelihood,h]
     calc
-      (1:ℝ≥0∞)-(truthAnswerProb m c η.reliability:ℝ≥0∞)=
+      ((1-truthAnswerProb m c η.reliability:NNReal):ℝ≥0∞)=
           ENNReal.ofReal (1-(truthAnswerProb m c η.reliability:ℝ)) := by
-        rw [ENNReal.ofReal_sub 1 (NNReal.coe_nonneg _),ENNReal.ofReal_one,
-          ENNReal.ofReal_coe_nnreal]
+        erw [← ENNReal.ofReal_coe_nnreal, NNReal.coe_sub (clampProb_le _)]
+        rfl
       _=ENNReal.ofReal (answerLikelihood m c η.reliability false) := congrArg _ hfalse
 
 /-- Pairing an answer-channel sample with a fixed rank gives its answer probability at that rank
@@ -244,7 +249,7 @@ theorem joint_generated {n : ℕ} (a : Prior n) (η : Noise) (c : Fin n) :
   rw [PMF.bind_apply,tsum_fintype]
   simp only [priorPMF,PMF.ofFintype_apply,answerPair_apply,mul_ite,mul_zero,
     joint,PMF.ofFintype_apply]
-  simp only [Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   rw [answerPMF_apply,← ENNReal.ofReal_mul (a.nonneg m)]
   rfl
 

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,18 +83,18 @@ theorem nbr_slot (O : SparseOrb N d) {x y : Fin N} {i : Fin d}
     (h : slot O x y = some i) : O.nbr x i = some y := by
   unfold slot at h
   by_cases hex : ∃ j, O.nbr x j = some y
-  · rw [dif_pos hex] at h
+  · rw [dite_eq_left hex] at h
     have hci : Classical.choose hex = i := by simpa using h
     rw [← hci]
     exact Classical.choose_spec hex
-  · rw [dif_neg hex] at h
+  · rw [dite_eq_right hex] at h
     exact absurd h (by simp)
 
 /-- A listed slot is *the* slot of that neighbour (row uniqueness). -/
 theorem slot_unique (O : SparseOrb N d) {x y : Fin N} {i : Fin d}
     (h : O.nbr x i = some y) : slot O x y = some i := by
   unfold slot
-  rw [dif_pos ⟨i, h⟩]
+  rw [dite_eq_left ⟨i, h⟩]
   have hspec : O.nbr x (Classical.choose (⟨i, h⟩ : ∃ j, O.nbr x j = some y)) = some y :=
     Classical.choose_spec (⟨i, h⟩ : ∃ j, O.nbr x j = some y)
   have hci : Classical.choose (⟨i, h⟩ : ∃ j, O.nbr x j = some y) = i :=
@@ -120,7 +124,7 @@ theorem edgeColor_self_eq_none (O : SparseOrb N d) {G : SimpleGraph (Fin N)} (hG
   unfold edgeColor
   rw [max_self, min_self]
   unfold slot
-  rw [dif_neg]
+  rw [dite_eq_right]
   intro ⟨i, hi⟩
   exact G.irrefl (hG.adj_of_nbr hi)
 
@@ -130,7 +134,7 @@ theorem edgeColor_of_not_adj (O : SparseOrb N d) {G : SimpleGraph (Fin N)} (hG :
   unfold edgeColor
   rw [max_eq_right (le_of_lt hxy), min_eq_left (le_of_lt hxy)]
   unfold slot
-  rw [dif_neg]
+  rw [dite_eq_right]
   intro ⟨i, hi⟩
   exact h (hG.adj_of_nbr hi).symm
 
@@ -161,7 +165,7 @@ theorem weight_decomposition (O : SparseOrb N d) {G : SimpleGraph (Fin N)} (hG :
         · simp [colorWeight, he]
         · intro b _ hb
           simp only [colorWeight, he]
-          rw [if_neg (by simp only [Option.some.injEq]; exact fun h => hb h.symm)]
+          rw [ite_eq_right (by simp only [Option.some.injEq]; exact fun h => hb h.symm)]
         · intro hi'
           exact absurd (Finset.mem_univ i) hi'
       · rw [hw x y hadj]
@@ -179,7 +183,7 @@ theorem weight_decomposition (O : SparseOrb N d) {G : SimpleGraph (Fin N)} (hG :
         · simp [colorWeight, he]
         · intro b _ hb
           simp only [colorWeight, he]
-          rw [if_neg (by simp only [Option.some.injEq]; exact fun h => hb h.symm)]
+          rw [ite_eq_right (by simp only [Option.some.injEq]; exact fun h => hb h.symm)]
         · intro hi'
           exact absurd (Finset.mem_univ i) hi'
       · rw [hw x y hadj]
@@ -190,7 +194,7 @@ theorem weight_decomposition (O : SparseOrb N d) {G : SimpleGraph (Fin N)} (hG :
         have hnone : edgeColor O y x = none := edgeColor_of_not_adj O hG hgt hnot
         have hnone' : edgeColor O x y = none := by rw [edgeColor_comm]; exact hnone
         simp only [colorWeight, hnone']
-        rw [if_neg (by simp)]
+        rw [ite_eq_right (by simp)]
 
 /-! ## The directed parent map -/
 
@@ -209,17 +213,17 @@ theorem parent_eq_some_iff (O : SparseOrb N d) (c : Fin d) (v w : Fin N) :
   | none =>
       have hp : parent O c v = none := by simp [parent, h]
       rw [hp]
-      simp [h]
+      simp
   | some u =>
       have hp : parent O c v = if u < v then some u else none := by simp [parent, h]
       rw [hp]
       by_cases hu : u < v
-      · rw [if_pos hu]
+      · rw [ite_eq_left hu]
         simp only [Option.some.injEq]
         constructor
         · intro h; exact ⟨h, by rw [← h]; exact hu⟩
         · intro h; exact h.1
-      · rw [if_neg hu]
+      · rw [ite_eq_right hu]
         constructor
         · intro h; exact absurd h (by simp)
         · rintro ⟨huv, hlt⟩

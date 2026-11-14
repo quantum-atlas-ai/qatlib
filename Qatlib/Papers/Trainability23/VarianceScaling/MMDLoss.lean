@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Integral.Pi
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Integral.Pi
+
+@[expose] public section
 
 /-!
 # Haar variance formulas for product kernel losses
@@ -115,17 +119,17 @@ theorem integral_poly (a2 a1 a0 : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ,
         (a2 * (bornProbOne V 0)^2 + (a1 * bornProbOne V 0 + a0)) ∂haarUnitaryGroup (Fin 2)
       = a2 * symMoment 2 0 + (a1 * symMoment 1 0 + a0) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
-  haveI i2 : Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
+  have i2 : Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       a2 * (bornProbOne V 0)^2) (haarUnitaryGroup (Fin 2)) :=
     (integrable_bornPow 2).const_mul a2
-  haveI i1 : Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
+  have i1 : Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       a1 * bornProbOne V 0) (haarUnitaryGroup (Fin 2)) := by
     refine ((integrable_bornPow 1).const_mul a1).congr
       (Filter.Eventually.of_forall fun V => ?_)
     exact congrArg (a1 * ·) (pow_one _)
-  haveI i0 : Integrable (fun _ : Matrix.unitaryGroup (Fin 2) ℂ => a0)
+  have i0 : Integrable (fun _ : Matrix.unitaryGroup (Fin 2) ℂ => a0)
       (haarUnitaryGroup (Fin 2)) := integrable_const _
   have e2 : ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, a2 * (bornProbOne V 0)^2
       ∂haarUnitaryGroup (Fin 2) = a2 * symMoment 2 0 := by
@@ -189,7 +193,7 @@ theorem integral_poly4 (a4 a3 a2 a1 a0 : ℝ) :
   simp
   have key (k : ℕ) (c : ℝ) : ∫ V : Matrix.unitaryGroup (Fin 2) ℂ,
       c * (bornProbOne V 0)^k ∂haarUnitaryGroup (Fin 2) = c * symMoment k 0 := by
-    haveI : MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
+    have : MeasureTheory.Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
         c * (bornProbOne V 0)^k) (haarUnitaryGroup (Fin 2)) :=
       (integrable_bornPow k).const_mul c
     rw [integral_const_mul c (fun V : Matrix.unitaryGroup (Fin 2) ℂ => (bornProbOne V 0)^k),
@@ -208,7 +212,7 @@ theorem integral_poly4 (a4 a3 a2 a1 a0 : ℝ) :
 
 /-- For positive `σ`, the Haar variance expression for `mmdOne σ t` is `(1 - kernOne σ)^2 * (1 /
 45 + (2 * t - 1)^2 / 3)`. -/
-theorem mmdOne_variance_eq (σ : ℝ) (hσ : 0 < σ) (t : ℝ) :
+theorem mmdOne_variance_eq (σ : ℝ) (_hσ : 0 < σ) (t : ℝ) :
     (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (mmdOne σ t V)^2 ∂haarUnitaryGroup (Fin 2))
       - (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, mmdOne σ t V ∂haarUnitaryGroup (Fin 2))^2
       = (1 - kernOne σ)^2 * (1/45 + (2*t - 1)^2/3) := by
@@ -337,7 +341,7 @@ theorem sOne_sq_integral (σ : ℝ) :
 theorem integrable_sOne (σ : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => sOne σ V)
       (haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have h2 : Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       2 * (1 - kernOne σ) * (bornProbOne V 0)^2) (haarUnitaryGroup (Fin 2)) :=
@@ -392,7 +396,7 @@ theorem sTwo_integral (σ : ℝ) :
     ∫ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
         sTwo σ p.1 p.2 ∂((haarUnitaryGroup (Fin 2)).prod (haarUnitaryGroup (Fin 2)))
       = ((2 + kernOne σ) / 3)^2 := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hcongr : ∀ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
       sTwo σ p.1 p.2 = sOne σ p.1 * sOne σ p.2 := fun p => sTwo_eq σ p.1 p.2
@@ -410,7 +414,7 @@ theorem sTwo_sq_integral (σ : ℝ) :
     ∫ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
         (sTwo σ p.1 p.2)^2 ∂((haarUnitaryGroup (Fin 2)).prod (haarUnitaryGroup (Fin 2)))
       = ((7 + 6 * kernOne σ + 2 * (kernOne σ)^2) / 15)^2 := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hp : ∀ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
       (sTwo σ p.1 p.2)^2 = (sOne σ p.1)^2 * (sOne σ p.2)^2 := by
@@ -446,7 +450,7 @@ theorem sN_integral (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, sN σ n V
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((2 + kernOne σ) / 3)^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have h := MeasureTheory.integral_fintype_prod_eq_pow
     (ι := Fin n) (f := fun V : Matrix.unitaryGroup (Fin 2) ℂ => sOne σ V)
@@ -461,7 +465,7 @@ theorem sN_sq_integral (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (sN σ n V)^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((7 + 6 * kernOne σ + 2 * (kernOne σ)^2) / 15)^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hexp : ∀ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ,
       (sN σ n V)^2 = ∏ i, (sOne σ (V i))^2 := by
@@ -608,7 +612,7 @@ theorem sOne_xOne_integral (σ t : ℝ) :
 theorem integrable_xOne (σ t : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => xOne σ t V)
       (haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hL2 : ∀ V : Matrix.unitaryGroup (Fin 2) ℂ, xOne σ t V
       = ((2*t - 1) * (1 - kernOne σ)) * bornProbOne V 0 + (1 - t + t * kernOne σ) := by
@@ -665,7 +669,7 @@ theorem int_prodS (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, sOne σ (V i))
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((2 + kernOne σ) / 3)^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have h := MeasureTheory.integral_fintype_prod_eq_pow
     (ι := Fin n) (f := fun V : Matrix.unitaryGroup (Fin 2) ℂ => sOne σ V)
@@ -679,7 +683,7 @@ theorem int_prodS2 (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, sOne σ (V i))^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((7 + 6 * kernOne σ + 2 * (kernOne σ)^2) / 15)^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hp : ∀ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ,
       (∏ i, sOne σ (V i))^2 = ∏ i, (sOne σ (V i))^2 := fun V =>
@@ -697,7 +701,7 @@ theorem int_prodX (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, xOne σ t (V i))
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((1 + kernOne σ) / 2)^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have h := MeasureTheory.integral_fintype_prod_eq_pow
     (ι := Fin n) (f := fun V : Matrix.unitaryGroup (Fin 2) ℂ => xOne σ t V)
@@ -713,7 +717,7 @@ theorem int_prodX2 (σ t : ℝ) (n : ℕ) :
       = (((2*t - 1) * (1 - kernOne σ))^2 / 3
           + ((1 - t + t * kernOne σ) * ((2*t - 1) * (1 - kernOne σ))
             + (1 - t + t * kernOne σ)^2))^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hp : ∀ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ,
       (∏ i, xOne σ t (V i))^2 = ∏ i, (xOne σ t (V i))^2 := fun V =>
@@ -737,7 +741,7 @@ theorem int_prodSX (σ t : ℝ) (n : ℕ) :
             + (((2 * kernOne σ - 2) * (1 - t + t * kernOne σ)
                 + ((2*t - 1) * (1 - kernOne σ))) / 2
               + (1 - t + t * kernOne σ))))^n := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
   have hp : ∀ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ,
       (∏ i, sOne σ (V i)) * (∏ i, xOne σ t (V i))
@@ -754,9 +758,9 @@ theorem int_prodSX (σ t : ℝ) (n : ℕ) :
 theorem integrable_prodS (σ : ℝ) (n : ℕ) :
     Integrable (fun V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ => ∏ i, sOne σ (V i))
       (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
-  haveI hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
+  have hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
     fun _ => inferInstance
   exact @MeasureTheory.Integrable.fintype_prod ℝ (Fin n) (Fin.fintype n) _
     (Matrix.unitaryGroup (Fin 2) ℂ) (fun _ => fun V => sOne σ V)
@@ -767,9 +771,9 @@ theorem integrable_prodS (σ : ℝ) (n : ℕ) :
 theorem integrable_prodX (σ t : ℝ) (n : ℕ) :
     Integrable (fun V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ => ∏ i, xOne σ t (V i))
       (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
-  haveI hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
+  have hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
     fun _ => inferInstance
   exact @MeasureTheory.Integrable.fintype_prod ℝ (Fin n) (Fin.fintype n) _
     (Matrix.unitaryGroup (Fin 2) ℂ) (fun _ => fun V => xOne σ t V)
@@ -816,9 +820,9 @@ theorem mmdN_integral (σ t : ℝ) (n : ℕ) :
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
       = ((2 + kernOne σ) / 3)^n
         + (-(2 * (((1 + kernOne σ) / 2)^n)) + (gOne σ t)^n) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
-  haveI : MeasureTheory.IsProbabilityMeasure (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsProbabilityMeasure (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) :=
     piHaar_isProbability n
   have hA := integrable_prodS σ n
   have hB := integrable_prodX σ t n
@@ -853,11 +857,11 @@ theorem mmdN_sq_integral (σ t : ℝ) (n : ℕ) :
             + (2 * (gOne σ t)^n * (((2 + kernOne σ) / 3)^n)
               + (-(4 * ((gOne σ t)^n * (((1 + kernOne σ) / 2)^n)))
                 + ((gOne σ t)^n)^2)))) := by
-  haveI : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsFiniteMeasure (haarUnitaryGroup (Fin 2)) :=
     ⟨by rw [haarUnitaryGroup_univ (Fin 2)]; exact ENNReal.one_lt_top⟩
-  haveI : MeasureTheory.IsProbabilityMeasure (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) :=
+  have : MeasureTheory.IsProbabilityMeasure (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) :=
     piHaar_isProbability n
-  haveI hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
+  have hSig : ∀ i : Fin n, SigmaFinite ((fun _ : Fin n => haarUnitaryGroup (Fin 2)) i) :=
     fun _ => inferInstance
   have hA := integrable_prodS σ n
   have hB := integrable_prodX σ t n

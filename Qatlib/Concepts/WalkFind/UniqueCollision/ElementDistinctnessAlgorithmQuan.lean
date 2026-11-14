@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmStat
-import Qatlib.Concepts.WalkFind.UniqueCollision.SearchReadoutAux
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmStat
+public import Qatlib.Concepts.WalkFind.UniqueCollision.SearchReadoutAux
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+
+@[expose] public section
 
 /-!
 # Johnson-walk element-distinctness guarantees

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+
+@[expose] public section
 
 /-!
 # Real two-amplitude diffusion formulas

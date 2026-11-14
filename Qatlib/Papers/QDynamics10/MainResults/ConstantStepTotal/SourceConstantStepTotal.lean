@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Qatlib.Papers.QDynamics10.MainResults.RoundoffPrecision.SourceRoundoffPrecision
-import Qatlib.Papers.QDynamics10.MainResults.ConstantStep.SourceConstantStep
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Qatlib.Papers.QDynamics10.MainResults.RoundoffPrecision.SourceRoundoffPrecision
+public import Qatlib.Papers.QDynamics10.MainResults.ConstantStep.SourceConstantStep
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ theorem theorem5_error {I : Type} [Fintype I] [DecidableEq I]
 `‖U_round − U_k‖ ≤ ε̃/2` with `ε̃ = min{ε, 18(5/3)^{k−1}d²ΛΔt}`. -/
 theorem theorem5_error_of_epsilonTilde {I : Type} [Fintype I] [DecidableEq I]
     (Uexact Uround Uk : Matrix I I ℂ) (k d : ℕ) (Λ Δt ε : ℝ)
-    (hRound : ‖Uexact - Uround‖ ≤ ε / 2) (hε0 : 0 ≤ ε)
+    (hRound : ‖Uexact - Uround‖ ≤ ε / 2) (_hε0 : 0 ≤ ε)
     (hInteg : ‖Uround - Uk‖ ≤ epsilonTilde k d Λ Δt ε / 2) :
     SimulatedWithinError Uexact Uk ε := by
   apply theorem5_error Uexact Uround Uk hRound

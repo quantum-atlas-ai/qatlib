@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
-import Qatlib.Concepts.WalshMoment.Forrelation.FiniteAbelian
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
+public import Qatlib.Concepts.WalshMoment.Forrelation.FiniteAbelian
+
+@[expose] public section
 
 /-!
 # Boolean character phases and Fourier entries
@@ -43,7 +47,7 @@ open scoped ComplexConjugate Classical
     ZMod.stdAddChar (1 : ZMod 2) = (-1 : ℂ) := by
   rw [show (1 : ZMod 2) = ((1 : ℤ) : ZMod 2) by norm_num,
     ZMod.stdAddChar_coe]
-  convert Complex.exp_pi_mul_I using 1 <;> ring
+  convert Complex.exp_pi_mul_I using 1; ring
 
 /-- The standard additive character of a converted Boolean bit is `-1` for `true` and `1` for
 `false`. -/
@@ -83,7 +87,7 @@ theorem conj_booleanCharacter_regBooleanEquiv_sign {n : ℕ}
   rw [booleanCharacter_regBooleanEquiv_sign, map_prod]
   apply Finset.prod_congr rfl
   intro i _
-  cases hy : y i <;> cases hz : z i <;> simp [hy, hz]
+  cases hy : y i <;> cases hz : z i <;> simp []
 
 /-- The Fourier normalization for Boolean vectors of length `n` equals `(1 / sqrt 2)^n`, viewed
 in the complex numbers. -/

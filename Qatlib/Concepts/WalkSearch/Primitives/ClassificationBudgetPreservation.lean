@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetRun
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetRun
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
+
+@[expose] public section
 
 /-!
 # Preservation under classification budgets
@@ -59,11 +63,11 @@ theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K
     rw [classifyScanBudgeted,classifyScan]
     dsimp only at hR ⊢
     by_cases he : pairsAt (drainedPairSet S τ).edges v=∅
-    · simp only [if_pos he] at hR ⊢
+    · simp only [ite_eq_left he] at hR ⊢
       rw [ih (drainedPairSet S τ) budget hR]
-    · simp only [if_neg he] at hR ⊢
+    · simp only [ite_eq_right he] at hR ⊢
       by_cases hl : degreeTestLowCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v K c (ttape v)=true
-      · simp only [if_pos hl] at hR
+      · simp only [ite_eq_left hl] at hR
         have hclean : K*c+classificationReservation sgs K c (classifyScan G sgs τ K c ttape stape vs (lowRemaining (drainedPairSet S τ) v))≤budget := by
           dsimp only [classificationReservation]
           nlinarith [hR]
@@ -71,9 +75,9 @@ theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K
         have hrest :
             classificationReservation sgs K c
             (classifyScan G sgs τ K c ttape stape vs (lowRemaining (drainedPairSet S τ) v))≤budget-K*c := by omega
-        rw [if_pos htest,if_pos hl,ih _ _ hrest]
-        simp only [if_pos hl]
-      · simp only [if_neg hl] at hR
+        rw [ite_eq_left htest,ite_eq_left hl,ih _ _ hrest]
+        simp only [ite_eq_left hl]
+      · simp only [ite_eq_right hl] at hR
         have hf:=neighborhoodSearch_charge G sgs v (stape v) hn
         cases hrun : operationalSgsFind sgs (neighborhoodMarked G v) 2 (n*n) (stape v) with
         | some p =>
@@ -83,8 +87,8 @@ theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K
           have hclean : K*c+n+neighborhoodFee n sgs≤budget := by nlinarith [hR]
           have htest : K*c≤budget := by omega
           have hhigh : n+neighborhoodFee n sgs≤budget-K*c := by omega
-          rw [if_pos htest,if_neg hl,if_pos hhigh]
-          simp only [if_neg hl]
+          rw [ite_eq_left htest,ite_eq_right hl,ite_eq_left hhigh]
+          simp only [ite_eq_right hl]
         | none =>
           rw [hrun] at hR
           dsimp only at hR ⊢
@@ -96,8 +100,8 @@ theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K
           have hhigh : n+neighborhoodFee n sgs≤budget-K*c := by omega
           have hrest : classificationReservation sgs K c (classifyScan G sgs τ K c ttape stape vs (highRemaining G (drainedPairSet S τ) v))≤
               budget-(K*c+n+operationalSgsFindCost sgs (neighborhoodMarked G v) 2 (n*n) (stape v)) := by omega
-          rw [if_pos htest,if_neg hl,if_pos hhigh,ih _ _ hrest]
-          simp only [if_neg hl]
+          rw [ite_eq_left htest,ite_eq_right hl,ite_eq_left hhigh,ih _ _ hrest]
+          simp only [ite_eq_right hl]
 
 /-- For a complete scan with correct tests and positive `n`, `dLo`, and `τ`, its reservation is
 at most the corrected classification budget. -/

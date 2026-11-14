@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseNetwork13.MainResults.Model.CostModel
+module
+
+public import Qatlib.Papers.SparseNetwork13.MainResults.Model.CostModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

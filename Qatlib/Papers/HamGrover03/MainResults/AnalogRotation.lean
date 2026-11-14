@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
-import Qatlib.Papers.AnalogDigital96.MainResults.EvolutionBridge
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+public import Qatlib.Papers.AnalogDigital96.MainResults.EvolutionBridge
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Continuous-Time Search Rotation
@@ -60,7 +64,7 @@ abbrev marked {I : Type} [DecidableEq I] (m : I) : QState I :=
 
 /-- The amplitude of `marked m` at its marked index is `1`. -/
 @[simp] theorem marked_self {I : Type} [DecidableEq I] (m : I) : marked m m = 1 := by
-  rw [marked_apply, if_pos rfl]
+  rw [marked_apply, ite_eq_left rfl]
 
 /-- The state assigning the real amplitude `1 / sqrt(Fintype.card I)` to every index. It is
 normalized when the finite index type is nonempty. -/
@@ -128,9 +132,9 @@ theorem sum_uniform_sq (I : Type) [Fintype I] (hN : 0 < Fintype.card I) :
 theorem ket_dot_add (I : Type) [Fintype I] [DecidableEq I] (m : I) :
     (marked m : I → ℂ) ⬝ᵥ (uniformState I + marked m) = uniformState I m + 1 := by
   simp only [dotProduct, Pi.add_apply, mul_add, Finset.sum_add_distrib]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, zero_mul])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, zero_mul])
     (by simp)]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, zero_mul])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, zero_mul])
     (by simp)]
   rw [marked_self, one_mul, mul_one]
 
@@ -139,9 +143,9 @@ theorem ket_dot_add (I : Type) [Fintype I] [DecidableEq I] (m : I) :
 theorem ket_dot_sub (I : Type) [Fintype I] [DecidableEq I] (m : I) :
     (marked m : I → ℂ) ⬝ᵥ (uniformState I - marked m) = uniformState I m - 1 := by
   simp only [dotProduct, Pi.sub_apply, mul_sub, Finset.sum_sub_distrib]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, zero_mul])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, zero_mul])
     (by simp)]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, zero_mul])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, zero_mul])
     (by simp)]
   rw [marked_self, one_mul, mul_one]
 
@@ -152,7 +156,7 @@ theorem uniform_dot_add (I : Type) [Fintype I] [DecidableEq I] (m : I)
     uniformState I ⬝ᵥ (uniformState I + marked m) = 1 + uniformState I m := by
   simp only [dotProduct, Pi.add_apply, mul_add, Finset.sum_add_distrib]
   rw [sum_uniform_sq I hN]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, mul_zero])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, mul_zero])
     (by simp)]
   rw [marked_self, mul_one]
 
@@ -163,7 +167,7 @@ theorem uniform_dot_sub (I : Type) [Fintype I] [DecidableEq I] (m : I)
     uniformState I ⬝ᵥ (uniformState I - marked m) = 1 - uniformState I m := by
   simp only [dotProduct, Pi.sub_apply, mul_sub, Finset.sum_sub_distrib]
   rw [sum_uniform_sq I hN]
-  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, if_neg hb, mul_zero])
+  rw [Finset.sum_eq_single m (by intro b _ hb; rw [marked_apply, ite_eq_right hb, mul_zero])
     (by simp)]
   rw [marked_self, mul_one]
 
@@ -220,7 +224,7 @@ theorem analog_rotation (I : Type) [Fintype I] [DecidableEq I] (m : I)
 
   have hdecomp : uniformState I =
       (2⁻¹ : ℂ) • ((uniformState I + marked m) + (uniformState I - marked m)) := by
-    ext i; simp [Pi.add_apply, Pi.sub_apply]; ring
+    ext i; simp [Pi.add_apply]; ring
   nth_rewrite 1 [hdecomp]
   rw [Matrix.mulVec_smul, Matrix.mulVec_add,
     Qatlib.Papers.AnalogDigital96.MainResults.hamiltonianEvolution_eigenvector

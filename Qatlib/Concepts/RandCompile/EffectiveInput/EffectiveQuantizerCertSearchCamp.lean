@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerCertSearchStat
-import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
+module
+
+public import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerCertSearchStat
+public import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
+
+@[expose] public section
 
 /-!
 # Correctness of finite quantizer certificate search
@@ -90,18 +94,18 @@ private theorem certSearch_spec {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) 
           have hk0 : k = 0 := Nat.le_zero.mp hk
           subst hk0
           intro hcert
-          rw [if_pos hcert] at h
+          rw [ite_eq_left hcert] at h
           exact absurd h (Option.some_ne_none 0)
         · intro h
-          exact if_neg (h 0 (Nat.zero_le 0))
+          exact ite_eq_right (h 0 (Nat.zero_le 0))
       · intro k hk
         rw [certSearch_zero] at hk
         by_cases hc : ceilQuantizerCertRat M q 0
-        · rw [if_pos hc] at hk
+        · rw [ite_eq_left hc] at hk
           have hk0 : k = 0 := (Option.some.inj hk).symm
           subst hk0
           exact ⟨Nat.zero_le 0, hc, fun k' hk' => absurd hk' (Nat.not_lt_zero k')⟩
-        · rw [if_neg hc] at hk
+        · rw [ite_eq_right hc] at hk
           exact absurd hk.symm (Option.some_ne_none k)
   | succ fuel ih =>
       obtain ⟨ihA, ihB⟩ := ih
@@ -115,19 +119,19 @@ private theorem certSearch_spec {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) 
             · have hkfuel : k' = fuel+1 := Nat.le_antisymm hk' hge
               subst hkfuel
               intro hcert
-              rw [if_pos hcert] at h
+              rw [ite_eq_left hcert] at h
               exact absurd h (Option.some_ne_none (fuel+1))
           · intro h
-            exact if_neg (h (fuel+1) (le_refl (fuel+1)))
+            exact ite_eq_right (h (fuel+1) (le_refl (fuel+1)))
         · intro k' hk'
           rw [certSearch_succ_none M q fuel hs] at hk'
           by_cases hc : ceilQuantizerCertRat M q (fuel+1)
-          · rw [if_pos hc] at hk'
+          · rw [ite_eq_left hc] at hk'
             have hkfuel : k' = fuel+1 := (Option.some.inj hk').symm
             subst hkfuel
             exact ⟨le_refl (fuel+1), hc,
               fun k'' hk'' => ihA.mp hs k'' (Nat.le_of_lt_succ hk'')⟩
-          · rw [if_neg hc] at hk'
+          · rw [ite_eq_right hc] at hk'
             exact absurd hk'.symm (Option.some_ne_none k')
       · have hspec := ihB k hs
         refine ⟨?_, ?_⟩
@@ -188,9 +192,9 @@ theorem effectiveQuantizerCertSearch : EffectiveQuantizerCertSearch := by
           intro q'' hagree0
           rw [certSearch_zero, certSearch_zero]
           by_cases hc : ceilQuantizerCertRat M q 0
-          · rw [if_pos hc, if_pos ((certRat_congr M 0
+          · rw [ite_eq_left hc, ite_eq_left ((certRat_congr M 0
               (fun j => hagree0 j 0 (Nat.zero_le 0))).mpr hc)]
-          · rw [if_neg hc, if_neg (fun H => hc
+          · rw [ite_eq_right hc, ite_eq_right (fun H => hc
               ((certRat_congr M 0 (fun j => hagree0 j 0 (Nat.zero_le 0))).mp H))]
       | succ fuel ih =>
           intro q'' hagree0
@@ -198,9 +202,9 @@ theorem effectiveQuantizerCertSearch : EffectiveQuantizerCertSearch := by
           have hlast : (if ceilQuantizerCertRat M q'' (fuel+1) then some (fuel+1) else none)
               = (if ceilQuantizerCertRat M q (fuel+1) then some (fuel+1) else none) := by
             by_cases hc : ceilQuantizerCertRat M q (fuel+1)
-            · rw [if_pos hc, if_pos ((certRat_congr M (fuel+1)
+            · rw [ite_eq_left hc, ite_eq_left ((certRat_congr M (fuel+1)
                 (fun j => hagree0 j (fuel+1) (le_refl (fuel+1)))).mpr hc)]
-            · rw [if_neg hc, if_neg (fun H => hc
+            · rw [ite_eq_right hc, ite_eq_right (fun H => hc
                 ((certRat_congr M (fuel+1)
                   (fun j => hagree0 j (fuel+1) (le_refl (fuel+1)))).mp H))]
           rcases hs : certSearch M q fuel with _ | k

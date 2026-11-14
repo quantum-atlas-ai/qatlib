@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumSearch05.MainResults.Basic
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Papers.QuantumSearch05.MainResults.Basic
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Fixed-point search algebra and convergence

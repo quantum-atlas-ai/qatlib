@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.Topology.ContinuousOn
-import Mathlib.Topology.MetricSpace.Bounded
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.UniformSpace.HeineCantor
+module
+
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.Topology.ContinuousOn
+public import Mathlib.Topology.MetricSpace.Bounded
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.UniformSpace.HeineCantor
+
+@[expose] public section
 
 /-!
 # Transfer of latent decoder approximation

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamicProg18.MainResults.Model
+module
+
+public import Qatlib.Papers.QDynamicProg18.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,7 +65,7 @@ theorem exists_minCoverSize {U : Finset α} {S : Finset (Finset α)}
     (hne : (coverCardSet U S).Nonempty) :
     ∃ C : Finset (Finset α), C ⊆ S ∧ Covers U C ∧ C.card = minCoverSize U S := by
   unfold minCoverSize
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   have h1 : (coverCardSet U S).min' hne ∈ coverCardSet U S := Finset.min'_mem _ _
   obtain ⟨C, hCS, hCov, hcard⟩ := mem_coverCardSet.mp h1
   exact ⟨C, hCS, hCov, hcard⟩

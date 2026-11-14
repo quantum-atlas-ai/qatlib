@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductFactorialLowerBoundStat
-import Mathlib.Analysis.SpecialFunctions.Stirling
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductFactorialLowerBoundStat
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+
+@[expose] public section
 
 /-!
 # An explicit factorial lower bound

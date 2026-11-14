@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+@[expose] public section
 
 /-!
 # Signed and relative quantum mean estimation
@@ -272,6 +276,8 @@ theorem conditional_good_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     _ = ∑ x with E x, p.prob x*t := Finset.sum_mul _ _ _
     _ ≤ _ := Finset.sum_le_sum
       (fun x hx => mul_le_mul_of_nonneg_left (hgood x (Finset.mem_filter.mp hx).2) (p.nonneg x))
+
+omit [DecidableEq I] in
 
 /-- If an estimate has failure mass at most `1 / 3`, the sorted median of `2 * r + 1`
 independent estimates has failure probability at most `(8 / 9)^r`. See

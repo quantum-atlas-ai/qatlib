@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

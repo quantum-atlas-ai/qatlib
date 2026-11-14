@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Erasure
+module
+
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Erasure
+
+@[expose] public section
 
 /-! # Scalar support retained from the original SpacetimeLB26 contribution
 
@@ -171,14 +175,15 @@ def twoRecordData (p : ℝ) (n : ℕ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
 /-- The surviving mass of the two-record consumer is exactly `1 - p^n`. -/
 theorem twoRecordData_survivalMass (p : ℝ) (n : ℕ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     survivalMass (twoRecordData p n hp0 hp1) = 1 - p ^ n := by
-  simp [survivalMass, twoRecordData, Fin.sum_univ_two]
+  simp [survivalMass, twoRecordData]
 
 /-- The finite-record fidelity of the two-record consumer is `1 - p^n/2`.
 The one-half fidelity premise on the erased branch is still supplied through
 the data structure rather than inferred from this arithmetic identity. -/
 theorem twoRecordData_finalFidelity (p : ℝ) (n : ℕ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     finalFidelity (twoRecordData p n hp0 hp1) = 1 - p ^ n / 2 := by
-  simp [finalFidelity, twoRecordData, Fin.sum_univ_two] <;> ring
+  simp [finalFidelity, twoRecordData, Fin.sum_univ_two]
+  ring
 
 /-- The two-record fidelity is the average of the unit-fidelity surviving branch
 and the half-fidelity complete-erasure branch, expressed directly through the

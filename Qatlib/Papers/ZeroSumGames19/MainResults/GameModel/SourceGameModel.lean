@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,7 +86,7 @@ def EpsOptimal {n m : ℕ} (A : PayoffMatrix n m) (x : Fin n → ℝ) (y : Fin m
 
 /-- Dividing the strategy `y` by `S ≠ 0` divides the row payoff by `S`. -/
 theorem rowPayoff_div {n m : ℕ} (A : PayoffMatrix n m) (y : Fin m → ℝ) {S : ℝ}
-    (hS : S ≠ 0) (i : Fin n) :
+    (_hS : S ≠ 0) (i : Fin n) :
     rowPayoff A (fun j => y j / S) i = rowPayoff A y i / S := by
   unfold rowPayoff
   rw [Finset.sum_div]
@@ -92,7 +96,7 @@ theorem rowPayoff_div {n m : ℕ} (A : PayoffMatrix n m) (y : Fin m → ℝ) {S 
 
 /-- Dividing the strategy `x` by `S ≠ 0` divides the column payoff by `S`. -/
 theorem colPayoff_div {n m : ℕ} (A : PayoffMatrix n m) (x : Fin n → ℝ) {S : ℝ}
-    (hS : S ≠ 0) (j : Fin m) :
+    (_hS : S ≠ 0) (j : Fin m) :
     colPayoff A (fun i => x i / S) j = colPayoff A x j / S := by
   unfold colPayoff
   rw [Finset.sum_div]

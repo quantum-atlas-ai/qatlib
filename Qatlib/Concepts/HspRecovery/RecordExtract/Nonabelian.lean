@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
-import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.LinearAlgebra.Semisimple
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianIrrep
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+public import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.LinearAlgebra.Semisimple
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianIrrep
+
+@[expose] public section
 
 /-!
 # Actual record marginals and representation transport
@@ -119,12 +123,12 @@ theorem clause27_actual_apply {N : ℕ} [NeZero N] (S : Type) [Fintype S] [Decid
         @ite ENNReal ((k, t, z) = (q.1.1, q.1.2, q.2)) (Classical.propDecidable _)
           (bornDistribution (dihedralRecordJoint N f) (normalized_dihedralRecordJoint N f) q) 0 = 0 := by
       intro q hq
-      apply if_neg
+      apply ite_eq_right
       intro heq
       exact hq (hinj ((rfl : (fun q : (ZMod N × Bool) × S => (q.1.1, q.1.2, q.2)) ((k, t), z)
         = (k, t, z)).trans heq)).symm
     rw [tsum_eq_single ((k, t), z) hzero]
-    apply if_pos
+    apply ite_eq_left
     rfl
   rw [key]
 
@@ -260,7 +264,7 @@ theorem clause2_run_mass_zero :
     simp only [List.cons.injEq, and_true, HalfWidthRecord.mk.injEq]
   simp only [hpure, mul_ite, mul_one, mul_zero]
   rw [Finset.sum_ite_eq]
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   rw [PMF.uniformOfFintype'_apply, ZMod.card]
   norm_num
 
@@ -320,7 +324,7 @@ theorem clause2_idealHit_conjunct_false :
       (a := [⟨(0 : ZMod 2), 0⟩])
     have hval : (if ¬(∃ r : HalfWidthRecord 2, r ∈ [⟨(0 : ZMod 2), 0⟩] ∧ isIdealHit 2 r) then
         run [⟨(0 : ZMod 2), 0⟩] else 0) = (2⁻¹ : ENNReal) := by
-      rw [if_pos hnohit, hmass]
+      rw [ite_eq_left hnohit, hmass]
     rw [hval] at h
     exact h
   have hsum2 : (1 : ENNReal) + 2⁻¹ ≤ 1 := by
@@ -410,10 +414,10 @@ theorem clause27_map_fst_apply {α β : Type} [Fintype α] [Fintype β] (p : PMF
         @ite ENNReal (a = a) (Classical.propDecidable _) (p (a, b)) 0 := by
       refine tsum_eq_single a ?_
       intro a' ha'
-      apply if_neg
+      apply ite_eq_right
       intro heq
       exact ha' heq.symm
-    rw [hsingle, if_pos rfl]
+    rw [hsingle, ite_eq_left rfl]
   rw [hz]
 
 /-- Projecting a finite triple probability mass function to its first two coordinates sums its
@@ -437,7 +441,7 @@ theorem clause27_map_fst2_apply {α β γ : Type} [Fintype α] [Fintype β] [Fin
       @ite ENNReal ((a, b) = ab) (Classical.propDecidable _) (p (ab.1, (ab.2, c))) 0) = 0
     apply ENNReal.tsum_eq_zero.mpr
     intro c
-    apply if_neg
+    apply ite_eq_right
     intro heq
     exact hab heq.symm
   have houter : (∑' ab : α × β, hfun ab) = hfun (a, b) :=
@@ -449,7 +453,7 @@ theorem clause27_map_fst2_apply {α β γ : Type} [Fintype α] [Fintype β] [Fin
       (p ((a, b).1, ((a, b).2, c))) 0) = ∑' c : γ, p (a, (b, c))
   congr 1
   funext c
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- A reflection-hiding oracle has a two-step staged bridge from actual records to uniform
 label-bit masses `1 / (2 * N)` and uniform label masses `1 / N`. -/
@@ -573,9 +577,9 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
     intro k
     rw [Fintype.sum_bool]
     by_cases hk : (e k).1 = V ∧ transportRowOf family s e k = row.val
-    · rw [if_pos hk, if_pos hk]
+    · rw [ite_eq_left hk, ite_eq_left hk]
       norm_num
-    · rw [if_neg hk, if_neg hk]
+    · rw [ite_eq_right hk, ite_eq_right hk]
       norm_num
   have hred : (∑ k : ZMod N, ∑ t : Bool,
         (if (e k).1 = V ∧ transportRowOf family s e k = row.val then (1 : ℝ) else 0))
@@ -598,7 +602,7 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
       = if V' = V then ((family.irrep V').dim : ℝ) * 2 else 0 := by
     intro V'
     by_cases hV' : V' = V
-    · rw [hV', if_pos rfl]
+    · rw [hV', ite_eq_left rfl]
       have hpt : ∀ i : Fin ((family.irrep V).dim * dimFixed (family.irrep V) s),
           (if V = V ∧ ((finProdFinEquiv (m := (family.irrep V).dim)
             (n := dimFixed (family.irrep V) s)).symm i).2.val = row.val then (2 : ℝ) else 0)
@@ -607,8 +611,8 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
         intro i
         by_cases hi : ((finProdFinEquiv (m := (family.irrep V).dim)
             (n := dimFixed (family.irrep V) s)).symm i).2.val = row.val
-        · rw [if_pos ⟨rfl, hi⟩, if_pos hi]
-        · rw [if_neg (fun h => hi h.2), if_neg hi]
+        · rw [ite_eq_left ⟨rfl, hi⟩, ite_eq_left hi]
+        · rw [ite_eq_right (fun h => hi h.2), ite_eq_right hi]
       rw [Finset.sum_congr rfl fun i _ => hpt i]
       have hswap : (∑ i : Fin ((family.irrep V).dim * dimFixed (family.irrep V) s),
           if ((finProdFinEquiv (m := (family.irrep V).dim)
@@ -626,12 +630,12 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
           (if ρ.val = row.val then (2 : ℝ) else 0) = if ρ = row then (2 : ℝ) else 0 := by
         intro ρ
         by_cases h : ρ = row
-        · rw [if_pos h, if_pos (by rw [h])]
-        · rw [if_neg h, if_neg fun heq => h (Fin.ext heq)]
+        · rw [ite_eq_left h, ite_eq_left (by rw [h])]
+        · rw [ite_eq_right h, ite_eq_right fun heq => h (Fin.ext heq)]
       have hrow : (∑ ρ : Fin (dimFixed (family.irrep V) s),
           if ρ.val = row.val then (2 : ℝ) else 0) = 2 := by
         rw [Finset.sum_congr rfl fun ρ _ => hpt2 ρ, Finset.sum_ite_eq',
-          if_pos (Finset.mem_univ _)]
+          ite_eq_left (Finset.mem_univ _)]
       show (∑ x : Fin (family.irrep V).dim, ∑ ρ : Fin (dimFixed (family.irrep V) s),
           if ρ.val = row.val then (2 : ℝ) else 0) = ((family.irrep V).dim : ℝ) * 2
       rw [hrow, Finset.sum_const, Finset.card_fin, nsmul_eq_mul]
@@ -640,13 +644,13 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
             (n := dimFixed (family.irrep V') s)).symm i).2.val = row.val then (2 : ℝ) else 0)
             = 0 := by
         intro i
-        apply if_neg
+        apply ite_eq_right
         intro h
         exact hV' h.1
-      rw [Finset.sum_congr rfl fun i _ => hz i, if_neg hV']
+      rw [Finset.sum_congr rfl fun i _ => hz i, ite_eq_right hV']
       exact Finset.sum_const_zero
   simp only [hinner]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ V)]
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ V)]
 
 /-- The real indicator count of label-bit pairs mapping to a representation is twice its
 dimension times its fixed-subspace dimension. -/
@@ -662,9 +666,9 @@ theorem clause27_transport_label_count {N : ℕ} [NeZero N] {Label : Type} [Fint
     intro k
     rw [Fintype.sum_bool]
     by_cases hk : (e k).1 = V
-    · rw [if_pos hk, if_pos hk]
+    · rw [ite_eq_left hk, ite_eq_left hk]
       norm_num
-    · rw [if_neg hk, if_neg hk]
+    · rw [ite_eq_right hk, ite_eq_right hk]
       norm_num
   have hred : (∑ k : ZMod N, ∑ t : Bool, (if (e k).1 = V then (1 : ℝ) else 0))
       = ∑ k : ZMod N, if (e k).1 = V then (2 : ℝ) else 0 :=
@@ -683,13 +687,13 @@ theorem clause27_transport_label_count {N : ℕ} [NeZero N] {Label : Type} [Fint
         else 0 := by
     intro V'
     by_cases hV' : V' = V
-    · rw [if_pos hV', if_pos hV']
+    · rw [ite_eq_left hV', ite_eq_left hV']
       show (∑ _i : Fin ((family.irrep V').dim * dimFixed (family.irrep V') s), (2 : ℝ)) = _
       rw [Finset.sum_const, Finset.card_fin, nsmul_eq_mul, Nat.cast_mul]
-    · rw [if_neg hV', if_neg hV']
+    · rw [ite_eq_right hV', ite_eq_right hV']
       exact Finset.sum_const_zero
   simp only [hinner]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ V)]
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ V)]
 
 /-- The representation dimension identity yields label and row transport of actual records,
 uniform staged marginals, phase-qubit factorization and extraction, and the stated circuit
@@ -764,11 +768,11 @@ theorem clause1_of_dimFixedCount
           (∑ z : S, ENNReal.toReal (actualRecordFiniteLaw f (k, t, z))) else 0 := by
       intro k t
       by_cases h : (e k).1 = V ∧ transportRowOf family s e k = row.val
-      · rw [if_pos h]
-        exact Finset.sum_congr rfl fun z _ => if_pos h
-      · rw [if_neg h]
+      · rw [ite_eq_left h]
+        exact Finset.sum_congr rfl fun z _ => ite_eq_left h
+      · rw [ite_eq_right h]
         have hz' : ∀ z : S, (if (e k).1 = V ∧ transportRowOf family s e k = row.val then
-            ENNReal.toReal (actualRecordFiniteLaw f (k, t, z)) else 0) = 0 := fun z => if_neg h
+            ENNReal.toReal (actualRecordFiniteLaw f (k, t, z)) else 0) = 0 := fun z => ite_eq_right h
         rw [Finset.sum_congr rfl fun z _ => hz' z]
         exact Finset.sum_const_zero
     have hstep1 : (∑ k : ZMod N, ∑ t : Bool, ∑ z : S,
@@ -793,8 +797,8 @@ theorem clause1_of_dimFixedCount
             (if (e k).1 = V ∧ transportRowOf family s e k = row.val then (1 : ℝ) else 0) := by
       intro k t
       by_cases h : (e k).1 = V ∧ transportRowOf family s e k = row.val
-      · rw [if_pos h, if_pos h, mul_one]
-      · rw [if_neg h, if_neg h, mul_zero]
+      · rw [ite_eq_left h, ite_eq_left h, mul_one]
+      · rw [ite_eq_right h, ite_eq_right h, mul_zero]
     have hstep3 : (∑ k : ZMod N, ∑ t : Bool,
           if (e k).1 = V ∧ transportRowOf family s e k = row.val then (1 / (2 * (N : ℝ))) else 0)
         = (1 / (2 * (N : ℝ))) * (∑ k : ZMod N, ∑ t : Bool,
@@ -809,7 +813,7 @@ theorem clause1_of_dimFixedCount
               if (e k).1 = V ∧ transportRowOf family s e k = row.val then (1 : ℝ) else 0)).symm
     rw [hstep3, clause27_transport_row_count family s e V row]
     have hN : (N : ℝ) ≠ 0 := by exact_mod_cast (NeZero.pos N).ne'
-    field_simp [hN]; try ring
+    field_simp [hN]
   · intro V
     have hmass : repLabelMass (family.irrep V) s
         = ((family.irrep V).dim : ℝ) * dimFixed (family.irrep V) s * 2 / (2 * N) := rfl
@@ -823,11 +827,11 @@ theorem clause1_of_dimFixedCount
           (∑ z : S, ENNReal.toReal (actualRecordFiniteLaw f (k, t, z))) else 0 := by
       intro k t
       by_cases h : (e k).1 = V
-      · rw [if_pos h]
-        exact Finset.sum_congr rfl fun z _ => if_pos h
-      · rw [if_neg h]
+      · rw [ite_eq_left h]
+        exact Finset.sum_congr rfl fun z _ => ite_eq_left h
+      · rw [ite_eq_right h]
         have hz' : ∀ z : S, (if (e k).1 = V then
-            ENNReal.toReal (actualRecordFiniteLaw f (k, t, z)) else 0) = 0 := fun z => if_neg h
+            ENNReal.toReal (actualRecordFiniteLaw f (k, t, z)) else 0) = 0 := fun z => ite_eq_right h
         rw [Finset.sum_congr rfl fun z _ => hz' z]
         exact Finset.sum_const_zero
     have hstep1 : (∑ k : ZMod N, ∑ t : Bool, ∑ z : S,
@@ -848,8 +852,8 @@ theorem clause1_of_dimFixedCount
         = (1 / (2 * (N : ℝ))) * (if (e k).1 = V then (1 : ℝ) else 0) := by
       intro k t
       by_cases h : (e k).1 = V
-      · rw [if_pos h, if_pos h, mul_one]
-      · rw [if_neg h, if_neg h, mul_zero]
+      · rw [ite_eq_left h, ite_eq_left h, mul_one]
+      · rw [ite_eq_right h, ite_eq_right h, mul_zero]
     have hstep3 : (∑ k : ZMod N, ∑ t : Bool, if (e k).1 = V then (1 / (2 * (N : ℝ))) else 0)
         = (1 / (2 * (N : ℝ))) * (∑ k : ZMod N, ∑ t : Bool,
             (if (e k).1 = V then (1 : ℝ) else 0)) :=
@@ -861,7 +865,7 @@ theorem clause1_of_dimFixedCount
             (f := fun k : ZMod N => ∑ t : Bool, if (e k).1 = V then (1 : ℝ) else 0)).symm
     rw [hstep3, clause27_transport_label_count family s e V]
     have hN : (N : ℝ) ≠ 0 := by exact_mod_cast (NeZero.pos N).ne'
-    field_simp [hN]; try ring
+    field_simp [hN]
   · exact clause27_recordFactor N S f s hf
   · intro k ℓ
     exact clause27_extraction_conjunct N s k ℓ

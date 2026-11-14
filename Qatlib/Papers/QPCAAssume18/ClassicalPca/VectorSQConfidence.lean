@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.Budget
-import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.Budget
+public import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+
+@[expose] public section
 
 /-!
 # Confidence and work for PCA norm estimates

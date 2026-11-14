@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+
+@[expose] public section
 
 /-!
 # Circuit history states and Hamiltonians
@@ -164,7 +168,7 @@ theorem Hclockinit_isHermitian (n L : ℕ) (hL2 : 2 ≤ L) :
 
 /-- The local clock predicate selecting the pattern before propagation step `l`, with separate
 boundary cases. -/
-def prevPattern (n L : ℕ) (hL2 : 2 ≤ L) (l : Fin L) : ClockBasis L → Prop :=
+def prevPattern (_n L : ℕ) (hL2 : 2 ≤ L) (l : Fin L) : ClockBasis L → Prop :=
   if h0 : l.val = 0 then
     (fun p => p ⟨0, by omega⟩ = 0 ∧ p ⟨1, by omega⟩ = 0)
   else if hL : l.val = L - 1 then
@@ -174,7 +178,7 @@ def prevPattern (n L : ℕ) (hL2 : 2 ≤ L) (l : Fin L) : ClockBasis L → Prop 
 
 /-- The local clock predicate selecting the pattern after propagation step `l`, with separate
 boundary cases. -/
-def nextPattern (n L : ℕ) (hL2 : 2 ≤ L) (l : Fin L) : ClockBasis L → Prop :=
+def nextPattern (_n L : ℕ) (hL2 : 2 ≤ L) (l : Fin L) : ClockBasis L → Prop :=
   if h0 : l.val = 0 then
     (fun p => p ⟨0, by omega⟩ = 1 ∧ p ⟨1, by omega⟩ = 0)
   else if hL : l.val = L - 1 then
@@ -214,9 +218,9 @@ theorem clockPairOp_conjTranspose {n L : ℕ} (pBr pKet : ClockBasis L → Prop)
   unfold clockPairOp
   by_cases h : pBr y.2 ∧ pKet x.2
   · have h' : pKet x.2 ∧ pBr y.2 := ⟨h.2, h.1⟩
-    rw [if_pos h, if_pos h', Matrix.conjTranspose_apply]
+    rw [ite_eq_left h, ite_eq_left h', Matrix.conjTranspose_apply]
   · have h' : ¬ (pKet x.2 ∧ pBr y.2) := fun hc => h ⟨hc.2, hc.1⟩
-    rw [if_neg h, if_neg h']
+    rw [ite_eq_right h, ite_eq_right h']
     simp
 
 /-- The propagation matrix formed from the previous and next clock projections minus the forward
@@ -393,7 +397,7 @@ def legalClockProp (n L : ℕ) (p : TotalBasis n L) : Prop :=
   ∃ ℓ : Fin (L + 1), p.2 = legalClock L ℓ.val
 
 instance legalClockProp_decidable (n L : ℕ) : DecidablePred (legalClockProp n L) :=
-  fun p => Classical.dec _
+  fun _p => Classical.dec _
 
 /-- The coordinate projection onto total configurations with a legal unary clock. -/
 def legalClockProj (n L : ℕ) : Matrix (TotalBasis n L) (TotalBasis n L) ℂ :=

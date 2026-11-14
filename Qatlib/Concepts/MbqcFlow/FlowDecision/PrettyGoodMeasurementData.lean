@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+
+@[expose] public section
 
 /-!
 # Gram data for pretty-good measurements

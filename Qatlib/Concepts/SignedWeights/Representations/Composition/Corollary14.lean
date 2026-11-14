@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.GeneralAdversary
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.GeneralAdversary
+
+@[expose] public section
 
 /-!
 # Uniform Bounds for Adversary Composition
@@ -78,7 +82,7 @@ theorem advAlphaENN_le_mul_advValue
     (input : X → κ → Bool) (g : X → Bool) (β : κ → ℝ≥0∞) (b : ℝ)
     (hκ : Nonempty κ) (hβ : ∀ i, β i ≤ ENNReal.ofReal b) :
     advAlphaENN input g β ≤ ENNReal.ofReal b * advValue input g := by
-  haveI := hκ
+  have := hκ
   unfold advAlphaENN advValue advAlphaR advAlphaWitnessR
   refine iSup_le fun Γ => ?_
   have hstep : (⨅ i, β i * ENNReal.ofReal ‖Γ.1‖ /
@@ -115,7 +119,7 @@ theorem corollary14_upper
     obtain ⟨u, v, huv⟩ := hfn
     obtain ⟨a, _⟩ := Function.ne_iff.mp (fun h => huv (congrArg f h))
     exact ⟨a⟩
-  haveI hk : Nonempty (Fin k) := hk0
+  have hk : Nonempty (Fin k) := hk0
   have hbc : ∀ i, blockCosts gin g (fun _ => (1 : ℝ)) i ≤ ENNReal.ofReal b := by
     intro i
     rw [blockCosts_eq_block_value]

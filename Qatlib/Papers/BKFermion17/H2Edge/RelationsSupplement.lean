@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BKFermion17.H2Edge.Defs
-import Qatlib.Papers.BKFermion17.H2Edge.Relations
+module
+
+public import Qatlib.Papers.BKFermion17.H2Edge.Defs
+public import Qatlib.Papers.BKFermion17.H2Edge.Relations
+
+@[expose] public section
 
 /-!
 # BKFermion17 — qubit edge-operator relations (arXiv:1712.00446v3, Eq. (22), p. 5)

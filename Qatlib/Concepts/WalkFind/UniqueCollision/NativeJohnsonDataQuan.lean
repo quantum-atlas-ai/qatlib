@@ -4,11 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataStat
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Mathlib.Data.Finset.Sort
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Tactic.Tauto
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataStat
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Mathlib.Data.Finset.Sort
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Tactic.Tauto
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Native data access for the Johnson walk
@@ -422,7 +428,7 @@ private theorem nativeFiberAverage_projector {H F : Type} [Fintype H] [Decidable
     simp only [Matrix.mul_apply, nativeFiberAverage]
     by_cases hpq : label p = label q
     · have hcond (u : H) : label u = label q ↔ label p = label u := by rw [← hpq, eq_comm]
-      rw [if_pos hpq]
+      rw [ite_eq_left hpq]
       simp only [hcond]
       have hterm (u : H) :
           (if label p = label u then 1/(d : ℂ) else 0) *
@@ -433,7 +439,7 @@ private theorem nativeFiberAverage_projector {H F : Type} [Fintype H] [Decidable
       simp only [Finset.sum_const, nsmul_eq_mul]
       rw [← Fintype.card_subtype, hc p]
       field_simp
-    · rw [if_neg hpq]
+    · rw [ite_eq_right hpq]
       apply Finset.sum_eq_zero
       intro u _
       by_cases hpu : label p = label u

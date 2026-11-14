@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskCVaRDefs
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskCVaRDefs
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+
+@[expose] public section
 
 /-!
 # Population quantile recovery and finite-sample obstructions
@@ -492,12 +496,12 @@ theorem empiricalCDF_all_some_one (N : ℕ) (hN : 0 < N) (t : ℚ) :
     · simp [riskCDFPayoff, twoAtomLoss, h]
   rw [hsum]
   by_cases h : (1:ℚ) ≤ t
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hN0 : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
     calc
       ((1:ℝ) * (N:ℝ)) / (N:ℝ) = (N:ℝ) / (N:ℝ) := by rw [one_mul]
       _ = 1 := div_self hN0
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     calc
       ((0:ℝ) * (N:ℝ)) / (N:ℝ) = 0 := by rw [zero_mul, zero_div]
 

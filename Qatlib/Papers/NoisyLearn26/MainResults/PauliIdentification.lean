@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+@[expose] public section
 
 /-!
 # Scalar bounds for noisy Pauli identification
@@ -42,7 +46,7 @@ def nscLower (n : ℕ) (lam : ℝ) : ℝ := (2 / fLambda lam) ^ (n : ℝ)
 def ntcUpper (n : ℕ) (lam : ℝ) : ℝ := (n : ℝ) * (1 - lam) ^ (-(4 * (n : ℝ)))
 
 /-- The noise polynomial `fLambda lam` is positive for `lam` in `[0, 1]`. -/
-theorem fLambda_pos {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) : 0 < fLambda lam := by
+theorem fLambda_pos {lam : ℝ} (_h0 : 0 ≤ lam) (_h1 : lam ≤ 1) : 0 < fLambda lam := by
   unfold fLambda
   nlinarith [sq_nonneg (lam - 1)]
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Small-action perturbation (Lemma 4.5)
@@ -43,7 +47,7 @@ theorem private_block_lipschitz (P : E →L[ℂ] E) (hP : ‖P‖ ≤ 1)
   have hsub : P.comp (S.comp P) - P.comp (S0.comp P)
       = P.comp ((S - S0).comp P) := by
     ext x
-    simp [ContinuousLinearMap.comp_apply, ContinuousLinearMap.sub_apply]
+    simp [ContinuousLinearMap.comp_apply, _root_.sub_apply]
   rw [hsub]
   have h1 : ‖P.comp ((S - S0).comp P)‖ ≤ ‖P‖ * ‖(S - S0).comp P‖ :=
     ContinuousLinearMap.opNorm_comp_le (h := P) ((S - S0).comp P)
@@ -72,6 +76,6 @@ theorem privateBlock_sub (P S S0 : E →L[ℂ] E) :
     privateBlock P S - privateBlock P S0 = P.comp ((S - S0).comp P) := by
   unfold privateBlock
   ext x
-  simp [ContinuousLinearMap.comp_apply, ContinuousLinearMap.sub_apply]
+  simp [ContinuousLinearMap.comp_apply, _root_.sub_apply]
 
 end Qatlib.Papers.ShallowLind26.ShallowSim.SmallAction

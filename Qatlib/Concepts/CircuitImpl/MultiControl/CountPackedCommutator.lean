@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountFramedBorrowed
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountCommutators
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountFramedBorrowed
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountCommutators
+
+@[expose] public section
 
 /-!
 # Packed commutators with merged frames

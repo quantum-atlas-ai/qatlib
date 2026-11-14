@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleySource
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleySource
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-! # Source derivative bounds imply the actual normalized coefficient bounds -/
 

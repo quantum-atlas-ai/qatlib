@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
+module
+
+public import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
+
+@[expose] public section
 
 /-!
 # Unitary coefficients in an idempotent algebra
@@ -35,6 +39,7 @@ namespace Qatlib.Papers.ContDiscWalk08.SchemeAlgebra
 
 variable {J : Type*} [Fintype J] [DecidableEq J]
 
+omit [DecidableEq J] in
 /-- Multiplication of two linear combinations of mutually orthogonal idempotents multiplies
 their coefficients coordinatewise. -/
 theorem sum_mul_sum {m : ℕ} (E : Fin m → Matrix J J ℂ)
@@ -58,6 +63,7 @@ theorem conjTranspose_sum_smul {m : ℕ} (E : Fin m → Matrix J J ℂ)
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [Matrix.conjTranspose_smul, (hHerm i).eq, RCLike.star_def]
 
+omit [DecidableEq J] in
 /-- For mutually orthogonal Hermitian idempotents, the conjugate transpose times the original
 linear combination has coefficients `conj (c i) * c i`. -/
 theorem conjTranspose_mul_self_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
@@ -93,6 +99,7 @@ theorem sum_smul_eq_zero_coeff {m : ℕ} (E : Fin m → Matrix J J ℂ)
   · exact hc
   · exact absurd hE (hNonzero i)
 
+omit [DecidableEq J] in
 /-- Expansions in nonzero mutually orthogonal idempotents have unique coefficients. -/
 theorem coefficients_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hIdem : ∀ i, E i * E i = E i)

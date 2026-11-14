@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ResidueFactoringPrograms
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ResidueFactoringPrograms
+
+@[expose] public section
 
 /-!
 # Fair-bit residue sampler contract

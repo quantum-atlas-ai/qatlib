@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryFourBitWitness
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySdpDuality
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryFourBitWitness
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySdpDuality
+
+@[expose] public section
 
 /-!
 # Iterated adversary witnesses and certificate separations
@@ -55,7 +59,7 @@ open Qatlib
 open Qatlib
 
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -70,7 +74,7 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 open Qatlib
@@ -140,7 +144,7 @@ theorem spectralDomainEmbedding_filter {K : Type} (e : X → Y)
   classical
   ext u v
   by_cases hd : inputY u i ≠ inputY v i
-  · simp only [genAdvFilter,if_pos hd,Matrix.mul_apply,Finset.sum_mul,Matrix.conjTranspose_apply]
+  · simp only [genAdvFilter,ite_eq_left hd,Matrix.mul_apply,Finset.sum_mul,Matrix.conjTranspose_apply]
     apply Finset.sum_congr rfl
     intro y _
     apply Finset.sum_congr rfl
@@ -151,7 +155,7 @@ theorem spectralDomainEmbedding_filter {K : Type} (e : X → Y)
         exact hd
       simp [spectralDomainEmbedding,hx,hy,hh]
     all_goals simp [spectralDomainEmbedding,hx,hy]
-  · simp only [genAdvFilter,if_neg hd,Matrix.mul_apply,Finset.sum_mul,Matrix.conjTranspose_apply]
+  · simp only [genAdvFilter,ite_eq_right hd,Matrix.mul_apply,Finset.sum_mul,Matrix.conjTranspose_apply]
     symm
     apply Finset.sum_eq_zero
     intro y _
@@ -247,7 +251,7 @@ theorem zeroDepthGamma_facts {n : ℕ} (f : (Fin n → Bool) → Bool) :
   · intro x y hxy
     change (if x 0 ≠ y 0 then (1 : ℂ) else 0) = 0
     have he : x 0 = y 0 := hxy
-    rw [if_neg (not_not.mpr he)]
+    rw [ite_eq_right (not_not.mpr he)]
   · intro i
     have hi : i=0 := Fin.eq_zero i
     subst i
@@ -409,7 +413,7 @@ theorem iteratedAdversaryGamma_source_bound {n : ℕ} (hn : 0 < n) (f : (Fin n �
     (hfA : ∀ i, ‖genAdvFilter (fun w : Fin n → Bool => w) A i‖ ≤ 1)
     (hAN : 0 < ‖A‖) (d : ℕ) :
     ENNReal.ofReal (‖A‖^d) ≤ advPmValue (fun w : Fin (n^d) → Bool => w) (iterateTotal f d) := by
-  letI : NeZero (n^d) := ⟨pow_ne_zero _ (Nat.ne_zero_of_lt hn)⟩
+  let _ : NeZero (n^d) := ⟨pow_ne_zero _ (Nat.ne_zero_of_lt hn)⟩
   have hh := iteratedAdversaryGamma_facts hn f A hA hzA hfA hAN d
   have hN : 0 < ‖iteratedAdversaryGamma f A d‖ := by rw [hh.2.2.1]; exact pow_pos hAN d
   have hb := normalized_adversary_le_source (fun w : Fin (n^d) → Bool => w) (iterateTotal f d)
@@ -434,7 +438,7 @@ theorem word_adversary_maxFilter_pos {n : ℕ} (f : (Fin n → Bool) → Bool)
     intro he
     have hexy := congrArg (fun M : Matrix (Fin n → Bool) (Fin n → Bool) ℂ => M x y) he
     change (if x i ≠ y i then G x y else 0)=0 at hexy
-    rw [if_pos hi] at hexy
+    rw [ite_eq_left hi] at hexy
     exact hxy hexy
   have hnorm := norm_pos_iff.mpr hh
   exact hnorm.trans_le
@@ -567,7 +571,7 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 open Qatlib
@@ -862,7 +866,7 @@ theorem certComplexity_monotoneSixBit_iterate (d : ℕ) (b : Bool) :
     rw [certComplexity_eq_iSup]
     apply hmin.trans
     apply le_iSup_of_le (fun _ => b)
-    rw [if_pos (monotoneSixBit_iterate_const b d)]
+    rw [ite_eq_left (monotoneSixBit_iterate_const b d)]
 end
 noncomputable section
 
@@ -932,7 +936,7 @@ theorem advValue_le_of_source_certificates {n C : ℕ} (f : (Fin n → Bool) →
         change (if x j≠y j then Real.sqrt (p x j*p y j)/(1 : ℝ) else 0) ≤
           ∑ i, if x i≠y i then Real.sqrt (p x i*p y i)/(1 : ℝ) else 0
         exact Finset.single_le_sum (f := fun i => if x i≠y i then Real.sqrt (p x i*p y i)/(1 : ℝ) else 0)
-          (fun i _ => by (try dsimp only); split_ifs <;> positivity) (Finset.mem_univ j)
+          (fun i _ => by split_ifs <;> positivity) (Finset.mem_univ j)
   rw [advValue,advAlphaR_eq_minimax (fun w : Fin n → Bool => w) f (fun _ => 1) (by intro i; norm_num) hnc]
   exact (minimax_value_le_witness _ _ _ p hp).trans
     (minimaxWitnessValue_le_of_pair _ _ _ p C hC hnc hpair)
@@ -1349,7 +1353,7 @@ theorem partialZeroGamma_facts {n : ℕ} (f : (Fin n → Bool) → Option Bool) 
   · intro x y hxy
     change (if x.val 0≠y.val 0 then (1 : ℂ) else 0)=0
     have he : x.val 0=y.val 0 := hxy
-    rw [if_neg (not_not.mpr he)]
+    rw [ite_eq_right (not_not.mpr he)]
   · intro i
     have hi : i=0 := Fin.eq_zero i
     subst i
@@ -1407,7 +1411,7 @@ theorem partialAdversaryGamma_source_bound {n : ℕ} (hn : 0<n) (f : (Fin n → 
     (hfA : ∀ i, ‖genAdvFilter (fun w : Fin n → Bool => w) A i‖≤1)
     (hAN : 0<‖A‖) (d : ℕ) :
     ENNReal.ofReal (‖A‖^d) ≤ advPmValue (fun w : PartialIterateDomain f d => w.val) (domValue (iterateFlat f d)) := by
-  haveI : Nonempty (Fin (n^d)) := ⟨⟨0,pow_pos hn d⟩⟩
+  have _ : Nonempty (Fin (n^d)) := ⟨⟨0,pow_pos hn d⟩⟩
   have hh := partialAdversaryGamma_facts hn f A hA hzA hrA hfA hAN d
   have hp : 0<‖partialAdversaryGamma f A d‖ := by rw [hh.2.2.1]; exact pow_pos hAN d
   have hb := normalized_adversary_le_source (fun w : PartialIterateDomain f d => w.val)
@@ -1581,7 +1585,7 @@ theorem relativeHamming_iterate_sixBitF_lower (d : ℕ) :
     (1/3 : ℝ)^d≤relativeHamming (iterateFlat sixBitF d) := by
   obtain ⟨x,hx⟩ := iterateFlat_outputs sixBitF sixBitF_outputs d false
   obtain ⟨y,hy⟩ := iterateFlat_outputs sixBitF sixBitF_outputs d true
-  haveI : Nonempty {w : (Fin (6^d) → Bool) × (Fin (6^d) → Bool) //
+  have _ : Nonempty {w : (Fin (6^d) → Bool) × (Fin (6^d) → Bool) //
       iterateFlat sixBitF d w.1=some false ∧ iterateFlat sixBitF d w.2=some true} := ⟨⟨(x,y),hx,hy⟩⟩
   have hh : (2 : ℝ)^d ≤ ⨅ w : {w : (Fin (6^d) → Bool) × (Fin (6^d) → Bool) //
       iterateFlat sixBitF d w.1=some false ∧ iterateFlat sixBitF d w.2=some true},
@@ -1595,7 +1599,7 @@ theorem relativeHamming_iterate_sixBitF_lower (d : ℕ) :
     exact_mod_cast sixBit_iterate_hamming_lower d w.val.1 w.val.2 hw1 hw2 hn
   have hd : 0<(6 : ℝ)^d := pow_pos (by norm_num) d
   unfold relativeHamming
-  rw [if_neg (by positivity : ¬(6^d : ℕ)=0)]
+  rw [ite_eq_right (by positivity : ¬(6^d : ℕ)=0)]
   push_cast
   calc
     (1/3 : ℝ)^d=(2 : ℝ)^d/(6 : ℝ)^d := by rw [← div_pow]; norm_num

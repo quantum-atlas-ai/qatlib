@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Prepared amplitude amplification circuits and rotations
@@ -104,6 +108,7 @@ private theorem inner_neg_right' (ψ φ : QState I) :
   exact Finset.sum_congr rfl fun i _ => by ring
 
 omit [DecidableEq I] in
+
 /-- The state inner product is conjugate symmetric. -/
 private theorem inner_conj_symm' (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ φ = star (Qatlib.Foundations.PureStateMath.Inner φ ψ) := by
@@ -137,6 +142,7 @@ private theorem outerProduct_conj (A : Matrix I I ℂ) (φ : QState I) :
   ring
 
 omit [DecidableEq I] in
+
 /-- Applying the outer product of `ψ` to `φ` gives the inner product of `ψ` with `φ` times `ψ`. -/
 private theorem applyGate_outerProduct (ψ φ : QState I) :
     ApplyGate (outerProduct ψ) φ = Qatlib.Foundations.PureStateMath.Inner ψ φ • ψ :=
@@ -245,6 +251,8 @@ private theorem measureProb_compl {ψ : QState I} (hψ : Normalized ψ) (S : Fin
     rw [← measureProb_union ψ disjoint_compl_right, Finset.union_compl,
       measureProb_univ hψ]
   linarith
+
+omit [DecidableEq I] in
 
 /-- In an orthogonal decomposition `good + bad = ψ`, the inner products of `ψ` with each
 component equal that component self-inner product. -/

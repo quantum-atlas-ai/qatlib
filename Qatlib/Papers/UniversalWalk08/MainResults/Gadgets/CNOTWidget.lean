@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Controlled-NOT permutations and widget counts
@@ -126,10 +130,10 @@ theorem cnotMatrix_mulVec_single (p : Fin 2 × Fin 2) :
   unfold cnotMatrix
   rw [Matrix.permMatrix_mulVec]
   ext q
-  simp only [Function.comp_apply, Pi.single_apply, Pi.one_apply]
+  simp only [Function.comp_apply, Pi.single_apply]
   by_cases h : cnotPerm q = p
-  · rw [if_pos h, if_pos ((Equiv.eq_symm_apply cnotPerm).mpr h)]
-  · rw [if_neg h, if_neg (fun hh => h ((Equiv.eq_symm_apply cnotPerm).mp hh))]
+  · rw [ite_eq_left h, ite_eq_left ((Equiv.eq_symm_apply cnotPerm).mpr h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h ((Equiv.eq_symm_apply cnotPerm).mp hh))]
 
 /-- The controlled-NOT matrix sends the basis state `(1, 0)` to `(1, 1)` [Childs2009]. -/
 theorem cnotMatrix_sends_one_zero :
@@ -158,11 +162,11 @@ theorem cnotMatrix_fixes_zero_one :
 /-- The number of assignments of `n - 2` spectator bits is `2 ^ (n - 2)` [Childs2009]. -/
 theorem cnotWidgetCount (n : ℕ) :
     Fintype.card (Fin (n - 2) → Fin 2) = 2 ^ (n - 2) := by
-  simp [Fintype.card_fun]
+  simp []
 
 /-- The number of assignments of `n - 1` spectator bits is `2 ^ (n - 1)` [Childs2009]. -/
 theorem singleQubitWidgetCount (n : ℕ) :
     Fintype.card (Fin (n - 1) → Fin 2) = 2 ^ (n - 1) := by
-  simp [Fintype.card_fun]
+  simp []
 
 end Qatlib.Papers.UniversalWalk08.MainResults.Gates

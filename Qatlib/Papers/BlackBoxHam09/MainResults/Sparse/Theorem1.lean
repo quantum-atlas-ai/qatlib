@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Theorem 1 step count and query budget arithmetic
@@ -159,12 +163,18 @@ theorem theorem1_walk_error_le {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
   rw [hgoal, div_le_iff₀ (pow_pos hNpos 2)]
   nlinarith [hsq, hsq']
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- If a circuit uses at most a nonnegative cost `c` queries, repeating it `theorem1Steps` times
 uses at most `c * (theorem1QueryExpr + 1)` queries under the stated sign conditions. This
 gives a query count estimate associated with Theorem 1 of [BerryChilds2012]. -/
-theorem theorem1_repeat_query_budget {Λ Λmax t δ c : ℝ} {D : ℕ} (C : Circuit2 ι L)
+theorem theorem1_repeat_query_budget {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {L : ℕ} {Λ Λmax t δ c : ℝ} {D : ℕ} (C : Circuit2 ι L)
     (hΛ0 : 0 ≤ Λ) (hΛmax0 : 0 ≤ Λmax) (ht : 0 ≤ t) (hδ0 : 0 < δ)
-    (hc : 0 ≤ c) (hstep : (QueryCount2 C : ℝ) ≤ c) :
+    (_hc : 0 ≤ c) (hstep : (QueryCount2 C : ℝ) ≤ c) :
     (QueryCount2 (RepeatCircuit2 C (theorem1Steps Λ Λmax t δ D)) : ℝ) ≤
       c * (theorem1QueryExpr Λ D Λmax t δ + 1) := by
   rw [queryCount2_repeatCircuit]

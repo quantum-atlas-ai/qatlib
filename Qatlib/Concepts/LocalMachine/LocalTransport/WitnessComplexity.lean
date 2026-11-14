@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
-import Lean
-import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationSepa
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
+public import Lean
+public import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationSepa
+
+@[expose] public section
 
 /-!
 # Witness verifier semantics and transport
@@ -58,83 +62,32 @@ open scoped ComplexOrder
 
 /-- Reads a Boolean tape prefix up to its first blank, returning no result if the fuel bound is
 exceeded. -/
-def modelReadOutput : (fuel : ℕ) → (tape : Turing.ListBlank (Option Bool)) → Option (List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.readOutputUntilBlank").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelReadOutput : (fuel : ℕ) → (tape : Turing.ListBlank (Option Bool)) → Option (List Bool) :=
+  WitnessComplexityDefs.readOutputUntilBlank
 
 /-- Encodes `n` as a tape input consisting of `n` copies of `some true`. -/
-def modelUnaryInput : (n : ℕ) → List (Option Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.unaryInput").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelUnaryInput : (n : ℕ) → List (Option Bool) := WitnessComplexityDefs.unaryInput
 
 /-- Returns the polynomial time allowance for generating the verifier at input length `n`. -/
-def modelGenFuel : (f : WitnessVerifierFamily) → (n : ℕ) → ℕ := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.generatorFuel").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelGenFuel : (f : WitnessVerifierFamily) → (n : ℕ) → ℕ := generatorFuel
 
 /-- Runs a Turing machine for at most the given number of transitions and returns its halted
 configuration when one is reached. -/
-def modelRunHalt : {k : ℕ} → Turing.TM0.Machine (Option Bool) (Fin (k + 1)) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.runUntilHaltWithin").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelRunHalt : {k : ℕ} → Turing.TM0.Machine (Option Bool) (Fin (k + 1)) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) :=
+  WitnessComplexityDefs.runUntilHaltWithin
 
 /-- Executes a list of uniform verifier instructions using the two supplied Boolean oracles. -/
-noncomputable def uniformRunInstr : (S U : ∀ ell, Reg ell → Bool) → (q : ℕ) → List UniformVerifierInstruction → QState (Reg q) → QState (Reg q) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.WalshMoment.Forrelation.runUniformInstructions").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+noncomputable def uniformRunInstr : (S U : ∀ ell, Reg ell → Bool) → (q : ℕ) → List UniformVerifierInstruction → QState (Reg q) → QState (Reg q) :=
+  WalshMoment.Forrelation.runUniformInstructions
 
 /-- Returns the matrix of a uniform verifier instruction on `q` qubits with the supplied
 oracles. -/
-noncomputable def uniformInstrMatrix : (q : ℕ) → (S U : ∀ ell, Reg ell → Bool) → UniformVerifierInstruction → Matrix (Reg q) (Reg q) ℂ := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.WalshMoment.Forrelation.uniformInstructionMatrix").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+noncomputable def uniformInstrMatrix : (q : ℕ) → (S U : ∀ ell, Reg ell → Bool) → UniformVerifierInstruction → Matrix (Reg q) (Reg q) ℂ :=
+  WalshMoment.Forrelation.uniformInstructionMatrix
 
 /-- Requires in-range, distinct address wires and an in-range target outside the address list. -/
-def modelQueryLegal : (q : ℕ) → (addresses : List ℕ) → (target : ℕ) → Prop := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.WalshMoment.Forrelation.queryDescriptionLegal").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelQueryLegal : (q : ℕ) → (addresses : List ℕ) → (target : ℕ) → Prop :=
+  WalshMoment.Forrelation.queryDescriptionLegal
 
 /-- An all-true bitstring of length `n` decodes to the empty verifier with no witness, `n` input
 bits, and one ancilla. -/
@@ -257,7 +210,7 @@ theorem xorQueryMatrix_unitary (A : ClassicalOracle) (q : ℕ) (addresses : List
     (target : ℕ) (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup) :
     xorQueryMatrix A q addresses target ∈ unitaryGroup (Reg q) ℂ := by
   classical
-  simp only [xorQueryMatrix, dif_pos h]
+  simp only [xorQueryMatrix, dite_eq_left h]
   exact permMatrix_unitary
     (xorQueryUpdate_involutive A addresses target h.1 h.2.1 h.2.2.1)
 
@@ -266,7 +219,7 @@ theorem xorQueryMatrix_selfAdjoint (A : ClassicalOracle) (q : ℕ) (addresses : 
     (target : ℕ) (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup) :
     (xorQueryMatrix A q addresses target)ᴴ = xorQueryMatrix A q addresses target := by
   classical
-  simp only [xorQueryMatrix, dif_pos h]
+  simp only [xorQueryMatrix, dite_eq_left h]
   exact permMatrix_conjTranspose
     (xorQueryUpdate_involutive A addresses target h.1 h.2.1 h.2.2.1)
 
@@ -308,7 +261,7 @@ theorem instructionMatrix_unitary (A : ClassicalOracle) (q : ℕ) (i : WitnessIn
     by_cases h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup
     · simpa [instructionMatrix] using xorQueryMatrix_unitary A q addresses target h
     · simp only [instructionMatrix, xorQueryMatrix]
-      rw [dif_neg h]
+      rw [dite_eq_right h]
       exact Submonoid.one_mem (Matrix.unitaryGroup (Reg q) ℂ)
 
 /-- The matrix of every witness verifier program is unitary. -/
@@ -351,15 +304,15 @@ theorem witnessRestrict_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inpu
     (w : Reg p.witnessBits) : witnessRestrict p (embedConfig p x w) = w := by
   funext i
   simp only [witnessRestrict, witnessWire, embedConfig]
-  rw [dif_pos i.isLt]
+  rw [dite_eq_left i.isLt]
 
 /-- Restricting an embedded configuration to its input wires recovers the input. -/
 theorem inputRestrict_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w : Reg p.witnessBits) : inputRestrict p (embedConfig p x w) = x := by
   funext i
   simp only [inputRestrict, inputWire, embedConfig]
-  rw [dif_neg]
-  · rw [dif_pos]
+  rw [dite_eq_right]
+  · rw [dite_eq_left]
     · simp
     · omega
   · omega
@@ -369,7 +322,7 @@ theorem ancillaZero_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBit
     (w : Reg p.witnessBits) : ancillaZero p (embedConfig p x w) := by
   intro i
   simp only [ancillaWire, embedConfig]
-  rw [dif_neg, dif_neg]
+  rw [dite_eq_right, dite_eq_right]
   all_goals omega
 
 /-- For a fixed input, the embedding of witness configurations is injective. -/
@@ -386,9 +339,10 @@ theorem eq_embedConfig_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBit
     z = embedConfig p x (witnessRestrict p z) := by
   funext i
   have hq : (i : ℕ) < p.witnessBits + p.inputBits + p.ancillaBits := by
-    simpa [programQubits] using i.isLt
+    have hq := i.isLt
+    simp [programQubits] at hq ⊢
   by_cases hi : i.val < p.witnessBits
-  · simp only [embedConfig, dif_pos hi]
+  · simp only [embedConfig, dite_eq_left hi]
     rfl
   · by_cases hj : i.val < p.witnessBits + p.inputBits
     · have hlt : p.witnessBits + (i.val - p.witnessBits) < programQubits p := by
@@ -404,7 +358,7 @@ theorem eq_embedConfig_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBit
       have hxi : z i = x ⟨i.val - p.witnessBits, by omega⟩ :=
         calc z i = z ⟨p.witnessBits + (i.val - p.witnessBits), hlt⟩ := (congrArg z key).symm
           _ = x ⟨i.val - p.witnessBits, by omega⟩ := hx
-      simp only [embedConfig, dif_neg hi, dif_pos hj]
+      simp only [embedConfig, dite_eq_right hi, dite_eq_left hj]
       exact hxi
     · have hlt : p.witnessBits + p.inputBits + (i.val - (p.witnessBits + p.inputBits))
           < programQubits p := by
@@ -424,7 +378,7 @@ theorem eq_embedConfig_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBit
         calc z i = z ⟨p.witnessBits + p.inputBits + (i.val - (p.witnessBits + p.inputBits)), hlt⟩ :=
             (congrArg z key).symm
           _ = false := haz
-      simp only [embedConfig, dif_neg hi, dif_neg hj]
+      simp only [embedConfig, dite_eq_right hi, dite_eq_right hj]
       exact hzi
 
 /-- A configuration with an incorrect input or a nonzero ancilla differs from every witness
@@ -458,10 +412,10 @@ theorem witnessEmbed_row_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputB
   intro w
   rw [witnessEmbed_apply]
   by_cases hw : w = witnessRestrict p z
-  · rw [if_pos hw, if_pos]
+  · rw [ite_eq_left hw, ite_eq_left]
     rw [hw]
     exact eq_embedConfig_of_clean p x z h
-  · rw [if_neg hw, if_neg]
+  · rw [ite_eq_right hw, ite_eq_right]
     intro he
     apply hw
     have h1 := congrArg (witnessRestrict p) he
@@ -474,7 +428,7 @@ theorem witnessEmbed_row_of_not_clean (p : WitnessVerifierProgram) (x : Reg p.in
     (z : Reg (programQubits p)) (h : ¬ (inputRestrict p z = x ∧ ancillaZero p z)) :
     ∀ w : Reg p.witnessBits, witnessEmbed p x z w = 0 := by
   intro w
-  rw [witnessEmbed_apply, if_neg (ne_embedConfig_of_not_clean p x z w h)]
+  rw [witnessEmbed_apply, ite_eq_right (ne_embedConfig_of_not_clean p x z w h)]
 
 /-- Complex conjugation fixes the indicator of a decidable proposition. -/
 theorem star_ite_one (p : Prop) [Decidable p] :
@@ -550,13 +504,13 @@ theorem verifierInputDensity_eq_mul (p : WitnessVerifierProgram) (x : Reg p.inpu
   simp only [verifierInputDensity, Matrix.of_apply, star_witnessEmbed]
   by_cases hz : inputRestrict p z = x ∧ ancillaZero p z
   · by_cases hz' : inputRestrict p z' = x ∧ ancillaZero p z'
-    · rw [if_pos ⟨hz.1, hz'.1, hz.2, hz'.2⟩]
+    · rw [ite_eq_left ⟨hz.1, hz'.1, hz.2, hz'.2⟩]
       simp_rw [witnessEmbed_row_of_clean p x z hz, witnessEmbed_row_of_clean p x z' hz']
       exact (sum_embedded_pair σ (witnessRestrict p z) (witnessRestrict p z')).symm
-    · rw [if_neg (fun h => hz' ⟨h.2.1, h.2.2.2⟩)]
+    · rw [ite_eq_right (fun h => hz' ⟨h.2.1, h.2.2.2⟩)]
       simp_rw [witnessEmbed_row_of_not_clean p x z' (fun h => hz' h)]
       simp
-  · rw [if_neg (fun h => hz ⟨h.1, h.2.2.1⟩)]
+  · rw [ite_eq_right (fun h => hz ⟨h.1, h.2.2.1⟩)]
     simp_rw [witnessEmbed_row_of_not_clean p x z (fun h => hz h)]
     simp
 
@@ -566,8 +520,8 @@ theorem witnessEmbed_sq (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     witnessEmbed p x z w * witnessEmbed p x z w = witnessEmbed p x z w := by
   rw [witnessEmbed_apply]
   by_cases hz : z = embedConfig p x w
-  · rw [if_pos hz]; ring
-  · rw [if_neg hz]; ring
+  · rw [ite_eq_left hz]; ring
+  · rw [ite_eq_right hz]; ring
 
 /-- Entries in distinct witness columns have zero product within any fixed row. -/
 theorem witnessEmbed_mul_of_ne (p : WitnessVerifierProgram) (x : Reg p.inputBits)
@@ -575,11 +529,11 @@ theorem witnessEmbed_mul_of_ne (p : WitnessVerifierProgram) (x : Reg p.inputBits
     witnessEmbed p x z w * witnessEmbed p x z w' = 0 := by
   rw [witnessEmbed_apply, witnessEmbed_apply]
   by_cases h1 : z = embedConfig p x w
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     by_cases h2 : z = embedConfig p x w'
     · exact (h (embedConfig_injective p x (h1.symm.trans h2))).elim
-    · rw [if_neg h2]; ring
-  · rw [if_neg h1]; ring
+    · rw [ite_eq_right h2]; ring
+  · rw [ite_eq_right h1]; ring
 
 /-- The inner product of two witness embedding columns is their equality indicator. -/
 theorem sum_witnessEmbed_col (p : WitnessVerifierProgram) (x : Reg p.inputBits)
@@ -588,7 +542,7 @@ theorem sum_witnessEmbed_col (p : WitnessVerifierProgram) (x : Reg p.inputBits)
         star (witnessEmbed p x z w) * witnessEmbed p x z w') =
       if w = w' then (1 : ℂ) else 0 := by
   by_cases h : w = w'
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hterm : ∀ z : Reg (programQubits p),
         star (witnessEmbed p x z w) * witnessEmbed p x z w' = witnessEmbed p x z w' := by
       intro z
@@ -605,7 +559,7 @@ theorem sum_witnessEmbed_col (p : WitnessVerifierProgram) (x : Reg p.inputBits)
         simp_rw [hite]
         rw [Finset.sum_ite_eq' Finset.univ (embedConfig p x w')]
         simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hterm : ∀ z : Reg (programQubits p),
         star (witnessEmbed p x z w) * witnessEmbed p x z w' = 0 := by
       intro z
@@ -677,13 +631,13 @@ theorem verifierInputDensity_pure (p : WitnessVerifierProgram) (x : Reg p.inputB
     verifierInitialState]
   by_cases hz : inputRestrict p z = x ∧ ancillaZero p z
   · by_cases hz' : inputRestrict p z' = x ∧ ancillaZero p z'
-    · rw [if_pos ⟨hz.1, hz'.1, hz.2, hz'.2⟩, if_pos hz, if_pos hz']
-    · rw [if_neg (fun h => hz' ⟨h.2.1, h.2.2.2⟩), if_pos hz, if_neg hz']
+    · rw [ite_eq_left ⟨hz.1, hz'.1, hz.2, hz'.2⟩, ite_eq_left hz, ite_eq_left hz']
+    · rw [ite_eq_right (fun h => hz' ⟨h.2.1, h.2.2.2⟩), ite_eq_left hz, ite_eq_right hz']
       simp
   · by_cases hz' : inputRestrict p z' = x ∧ ancillaZero p z'
-    · rw [if_neg (fun h => hz ⟨h.1, h.2.2.1⟩), if_neg hz, if_pos hz']
+    · rw [ite_eq_right (fun h => hz ⟨h.1, h.2.2.1⟩), ite_eq_right hz, ite_eq_left hz']
       simp
-    · rw [if_neg (fun h => hz ⟨h.1, h.2.2.1⟩), if_neg hz, if_neg hz']
+    · rw [ite_eq_right (fun h => hz ⟨h.1, h.2.2.1⟩), ite_eq_right hz, ite_eq_right hz']
       simp
 
 /-- The real part of a diagonal outer-product entry is the corresponding Born probability. -/
@@ -823,9 +777,9 @@ theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
     = if z = flipWire w y then (1 : ℂ) else 0
   rw [hpauli]
   by_cases hall : ∀ k : Fin q, k ≠ w → z k = y k
-  · rw [if_pos hall]
+  · rw [ite_eq_left hall]
     by_cases hw : z w = !y w
-    · rw [if_pos hw]
+    · rw [ite_eq_left hw]
       have hz : z = flipWire w y := by
         funext i
         by_cases hi : i = w
@@ -836,8 +790,8 @@ theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
         · show z i = Function.update y w (!y w) i
           rw [Function.update_of_ne hi]
           exact hall i hi
-      rw [if_pos hz]
-    · rw [if_neg hw]
+      rw [ite_eq_left hz]
+    · rw [ite_eq_right hw]
       have hz : z ≠ flipWire w y := by
         intro he
         apply hw
@@ -846,8 +800,8 @@ theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
         rw [hwe]
         show Function.update y w (!y w) w = !y w
         rw [Function.update_self]
-      rw [if_neg hz]
-  · rw [if_neg hall]
+      rw [ite_eq_right hz]
+  · rw [ite_eq_right hall]
     have hz : z ≠ flipWire w y := by
       intro he
       apply hall
@@ -857,7 +811,7 @@ theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
       rw [hke]
       show Function.update y w (!y w) k = y k
       rw [Function.update_of_ne hk]
-    rw [if_neg hz]
+    rw [ite_eq_right hz]
 
 /-- Initializing a computational basis witness gives the basis state of its embedded
 configuration. -/
@@ -871,15 +825,15 @@ theorem verifierInitialState_ket (p : WitnessVerifierProgram) (x : Reg p.inputBi
     · have hz : z = embedConfig p x u := by
         rw [← hw]
         exact eq_embedConfig_of_clean p x z hclean
-      rw [if_pos hclean, if_pos hw, if_pos hz]
+      rw [ite_eq_left hclean, ite_eq_left hw, ite_eq_left hz]
     · have hz : z ≠ embedConfig p x u := by
         intro he
         apply hw
         rw [he]
         exact witnessRestrict_embedConfig p x u
-      rw [if_pos hclean, if_neg hw, if_neg hz]
+      rw [ite_eq_left hclean, ite_eq_right hw, ite_eq_right hz]
   · have hz : z ≠ embedConfig p x u := ne_embedConfig_of_not_clean p x z u hclean
-    rw [if_neg hclean, if_neg hz]
+    rw [ite_eq_right hclean, ite_eq_right hz]
 
 /-- The identity matrix on the empty witness register is the pure density of its unique basis
 state. -/
@@ -965,7 +919,7 @@ theorem xVerifierProgram_programMatrix (m : ℕ) :
   rw [hstep]
   show (if h : m < programQubits (xVerifierProgram m) then
       wireGate (programQubits (xVerifierProgram m)) ⟨m, h⟩ PauliX else 1) = _
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   exact wireGate_pauliX_permMatrix _
 
 /-- The single-X verifier sends an initialized basis configuration to the basis state with its
@@ -995,7 +949,7 @@ theorem xVerifierProgram_output_mem (m : ℕ) (x : Reg m) (u : Reg 0) :
     show m < 0 + m + 1
     omega
   simp only [programOutputEvent]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   simp only [Finset.mem_filter, Finset.mem_univ, true_and]
   show Function.update (embedConfig (xVerifierProgram m) x u) ⟨m, _⟩
     (!(embedConfig (xVerifierProgram m) x u ⟨m, _⟩)) ⟨m, _⟩ = true
@@ -1027,13 +981,13 @@ theorem g1 :
         (verifierInputDensity p x σ).PosSemidef ∧
         Matrix.trace (verifierInputDensity p x σ) = Matrix.trace σ)) ∧
   (∀ (A : ClassicalOracle) (p : WitnessVerifierProgram)
-      (hp : witnessProgramLegal p) (x : Reg p.inputBits)
+      (_hp : witnessProgramLegal p) (x : Reg p.inputBits)
       (w : QState (Reg p.witnessBits)), Normalized w →
     acceptProb A p x (pureWitnessDensity w) =
       MeasureProb (programRun A p (verifierInitialState p x w))
         (programOutputEvent p)) ∧
   (∀ (A : ClassicalOracle) (p : WitnessVerifierProgram)
-      (hp : witnessProgramLegal p) (x : Reg p.inputBits)
+      (_hp : witnessProgramLegal p) (x : Reg p.inputBits)
       (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ),
     IsWitnessDensity σ →
       0 ≤ acceptProb A p x σ ∧ acceptProb A p x σ ≤ 1) ∧
@@ -1200,7 +1154,7 @@ theorem appendedControlOracle_readAddress {q : ℕ} (A : ClassicalOracle) (x : R
     have hneg : ¬(Fin.last addresses.length).val < addresses.length := by
       rw [Fin.val_last]
       exact Nat.lt_irrefl _
-    rw [dif_neg hneg]
+    rw [dite_eq_right hneg]
   have hcast : (fun i : Fin addresses.length => r i.castSucc)
       = readAddress x addresses haddr0 := by
     funext i
@@ -1208,7 +1162,7 @@ theorem appendedControlOracle_readAddress {q : ℕ} (A : ClassicalOracle) (x : R
     have hi : (i.castSucc).val < addresses.length := by
       rw [Fin.val_castSucc]
       exact i.isLt
-    rw [dif_pos hi]
+    rw [dite_eq_left hi]
     show x ⟨addresses.get ⟨i.castSucc.val, hi⟩, haddr0 _ (List.get_mem _ _)⟩ =
       x ⟨addresses.get i, haddr0 _ (List.get_mem addresses i)⟩
     rfl
@@ -1246,7 +1200,7 @@ theorem controlledXor_eq_appended (A : ClassicalOracle) (q : ℕ) (addresses : L
   have hq : target < q ∧ (∀ a ∈ addresses ++ [control], a < q) ∧
       target ∉ addresses ++ [control] ∧ (addresses ++ [control]).Nodup :=
     ⟨h.1, hmem, hdisj, hnd⟩
-  simp only [controlledXorMatrix, dif_pos hctrl, xorQueryMatrix, dif_pos hq]
+  simp only [controlledXorMatrix, dite_eq_left hctrl, xorQueryMatrix, dite_eq_left hq]
   show permMatrix (controlledXorUpdate A addresses target control hctrl.1 hctrl.2.1
       hctrl.2.2.2.1) =
     permMatrix (xorQueryUpdate (appendedControlOracle A) (addresses ++ [control]) target
@@ -1272,13 +1226,13 @@ theorem controlledXor_eq_appended (A : ClassicalOracle) (q : ℕ) (addresses : L
         else x ⟨control, h.2.1⟩)
       show x ⟨(addresses ++ [control]).get i, hmem _ (List.get_mem _ _)⟩ = _
       by_cases hi : i.val < addresses.length
-      · rw [dif_pos hi]
+      · rw [dite_eq_left hi]
         refine congrArg x ?_
         apply Fin.eq_of_val_eq
         show (addresses ++ [control]).get i = (addresses.get ⟨i.val, hi⟩ : ℕ)
         rw [List.get_eq_getElem, List.get_eq_getElem]
         exact List.getElem_append_left hi
-      · rw [dif_neg hi]
+      · rw [dite_eq_right hi]
         have hlen : (addresses ++ [control]).length = addresses.length + 1 := by
           rw [List.length_append, List.length_singleton]
         refine congrArg x ?_
@@ -1304,9 +1258,9 @@ theorem uniformInstrMatrix_eq (n : ℕ) (A : ClassicalOracle) (i : UniformVerifi
     simp only [uniformToWitnessInstruction, instructionMatrix, xorQueryMatrix]
     by_cases h : target < n ∧ (∀ a ∈ addresses, a < n) ∧ target ∉ addresses ∧ addresses.Nodup
     · have hL : modelQueryLegal n addresses target := h
-      rw [dif_pos hL, dif_pos h]
+      rw [dite_eq_left hL, dite_eq_left h]
     · have hL : ¬modelQueryLegal n addresses target := fun hh => h hh
-      rw [dif_neg hL, dif_neg h]
+      rw [dite_eq_right hL, dite_eq_right h]
   | queryU addresses target =>
     rw [show uniformInstrMatrix n A A (UniformVerifierInstruction.queryU addresses target)
         = @dite (Matrix (Reg n) (Reg n) ℂ) (modelQueryLegal n addresses target)
@@ -1318,9 +1272,9 @@ theorem uniformInstrMatrix_eq (n : ℕ) (A : ClassicalOracle) (i : UniformVerifi
     simp only [uniformToWitnessInstruction, instructionMatrix, xorQueryMatrix]
     by_cases h : target < n ∧ (∀ a ∈ addresses, a < n) ∧ target ∉ addresses ∧ addresses.Nodup
     · have hL : modelQueryLegal n addresses target := h
-      rw [dif_pos hL, dif_pos h]
+      rw [dite_eq_left hL, dite_eq_left h]
     · have hL : ¬modelQueryLegal n addresses target := fun hh => h hh
-      rw [dif_neg hL, dif_neg h]
+      rw [dite_eq_right hL, dite_eq_right h]
 
 /-- Executing uniform instructions with both oracle labels equal to `A` is multiplication by
 their reversed matrix product. -/
@@ -1388,13 +1342,13 @@ theorem run_transport (A : ClassicalOracle) (p : UniformVerifierProgram)
 transport, oracle-independent QMA membership, and the spectral forrelation property. -/
 theorem g3 :
   (∀ (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ) (target : ℕ)
-      (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧
+      (_h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧
         addresses.Nodup),
     xorQueryMatrix A q addresses target ∈ Matrix.unitaryGroup (Reg q) ℂ ∧
       (xorQueryMatrix A q addresses target)ᴴ =
         xorQueryMatrix A q addresses target) ∧
   (∀ (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ) (target control : ℕ)
-      (h : target < q ∧ control < q ∧ control ≠ target ∧ control ∉ addresses ∧
+      (_h : target < q ∧ control < q ∧ control ≠ target ∧ control ∉ addresses ∧
         (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup),
     controlledXorMatrix A q addresses target control =
       xorQueryMatrix (appendedControlOracle A) q (addresses ++ [control]) target) ∧
@@ -1404,7 +1358,7 @@ theorem g3 :
         | .fixed _ => none
         | .queryS addresses _ | .queryU addresses _ => some addresses.length).sum) ∧
   (∀ (A : ClassicalOracle) (p : UniformVerifierProgram)
-      (hp : uniformProgramLegal p)
+      (_hp : uniformProgramLegal p)
       (ψ : QState (Reg (programQubits (fromUniformVerifierProgram p))))
       (hq : programQubits (fromUniformVerifierProgram p) = p.qubits),
     programRun A (fromUniformVerifierProgram p) ψ =

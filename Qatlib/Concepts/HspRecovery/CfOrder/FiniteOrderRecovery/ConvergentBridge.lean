@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Finset.Max
-import Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery.OrderDecode
+module
+
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Finset.Max
+public import Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery.OrderDecode
+
+@[expose] public section
 
 /-!
 # Continued fraction candidates for order recovery
@@ -42,7 +46,7 @@ denominator or fuel is zero. -/
 def cfPartialsAux : ℕ → ℕ → ℕ → List ℕ
   | 0, _, _ => []
   | _ + 1, _, 0 => []
-  | k + 1, num, den@(d + 1) => (num / (d + 1)) :: cfPartialsAux k (d + 1) (num % (d + 1))
+  | k + 1, num, _den@(d + 1) => (num / (d + 1)) :: cfPartialsAux k (d + 1) (num % (d + 1))
 
 /-- Computes partial quotients using initial fuel `den + 1`. -/
 def cfPartials (num den : ℕ) : List ℕ := cfPartialsAux (den + 1) num den

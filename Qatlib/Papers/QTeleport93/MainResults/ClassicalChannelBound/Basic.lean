@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+module
+
+public import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+
+@[expose] public section
 
 /-!
 # Classical message bounds for teleportation

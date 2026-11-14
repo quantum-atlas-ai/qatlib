@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

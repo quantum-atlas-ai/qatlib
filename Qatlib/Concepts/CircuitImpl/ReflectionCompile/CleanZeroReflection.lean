@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Clean compilation of the zero-state reflection
@@ -123,7 +127,7 @@ theorem localAndPrefix_length (n m : ℕ) (hm : m ≤ n-1) :
   | zero => rfl
   | succ m ih =>
     have h : m < n-1 := by omega
-    simp only [localAndPrefix, dif_pos h, List.length_append, localAndStage_length,
+    simp only [localAndPrefix, dite_eq_left h, List.length_append, localAndStage_length,
       ih (by omega)]
     omega
 
@@ -217,8 +221,8 @@ private theorem localAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
       · subst j
         rw [Function.update_self]
         simp only [localAndPrefixBasis, reflectionJoin_work, reflectionJoin_data]
-        simp only [lt_self_iff_false, if_false, Bool.false_xor, hi]
-        rw [if_pos (by omega), prefixAnd_zero n hn x]
+        simp only [lt_self_iff_false, ite_false, Bool.false_xor, hi]
+        rw [ite_eq_left (by omega), prefixAnd_zero n hn x]
       · have hne : reflectionWorkWire n j ≠ reflectionWorkWire n i := by
           intro h
           exact hj (Fin.ext (by have := congrArg Fin.val h; simp [reflectionWorkWire] at this; omega))
@@ -244,7 +248,7 @@ private theorem localAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
       · subst j
         rw [Function.update_self]
         simp only [localAndPrefixBasis, reflectionJoin_work, reflectionJoin_data]
-        rw [if_neg (by omega), if_pos (by omega), if_pos (by omega), Bool.false_xor]
+        rw [ite_eq_right (by omega), ite_eq_left (by omega), ite_eq_left (by omega), Bool.false_xor]
         have hval : i.val-1+1 = i.val := by omega
         rw [hval, prefixAnd_succ n i.val hm x]
       · have hne : reflectionWorkWire n j ≠ reflectionWorkWire n i := by
@@ -267,7 +271,7 @@ theorem localAndPrefix_action (n m : ℕ) (hm : m ≤ n-1) (x : Reg n) :
   | zero => simp [localAndPrefix, reflectionCompile, localAndPrefixBasis]
   | succ m ih =>
     have h : m < n-1 := by omega
-    rw [localAndPrefix, dif_pos h, reflectionCompile_append, run_append, ih (by omega)]
+    rw [localAndPrefix, dite_eq_left h, reflectionCompile_append, run_append, ih (by omega)]
     exact localAndStage_action n ⟨m,h⟩ x
 
 /-- For `n ≥ 2`, the conjunction program has `15 * (n - 1)` gates and computes every
@@ -317,7 +321,7 @@ theorem reflectionFlipPrefix_length (n m : ℕ) (hm : m ≤ n) :
   induction m with
   | zero => rfl
   | succ m ih =>
-    simp only [reflectionFlipPrefix, dif_pos (show m<n by omega), List.length_append,
+    simp only [reflectionFlipPrefix, dite_eq_left (show m<n by omega), List.length_append,
       List.length_cons, List.length_nil, ih (by omega)]
 
 /-- Every data-flip prefix is a legal reflection-gate program. -/
@@ -392,7 +396,7 @@ theorem reflectionEmbed_tensor (n : ℕ) (ψ : QState (Reg n)) :
       Equiv.symm_symm]
   simp only [show ((reflectionSplit n) z = (x,fun _ => false)) =
     (z = (reflectionSplit n).symm (x,fun _ => false)) from
-      propext (reflectionSplit n).apply_eq_iff_eq_symm_apply]
+      propext ((reflectionSplit n).eq_symm_apply.symm)]
 
 /-- The clean-work embedding commutes with scalar multiplication. -/
 @[simp] theorem reflectionEmbed_smul (n : ℕ) (c : ℂ) (ψ : QState (Reg n)) :
@@ -446,7 +450,7 @@ private theorem wireGate_diagonal_ket (n : ℕ) (w : Fin n) (d : Bool → ℂ) (
     ApplyGate (wireGate n w (Matrix.diagonal d)) (Qatlib.Foundations.PureStateMath.Ket x) = d (x w) • Qatlib.Foundations.PureStateMath.Ket x := by
   rw [applyGate_wireGate_ket]
   have hup : Function.update x w (x w) = x := Function.update_eq_self w x
-  cases hx : x w <;> simp only [Matrix.diagonal_apply, if_true, if_false,
+  cases hx : x w <;> simp only [Matrix.diagonal_apply, ite_true, ite_false,
     Bool.false_eq_true, Bool.true_eq_false, zero_smul, add_zero, zero_add]
   all_goals rw [hx] at hup; rw [hup]
 
@@ -482,7 +486,7 @@ private theorem flipPrefix_update (n m : ℕ) (hm : m<n) (x : Reg n) (w : Reg (n
     · subst j
       rw [Function.update_self]
       rw [reflectionJoin_data]
-      simp only [Nat.lt_succ_self, if_true]
+      simp only [Nat.lt_succ_self, ite_true]
     · have hne : reflectionDataWire n j ≠ reflectionDataWire n ⟨m,hm⟩ := by
         intro h
         exact hj (Fin.ext (by have := congrArg Fin.val h; simpa using this))
@@ -506,10 +510,10 @@ private theorem reflectionFlipPrefix_action (n m : ℕ) (hm : m ≤ n) (x : Reg 
   | zero => simp [reflectionFlipPrefix, reflectionCompile]
   | succ m ih =>
     have h : m<n := by omega
-    rw [reflectionFlipPrefix, dif_pos h, reflectionCompile_append, run_append, ih (by omega)]
+    rw [reflectionFlipPrefix, dite_eq_left h, reflectionCompile_append, run_append, ih (by omega)]
     simp only [reflectionCompile, List.map_cons, List.map_nil, Run, reflectionGateMatrix]
     rw [wireGate_X_ket]
-    simp only [reflectionJoin_data, lt_self_iff_false, if_false]
+    simp only [reflectionJoin_data, lt_self_iff_false, ite_false]
     rw [flipPrefix_update n m h x w]
 
 /-- The complete data-flip program negates every data bit of a basis register and preserves its
@@ -532,7 +536,7 @@ private theorem reflectionSignCorrection (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
     (-1 : ℂ) • Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,fun _ => false)) := by
   simp only [reflectionCompile, List.map_cons, List.map_nil, Run, reflectionGateMatrix]
   rw [wireGate_X_ket, wireGate_Z_ket]
-  simp only [Function.update_self, reflectionJoin_work, Bool.not_false, if_true]
+  simp only [Function.update_self, reflectionJoin_work, Bool.not_false, ite_true]
   rw [reflectionApplyGate_smul, wireGate_X_ket]
   simp only [Function.update_self, Bool.not_true, Function.update_idem]
   have he : Function.update ((reflectionSplit n).symm (x,fun _ => false))
@@ -564,7 +568,7 @@ private theorem zeroReflection_basis_large (n : ℕ) (hn : 2 ≤ n) (x : Reg n) 
       (Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,fun _ => false))) =
       (if x = (fun _ => false) then (1 : ℂ) else -1) •
         Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,fun _ => false)) := by
-  rw [localZeroReflectionSteps, dif_neg (by omega), dif_neg (by omega)]
+  rw [localZeroReflectionSteps, dite_eq_right (by omega), dite_eq_right (by omega)]
   simp only [reflectionCompile_append, run_append]
   rw [reflectionDataFlips_action, (local_and_clean_prefix_action n hn).2]
   have hphase : ∀ z : Reg (n+(n-1)),
@@ -595,7 +599,7 @@ private theorem zeroReflection_ket {I : Type*} [Fintype I] [DecidableEq I] (z x 
   · subst x
     simp
     module
-  · rw [if_neg (Ne.symm h), zero_smul, smul_zero, zero_sub, if_neg h]
+  · rw [ite_eq_right (Ne.symm h), zero_smul, smul_zero, zero_sub, ite_eq_right h]
     simp
 
 /-- On an embedded data basis state, the local program implements reflection about the all-zero
@@ -611,7 +615,7 @@ private theorem zeroReflection_basis (n : ℕ) (x : Reg n) :
     have hx : x = (fun _ => false) := Subsingleton.elim _ _
     simp [localZeroReflectionSteps, reflectionCompile, hx]
   · by_cases h1 : n=1
-    · rw [localZeroReflectionSteps, dif_neg h0, dif_pos h1]
+    · rw [localZeroReflectionSteps, dite_eq_right h0, dite_eq_left h1]
       simp only [reflectionCompile, List.map_cons, List.map_nil, Run, reflectionGateMatrix]
       rw [wireGate_Z_ket]
       simp only [reflectionJoin_data]

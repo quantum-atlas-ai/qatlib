@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Sparse Pauli shadow covariance
@@ -165,7 +169,7 @@ theorem tensor_pauli_actual_cross_moment (n : ℕ) (ρ : Operator (2 ^ n))
     rw [← ht, he, Matrix.smul_mul, Matrix.trace_smul, smul_eq_mul]
     rw [show (3 : ℂ) ^ pauliWordOverlap u v =
       (((3 : ℝ) ^ pauliWordOverlap u v : ℝ) : ℂ) by norm_cast]
-    simp only [sparsePauliMoment, if_pos h, Complex.mul_re, Complex.ofReal_re,
+    simp only [sparsePauliMoment, ite_eq_left h, Complex.mul_re, Complex.ofReal_re,
       Complex.ofReal_im, zero_mul, sub_zero]
   · simp only [pauliWordsCompatible, not_forall] at h
     obtain ⟨i, a, b, hu, hv, hab⟩ := h
@@ -215,7 +219,7 @@ private theorem sparsePauliMoment_abs_bound (n : ℕ) (ρ : Operator (2 ^ n))
       if pauliWordsCompatible u v then (3 : ℝ) ^ pauliWordOverlap u v else 0 := by
   classical
   by_cases h : pauliWordsCompatible u v
-  · simp only [sparsePauliMoment, if_pos h, abs_mul,
+  · simp only [sparsePauliMoment, ite_eq_left h, abs_mul,
       abs_of_nonneg (show 0 ≤ (3 : ℝ) ^ pauliWordOverlap u v by positivity)]
     exact mul_le_of_le_one_right (by positivity)
       (sparsePauliWord_expectation_abs_le_one n ρ hρ _)

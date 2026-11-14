@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+
+@[expose] public section
 
 /-!
 # Lower bounds on the unmarked Johnson population

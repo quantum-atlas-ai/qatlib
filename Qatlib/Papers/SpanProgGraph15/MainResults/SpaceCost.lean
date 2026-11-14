@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgGraph15.MainResults.SourceSpanPrograms
+module
+
+public import Qatlib.Papers.SpanProgGraph15.MainResults.SourceSpanPrograms
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ def qubitCost (d : ℕ) : ℕ := Nat.clog 2 d
 
 /-- `P₁`'s ambient space `2n² + 1` needs at most `2 log₂ n + 3` qubits for
 `n ≥ 1` (dimension of `P₁`, §3, p. 3). -/
-theorem bip_qubitCost_le {n : ℕ} (hn : 1 ≤ n) :
+theorem bip_qubitCost_le {n : ℕ} (_hn : 1 ≤ n) :
     qubitCost (2 * n ^ 2 + 1) ≤ 2 * Nat.log2 n + 3 := by
   rw [qubitCost, Nat.clog_le_iff_le_pow (by norm_num : 1 < 2)]
   have hp : n < 2 ^ (Nat.log2 n + 1) := by
@@ -67,7 +71,7 @@ theorem bip_qubitCost_le {n : ℕ} (hn : 1 ≤ n) :
 
 /-- `P₂`'s ambient space `n² − 1` needs at most `2 log₂ n + 2` qubits for
 `n ≥ 1` (dimension of `P₂`, §4, p. 5). -/
-theorem conn_qubitCost_le {n : ℕ} (hn : 1 ≤ n) :
+theorem conn_qubitCost_le {n : ℕ} (_hn : 1 ≤ n) :
     qubitCost (n ^ 2 - 1) ≤ 2 * Nat.log2 n + 2 := by
   rw [qubitCost, Nat.clog_le_iff_le_pow (by norm_num : 1 < 2)]
   have hp : n < 2 ^ (Nat.log2 n + 1) := by

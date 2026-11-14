@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.K2WindowSupport
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.K2WindowSupport
+
+@[expose] public section
 
 /-!
 # Amplitude estimation windows for larger error parameters

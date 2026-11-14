@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DirichletForm.EnergyIdentity
+module
+
+public import Qatlib.Concepts.DirichletForm.EnergyIdentity
+
+@[expose] public section
 
 /-!
 # Cut indicators and graph energy
@@ -120,10 +124,10 @@ lemma diff_sq (S : Finset V) (x y : V) :
   by_cases hx : x ∈ S <;> by_cases hy : y ∈ S
   · simp [membership_indicator, hx, hy]
   · have hne : (x ∈ S) ≠ (y ∈ S) := by simp [hx, hy]
-    rw [membership_indicator, membership_indicator, if_neg hne, if_pos hx, if_neg hy]
+    rw [membership_indicator, membership_indicator, ite_eq_right hne, ite_eq_left hx, ite_eq_right hy]
     ring
   · have hne : (x ∈ S) ≠ (y ∈ S) := by simp [hx, hy]
-    rw [membership_indicator, membership_indicator, if_neg hne, if_neg hx, if_pos hy]
+    rw [membership_indicator, membership_indicator, ite_eq_right hne, ite_eq_right hx, ite_eq_left hy]
     ring
   · simp [membership_indicator, hx, hy]
 

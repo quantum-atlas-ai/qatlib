@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+@[expose] public section
 
 /-!
 # Legacy statement of actual-record SVT accuracy

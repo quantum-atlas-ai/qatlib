@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QsampleCoup25.MainResults.Coalescence
+module
+
+public import Qatlib.Papers.QsampleCoup25.MainResults.Coalescence
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

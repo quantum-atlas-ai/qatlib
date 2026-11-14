@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Algebra.Ring.AddAut
-import Mathlib.Data.ZMod.Units
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Tactic
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Algebra.Ring.AddAut
+public import Mathlib.Data.ZMod.Units
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Cyclic semidirect products from modular units

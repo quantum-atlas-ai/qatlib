@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TensorDiff
-import Qatlib.Papers.OverlapGapGoh26.Resources.IndependentFaults
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+public import Qatlib.Papers.OverlapGapGoh26.Resources.IndependentFaults
+
+@[expose] public section
 
 /-!
 # A four qubit parity phase gadget

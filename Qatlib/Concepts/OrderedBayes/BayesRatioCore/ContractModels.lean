@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Contracts and transition models for ordered Bayesian search
@@ -159,7 +164,7 @@ noncomputable def truthStepCosted {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ
   fun a =>
     if _h : ∃ i : Fin n, ε ≤ a i then Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl a)
     else
-      (PMF.bernoulli (truthAnswerProb j (stageTwoCut hn a ε) p) (clampProb_le _)).map
+      (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (truthAnswerProb j (stageTwoCut hn a ε) p) (clampProb_le _)).map
         fun b =>
           ((Sum.inr (if b then updateTrue a (stageTwoCut hn a ε) p
             else updateFalse a (stageTwoCut hn a ε) p)), 1)
@@ -194,7 +199,7 @@ noncomputable def printedT26Bound (n : ℕ) (p τ : ℝ) : ℝ :=
 /-- A costed Boolean comparison that returns the true bit with probability 3/4 and its negation
 with probability 1/4, always charging one query. -/
 noncomputable def oneComparison (truth : Bool) : CostedLaw Bool :=
-  (PMF.bernoulli (3 / 4 : ℝ≥0) (by
+  (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (3 / 4 : ℝ≥0) (by
     exact_mod_cast (show (3 : ℝ) / 4 ≤ 1 by norm_num))).bind fun correct =>
     PMF.pure ((if correct then truth else !truth), 1)
 

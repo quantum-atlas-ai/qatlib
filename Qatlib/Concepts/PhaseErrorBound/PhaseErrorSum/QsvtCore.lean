@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreDefs
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
-import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreNativePhasePort
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreDefs
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
+public import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreNativePhasePort
+
+@[expose] public section
 
 /-!
 # QSVT synthesis and implementation guarantees
@@ -65,7 +69,7 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexInnerProductSpace
 
 /-- Two orthogonal projectors sum to identity and their products vanish in both orders. -/
-private def IsSignalSectorPair {H : Type} [Fintype H] [DecidableEq H]
+def IsSignalSectorPair {H : Type} [Fintype H] [DecidableEq H]
     (Pblk Qblk : Matrix H H ℂ) : Prop :=
   Pblk + Qblk = 1 ∧ Pblk * Qblk = 0 ∧ Qblk * Pblk = 0 ∧
     IsOrthogonalProjector Pblk ∧ IsOrthogonalProjector Qblk
@@ -78,7 +82,7 @@ private def IsBase1ConstantTriple {H : Type} [Fintype H] [DecidableEq H]
 
 /-- On each input operator tensored with the seed state, the reindexed channel and conjugation
 by `U` have equal partial traces. -/
-private noncomputable def InitActDiscardForm {D Ds Da : ℕ}
+noncomputable def InitActDiscardForm {D Ds Da : ℕ}
     (channel : QuantumChannel D D) (e : Fin D ≃ (Fin Ds × Fin Da))
     (U : Matrix (Fin Ds × Fin Da) (Fin Ds × Fin Da) ℂ)
     (seed : QState (Fin Da)) : Prop :=
@@ -565,13 +569,13 @@ theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [Dec
       rw [Subtype.ext_iff, ← hi, ← hi', hc_inj.eq_iff]
     rw [← hi, ← hi']
     by_cases h : i = i'
-    · rw [if_pos (hxy.mpr h)]
+    · rw [ite_eq_left (hxy.mpr h)]
       have horth' := orthonormal_iff_ite.mp hcorth i i'
-      rw [if_pos h] at horth'
+      rw [ite_eq_left h] at horth'
       exact horth'
-    · rw [if_neg (fun hx => h (hxy.mp hx))]
+    · rw [ite_eq_right (fun hx => h (hxy.mp hx))]
       have horth' := orthonormal_iff_ite.mp hcorth i i'
-      rw [if_neg h] at horth'
+      rw [ite_eq_right h] at horth'
       exact horth'
   obtain ⟨u, b, hsub, hcoe⟩ := Orthonormal.exists_orthonormalBasis_extension hcsub
   have huorth : Orthonormal ℂ ((↑) : ↥u → EuclideanSpace ℂ H) := by
@@ -597,11 +601,11 @@ theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [Dec
         = if k = k' then 1 else 0 := by
       have h2 := orthonormal_iff_ite.mp huorth (toE.symm k) (toE.symm k')
       by_cases hkk' : k = k'
-      · rw [if_pos (congrArg toE.symm hkk')] at h2
-        rw [if_pos hkk']
+      · rw [ite_eq_left (congrArg toE.symm hkk')] at h2
+        rw [ite_eq_left hkk']
         exact h2
-      · rw [if_neg (fun hcon => hkk' (toE.symm.injective hcon))] at h2
-        rw [if_neg hkk']
+      · rw [ite_eq_right (fun hcon => hkk' (toE.symm.injective hcon))] at h2
+        rw [ite_eq_right hkk']
         exact h2
     rw [PiLp.inner_apply] at h1
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply, ← h1]
@@ -617,10 +621,10 @@ theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [Dec
     funext j
     simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
     rw [Finset.sum_eq_single (seed i)]
-    · rw [if_pos rfl, mul_one]
+    · rw [ite_eq_left rfl, mul_one]
       exact hWseed i j
     · intro k _ hk
-      rw [if_neg hk, mul_zero]
+      rw [ite_eq_right hk, mul_zero]
     · intro hni
       exact absurd (Finset.mem_univ _) hni
   have hRunInv : ∀ ψ : QState H,
@@ -650,9 +654,9 @@ theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [Dec
             have h1 : ∀ y : H, ((1 : Matrix H H ℂ) p.2 y) * ψ y
                 = (if p.2 = y then 1 else 0) * ψ y := fun y => by rw [Matrix.one_apply]
             rw [Finset.sum_congr rfl (fun y _ => h1 y), Finset.sum_eq_single p.2]
-            · rw [if_pos rfl, one_mul]
+            · rw [ite_eq_left rfl, one_mul]
             · intro y _ hy
-              rw [if_neg (Ne.symm hy), zero_mul]
+              rw [ite_eq_right (Ne.symm hy), zero_mul]
             · intro hni
               exact absurd (Finset.mem_univ _) hni
           show ∑ y : H, ((1 : Matrix H H ℂ) p.2 y) * ψ y = ψ p.2
@@ -662,7 +666,7 @@ theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [Dec
       have hz : ∀ y : H, (if p.1 = b' then (if p.1 = true then W else 1) p.2 y else 0)
           * (if b' = b then ψ y else 0) = 0 := by
         intro y
-        rw [if_neg (Ne.symm hb'), zero_mul]
+        rw [ite_eq_right (Ne.symm hb'), zero_mul]
       rw [Finset.sum_congr rfl (fun y _ => hz y), Finset.sum_const_zero]
     · intro hni
       exact absurd (Finset.mem_univ _) hni

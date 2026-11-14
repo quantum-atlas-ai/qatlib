@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+
+@[expose] public section
 
 /-!
 # Finite statistics and resource records

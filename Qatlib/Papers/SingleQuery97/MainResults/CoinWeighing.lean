@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.DatabaseDefs
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.DatabaseDefs
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Parity phases and coin-weighing amplitudes
@@ -121,7 +125,7 @@ theorem queryPhase_inner_sum {n : ℕ} (y y' : DbVec n) :
       simp only [not_exists, not_not] at hh
       exact h (funext hh)
     obtain ⟨i, hi⟩ := hex
-    rw [if_neg h]
+    rw [ite_eq_right h]
     refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
     simp [hi]
 
@@ -136,9 +140,9 @@ theorem postHadamardAmplitude_eq {n : ℕ} (y z : DbVec n) :
   unfold postHadamardAmplitude
   rw [queryPhase_inner_sum]
   by_cases h : y = z
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     exact inv_mul_cancel₀ (pow_ne_zero n (by norm_num))
-  · rw [if_neg h, if_neg h, mul_zero]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 
 /-- The cyclic answer-register size is even and strictly larger than the database length. -/
 theorem register_properties (n : ℕ) :
@@ -161,7 +165,7 @@ theorem coinWeighing_phase_identities {n : ℕ} (y z : DbVec n) :
   refine ⟨fun x b => bAmplitude_shift n x y b, ?_⟩
   rw [postHadamardAmplitude_eq]
   by_cases h : y = z
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun he => h he.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun he => h he.symm)]
 
 end Qatlib.Papers.SingleQuery97.MainResults.CoinWeighing

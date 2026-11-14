@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerQuan
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkRealBudget
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem4Stat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
-import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerQuan
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkRealBudget
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem4Stat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
+
+@[expose] public section
 
 /-!
 # Corrected triangle-search guarantees
@@ -166,7 +170,7 @@ theorem th4Alg_sound {n : ℕ} (adj : Fin n → Fin n → Bool)
       have hv := walkThird_validation adj t w ht hw
       simp only [triRel,decide_eq_true_eq] at ht
       simp only [walkThird,decide_eq_true_eq] at hw
-      simpa only [th4Alg_eq,hk,hg,hv,if_true] using
+      simpa only [th4Alg_eq,hk,hg,hv,ite_true] using
         (show t 0 ≠ t 1 ∧ t 1 ≠ w ∧ t 0 ≠ w ∧
           adj (t 0) (t 1) = true ∧ adj (t 0) w = true ∧ adj (t 1) w = true from
           ⟨ht.1,hw.2.1.symm,hw.1.symm,ht.2.1,hw.2.2.1,hw.2.2.2⟩)
@@ -204,8 +208,8 @@ theorem th4Alg_complete {n : ℕ} (adj : Fin n → Fin n → Bool)
     (Finset.univ.filter fun ρ : kcs.seed × sgs.seed =>
       (th4Alg adj kcs ncs sgs r r' c₀ (fun _ => ρ.1) (fun _ => ρ.2)).1 = none).card *
         (n+1)^(min kcs.cExp sgs.cExp) ≤ 2*Fintype.card (kcs.seed × sgs.seed) := by
-  letI := kcs.seedFin
-  letI := sgs.seedFin
+  let := kcs.seedFin
+  let := sgs.seedFin
   let run := kcs.run r (triRel adj) (r*r) r (cCOf kcs ncs n r r' c₀)
   let B := (n+1)^(min kcs.cExp sgs.cExp)
   let C := Fintype.card sgs.seed
@@ -238,9 +242,9 @@ theorem th4Alg_complete {n : ℕ} (adj : Fin n → Fin n → Bool)
         | some w =>
           have hw := sgs.sound (walkThird adj t) 3 n ρg hg
           have hv := walkThird_validation adj t w ht hw
-          simp only [th4Alg_eq,show kcs.run r (triRel adj) (r*r) r (cCOf kcs ncs n r r' c₀) ρk = some t from hk,hg,hv,if_true,Option.some_ne_none]
+          simp only [th4Alg_eq,show kcs.run r (triRel adj) (r*r) r (cCOf kcs ncs n r r' c₀) ρk = some t from hk,hg,hv,ite_true,Option.some_ne_none]
       rw [heq]
-      simp only [Option.some_ne_none,if_false,zero_add]
+      simp only [Option.some_ne_none,ite_false,zero_add]
       exact (Nat.mul_le_mul_left _ hB').trans hc
   have hsum := Finset.sum_le_sum (fun ρk (_ : ρk ∈ (Finset.univ : Finset kcs.seed)) => hfiber ρk)
   have hindicator : (∑ ρk : kcs.seed, if run ρk = none then C*B else 0) =

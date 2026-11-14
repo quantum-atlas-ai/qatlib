@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
-import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+module
+
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+
+@[expose] public section
 
 /-!
 # Boundary ratios and graph conductance

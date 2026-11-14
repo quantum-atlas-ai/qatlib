@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,7 +77,7 @@ theorem vecNormSq_smul (c : ℂ) (u : ι → ℂ) :
 
 /-- A uniform componentwise bound `‖u j − v j‖ ≤ C` gives the coarse estimate
 `vecNormSq (u − v) ≤ |ι| · C²`. -/
-theorem vecNormSq_sub_bound (u v : ι → ℂ) (C : ℝ) (hC : 0 ≤ C)
+theorem vecNormSq_sub_bound (u v : ι → ℂ) (C : ℝ) (_hC : 0 ≤ C)
     (h : ∀ j, ‖u j - v j‖ ≤ C) :
     vecNormSq (fun j => u j - v j) ≤ (Fintype.card ι : ℝ) * C ^ 2 := by
   calc vecNormSq (fun j => u j - v j) = ∑ j, ‖u j - v j‖ ^ 2 := rfl
@@ -103,9 +107,11 @@ def TailDecay (ψ : ℝ → ℂ) (L R lamPos lamNeg T ε : ℝ) : Prop :=
   (∀ p, p ≤ -L + lamNeg * T → ‖ψ p‖ ≤ 2 * ε) ∧
   (∀ p, R - lamPos * T ≤ p → ‖ψ p‖ ≤ 2 * ε)
 
+omit [Fintype ι] in
+
 /-- The solution is genuine: each component of `charSolution` differentiates to
 `−lam_j ∂_p` (the scalar transport equation of the Lemma 5.3 reduction). -/
-theorem charSolution_isTransportSolution
+theorem charSolution_isTransportSolution {ι : Type*} [_scopeInst0 : Fintype ι]
     (ψ : ℝ → ℂ) (lam : ι → ℝ) (u : ι → ℂ) (hψ : Differentiable ℝ ψ)
     (t p : ℝ) (j : ι) :
     HasDerivAt (fun s : ℝ => charSolution ψ lam u s p j)
@@ -117,7 +123,8 @@ theorem charSolution_isTransportSolution
       have hmul : HasDerivAt (fun s : ℝ => lam j * s) (lam j) t := by
         simpa using (hasDerivAt_id t).const_mul (lam j)
       have hsub := (hasDerivAt_const (x := t) (c := p)).sub hmul
-      convert hsub using 1 <;> simp
+      convert hsub using 1
+      simp
     have hcomp : HasDerivAt (fun s : ℝ => ψ (p - lam j * s))
         (deriv ψ (p - lam j * t) * (-(lam j))) t := by
       have hψd : HasDerivAt ψ (deriv ψ (p - lam j * t)) (p - lam j * t) :=

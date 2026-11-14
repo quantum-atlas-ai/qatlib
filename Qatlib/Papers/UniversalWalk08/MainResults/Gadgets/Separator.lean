@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.Filter
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.Filter
+
+@[expose] public section
 
 /-!
 # Transmission through the momentum separator

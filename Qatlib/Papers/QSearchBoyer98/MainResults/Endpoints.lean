@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchBoyer96.MainResults.ActualSearch
-import Qatlib.Papers.QSearchBoyer96.MainResults.CountingSampler
-import Qatlib.Concepts.SearchStopping.PaidRestart.Section31ExactSuccessTigh
+module
+
+public import Qatlib.Papers.QSearchBoyer96.MainResults.ActualSearch
+public import Qatlib.Papers.QSearchBoyer96.MainResults.CountingSampler
+public import Qatlib.Concepts.SearchStopping.PaidRestart.Section31ExactSuccess
+
+@[expose] public section
 
 /-!
 # Known-count search and dyadic counting endpoints

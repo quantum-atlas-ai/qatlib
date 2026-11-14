@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
-import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+
+@[expose] public section
 
 /-!
 # Specifications for rational witnesses and native conversion

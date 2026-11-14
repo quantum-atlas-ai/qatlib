@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IQPBornShen26.MainResults.SourceCharFunVariance
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+module
+
+public import Qatlib.Papers.IQPBornShen26.MainResults.SourceCharFunVariance
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.Data.Nat.Prime.Basic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

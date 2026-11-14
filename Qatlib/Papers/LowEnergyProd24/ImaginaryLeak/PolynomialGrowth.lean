@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.ODE.Gronwall
-import Mathlib.Analysis.Calculus.Deriv.Pow
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A polynomial-rate growth estimate
@@ -69,7 +73,7 @@ theorem polynomial_growth {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
       have hb:=hbound x hx
       rw [hboundary] at hb
       have he : 0 < ε*B x := mul_pos hε hpos
-      try dsimp only at *
+
       nlinarith [he]
   have hc : Continuous (fun ε:ℝ=>(δ+ε)*Real.exp (C*t^(p+1)/(p+1)+ε*t)) := by fun_prop
   have hlim := hc.continuousAt.tendsto.mono_left (show (𝓝[>] (0:ℝ)) ≤ 𝓝 0 from nhdsWithin_le_nhds)

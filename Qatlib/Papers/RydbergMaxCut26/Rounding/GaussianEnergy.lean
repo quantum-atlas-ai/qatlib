@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysical
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysical
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
+
+@[expose] public section
 
 /-!
 # Expected energy of physical Gaussian rounding

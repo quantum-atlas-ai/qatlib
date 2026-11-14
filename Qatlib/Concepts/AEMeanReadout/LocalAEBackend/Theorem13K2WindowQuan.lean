@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowQuan
+
+@[expose] public section
 
 /-!
 # Quantum counting windows from amplitude estimation

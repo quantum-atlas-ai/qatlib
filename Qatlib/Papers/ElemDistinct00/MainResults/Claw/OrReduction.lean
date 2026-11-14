@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Claw lower bounds from Boolean search
@@ -53,6 +57,8 @@ variable {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
 def stepMap (e : A ≃ B) : Step A → Step B
   | Step.gate U => Step.gate (relabelGate e U)
   | Step.query => Step.query
+
+omit [DecidableEq A] [DecidableEq B] in
 
 /-- Relabeling the oracle, circuit, and initial state relabels the final circuit state by the
 same equivalence. -/

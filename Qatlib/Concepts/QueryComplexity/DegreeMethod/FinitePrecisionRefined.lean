@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionRefinedDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecision
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionRefinedDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecision
+
+@[expose] public section
 
 /-!
 # Fixed-point arithmetic interfaces and bounds

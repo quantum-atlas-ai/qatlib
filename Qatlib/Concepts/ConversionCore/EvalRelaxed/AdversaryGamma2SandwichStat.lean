@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+
+@[expose] public section
 
 /-!
 # Evaluation relaxation comparison specification

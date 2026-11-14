@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+
+@[expose] public section
 
 /-!
 # Specification of state-dependent copy precision

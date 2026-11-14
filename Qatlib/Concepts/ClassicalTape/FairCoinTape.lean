@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.List.OfFn
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Fair-coin tape computation
@@ -147,8 +151,8 @@ theorem coinTapeRunAux_of_coinHalt (M : Bool → Turing.TM0.Machine Γ Λ)
     (h : coinHalt M cfg = true) :
     coinTapeRunAux M accept coins cfg = (some (accept cfg.q), 0) := by
   cases coins with
-  | nil => simp only [coinTapeRunAux]; rw [if_pos h]
-  | cons c cs => simp only [coinTapeRunAux]; rw [if_pos h]
+  | nil => simp only [coinTapeRunAux]; rw [ite_eq_left h]
+  | cons c cs => simp only [coinTapeRunAux]; rw [ite_eq_left h]
 
 /-- With no coins and without simultaneous halting of both branches, the run returns no decision
 and consumes no coins. -/
@@ -156,7 +160,7 @@ theorem coinTapeRunAux_nil_of_not_coinHalt (M : Bool → Turing.TM0.Machine Γ �
     (accept : Λ → Bool) (cfg : Turing.TM0.Cfg Γ Λ) (h : coinHalt M cfg = false) :
     coinTapeRunAux M accept [] cfg = (none, 0) := by
   simp only [coinTapeRunAux]
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
 
 /-- If the selected branch halts while the configuration is not simultaneously halting, the run
 returns the current acceptance bit after one coin read. -/
@@ -165,7 +169,7 @@ theorem coinTapeRunAux_cons_of_step_none (M : Bool → Turing.TM0.Machine Γ Λ)
     (h : coinHalt M cfg = false) (hs : Turing.TM0.step (M c) cfg = none) :
     coinTapeRunAux M accept (c :: cs) cfg = (some (accept cfg.q), 1) := by
   simp only [coinTapeRunAux]
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
   rw [hs]
 
 /-- A successful selected transition recurses on the remaining coins and adds one to the
@@ -176,7 +180,7 @@ theorem coinTapeRunAux_cons_of_step_some (M : Bool → Turing.TM0.Machine Γ Λ)
     coinTapeRunAux M accept (c :: cs) cfg =
       Prod.map id (· + 1) (coinTapeRunAux M accept cs cfg') := by
   simp only [coinTapeRunAux]
-  rw [if_neg (by simp [h])]
+  rw [ite_eq_right (by simp [h])]
   rw [hs]
 
 /-- The number of coins consumed by a run from any configuration is bounded by the supplied
@@ -368,12 +372,12 @@ theorem coinTapeRunAux_const_fst (M : Turing.TM0.Machine Γ Λ) (accept : Λ →
       by_cases h : M cfg.q cfg.Tape.head = none
       · rw [coinTapeRunAux_of_coinHalt _ _ [] cfg (by simp [coinHalt, h])]
         simp only [List.length_nil, tapeDecisionRun]
-        rw [if_pos ((TM0_step_eq_none M cfg).mpr h)]
+        rw [ite_eq_left ((TM0_step_eq_none M cfg).mpr h)]
       · obtain ⟨p, hp⟩ := Option.ne_none_iff_exists.mp h
         have h' : coinHalt (fun _ => M) cfg = false := by simp [coinHalt, ← hp]
         rw [coinTapeRunAux_nil_of_not_coinHalt _ _ cfg h']
         simp only [List.length_nil, tapeDecisionRun]
-        rw [if_neg (mt (TM0_step_eq_none M cfg).mp h)]
+        rw [ite_eq_right (mt (TM0_step_eq_none M cfg).mp h)]
   | cons c cs ih =>
       intro cfg
       by_cases h : M cfg.q cfg.Tape.head = none

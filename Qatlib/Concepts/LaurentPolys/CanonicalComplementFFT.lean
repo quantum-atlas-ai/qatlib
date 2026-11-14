@@ -4,42 +4,46 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Data.Int.Star
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.RingTheory.PicardGroup
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.LaurentPolys.CircleComplement
-import Mathlib.Analysis.Complex.Poisson
-import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
-import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
-import Mathlib.Analysis.Complex.AbsMax
-import Mathlib.Algebra.Polynomial.Reverse
-import Mathlib.RingTheory.RootsOfUnity.Complex
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Convex.SpecificFunctions.Basic
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.Fourier.AddCircle
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.RingTheory.PicardGroup
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.LaurentPolys.CircleComplement
+public import Mathlib.Analysis.Complex.Poisson
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
+public import Mathlib.Analysis.Complex.AbsMax
+public import Mathlib.Algebra.Polynomial.Reverse
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.Fourier.AddCircle
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Canonical polynomial complements and Fourier approximation
@@ -677,7 +681,7 @@ theorem canonicalComplement_polynomial_exterior_bound (P : Polynomial ℂ) (d : 
   have hr : ∀ u : ℂ, ‖u‖ = 1 → ‖P.reverse.eval u‖ ≤ c := by
     intro u hu
     have hu0 : u ≠ 0 := norm_ne_zero_iff.mp (by rw [hu]; norm_num)
-    letI := invertibleOfNonzero (inv_ne_zero hu0)
+    let := invertibleOfNonzero (inv_ne_zero hu0)
     have he := Polynomial.eval₂_reverse_mul_pow (RingHom.id ℂ) u⁻¹ P
     simp only [invOf_eq_inv, inv_inv, Polynomial.eval₂_id] at he
     have hn := congrArg norm he
@@ -685,7 +689,7 @@ theorem canonicalComplement_polynomial_exterior_bound (P : Polynomial ℂ) (d : 
     rw [hn]
     exact hP u⁻¹ (by simp [hu])
   have hz0 : z ≠ 0 := norm_ne_zero_iff.mp (by linarith)
-  letI := invertibleOfNonzero hz0
+  let := invertibleOfNonzero hz0
   have he := Polynomial.eval₂_reverse_mul_pow (RingHom.id ℂ) z P
   simp only [invOf_eq_inv, Polynomial.eval₂_id] at he
   rw [← he, norm_mul, norm_pow, mul_comm]
@@ -817,7 +821,7 @@ private theorem canonicalComplement_root_orthogonality (N k n : ℕ) (ω : ℂ) 
   rw [Fin.sum_univ_eq_sum_range (fun j : ℕ => (ω^((k : ℤ)-n))^j) N]
   by_cases hkn : k=n
   · simp [hkn]
-  · rw [if_neg hkn, geom_sum_eq]
+  · rw [ite_eq_right hkn, geom_sum_eq]
     · have he : (ω^((k : ℤ)-n))^N = 1 := by
         rw [← zpow_natCast (ω^((k : ℤ)-n)) N, ← zpow_mul, mul_comm, zpow_mul, hω.zpow_eq_one]
         simp
@@ -856,7 +860,7 @@ theorem canonicalComplement_polynomial_dft_exact (Q : Polynomial ℂ) (N : ℕ) 
       intro k hk
       rw [canonicalComplement_root_orthogonality N k n ω hN hω (Finset.mem_range.mp hk) hn]
     _ = Q.coeff n := by
-      simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_range, if_pos hn]
+      simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_range, ite_eq_left hn]
       have hNc : (N : ℂ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hN
       field_simp
 
@@ -923,7 +927,7 @@ theorem canonicalComplementLogCoefficient_bound (P : Polynomial ℂ) (d : ℕ) (
   have hc : ContinuousOn f (Metric.closedBall 0 r \ Metric.ball 0 1) := by
     intro z hz
     have hz' : ‖z‖ ≤ r ∧ 1 ≤ ‖z‖ := by
-      simpa only [Set.mem_diff, Metric.mem_closedBall, Metric.mem_ball, dist_zero_right,
+      simpa only [Set.mem_sdiff, Metric.mem_closedBall, Metric.mem_ball, dist_zero_right,
           not_lt] using! hz
     exact (hd z hz'.2 hz'.1).continuousAt.continuousWithinAt
   have he : (∮ z in C(0,r), f z) = ∮ z in C(0,1), f z := by
@@ -931,7 +935,7 @@ theorem canonicalComplementLogCoefficient_bound (P : Polynomial ℂ) (d : ℕ) (
       (by norm_num : (0 : ℝ) < 1) hr Set.countable_empty hc
     intro z hz
     have hz' : ‖z‖ < r ∧ 1 < ‖z‖ := by
-      simpa only [Set.mem_diff, Metric.mem_ball, Metric.mem_closedBall, dist_zero_right,
+      simpa only [Set.mem_sdiff, Metric.mem_ball, Metric.mem_closedBall, dist_zero_right,
         Set.mem_empty_iff_false, not_false_eq_true, and_true, not_le] using! hz
     exact hd z hz'.2.le hz'.1.le
   unfold canonicalComplementLogCoefficient
@@ -1153,7 +1157,7 @@ private theorem canonicalComplement_root_orthogonality_int (N : ℕ) (k : ℤ)
   by_cases hk : (N : ℤ) ∣ k
   · rw [(hω.zpow_eq_one_iff_dvd k).mpr hk]
     simp [hk]
-  · rw [if_neg hk, geom_sum_eq]
+  · rw [ite_eq_right hk, geom_sum_eq]
     · have he : (ω^k)^N = 1 := by
         rw [← zpow_natCast (ω^k), ← zpow_mul, mul_comm, zpow_mul, hω.zpow_eq_one]
         simp
@@ -1346,7 +1350,7 @@ theorem canonicalComplement_sample_alias (N : ℕ) (n : ℤ) (ω : ℂ)
   intro k
   rw [← Finset.mul_sum, canonicalComplement_root_orthogonality_int N (k-n) ω hN hω]
   by_cases hk : (N : ℤ) ∣ k-n
-  · simp only [hk, if_true]
+  · simp only [hk, ite_true]
     have hNc : (N : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hN.ne'
     field_simp
   · simp [hk]
@@ -1484,7 +1488,7 @@ private theorem canonicalComplement_nat_tail (M r : ℝ) (hM : 0 ≤ M) (hr : 1 
   have he := hs.sum_add_tsum_nat_add K
   rw [hzero, zero_add] at he
   rw [← he]
-  simp only [Nat.le_add_left, if_true, pow_add]
+  simp only [Nat.le_add_left, ite_true, pow_add]
   calc
     _ = (M/r^K) * ∑' n : ℕ, (r⁻¹)^n := by
       rw [← tsum_mul_left]
@@ -1582,7 +1586,7 @@ private theorem canonicalComplement_half_projection_tail_bound (a : ℤ → ℂ)
     by_cases hk : k.natAbs < K
     · rw [canonicalComplementProjectionWeight_low K hK k hk, sub_self]
       simp [show ¬ K ≤ k.natAbs by omega]
-    · rw [if_pos (by omega : K ≤ k.natAbs)]
+    · rw [ite_eq_left (by omega : K ≤ k.natAbs)]
       simp only [norm_mul, norm_zpow, hω, one_zpow, mul_one, Complex.norm_real, Real.norm_eq_abs]
       exact (mul_le_mul (canonicalComplementProjectionWeight_bound K k) (hcoeff k)
         (norm_nonneg _) zero_le_one).trans_eq (one_mul _)
@@ -1652,14 +1656,14 @@ private theorem canonicalComplement_project_alias_series
       apply Finset.sum_congr rfl
       intro l _
       by_cases hkl : ((2*K : ℕ) : ℤ) ∣ k-l
-      · simp only [hkl, if_true]
+      · simp only [hkl, ite_true]
         have hphase : ω^(l*j) = ω^(k*j) := by
           have he := (hω.zpow_eq_one_iff_dvd (k-l)).mpr hkl
           rw [zpow_sub₀ hω0, zpow_natCast] at he
           have hp := congrArg (fun u : ℂ => u^j) (eq_of_div_eq_one he)
           simpa only [← zpow_natCast, ← zpow_mul] using! hp.symm
         rw [hphase]
-      · simp only [if_neg hkl, mul_zero, zero_mul]
+      · simp only [ite_eq_right hkl, mul_zero, zero_mul]
     _ = _ := by rw [hw]
 
 /-- Expresses the outer-weighted integer series as its nonnegative-frequency series minus half
@@ -1683,7 +1687,7 @@ private theorem canonicalComplement_outer_series
     have hn0 : -((n+1 : ℕ) : ℤ) ≠ 0 := by omega
     have hnneg : ¬ 0 < -((n+1 : ℕ) : ℤ) := by omega
     dsimp only [g, canonicalComplementOuterWeight]
-    simp only [if_neg hn0, if_neg hnneg, Complex.ofReal_zero, zero_mul]
+    simp only [ite_eq_right hn0, ite_eq_right hnneg, Complex.ofReal_zero, zero_mul]
   have hgn : Summable (fun n : ℕ => g (-((n+1 : ℕ) : ℤ))) := by
     simp_rw [hgzero]
     exact summable_zero
@@ -1706,11 +1710,11 @@ private theorem canonicalComplement_outer_series
     have hn0 : ((n+1 : ℕ) : ℤ) ≠ 0 := by omega
     have hnpos : 0 < ((n+1 : ℕ) : ℤ) := by omega
     dsimp only [g, canonicalComplementOuterWeight]
-    simp only [if_neg hn0, if_pos hnpos, Complex.ofReal_one, one_mul]
+    simp only [ite_eq_right hn0, ite_eq_left hnpos, Complex.ofReal_one, one_mul]
     rw [show ((n+1 : ℕ) : ℤ)*(j : ℤ) = (((n+1)*j : ℕ) : ℤ) by push_cast; rfl,
       zpow_natCast]
   rw [htail]
-  simp only [g, canonicalComplementOuterWeight, Nat.cast_zero, if_true, Complex.ofReal_div,
+  simp only [g, canonicalComplementOuterWeight, Nat.cast_zero, ite_true, Complex.ofReal_div,
     Complex.ofReal_one, Complex.ofReal_ofNat, zero_mul, zpow_zero, mul_one, pow_zero]
   ring
 

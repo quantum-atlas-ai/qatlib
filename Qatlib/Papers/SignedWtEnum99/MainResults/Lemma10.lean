@@ -4,90 +4,94 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Module.Submodule.Ker
-import Mathlib.Algebra.Module.Submodule.Lattice
-import Mathlib.Algebra.Module.Submodule.Range
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.IsEmpty.Defs
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.Sets
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Set.CoeSort
-import Mathlib.Data.Set.Finite.Range
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.LinearAlgebra.Dimension.Localization
-import Mathlib.LinearAlgebra.FiniteDimensional.Basic
-import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
-import Mathlib.LinearAlgebra.LinearIndependent.Defs
-import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Order.BoundedOrder.Basic
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Fin.Basic
-import Mathlib.Order.Interval.Finset.Defs
-import Mathlib.Order.Interval.Finset.Fin
-import Mathlib.Order.Notation
-import Mathlib.RingTheory.Bialgebra.Basic
-import Mathlib.RingTheory.Coalgebra.IsFrobenius
-import Mathlib.RingTheory.Finiteness.Basic
-import Mathlib.RingTheory.Henselian
-import Mathlib.RingTheory.HopfAlgebra.Basic
-import Mathlib.RingTheory.LocalRing.Defs
-import Mathlib.RingTheory.RegularLocalRing.Defs
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Qatlib.Papers.SignedWtEnum99.MainResults.QSEN
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Module.Submodule.Ker
+public import Mathlib.Algebra.Module.Submodule.Lattice
+public import Mathlib.Algebra.Module.Submodule.Range
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.IsEmpty.Defs
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.Sets
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Set.CoeSort
+public import Mathlib.Data.Set.Finite.Range
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Mathlib.LinearAlgebra.Dimension.Localization
+public import Mathlib.LinearAlgebra.FiniteDimensional.Basic
+public import Mathlib.LinearAlgebra.FiniteDimensional.Defs
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
+public import Mathlib.LinearAlgebra.LinearIndependent.Defs
+public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Order.BoundedOrder.Basic
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Fin.Basic
+public import Mathlib.Order.Interval.Finset.Defs
+public import Mathlib.Order.Interval.Finset.Fin
+public import Mathlib.Order.Notation
+public import Mathlib.RingTheory.Bialgebra.Basic
+public import Mathlib.RingTheory.Coalgebra.IsFrobenius
+public import Mathlib.RingTheory.Finiteness.Basic
+public import Mathlib.RingTheory.Henselian
+public import Mathlib.RingTheory.HopfAlgebra.Basic
+public import Mathlib.RingTheory.LocalRing.Defs
+public import Mathlib.RingTheory.RegularLocalRing.Defs
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Qatlib.Papers.SignedWtEnum99.MainResults.QSEN
+
+@[expose] public section
 
 /-!
 # Independent-column construction for Lemma 10
@@ -339,7 +343,7 @@ lemma build_succ (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
         (stepChoice hn H0 H1 hdiag (stepIndex K hK) (stepIndex_bound K hK)
           (build hn H0 H1 hdiag K)) := by
   conv_lhs => rw [build]
-  simp only [dif_pos hK]
+  simp only [dite_eq_left hK]
 
 /-- For every stage `K ≤ n`, the family of replacement columns constructed by `build` is
 linearly independent. -/
@@ -423,7 +427,7 @@ lemma H2mat_castLE (hn : n ≤ N) (H0 : Matrix (Fin n) (Fin N) (ZMod 2))
   funext r
   show (if h : (Fin.castLE hn i).val < n then c' ⟨(Fin.castLE hn i).val, h⟩ r
     else H0 r (Fin.castLE hn i)) = c' i r
-  rw [dif_pos (show (Fin.castLE hn i).val < n from i.isLt)]
+  rw [dite_eq_left (show (Fin.castLE hn i).val < n from i.isLt)]
   congr 1
 
 /-- Reversing a finite index twice recovers its original numerical value. -/
@@ -438,7 +442,7 @@ lemma col_H2_lt {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
     col (H2mat H0 c') i = c' ⟨i.val, hi⟩ := by
   funext r
   show (if h : i.val < n then c' ⟨i.val, h⟩ r else H0 r i) = c' ⟨i.val, hi⟩ r
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
 
 /-- A column of `H2mat` whose index is at least `n` is the original column of `H0`. -/
 lemma col_H2_ge {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
@@ -446,7 +450,7 @@ lemma col_H2_ge {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
     col (H2mat H0 c') i = col H0 i := by
   funext r
   show (if h : i.val < n then c' ⟨i.val, h⟩ r else H0 r i) = H0 r i
-  rw [dif_neg hi]
+  rw [dite_eq_right hi]
 
 /-- For a replaced column `i`, its dot products against columns `j ≤ i` of `H1` agree with those
 of the original column of `H0`. -/
@@ -502,14 +506,14 @@ theorem lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
   · ext i j
     simp only [lwtr]
     by_cases hji : j < i
-    · rw [if_pos hji, if_pos hji, col_dot, col_dot]
+    · rw [ite_eq_left hji, ite_eq_left hji, col_dot, col_dot]
       by_cases hi : i.val < n
       · have hcol2 : col (H2mat H0 (finalVec hn H0 H1 hdiag)) i =
             finalVec hn H0 H1 hdiag ⟨i.val, hi⟩ := by
           funext r
           show (if h : i.val < n then finalVec hn H0 H1 hdiag ⟨i.val, h⟩ r
             else H0 r i) = finalVec hn H0 H1 hdiag ⟨i.val, hi⟩ r
-          rw [dif_pos hi]
+          rw [dite_eq_left hi]
         rw [hcol2]
         have hjlt : j.val < n := by
           have : j.val < i.val := hji
@@ -538,22 +542,22 @@ theorem lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
           funext r
           show (if h : i.val < n then finalVec hn H0 H1 hdiag ⟨i.val, h⟩ r
             else H0 r i) = col H0 i r
-          rw [dif_neg hi]
+          rw [dite_eq_right hi]
           rfl
         rw [hcol2]
-    · rw [if_neg hji, if_neg hji]
+    · rw [ite_eq_right hji, ite_eq_right hji]
   · ext i j
     simp only [diagMat]
     by_cases hij : i = j
     · subst hij
-      rw [if_pos rfl, if_pos rfl, col_dot, col_dot]
+      rw [ite_eq_left rfl, ite_eq_left rfl, col_dot, col_dot]
       by_cases hi : i.val < n
       · have hcol2 : col (H2mat H0 (finalVec hn H0 H1 hdiag)) i =
             finalVec hn H0 H1 hdiag ⟨i.val, hi⟩ := by
           funext r
           show (if h : i.val < n then finalVec hn H0 H1 hdiag ⟨i.val, h⟩ r
             else H0 r i) = finalVec hn H0 H1 hdiag ⟨i.val, hi⟩ r
-          rw [dif_pos hi]
+          rw [dite_eq_left hi]
         rw [hcol2]
         let t : Fin n := revIdx ⟨i.val, hi⟩
         let ii : Fin n := ⟨i.val, hi⟩
@@ -578,10 +582,10 @@ theorem lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
           funext r
           show (if h : i.val < n then finalVec hn H0 H1 hdiag ⟨i.val, h⟩ r
             else H0 r i) = col H0 i r
-          rw [dif_neg hi]
+          rw [dite_eq_right hi]
           rfl
         rw [hcol2]
-    · rw [if_neg hij, if_neg hij]
+    · rw [ite_eq_right hij, ite_eq_right hij]
 
 end Build
 

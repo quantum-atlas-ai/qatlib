@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ForwardConnectionSample
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ForwardConnectionSample
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -85,8 +89,7 @@ theorem rationalConnectionForwardSample_cast (center neighbor : Quaternion ℚ) 
     (rationalConnectionForwardSample center neighbor h : ℝ)=
       connectionForwardSample (rationalQuaternionCast center) (rationalQuaternionCast neighbor) (h : ℝ) := by
   simp [rationalConnectionForwardSample,connectionForwardSample,Quaternion.inner_def,iAxis,
-    rationalQuaternionCast,Quaternion.re_mul,Quaternion.imI_mul,Quaternion.imJ_mul,
-    Quaternion.imK_mul,div_eq_mul_inv]
+    rationalQuaternionCast,div_eq_mul_inv]
   ring
 
 end

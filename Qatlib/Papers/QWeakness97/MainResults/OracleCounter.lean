@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+
+@[expose] public section
 
 /-!
 # Oracle-port constant and query-clock counterexamples

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Mathlib.LinearAlgebra.Matrix.Kronecker
+module
+
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+@[expose] public section
 
 /-!
 # Parallel QSVT circuit compilation

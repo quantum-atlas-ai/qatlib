@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -110,7 +114,7 @@ theorem simulatedWithinError_of_three {I : Type} [Fintype I] [DecidableEq I]
 retained interval plus the Lemma-7 exponential count on each of the `L+1` intervals at
 error `ε/3`), then `QueryCost` is at most the right-hand side of Eq. (32). -/
 theorem corollary6_queryCost_le (C M d k L : ℕ) (Λ Δt ε : ℝ)
-    (N Nexp : ℕ) (QueryCost : ℕ)
+    (_N Nexp : ℕ) (QueryCost : ℕ)
     (hQuery : QueryCost = C * ((L + 1) + Nexp))
     (hNexp : Nexp ≤ stepExponentials M d k
       * Nat.ceil (queryCostCeilArg k d Λ Δt (ε / 3))) :
@@ -131,7 +135,7 @@ The hypotheses `hRound`, `hIntegrator`, `hOmitted` are the paper's cited bounds 
 theorem corollary6 {I : Type} [Fintype I] [DecidableEq I]
     (A U B V : Matrix I I ℂ) (C Cq M d k L : ℕ) (Λ Δt ε : ℝ)
     (N Nexp : ℕ)
-    (hε : 0 < ε)
+    (_hε : 0 < ε)
     (hRound : ‖A - U‖ ≤ ε / 2)
     (hIntegrator : ‖U - B‖ ≤ ε / 3)
     (hOmitted : ‖B - V‖ ≤ ε / 6)

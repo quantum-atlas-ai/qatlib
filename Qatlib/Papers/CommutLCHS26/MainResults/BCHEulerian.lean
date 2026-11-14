@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLog
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLog
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Eulerian weights for BCH coefficients
@@ -99,8 +103,12 @@ theorem betaCoefficient_choose (a b : ℕ) :
 monomial of degree `k`, with weight zero at degree zero. -/
 def logarithmWeight : Polynomial ℚ →ₗ[ℚ] ℚ where
   toFun p := Finsupp.linearCombination ℚ (fun k : ℕ => (-1 : ℚ) ^ (k - 1) / (k : ℚ)) p.toFinsupp.coeff
-  map_add' p q := map_add _ p.toFinsupp.coeff q.toFinsupp.coeff
-  map_smul' c p := map_smul _ c p.toFinsupp.coeff
+  map_add' p q := by
+    rw [Polynomial.toFinsupp_add]
+    exact (Finsupp.linearCombination ℚ (fun k : ℕ => (-1 : ℚ) ^ (k - 1) / (k : ℚ))).map_add _ _
+  map_smul' c p := by
+    rw [Polynomial.toFinsupp_smul]
+    exact (Finsupp.linearCombination ℚ (fun k : ℕ => (-1 : ℚ) ^ (k - 1) / (k : ℚ))).map_smul _ _
 
 /-- A monomial of positive degree `k + 1` has logarithm weight equal to its coefficient times
 `(-1)^k / (k + 1)`. -/

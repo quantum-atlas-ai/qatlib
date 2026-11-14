@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerQuan
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerQuan
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+
+@[expose] public section
 
 /-!
 # Composition and direct sums of query problems
@@ -33,7 +37,7 @@ set_option autoImplicit false
 noncomputable section
 
 open Matrix
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError

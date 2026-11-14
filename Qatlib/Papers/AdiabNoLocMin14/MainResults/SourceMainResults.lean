@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
-import Mathlib.Combinatorics.SimpleGraph.Maps
+module
+
+public import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
+public import Mathlib.Combinatorics.SimpleGraph.Maps
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -153,7 +157,7 @@ theorem sSet_eq_sublevel (G : SimpleGraph V) [DecidableRel G.Adj] {W ψ : V → 
     (h : IsEigenstate G W ψ E) (hpos : ∀ x, 0 < ψ x) :
     {x : V | deltaSq G ψ x < 0} = {x : V | W x < E} := by
   ext x
-  simp only [Set.mem_setOf_eq, deltaSq_eq_mul_sub G h x]
+  simp only [Set.mem_ofPred_eq, deltaSq_eq_mul_sub G h x]
   constructor
   · intro hlt
     by_contra _
@@ -236,11 +240,11 @@ theorem walkFlux_cut (G : SimpleGraph V) [DecidableRel G.Adj] {W ψ : V → ℝ}
     {x y : V} (hxy : x ≠ y) :
     walkFlux G W ψ E x y = (if G.Adj x y then -(ψ x * ψ y) / E else 0) := by
   rw [walkFlux, hamiltonian_apply]
-  simp only [hxy, if_false]
+  simp only [hxy, ite_false]
   by_cases hadj : G.Adj x y
-  · simp only [hadj, if_true]
+  · simp only [hadj, ite_true]
     ring
-  · simp only [hadj, if_false]
+  · simp only [hadj, ite_false]
     ring
 
 /-- Source eq. (31): the flow out of a cut `S` in the walk `P` is the negative of the

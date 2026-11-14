@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.RationalNormalization
-import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteLaws
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.RationalLikelihoodTransport
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.RationalNormalization
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteLaws
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.RationalLikelihoodTransport
+
+@[expose] public section
 
 /-!
 # Producing normalized rational probability tables

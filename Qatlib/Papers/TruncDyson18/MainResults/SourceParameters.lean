@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
+module
+
+public import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -218,7 +222,7 @@ theorem lcuWeight_lt_two (p : SourceParameters) (h : p.Regime) :
   linarith
 
 /-- The segment count is at least `2λT`. -/
-theorem segmentCount_ge (p : SourceParameters) (h : p.Regime) :
+theorem segmentCount_ge (p : SourceParameters) (_h : p.Regime) :
     2 * p.lcuWeight * p.T ≤ (p.segmentCount : ℝ) := by
   have hceil : 2 * p.lcuWeight * p.T ≤ (⌈2 * p.lcuWeight * p.T⌉₊ : ℝ) := Nat.le_ceil _
   have hle : (⌈2 * p.lcuWeight * p.T⌉₊ : ℝ) ≤ (p.segmentCount : ℝ) := by
@@ -249,7 +253,7 @@ theorem segmentCount_le (p : SourceParameters) (h : p.Regime) :
   linarith
 
 /-- The `segmentCount_pos` result for the TruncDyson18 paper model. -/
-theorem segmentCount_pos (p : SourceParameters) (h : p.Regime) : 0 < p.segmentCount := by
+theorem segmentCount_pos (p : SourceParameters) (_h : p.Regime) : 0 < p.segmentCount := by
   unfold segmentCount
   exact lt_of_lt_of_le (by norm_num) (le_max_left 1 _)
 
@@ -274,7 +278,7 @@ theorem segmentTime_le (p : SourceParameters) (h : p.Regime) :
   nlinarith [hr, h.T_pos.le, p.le_lcuWeight h]
 
 /-- `k ≥ log₂(r/ε)`: the ceiling bound behind the accuracy budget `ε/r`. -/
-theorem le_segmentPrecision (p : SourceParameters) (h : p.Regime) :
+theorem le_segmentPrecision (p : SourceParameters) (_h : p.Regime) :
     Real.log ((p.segmentCount : ℝ) / p.eps) / Real.log 2 ≤ (p.segmentPrecision : ℝ) := by
   unfold segmentPrecision
   exact Nat.le_ceil _
@@ -302,7 +306,7 @@ theorem segmentPrecision_le (p : SourceParameters) (h : p.Regime) :
   exact (Nat.ceil_lt_add_one hx).le
 
 /-- The `gridSize_pos` result for the TruncDyson18 paper model. -/
-theorem gridSize_pos (p : SourceParameters) (h : p.Regime) : 0 < p.gridSize := by
+theorem gridSize_pos (p : SourceParameters) (_h : p.Regime) : 0 < p.gridSize := by
   unfold gridSize
   exact pow_pos (by norm_num) _
 

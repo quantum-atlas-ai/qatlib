@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PartitionFunc08.MainResults.ProductComposition
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.PartitionFunc08.MainResults.ProductComposition
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Composition of partition-function estimators
@@ -52,7 +56,7 @@ theorem theorem2_composite_scheme
     μ ℓ hℓ hε0 hε1 α Q hα hQ hacc).trans ?_
   refine measureReal_mono ?_
   intro ω hω
-  simp only [relAccEvent, Set.mem_setOf_eq] at hω ⊢
+  simp only [relAccEvent, Set.mem_ofPred_eq] at hω ⊢
   have hP : 0 < ∏ i, α i := Finset.prod_pos (fun i _ => hα i)
   constructor
   · calc (1 - ε) * (Z0 * ∏ i, α i) = Z0 * ((1 - ε) * ∏ i, α i) := by ring
@@ -65,8 +69,8 @@ theorem theorem2_composite_scheme
 `log (4 * ℓ)` samples and at most `(2 * ℓ / ε) * log (4 * ℓ)` total reflections. See [Wocjan
 et al., 2009][WocjanEtAl2009a]. -/
 theorem theorem2_per_ratio_costs
-    {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε : 0 < ε)
-    {samples reflPerSample : ℝ} (hs0 : 0 ≤ samples) (hr0 : 0 ≤ reflPerSample)
+    {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (_hε : 0 < ε)
+    {samples reflPerSample : ℝ} (_hs0 : 0 ≤ samples) (hr0 : 0 ≤ reflPerSample)
     (hs : samples ≤ Real.log (4 * (ℓ : ℝ)))
     (hr : reflPerSample ≤ 1 / (ε / (2 * (ℓ : ℝ)))) :
     samples ≤ Real.log (4 * (ℓ : ℝ)) ∧

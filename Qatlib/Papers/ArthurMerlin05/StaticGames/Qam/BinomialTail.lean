@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Core.Toolkit
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Core.Toolkit
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Chernoff bounds for the binomial tail

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
+
+@[expose] public section
 
 /-!
 # Scoped search execution interfaces
@@ -139,7 +143,7 @@ family. -/
 theorem ScopedGroverFamily.execution_run_supported (family : ScopedGroverFamily) (scope : SearchCallScope)
     {N : ℕ} (marked : Fin N→Bool) (check floor : ℕ) (h : scope.contains N check floor) (ρ : family.seed scope) :
     (family.execution scope).run marked check floor ρ=family.run scope marked check floor h ρ := by
-  simp only [ScopedGroverFamily.execution,dif_pos h]
+  simp only [ScopedGroverFamily.execution,dite_eq_left h]
 
 /-- For a supported call with a marked element, the converted execution satisfies the family's
 inverse-power failure-count bound. -/
@@ -149,7 +153,7 @@ theorem ScopedGroverFamily.execution_finds_supported (family : ScopedGroverFamil
     letI:=family.seedFin scope
     (Finset.univ.filter (fun ρ : family.seed scope=>(family.execution scope).run marked check floor ρ=none)).card*
       (max N floor+1)^family.cExp≤Fintype.card (family.seed scope) := by
-  letI:=family.seedFin scope
+  let:=family.seedFin scope
   simpa only [family.execution_run_supported scope marked check floor h] using
       family.finds scope marked check floor h hm
 end Qatlib.Concepts.WalkSearch.Primitives

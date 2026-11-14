@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStat
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStat
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Majority vote amplification theorem

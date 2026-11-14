@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionStat
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionStat
+
+@[expose] public section
 
 /-!
 # Specification of full-range gradient readout

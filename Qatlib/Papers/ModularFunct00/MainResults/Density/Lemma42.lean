@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.DirectSum.Module
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.DirectSum.Module
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Eigenvalue closure under cyclic block shifts
@@ -42,12 +46,12 @@ def cyclicSucc {n : ℕ} [NeZero n] (i : Fin n) : Fin n :=
 /-- Away from the cyclic boundary, the value of `cyclicSucc i` is `i + 1`. -/
 @[simp] lemma cyclicSucc_val_of_lt {n : ℕ} [NeZero n] (i : Fin n)
     (h : (i : ℕ) + 1 < n) : (cyclicSucc i : ℕ) = (i : ℕ) + 1 := by
-  simp [cyclicSucc, dif_pos h]
+  simp [cyclicSucc, dite_eq_left h]
 
 /-- At the cyclic boundary, the value of `cyclicSucc i` is zero. -/
 @[simp] lemma cyclicSucc_val_of_not_lt {n : ℕ} [NeZero n] (i : Fin n)
     (h : ¬ (i : ℕ) + 1 < n) : (cyclicSucc i : ℕ) = 0 := by
-  simp [cyclicSucc, dif_neg h]
+  simp [cyclicSucc, dite_eq_right h]
 
 /-- If `c^n = 1`, incrementing the exponent cyclically multiplies `c^i` by `c`. -/
 lemma pow_cyclicSucc {n : ℕ} [NeZero n] {c : ℂ} (hc : c ^ n = 1) (i : Fin n) :

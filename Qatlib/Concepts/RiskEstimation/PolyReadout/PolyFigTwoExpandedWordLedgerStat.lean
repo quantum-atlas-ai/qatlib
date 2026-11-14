@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
+
+@[expose] public section
 
 /-!
 # Specification of expanded polynomial resource counts
@@ -41,7 +45,7 @@ open Matrix
 1)`, for `d = fp.natDegree * (2 * u + 1)` and `n ≥ 1`, together with the stated exact
 access, query, and gate counts for `2 * r + 1` repetitions. -/
 def PolyFigTwoExpandedWordLedger : Prop :=
-  ∀ (n u : ℕ) (hn : 1 ≤ n) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (c : ℝ)
+  ∀ (n u : ℕ) (_hn : 1 ≤ n) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (c : ℝ)
     (fp : Polynomial ℝ) (M r : ℕ), A ∈ Matrix.unitaryGroup (Reg n) ℂ → (hM : 2 ≤ M) →
     (figTwoAngleWord n u c fp).length ≤
       31*(fp.natDegree*(2*u+1)+1)*n^(fp.natDegree*(2*u+1)+1) ∧

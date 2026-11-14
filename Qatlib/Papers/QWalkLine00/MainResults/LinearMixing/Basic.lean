@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkLine00.MainResults.LinearMixing.MixingCore
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
-import Mathlib.Data.Int.Interval
+module
+
+public import Qatlib.Papers.QWalkLine00.MainResults.LinearMixing.MixingCore
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
+public import Mathlib.Data.Int.Interval
+
+@[expose] public section
 
 /-!
 # A windowed mixing criterion for the Hadamard walk

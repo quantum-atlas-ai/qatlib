@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Superposition02.MainResults.Superposition
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.Superposition02.MainResults.Superposition
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Composition of dyadic amplitude refinements

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # An exponential rate from bounds on all powers
@@ -38,7 +42,7 @@ theorem lam_le_exp_of_power_bound {lam tau T : ℝ} (hlam0 : 0 < lam) (htau : 0 
     (hpow : ∀ t : ℕ, 1 ≤ t → lam ^ t ≤ 2 * Real.exp (-(t / tau))) :
     lam ≤ Real.exp (-(1 / (2 * Real.exp 1 * T))) := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have hden : (0 : ℝ) < 2 * Real.exp 1 * T := by positivity
   set c : ℝ := Real.log lam + 1 / (2 * Real.exp 1 * T) with hc
   have hcpos : 0 < c := by

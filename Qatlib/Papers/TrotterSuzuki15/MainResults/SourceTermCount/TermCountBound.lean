@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrotterSuzuki15.MainResults.SourceTermCount.SourceTermCountModel
+module
+
+public import Qatlib.Papers.TrotterSuzuki15.MainResults.SourceTermCount.SourceTermCountModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,7 +47,7 @@ namespace Qatlib.Papers.TrotterSuzuki15.MainResults.SourceTermCount
 `N_p = 2L5^{p-1}` equals `10` times the Eq. (5) shape, since
 `5^{p+2}·5^{p-1} = 5·5^{2p}` and `L^{1+1/p}·L = L^{2+1/p}`. -/
 theorem sourceSegmentReal_mul_macro {p : ℕ} (hp : 1 ≤ p) {L β y t ε : ℝ}
-    (hL : 0 < L) (hβ : 0 ≤ β) :
+    (hL : 0 < L) (_hβ : 0 ≤ β) :
     sourceSegmentReal p L β y t ε * sourceMacroCount L p =
       10 * eq5Bound p L β y t ε := by
   have h5 : (5 : ℝ) ^ (p + 2) * (5 : ℝ) ^ (p - 1) = (5 : ℝ) * (5 : ℝ) ^ (2 * p) := by
@@ -118,7 +122,7 @@ Eq. (14) yields at least one segment (`1 ≤ sourceSegmentReal`, the paper's
 paper's `N = O(5^{2p} L^{2+1/p} β y^{1/(2p)} t^{1+1/(2p)} / ε^{1/(2p)})` with
 explicit constant `20`. -/
 theorem sourceNumTerms_le_eq5_of_one_le {p : ℕ} (hp : 1 ≤ p) {L β y t ε : ℝ}
-    (hL : 1 ≤ L) (hβ : 1 ≤ β) (hy : 0 ≤ y) (ht : 0 ≤ t) (hε : 0 < ε)
+    (hL : 1 ≤ L) (hβ : 1 ≤ β) (_hy : 0 ≤ y) (_ht : 0 ≤ t) (_hε : 0 < ε)
     (hx1 : 1 ≤ sourceSegmentReal p L β y t ε) :
     sourceNumTerms p L β y t ε ≤ 20 * eq5Bound p L β y t ε := by
   have hLpos : (0 : ℝ) < L := by linarith

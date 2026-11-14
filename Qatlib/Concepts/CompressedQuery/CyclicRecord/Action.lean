@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.PhaseQuery
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.PhaseQuery
+
+@[expose] public section
 
 /-!
 # Unitary actions of recording matrices

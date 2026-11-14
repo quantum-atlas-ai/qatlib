@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Determinant constraints and global phase for finite gate words
@@ -104,25 +108,25 @@ theorem finite_phase_generator_eighth (n : ℕ) (g : FiniteGateCode) (hg : finit
   cases g with
   | h w =>
     have hw : w<n := by simpa only [finiteCodeLegal,decide_eq_true_eq] using hg
-    simp only [finiteCodeMatrix,dif_pos hw,finite_phase_wire_pow]
+    simp only [finiteCodeMatrix,dite_eq_left hw,finite_phase_wire_pow]
     rw [finite_phase_involution_eighth Hadamard hadamard_mul_self,wireGate_one]
   | x w =>
     have hw : w<n := by simpa only [finiteCodeLegal,decide_eq_true_eq] using hg
-    simp only [finiteCodeMatrix,dif_pos hw,finite_phase_wire_pow]
+    simp only [finiteCodeMatrix,dite_eq_left hw,finite_phase_wire_pow]
     have hx : PauliX*PauliX=1 := permMatrix_mul_self (fun b : Bool => by cases b <;> rfl)
     rw [finite_phase_involution_eighth PauliX hx,wireGate_one]
   | t w =>
     have hw : w<n := by simpa only [finiteCodeLegal,decide_eq_true_eq] using hg
-    simp only [finiteCodeMatrix,dif_pos hw,finite_phase_wire_pow]
+    simp only [finiteCodeMatrix,dite_eq_left hw,finite_phase_wire_pow]
     rw [finite_phase_t_eighth.1,wireGate_one]
   | tdg w =>
     have hw : w<n := by simpa only [finiteCodeLegal,decide_eq_true_eq] using hg
-    simp only [finiteCodeMatrix,dif_pos hw,finite_phase_wire_pow]
+    simp only [finiteCodeMatrix,dite_eq_left hw,finite_phase_wire_pow]
     rw [finite_phase_t_eighth.2,wireGate_one]
   | cx c t =>
     have hw : c<n ∧ t<n ∧ c≠t := by simpa only [finiteCodeLegal,decide_eq_true_eq] using hg
     have hct : (⟨c,hw.1⟩:Fin n)≠⟨t,hw.2.1⟩ := fun h => hw.2.2 (congrArg Fin.val h)
-    simp only [finiteCodeMatrix,dif_pos hw]
+    simp only [finiteCodeMatrix,dite_eq_left hw]
     apply finite_phase_involution_eighth
     exact permMatrix_mul_self (cnotUpdate_involutive n _ _ hct)
 
@@ -248,7 +252,7 @@ theorem finite_phase_gaussian_det : Matrix.det finiteGaussianScalarGate=finiteGa
     have he := (bitVecEquiv 1).symm.injective h
     norm_num at he
   rw [finite_phase_det_one_qubit]
-  simp [finiteGaussianScalarGate,Matrix.smul_apply,hn,Ne.symm hn,pow_two]
+  simp [finiteGaussianScalarGate,Matrix.smul_apply,pow_two]
 
 /-- If a one-qubit unitary differs entrywise from `finiteGaussianScalarGate` by at most
 nonnegative `δ`, its determinant differs from `finiteGaussianScalar ^ 2` by at most `3 * δ`. -/
@@ -270,7 +274,7 @@ theorem finite_phase_det_entry_bound (V : Matrix (Reg 1) (Reg 1) ℂ)
       smul_eq_mul,Matrix.one_apply,ite_true,mul_one] using he b b
   have hba : ‖V b a‖ ≤ δ := by
     simpa only [Matrix.sub_apply,finiteGaussianScalarGate,Matrix.smul_apply,
-      smul_eq_mul,Matrix.one_apply,if_neg (Ne.symm hab),mul_zero,sub_zero] using he b a
+      smul_eq_mul,Matrix.one_apply,ite_eq_right (Ne.symm hab),mul_zero,sub_zero] using he b a
   have hvb : ‖V b b‖ ≤ 1 := entry_norm_bound_of_unitary hV b b
   have hva : ‖V a b‖ ≤ 1 := entry_norm_bound_of_unitary hV a b
   have hp : Matrix.det V-finiteGaussianScalar^2=

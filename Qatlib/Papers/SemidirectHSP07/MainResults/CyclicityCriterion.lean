@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.CyclicityTest
-import Mathlib.GroupTheory.PGroup
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SemidirectProduct
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.CyclicityTest
+public import Mathlib.GroupTheory.PGroup
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SemidirectProduct
+
+@[expose] public section
 
 /-!
 # Cyclicity conditions from intersections with the cyclic factors

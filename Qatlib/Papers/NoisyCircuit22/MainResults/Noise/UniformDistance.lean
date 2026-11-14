@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ of the noisy output distribution from uniform is at least
 `(1/12)(1−γ)^{2d}(2/5)^d`.  The hypothesis is the paper's Eq. (71) identity: the average is at
 least the sum of the `2^d · 3^{d−1}` per-path contributions `(1−γ)^{2d}/(4·15^d)`. -/
 theorem source_theorem6_uniform_distance
-    (γ : ℝ) (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) (d : ℕ) (hd : 1 ≤ d) (Ehalf : ℝ)
+    (γ : ℝ) (_hγ0 : 0 ≤ γ) (_hγ1 : γ ≤ 1) (d : ℕ) (hd : 1 ≤ d) (Ehalf : ℝ)
     (hEhalf : Ehalf ≥ (2 : ℝ) ^ d * (3 : ℝ) ^ (d - 1) * ((1 - γ) ^ (2 * d) / (4 * (15 : ℝ) ^ d))) :
     Ehalf ≥ (1 / 12) * (1 - γ) ^ (2 * d) * (2 / 5) ^ d := by
   -- Eq. (71): `2^d · 3^{d-1} · (1-γ)^{2d} / (4·15^d) = (1/12) · (1-γ)^{2d} · (2/5)^d`.

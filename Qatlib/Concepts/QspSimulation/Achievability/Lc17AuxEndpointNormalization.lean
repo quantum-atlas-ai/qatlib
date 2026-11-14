@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceWord
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceWord
+
+@[expose] public section
 
 /-!
 # Endpoint normalization for source words

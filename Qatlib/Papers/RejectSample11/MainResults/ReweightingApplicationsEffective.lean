@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RejectSample11.MainResults.ReweightingApplicationsEffectiveDefs
-import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+module
+
+public import Qatlib.Papers.RejectSample11.MainResults.ReweightingApplicationsEffectiveDefs
+public import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+
+@[expose] public section
 
 /-!
 # Effective Fourier reweighting guarantees

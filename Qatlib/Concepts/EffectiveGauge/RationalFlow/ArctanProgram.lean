@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanSeries
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanSeries
+
+@[expose] public section
 
 /-!
 # A finite version of the actual rational alternating-series loop

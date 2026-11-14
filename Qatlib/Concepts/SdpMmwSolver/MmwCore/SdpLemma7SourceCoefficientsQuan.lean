@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.MmwCore.SdpLemma7SourceCoefficientsStat
-import Qatlib.Concepts.MatrixWeights.LambdaMin
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.MmwCore.SdpLemma7SourceCoefficientsStat
+public import Qatlib.Concepts.MatrixWeights.LambdaMin
+
+@[expose] public section
 
 /-!
 # Source coefficients for the matrix weights bound

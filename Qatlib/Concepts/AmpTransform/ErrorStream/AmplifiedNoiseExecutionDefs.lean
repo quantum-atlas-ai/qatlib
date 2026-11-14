@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
-import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoise
-import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
-import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+public import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoise
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+@[expose] public section
 
 /-!
 # Finite noise sampling and candidate selection
@@ -186,7 +190,7 @@ def aqFreshPassCost (N t k : ℕ) : aqExecutionCost :=
 noncomputable def aqPublicRoundCount (N M : ℕ) : ℕ := aqRounds N M
 
 /-- The layer amplification round count `aqRounds N L`. -/
-noncomputable def aqLayerRoundCount (N M L : ℕ) : ℕ := aqRounds N L
+noncomputable def aqLayerRoundCount (N _M L : ℕ) : ℕ := aqRounds N L
 
 /-- The natural-number difference between the public round count and the layer round count. -/
 noncomputable def aqLayerRoundGap (N M L : ℕ) : ℕ :=

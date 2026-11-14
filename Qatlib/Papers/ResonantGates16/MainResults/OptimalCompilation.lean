@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ResonantGates16.MainResults.SourceModel
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Order.Interval.Set.Infinite
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.ResonantGates16.MainResults.SourceModel
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Order.Interval.Set.Infinite
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

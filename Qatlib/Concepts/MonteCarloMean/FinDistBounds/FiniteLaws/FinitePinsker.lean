@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+@[expose] public section
 
 /-!
 # Pinsker bounds for finite distributions

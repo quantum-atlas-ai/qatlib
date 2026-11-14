@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TimeEvolution.TelegraphLimit.TelegraphRates
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+module
+
+public import Qatlib.Foundations.TimeEvolution.TelegraphLimit.TelegraphRates
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+@[expose] public section
 
 /-!
 # Telegraph modes and their heat-mode error

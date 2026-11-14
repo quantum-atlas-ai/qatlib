@@ -23,13 +23,17 @@ All objects are concrete matrices and functions.  Claims whose full paper
 proof needs external machinery are stated in corrected or auxiliary scope
 directly in the claim files.
 -/
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

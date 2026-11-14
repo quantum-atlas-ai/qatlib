@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lemma 6 amplification parameter arithmetic
@@ -149,14 +153,20 @@ theorem lemma6_query_count {Λ1 ε Λmax c : ℝ} {D : ℕ} (hc : 0 ≤ c) :
   have h := lemma6Iters_le Λ1 ε Λmax D
   nlinarith [h, hc]
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Under the stated sparsity, norm, and positivity hypotheses, collect the selected iteration
 lower bound, the scale bound, the exact planar rotation formula, and the scalar query budget
 inequality for Lemma 6 of [BerryChilds2012]. -/
-theorem lemma6_amplitude_amplified_state_prep
+theorem lemma6_amplitude_amplified_state_prep {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ}
     (BB : BlackBox ι D L) {Λ1 Λmax ε : ℝ}
-    (hsp : IsColumnSparse BB.H D) (hD : 0 < D)
-    (hΛ1 : colSumNorm BB.H ≤ Λ1) (hΛmax : maxEntryNorm BB.H ≤ Λmax)
-    (hΛ1pos : 0 < Λ1) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
+    (_hsp : IsColumnSparse BB.H D) (hD : 0 < D)
+    (_hΛ1 : colSumNorm BB.H ≤ Λ1) (_hΛmax : maxEntryNorm BB.H ≤ Λmax)
+    (hΛ1pos : 0 < Λ1) (hε0 : 0 < ε) (_hε1 : ε ≤ 1)
     (hmax0 : 0 ≤ Λmax) (c : ℝ) (hc : 0 ≤ c) :
     Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) ≤
         2 * (lemma6Iters Λ1 ε D Λmax : ℝ) + 1 ∧

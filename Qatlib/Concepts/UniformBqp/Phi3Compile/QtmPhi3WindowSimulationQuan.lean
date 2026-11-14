@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationStat
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationQuan
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3ReferenceTransport
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationStat
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationQuan
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3ReferenceTransport
+
+@[expose] public section
 
 /-!
 # Exact Phi3 simulation of a QTM window

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDUniformConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDUniformConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+
+@[expose] public section
 
 /-!
 # Static CBMD with output-norm query bounds
@@ -158,7 +162,7 @@ theorem static_cbmd_paper_theorem4
     static_true_output_query_bound hα.le ht hε hε1 hη htarget hupper hc hν1
   obtain ⟨hm,hcs,hA,hq,hsucc,hi,hd,hpaths,hrun,hout⟩ :=
       hu L H U hL hH henc B hB i₀ ψ hprepare htarget
-  letI := hm
+  let _ := hm
   refine ⟨hm,hcs,hA,hq,hsucc,hi.trans (ENNReal.ofReal_le_ofReal hinput),
     hd.trans (ENNReal.ofReal_le_ofReal hdata),?_,hrun,hout⟩
   intro choice

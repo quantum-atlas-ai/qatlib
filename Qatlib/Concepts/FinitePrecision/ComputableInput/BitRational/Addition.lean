@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Product
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Product
+
+@[expose] public section
 
 /-!
 # Correctness and costs of rational addition
@@ -78,7 +82,7 @@ theorem binomial_signed_add_bits (s t : Bool) (xs ys : List Bool) :
             (binomialSignedMagnitude t (binomialBitValue (binomialBitSubtract k ys xs true).1.1),
               1+cmp.2+(binomialBitSubtract k ys xs true).2) := by
           dsimp only [cmp,k] at hc
-          simp only [binomialSignedAddBits,if_pos hst,if_pos hc]
+          simp only [binomialSignedAddBits,ite_eq_left hst,ite_eq_left hc]
           rfl
         rw [he]
         exact ⟨by rw [hv]; exact opposite_sub s t _ _ hne hab,by omega⟩
@@ -91,7 +95,7 @@ theorem binomial_signed_add_bits (s t : Bool) (xs ys : List Bool) :
             (binomialSignedMagnitude s (binomialBitValue (binomialBitSubtract k xs ys true).1.1),
               1+cmp.2+(binomialBitSubtract k xs ys true).2) := by
           dsimp only [cmp,k] at hc
-          simp only [binomialSignedAddBits,if_pos hst,if_neg hc]
+          simp only [binomialSignedAddBits,ite_eq_left hst,ite_eq_right hc]
           rfl
         rw [he]
         refine ⟨?_,by omega⟩
@@ -101,7 +105,7 @@ theorem binomial_signed_add_bits (s t : Bool) (xs ys : List Bool) :
       subst t
       obtain ⟨hv,_,hg⟩ := binomial_bit_add k xs ys false (le_max_left _ _) (le_max_right _ _)
       simp only [Bool.toNat_false,add_zero] at hv
-      simp only [binomialSignedAddBits,if_neg hst]
+      simp only [binomialSignedAddBits,ite_eq_right hst]
       refine ⟨?_,by dsimp [k] at hg ⊢; omega⟩
       rw [hv,same_sum]
   refine ⟨core.1,?_,core.2⟩
@@ -141,7 +145,7 @@ private theorem signed_abs (a : ℤ) : binomialSignedMagnitude (decide (a < 0)) 
   by_cases ha : a < 0
   · have h := Int.natAbs_of_nonneg (by omega : 0 ≤ -a)
     simp only [Int.natAbs_neg] at h
-    simp only [binomialSignedMagnitude,decide_eq_true ha,if_true]
+    simp only [binomialSignedMagnitude,decide_eq_true ha,ite_true]
     omega
   · simp [binomialSignedMagnitude,ha,Int.natAbs_of_nonneg (by omega : 0 ≤ a)]
 

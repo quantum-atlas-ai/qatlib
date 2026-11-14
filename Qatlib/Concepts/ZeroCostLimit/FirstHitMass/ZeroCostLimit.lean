@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimitDefs
+module
+
+public import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimitDefs
+
+@[expose] public section
 
 /-!
 # Halting mass with zero-cost transitions
@@ -44,7 +48,7 @@ lemma charge_marginal {α : Type} (μ : PMF (α × ℕ)) (a : α) :
   have hzero : ∀ b : α, b ≠ a → (∑' k, if a = b then μ (b, k) else 0) = 0 := by
     intro b hb
     have hk : ∀ k, (if a = b then μ (b, k) else 0) = 0 := fun k => by
-      rw [if_neg (Ne.symm hb)]
+      rw [ite_eq_right (Ne.symm hb)]
     exact (tsum_congr hk).trans tsum_zero
   rw [tsum_eq_single a hzero]
   simp

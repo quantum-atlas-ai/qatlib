@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite probability distributions for the game arguments
@@ -133,7 +137,7 @@ def pushforward (P : FinProb Ω) {T : Type*} [Fintype T] [DecidableEq T]
     rw [Finset.sum_eq_single (f ω)]
     · simp
     · intro b _ hb
-      rw [if_neg (Ne.symm hb)]
+      rw [ite_eq_right (Ne.symm hb)]
     · intro h
       simp at h
 
@@ -157,7 +161,7 @@ lemma eventMass_pushforward (P : FinProb Ω) {T : Type*} [Fintype T] [DecidableE
   rw [Finset.sum_eq_single (f ω)]
   · simp
   · intro b _ hb
-    rw [if_neg (Ne.symm hb)]
+    rw [ite_eq_right (Ne.symm hb)]
     simp
   · intro h
     simp at h

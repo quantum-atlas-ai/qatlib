@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFGeometric
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFCommutatorBound
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFGeometric
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFCommutatorBound
+
+@[expose] public section
 
 /-!
 # Root-profile bounds for multi-product errors
@@ -92,7 +96,7 @@ theorem orderProfile_le (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
   intro j hj
   have hjm : j + 1 ≤ m := by have := Finset.mem_range.mp hj; omega
   have hjk : j + 1 ≤ k + m := by omega
-  rw [if_pos hjk]
+  rw [ite_eq_left hjk]
   have h := massProfile_le_mu xs m (j + 1) ((k + m) - (j + 1))
     (by omega) hjm (by omega) t
   have he : 2 * ((k + m) - (j + 1)) + 3 * (j + 1) = 2 * (k + m) + (j + 1) := by omega

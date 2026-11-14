@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PolynomialCalc.QubitizedPower
-import Qatlib.Papers.NonrevMarkov25.SzegedyFrame
+module
+
+public import Qatlib.Concepts.PolynomialCalc.QubitizedPower
+public import Qatlib.Papers.NonrevMarkov25.SzegedyFrame
+
+@[expose] public section
 
 /-!
 # Chebyshev compression of qubitized walk powers

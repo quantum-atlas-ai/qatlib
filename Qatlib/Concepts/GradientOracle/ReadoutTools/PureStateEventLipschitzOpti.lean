@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzStat
+module
+
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzStat
+
+@[expose] public section
 
 /-!
 # Lipschitz continuity of pure-state events
@@ -95,8 +99,8 @@ theorem pureStateEventLipschitz : PureStateEventLipschitz := by
       = if i ∈ E then a i else -(a i) := by
     intro i
     by_cases h : i ∈ E
-    · simp only [ht_def, if_pos h, ha_def]
-    · simp only [ht_def, if_neg h, ha_def, mul_neg, Complex.neg_re]
+    · simp only [ht_def, ite_eq_left h, ha_def]
+    · simp only [ht_def, ite_eq_right h, ha_def, mul_neg, Complex.neg_re]
   have hinner : Complex.re (inner ℂ (toEuclidean_fromVec (u - v)) (toEuclidean_fromVec t))
       = 2 * (MeasureProb u E - MeasureProb v E) := by
     rw [hinner_sum, Finset.sum_congr rfl (fun i _ => hpt i), Finset.sum_ite,
@@ -126,8 +130,8 @@ theorem pureStateEventLipschitz : PureStateEventLipschitz := by
       rw [norm_toEuclidean_fromVec_sq, norm_toEuclidean_fromVec_sq]
       refine Finset.sum_congr rfl fun i _ => ?_
       by_cases h : i ∈ E
-      · simp only [ht_def, if_pos h]
-      · simp only [ht_def, if_neg h, norm_neg]
+      · simp only [ht_def, ite_eq_left h]
+      · simp only [ht_def, ite_eq_right h, norm_neg]
     calc ‖toEuclidean_fromVec t‖ = Real.sqrt (‖toEuclidean_fromVec t‖^2) :=
           (Real.sqrt_sq (norm_nonneg _)).symm
       _ = Real.sqrt (‖toEuclidean_fromVec (u + v)‖^2) := by rw [hsq]

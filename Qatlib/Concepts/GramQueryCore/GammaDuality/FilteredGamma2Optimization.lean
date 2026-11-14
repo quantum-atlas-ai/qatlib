@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2FiniteSDP
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+module
+
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2FiniteSDP
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Filtered γ₂ optimization and adversary values
@@ -183,17 +189,17 @@ theorem filteredGamma2DualValue_attained (A : Matrix X X ℂ) (Z : Fin n → Mat
         isClosed_le (continuous_norm.comp (hm (Z j))) continuous_const
       convert! isClosed_iInter hj using 1
       ext M
-      simp only [Set.mem_iInter, Set.mem_setOf_eq]
+      simp only [Set.mem_iInter, Set.mem_ofPred_eq]
       rfl
     · have ht (x y : X) : IsClosed {M : Matrix X X ℂ | zeroAt x y → M x y = 0} := by
         by_cases hz : zeroAt x y
         · simpa only [hz, forall_const] using!
             (isClosed_eq (show Continuous (fun M : Matrix X X ℂ => M x y) by fun_prop)
               continuous_const)
-        · simp only [hz, IsEmpty.forall_iff, Set.setOf_true, isClosed_univ]
+        · simp only [hz, IsEmpty.forall_iff, Set.ofPred_true, isClosed_univ]
       convert! isClosed_iInter (fun x => isClosed_iInter (ht x)) using 1
       ext M
-      simp only [Set.mem_iInter, Set.mem_setOf_eq]
+      simp only [Set.mem_iInter, Set.mem_ofPred_eq]
       rfl
   let R : ℝ := ∑ x, ∑ y, ∑ j, ‖Z j x y‖⁻¹
   have hnn (x y : X) (j : Fin n) : 0 ≤ ‖Z j x y‖⁻¹ := inv_nonneg.mpr (norm_nonneg _)
@@ -385,7 +391,7 @@ theorem gamma2_support_finite {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     else 0
   have hc (x y : X) : A x y = ∑ j, Z j x y * c j x y := by
     by_cases h : ∃ k, Z k x y ≠ 0
-    · simp only [c, dif_pos h]
+    · simp only [c, dite_eq_left h]
       rw [Finset.sum_eq_single h.choose]
       · simp [div_eq_mul_inv, h.choose_spec, mul_left_comm]
       · intro j _ hj; simp [hj]
@@ -806,8 +812,8 @@ theorem gamma2_masked_real_hermitian_symmetrization {X E : Type} [Fintype X] [De
   · intro j
     have hmask (x y : X) : star (gramFilterDelta input j y x)=gramFilterDelta input j x y := by
       by_cases he : input x j=input y j
-      · simp only [gramFilterDelta, if_pos he, if_pos he.symm, star_zero]
-      · simp only [gramFilterDelta, if_neg he, if_neg (Ne.symm he), star_one]
+      · simp only [gramFilterDelta, ite_eq_left he, ite_eq_left he.symm, star_zero]
+      · simp only [gramFilterDelta, ite_eq_right he, ite_eq_right (Ne.symm he), star_one]
     have he : gramFilterDelta input j ⊙ Q =
         (fun x y => gramFilterDelta input j x y*gramFunctionEvaluationMatrix f x y) ⊙ M := by
       ext x y

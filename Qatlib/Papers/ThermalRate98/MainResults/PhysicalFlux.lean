@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.FluxCorrelation
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.FluxCorrelation
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Flux operators in an energy frame

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerFlatGram
-import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerMass
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerFlatGram
+public import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerMass
+
+@[expose] public section
 open Qatlib.Concepts.MatrixContour.ContourCalc
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonPrimitive
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonResolventReduction
@@ -56,7 +60,7 @@ def canonicalR (A : Matrix I I ℂ) (z v : J → ℂ) (r : ℝ) (hr : 0<r)
         (fun t : ℝ => matrixResolvent A (contourPanel (z j) (v j) (-1) 2 t)) (Set.Icc (-1 : ℝ) 1) :=
       (matrixResolvent_continuousOn_of_separation A r hr).comp
         (contourPanel_continuous (z j) (v j) (-1) 2).continuousOn (fun t ht => hsep j ⟨t,ht⟩)
-    exact operatorIso.continuous.comp (continuousOn_iff_continuous_restrict.mp hR)⟩
+    exact operatorIso.continuous.comp (continuousOn_iff_continuous_domRestrict.mp hR)⟩
 
 /-- The identity or estimate `canonical_inverse` holds with the displayed separation, geometry and norm hypotheses. -/
 private theorem canonical_inverse (A : Matrix I I ℂ) (z : ℂ) (r : ℝ) (hr : 0<r)

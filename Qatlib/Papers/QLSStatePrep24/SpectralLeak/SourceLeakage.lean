@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLSStatePrep24.SpectralLeak.WeightedSpectralLeakageLows
-import Qatlib.Papers.QLSStatePrep24.SpectralLeak.FiveSuccessProbabilitiesLows
-import Qatlib.Papers.QLSStatePrep24.SpectralLeak.ThresholdSumStabilityLows
+module
+
+public import Qatlib.Papers.QLSStatePrep24.SpectralLeak.WeightedSpectralLeakageLows
+public import Qatlib.Papers.QLSStatePrep24.SpectralLeak.FiveSuccessProbabilitiesLows
+public import Qatlib.Papers.QLSStatePrep24.SpectralLeak.ThresholdSumStabilityLows
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.CyclicQubitizationStat
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.CyclicQubitizationStat
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Cyclic subspaces for qubitization
@@ -281,9 +285,7 @@ theorem Clause11CyclicQubitization_answer : Clause11CyclicQubitization := by
       exact hnorm_v
     have hlamnorm : ‖stateVector ((lam : ℂ) • v)‖ = |lam| * ‖stateVector v‖ := by
       rw [show stateVector ((lam : ℂ) • v) = (lam : ℂ) • stateVector v from rfl,
-        norm_smul, show ‖((lam : ℂ))‖ = |lam| from by
-          rw [show ‖((lam : ℂ))‖ = Real.sqrt (Complex.normSq (lam : ℂ)) from rfl,
-            Complex.normSq_ofReal, Real.sqrt_mul_self_eq_abs]]
+        norm_smul, Complex.norm_real, Real.norm_eq_abs]
     rw [hlamnorm, hv1, mul_one, habs, one_pow, hw1, one_pow] at hpyth
     have hu0 : ‖stateVector u‖ ^ 2 = 0 := by linarith
     have hu0' : u = 0 := by

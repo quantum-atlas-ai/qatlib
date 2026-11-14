@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MonotoneCertificateSensitivity
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.BooleanQueryMinimumBounds
+module
+
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MonotoneCertificateSensitivity
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.BooleanQueryMinimumBounds
+
+@[expose] public section
 
 /-!
 # Fourth-power query comparisons for monotone functions

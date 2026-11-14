@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Positive semidefiniteness of the complex graph Laplacian

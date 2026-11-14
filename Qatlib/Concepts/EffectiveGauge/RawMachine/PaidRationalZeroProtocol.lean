@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidRationalBridge
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBounds
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidRationalBridge
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.NormNum
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementDecoder
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementDecoder
+
+@[expose] public section
 
 /-!
 # Local-measurement information bounds for classical shadows
@@ -88,7 +92,7 @@ theorem localMeasurementLowerBoundSubgoal : LocalMeasurementLowerBoundSubgoal :=
   have hq : ∀ x uw j o, 0 < μ.prob uw → (q x uw j).prob o =
       localShotValue Uf (w j o) (ψ j o) uw (theorem6CodeState n ε (Pw x)) := by
     intro x uw j o hp
-    simp only [q, dif_pos (hUuw uw hp)]
+    simp only [q, dite_eq_left (hUuw uw hp)]
   have hqweighted : ∀ x uw j o, μ.prob uw * (q x uw j).prob o = μ.prob uw *
       localShotValue Uf (w j o) (ψ j o) uw (theorem6CodeState n ε (Pw x)) := by
     intro x uw j o

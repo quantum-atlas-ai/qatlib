@@ -4,20 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+@[expose] public section
+set_option linter.unusedTactic false
+set_option linter.unusedSimpArgs false
+set_option linter.style.haveILetI false
 
 /-!
 # Instrument progress bounds and minimax composition
@@ -157,7 +164,7 @@ theorem composed_minimax_term_lower {k : ℕ} {X : Fin k → Type} {n : Fin k �
       · simp [h]
       · simp only [ne_eq, h, not_false_eq_true, ite_true]
         exact div_nonneg (Real.sqrt_nonneg _) (ha ⟨i,j⟩)
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     calc
       _ = Real.sqrt (pf (fun j => g j (x j)) i * pf (fun j => g j (y j)) i) * (1 / beta i) := by ring
       _ ≤ _ := mul_le_mul_of_nonneg_left (hblock i hi) (Real.sqrt_nonneg _)
@@ -168,11 +175,11 @@ noncomputable section
 theorem probability_family_closed {X K : Type} [Fintype X] [Fintype K] [DecidableEq K] :
     IsClosed {p : X → K → ℝ | IsProbabilityFamily p} := by
   have ha : IsClosed {p : X → K → ℝ | ∀ x i, 0 ≤ p x i} := by
-    simp only [Set.setOf_forall]
+    simp only [Set.ofPred_forall]
     exact isClosed_iInter fun x => isClosed_iInter fun i =>
       isClosed_le continuous_const ((continuous_apply i).comp (continuous_apply x))
   have hb : IsClosed {p : X → K → ℝ | ∀ x, ∑ i, p x i = 1} := by
-    simp only [Set.setOf_forall]
+    simp only [Set.ofPred_forall]
     exact isClosed_iInter fun x => isClosed_eq
       (continuous_finsetSum _ fun i _ => (continuous_apply i).comp (continuous_apply x)) continuous_const
   exact ha.inter hb

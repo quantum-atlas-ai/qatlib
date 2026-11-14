@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.StoppingRule
+module
+
+public import Qatlib.Concepts.MatrixWeights.StoppingRule
+
+@[expose] public section
 
 /-!
 # Two-level matrix multiplicative weights examples

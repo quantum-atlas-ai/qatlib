@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
-import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+
+@[expose] public section
 
 /-!
 # Consumers of the near optimal inverse polynomial

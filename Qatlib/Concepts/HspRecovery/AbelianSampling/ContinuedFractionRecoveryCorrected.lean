@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Data.Int.Star
-import Mathlib.Data.Rat.Star
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.LinearCombination.Lemmas
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Order.Star.Rat
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.LinearCombination.Lemmas
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Corrected continued fraction phase recovery
@@ -490,7 +494,7 @@ theorem tailApprox_step {a b a' b' : ℕ} (hb : 0 < b) (hba : b < a) (hb' : 0 < 
         ring_nf at this ⊢
         linarith
       field_simp
-      try rw [one_add_div hdr, div_left_inj' hdr]
+
       ring
     have hup2 : (a' % b' : ℕ) / (b' : ℚ)
         < 2 * (a % b : ℕ) * (a % b : ℕ) / (2 * (b : ℚ) * (a % b : ℕ) - 1) := by

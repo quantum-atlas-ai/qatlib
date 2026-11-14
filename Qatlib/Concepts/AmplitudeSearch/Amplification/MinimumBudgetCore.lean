@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+
+@[expose] public section
 
 /-!
 # Recursive minimum search with initialization costs
@@ -98,19 +102,19 @@ theorem minimumBudgetEvalWithInit_congr (T : Fin N → α) (initialization budge
     conv_lhs => rw [minimumBudgetEvalWithInit]
     conv_rhs => rw [minimumBudgetEvalWithInit]
     by_cases hsingle : N = 1
-    · simp only [if_pos hsingle]
+    · simp only [ite_eq_left hsingle]
       exact hfg current budget le_rfl
-    · simp only [if_neg hsingle]
+    · simp only [ite_eq_right hsingle]
       by_cases hpaid : initialization ≤ budget
-      · simp only [if_pos hpaid]
+      · simp only [ite_eq_left hpaid]
         apply search_finite_budget_eval_congr
         · intro i r hr
           have hrB : r < budget := lt_of_lt_of_le hr (Nat.sub_le _ _)
-          simp only [dif_pos hrB]
+          simp only [dite_eq_left hrB]
           exact ih r hrB _ (fun j s hs => hfg j s (le_trans hs hrB.le))
         · intro r hr
           exact hfg current r (le_trans hr (Nat.sub_le _ _))
-      · simp only [if_neg hpaid]
+      · simp only [ite_eq_right hpaid]
         exact hfg current budget le_rfl
 
 /-- The evaluator with initialization charges preserves the constant payoff one on a nonempty
@@ -129,7 +133,7 @@ theorem minimumBudgetEvalWithInit_one (T : Fin N → α) (initialization : ℕ) 
           apply search_finite_budget_eval_congr
           · intro i r hr
             have hrB : r < budget := lt_of_lt_of_le hr (Nat.sub_le _ _)
-            simp only [dif_pos hrB]
+            simp only [dite_eq_left hrB]
             exact ih r hrB _
           · intros; rfl
         _ = 1 := search_finite_budget_eval_one (by simpa using hN) _ _
@@ -156,20 +160,20 @@ theorem minimumBudgetEvalWithInit_mono (T : Fin N → α) (initialization : ℕ)
     conv_lhs => rw [minimumBudgetEvalWithInit]
     conv_rhs => rw [minimumBudgetEvalWithInit]
     by_cases hsingle : N = 1
-    · simp only [if_pos hsingle]
+    · simp only [ite_eq_left hsingle]
       exact hfg current budget
-    · simp only [if_neg hsingle]
+    · simp only [ite_eq_right hsingle]
       by_cases hpaid : initialization ≤ budget
-      · simp only [if_pos hpaid]
+      · simp only [ite_eq_left hpaid]
         apply bbhtEval_mono (by simpa using hN) _ _ (search_exponential_schedule N hN).2.1
         · intro i r
           by_cases hr : r < budget
-          · simp only [dif_pos hr]
+          · simp only [dite_eq_left hr]
             exact ih r hr _
-          · simp only [dif_neg hr]
+          · simp only [dite_eq_right hr]
             exact le_rfl
         · intro r; exact hfg current r
-      · simp only [if_neg hpaid]
+      · simp only [ite_eq_right hpaid]
         exact hfg current budget
 
 /-- At zero budget, evaluation with any initialization charge returns the current payoff with
@@ -222,22 +226,22 @@ theorem minimumBudgetSuccessWithInit_of_minimum (T : Fin N → α) (initializati
     unfold minimumBudgetSuccessWithInit
     rw [minimumBudgetEvalWithInit]
     by_cases hsingle : N = 1
-    · rw [if_pos hsingle, if_pos hmin]
-    · rw [if_neg hsingle]
+    · rw [ite_eq_left hsingle, ite_eq_left hmin]
+    · rw [ite_eq_right hsingle]
       by_cases hpaid : initialization ≤ budget
-      · rw [if_pos hpaid]
+      · rw [ite_eq_left hpaid]
         calc
           _ = FiniteBudgetEval (strictMarked T current) (ExponentialSizes N) 0
               (budget - initialization) (fun _ _ => 1) (fun _ => 1) := by
             apply search_finite_budget_eval_congr
             · intro i r hr
               have hrB : r < budget := lt_of_lt_of_le hr (Nat.sub_le _ _)
-              simp only [dif_pos hrB, checkedUpdate_preserves_minimum T current i hmin]
+              simp only [dite_eq_left hrB, checkedUpdate_preserves_minimum T current i hmin]
               exact ih r hrB current hmin
             · intro r hr
-              exact if_pos hmin
+              exact ite_eq_left hmin
           _ = 1 := search_finite_budget_eval_one (by simpa using hN) _ _
             (search_exponential_schedule N hN).2.1 _ _
-      · rw [if_neg hpaid, if_pos hmin]
+      · rw [ite_eq_right hpaid, ite_eq_left hmin]
 
 end Qatlib.Concepts.AmplitudeSearch.Amplification

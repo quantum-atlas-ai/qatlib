@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroGibbsOverlapContracts
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroGibbsOverlapContracts
+
+@[expose] public section
 
 /-!
 # Corrected Gibbs schedule overlap contract

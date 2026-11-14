@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Hamiltonian simulation from computed phase packets
@@ -133,7 +137,7 @@ theorem computed_signal_trig_scalar_coefficients (t : ℚ) (j : ℕ) :
     have him : (exponentialTaylorCoefficient (t:ℝ) j).im = 0 := by
       rw [he]; exact Complex.ofReal_im a
     rw [hre,him]
-    simp only [hj, if_pos, if_false, Nat.zero_ne_one, Rat.cast_neg, Rat.cast_one, Rat.cast_natCast,
+    simp only [hj, ite_eq_left, ite_false, Nat.zero_ne_one, Rat.cast_neg, Rat.cast_one, Rat.cast_natCast,
         neg_zero, mul_zero]
     constructor
     · dsimp [a]
@@ -146,7 +150,7 @@ theorem computed_signal_trig_scalar_coefficients (t : ℚ) (j : ℕ) :
     have hre : (exponentialTaylorCoefficient (t:ℝ) j).re = 0 := by rw [he]; simp
     have him : (exponentialTaylorCoefficient (t:ℝ) j).im = -a := by rw [he]; simp
     rw [hre,him]
-    simp only [hj, hje, if_pos, if_false, Nat.one_ne_zero, Rat.cast_neg, Rat.cast_one,
+    simp only [hj, hje, ite_eq_left, ite_false, Nat.one_ne_zero, Rat.cast_neg, Rat.cast_one,
         Rat.cast_natCast, neg_neg, mul_zero]
     constructor
     · trivial
@@ -165,7 +169,7 @@ theorem computed_signal_native_trig_coefficients : ∀ (t : ℚ) (n : ℕ),
     rw [realTarget_coeff]
     simp only [computedCosCoefficients, List.getD_eq_getElem?_getD, List.getElem?_ofFn]
     by_cases hj : j < n
-    · simp only [dif_pos hj, Option.getD_some]
+    · simp only [dite_eq_left hj, Option.getD_some]
       simp only [apply_ite, Rat.cast_div, Rat.cast_mul, Rat.cast_pow, Rat.cast_neg, Rat.cast_one,
           Rat.cast_ofNat, Rat.cast_natCast, Rat.cast_zero]
       have hc := (computed_signal_trig_scalar_coefficients t j).1
@@ -179,7 +183,7 @@ theorem computed_signal_native_trig_coefficients : ∀ (t : ℚ) (n : ℕ),
     rw [realTarget_coeff]
     simp only [computedSinCoefficients, List.getD_eq_getElem?_getD, List.getElem?_ofFn]
     by_cases hj : j < n
-    · simp only [dif_pos hj, Option.getD_some]
+    · simp only [dite_eq_left hj, Option.getD_some]
       simp only [apply_ite, Rat.cast_div, Rat.cast_mul, Rat.cast_pow, Rat.cast_neg, Rat.cast_one,
           Rat.cast_ofNat, Rat.cast_natCast, Rat.cast_zero]
       have hc := (computed_signal_trig_scalar_coefficients t j).2
@@ -326,7 +330,7 @@ theorem computed_signal_hermitian_polynomial_error {I : Type} [Fintype I] [Decid
   apply spectralDiagonal_error_le b _ _ hε
   intro i
   have hi : |hA.eigenvalues i| ≤ 1 := by
-    letI : Nonempty I := ⟨i⟩
+    let _ : Nonempty I := ⟨i⟩
     have he := spectrum.norm_le_norm_of_mem (hA.eigenvalues_mem_spectrum_real i)
     have he' : |hA.eigenvalues i| ≤ ‖A‖ := by simpa only [Real.norm_eq_abs] using! he
     exact he'.trans hNorm

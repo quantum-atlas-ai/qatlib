@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -114,7 +118,7 @@ theorem norm_upperProd_le_one (V : ℕ → Matrix I I ℂ)
 /-- Lemma 9 (p.32): for unitary `U_j, Ũ_j` and any projection `P`, the product
 difference is bounded by the sum of the shifted single-factor errors. -/
 theorem lemma9_norm_ineq (P : Matrix I I ℂ) (U V : ℕ → Matrix I I ℂ)
-    (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
+    (_hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
     (hV : ∀ j, V j ∈ Matrix.unitaryGroup I ℂ) (J : ℕ) [Nonempty I] :
     ‖(prodR V J - prodR U J) * P‖ ≤
       ∑ j ∈ Finset.Icc 1 J, ‖(V j - U j) * prodR U (j - 1) * P‖ := by

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.Primitives.ScopedSearchInterface
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Data.Fintype.Card
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.Primitives.ScopedSearchInterface
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # Native circuit-realization predicates

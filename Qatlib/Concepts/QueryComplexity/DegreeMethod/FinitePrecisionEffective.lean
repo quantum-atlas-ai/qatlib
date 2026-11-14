@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffectiveDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffectiveDefs
+
+@[expose] public section
 
 /-!
 # Certified finite-precision arithmetic and error bounds
@@ -88,7 +92,7 @@ theorem mulProgram_dup_step (v : MulVar) (u b a m y t : Bits) :
             ⟨some .dup, MulVar.readMbit v (some c),
               mulStacks u (c :: b) a m' y (c :: t)⟩ := by
   cases m with
-  | nil => simp [mulProgram, TM2.stepAux, mulStacks, MulVar.readMbit]
+  | nil => simp [mulProgram, TM2.stepAux, mulStacks]
   | cons c l =>
       simp [mulProgram, TM2.stepAux, mulStacks, MulVar.readMbit,
         mulStacks_update_three_one_five]
@@ -103,7 +107,7 @@ theorem mulProgram_restore_step (v : MulVar) (u b a m y t : Bits) :
             ⟨some .restore, MulVar.readMbit v (some c),
               mulStacks u b a (c :: m) y t'⟩ := by
   cases t with
-  | nil => simp [mulProgram, TM2.stepAux, mulStacks, MulVar.readMbit]
+  | nil => simp [mulProgram, TM2.stepAux, mulStacks]
   | cons c l =>
       simp [mulProgram, TM2.stepAux, mulStacks, MulVar.readMbit,
         mulStacks_update_five_three]
@@ -230,7 +234,7 @@ theorem mulProgram_add_step_at (u b a0 m y t : Bits) (k : ℕ)
       = some (mulAddCfgAt MulVar.init (k+1) u b a0 m y t) := by
   have hcfg0 : mulAddCfgAt MulVar.init k u b a0 m y t
       = mulAddCfg MulVar.init k u b a0 m y t := by
-    rw [mulAddCfgAt, if_pos hk]
+    rw [mulAddCfgAt, ite_eq_left hk]
   rw [hcfg0]
   unfold mulAddCfg
   rw [TM2.step]
@@ -241,7 +245,7 @@ theorem mulProgram_add_step_at (u b a0 m y t : Bits) (k : ℕ)
   by_cases hempty : u.drop k = [] ∧ b.drop k = []
   · have hx := hempty.1
     have hy := hempty.2
-    rw [if_pos hempty]
+    rw [ite_eq_left hempty]
     have hkx : u.length ≤ k := by
       have hz : (u.drop k).length = 0 := by rw [hx]; rfl
       rw [List.length_drop] at hz
@@ -253,10 +257,10 @@ theorem mulProgram_add_step_at (u b a0 m y t : Bits) (k : ℕ)
     have hkmax : k = max u.length b.length := by omega
     have hcfg1 : mulAddCfgAt MulVar.init (k+1) u b a0 m y t
         = mulAddFinal MulVar.init u b a0 m y t := by
-      rw [mulAddCfgAt, if_neg (by omega)]
+      rw [mulAddCfgAt, ite_eq_right (by omega)]
     rw [hcfg1, hkmax]
     simp [MulVar.addEnd, MulVar.addPosition, mulAddFinal]
-  · rw [if_neg hempty]
+  · rw [ite_eq_right hempty]
     have hk1 : k + 1 ≤ max u.length b.length := by
       by_cases h1 : k + 1 ≤ max u.length b.length
       · exact h1
@@ -271,12 +275,12 @@ theorem mulProgram_add_step_at (u b a0 m y t : Bits) (k : ℕ)
         exact hb' hb''
     have hcfg1 : mulAddCfgAt MulVar.init (k+1) u b a0 m y t
         = mulAddCfg MulVar.init (k+1) u b a0 m y t := by
-      rw [mulAddCfgAt, if_pos hk1]
+      rw [mulAddCfgAt, ite_eq_left hk1]
     rw [hcfg1]
     unfold mulAddCfg
     rw [addTurns_step]
     simp only [addTurn_carry, addTurn_os, drop_succ_tail]
-    simp [MulVar.addPosition, List.append_assoc]
+    simp [MulVar.addPosition]
 
 /-- Running `s` steps advances the indexed addition configuration from `k` to `k + s`, provided
 the latter index is at most `max u.length b.length + 1`. -/
@@ -288,7 +292,7 @@ theorem mulProgram_add_advance (u b a0 m y t : Bits) (k s : ℕ)
   | zero =>
       have hcfg : mulAddCfgAt MulVar.init k u b a0 m y t
           = mulAddCfgAt MulVar.init (k+0) u b a0 m y t := by
-        simp [Nat.add_zero]
+        simp []
       rw [hcfg]
       simp [stackRun]
   | succ s ih =>
@@ -310,12 +314,12 @@ theorem mulProgram_add_run (u b a0 m y t : Bits) :
       = some (mulAddFinal MulVar.init u b a0 m y t) := by
   have h0 : mulAddCfg MulVar.init 0 u b a0 m y t
       = mulAddCfgAt MulVar.init 0 u b a0 m y t := by
-    rw [mulAddCfgAt, if_pos (by simp)]
+    rw [mulAddCfgAt, ite_eq_left (by simp)]
   rw [h0]
   have h := mulProgram_add_advance u b a0 m y t 0 (max u.length b.length + 1) (by simp)
   rw [h]
   congr 1
-  rw [mulAddCfgAt, if_neg (by simp)]
+  rw [mulAddCfgAt, ite_eq_right (by simp)]
 
 /-- The optional head after dropping `n` elements from a Boolean list equals its optional
 element at index `n`. -/
@@ -350,7 +354,7 @@ u b`. -/
 theorem mulAddFinal_sum (u b m y t : Bits) :
     ((mulAddFinal MulVar.init u b [] m y t).stk 2).reverse = mulAddBits u b := by
   rw [mulAddFinal]
-  simp [mulAddBits, carryAddAux, List.reverse_append, List.append_nil]
+  simp [mulAddBits, carryAddAux, List.append_nil]
 
 /-- For `j < y.length`, one multiplication round takes `mulRoundTicks x y j` steps and advances
 `mulCfg x y j` to `mulCfg x y (j + 1)`. -/
@@ -375,7 +379,7 @@ theorem mulProgram_round (x y : Bits) (j : ℕ) (hj : j < y.length) :
         = some ⟨some .dup, MulVar.init,
             mulStacks (false :: mulAcc x y j) [] [] (x.reverse) ((y.reverse).drop (j+1)) []⟩ := by
       rw [stackRun, mulCfg, TM2.step, mulProgram_outer_step]
-      simp [stackRun, hbit, hdrop, hj, hj', mulStacks_update_four_zero]
+      simp [stackRun, hbit, hdrop, hj]
     have h2 : stackRun mulProgram (x.length + 1)
         ⟨some .dup, MulVar.init,
           mulStacks (false :: mulAcc x y j) [] [] (x.reverse) ((y.reverse).drop (j+1)) []⟩
@@ -427,8 +431,7 @@ theorem mulProgram_round (x y : Bits) (j : ℕ) (hj : j < y.length) :
     rw [h5]
     congr 1
     rw [mulRoundResult, mulAddFinal_sum]
-    simp [mulCfg, mulStacks_zero, mulStacks_one, mulStacks_two, mulStacks_three,
-      mulStacks_four, mulStacks_five, mulAcc, hb]
+    simp [mulCfg, mulAcc, hb]
   · have hbit : ((y.reverse).drop j).head? = none ∨ ((y.reverse).drop j).head? = some false := by
       have h := hb
       simp only [mulBit] at h
@@ -444,14 +447,13 @@ theorem mulProgram_round (x y : Bits) (j : ℕ) (hj : j < y.length) :
             mulStacks (false :: mulAcc x y j) [] [] (x.reverse) ((y.reverse).drop (j+1)) []⟩ := by
       rw [stackRun, mulCfg, TM2.step, mulProgram_outer_step]
       rcases hbit with hbit | hbit
-      · simp [stackRun, hbit, hdrop, hj, hj', mulStacks_update_four_zero]
-      · simp [stackRun, hbit, hdrop, hj, hj', mulStacks_update_four_zero]
+      · simp [stackRun, hbit, hdrop, hj]
+      · simp [stackRun, hbit, hdrop, hj]
     have htot : mulRoundTicks x y j = 1 := by
       simp [mulRoundTicks, hb]
     rw [htot, h1]
     congr 1
-    simp [mulCfg, mulStacks_zero, mulStacks_one, mulStacks_two, mulStacks_three,
-      mulStacks_four, mulStacks_five, mulAcc, hb]
+    simp [mulCfg, mulAcc, hb]
 
 /-- The binary value of `mulAddBits u b` is the sum of the binary values of `u` and `b`. -/
 theorem mulAddBits_value (u b : Bits) :
@@ -464,7 +466,7 @@ theorem mulAddBits_value (u b : Bits) :
   have hb : b.take (max u.length b.length) = b := take_eq_self b (le_max_right _ _)
   rw [hu, hb] at h
   rw [mulAddBits]
-  simp only [binaryValue_append, binaryValue_singleton, List.length_append]
+  simp only [binaryValue_append, binaryValue_singleton]
   rw [hres]
   simpa [bitNat] using! h
 
@@ -495,11 +497,11 @@ theorem mulAcc_value (x y : Bits) (j : ℕ) (hj : j ≤ y.length) :
       have hj' : j < y.length := by omega
       rw [mulAcc]
       by_cases hb : mulBit y j
-      · rw [if_pos hb, mulAddBits_value, binaryValue_cons']
+      · rw [ite_eq_left hb, mulAddBits_value, binaryValue_cons']
         rw [ih (by omega), mulPrefix_step y j hj']
         simp [bitNat, hb]
         ring
-      · rw [if_neg hb, binaryValue_cons']
+      · rw [ite_eq_right hb, binaryValue_cons']
         rw [ih (by omega), mulPrefix_step y j hj']
         simp [bitNat, hb]
         ring
@@ -750,14 +752,14 @@ theorem rsum_append (l₁ l₂ : List ℝ) : rsum (l₁ ++ l₂) = rsum l₁ + r
 tail. -/
 theorem rsum_map_cons {α : Type} (f : α → ℝ) (a : α) (l : List α) :
     rsum (List.map f (a :: l)) = f a + rsum (List.map f l) := by
-  simp [rsum]
+  simp []
 
 /-- Pointwise comparison on the elements of a list implies comparison of the recursive sums of
 the mapped real values. -/
 theorem rsum_le_sum_map {α : Type} (l : List α) (f g : α → ℝ) (h : ∀ x ∈ l, f x ≤ g x) :
     rsum (List.map f l) ≤ rsum (List.map g l) := by
   induction l with
-  | nil => simp [rsum]
+  | nil => simp []
   | cons a l ih =>
       rw [rsum_map_cons, rsum_map_cons]
       exact add_le_add (h a List.mem_cons_self)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+
+@[expose] public section
 
 /-!
 # Escaping zero-cost retry sequences

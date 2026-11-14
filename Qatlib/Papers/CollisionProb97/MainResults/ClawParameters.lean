@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.SampledClaw
-import Qatlib.Papers.CollisionProb97.MainResults.BijectiveClaw
-import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
-import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.SampledClaw
+public import Qatlib.Papers.CollisionProb97.MainResults.BijectiveClaw
+public import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
+public import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+
+@[expose] public section
 
 /-!
 # Cube-root parameters for claw finding
@@ -174,8 +178,8 @@ cost pair `(1, 1)`. -/
 theorem singletonRun_correct (F : S → R) (G : X → R) (s : S) (x : X)
     (hm : Fintype.card R = 1) :
     singletonRun F G s x = PMF.pure (some (s,x),(1,1)) ∧ F s = G x := by
-  haveI : Subsingleton R := Fintype.card_le_one_iff_subsingleton.mp (by omega)
+  have : Subsingleton R := Fintype.card_le_one_iff_subsingleton.mp (by omega)
   have he : F s = G x := Subsingleton.elim _ _
-  exact ⟨by simp only [singletonRun, if_pos he],he⟩
+  exact ⟨by simp only [singletonRun, ite_eq_left he],he⟩
 
 end Qatlib.Papers.CollisionProb97.MainResults.ClawParameters

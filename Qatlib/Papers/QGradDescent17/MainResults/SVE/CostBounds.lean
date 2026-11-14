@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Polynomial overhead bounds for singular-value estimation
@@ -23,7 +27,7 @@ namespace Qatlib.Papers.QGradDescent17.MainResults.SVE
 def SoftBigO (f g : ℝ) : Prop := ∃ C : ℝ, ∃ D : ℕ, 0 < C ∧ f ≤ C * (1 + g) ^ D
 
 /-- A nonnegative cost is bounded by itself in the polynomial overhead relation. -/
-theorem softBigO_self {g : ℝ} (hg : 0 ≤ g) : SoftBigO g g := by
+theorem softBigO_self {g : ℝ} (_hg : 0 ≤ g) : SoftBigO g g := by
   refine ⟨1, 1, one_pos, ?_⟩
   rw [pow_one]
   linarith

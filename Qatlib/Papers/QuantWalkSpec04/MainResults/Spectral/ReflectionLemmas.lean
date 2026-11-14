@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma6BlockActionQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma7EigenSymmetryQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma6BlockActionQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma7EigenSymmetryQuan
+
+@[expose] public section
 
 /-!
 # Reflection and discriminant identities

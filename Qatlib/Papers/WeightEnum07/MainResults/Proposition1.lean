@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WeightEnum07.MainResults.Theorem9
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Algebra.Group.Fin.Basic
-import Mathlib.Logic.Equiv.Fin.Rotate
+module
+
+public import Qatlib.Papers.WeightEnum07.MainResults.Theorem9
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Algebra.Group.Fin.Basic
+public import Mathlib.Logic.Equiv.Fin.Rotate
+
+@[expose] public section
 
 /-!
 # A bound on distinct trace-code weights
@@ -55,7 +59,7 @@ lemma hammingWeight_comp_perm {n : ℕ} (e : Equiv.Perm (Fin n)) (w : Fin n → 
 /-- Under the order hypothesis, multiplying the trace parameter by `α ^ (d.val * N)` composes
 the trace word with the coordinate cycle `finCycle d`. -/
 lemma traceWord_mul_pow_eq_comp
-    [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (hN : 0 < N)
+    [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (_hN : 0 < N)
     (hord : orderOf (Units.mk0 α hα) = n * N) (τ : E) (d : Fin n) :
     traceWord (F := F) α N n (τ * α ^ (d.val * N)) =
       fun i => traceWord (F := F) α N n τ (finCycle d i) := by
@@ -92,7 +96,7 @@ lemma hammingWeight_traceWord_mul_pow
 /-- For nonzero `τ` and the stated order of `α`, equality of the orbit elements indexed by `d`
 and `d'` forces `d = d'`. -/
 lemma mul_pow_inj
-    [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
+    [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (_hn : 0 < n) (hN : 0 < N)
     (hord : orderOf (Units.mk0 α hα) = n * N)
     {τ : E} (hτ : τ ≠ 0) {d d' : Fin n}
     (h : τ * α ^ (d.val * N) = τ * α ^ (d'.val * N)) : d = d' := by
@@ -118,12 +122,12 @@ cardinality at most `(Nat.card E - 1) / n`. See [GeraciVanBussel2007]. -/
 theorem proposition1_weight_bound
     [Fintype F] [Fintype E] [DecidableEq E] [FiniteDimensional F E] [Algebra.IsSeparable F E]
     (α : E) (hα : α ≠ 0) (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
-    (hmul : n * N = Nat.card E - 1)
+    (_hmul : n * N = Nat.card E - 1)
     (hord : orderOf (Units.mk0 α hα) = n * N)
-    (hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
+    (_hmin : ∀ j, 0 < j → j < Module.finrank F E → ¬ n ∣ Nat.card F ^ j - 1) :
     (weightSpectrum (F := F) α N n).card ≤ (Nat.card E - 1) / n := by
   classical
-  haveI : Finite Eˣ := Finite.of_injective (Units.val) Units.val_injective
+  have : Finite Eˣ := Finite.of_injective (Units.val) Units.val_injective
   set W : Finset ℕ := weightSpectrum (F := F) α N n with hW
 
   have hmem : ∀ m ∈ W, ∃ τ : {τ : E // τ ≠ 0}, hammingWeight (traceWord (F := F) α N n τ) = m := by

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrtBounds
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareSum
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareAppendWriter
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrtBounds
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareSum
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareAppendWriter
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
+
+@[expose] public section
 
 /-!
 # Uniform division along linearly bounded input families

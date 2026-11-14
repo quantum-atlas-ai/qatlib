@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -120,35 +124,47 @@ def energyVariance (lam : ι → ℝ) (ψ : ι → ℂ) : ℝ :=
   secondMoment lam ψ - (expectedEnergy lam ψ) ^ 2
 
 /-! ## Basic identities for the model -/
+omit [Fintype ι] [DecidableEq ι] in
 
-theorem weight_nonneg (ψ : ι → ℂ) (i : ι) : 0 ≤ weight ψ i :=
+
+theorem weight_nonneg {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (ψ : ι → ℂ) (i : ι) : 0 ≤ weight ψ i :=
   Complex.normSq_nonneg _
 
+omit [DecidableEq ι] in
+
 /-- The summation identity for `weight`. -/
-theorem sum_weight (ψ : ι → ℂ) : ∑ i, weight ψ i = normSq ψ := rfl
+theorem sum_weight {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (ψ : ι → ℂ) : ∑ i, weight ψ i = normSq ψ := rfl
 
 /-- The star mul self eq norm Sq property in the paper model. -/
 theorem star_mul_self_eq_normSq (z : ℂ) : star z * z = (Complex.normSq z : ℂ) := by
   rw [show star z = (starRingEnd ℂ) z from rfl, mul_comm]
   exact Complex.mul_conj z
 
+omit [DecidableEq ι] in
+
 /-- The vdot self property in the paper model. -/
-@[simp] theorem vdot_self (x : ι → ℂ) : vdot x x = (normSq x : ℂ) := by
+@[simp] theorem vdot_self {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x : ι → ℂ) : vdot x x = (normSq x : ℂ) := by
   unfold vdot normSq
   push_cast
   exact Finset.sum_congr rfl (fun i _ => star_mul_self_eq_normSq (x i))
 
+omit [DecidableEq ι] in
+
 /-- The quantity `normSq` is nonnegative. -/
-theorem normSq_nonneg (x : ι → ℂ) : 0 ≤ normSq x := by
+theorem normSq_nonneg {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x : ι → ℂ) : 0 ≤ normSq x := by
   unfold normSq
   exact Finset.sum_nonneg (fun i _ => Complex.normSq_nonneg _)
 
+omit [Fintype ι] in
+
 /-- The basis Vec apply self property in the paper model. -/
-theorem basisVec_apply_self (i : ι) : basisVec i i = 1 := by
+theorem basisVec_apply_self {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (i : ι) : basisVec i i = 1 := by
   simp [basisVec]
 
+omit [Fintype ι] in
+
 /-- The basis Vec apply ne property in the paper model. -/
-theorem basisVec_apply_ne {i j : ι} (h : j ≠ i) : basisVec i j = 0 := by
+theorem basisVec_apply_ne {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] {i j : ι} (h : j ≠ i) : basisVec i j = 0 := by
   simp [basisVec, h]
 
 /-- The norm Sq basis Vec property in the paper model. -/
@@ -162,8 +178,10 @@ theorem normSq_basisVec (i : ι) : normSq (basisVec i) = 1 := by
   rw [Finset.sum_congr rfl (fun j _ => h j)]
   simp
 
+omit [DecidableEq ι] in
+
 /-- The pure State apply property in the paper model. -/
-theorem pureState_apply (x y : ι → ℂ) (i : ι) :
+theorem pureState_apply {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x y : ι → ℂ) (i : ι) :
     (pureState x *ᵥ y) i = x i * vdot x y := by
   simp only [pureState, vdot, Matrix.mulVec, dotProduct]
   rw [Finset.mul_sum]
@@ -181,15 +199,19 @@ theorem pureState_mulVec_self {x : ι → ℂ} (hx : IsState x) : pureState x *�
   rw [pureState_mulVec, vdot_self, hx]
   simp
 
+omit [Fintype ι] [DecidableEq ι] in
+
 /-- The pure State is Hermitian property in the paper model. -/
-theorem pureState_isHermitian (x : ι → ℂ) : (pureState x).IsHermitian := by
+theorem pureState_isHermitian {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x : ι → ℂ) : (pureState x).IsHermitian := by
   ext i j
   unfold pureState
   rw [conjTranspose_apply]
   simp only [star_mul, star_star]
 
+omit [DecidableEq ι] in
+
 /-- `|x⟩⟨x| · |x⟩⟨x| = ⟨x|x⟩ • |x⟩⟨x|`. -/
-theorem pureState_mul_self' (x : ι → ℂ) :
+theorem pureState_mul_self' {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x : ι → ℂ) :
     pureState x * pureState x = vdot x x • pureState x := by
   ext i k
   simp only [pureState, Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul]
@@ -209,8 +231,10 @@ theorem pureState_mul_self {x : ι → ℂ} (hx : IsState x) :
   rw [pureState_mul_self', vdot_self, hx]
   simp
 
+omit [DecidableEq ι] in
+
 /-- The vdot smul property in the paper model. -/
-theorem vdot_smul (x : ι → ℂ) (c : ℂ) (y : ι → ℂ) :
+theorem vdot_smul {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (x : ι → ℂ) (c : ℂ) (y : ι → ℂ) :
     vdot x (c • y) = c * vdot x y := by
   unfold vdot
   simp only [Pi.smul_apply, smul_eq_mul, Finset.mul_sum]

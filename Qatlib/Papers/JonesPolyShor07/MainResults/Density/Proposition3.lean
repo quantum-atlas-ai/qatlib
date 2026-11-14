@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPolyShor07.MainResults.Density.Proposition2
+module
+
+public import Qatlib.Papers.JonesPolyShor07.MainResults.Density.Proposition2
+
+@[expose] public section
 
 /-!
 # Density up to phase in the three-strand SS sector
@@ -70,7 +74,7 @@ theorem subsingleton_ssBasis_three : Subsingleton (SSBasis 3) := by
 /-- The three-strand SS generator matrices are dense up to phase in the sense of `PhaseDenseOn`;
 see [ShorJordan2008]. -/
 theorem proposition3_base : PhaseDenseOn (SSBasis 3) (Set.range (rhoSS 3)) := by
-  haveI := subsingleton_ssBasis_three
+  have := subsingleton_ssBasis_three
   exact phaseDenseOn_of_subsingleton _
 
 end Qatlib.Papers.JonesPolyShor07.MainResults.Density

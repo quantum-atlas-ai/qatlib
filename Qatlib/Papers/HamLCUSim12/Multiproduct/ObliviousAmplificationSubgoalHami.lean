@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.ObliviousAmplificationSubgoalStat
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.ObliviousAmplificationSubgoalStat
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # An auxiliary qubitization projection identity

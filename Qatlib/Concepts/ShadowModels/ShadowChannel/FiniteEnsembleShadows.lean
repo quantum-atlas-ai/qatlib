@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+@[expose] public section
 
 /-!
 # Finite ensemble shadow reconstruction
@@ -69,7 +73,7 @@ any density state is at most its norm, and some density state attains that norm.
 theorem psd_spectral {E : Operator D} (hE : E.IsHermitian) (hEps : E.PosSemidef)
     (hD : 0 < D) :
     (∀ {ρ : Operator D}, IsDensityOperator ρ → (Matrix.trace (E * ρ)).re ≤ ‖E‖) ∧
-      ∃ (ρ : Operator D) (hρ : IsDensityOperator ρ),
+      ∃ (ρ : Operator D) (_hρ : IsDensityOperator ρ),
         (Matrix.trace (E * ρ)).re = ‖E‖ := by
   classical
   set U : Operator D := (hE.eigenvectorUnitary : Matrix (Fin D) (Fin D) ℂ) with hUdef
@@ -211,7 +215,7 @@ theorem re_trace_psd_density_le {E : Operator D} (hE : E.IsHermitian) (hEps : E.
 semidefinite operator in the real trace pairing. -/
 theorem exists_density_re_trace_eq {E : Operator D} (hE : E.IsHermitian)
     (hEps : E.PosSemidef) (hD : 0 < D) :
-    ∃ (ρ : Operator D) (hρ : IsDensityOperator ρ),
+    ∃ (ρ : Operator D) (_hρ : IsDensityOperator ρ),
       (Matrix.trace (E * ρ)).re = ‖E‖ :=
   (psd_spectral hE hEps hD).2
 

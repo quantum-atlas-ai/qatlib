@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityBoundedErrorSeparationStat
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityAverageSuccessBoundBern
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestrictedDefs
+module
+
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityBoundedErrorSeparationStat
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityAverageSuccessBoundBern
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestrictedDefs
+
+@[expose] public section
 
 /-!
 # Bounded-error parity-oracle separation
@@ -71,6 +75,6 @@ theorem parityBoundedErrorSeparation : ParityBoundedErrorSeparation := by
     · intro k
       rw [(bv_one_query_recovery n k).1, measureProb_tensorState_prod,
         measureProb_univ normalized_minus, mul_one]
-      simp only [MeasureProb, Finset.sum_singleton, bornProb_ket, if_true]
+      simp only [MeasureProb, Finset.sum_singleton, bornProb_ket, ite_true]
 
 end Qatlib.Papers.QComplexity97.XorSeparation

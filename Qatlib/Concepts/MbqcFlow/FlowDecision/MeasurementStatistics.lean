@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+
+@[expose] public section
 
 /-!
 # Variance bounds for measurement U-statistics
@@ -66,13 +70,17 @@ noncomputable def overlapCovarianceK (p : FinDist O) {n k : ℕ} (h : (Fin k →
 overlapping a fixed selection. -/
 def overlapDegreeBound (n k : ℕ) : ℕ := k * k * n ^ (k - 1)
 
+omit [Fintype O] [DecidableEq O] in
 /-- The probabilities of all length-`n` independent sample tables sum to one. -/
-theorem probOf_sum_one (p : FinDist O) (n : ℕ) :
+theorem probOf_sum_one [_fintype : Fintype O] [_decidableEq : DecidableEq O]
+    (p : FinDist O) (n : ℕ) :
     ∑ ω : Fin n → O, p.probOf ω = 1 := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf p n
 
+omit [Fintype O] [DecidableEq O] in
 /-- Every independent sample table has nonnegative probability. -/
-theorem probOf_nonneg (p : FinDist O) {n : ℕ} (ω : Fin n → O) :
-    0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
+theorem probOf_nonneg [_fintype : Fintype O] [_decidableEq : DecidableEq O]
+    (p : FinDist O) {n : ℕ} (ω : Fin n → O) :
+    0 ≤ p.probOf ω := Finset.prod_nonneg fun _i _ => p.nonneg _
 
 /-- Reading distinct coordinates from an independent sample preserves the kernel mean. -/
 theorem read_expect (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
@@ -87,8 +95,10 @@ theorem read_variance (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
       = kernelVarianceK p h :=
   povm_joint_expect p idx hidx (fun y => (h y - kernelMeanK p h) ^ 2)
 
+omit [Fintype O] [DecidableEq O] in
 /-- The independent kernel variance is nonnegative. -/
-theorem kernelVarianceK_nonneg {k : ℕ} (p : FinDist O) (h : (Fin k → O) → ℝ) :
+theorem kernelVarianceK_nonneg [_fintype : Fintype O] [_decidableEq : DecidableEq O]
+    {k : ℕ} (p : FinDist O) (h : (Fin k → O) → ℝ) :
     0 ≤ kernelVarianceK p h := by
   refine Finset.sum_nonneg fun y _ => ?_
   exact mul_nonneg (Finset.prod_nonneg fun i _ => p.nonneg _) (sq_nonneg _)
@@ -131,8 +141,10 @@ def precompEquiv {n : ℕ} (σ : Fin n ≃ Fin n) : (Fin n → O) ≃ (Fin n →
   left_inv ω := by funext x; simp
   right_inv ω := by funext x; simp
 
+omit [Fintype O] [DecidableEq O] in
 /-- A common permutation of both coordinate selections preserves their product expectation. -/
-theorem overlapExpectK_transport (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
+theorem overlapExpectK_transport [_fintype : Fintype O] [_decidableEq : DecidableEq O]
+    (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (σ : Fin n ≃ Fin n) (t t' s s' : Fin k → Fin n)
     (ht : ∀ i, t' i = σ (t i)) (hs : ∀ i, s' i = σ (s i)) :
     overlapExpectK p h t s = overlapExpectK p h t' s' := by
@@ -474,12 +486,12 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
       rw [Finset.sum_mul_sum]
       refine Finset.sum_congr rfl fun t _ => Finset.sum_congr rfl fun s _ => ?_
       by_cases hts : Function.Injective t ∧ Function.Injective s
-      · rw [if_pos hts, if_pos (hts.1), if_pos (hts.2)]
-      · rw [if_neg hts]
+      · rw [ite_eq_left hts, ite_eq_left (hts.1), ite_eq_left (hts.2)]
+      · rw [ite_eq_right hts]
         by_cases ht : Function.Injective t
-        · rw [if_pos ht, if_neg (fun hc => hts ⟨ht, hc⟩)]
+        · rw [ite_eq_left ht, ite_eq_right (fun hc => hts ⟨ht, hc⟩)]
           ring
-        · rw [if_neg ht]
+        · rw [ite_eq_right ht]
           ring
     calc ∑ ω : Fin n → O, p.probOf ω
           * ((∑ t : Fin k → Fin n, (if Function.Injective t then h (fun i => ω (t i)) else 0))
@@ -504,12 +516,12 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
               overlapExpectK p h t s else 0) := by
           refine Finset.sum_congr rfl fun t _ => Finset.sum_congr rfl fun s _ => ?_
           by_cases hts : Function.Injective t ∧ Function.Injective s
-          · simp only [hts, and_true, if_true]
+          · simp only [hts, and_true, ite_true]
             unfold overlapExpectK
             exact Finset.sum_congr rfl fun ω _ => (mul_assoc _ _ _).symm
-          · rw [if_neg hts]
+          · rw [ite_eq_right hts]
             exact Finset.sum_eq_zero fun ω _ => by
-              simp only [if_neg hts]
+              simp only [ite_eq_right hts]
               ring
   have hSexp : ∑ ω : Fin n → O, p.probOf ω
         * (∑ t : Fin k → Fin n, (if Function.Injective t then h (fun i => ω (t i)) else 0))
@@ -571,11 +583,11 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
             (if Function.Injective s then kernelMeanK p h ^ 2 else 0) else 0) := by
       intro t s
       by_cases hts : Function.Injective t ∧ Function.Injective s
-      · rw [if_pos hts, if_pos (hts.1), if_pos (hts.2)]
-      · rw [if_neg hts]
+      · rw [ite_eq_left hts, ite_eq_left (hts.1), ite_eq_left (hts.2)]
+      · rw [ite_eq_right hts]
         by_cases ht : Function.Injective t
-        · rw [if_pos ht, if_neg (fun hc => hts ⟨ht, hc⟩)]
-        · rw [if_neg ht]
+        · rw [ite_eq_left ht, ite_eq_right (fun hc => hts ⟨ht, hc⟩)]
+        · rw [ite_eq_right ht]
     rw [Finset.sum_congr rfl fun t _ => Finset.sum_congr rfl fun s _ => hsplit t s]
     have hinner : ∀ t : Fin k → Fin n, ∑ s : Fin k → Fin n,
         (if Function.Injective t then
@@ -584,7 +596,7 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
           ((distinctTupleCount n k : ℕ) : ℝ) * kernelMeanK p h ^ 2 else 0) := by
       intro t
       by_cases ht : Function.Injective t
-      · simp only [ht, if_true]
+      · simp only [ht, ite_true]
         exact sum_injective_const _
       · simp [ht]
     rw [Finset.sum_congr rfl fun t _ => hinner t, sum_injective_const]
@@ -598,10 +610,10 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
           kernelMeanK p h ^ 2 else 0) := by
     intro t s
     by_cases hts : Function.Injective t ∧ Function.Injective s
-    · rw [if_pos hts, if_pos hts, if_pos hts]
+    · rw [ite_eq_left hts, ite_eq_left hts, ite_eq_left hts]
       unfold overlapCovarianceK
       ring
-    · rw [if_neg hts, if_neg hts, if_neg hts]
+    · rw [ite_eq_right hts, ite_eq_right hts, ite_eq_right hts]
       ring
   have hsub : (∑ t : Fin k → Fin n, ∑ s : Fin k → Fin n,
       (if Function.Injective t ∧ Function.Injective s then
@@ -658,29 +670,29 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
 
 /-- Extends a table on the coordinates other than `i` by assigning the value `j` at `i`. -/
 def coordFiberTable {k n : ℕ} (i : Fin k) (j : Fin n)
-    (g : ∀ x : {x : Fin k // x ≠ i}, Fin n) : Fin k → Fin n :=
+    (g : ∀ _x : {x : Fin k // x ≠ i}, Fin n) : Fin k → Fin n :=
   fun x => if hx : x = i then j else g ⟨x, hx⟩
 
 /-- Identifies tables with prescribed value `j` at coordinate `i` with tables on the remaining
 coordinates. -/
 def coordFiberEquiv {k n : ℕ} (i : Fin k) (j : Fin n) :
-    {s : Fin k → Fin n // s i = j} ≃ (∀ x : {x : Fin k // x ≠ i}, Fin n) where
+    {s : Fin k → Fin n // s i = j} ≃ (∀ _x : {x : Fin k // x ≠ i}, Fin n) where
   toFun hs x := hs.1 x.1
-  invFun g := ⟨coordFiberTable i j g, by rw [coordFiberTable]; exact dif_pos rfl⟩
+  invFun g := ⟨coordFiberTable i j g, by rw [coordFiberTable]; exact dite_eq_left rfl⟩
   left_inv hs := by
     refine Subtype.ext (funext fun x => ?_)
     show coordFiberTable i j (fun x => hs.1 x.1) x = hs.1 x
     by_cases hx : x = i
     · subst hx
-      rw [coordFiberTable, dif_pos rfl]
+      rw [coordFiberTable, dite_eq_left rfl]
       exact hs.2.symm
-    · rw [coordFiberTable, dif_neg hx]
+    · rw [coordFiberTable, dite_eq_right hx]
   right_inv g := by
     funext x
     show coordFiberTable i j g x.1 = g x
     by_cases hx : (x : Fin k) = i
     · exact absurd hx x.2
-    · rw [coordFiberTable, dif_neg hx]
+    · rw [coordFiberTable, dite_eq_right hx]
 
 /-- There are `n ^ (k - 1)` functions from `Fin k` to `Fin n` with a prescribed value at a
 specified coordinate. -/
@@ -785,11 +797,11 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
             (if Function.Injective s then overlapCovarianceK p h t s else 0) else 0) := by
       intro t s
       by_cases hts : Function.Injective t ∧ Function.Injective s
-      · rw [if_pos hts, if_pos (hts.1), if_pos (hts.2)]
-      · rw [if_neg hts]
+      · rw [ite_eq_left hts, ite_eq_left (hts.1), ite_eq_left (hts.2)]
+      · rw [ite_eq_right hts]
         by_cases ht : Function.Injective t
-        · rw [if_pos ht, if_neg (fun hc => hts ⟨ht, hc⟩)]
-        · rw [if_neg ht]
+        · rw [ite_eq_left ht, ite_eq_right (fun hc => hts ⟨ht, hc⟩)]
+        · rw [ite_eq_right ht]
     have hinner : ∀ t : Fin k → Fin n, ∑ s : Fin k → Fin n,
         (if Function.Injective t then
           (if Function.Injective s then overlapCovarianceK p h t s else 0) else 0)
@@ -800,18 +812,18 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
           else 0) := by
       intro t
       by_cases ht : Function.Injective t
-      · simp only [ht, if_true]
+      · simp only [ht, ite_true]
         have hle : ∀ s : Fin k → Fin n,
             (if Function.Injective s then overlapCovarianceK p h t s else 0)
           ≤ (if Function.Injective s ∧ ∃ i, ∃ j, s i = t j
               then kernelVarianceK p h else 0) := by
           intro s
           by_cases hq : Function.Injective s ∧ ∃ i, ∃ j, s i = t j
-          · rw [if_pos hq, if_pos hq.1]
+          · rw [ite_eq_left hq, ite_eq_left hq.1]
             exact overlapCovarianceK_le p h t s ht hq.1
-          · rw [if_neg hq]
+          · rw [ite_eq_right hq]
             by_cases hs : Function.Injective s
-            · rw [if_pos hs]
+            · rw [ite_eq_left hs]
               simp only [not_and_or, not_exists] at hq
               have hdis : ∀ i j : Fin k, t i ≠ s j := by
                 intro i j hcontra
@@ -819,7 +831,7 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
                 · exact absurd hs hns
                 · exact absurd hcontra.symm (hall j i)
               rw [overlapCovarianceK_disjoint p h t s ht hs hdis]
-            · rw [if_neg hs]
+            · rw [ite_eq_right hs]
         calc ∑ s : Fin k → Fin n,
             (if Function.Injective s then overlapCovarianceK p h t s else 0)
             ≤ ∑ s : Fin k → Fin n,
@@ -849,10 +861,10 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
             kernelVarianceK p h * ((overlapDegreeBound n k : ℕ) : ℝ) else 0) := by
         intro t
         by_cases ht : Function.Injective t
-        · rw [if_pos ht, if_pos ht]
+        · rw [ite_eq_left ht, ite_eq_left ht]
           refine mul_le_mul_of_nonneg_left ?_ hV
           exact_mod_cast overlap_index_card_le t
-        · rw [if_neg ht, if_neg ht]
+        · rw [ite_eq_right ht, ite_eq_right ht]
       calc ∑ t : Fin k → Fin n,
           (if Function.Injective t then
             kernelVarianceK p h
@@ -884,7 +896,7 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
 /-- For a positive threshold, the probability of a strict absolute deviation from the mean is at
 most the variance divided by the squared threshold. -/
 theorem probEvent_le_variance {X : Type} [Fintype X] {n : ℕ} (p : FinDist X)
-    (f : (Fin n → X) → ℝ) (μ : ℝ) (hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
+    (f : (Fin n → X) → ℝ) (μ : ℝ) (_hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
     (ε : ℝ) (hε : 0 < ε) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := n) p (fun ω : Fin n → X => ε < |f ω - μ|)
       ≤ (∑ ω : Fin n → X, p.probOf ω * (f ω - μ) ^ 2) / ε ^ 2 := by

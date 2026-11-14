@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -91,7 +95,7 @@ theorem keepProb_eq (p : ℝ) : keepProb p = 1 - 2 * p * (1 - p) := by
   ring
 
 /-- The elementary exponential bound `(1 - q)^m ≤ e^{-qm}` for `0 ≤ q ≤ 1`. -/
-theorem one_sub_pow_le_exp (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q ≤ 1) (m : ℕ) :
+theorem one_sub_pow_le_exp (q : ℝ) (_hq0 : 0 ≤ q) (hq1 : q ≤ 1) (m : ℕ) :
     (1 - q) ^ m ≤ Real.exp (-((m : ℝ) * q)) := by
   have hbase : 1 - q ≤ Real.exp (-q) := by
     have h := Real.add_one_le_exp (-q)
@@ -101,7 +105,6 @@ theorem one_sub_pow_le_exp (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q ≤ 1) (m : ℕ) :
     _ = Real.exp (-((m : ℝ) * q)) := by
         rw [← Real.exp_nat_mul]
         congr 1
-        push_cast
         ring
 
 /-- Exponential upper bound on the failure probability, Eq. (15) proof:
@@ -120,7 +123,7 @@ theorem failProb_exp_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (m : ℕ) :
 /-- Calculus step used at the end of the Lemma 3 proof: for `s > 0` and
 `x ≥ 0`, `x e^{-2sx} ≤ 1/(2 e s)`, whose maximum is attained at
 `x = 1/(2s)` ("straightforward calculus" in the source). -/
-theorem mul_exp_neg_le (s x : ℝ) (hs : 0 < s) (hx : 0 ≤ x) :
+theorem mul_exp_neg_le (s x : ℝ) (hs : 0 < s) (_hx : 0 ≤ x) :
     x * Real.exp (-(2 * s * x)) ≤ 1 / (2 * Real.exp 1 * s) := by
   have h2s : 0 < 2 * s := by positivity
   have h := Real.mul_exp_neg_le_exp_neg_one (2 * s * x)

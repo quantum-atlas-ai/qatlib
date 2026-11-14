@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.DeltaRegion
-import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.SourceLemma13
+module
+
+public import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.DeltaRegion
+public import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.SourceLemma13
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,7 +126,7 @@ theorem source_theorem8_region_only_last {Δ : ℝ} (hΔ0 : 0 ≤ Δ)
 /-- GrandUnif21 Theorem 8, error bound at the last iteration: an error of size
 `e < 1/2` at the `2^{-(n-1)}` scale of the last tail, with `n ≥ 1`, makes the
 final phase error smaller than `2^{-n}`. -/
-theorem source_theorem8_error_bound {e : ℝ} (he0 : 0 ≤ e) (he : e < 1 / 2)
+theorem source_theorem8_error_bound {e : ℝ} (_he0 : 0 ≤ e) (he : e < 1 / 2)
     {n : ℕ} (hn : 1 ≤ n) :
     (1 / 2 : ℝ) ^ (n - 1) * e < 1 / (2 : ℝ) ^ n := by
   have hstep : (1 / 2 : ℝ) ^ (n - 1) * (1 / 2) = (1 / 2 : ℝ) ^ n := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationStat
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationStat
+
+@[expose] public section
 
 /-!
 # Success amplification for minimum finding
@@ -125,14 +129,14 @@ theorem amplifiedCombine_minimum_iff {N : ℕ} {α : Type*} [LinearOrder α]
       (∀ j, T a ≤ T j) ∨ (∀ j, T b ≤ T j) := by
   unfold amplifiedCombine
   by_cases h : T b < T a
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     constructor
     · exact Or.inr
     · rintro (ha | hb)
       · intro j
         exact h.le.trans (ha j)
       · exact hb
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     constructor
     · exact Or.inl
     · rintro (ha | hb)

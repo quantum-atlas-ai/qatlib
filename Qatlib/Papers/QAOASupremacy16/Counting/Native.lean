@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOASupremacy16.Counting.Source
-import Qatlib.Papers.QAOASupremacy16.CircuitModel.Native
+module
+
+public import Qatlib.Papers.QAOASupremacy16.Counting.Source
+public import Qatlib.Papers.QAOASupremacy16.CircuitModel.Native
+
+@[expose] public section
 
 /-!
 # Recovering cost counts from actual matrix elements

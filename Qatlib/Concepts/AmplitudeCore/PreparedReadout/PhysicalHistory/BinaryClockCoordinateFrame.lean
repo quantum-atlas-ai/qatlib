@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPurifier
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalInitialization
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPurifier
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalInitialization
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+
+@[expose] public section
 
 /-!
 # Coordinates for the binary clock simulator frame
@@ -187,6 +191,8 @@ theorem relabel_frame (q a : ℕ) (Ψ : QState ((Reg q × I) × E)) :
 /-- Attach the work state `eta a` to the environment of a purification. -/
 noncomputable def augmented (a : ℕ) (ψ : QState (E × I)) : QState ((E × Work a) × I) :=
   fun x => eta a x.1.2 * ψ (x.1.1,x.2)
+
+omit [DecidableEq I] [DecidableEq E] in
 
 /-- Augmenting a normalized purification by `eta a` preserves normalization. -/
 theorem augmented_normalized (a : ℕ) (ψ : QState (E × I)) (hψ : Normalized ψ) :

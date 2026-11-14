@@ -4,31 +4,35 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Rat
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic
-import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
-import Qatlib.Papers.HiddenSubgrp04.MainResults.LemmaA15
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Rat
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic
+public import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
+public import Qatlib.Papers.HiddenSubgrp04.MainResults.LemmaA15
+
+@[expose] public section
 
 /-!
 # Statements and resource bounds for cyclic Fourier approximation
@@ -68,10 +72,10 @@ noncomputable section
 /-- The proposition bounding the ℓ² norm of the Fourier-weighted tail vectors by the displayed
 logarithmic and size-dependent error expression under the supplied parameter and
 normalization hypotheses. -/
-def lemma_A11Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
-    (hL : 2 ≤ L) (hM : 16 * N ≤ M)
-    (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
-    (u : Fin N → ℂ) (hu : l2 u = 1) : Prop :=
+def lemma_A11Statement (L M N : ℕ) (_hN : 13 ≤ N) (_hNodd : Odd N)
+    (_hL : 2 ≤ L) (_hM : 16 * N ≤ M)
+    (_hLpow : ∃ a : ℕ, L = 2 ^ a) (_hMpow : ∃ b : ℕ, M = 2 ^ b)
+    (u : Fin N → ℂ) (_hu : l2 u = 1) : Prop :=
     l2 (fun k : Fin M => ∑ i : Fin N, cyclicQFT u i * Tvec L M N i.val k) ≤
       (2 / Real.pi) *
         Real.sqrt (22 * (Real.log (N : ℝ)) ^ 2 / (L : ℝ) +
@@ -79,26 +83,26 @@ def lemma_A11Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
 
 /-- The proposition that the ℓ² distance between `Svec` and `Bvec` is at most πLN√3/M under the
 supplied size and power-of-two hypotheses. -/
-def lemma_A12Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
-    (hL : 16 ≤ L) (hM : L * N ≤ M)
-    (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
+def lemma_A12Statement (L M N : ℕ) (_hN : 13 ≤ N) (_hNodd : Odd N)
+    (_hL : 16 ≤ L) (_hM : L * N ≤ M)
+    (_hLpow : ∃ a : ℕ, L = 2 ^ a) (_hMpow : ∃ b : ℕ, M = 2 ^ b)
     (i : Fin N) : Prop :=
     l2 (fun k : Fin M => Svec L M N i.val k - Bvec L M N i.val k) ≤
       Real.pi * (L : ℝ) * (N : ℝ) / (M : ℝ) * Real.sqrt 3
 
 /-- The proposition that applying `DeltaVec` to `Svec` gives the tensor product of the i-th
 basis vector with `garbageVec` under the supplied parameter hypotheses. -/
-def lemma_A13Statement (L M N : ℕ) (hN : 13 ≤ N) (hL : 16 ≤ L) (hM : L * N ≤ M)
-    (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b) (i : Fin N) : Prop :=
+def lemma_A13Statement (L M N : ℕ) (_hN : 13 ≤ N) (_hL : 16 ≤ L) (_hM : L * N ≤ M)
+    (_hLpow : ∃ a : ℕ, L = 2 ^ a) (_hMpow : ∃ b : ℕ, M = 2 ^ b) (i : Fin N) : Prop :=
     DeltaVec M N (Svec L M N i.val) =
       tensorVec (fun j : Fin N => if j = i then 1 else 0) (garbageVec L M N)
 
 /-- The proposition bounding the distance from `algOutput` to the tensor product of `cyclicQFT
 u` and `garbageVec` by the sum of the two displayed analytic error terms. -/
-def theorem_A14Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
-    (hL : 16 ≤ L) (hM : L * N ≤ M)
-    (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
-    (u : Fin N → ℂ) (hu : l2 u = 1) : Prop :=
+def theorem_A14Statement (L M N : ℕ) (_hN : 13 ≤ N) (_hNodd : Odd N)
+    (_hL : 16 ≤ L) (_hM : L * N ≤ M)
+    (_hLpow : ∃ a : ℕ, L = 2 ^ a) (_hMpow : ∃ b : ℕ, M = 2 ^ b)
+    (u : Fin N → ℂ) (_hu : l2 u = 1) : Prop :=
     l2 (fun p => algOutput L M N u p - tensorVec (cyclicQFT u) (garbageVec L M N) p) ≤
       (2 / Real.pi) *
           Real.sqrt (22 * (Real.log (N : ℝ)) ^ 2 / (L : ℝ) +
@@ -115,12 +119,12 @@ def theoremA17ErrorBound (L M N : ℕ) : ℝ :=
 /-- The proposition that a normalized auxiliary vector exists whose tensor product with
 `cyclicQFT u` is within ε of `algOutput`, under the supplied combined-error and parameter
 hypotheses. -/
-def theorem_A17_part1Statement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
-    (ε : ℝ) (hε0 : 0 < ε) (hε2 : ε ≤ Real.sqrt 2)
-    (L M : ℕ) (hL16 : 16 ≤ L) (hM : L * N ≤ M)
-    (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
-    (h179 : theoremA17ErrorBound L M N ≤ ε * Real.sqrt 2)
-    (u : Fin N → ℂ) (hu : l2 u = 1) : Prop :=
+def theorem_A17_part1Statement (N : ℕ) (_hNodd : Odd N) (_hN : 13 ≤ N)
+    (ε : ℝ) (_hε0 : 0 < ε) (_hε2 : ε ≤ Real.sqrt 2)
+    (L M : ℕ) (_hL16 : 16 ≤ L) (_hM : L * N ≤ M)
+    (_hLpow : ∃ a : ℕ, L = 2 ^ a) (_hMpow : ∃ b : ℕ, M = 2 ^ b)
+    (_h179 : theoremA17ErrorBound L M N ≤ ε * Real.sqrt 2)
+    (u : Fin N → ℂ) (_hu : l2 u = 1) : Prop :=
     ∃ ψ : Fin (2 * alphaNat M N + 1) → ℂ,
       l2 ψ = 1 ∧
         l2 (fun p => algOutput L M N u p - tensorVec (cyclicQFT u) ψ p) ≤ ε
@@ -149,8 +153,8 @@ theorem theorem_A17_part3_qubits (M : ℕ) : qubitsUsed M = Nat.clog 2 M + 2 := 
 
 /-- The proposition that a power of two M ≥ 16 exists with qubit count at most the ceiling of
 12.53 + 3 log₂(√N/ε), for the supplied N and ε. -/
-def theorem_A17_part3_sufficient_qubitsStatement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
-    (ε : ℝ) (hε0 : 0 < ε) (hε2 : ε ≤ Real.sqrt 2) : Prop :=
+def theorem_A17_part3_sufficient_qubitsStatement (N : ℕ) (_hNodd : Odd N) (_hN : 13 ≤ N)
+    (ε : ℝ) (_hε0 : 0 < ε) (_hε2 : ε ≤ Real.sqrt 2) : Prop :=
     ∃ M : ℕ, (∃ b : ℕ, M = 2 ^ b) ∧ 16 ≤ M ∧
       qubitsUsed M ≤ Nat.ceil (12.53 + 3 * Real.logb 2 (Real.sqrt (N : ℝ) / ε))
 
@@ -160,9 +164,9 @@ def paperOperationComplexity (M : ℕ) (ε : ℝ) : ℝ :=
 
 /-- The proposition that the supplied ℓ² closeness bound ε to a tensor product with normalized
 auxiliary vector yields `tvDist` at most 2ε + ε². -/
-def theorem_A17_part4Statement (N L M : ℕ) (ε : ℝ) (hε0 : 0 ≤ ε)
-    (u : Fin N → ℂ) (ψ : Fin (2 * alphaNat M N + 1) → ℂ) (hψ : l2 ψ = 1)
-    (hclose : l2 (fun p =>
+def theorem_A17_part4Statement (N L M : ℕ) (ε : ℝ) (_hε0 : 0 ≤ ε)
+    (u : Fin N → ℂ) (ψ : Fin (2 * alphaNat M N + 1) → ℂ) (_hψ : l2 ψ = 1)
+    (_hclose : l2 (fun p =>
       algOutput L M N u p - tensorVec (cyclicQFT u) ψ p) ≤ ε) : Prop :=
     tvDist (algOutput L M N u) (tensorVec (cyclicQFT u) ψ) ≤ 2 * ε + ε ^ 2
 

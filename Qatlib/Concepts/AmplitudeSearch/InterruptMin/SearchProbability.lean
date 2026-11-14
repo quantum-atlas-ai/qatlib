@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
-import Mathlib.Probability.Distributions.Uniform
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+public import Mathlib.Probability.Distributions.Uniform
+
+@[expose] public section
 
 /-!
 # Probability laws for checked and terminal search

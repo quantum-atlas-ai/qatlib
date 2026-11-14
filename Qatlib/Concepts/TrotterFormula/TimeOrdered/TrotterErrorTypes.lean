@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Representations of product-formula error
@@ -76,7 +80,7 @@ theorem pf_word_right_generator_suffix_sum (xs : List (Matrix I I ℂ)) (t : ℝ
       ∑ j : Fin xs.length,
         Ring.inverse (suzukiExponentialWord (xs.drop (j.val + 1)) t) *
           xs.getD j.val 0 * suzukiExponentialWord (xs.drop (j.val + 1)) t := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   induction xs with
   | nil => simp [suzukiExponentialWord, pfLeftGenerator]
   | cons X xs ih =>
@@ -174,7 +178,7 @@ theorem pf_word_multiplicative_representation (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord xs t = NormedSpace.exp (t • H) *
       orderedEvolution (fun τ => -(pfWordMultiplicativeField xs H τ)) 0 t := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   let V : ℝ → Matrix I I ℂ := fun τ =>
     NormedSpace.exp ((-τ) • H) * suzukiExponentialWord xs τ
   let A : ℝ → Matrix I I ℂ := fun τ => -(pfWordMultiplicativeField xs H τ)

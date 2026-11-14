@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,11 +100,11 @@ theorem signedPattern_pos {n : ℕ} {x x' : BitString n} {i : Fin n}
   unfold signedPattern at hi
   by_cases h1 : x i = false ∧ x' i = true
   · exact h1
-  · rw [if_neg h1] at hi
+  · rw [ite_eq_right h1] at hi
     by_cases h2 : x i = true ∧ x' i = false
-    · rw [if_pos h2] at hi
+    · rw [ite_eq_left h2] at hi
       omega
-    · rw [if_neg h2] at hi
+    · rw [ite_eq_right h2] at hi
       omega
 
 /-- On a `-1` site the source bit is `1` and the target bit is `0`. -/
@@ -108,12 +112,12 @@ theorem signedPattern_neg {n : ℕ} {x x' : BitString n} {i : Fin n}
     (hi : signedPattern x x' i = -1) : x i = true ∧ x' i = false := by
   unfold signedPattern at hi
   by_cases h1 : x i = false ∧ x' i = true
-  · rw [if_pos h1] at hi
+  · rw [ite_eq_left h1] at hi
     omega
-  · rw [if_neg h1] at hi
+  · rw [ite_eq_right h1] at hi
     by_cases h2 : x i = true ∧ x' i = false
     · exact h2
-    · rw [if_neg h2] at hi
+    · rw [ite_eq_right h2] at hi
       omega
 
 /-- The real two-level rotation of Eq. (S5) applied to the amplitude pair

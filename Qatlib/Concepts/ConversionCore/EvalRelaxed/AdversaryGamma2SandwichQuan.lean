@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.EvalRelaxed.AdversaryGamma2SandwichStat
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2EvalRelaxed
+module
+
+public import Qatlib.Concepts.ConversionCore.EvalRelaxed.AdversaryGamma2SandwichStat
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2EvalRelaxed
+
+@[expose] public section
 
 /-!
 # Comparing relaxed and unrelaxed evaluation bounds

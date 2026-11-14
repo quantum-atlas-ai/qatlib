@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Integral
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Integral
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+
+@[expose] public section
 
 /-!
 # Moment bounds from Gaussian-decay tails
@@ -58,7 +62,7 @@ theorem momentCap_ne_top (D : ℝ) (hD : 0≤D) (p : ℕ) : momentCap D p≠∞ 
       filter_upwards [self_mem_ae_restrict measurableSet_Ioi] with t ht
       exact mul_nonneg (mul_nonneg hD (Real.exp_nonneg _)) (Real.rpow_nonneg (mem_Ioi.mp ht).le _)
     have hh := (lintegral_ofReal_ne_top_iff_integrable hi.aestronglyMeasurable hn).mpr hi
-    simpa only [momentCap,hp,if_false] using ENNReal.mul_ne_top ENNReal.ofReal_ne_top hh
+    simpa only [momentCap,hp,ite_false] using ENNReal.mul_ne_top ENNReal.ofReal_ne_top hh
 variable {α : Type} [MeasurableSpace α] (μ : Measure α) [IsProbabilityMeasure μ]
 
 /-- A measurable nonnegative function on a probability space with tail at most D exp(-t²/8) has
@@ -78,7 +82,7 @@ theorem moment_from_tail (f : α→ℝ) (hf : Measurable f) (hn : ∀ x,0≤f x)
   simp only [Real.rpow_natCast] at hl
   have hb : (∫⁻ x,ENNReal.ofReal ((f x)^p) ∂μ)≤momentCap D p := by
     rw [hl]
-    simp only [momentCap,hp,if_false]
+    simp only [momentCap,hp,ite_false]
     apply mul_le_mul_right
     apply lintegral_mono_ae
     filter_upwards [self_mem_ae_restrict measurableSet_Ioi] with t ht

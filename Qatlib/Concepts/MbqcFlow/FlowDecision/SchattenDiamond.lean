@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.RectangularSchattenHolder
-import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamondDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.RectangularSchattenHolder
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.SchattenDiamondDefs
+
+@[expose] public section
 
 /-!
 # Schatten inequality import interface

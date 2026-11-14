@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+
+@[expose] public section
 
 /-!
 # When orthogonal complements form subgroups
@@ -57,7 +61,7 @@ theorem theorem_4_6_bwd (U : Subgroup (Wreath n)) (h : IsSubgroupSet (perpSub U)
   obtain ⟨H, hH⟩ := h
   by_cases hU1 : ∃ g ∈ U, g.a = 1
   · exact conjSub_eq_of_balanced U (balanced_of_exists_a_one U hU1)
-  · push_neg at hU1
+  · push Not at hU1
     have hbase : ∀ g ∈ U, g.a = 0 := by
       intro g hg
       rcases zmod2_eq_zero_or_one g.a with h0 | h1

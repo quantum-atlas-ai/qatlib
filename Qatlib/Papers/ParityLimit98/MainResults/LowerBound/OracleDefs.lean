@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
-import Qatlib.Concepts.StoppingCore.InterruptBridge.BitToPhaseSameInput
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.BitToPhaseSameInput
+
+@[expose] public section
 
 /-!
 # Parity oracle representation change

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Quaternion
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
-import Qatlib.Papers.AnyonicSpin06.MainResults.SU2Euler
+module
+
+public import Mathlib.Algebra.Quaternion
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Papers.AnyonicSpin06.MainResults.SU2Euler
+
+@[expose] public section
 
 /-!
 # Restrictions on three-factor two-axis decompositions

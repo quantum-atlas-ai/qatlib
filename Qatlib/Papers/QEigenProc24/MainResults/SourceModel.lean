@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.LinearAlgebra.Matrix.SchurComplement
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.LinearAlgebra.Matrix.SchurComplement
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Polynomial.AlgebraMap
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

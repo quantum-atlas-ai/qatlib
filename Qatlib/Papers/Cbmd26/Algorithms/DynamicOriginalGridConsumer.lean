@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicOuterWordBridge
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicSampleInputBridge
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridAddressBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicOuterWordBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicSampleInputBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridAddressBridge
+
+@[expose] public section
 
 /-!
 # Dynamic grid LCU from original time oracles

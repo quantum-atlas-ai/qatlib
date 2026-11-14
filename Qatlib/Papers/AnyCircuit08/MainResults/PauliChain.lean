@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+module
+
+public import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # Reachability of Pauli strings
@@ -201,7 +205,7 @@ theorem pauliSupport_zero {n : ℕ} (q : PauliString n) (h : PauliSupport (0 : P
 [HallgrenHarrow2008]. -/
 theorem stationaryWeight_ne_zero_le {n : ℕ} {p : PauliString n} (hp : p ≠ 0) :
     stationaryWeight n p ≤ (1 / 4 : ℝ) ^ n := by
-  rw [stationaryWeight, if_neg hp]
+  rw [stationaryWeight, ite_eq_right hp]
   have h4 : (0:ℝ) < (4:ℝ) ^ n := by positivity
   have h2 : (0:ℝ) < (2:ℝ) ^ n := by positivity
   have hle : (4:ℝ) ^ n ≤ (4:ℝ) ^ n + (2:ℝ) ^ n := le_add_of_nonneg_right h2.le

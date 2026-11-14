@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
-import Mathlib.Data.List.FinRange
-import Mathlib.Data.Matrix.Mul
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+public import Mathlib.Data.List.FinRange
+public import Mathlib.Data.Matrix.Mul
+
+@[expose] public section
 
 /-!
 # Address gates and native-machine interfaces
@@ -98,7 +102,7 @@ theorem AddrGate.matches_hi (g : AddrGate n) : g.matches g.hi := by
 
 /-- An address gate sends its lower endpoint to its upper endpoint. -/
 theorem AddrGate.eval_lo (g : AddrGate n) : g.eval g.lo = g.hi := by
-  rw [AddrGate.eval, if_pos g.matches_lo]
+  rw [AddrGate.eval, ite_eq_left g.matches_lo]
   funext i
   by_cases hi : i = g.target
   · subst hi
@@ -113,7 +117,7 @@ theorem AddrGate.eval_lo (g : AddrGate n) : g.eval g.lo = g.hi := by
 
 /-- An address gate sends its upper endpoint to its lower endpoint. -/
 theorem AddrGate.eval_hi (g : AddrGate n) : g.eval g.hi = g.lo := by
-  rw [AddrGate.eval, if_pos g.matches_hi]
+  rw [AddrGate.eval, ite_eq_left g.matches_hi]
   funext i
   by_cases hi : i = g.target
   · subst hi
@@ -154,7 +158,7 @@ theorem AddrGate.eval_of_ne (g : AddrGate n) {x : Qatlib.Foundations.PureStateMa
         rw [hxupd]
         simp [AddrGate.hi, hb]
       exact hx' this
-  rw [AddrGate.eval, if_neg hn]
+  rw [AddrGate.eval, ite_eq_right hn]
 
 /-- Evaluation of an address gate is the transposition of its lower and upper endpoints. -/
 theorem AddrGate.eval_eq_swap (g : AddrGate n) (x : Qatlib.Foundations.PureStateMath.Reg n) :
@@ -284,7 +288,7 @@ theorem flipQubits_apply (ds : List (Fin n)) (w : Qatlib.Foundations.PureStateMa
     by_cases hid : i = d
     · subst i
       have h := ih (w := Function.update w d (!w d)) hnd2
-      simp only [hnd', if_false] at h
+      simp only [hnd', ite_false] at h
       rw [show flipQubits (d :: ds) w d = flipQubits ds (Function.update w d (!w d)) d from rfl, h]
       simp
     · have h := ih (w := Function.update w d (!w d)) hnd2
@@ -481,7 +485,7 @@ theorem chainWord_eval : ∀ (ds : List (Fin n)) (w : Qatlib.Foundations.PureSta
             = flipQubits (e :: rest) (Function.update w d (!w d)) e :=
           congrArg (fun x : Qatlib.Foundations.PureStateMath.Reg n => x e) h
         have he := flipQubits_apply (e :: rest) (Function.update w d (!w d)) hnd2 e
-        simp only [List.mem_cons_self, if_true] at he
+        simp only [List.mem_cons_self, ite_true] at he
         rw [he] at hz
         cases hA : (Function.update w d (!w d)) e <;> simp at hz
       have hne3 : w ≠ flipQubits (e :: rest) (Function.update w d (!w d)) := by
@@ -489,7 +493,7 @@ theorem chainWord_eval : ∀ (ds : List (Fin n)) (w : Qatlib.Foundations.PureSta
         have hz : w d = flipQubits (e :: rest) (Function.update w d (!w d)) d :=
           congrArg (fun x : Qatlib.Foundations.PureStateMath.Reg n => x d) h
         have hd' := flipQubits_apply (e :: rest) (Function.update w d (!w d)) hnd2 d
-        simp only [hnd', if_false] at hd'
+        simp only [hnd', ite_false] at hd'
         rw [hd'] at hz
         simp [Function.update_self] at hz
       have hstep : flipQubits (d :: e :: rest) w
@@ -593,14 +597,14 @@ theorem AddrWord.amp_eq_zero_iff (w : AddrWord n) (x y : Qatlib.Foundations.Pure
 theorem AddrWord.amp_eq_one_of_eq (w : AddrWord n) (x y : Qatlib.Foundations.PureStateMath.Reg n)
     (h : AddrWord.eval w x = y) : AddrWord.amp w x y = 1 := by
   unfold AddrWord.amp
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- An address-word amplitude is zero whenever evaluating the input differs from the specified
 output. -/
 theorem AddrWord.amp_eq_zero_of_ne (w : AddrWord n) (x y : Qatlib.Foundations.PureStateMath.Reg n)
     (h : AddrWord.eval w x ≠ y) : AddrWord.amp w x y = 0 := by
   unfold AddrWord.amp
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- The matrix entry at output row `y` and input column `x` equals the address-word transition
 amplitude from `x` to `y`. -/
@@ -616,10 +620,10 @@ theorem AddrWord.matrix_entry (w : AddrWord n) (x y : Qatlib.Foundations.PureSta
   rw [hdot] at h
   unfold AddrWord.amp
   by_cases hc : AddrWord.eval w x = y
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     simp [hc] at h
     exact h
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     simp [Ne.symm hc] at h
     exact h
 
@@ -632,8 +636,8 @@ theorem AddrWord.matrix_eq_injectionFrame (w : AddrWord n) :
   rw [AddrWord.matrix_entry w y x]
   unfold AddrWord.amp
   by_cases hc : AddrWord.eval w y = x
-  · rw [if_pos hc, if_pos hc.symm]
-  · rw [if_neg hc, if_neg (Ne.symm hc)]
+  · rw [ite_eq_left hc, ite_eq_left hc.symm]
+  · rw [ite_eq_right hc, ite_eq_right (Ne.symm hc)]
 
 /-- The output state obtained by summing input amplitudes against the address-word transition
 amplitudes. -/

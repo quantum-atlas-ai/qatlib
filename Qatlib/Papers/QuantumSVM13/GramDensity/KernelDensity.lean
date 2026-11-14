@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.GramReadout
-import Qatlib.Papers.QuantumSVM13.GramDensity
+module
+
+public import Qatlib.Concepts.CopyEvolution.GramReadout
+public import Qatlib.Papers.QuantumSVM13.GramDensity
+
+@[expose] public section
 
 /-!
 # The kernel matrix as a quantum density matrix (QuantumSVM13, claim c002)

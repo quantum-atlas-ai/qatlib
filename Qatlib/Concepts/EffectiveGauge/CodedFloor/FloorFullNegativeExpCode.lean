@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpBackendCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpBackendCode
+
+@[expose] public section
 
 /-!
 # Floor Full Negative Exp Code
@@ -63,11 +67,11 @@ theorem floorRationalNegativeExpCode_value (p : FloorExpCodeParameters) :
     rw [floorRationalCodeLE_value,floorRationalCodeNat_value,floorRationalCodeArctanFuel_value]
   unfold floorRationalNegativeExpCode
   by_cases h : floorRationalCodeLE (floorRationalCodeNat (floorRationalCodeArctanFuel p.2)) p.1
-  · rw [if_pos h,rationalNegativeExp,if_pos (hg.mp h)]
+  · rw [ite_eq_left h,rationalNegativeExp,ite_eq_left (hg.mp h)]
     simp [floorScalarCodeResultValue,floorRationalCodeNat_value,floorRationalCodeInv_value,
       floorRationalCodePow_value,floorRationalCodeArctanFuel_value]
-  · rw [if_neg h,floorNegativeExpSquaresCode_value,floorClampScalarResultCode_value,
-      floorReducedNegativeExpCode_value,rationalNegativeExp,if_neg (mt hg.mpr h),
+  · rw [ite_eq_right h,floorNegativeExpSquaresCode_value,floorClampScalarResultCode_value,
+      floorReducedNegativeExpCode_value,rationalNegativeExp,ite_eq_right (mt hg.mpr h),
       floorNegativeExpHalvingsCode_value]
     have ha := floorNegativeExpReducedArguments_value p
     have h1 := congrArg Prod.fst ha

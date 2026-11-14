@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma5
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma6
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma5
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceLemma6
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ number is `κ = ‖𝓐‖‖𝓐⁻¹‖`, we obtain `κ = O(N_t κ_V)`.
 -/
 theorem theorem7_conditionNumber_isO
     (Nt kappaV normScript normInvScript kappa : ℝ)
-    (hNt : 0 ≤ Nt) (hkappaV : 0 ≤ kappaV)
+    (_hNt : 0 ≤ Nt) (_hkappaV : 0 ≤ kappaV)
     (hInvNonneg : 0 ≤ normInvScript)
     (hcond : kappa = normScript * normInvScript)
     (h5 : ∃ C : ℝ, 0 < C ∧ normScript ≤ C)

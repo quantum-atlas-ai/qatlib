@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+module
+
+public import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

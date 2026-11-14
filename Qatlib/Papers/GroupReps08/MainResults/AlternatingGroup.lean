@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Algebra.Module.Basic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Algebra.Module.Basic
+
+@[expose] public section
 
 /-!
 # Alternating-group entry expansions

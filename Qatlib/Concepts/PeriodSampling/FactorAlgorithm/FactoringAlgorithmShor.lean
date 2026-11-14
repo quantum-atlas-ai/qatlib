@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringAlgorithmStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringAlgorithmStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerShor
+
+@[expose] public section
 
 /-!
 # Factoring success after preprocessing

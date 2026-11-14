@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSpatial08.MainResults.SpectralBounds
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Papers.WalkSpatial08.MainResults.SpectralBounds
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # Logarithmic gap bounds and final overlap

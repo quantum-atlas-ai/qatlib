@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs
+
+@[expose] public section
 
 /-!
 # Stopping and conditional-output interface specifications

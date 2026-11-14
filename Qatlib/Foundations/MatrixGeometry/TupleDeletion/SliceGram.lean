@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.GramAction
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceMask
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.GramAction
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceMask
+
+@[expose] public section
 
 /-!
 # Coordinate Gram actions on pair slices
@@ -43,7 +47,7 @@ theorem masked_R_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (
   let g := Function.update (Function.update f i p.val.1) j p.val.2
   by_cases hg : Function.Injective g
   · change (if Function.Injective g then R (pairSlice v f i j) p else 0)=extend (coordinateGram i*ᵥ v) g
-    rw [if_pos hg]
+    rw [ite_eq_left hg]
     have he := extend_injective (coordinateGram i*ᵥ v) (⟨g,hg⟩ : InjectiveTuple I L)
     change extend (coordinateGram i*ᵥ v) g=(coordinateGram i*ᵥ v)
         (⟨g,hg⟩ : InjectiveTuple I L) at he
@@ -65,7 +69,7 @@ theorem masked_S_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (
   let g := Function.update (Function.update f i p.val.1) j p.val.2
   by_cases hg : Function.Injective g
   · change (if Function.Injective g then S (pairSlice v f i j) p else 0)=extend (coordinateGram j*ᵥ v) g
-    rw [if_pos hg]
+    rw [ite_eq_left hg]
     have he := extend_injective (coordinateGram j*ᵥ v) (⟨g,hg⟩ : InjectiveTuple I L)
     change extend (coordinateGram j*ᵥ v) g=(coordinateGram j*ᵥ v)
         (⟨g,hg⟩ : InjectiveTuple I L) at he

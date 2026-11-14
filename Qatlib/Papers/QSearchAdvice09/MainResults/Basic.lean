@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.QSearchAdvice09.MainResults.PowSums
-import Qatlib.Papers.QSearchAdvice09.MainResults.Zalka
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchCore
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.QSearchAdvice09.MainResults.PowSums
+public import Qatlib.Papers.QSearchAdvice09.MainResults.Zalka
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchCore
+
+@[expose] public section
 
 /-!
 # Search with advice and power-law costs
@@ -160,8 +164,8 @@ theorem div_sqrt_self (p : ℝ) (hp : 0 < p) : p / Real.sqrt p = Real.sqrt p := 
 
 /-- For a probability distribution on a nonempty `Fin n`, the weighted geometric-search bound is
 at most πe times the advice-weighted square-root sum [Montanaro2011]. -/
-theorem prop_2_1 (n : ℕ) (hn : 0 < n) (p : Fin n → ℝ) (hp : ∀ x, 0 ≤ p x)
-    (hsum : ∑ x : Fin n, p x = 1) :
+theorem prop_2_1 (n : ℕ) (_hn : 0 < n) (p : Fin n → ℝ) (hp : ∀ x, 0 ≤ p x)
+    (_hsum : ∑ x : Fin n, p x = 1) :
     (∑ x : Fin n, p x * geometricSearchQueryUpper (((x : ℕ) + 1 : ℝ)))
       ≤ Real.pi * Real.exp 1 * ∑ x : Fin n, p x * Real.sqrt (((x : ℕ) + 1 : ℝ)) := by
   have hterm : ∀ x : Fin n,
@@ -404,9 +408,9 @@ theorem isTheta_of_eventuallyEq {f₁ f₂ g₁ g₂ : ℕ → ℝ}
 `powerLawD` and `powerLawQ`, with power, logarithmic, and constant regimes at the thresholds
 −2, −3/2, and −1 [Montanaro2011]. -/
 theorem prop_2_5 (k : ℝ) (hk : k < 0) (Q : ℕ → ℝ)
-    (hQ_pos : ∀ᶠ n : ℕ in Filter.atTop, 1 ≤ Q n)
-    (hQ_lo : ∀ᶠ n : ℕ in Filter.atTop, 0.206 * powerLawQ k n - 1 ≤ Q n)
-    (hQ_hi : ∀ᶠ n : ℕ in Filter.atTop, Q n ≤ Real.pi * Real.exp 1 * powerLawQ k n) :
+    (_hQ_pos : ∀ᶠ n : ℕ in Filter.atTop, 1 ≤ Q n)
+    (_hQ_lo : ∀ᶠ n : ℕ in Filter.atTop, 0.206 * powerLawQ k n - 1 ≤ Q n)
+    (_hQ_hi : ∀ᶠ n : ℕ in Filter.atTop, Q n ≤ Real.pi * Real.exp 1 * powerLawQ k n) :
     ((-1 < k ∧ k < 0) →
         Asymptotics.IsTheta Filter.atTop (fun n => powerLawD k n) (fun n => (n : ℝ)))
   ∧ ((-1 < k ∧ k < 0) →
@@ -563,7 +567,7 @@ theorem powerLawMass_pos (k : ℝ) (n : ℕ) (hn : 1 ≤ n) : 0 < powerLawMass k
   · exact ⟨1, by simp [hn]⟩
 
 /-- For k < 0 and n ≥ 1, the quantum power-law cost ratio is at least one. -/
-theorem powerLawQ_ge_one (k : ℝ) (hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
+theorem powerLawQ_ge_one (k : ℝ) (_hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
     1 ≤ powerLawQ k n := by
   unfold powerLawQ
   have hpos := powerLawMass_pos k n hn
@@ -649,7 +653,7 @@ theorem lemma_3_1_query_ledger (k : ℕ) :
 
 /-- Returns the assumed analytic bound for the Algorithm 3 query model with growth factor 1.162,
 bounded by the minimum of 83/√px + 4/3 and 53√n. -/
-theorem prop_3_2_reduction (n : ℕ) (hn : 0 < n) (px : ℝ) (hpx0 : 0 < px) (hpx1 : px < 1)
+theorem prop_3_2_reduction (n : ℕ) (_hn : 0 < n) (px : ℝ) (_hpx0 : 0 < px) (_hpx1 : px < 1)
     (h_analytic : alg3QueryModel 1.162 px n ≤
       min (83 / Real.sqrt px + 4 / 3) (53 * Real.sqrt (n : ℝ))) :
     alg3QueryModel 1.162 px n ≤ min (83 / Real.sqrt px + 4 / 3) (53 * Real.sqrt (n : ℝ)) :=
@@ -756,7 +760,7 @@ theorem isBigO_of_eventually_le {f g : ℕ → ℝ}
 /-- Transfers the assumed power-law cost-bound estimates to an eventually nonnegative function
 Tstar dominated by that bound, yielding the stated square-root, power, logarithmic, and
 constant big-O implications [Montanaro2011]. -/
-theorem prop_3_4 (k : ℝ) (hk : k < 0) (Tstar : ℕ → ℝ)
+theorem prop_3_4 (k : ℝ) (_hk : k < 0) (Tstar : ℕ → ℝ)
     (h_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ Tstar n)
     (h_bound_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ powerLawTstarBound k n)
     (h_bound : ∀ᶠ n : ℕ in Filter.atTop, Tstar n ≤ powerLawTstarBound k n)

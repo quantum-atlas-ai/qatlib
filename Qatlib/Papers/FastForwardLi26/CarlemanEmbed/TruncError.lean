@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
+module
+
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,7 +126,7 @@ theorem lemma33_carleman_error
       simp
     · intro x _
       have hd : HasDerivAt (fun u : ℝ => Real.exp (c * u)) (Real.exp (c * x) * c) x := by
-        convert! (Real.hasDerivAt_exp (c * x)).comp x ((hasDerivAt_id x).const_mul c) using 1 <;> simp
+        convert! (Real.hasDerivAt_exp (c * x)).comp x ((hasDerivAt_id x).const_mul c) using 1; simp
       convert! hd.div_const c using 1
       rw [mul_div_cancel_right₀ _ (ne_of_lt hcneg)]
     · exact (by fun_prop : Continuous fun u : ℝ => Real.exp (c * u)).intervalIntegrable _ _

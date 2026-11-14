@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
-import Mathlib.Data.Int.GCD
-import Mathlib.Data.Nat.GCD.Basic
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+public import Mathlib.Data.Int.GCD
+public import Mathlib.Data.Nat.GCD.Basic
+
+@[expose] public section
 
 /-!
 # Definitions for compact presentation recovery

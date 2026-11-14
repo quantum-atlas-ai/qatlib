@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Quaternion
-import Mathlib.Data.Rat.Defs
-import Mathlib.Data.List.Range
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Algebra.Quaternion
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Data.List.Range
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # The computable integer Cayley recurrence

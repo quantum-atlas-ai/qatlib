@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

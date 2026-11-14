@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+module
+
+public import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+
+@[expose] public section
 
 /-!
 # Algebra of controlled rotation multiplexors
@@ -65,11 +69,11 @@ theorem demux_single_rotation (R : ℝ → Matrix Bool Bool ℂ)
   apply congrArg Matrix.blockDiagonal
   funext s
   cases s
-  · simp only [Bool.false_eq_true, if_false, one_mul, mul_one]
+  · simp only [Bool.false_eq_true, ite_false, one_mul, mul_one]
     rw [hadd]
     congr 1
     ring
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [hflip, hadd]
     congr 1
     ring

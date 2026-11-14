@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.Nat.GCD.Basic
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Algebra.Ring.Equiv
-import Mathlib.Algebra.Ring.Parity
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.Nat.GCD.Basic
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Algebra.Ring.Equiv
+public import Mathlib.Algebra.Ring.Parity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -230,7 +234,7 @@ theorem dvd_two_mul_prime {d q : ℕ} (hq : q.Prime) (h : d ∣ 2 * q) :
 
 /-- **Divisors of `m·q` with `q` prime and coprime to `m`**: any divisor is
 either a divisor of `m` or `q` times a divisor of `m`. -/
-theorem dvd_mul_prime_of_coprime {d m q : ℕ} (hq : q.Prime) (hmq : Nat.Coprime m q)
+theorem dvd_mul_prime_of_coprime {d m q : ℕ} (hq : q.Prime) (_hmq : Nat.Coprime m q)
     (h : d ∣ m * q) : d ∣ m ∨ ∃ e, e ∣ m ∧ d = q * e := by
   have hg : Nat.gcd d q = 1 ∨ Nat.gcd d q = q := by
     exact (Nat.dvd_prime hq).mp (Nat.gcd_dvd_right d q)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+
+@[expose] public section
 
 /-!
 # Expected cost bounds for adaptive approximate counting
@@ -116,12 +120,12 @@ private theorem costPrefix_power_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N
   apply Finset.sum_le_sum
   intro ω _
   by_cases hz : ∀ l, l.val < n → basicApproxCountObserved N ω l = 0
-  · rw [if_pos hz]
+  · rw [ite_eq_left hz]
     have hstop := basicApproxCountStop_of_prefix hn ω hz
     have hpow : (2 : ℝ) ^ n ≤ (2 : ℝ) ^ basicApproxCountStop N ω :=
       pow_le_pow_right₀ (by norm_num) (by omega)
     simpa only [mul_comm] using! mul_le_mul_of_nonneg_left hpow (costWeight_nonneg hN S ω)
-  · rw [if_neg hz, mul_zero]
+  · rw [ite_eq_right hz, mul_zero]
     exact mul_nonneg (costWeight_nonneg hN S ω) (by positivity)
 
 /-- For a nonempty marked set, `costPowerMean` is at least `7 / (40 * π)` times the square root
@@ -250,7 +254,7 @@ private theorem costPower_layers (s n L : ℕ) (hs : s ≤ L) :
     | succ s ih =>
       rw [Finset.sum_range_succ]
       by_cases hn : n ≤ s
-      · rw [if_pos hn, pow_succ]
+      · rw [ite_eq_left hn, pow_succ]
         linarith
       · have hp : (2 : ℝ) ^ (s + 1) ≤ (2 : ℝ) ^ n :=
           pow_le_pow_right₀ (by norm_num) (by omega)
@@ -285,7 +289,7 @@ private theorem costTail_sum (L n : ℕ) :
     | succ L ih =>
       rw [Finset.sum_range_succ, ih]
       by_cases hn : n ≤ L
-      · simp only [if_pos hn, if_pos (show n ≤ L + 1 by omega), pow_succ]
+      · simp only [ite_eq_left hn, ite_eq_left (show n ≤ L + 1 by omega), pow_succ]
         ring
       · by_cases heq : n = L + 1
         · simp [heq]
@@ -327,7 +331,7 @@ private theorem costLate_zero_bound {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) 
   · have hz := costStop_previous_zero N ω l hl hs
     change basicApproxCountObserved N ω k = 0 at hz
     simp [hs, hz]
-  · simp only [if_neg hs]
+  · simp only [ite_eq_right hs]
     split_ifs <;> first | exact costWeight_nonneg hN S ω | exact le_rfl
 
 /-- The expected contribution of a late dyadic stopping layer is bounded by a geometric term
@@ -338,7 +342,7 @@ private theorem costLate_layer_bound {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
       (if n ≤ l.val ∧ l.val < basicApproxCountStop N ω then (2 : ℝ) ^ l.val else 0)) ≤
       if n ≤ l.val then (1 / ((S.card : ℝ) / N)) * (1 / 2 : ℝ) ^ l.val else 0 := by
   by_cases hl : n ≤ l.val
-  · rw [if_pos hl]
+  · rw [ite_eq_left hl]
     have hp := costLate_zero_bound hN S hS l (by omega)
     have hm := mul_le_mul_of_nonneg_left hp (by positivity : (0 : ℝ) ≤ 2 ^ l.val)
     have he : (∑ ω : CostRecords N, basicApproxCountPrefixWeight hN S ω *
@@ -529,7 +533,7 @@ private theorem costZero_stop {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 
   have hz (l : Fin (basicApproxCountLoopCap N)) : ω l = ⟨0, by positivity⟩ := by
     by_contra hl
     have h := costZero_record hN S hS l (ω l)
-    rw [if_neg hl] at h
+    rw [ite_eq_right hl] at h
     exact hp l (Finset.mem_univ l) h
   have hobs (l : Fin (basicApproxCountLoopCap N)) : basicApproxCountObserved N ω l = 0 := by
     simp [basicApproxCountObserved, hz l, aeEstimate]

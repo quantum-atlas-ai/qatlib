@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
-import Mathlib.Analysis.SumIntegralComparisons
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.Topology.Algebra.InfiniteSum.Real
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
+public import Mathlib.Analysis.SumIntegralComparisons
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.Topology.Algebra.InfiniteSum.Real
+
+@[expose] public section
 
 /-!
 # Finite trapezoidal rules and truncation tails
@@ -414,7 +418,7 @@ theorem continuousTail_eq_integral (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 
   have hf (x : ℝ) : f (-x) = f x := real_norm_even n b c d x hb
   have hs : {x : ℝ | R < |x|} = Iio (-R) ∪ Ioi R := by
     ext x
-    simp only [lt_abs, mem_union, mem_Iio, mem_Ioi, mem_setOf_eq]
+    simp only [lt_abs, mem_union, mem_Iio, mem_Ioi, Set.mem_ofPred_eq]
     constructor
     · rintro (hx | hx)
       · exact Or.inr hx
@@ -459,7 +463,7 @@ theorem operatorTruncationError_eq_tail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc
       (ρ := 0) (y := 0) (by norm_num) (Or.inr hb) (by simp)
   have hs : (Icc (-R) R)ᶜ = {x : ℝ | R < |x|} := by
     ext x
-    simp only [mem_compl_iff, mem_Icc, mem_setOf_eq, ← abs_le, not_le]
+    simp only [mem_compl_iff, mem_Icc, Set.mem_ofPred_eq, ← abs_le, not_le]
   unfold operatorTruncationError
   rw [← setIntegral_compl measurableSet_Icc hi, hs]
 

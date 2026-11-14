@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
+
+@[expose] public section
 
 /-!
 # Budget preflight for finite search
@@ -73,7 +77,7 @@ theorem safeGroverPreflight_timeout (sgs : SGSExecution) {α : Type} [Fintype α
     (check floor budget : ℕ) (ρ : sgs.seed)
     (h : budget< safeGroverReservation sgs (Fintype.card α) check floor) :
     safeGroverPreflight sgs marked check floor budget ρ=.timeout := by
-  exact if_neg (by omega)
+  exact ite_eq_right (by omega)
 
 /-- When the reservation fits the budget, preflight returns the underlying search result and its
 execution cost. -/
@@ -81,7 +85,7 @@ theorem safeGroverPreflight_preserves (sgs : SGSExecution) {α : Type} [Fintype 
     (check floor budget : ℕ) (ρ : sgs.seed)
     (h : safeGroverReservation sgs (Fintype.card α) check floor≤ budget) :
     safeGroverPreflight sgs marked check floor budget ρ=
-      .completed (operationalSgsFind sgs marked check floor ρ) (operationalSgsFindCost sgs marked check floor ρ) := if_pos h
+      .completed (operationalSgsFind sgs marked check floor ρ) (operationalSgsFindCost sgs marked check floor ρ) := ite_eq_left h
 
 /-- The optional output of a completed preflight search equals the result of the underlying
 finite search. -/

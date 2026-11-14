@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingCoreDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingCoreDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Quantum prefix execution and conditional mixtures
@@ -100,7 +104,7 @@ theorem zero_charge_stability_failure :
   constructor
   · simp [weightedHaltJoint, weightedRunFor, CostedLaw.ret, PMF.pure_apply]
   · rw [weightedRunFor_succ_running]
-    simp only [zeroCountdownNext, if_true, PMF.pure_bind, CostedLaw.charge_zero]
+    simp only [zeroCountdownNext, ite_true, PMF.pure_bind, CostedLaw.charge_zero]
     rw [weightedRunFor_succ_running]
     simp [zeroCountdownNext, weightedRunFor, CostedLaw.ret, PMF.pure_apply]
 
@@ -121,13 +125,13 @@ theorem coarse_conditional_mixture {O P : Type*} [Fintype O] [Fintype P] [Decida
   apply Finset.sum_congr rfl
   intro o _
   by_cases ho : 0 < instrumentProb I ρ o
-  · rw [dif_pos ho, ← (Qatlib.Concepts.QuditTeleport.TeleportCore.Instrument.conditionalState_reconstruction I ρ o ho).1, smul_smul]
+  · rw [dite_eq_left ho, ← (Qatlib.Concepts.QuditTeleport.TeleportCore.Instrument.conditionalState_reconstruction I ρ o ho).1, smul_smul]
     congr 1
     simp only [div_eq_mul_inv, Complex.ofReal_mul, Complex.ofReal_inv]
     dsimp [μ]
     ring
   · have hz : instrumentProb I ρ o = 0 :=
       le_antisymm (not_lt.mp ho) (instrumentProb_nonneg I hρ.1 o)
-    rw [dif_neg ho, (instrumentProb_eq_zero_iff I hρ.1 o).mp hz, smul_zero]
+    rw [dite_eq_right ho, (instrumentProb_eq_zero_iff I hρ.1 o).mp hz, smul_zero]
 
 end Qatlib.Concepts.StoppingCore.InterruptBridge

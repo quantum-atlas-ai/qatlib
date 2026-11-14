@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Grover instances for state-preparation lower bounds
@@ -228,7 +232,7 @@ and trivial workspace unchanged. -/
 theorem bOracle_preparation_ne (x : I) :
     bOracle (W := Unit) x *ᵥ solverStart (I := I) (Qatlib.Foundations.PureStateMath.Ket false) (Qatlib.Foundations.PureStateMath.Ket ()) ≠
       (fun p : (I × Bool) × Unit => bState x p.1.1 * Qatlib.Foundations.PureStateMath.Ket false p.1.2 * Qatlib.Foundations.PureStateMath.Ket () p.2) := by
-  letI : Nonempty I := ⟨x⟩
+  let : Nonempty I := ⟨x⟩
   have hs : Real.sqrt (Fintype.card I : ℝ) ≠ 0 := by
     apply ne_of_gt
     apply Real.sqrt_pos.mpr
@@ -256,12 +260,12 @@ private theorem uniform_mulVec (v : QState I) (i : I) :
 theorem grover_uniform_b (x : I) :
     uniformProjector (I := I)*ᵥbState x =
       ((1-2/(Fintype.card I:ℝ):ℝ):ℂ) • uniformQState (I := I) := by
-  letI : Nonempty I := ⟨x⟩
+  let : Nonempty I := ⟨x⟩
   have hc : (Fintype.card I:ℂ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   ext i
   rw [uniform_mulVec]
   simp only [bState,Finset.sum_sub_distrib,Finset.sum_const,Finset.card_univ,nsmul_eq_mul,
-    Finset.sum_ite_eq',Finset.mem_univ,if_true,Pi.smul_apply,smul_eq_mul,uniformQState]
+    Finset.sum_ite_eq',Finset.mem_univ,ite_true,Pi.smul_apply,smul_eq_mul,uniformQState]
   push_cast
   rw [mul_sub,← mul_assoc,inv_mul_cancel₀ hc,one_mul]
   ring
@@ -272,7 +276,7 @@ theorem grover_inverse_b (x : I) :
     groverInverse (I := I)*ᵥbState x =
       fun i => (((1-2/(Fintype.card I:ℝ)+2/Real.sqrt (Fintype.card I:ℝ)):ℝ):ℂ) *
         (uniformQState (I := I) i) - if i=x then 2 else 0 := by
-  letI : Nonempty I := ⟨x⟩
+  let : Nonempty I := ⟨x⟩
   have hd : (Fintype.card I:ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   have hs : Real.sqrt (Fintype.card I:ℝ) ≠ 0 := by positivity
   have hsq := Real.sq_sqrt (Nat.cast_nonneg (Fintype.card I): (0:ℝ) ≤ _)
@@ -281,13 +285,13 @@ theorem grover_inverse_b (x : I) :
     Matrix.sub_mulVec,Matrix.one_mulVec,grover_uniform_b,Pi.add_apply,Pi.sub_apply,Pi.smul_apply,Complex.real_smul,
     smul_eq_mul,uniformQState,bState]
   by_cases hi : i=x
-  · simp only [if_pos hi]
+  · simp only [ite_eq_left hi]
     push_cast
     have hdC : (Fintype.card I:ℂ) = (Real.sqrt (Fintype.card I:ℝ):ℂ)^2 := by exact_mod_cast hsq.symm
     rw [hdC]
     field_simp
     ring
-  · simp only [if_neg hi,sub_zero]
+  · simp only [ite_eq_right hi,sub_zero]
     push_cast
     have hdC : (Fintype.card I:ℂ) = (Real.sqrt (Fintype.card I:ℝ):ℂ)^2 := by exact_mod_cast hsq.symm
     rw [hdC]
@@ -299,7 +303,7 @@ theorem grover_inverse_b (x : I) :
 theorem grover_solution_norm_sq (x : I) :
     ‖stateVector (groverInverse (I := I)*ᵥbState x)‖^2 =
       (5*(Fintype.card I:ℝ)^2-8*(Fintype.card I:ℝ)+4)/(Fintype.card I:ℝ)^2 := by
-  letI : Nonempty I := ⟨x⟩
+  let : Nonempty I := ⟨x⟩
   let d : ℝ := Fintype.card I
   let s := Real.sqrt d
   let a := (1-2/d+2/s)/s
@@ -320,12 +324,12 @@ theorem grover_solution_norm_sq (x : I) :
       ring
     rw [hc]
     by_cases hi : i=x
-    · simp only [if_pos hi]
+    · simp only [ite_eq_left hi]
       rw [← Complex.ofReal_ofNat,← Complex.ofReal_sub,Complex.norm_real,Real.norm_eq_abs,sq_abs]
       ring
-    · simp only [if_neg hi,sub_zero,add_zero,Complex.norm_real,Real.norm_eq_abs,sq_abs]
+    · simp only [ite_eq_right hi,sub_zero,add_zero,Complex.norm_real,Real.norm_eq_abs,sq_abs]
   rw [Finset.sum_congr rfl (fun i _ => he i),Finset.sum_add_distrib]
-  simp only [Finset.sum_const,Finset.card_univ,nsmul_eq_mul,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [Finset.sum_const,Finset.card_univ,nsmul_eq_mul,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   change d*a^2+(4-4*a) = (5*d^2-8*d+4)/d^2
   dsimp [a]
   rw [← hsq]
@@ -336,7 +340,7 @@ theorem grover_solution_norm_sq (x : I) :
 that cardinality is at least two. -/
 theorem groverInverse_norm (hcard : 2 ≤ Fintype.card I) :
     ‖groverInverse (I := I)‖ = Real.sqrt (Fintype.card I:ℝ) := by
-  letI : Nonempty I := Fintype.card_pos_iff.mp (by omega)
+  let : Nonempty I := Fintype.card_pos_iff.mp (by omega)
   let s := Real.sqrt (Fintype.card I:ℝ)
   let Q : Matrix I I ℂ := 1-uniformProjector (I := I)
   have hs : 1 ≤ s := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.AutomaticPhysicalPoissonValue
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalReferenceValue
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.AutomaticPhysicalPoissonValue
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhysicalReferenceValue
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

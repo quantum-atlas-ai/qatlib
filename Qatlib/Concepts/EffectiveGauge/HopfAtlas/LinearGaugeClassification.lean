@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.FibreDifferential
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLoopObstruction
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.FibreDifferential
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLoopObstruction
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerGauge
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,7 +92,7 @@ theorem constantFibreDerivative_classification (z : QuaternionField) (hz : ContD
       change (fderiv ℝ (-(realGaugeLinear b : SpatialPoint → ℝ)) x) (EuclideanSpace.single j 1) = -b j
       have h := congrArg (fun f : SpatialPoint →L[ℝ] ℝ => f (EuclideanSpace.single j 1))
         ((realGaugeLinear b).hasFDerivAt.neg.fderiv (x := x))
-      simpa only [ContinuousLinearMap.neg_apply,realGaugeLinear_basis] using h
+      simpa only [_root_.neg_apply,realGaugeLinear_basis] using h
     rw [hd,htheta,← add_smul,add_neg_cancel,zero_smul,mul_zero] at h
     exact h
   have hzero (x : SpatialPoint) : fderiv ℝ w x=0 := by

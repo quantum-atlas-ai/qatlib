@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
-import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
-import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+
+@[expose] public section
 
 /-!
 # Static CBMD state preparation
@@ -115,7 +119,7 @@ theorem static_cbmd_original_oracle_algorithm
     (htarget : η ≤ ‖stateVector ((NormedSpace.exp (t • (-(L + Complex.I • H)))) *ᵥ ψ)‖) :
     let m := staticAmplificationWindow η
     ∃ hm : NeZero m,
-    letI := hm
+    let _ := hm
     ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
       let cs := staticCBMDWord (I := I) a₀ α t ε η P base zs
       let O :=
@@ -161,7 +165,7 @@ theorem static_cbmd_original_oracle_algorithm
   have hw := static_chosen_window η hη hη1
   let m := staticAmplificationWindow η
   have hm : NeZero m := ⟨hw.1.ne'⟩
-  letI := hm
+  let _ := hm
   let δ := staticAnalyticBudget ε η
   let es := staticSampleBudget ε η
   let j₀ := staticKernelZero α t δ

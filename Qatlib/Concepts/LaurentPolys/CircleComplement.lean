@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Polynomial complements on the unit circle
@@ -311,7 +315,7 @@ private theorem circleClearedResidual_eval (P : Polynomial ℂ) (d : ℕ) (x : �
       ((x^2+1)^d-‖(circleForward P d).eval (x : ℂ)‖^2 : ℝ) := by
   have hm := circleRealCoeffs_map (circleClearedResidual P d) (circleClearedResidual_real P d)
   have hi := congrArg (fun p : Polynomial ℂ => p.eval (x : ℂ)) hm
-  (try dsimp only at hi)
+
   simp only [← Complex.ofRealHom_eq_coe, Polynomial.eval_map_apply] at hi
   have hprod := Complex.mul_conj ((circleForward P d).eval (x : ℂ))
   rw [Complex.normSq_eq_norm_sq] at hprod
@@ -352,7 +356,7 @@ private theorem circleClearedResidual_factor (P : Polynomial ℂ) (d : ℕ) (hp 
   have he := congrArg (fun p : Polynomial ℂ => p.eval (x : ℂ)) hq
   have hm := circleRealCoeffs_map (circleClearedResidual P d) (circleClearedResidual_real P d)
   rw [hm] at he
-  (try dsimp only at he)
+
   rw [eval_mul, conjugatePolynomial_eval_real, Complex.star_def, Complex.mul_conj,
       Complex.normSq_eq_norm_sq] at he
   have hc := circleClearedResidual_eval P d x
@@ -446,7 +450,7 @@ private theorem circleReverse_eval (q : Polynomial ℂ) (d : ℕ) (hq : q.natDeg
   have hs := circleInverse_shift (circleSignal x) (circleSignal_ne_one x)
   rw [hi] at hs
   have hsPow := congrArg (fun z : ℂ => z^d) hs
-  (try dsimp only at hsPow)
+
   rw [mul_pow] at hsPow
   dsimp only [circleReverse]
   rw [eval_mul, eval_C, ht]

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
-import Mathlib.Tactic
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
+public import Mathlib.Tactic
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
+
+@[expose] public section
 
 /-!
 # Gaussian correlation-update identities
@@ -45,7 +49,7 @@ correlation-update expressions agree. These are the inverse forms of the update 
 [Bravyi2005Fermionic]. -/
 theorem corrUpdate_inverse_form {n : ℕ}
     (A B D M : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ)
-    (hM : M.det ≠ 0) (hMD : (M⁻¹ + D).det ≠ 0) (hI : (1 + M * D).det ≠ 0) :
+    (hM : M.det ≠ 0) (_hMD : (M⁻¹ + D).det ≠ 0) (_hI : (1 + M * D).det ≠ 0) :
     corrUpdate A B D M = corrUpdate' A B D M := by
   have huM : IsUnit M.det := isUnit_iff_ne_zero.mpr hM
   have hstep : M⁻¹ + D = M⁻¹ * (1 + M * D) := by

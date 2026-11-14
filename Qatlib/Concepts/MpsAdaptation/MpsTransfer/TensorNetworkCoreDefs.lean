@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Fintype.Pi
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Fintype.Pi
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+@[expose] public section
 
 /-!
 # Tensor-network data and finite contraction models

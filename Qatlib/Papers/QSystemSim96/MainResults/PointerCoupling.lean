@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite pointer shifts and readout
@@ -272,7 +276,7 @@ theorem pointerMomentumTwo_evolution_one :
     simp only [Pi.smul_apply, smul_eq_mul]
     cases b
     · simp
-    · simp only [if_true]
+    · simp only [ite_true]
       rw [← Complex.exp_eq_exp_ℂ]
       rw [show -Complex.I * (Real.pi : ℂ) = -(Real.pi * Complex.I) by ring]
       exact Complex.exp_neg_pi_mul_I

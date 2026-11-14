@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyTigh
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamily
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoal
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Grover search with several marked inputs

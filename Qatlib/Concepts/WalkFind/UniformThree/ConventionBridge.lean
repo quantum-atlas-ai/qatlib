@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
+
+@[expose] public section
 
 /-!
 # Fourier Convention Bridges

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Contractive matrix evolution and Duhamel bounds
@@ -142,7 +146,7 @@ theorem integral_exp_neg_mul (γ t : ℝ) :
       (hc.intervalIntegrable 0 t)
     rw [hi]
     simp only [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.damping,
-        if_neg hγ, mul_zero, Real.exp_zero]
+        ite_eq_right hγ, mul_zero, Real.exp_zero]
     ring
 
 /-- If `A - γ • 1` and `B` have positive semidefinite Hermitian parts, their evolution

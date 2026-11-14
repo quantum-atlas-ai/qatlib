@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+
+@[expose] public section
 
 /-!
 # Local preparation of known frames and states
@@ -81,15 +85,16 @@ theorem knownFrame_unitary_completion (n m : ℕ) (e : Fin m ↪ Reg n)
   have ve (j : Fin m) : v (e j) = WithLp.toLp 2 (fun i => F i j) := by
     have hj : ∃ k, e k = e j := ⟨j, rfl⟩
     dsimp only [v]
-    rw [dif_pos hj]
+    rw [dite_eq_left hj]
     have he : Classical.choose hj = j := e.injective (Classical.choose_spec hj)
     rw [he]
-  have hv : Orthonormal ℂ ((Set.range e).restrict v) := by
+  have hv : Orthonormal ℂ ((Set.range e).domRestrict v) := by
     rw [orthonormal_iff_ite]
     intro ⟨x,hx⟩ ⟨y,hy⟩
     obtain ⟨j,rfl⟩ := hx
     obtain ⟨k,rfl⟩ := hy
-    dsimp only [Set.restrict, Set.domRestrict]; rw [ve, ve, EuclideanSpace.inner_eq_star_dotProduct]
+    simp only [Set.domRestrict, Subtype.ext_iff, e.injective.eq_iff]
+    rw [ve, ve, EuclideanSpace.inner_eq_star_dotProduct]
     have hh := congrArg (fun M : Matrix (Fin m) (Fin m) ℂ => M j k) hF
     simpa [IsIsometry, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply,
       dotProduct, e.injective.eq_iff, Subtype.ext_iff, mul_comm, WithLp.ofLp_toLp] using! hh

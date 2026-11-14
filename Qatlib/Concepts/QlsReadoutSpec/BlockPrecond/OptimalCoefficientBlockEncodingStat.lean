@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.MatrixAccess.FrameFilterProd
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.MatrixAccess.FrameFilterProd
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+@[expose] public section
 
 /-!
 # Specification of the optimal-coefficient reciprocal encoding

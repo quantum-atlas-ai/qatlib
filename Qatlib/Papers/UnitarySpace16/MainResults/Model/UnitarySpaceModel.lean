@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Set.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Set.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -275,7 +279,7 @@ noncomputable def SpaceTimeQMAClass (T k : ℕ → ℕ) : Class :=
 
 /-- The left-hand side of Theorem 27: `(poly(n), O(k))`-bounded `QMA_{O(k)}(c,s)` with a
 `1/poly(T)` gap. -/
-noncomputable def SpaceTimeQMAUnion (T k : ℕ → ℕ) : Class :=
+noncomputable def SpaceTimeQMAUnion (_T k : ℕ → ℕ) : Class :=
   { L | ∃ c : ℝ, ∃ s : ℕ → ℝ, ∃ g : ℕ → ℕ,
         PolyBound g ∧ (∀ n, (1 : ℝ) / (g n : ℝ) ≤ c - s n) ∧
         ∃ t m : ℕ → ℕ, PolyBound t ∧ (∀ n, m n ≤ k n) ∧
@@ -423,7 +427,7 @@ noncomputable def MinimumEigenvalueGap (k : ℕ → ℕ) (a b : ℕ → ℝ)
     linarith [hab x.length]
 
 /-- The Minimum Eigenvalue problem of Theorem 27 with gap `1/poly(T)`. -/
-noncomputable def MinimumEigenvalueGapT (T k : ℕ → ℕ) (a b : ℕ → ℝ)
+noncomputable def MinimumEigenvalueGapT (_T k : ℕ → ℕ) (a b : ℕ → ℝ)
     (hab : ∀ n, a n < b n) (E : MatrixEncoding k) : PromiseProblem :=
   MinimumEigenvalueGap k a b hab E
 

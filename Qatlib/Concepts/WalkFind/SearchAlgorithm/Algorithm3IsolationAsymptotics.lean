@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationStat
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.Logic.Equiv.Prod
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationStat
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.Logic.Equiv.Prod
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Asymptotic decay of the collision-isolation error

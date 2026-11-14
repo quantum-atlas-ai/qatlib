@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.MarkedSparse
-import Qatlib.Papers.MatProdVerify04.MainResults.TailMass
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.MarkedSparse
+public import Qatlib.Papers.MatProdVerify04.MainResults.TailMass
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Marked windows for independent error sets
@@ -80,11 +84,11 @@ theorem card_eq_nzRows_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   by_cases h : (rowCols W i).Nonempty
   · have h1 : 0 < (rowCols W i).card := Finset.card_pos.mpr h
     have h2 := hind i
-    rw [if_pos h]
+    rw [ite_eq_left h]
     omega
   · have h0 : (rowCols W i).card = 0 :=
       Finset.card_eq_zero.mpr (Finset.not_nonempty_iff_eq_empty.mp h)
-    rw [if_neg h, h0]
+    rw [ite_eq_right h, h0]
 
 /-- For positive `N` and `r ≤ N`, the ratio of the binomial coefficients `choose (N - 1) r` and
 `choose N r` is `(N - r) / N`. -/
@@ -252,7 +256,7 @@ theorem uniformSubset_prob_ne_zero_card {V : Type*} [Fintype V] [DecidableEq V]
   simp only [uniformSubset, uniformOn] at h
   by_cases hmem : R ∈ (Finset.univ : Finset V).powersetCard r
   · exact (Finset.mem_powersetCard.mp hmem).2
-  · rw [if_neg hmem] at h
+  · rw [ite_eq_right hmem] at h
     exact absurd rfl h
 
 /-- Computes a uniform window event by first averaging over the sampled rows and then over the

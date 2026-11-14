@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
-import Mathlib.Analysis.Normed.Module.Connected
+module
+
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+public import Mathlib.Analysis.Normed.Module.Connected
+
+@[expose] public section
 
 /-!
 # Preparing qubit states from the plus resource
@@ -115,7 +119,7 @@ theorem clusterPlus_actual_amplitude (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z�
   simp only [Matrix.mulVec, dotProduct,
     cluster_sequence_actual_leaf_full_amplitude zs hzs ω v c]
   by_cases h : v = ω
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro i _
@@ -191,11 +195,11 @@ theorem clusterPlus_actual_density (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ 
   classical
   rw [Fintype.sum_eq_single ω]
   · have hstar : star ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by simp
-    simp only [clusterPlus_actual_amplitude zs hzs, if_true, star_mul, star_pow, hstar]
+    simp only [clusterPlus_actual_amplitude zs hzs, ite_true, star_mul, star_pow, hstar]
     rw [Nat.mul_comm 2 zs.length, pow_mul, pow_two]
     ring
   · intro v hv
-    simp only [clusterPlus_actual_amplitude zs hzs, if_neg hv, zero_mul]
+    simp only [clusterPlus_actual_amplitude zs hzs, ite_eq_right hv, zero_mul]
 
 /-- If the logical word reaches a normalized vector, each branch has total squared norm `(1 /
 2)^zs.length`. -/
@@ -217,7 +221,7 @@ theorem clusterPlus_actual_mass (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1
     ‖clusterPlusOutputVector zs ω (clusterSequenceRegisterEquiv zs.length
       (v, boolEquivFin2.symm c))‖) = _
   rw [Fintype.sum_eq_single ω]
-  · simp only [clusterPlus_actual_amplitude zs hzs, if_true, hword, norm_mul]
+  · simp only [clusterPlus_actual_amplitude zs hzs, ite_true, hword, norm_mul]
     have hq : ‖((Real.sqrt 2 : ℂ)⁻¹)‖ = (Real.sqrt 2)⁻¹ := by
       rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity)]
     simp only [norm_pow, hq]
@@ -230,7 +234,7 @@ theorem clusterPlus_actual_mass (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1
         ring
       _ = _ := by rw [hφ, mul_one, clusterPlus_q_sq]
   · intro v hv
-    simp only [clusterPlus_actual_amplitude zs hzs, if_neg hv, norm_zero, zero_mul,
+    simp only [clusterPlus_actual_amplitude zs hzs, ite_eq_right hv, norm_zero, zero_mul,
       Finset.sum_const_zero]
 
 /-- A normalized pair with first component of norm at most `1 / √2` possesses a second component
@@ -310,13 +314,13 @@ theorem clusterPlus_first_two (c w : ℂ) (hn : ‖c‖^2 + ‖w‖^2 = 1)
   obtain ⟨z₂, hz₂, hz₂b⟩ := clusterPlus_unit_phase u b hub
   have hfirst0 : (clusterJ (a - 1) *ᵥ clusterPlusState) 0 = a / 2 := by
     rw [clusterPlus_J_apply]
-    simp only [if_true, clusterPlusState_entry]
+    simp only [ite_true, clusterPlusState_entry]
     calc
       _ = (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * a := by ring
       _ = a / 2 := by rw [sqrt2_inv_sq]; ring
   have hfirst1 : (clusterJ (a - 1) *ᵥ clusterPlusState) 1 = b / 2 := by
     rw [clusterPlus_J_apply]
-    simp only [show (1 : Fin 2) ≠ 0 by decide, if_false, clusterPlusState_entry]
+    simp only [show (1 : Fin 2) ≠ 0 by decide, ite_false, clusterPlusState_entry]
     calc
       _ = (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * b := by dsimp [b]; ring
       _ = b / 2 := by rw [sqrt2_inv_sq]; ring
@@ -324,12 +328,12 @@ theorem clusterPlus_first_two (c w : ℂ) (hn : ‖c‖^2 + ‖w‖^2 = 1)
     exact_mod_cast (show Real.sqrt 2 ≠ 0 by positivity)
   refine ⟨a - 1, z₂, hcirc, hz₂, ?_, ?_⟩
   · rw [clusterPlus_J_apply]
-    simp only [if_true, hfirst0, hfirst1, ← mul_div_assoc, hz₂b]
+    simp only [ite_true, hfirst0, hfirst1, ← mul_div_assoc, hz₂b]
     dsimp [a, u]
     field_simp
     ring
   · rw [clusterPlus_J_apply]
-    simp only [show (1 : Fin 2) ≠ 0 by decide, if_false, hfirst0, hfirst1,
+    simp only [show (1 : Fin 2) ≠ 0 by decide, ite_false, hfirst0, hfirst1,
       ← mul_div_assoc, hz₂b]
     dsimp [a, u]
     field_simp
@@ -363,13 +367,13 @@ theorem cluster_plus_word_surjectivity :
   let v : QState (Fin 2) := clusterJ z₂ *ᵥ (clusterJ z₁ *ᵥ clusterPlusState)
   have h30 : (clusterJ z₃ *ᵥ v) 0 = e := by
     rw [clusterPlus_J_apply]
-    simp only [if_true, show v 0 = c from h20, show v 1 = w from h21, hz₃w]
+    simp only [ite_true, show v 0 = c from h20, show v 1 = w from h21, hz₃w]
     calc
       _ = (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * (2 * e) := by dsimp [c, s]; ring
       _ = e := by rw [sqrt2_inv_sq]; ring
   have h31 : (clusterJ z₃ *ᵥ v) 1 = f := by
     rw [clusterPlus_J_apply]
-    simp only [show (1 : Fin 2) ≠ 0 by decide, if_false,
+    simp only [show (1 : Fin 2) ≠ 0 by decide, ite_false,
       show v 0 = c from h20, show v 1 = w from h21, hz₃w]
     calc
       _ = (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * (2 * f) := by dsimp [c, s]; ring

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticsDefs
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticsDefs
+
+@[expose] public section
 
 /-!
 # Confidence budget accounting
@@ -61,11 +65,11 @@ inequality between selector cells and peak-space accounting, and the additive re
 failure budget identities. -/
 theorem clause33_endpoint :
     (∀ {X : Type} [Fintype X] (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
-      (tol : ℝ) (htol : 0 < tol)
-      (hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
-      (hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
-      (hpilot : pilotFailureMass q f (n := b.pilotRecords) tol ≤ b.pilotFailure)
-      (hmain : mainFailureMass q f (M := b.blockCount) (L := b.blockSize) b.epsilon
+      (tol : ℝ) (_htol : 0 < tol)
+      (_hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
+      (_hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
+      (_hpilot : pilotFailureMass q f (n := b.pilotRecords) tol ≤ b.pilotFailure)
+      (_hmain : mainFailureMass q f (M := b.blockCount) (L := b.blockSize) b.epsilon
         ≤ b.mainFailure),
       (∀ {n : ℕ}, 0 < n →
         (∑ ω : Fin n → X, q.probOf ω * pilotVariance q f ω = q.variance f)) ∧

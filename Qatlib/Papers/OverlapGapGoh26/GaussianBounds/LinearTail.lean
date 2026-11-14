@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
-import Mathlib.Probability.Moments.SubGaussian
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+public import Mathlib.Probability.Moments.SubGaussian
+
+@[expose] public section
 
 /-!
 # Subgaussian bounds for Gaussian tensor evaluations
@@ -74,7 +78,7 @@ theorem subgaussian_abs_tail {Ω : Type} [MeasurableSpace Ω] {P : Measure Ω}
     (ε : ℝ) (hε : 0≤ε) : P.real {ω | ε≤|X ω|}≤2*Real.exp (-ε^2/(2*c)) := by
   have hs : {ω | ε≤|X ω|}={ω | ε≤X ω} ∪ {ω | ε≤-X ω} := by
     ext ω
-    simp only [Set.mem_setOf_eq, Set.mem_union, le_abs]
+    simp only [Set.mem_ofPred_eq, Set.mem_union, le_abs]
   rw [hs]
   exact (measureReal_union_le _ _).trans
       ((add_le_add (hX.measure_ge_le hε) (hX.neg.measure_ge_le hε)).trans_eq (by ring))

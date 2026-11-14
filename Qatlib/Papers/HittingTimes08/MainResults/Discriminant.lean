@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.ClassicalAnalogue
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.ClassicalAnalogue
+
+@[expose] public section
 
 /-!
 # The discriminant of the classical walk kernel

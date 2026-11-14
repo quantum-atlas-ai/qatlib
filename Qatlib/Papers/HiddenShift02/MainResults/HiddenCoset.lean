@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Hidden-shift solutions as a stabilizer coset

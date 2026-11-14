@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.GroupAction.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.GroupAction.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Stabilizers and translating cosets of group actions
@@ -91,7 +95,7 @@ def leftCoset (u : G) (H : Subgroup G) : Set G := {g | u⁻¹ * g ∈ H}
 theorem translatingCoset_eq_leftCoset {φ₀ φ₁ : Γ} {u : G} (hu : u • φ₁ = φ₀) :
     translatingCoset φ₀ φ₁ = leftCoset u (stabilizer φ₁) := by
   ext v
-  simp only [translatingCoset, leftCoset, Set.mem_setOf_eq, mem_stabilizer]
+  simp only [translatingCoset, leftCoset, Set.mem_ofPred_eq, mem_stabilizer]
   constructor
   · intro hv
     have h : (u⁻¹ * v) • φ₁ = φ₁ := by

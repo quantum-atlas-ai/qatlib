@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Mathlib.RingTheory.MvPolynomial.Homogeneous
-import Mathlib.LinearAlgebra.Matrix.MvPolynomial
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Data.Finsupp.Multiset
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Mathlib.RingTheory.MvPolynomial.Homogeneous
+public import Mathlib.LinearAlgebra.Matrix.MvPolynomial
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Data.Finsupp.Multiset
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Polynomial process matrices for observed query circuits
@@ -291,7 +295,7 @@ private theorem rawExponentIndex_spec (N : ℕ) (m : σ →₀ ℕ)
   have hl : m.toMultiset.toList.length ≤ N := (rawExponent_length m).trans_le hm
   refine ⟨⟨⟨_, Nat.lt_succ_iff.mpr hl⟩, fun j => m.toMultiset.toList[j.val]⟩,
     ?_, rawExponent_product m x, rawExponent_length m⟩
-  simp only [rawExponentIndex, dif_pos hl]
+  simp only [rawExponentIndex, dite_eq_left hl]
 
 section Coefficients
 

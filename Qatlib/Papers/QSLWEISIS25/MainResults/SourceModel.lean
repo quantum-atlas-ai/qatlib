@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -131,12 +135,12 @@ theorem sum_dotChar {k : ℕ} (x : Fin k → ZMod q) :
   classical
   by_cases hx : x = 0
   · have h : dotChar x = 0 := (dotChar_eq_zero_iff x).mpr hx
-    rw [AddChar.sum_eq_ite, if_pos h, if_pos hx]
+    rw [AddChar.sum_eq_ite, ite_eq_left h, ite_eq_left hx]
     have hcard : (Fintype.card (Fin k → ZMod q) : ℂ) = (q : ℂ) ^ k := by
-      simp [Fintype.card_fun, ZMod.card]
+      simp [ZMod.card]
     exact hcard
   · have h : dotChar x ≠ 0 := fun hh => hx ((dotChar_eq_zero_iff x).mp hh)
-    rw [AddChar.sum_eq_ite, if_neg h, if_neg hx]
+    rw [AddChar.sum_eq_ite, ite_eq_right h, ite_eq_right hx]
 
 /-- Reindexing against a translation: `∑_v F (v - c) = ∑_e F e`. -/
 lemma sum_sub_shift {k : ℕ} (F : (Fin k → ZMod q) → ℂ) (c : Fin k → ZMod q) :
@@ -148,8 +152,9 @@ lemma sum_sub_shift {k : ℕ} (F : (Fin k → ZMod q) → ℂ) (c : Fin k → ZM
     · simp
   simpa using Function.Bijective.sum_comp hbij F
 
+omit [NeZero q] in
 /-- `dot x (Aᵀ s) = (A x) · s`. -/
-lemma dot_transpose_mulVec (A : Matrix (Fin n) (Fin m) (ZMod q))
+lemma dot_transpose_mulVec {q n m : ℕ} [_inst0 : NeZero q] (A : Matrix (Fin n) (Fin m) (ZMod q))
     (x : Vec q m) (s : Secret q n) :
     dot x (A.transpose.mulVec s) = dot (A.mulVec x) s := by
   simp only [dot, Matrix.mulVec, dotProduct]

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsExt
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalCopyQPE
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsExt
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalCopyQPE
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # Work and peak resource ledgers

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-import Mathlib.Combinatorics.SimpleGraph.Acyclic
-import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
-import Mathlib.Combinatorics.SimpleGraph.Hasse
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+public import Mathlib.Combinatorics.SimpleGraph.Acyclic
+public import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+public import Mathlib.Combinatorics.SimpleGraph.Hasse
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ theorem involutivePermutation_mem_unitary {I : Type} [Fintype I] [DecidableEq I]
     split <;> simp
   simp only [happ, hconj]
   rw [Finset.sum_eq_single (σ i)]
-  · simp only [if_true, one_mul]
+  · simp only [ite_true, one_mul]
     rw [Matrix.one_apply]
     by_cases h : i = j
     · subst h; simp

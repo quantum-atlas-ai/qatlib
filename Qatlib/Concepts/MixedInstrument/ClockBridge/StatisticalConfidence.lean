@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.StatisticalConfidenceDefs
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.StatisticalConfidenceDefs
+
+@[expose] public section
 
 /-!
 # Pilot and median-of-means confidence bounds
@@ -48,11 +52,11 @@ private theorem sum_filter_eq_indicator {ι : Type} [Fintype ι] (p : ι → Pro
   rw [Finset.sum_filter]
   refine Finset.sum_congr rfl fun ω _ => ?_
   by_cases h : p ω
-  · rw [if_pos h]
-    rw [if_pos h]
+  · rw [ite_eq_left h]
+    rw [ite_eq_left h]
     ring
-  · rw [if_neg h]
-    rw [if_neg h]
+  · rw [ite_eq_right h]
+    rw [ite_eq_right h]
     ring
 
 /-- A weighted finite sum distributes over the sum of two functions. -/
@@ -145,7 +149,7 @@ theorem pilot_failure_le (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n)
 /-- The pilot failure probability is at most `δ` whenever the fourth-moment sample-size bound is
 at most `δ`. -/
 theorem pilot_size_sufficient (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n)
-    (tol : ℝ) (htol : 0 < tol) (δ : ℝ) (hδ : 0 < δ)
+    (tol : ℝ) (htol : 0 < tol) (δ : ℝ) (_hδ : 0 < δ)
     (hn_size : pilotFourthMoment q f / ((n : ℝ) * tol ^ 2) ≤ δ) :
     pilotFailureMass q f (n := n) tol ≤ δ :=
   (pilot_failure_le q f hn tol htol).trans hn_size
@@ -181,15 +185,15 @@ private theorem indicator_or_le (p q : Prop) [Decidable p] [Decidable q] :
       ≤ ((if p then (1 : ℝ) else 0)) + ((if q then (1 : ℝ) else 0)) := by
   by_cases hp : p
   · by_cases hq : q
-    · rw [if_pos (Or.inl hp), if_pos hp, if_pos hq]
+    · rw [ite_eq_left (Or.inl hp), ite_eq_left hp, ite_eq_left hq]
       norm_num
-    · rw [if_pos (Or.inl hp), if_pos hp, if_neg hq]
+    · rw [ite_eq_left (Or.inl hp), ite_eq_left hp, ite_eq_right hq]
       norm_num
   · by_cases hq : q
-    · rw [if_pos (Or.inr hq), if_neg hp, if_pos hq]
+    · rw [ite_eq_left (Or.inr hq), ite_eq_right hp, ite_eq_left hq]
       norm_num
     · have hnq : ¬(p ∨ q) := fun h => h.elim (fun hp' => hp hp') (fun hq' => hq hq')
-      rw [if_neg hnq, if_neg hp, if_neg hq]
+      rw [ite_eq_right hnq, ite_eq_right hp, ite_eq_right hq]
       norm_num
 
 /-- The probability of a pilot or main-phase failure is at most the sum of their individual
@@ -297,9 +301,9 @@ theorem merged_failure_le (q : FinDist X) (f : X → ℝ) {n M L : ℕ} (tol ε 
 within the total failure budget, the record count is additive, and the total count exceeds
 the pilot count. -/
 theorem confidence_budget (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
-    (tol : ℝ) (htol : 0 < tol)
+    (tol : ℝ) (_htol : 0 < tol)
     (hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
-    (hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
+    (_hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
     (hpilot : pilotFailureMass q f (n := b.pilotRecords) tol ≤ b.pilotFailure)
     (hmain : mainFailureMass q f (M := b.blockCount) (L := b.blockSize) b.epsilon
       ≤ b.mainFailure) :
@@ -319,8 +323,8 @@ theorem confidence_budget (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
 the merged failure budget, and the total record identity under the stated budget hypotheses. -/
 theorem clause33_complete (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
     (tol : ℝ) (htol : 0 < tol)
-    (hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
-    (hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
+    (_hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
+    (_hvar : 4 * q.variance f ≤ (b.blockSize : ℝ) * b.epsilon ^ 2)
     (hpilot : pilotFailureMass q f (n := b.pilotRecords) tol ≤ b.pilotFailure)
     (hmain : mainFailureMass q f (M := b.blockCount) (L := b.blockSize) b.epsilon
       ≤ b.mainFailure) :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KhovanovHom25.MainResults.Model
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.KhovanovHom25.MainResults.Model
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -129,8 +133,7 @@ theorem prop21_is_complex :
     · ext i j
       fin_cases i <;> fin_cases j <;>
         simp [prop21BlockMinus, prop21BlockPlus, prop21Saddle, prop21Mat4, prop21Mat24,
-          Matrix.mul_apply, Fin.sum_univ_two, Fin.sum_univ_four] <;>
-        norm_num
+          Matrix.mul_apply, Fin.sum_univ_four]
 
 /-- **Proposition 21, interior Laplacians.**  In every homological degree with
 `1 < j < n` the Laplacian is `Diag(2,2,2,2)`: for both parities of the
@@ -146,8 +149,7 @@ theorem prop21_laplacian_interior :
     · ext i j
       fin_cases i <;> fin_cases j <;>
         simp [prop21BlockMinus, prop21BlockPlus, prop21Mat4, prop21Diag4,
-          Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_two,
-          Fin.sum_univ_four] <;>
+          Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_four] <;>
         norm_num
 
 /-- **Proposition 21, penultimate Laplacian.**  `Δ_{n-1} = Diag(2,2,2,1)`: the
@@ -171,8 +173,8 @@ theorem prop21_laplacian_top :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [prop21Saddle, prop21Mat24, prop21Diag2, Matrix.mul_apply,
-      Matrix.transpose_apply, Fin.sum_univ_two, Fin.sum_univ_four] <;>
-    norm_num
+      Matrix.transpose_apply, Fin.sum_univ_four]
+  all_goals norm_num
 
 /-- **Proposition 21, degree-zero Laplacian.**  `Δ₀ = Diag(2,2,0,0)`: there is a
 leftmost differential `L : V ⊗ V → V ⊗ V` of the reduced complex whose Laplacian
@@ -194,7 +196,7 @@ theorem prop21_laplacian_zero :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [prop21Mat4, prop21Diag4, Matrix.mul_apply, Matrix.transpose_apply,
-      Fin.sum_univ_two, Fin.sum_univ_four] <;>
+      Fin.sum_univ_four] <;>
     norm_num
 
 /-- **Proposition 21 (Gap Reduction), Laplacian forms.**  Collecting the

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCounting
+module
+
+public import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCounting
+
+@[expose] public section
 
 /-!
 # Joint distribution of mask labels
@@ -58,14 +62,14 @@ theorem dotMod_unitLabel (l : ℕ) (b : Mask l) (j : Fin (l + 4))
   rw [Finset.sum_eq_single j]
   · simp
   · intro j' _ hjne
-    simp [Function.update_of_ne hjne, hjne]
+    simp [hjne]
   · intro hjnot
     exact absurd (Finset.mem_univ j) hjnot
 
 /-- Evaluating the pair map on two distinct single-coordinate samples gives the two
 corresponding sums of selected values. -/
 theorem pairForm_unitLabels (l : ℕ) (b₁ b₂ : Mask l) {j k : Fin (l + 4)}
-    (hjk : j ≠ k) (a c : ZMod (2 ^ l)) :
+    (_hjk : j ≠ k) (a c : ZMod (2 ^ l)) :
     pairForm l b₁ b₂ (unitLabel l j a + unitLabel l k c) =
       ((if b₁ j then a else 0) + (if b₁ k then c else 0),
         (if b₂ j then a else 0) + (if b₂ k then c else 0)) := by

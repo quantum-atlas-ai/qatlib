@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Counted Simon decoding
@@ -100,13 +104,13 @@ theorem simon_decoder_actual_output_mass {n m : ℕ} {R : Type} [AddCommGroup R]
   intro xs _
   by_cases h : booleanSampleCandidate (booleanDecodedSamples xs) =
       booleanSimonSubgroup (regBooleanEquiv n s)
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hd : decodeSimonSecret (simonRecordBits xs) = some s := by
       rw [boolean_gaussian_simon_decode_iff, regBooleanEquiv_simonRecordBits xs]
       exact h
-    rw [if_pos (eq_comm.mpr hd)]
-  · rw [if_neg h]
-    rw [if_neg (by
+    rw [ite_eq_left (eq_comm.mpr hd)]
+  · rw [ite_eq_right h]
+    rw [ite_eq_right (by
       intro hd
       exact h (by
         have h1 := (boolean_gaussian_simon_decode_iff (simonRecordBits xs) s).mp hd.symm
@@ -328,14 +332,14 @@ theorem simon_gaussian_zero_nonzero_ranks {n : ℕ} (s : Reg n) :
   rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card, Nat.card_eq_fintype_card,
     hcardQ, hcardG] at hlag
   by_cases hs : s = ZeroStr n
-  · rw [if_pos hs]
+  · rw [ite_eq_left hs]
     have hs0 : regBooleanEquiv n s = 0 := by rw [hs]; simp
     have hcardH : Fintype.card H = 1 := by
       rw [hH, hs0, booleanSimonSubgroup_zero]
       simp
     rw [hcardH, mul_one] at hlag
     exact Nat.pow_right_injective (by norm_num) hlag.symm
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     have hs0 : regBooleanEquiv n s ≠ 0 := by
       intro h0
       exact hs (regBooleanEquiv_injective n (by rw [h0]; simp))

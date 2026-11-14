@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Data.Rat.Cast.Order
-import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Data.Rat.Cast.Order
+public import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+
+@[expose] public section
 
 /-!
 # Rational Boltzmann weights from Taylor polynomials

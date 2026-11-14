@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalPolynomial
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.MetricSpace.Pseudo.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalPolynomial
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.MetricSpace.Pseudo.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Reciprocal polynomial error estimates

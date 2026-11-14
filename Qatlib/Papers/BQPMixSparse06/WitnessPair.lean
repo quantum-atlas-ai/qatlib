@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem4QcmaDecay
-import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockRepair
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem4QcmaDecay
+public import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockRepair
+
+@[expose] public section
 
 /-!
 # Witness-pair states and decision gaps
@@ -48,7 +52,7 @@ theorem witnessState_apply {N : ℕ} (j : Fin N) (s : Fin 2) (i : Fin N) :
   by_cases h : i = j
   · subst h
     simp [psiMinus, liftVec, Pi.single_eq_same, phiMinus]
-  · simp [psiMinus, liftVec, Pi.single_eq_of_ne h, phiMinus, h]
+  · simp [psiMinus, liftVec,  phiMinus, h]
 
 /-- The coordinate of `psiMinus j` at the first copy of `j` is `1 / √2`. -/
 theorem witnessState_zero {N : ℕ} (j : Fin N) : psiMinus j (0, j) = 1 / Real.sqrt 2 := by
@@ -73,8 +77,7 @@ theorem zH_single_zero (s : Fin 2) :
     rw [← sq, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   fin_cases s <;>
     simp [zGate, hGate, phiMinus, Matrix.mul_apply, Matrix.mulVec, dotProduct,
-      Fin.sum_univ_two] <;>
-    field_simp <;> nlinarith
+      Fin.sum_univ_two]
 
 /-- Expresses `psiMinus j` as the localized vertex basis vector multiplied by the two-point
 state prepared by the Hadamard and phase-flip gates [JanzingWocjan2006]. -/
@@ -83,9 +86,9 @@ theorem witnessState_prep {N : ℕ} (j : Fin N) (s : Fin 2) (i : Fin N) :
       (if i = j then (1 : ℝ) else 0) * ((zGate * hGate) *ᵥ (Pi.single 0 (1 : ℝ))) s := by
   rw [witnessState_apply]
   by_cases h : i = j
-  · rw [if_pos h, if_pos h, one_mul]
+  · rw [ite_eq_left h, ite_eq_left h, one_mul]
     exact (zH_single_zero s).symm
-  · rw [if_neg h, if_neg h, zero_mul]
+  · rw [ite_eq_right h, ite_eq_right h, zero_mul]
 
 /-- The arithmetic midpoint `(a + b) / 2` of two real numbers. -/
 def midpoint (a b : ℝ) : ℝ := (a + b) / 2

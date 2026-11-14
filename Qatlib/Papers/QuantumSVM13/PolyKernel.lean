@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Tensor-power polynomial kernels
@@ -66,7 +70,7 @@ theorem card_featureSpace (N d : ℕ) [NeZero N] :
 Real.log N` [RebentrostMohseniLloyd2014]. -/
 theorem log_featureSpace (N d : ℕ) (hN : 0 < N) :
     Real.log ((Fintype.card (Fin d → Fin N) : ℝ)) = d * Real.log N := by
-  haveI : NeZero N := ⟨Nat.pos_iff_ne_zero.mp hN⟩
+  have : NeZero N := ⟨Nat.pos_iff_ne_zero.mp hN⟩
   rw [card_featureSpace, Nat.cast_pow, Real.log_pow]
 
 end Qatlib.Papers.QuantumSVM13.PolyKernel

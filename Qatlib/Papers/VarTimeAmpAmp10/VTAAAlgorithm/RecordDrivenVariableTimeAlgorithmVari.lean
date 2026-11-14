@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmStat
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Tactic.NormNum.RealSqrt
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenSectorTransport
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenWindowBounds
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenBornTransport
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenFinalRoundCalibration
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmStat
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenSectorTransport
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenWindowBounds
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenBornTransport
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenFinalRoundCalibration
+
+@[expose] public section
 
 /-!
 # Verification of the record-driven variable-time algorithm
@@ -175,7 +179,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
           nlinarith [hm17]
         linarith
       have h2 : (0:ℝ) ≤ ((2*(sched k)+1 : ℕ) : ℝ)^2 := by positivity
-      rw [if_neg hz]
+      rw [ite_eq_right hz]
       exact mul_nonneg h1 h2
   have hlevel : ∀ j : ℕ, j < m →
       ∃ α : ℂ,
@@ -222,7 +226,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
           = cascadeWord sched j++[DataVtStep.stageF j] := by
         unfold recordDrivenInputWord
         have hv : (⟨j, by omega⟩ : Fin (stages.length+1)).val = j := rfl
-        rw [hv, if_pos hjm]
+        rw [hv, ite_eq_left hjm]
       have hωraw := hω ⟨j, by omega⟩
       rw [hinput] at hωraw
       have hrad := recordDriven_floor_radius m (by omega) Aj hAfloor
@@ -238,7 +242,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
         nlinarith [hesthigh, hAjnn]
       have hschedl : sched j
           = recordDrivenPrefixRounds stages.length (ω ⟨j, by omega⟩) := by
-        simp only [hscheddef, recordDrivenSchedule, dif_pos (by omega : j < stages.length)]
+        simp only [hscheddef, recordDrivenSchedule, dite_eq_left (by omega : j < stages.length)]
       have hschedj : sched j = recordDrivenPrefixRounds m (ω ⟨j, by omega⟩) := hschedl
       obtain ⟨hcap, hcross, hmin⟩ := recordDriven_prefix_crossing m (by omega) Aj
         (ω ⟨j, by omega⟩) hAfloor hest
@@ -282,7 +286,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
             exact le_of_mul_le_mul_right hcomb hsj0
         have hcfge : (1:ℝ) ≤ cfmul j := by
           by_cases hz : sched j = 0
-          · simp only [hcfdef, hz, if_pos]
+          · simp only [hcfdef, hz, ite_eq_left]
             norm_num
           · have hm17 : (17:ℝ) ≤ (m:ℝ) := by exact_mod_cast (by omega : 17 ≤ m)
             have h5 : (85:ℝ) ≤ 5*((m:ℝ)) := by nlinarith [hm17]
@@ -295,7 +299,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
               have hc : (1:ℝ) ≤ ((sched j : ℕ):ℝ) := by exact_mod_cast hs1
               nlinarith [hc]
             have hNsq : (9:ℝ) ≤ (2*((sched j : ℕ):ℝ)+1)^2 := by nlinarith [hc3]
-            simp only [hcfdef, if_neg hz]
+            simp only [hcfdef, ite_eq_right hz]
             rw [hcast]
             have hNnn : (0:ℝ) ≤ 2*((sched j : ℕ):ℝ)+1 := by
               have hc1 : (1:ℝ) ≤ ((sched j : ℕ):ℝ) := by
@@ -335,7 +339,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
           rw [hW]
         have hstepmul : cfmul j*R j*s (j+1) ≤ R (j+1)*s j := by
           have hcf1 : cfmul j = 1 := by
-            simp only [hcfdef, hzero, if_pos]
+            simp only [hcfdef, hzero, ite_eq_left]
             norm_num
           rw [hcf1, one_mul, hRj1, hAjmul]
         rw [hzero] at hcross
@@ -434,7 +438,7 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
         have hstepmul : cfmul j*R j*s (j+1) ≤ R (j+1)*s j := by
           have hcf2 : cfmul j
               = (1-4/(5*((m:ℝ))))*((2*((sched j : ℕ):ℝ)+1)^2) := by
-            simp only [hcfdef, if_neg hzero, hcast]
+            simp only [hcfdef, ite_eq_right hzero, hcast]
           rw [hcf2]
           have hassoc : (1-4/(5*((m:ℝ))))*((2*((sched j : ℕ):ℝ)+1)^2)*R j*s (j+1)
               = ((1-4/(5*((m:ℝ))))*((2*((sched j : ℕ):ℝ)+1)^2))*(R j*s (j+1)) := by ring
@@ -519,10 +523,10 @@ private theorem rdvt_chain_small {C : Type} [Fintype C] [DecidableEq C]
     intro k
     unfold recordDrivenSchedule
     by_cases hk : k < stages.length
-    · rw [dif_pos hk]
+    · rw [dite_eq_left hk]
       unfold recordDrivenPrefixRounds
-      rw [if_pos hsmall]
-    · rw [dif_neg hk]
+      rw [ite_eq_left hsmall]
+    · rw [dite_eq_right hk]
   have hjlive : j₀ ∈ liveSet C := by
     simp only [liveSet, goodSet, runningSet, Finset.mem_union, Finset.mem_filter,
       Finset.mem_univ, true_and]
@@ -679,7 +683,7 @@ theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgor
   have hlastword : recordDrivenInputWord m ω (Fin.last m)
       = cascadeWord (recordDrivenSchedule m ω) m := by
     unfold recordDrivenInputWord
-    rw [if_neg (by simp)]
+    rw [ite_eq_right (by simp)]
   have hlast : |vtMedianEstimate (recordDrivenResolution m) (recordDrivenRepetitions m)
       (ω (Fin.last m)) - MeasureProb (dataVtWordState stages history j₀
       (recordDrivenInputWord m ω (Fin.last m))) (liveSet C)|
@@ -870,12 +874,12 @@ theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgor
             ≤ (if recordDrivenSchedule m ω k = 0 then (1:ℝ) else 1-4/(5*((m:ℝ)))) := by
           intro k
           by_cases h : recordDrivenSchedule m ω k = 0
-          · rw [if_pos h]
+          · rw [ite_eq_left h]
             have hmR2 : (0:ℝ) < m := by exact_mod_cast (by omega : 0 < m)
             have h4 : (0:ℝ) ≤ 4/(5*((m:ℝ))) :=
               div_nonneg (by norm_num) (by nlinarith [hmR2] : (0:ℝ) ≤ 5*((m:ℝ)))
             linarith
-          · rw [if_neg h]
+          · rw [ite_eq_right h]
         have hstep1 : (1-4/(5*((m:ℝ))))^(Finset.Ico i m).card
             ≤ ∏ k ∈ Finset.Ico i m,
               (if recordDrivenSchedule m ω k = 0 then (1:ℝ) else 1-4/(5*((m:ℝ)))) := by
@@ -1316,7 +1320,7 @@ theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgor
           have h2 : ∑ j ∈ Finset.range stages.length, reachedPstop stages history (Qatlib.Foundations.PureStateMath.Ket j₀) j
               = ∑ j ∈ Finset.range stages.length, (if 0 ≤ j then reachedPstop stages history
                 (Qatlib.Foundations.PureStateMath.Ket j₀) j else 0) :=
-            (Finset.sum_congr rfl fun j _ => by rw [if_pos (Nat.zero_le j)]).symm
+            (Finset.sum_congr rfl fun j _ => by rw [ite_eq_left (Nat.zero_le j)]).symm
           rw [h2, ← hA0, hr0]
         have h4 : (4:ℝ) ≤ ∑ j ∈ Finset.range stages.length,
             reachedPstop stages history (Qatlib.Foundations.PureStateMath.Ket j₀) j*(stopTime j)^2 := by
@@ -1466,7 +1470,7 @@ theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgor
     intro i
     unfold recordDrivenInputWord
     by_cases hilt : i.val < m
-    · rw [if_pos hilt, dataVtWordTime_append]
+    · rw [ite_eq_left hilt, dataVtWordTime_append]
       have hsng : dataVtWordTime ([DataVtStep.stageF i.val] : List DataVtStep) = 2^i.val := by
         simp [dataVtWordTime, dataVtStepTime]
       rw [hsng]
@@ -1475,7 +1479,7 @@ theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgor
         hTmono i.val (Fin.is_le i)
       have h2 : (2:ℕ)^i.val ≤ 2^m := Nat.pow_le_pow_right (by omega) (Fin.is_le i)
       omega
-    · rw [if_neg hilt]
+    · rw [ite_eq_right hilt]
       exact Nat.le_add_right _ _
   have hestT : (recordDrivenEstimateTime m ω : ℝ) ≤ ((m:ℝ)+1)*(2001*((m:ℝ)))*(3000000000*((m:ℝ))^2)
       *((dataVtWordTime (cascadeWord (recordDrivenSchedule m ω) m) : ℝ)+((2:ℝ)^m)) := by

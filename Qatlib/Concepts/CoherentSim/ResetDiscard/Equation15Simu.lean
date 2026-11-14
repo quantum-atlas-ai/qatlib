@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Stat
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation14Simu
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Stat
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation14Simu
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Robustness bounds for cubic amplification

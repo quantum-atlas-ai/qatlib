@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Resampling distinct ordered pairs
@@ -233,7 +237,7 @@ theorem sum_entry_second (v : EuclideanSpace ℂ (Pair L)) (f : L→ℂ) :
     _ = ∑ p : Pair L,star (entry v p.val.1 p.val.2)*f p.val.2 := by
       apply Finset.sum_congr rfl
       intro p _
-      rw [entry,dif_pos p.property]
+      rw [entry,dite_eq_left p.property]
     _ = ∑ x,∑ y,if x≠y then star (entry v x y)*f y else 0 := sum_pair (fun x y : L => star (entry v x y)*f y)
     _ = ∑ x,∑ y,star (entry v x y)*f y := by
       apply Finset.sum_congr rfl
@@ -256,7 +260,7 @@ theorem sum_entry_first (v : EuclideanSpace ℂ (Pair L)) (f : L→ℂ) :
     _ = ∑ p : Pair L,star (entry v p.val.1 p.val.2)*f p.val.1 := by
       apply Finset.sum_congr rfl
       intro p _
-      rw [entry,dif_pos p.property]
+      rw [entry,dite_eq_left p.property]
     _ = ∑ x,∑ y,if x≠y then star (entry v x y)*f x else 0 := sum_pair (fun x y : L => star (entry v x y)*f x)
     _ = ∑ x,∑ y,star (entry v x y)*f x := by
       apply Finset.sum_congr rfl

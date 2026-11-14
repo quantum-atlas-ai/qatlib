@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+
+@[expose] public section
 
 /-!
 # Smooth payoff bounds for all prepared amplitudes
@@ -52,7 +56,7 @@ theorem payoff_at_zero {I : Type} [Fintype I] [DecidableEq I]
   rw [Finset.sum_eq_single z]
   · simp [hp,aeEstimate,z]
   · intro k _ hk
-    rw [hp,if_neg hk,zero_mul]
+    rw [hp,ite_eq_right hk,zero_mul]
   · simp
 
 /-- If the prepared success probability is one and `M ≥ 2` is even, the actual QAE payoff
@@ -79,7 +83,7 @@ theorem payoff_at_one {I : Type} [Fintype I] [DecidableEq I]
   rw [Finset.sum_eq_single z]
   · simp [hp,he]
   · intro k _ hk
-    rw [hp,if_neg hk,zero_mul]
+    rw [hp,ite_eq_right hk,zero_mul]
   · simp
 
 /-- For even `M ≥ 2`, a payoff with a globally `K`-Lipschitz derivative has actual QAE error at

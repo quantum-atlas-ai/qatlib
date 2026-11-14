@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+
+@[expose] public section
 
 /-!
 # Strict-threshold QAE payoff bounds

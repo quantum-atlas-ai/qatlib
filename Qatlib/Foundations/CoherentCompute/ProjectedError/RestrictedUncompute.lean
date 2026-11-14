@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Restricted coherent uncomputation error
@@ -86,8 +90,8 @@ theorem coherentUncomputeRestrictedBound
       (mul_nonneg (Real.sqrt_nonneg _) (norm_nonneg _))).mp
     simpa [mul_pow, Real.sq_sqrt hcard] using hcs
   have hAx : A x = ∑ i, (V (T (U (P i x))) - S (F i) (P i x)) := by
-    simp only [A, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
-      ContinuousLinearMap.sum_apply, map_sum, Finset.sum_sub_distrib]
+    simp only [A, _root_.sub_apply, ContinuousLinearMap.comp_apply,
+      _root_.sum_apply, map_sum, Finset.sum_sub_distrib]
   change ‖A x‖ ≤ _
   rw [hAx]
   calc

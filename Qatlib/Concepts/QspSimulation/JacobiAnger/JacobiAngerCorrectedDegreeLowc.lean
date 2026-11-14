@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeStat
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+module
+
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeStat
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+@[expose] public section
 
 /-!
 # Corrected Jacobi–Anger truncation degree bound

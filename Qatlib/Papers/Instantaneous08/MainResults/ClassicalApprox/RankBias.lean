@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.FieldTheory.Finiteness
-import Mathlib.LinearAlgebra.Dual.Lemmas
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.FieldTheory.Finiteness
+public import Mathlib.LinearAlgebra.Dual.Lemmas
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+@[expose] public section
 
 /-!
 # Binary bilinear bias and matrix rank
@@ -115,13 +119,13 @@ theorem card_ker_bilinearForm {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
       if Q.mulVec e = 0 then (Fintype.card (F2Vec n) : ℝ)
       else (Fintype.card (F2Vec n) : ℝ) / 2 := by
   by_cases h : Q.mulVec e = 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hzero : bilinearForm Q e = 0 := by
       ext d
       simp [bilinearForm, dot, h]
     rw [hzero, LinearMap.ker_zero]
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hne : bilinearForm Q e ≠ 0 := by
       intro h0
       apply h

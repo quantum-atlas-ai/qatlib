@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzRefinedDefs
+module
+
+public import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzRefinedDefs
+
+@[expose] public section
 
 /-!
 # Block-length and cost-ledger identities

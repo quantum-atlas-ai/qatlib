@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
-import Physlib.QuantumMechanics.Operators.SpectralTheory.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Module.Convex
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
+public import Physlib.QuantumMechanics.Operators.SpectralTheory.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Module.Convex
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 
 /-!

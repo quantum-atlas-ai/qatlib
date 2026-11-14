@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Binary Pauli operators
@@ -201,7 +205,7 @@ theorem cssPauliZX_phase (x z : ι → ZMod 2) :
   simp only [Matrix.smul_apply, smul_eq_mul, cssPauliZX_apply, cssPauliXZ_apply]
   by_cases h : a = b + x
   · subst a
-    simp only [if_true, bitDot_add_right, phaseOfBit_add]
+    simp only [ite_true, bitDot_add_right, phaseOfBit_add]
     ring
   · simp [h]
 
@@ -238,7 +242,7 @@ theorem sum_phase_bitDot (z : ι → ZMod 2) :
   by_cases hz : z = 0
   · subst z
     simp
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     have hi : ∃ i, z i ≠ 0 := by
       by_contra h
       push Not at h
@@ -298,6 +302,7 @@ theorem cssPauliZ_self_mul (z : ι → ZMod 2) : cssPauliZ z * cssPauliZ z = 1 :
 theorem phaseOfBit_star (b : ZMod 2) : star (phaseOfBit b) = phaseOfBit b := by
   by_cases h : b = 1 <;> simp [phaseOfBit, h]
 
+omit [DecidableEq ι] in
 /-- Every binary X operator is Hermitian. -/
 theorem cssPauliX_isHermitian (x : ι → ZMod 2) : (cssPauliX x).IsHermitian := by
   classical
@@ -312,6 +317,7 @@ theorem cssPauliX_isHermitian (x : ι → ZMod 2) : (cssPauliX x).IsHermitian :=
       simp only [add_assoc, binary_add_self, add_zero]
   simp only [he]
 
+omit [DecidableEq ι] in
 /-- Every binary Z operator is Hermitian. -/
 theorem cssPauliZ_isHermitian (z : ι → ZMod 2) : (cssPauliZ z).IsHermitian := by
   classical
@@ -320,6 +326,6 @@ theorem cssPauliZ_isHermitian (z : ι → ZMod 2) : (cssPauliZ z).IsHermitian :=
   by_cases h : a = b
   · subst b
     simpa [cssPauliZ, Matrix.diagonal_apply] using phaseOfBit_star (bitDot z a)
-  · simp [cssPauliZ, Matrix.diagonal_apply, h, Ne.symm h]
+  · simp [cssPauliZ,  h, Ne.symm h]
 
 end Qatlib.Concepts.CodingDecoding.CssTesters

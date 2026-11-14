@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QBoltzmann16.MainResults.BoltzmannDefs
+module
+
+public import Qatlib.Papers.QBoltzmann16.MainResults.BoltzmannDefs
+
+@[expose] public section
 
 /-!
 # Differentiating finite trace exponentials
@@ -103,7 +107,7 @@ lemma norm_trace_le (D : ℕ) (B : Operator D) : ‖Matrix.trace B‖ ≤ (D : �
 
 /-- In positive dimension, the ℓ² operator norm of `B ^ n` is at most `‖B‖ ^ n`. -/
 lemma l2_opNorm_pow_le (D : ℕ) (hD : 0 < D) (B : Operator D) (n : ℕ) : ‖B ^ n‖ ≤ ‖B‖ ^ n := by
-  letI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   induction n with
   | zero => rw [pow_zero, pow_zero]; exact le_of_eq (by
       rw [← Matrix.diagonal_one, Matrix.l2_opNorm_diagonal]; simp)
@@ -119,7 +123,7 @@ theorem trace_exp_hasDerivAt (D : ℕ) (hD : 0 < D)
     (hA : ∀ t, HasDerivAt A (A' t) t) (hA' : ContinuousAt A' θ) :
     HasDerivAt (fun s : ℝ => Matrix.trace (NormedSpace.exp (A s)))
       (Matrix.trace (NormedSpace.exp (A θ) * A' θ)) θ := by
-  letI : NormedRing (Operator D) := Matrix.instL2OpNormedRing
+  let : NormedRing (Operator D) := Matrix.instL2OpNormedRing
   let g : ℕ → ℝ → ℂ := fun n s => ((Nat.factorial n : ℕ) : ℂ)⁻¹ • Matrix.trace (A s ^ n)
   let g' : ℕ → ℝ → ℂ := fun n s =>
     ((Nat.factorial n : ℕ) : ℂ)⁻¹ • (n : ℂ) • Matrix.trace (A s ^ n.pred * A' s)

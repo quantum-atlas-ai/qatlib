@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.MeasuredGenerationSubgoalStat
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUniformQuan
-import Qatlib.Concepts.HspRecovery.AbelianSampling.WideGenerationSubgoalQuan
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.MeasuredGenerationSubgoalStat
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUniformQuan
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.WideGenerationSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Generation from measured stabilizer samples

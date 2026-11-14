@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # State-dependent costs in randomized execution
@@ -156,6 +160,7 @@ theorem weightedRunFor_succ_running (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedRunFor next c n d)) := by
   simp [weightedRunFor, weightedTick, CostedLaw.bind, PMF.bind_map, Function.comp_def]
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- The point mass of a weighted successor run is a sum over the first transition with cost
 shifted by `c s`, or zero if the cost is too small. -/
 theorem weightedRunFor_succ_running_point (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -168,6 +173,7 @@ theorem weightedRunFor_succ_running_point (next : S → PMF (O ⊕ S)) (c : S �
   · rfl
   · simp
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- If every running step costs at least one, halted mass at cost `k` stabilizes once fuel
 reaches `k`. -/
 theorem weightedRunFor_halt_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -196,6 +202,7 @@ theorem weightedRunFor_halt_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
             ih (k+1-c s) (by have := hc s; omega) x k (by have := hc s; omega)]
         · rfl
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 /-- For a fixed halted output and cost, its weighted finite-run mass is monotone in the fuel. -/
 theorem weightedRunFor_halt_monotone (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (o : O) (k : ℕ) :
@@ -207,6 +214,7 @@ theorem weightedRunFor_halt_monotone (next : S → PMF (O ⊕ S)) (c : S → ℕ
     CostedLaw.charge x.2 (weightedRunFor next c 1 x.1) (.inl o,k)) (.inl o,k)
   simpa [weightedRunFor_halted, CostedLaw.charge_ret, PMF.pure_apply] using h
 
+omit [DecidableEq S] [DecidableEq O] in
 /-- Under positive step costs, the supremum of the finite halted masses equals
 `weightedHaltJoint`. -/
 theorem weightedRunFor_halt_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
@@ -231,6 +239,7 @@ theorem weighted_tsum_iSup {α : Type*} (f : α → ℕ → ℝ≥0∞)
   simp_rw [ENNReal.finsetSum_iSup_of_monotone hf]
   exact iSup_comm
 
+omit [Fintype O] in
 /-- The pending event of weighted execution has the same mass as unit-cost execution at the same
 fuel. -/
 theorem weightedRunFor_pending (next : S → PMF (O ⊕ S)) (c : S → ℕ)

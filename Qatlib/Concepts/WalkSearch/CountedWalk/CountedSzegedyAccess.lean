@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.QueryWordCore.AdjointCircuits
-import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+public import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+
+@[expose] public section
 
 /-!
 # Counted access to Szegedy walk updates

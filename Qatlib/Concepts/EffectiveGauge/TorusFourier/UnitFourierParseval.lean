@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficient
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficient
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ theorem unitFourierCoefficient_parseval (f : SpatialPoint → ℂ) (hf : Continu
   have hset : {u : Fin 3 → ℝ | ∀ i, u i∈Ioc (0 : ℝ) (0+1)}=
       Set.pi Set.univ (fun _ : Fin 3 => Ioc (0 : ℝ) 1) := by
     ext u
-    simp only [zero_add,Set.mem_setOf_eq,Set.mem_pi,Set.mem_univ,true_implies]
+    simp only [zero_add,Set.mem_ofPred_eq,Set.mem_pi,Set.mem_univ,true_implies]
   rw [hset] at hs'
   have hintBox : (∫ u : Fin 3 → ℝ in Set.pi Set.univ (fun _ => Ioc (0 : ℝ) 1),
       ‖F (fun i => (u i : UnitAddCircle))‖^2)=

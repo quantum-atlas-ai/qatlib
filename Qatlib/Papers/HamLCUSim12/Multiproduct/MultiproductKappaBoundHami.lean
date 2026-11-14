@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassBounds
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundStat
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassBounds
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundStat
+
+@[expose] public section
 
 /-!
 # A lower scale for the multiproduct mass ratio

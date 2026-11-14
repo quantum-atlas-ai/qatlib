@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Bipartite states and finite local protocol definitions
@@ -110,17 +114,17 @@ inductive LoccProtocol (D E : ℕ) : Type
 /-- The recursive requirement that every local Kraus family in a protocol is complete. -/
 def LoccComplete : LoccProtocol D E → Prop
   | .halt => True
-  | .stepA n ks next => (∑ i, (ks i)ᴴ * ks i = 1) ∧ ∀ i, LoccComplete (next i)
-  | .stepB n ks next => (∑ i, (ks i)ᴴ * ks i = 1) ∧ ∀ i, LoccComplete (next i)
+  | .stepA _n ks next => (∑ i, (ks i)ᴴ * ks i = 1) ∧ ∀ i, LoccComplete (next i)
+  | .stepB _n ks next => (∑ i, (ks i)ᴴ * ks i = 1) ∧ ∀ i, LoccComplete (next i)
 
 /-- The sum of the output branches of a finite local protocol. -/
 noncomputable def LoccChannel : LoccProtocol D E →
     Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ → Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ
   | .halt, ρ => ρ
-  | .stepA n ks next, ρ =>
+  | .stepA _n ks next, ρ =>
       ∑ i, LoccChannel (next i) (TensorGate (ks i) (1 : Operator E) * ρ *
         (TensorGate (ks i) (1 : Operator E))ᴴ)
-  | .stepB n ks next, ρ =>
+  | .stepB _n ks next, ρ =>
       ∑ i, LoccChannel (next i) (TensorGate (1 : Operator D) (ks i) * ρ *
         (TensorGate (1 : Operator D) (ks i))ᴴ)
 

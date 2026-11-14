@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.Norm
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.Norm
+
+@[expose] public section
 
 /-!
 # General-model tensor-network scale

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+
+@[expose] public section
 
 /-!
 # Probability and amplification bounds for record-driven cascades
@@ -70,7 +74,7 @@ theorem recordDrivenInputWord_prefix (m : ℕ) (i : Fin (m+1))
     apply cascadeWord_congr
     intro j hj
     have hm : j < m := by omega
-    simp only [recordDrivenSchedule, dif_pos hm]
+    simp only [recordDrivenSchedule, dite_eq_left hm]
     rw [h ⟨j, by omega⟩ (by change j < i.val; omega)]
   unfold recordDrivenInputWord
   split_ifs
@@ -425,7 +429,7 @@ theorem recordDriven_prefix_crossing (m : ℕ) (hm : 16 < m) (a : ℝ)
     (fun k => 1/(6*(m : ℝ)) ≤ ((2*k+1 : ℕ) : ℝ)^2*recordDrivenEstimate m labels)
     ⟨recordDrivenRoundCap m, le_rfl, hthreshold.trans hval⟩
   have he : recordDrivenPrefixRounds m labels = k := by
-    simp only [recordDrivenPrefixRounds, if_neg (by omega : ¬m ≤ 16), hfind, Option.getD_some]
+    simp only [recordDrivenPrefixRounds, ite_eq_right (by omega : ¬m ≤ 16), hfind, Option.getD_some]
   rw [he]
   exact ⟨hk, hp, fun j hj => lt_of_not_ge (hmin j hj)⟩
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ScaledSqrt.SqrtBounds.ScaledRationalSqrtDefs
+module
+
+public import Qatlib.Concepts.ScaledSqrt.SqrtBounds.ScaledRationalSqrtDefs
+
+@[expose] public section
 
 /-!
 # Scaled rational square-root enclosure bounds

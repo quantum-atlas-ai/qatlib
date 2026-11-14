@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+
+@[expose] public section
 
 /-!
 # Signal simulation words for binary clock midpoints
@@ -79,12 +83,10 @@ abbrev SimulatorSpace (H : Type) := Bool × (Bool × (Bool × H))
 /-- The binary clock register together with an enable flag and the signal simulator register. -/
 abbrev Physical (q : ℕ) (H : Type) := Reg q × (Bool × SimulatorSpace H)
 
-/-- Rectangular complex matrix multiplication with its finite intermediate index type specified
-explicitly. -/
-private noncomputable abbrev matmul {X Y Z : Type} [Fintype Y]
-    (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
-  @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
-    Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
+/- Rectangular matrix multiplication remains a local macro so exported declarations reduce to the
+standard matrix multiplication instance rather than exposing a private helper. -/
+macro "matmul " a:term:max b:term:max : term =>
+  `(@HMul.hMul _ _ _ Matrix.instHMulOfFintypeOfMulOfAddCommMonoid $a $b)
 
 section Spectator
 
@@ -187,11 +189,10 @@ theorem guardToggle_unitary (g : C → Bool) :
   exact Qatlib.Concepts.BlockEncoding.LCU.select_unitary
     (fun c : C => if g c then controlFlip (H := W) else 1) (by
       intro c
-      change (if g c then controlFlip (H := W) else 1) ∈ Matrix.unitaryGroup (Bool × W) ℂ
       by_cases hc : g c = true
-      · rw [if_pos hc]
+      · rw [ite_eq_left hc]
         exact controlFlip_unitary (H := W)
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
         exact Submonoid.one_mem _)
 
 /-- The guarded word evaluates to the clock selection of `enabledMatrix (g c)` applied to the
@@ -239,7 +240,7 @@ theorem controlOracle_fiber (b : Bool) (V : Matrix W W ℂ) :
       matmul (encodingFiber b) (if b then V else 1) := by
   ext ⟨c, i⟩ j
   cases b <;> cases c <;>
-    simp [matmul, controlOracle, select, encodingFiber, Matrix.mul_apply,
+      simp [controlOracle, select, encodingFiber, Matrix.mul_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite, ite_mul]
 
 /-- The control flip sends the Boolean fiber `b` to the fiber `!b`. -/
@@ -247,7 +248,7 @@ theorem controlFlip_fiber (b : Bool) :
     matmul (controlFlip (H := W)) (encodingFiber (I := W) b) = encodingFiber (!b) := by
   ext ⟨c, i⟩ j
   cases b <;> cases c <;>
-    simp [matmul, controlFlip, encodingFiber, Matrix.mul_apply,
+    simp [controlFlip, encodingFiber, Matrix.mul_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite]
 
 /-- On the false enable fiber, `enabledMatrix b V` applies `V` if `b` is true and the identity
@@ -261,15 +262,15 @@ theorem enabledMatrix_fiber (b : Bool) (V : Matrix W W ℂ) :
       matmul (encodingFiber false) V
     calc
       _ = matmul controlFlip (matmul (controlOracle V) (matmul controlFlip (encodingFiber false))) := by
-        simp only [matmul, Matrix.mul_assoc]
+        simp only [Matrix.mul_assoc]
       _ = matmul controlFlip (matmul (controlOracle V) (encodingFiber true)) := by
         rw [controlFlip_fiber]
         simp only [Bool.not_false]
       _ = matmul controlFlip (matmul (encodingFiber true) V) := by
         rw [controlOracle_fiber]
-        simp only [if_true]
+        simp only [ite_true]
       _ = matmul (matmul controlFlip (encodingFiber true)) V := by
-        simp only [matmul, Matrix.mul_assoc]
+        simp only [Matrix.mul_assoc]
       _ = matmul (encodingFiber false) V := by
         rw [controlFlip_fiber]
         simp only [Bool.not_true]
@@ -381,19 +382,19 @@ theorem enabled_full_output_error (b : Bool) (E : Matrix W W ℂ) (R : Matrix W 
         enableFrame R *ᵥ ((if b then V else 1) *ᵥ ψ))‖ ≤
       δ * ‖toEuclidean_fromVec ψ‖ := by
   cases b
-  · simp only [Bool.false_eq_true, if_false]
+  · simp only [Bool.false_eq_true, ite_false]
     have hz : enabledMatrix false E *ᵥ (enableFrame R *ᵥ ψ) = enableFrame R *ᵥ ψ := by
-      simp only [enableFrame, matmul, ← Matrix.mulVec_mulVec, enabledMatrix_apply,
-        Bool.false_eq_true, if_false, Matrix.one_mulVec]
+      simp only [enableFrame, ← Matrix.mulVec_mulVec, enabledMatrix_apply,
+        Bool.false_eq_true, ite_false, Matrix.one_mulVec]
     rw [hz, Matrix.one_mulVec, sub_self]
     simp only [show toEuclidean_fromVec (0 : QState (Bool × W)) = 0 from rfl, norm_zero]
     exact mul_nonneg hδ (norm_nonneg _)
-  · simp only [if_true]
+  · simp only [ite_true]
     have hs : enabledMatrix true E *ᵥ (enableFrame R *ᵥ ψ) -
         enableFrame R *ᵥ (V *ᵥ ψ) =
         encodingFiber false *ᵥ (E *ᵥ (R *ᵥ ψ) - R *ᵥ (V *ᵥ ψ)) := by
-      simp only [enableFrame, matmul, ← Matrix.mulVec_mulVec, enabledMatrix_apply,
-        if_true, Matrix.mulVec_sub]
+      simp only [enableFrame, ← Matrix.mulVec_mulVec, enabledMatrix_apply,
+        ite_true, Matrix.mulVec_sub]
     rw [hs, isometry_mulVec_norm (encodingFiber_isIsometry false)]
     exact h ψ
 
@@ -415,7 +416,7 @@ theorem midpoint_activeTime (q : ℕ) (τ : ℚ) (x : Reg q) :
       τ * Clock.rationalMidpoint (2 ^ q) (Clock.clockLabel q x) := by
   rw [activeTime, DyadicClockPulses.axes_sum]
   simp only [DyadicClockPulses.axisEnabled, atomTime, DyadicClockPulses.midpointCoefficient,
-      if_true]
+      ite_true]
   have ht (i : Fin q) :
       (if x i then τ * ((2 : ℚ) ^ i.val / DyadicClockPulses.denominator q) else 0) =
       (τ / DyadicClockPulses.denominator q) * (if x i then (2 : ℚ) ^ i.val else 0) := by
@@ -538,7 +539,7 @@ theorem target_cons (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
   funext x
   cases hx : DyadicClockPulses.axisEnabled a x
   · simp [activeTime, hx]
-  · simp only [if_true]
+  · simp only [ite_true]
     change HamiltonianEvolution A (activeTime τ (a :: as) x : ℝ) =
       HamiltonianEvolution A (atomTime q τ a : ℝ) *
         HamiltonianEvolution A (activeTime τ as x : ℝ)

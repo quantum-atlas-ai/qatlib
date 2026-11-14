@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationQuan
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3SuccessQuan
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.EfficientBinaryHashFamily
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.EfficientPermutationFamily
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationQuan
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3SuccessQuan
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.EfficientBinaryHashFamily
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.EfficientPermutationFamily
+
+@[expose] public section
 
 /-!
 # Named statements for collision search
@@ -88,7 +92,7 @@ def Algorithm3Statement : Prop :=
 /-- A full-memory Algorithm 3 tree satisfies the specified validity, unique-call, query, and
 qubit guarantees [Ambainis2007ElementDistinctness]. -/
 theorem algorithm3 : Algorithm3Statement :=
-  fun k N M inst hN hkN =>
+  fun k N M _inst hN hkN =>
     Qatlib.Concepts.WalkFind.SearchAlgorithm.algorithm3Native_full_memory
       k N M hN hkN
 

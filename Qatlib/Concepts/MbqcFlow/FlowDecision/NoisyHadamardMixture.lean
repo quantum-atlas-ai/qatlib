@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.MixturePaths
-import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+module
+
+public import Qatlib.Concepts.ReferenceError.MixturePaths
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+
+@[expose] public section
 
 /-!
 # Phase perturbations of Hadamard channel mixtures
@@ -120,8 +124,8 @@ private lemma noisyHadamardPhase_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
   rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose, noisyHadamardPhase]
   ext i j
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.diagonal_apply,
-    Matrix.one_apply, map_mul, map_one, map_zero]
-  fin_cases i <;> fin_cases j <;> simp [Fin.sum_univ_two, hzz]
+    Matrix.one_apply]
+  fin_cases i <;> fin_cases j <;> simp [hzz]
 
 /-- Right multiplication by a unitary preserves the matrix norm used in this module. -/
 private lemma l2_norm_mul_unitary_eq {D : ℕ} (A : Operator D) {H : Operator D}
@@ -207,7 +211,7 @@ private lemma norm_diag01 (c : ℂ) :
     have hvecnorm : ‖toEuclidean_fromVec (D *ᵥ (Ket (1 : Fin 2)))‖ = ‖c‖ := by
       have h2 : ‖toEuclidean_fromVec (D *ᵥ (Ket (1 : Fin 2)))‖ ^ 2 = ‖c‖ ^ 2 := by
         rw [norm_toEuclidean_fromVec_sq, hact]
-        simp only [Qatlib.Foundations.PureStateMath.Ket, Fin.isValue, h0, norm_zero, zero_add, hc2]
+        simp only [Qatlib.Foundations.PureStateMath.Ket, Fin.isValue]
         simp
       calc ‖toEuclidean_fromVec (D *ᵥ (Ket (1 : Fin 2)))‖
           = Real.sqrt (‖toEuclidean_fromVec (D *ᵥ (Ket (1 : Fin 2)))‖ ^ 2) :=
@@ -251,11 +255,11 @@ theorem noisy_hadamard_mixture_data (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     have hfalse : ‖noisyHadamardChoice ζ false - noisyHadamardChoice 1 false‖ = 0 := by
       simp [noisyHadamardChoice]
     rw [mixtureAccessDistance]
-    simp only [pauliFairBit_prob, Fintype.sum_bool, htrue, hfalse, norm_zero, mul_zero,
+    simp only [pauliFairBit_prob, Fintype.sum_bool, htrue, hfalse, mul_zero,
       add_zero, mul_comm ((1 : ℝ) / 2) ‖ζ - 1‖, mul_one_div]
 
 /-- Multiplying two complex factors of one half and then `z` equals one quarter times `z`. -/
-private lemma inv2_mul_inv2 {z : ℂ} (h : z = z) : (2⁻¹ : ℂ) * 2⁻¹ * z = 4⁻¹ * z := by
+private lemma inv2_mul_inv2 {z : ℂ} (_h : z = z) : (2⁻¹ : ℂ) * 2⁻¹ * z = 4⁻¹ * z := by
   have hnum : (2⁻¹ : ℂ) * 2⁻¹ = 4⁻¹ := by norm_num
   rw [hnum]
 
@@ -319,10 +323,10 @@ private lemma noisy_hadamard_mixture_one :
       = !![3/4, 1/4; 1/4, 1/4] := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [ChannelMixture, Fintype.sum_bool, pauliFairBit_prob, noisyHadamardChoice,
+    simp [ChannelMixture, pauliFairBit_prob, noisyHadamardChoice,
       noisyHadamardPhase, relabelGate, Matrix.reindex_apply, boolEquivFin2, Hadamard,
-      outerProduct, Qatlib.Foundations.PureStateMath.Ket, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.conjTranspose_apply, Matrix.diagonal_apply, Complex.conj_ofReal]
+      outerProduct, Qatlib.Foundations.PureStateMath.Ket, Matrix.mul_apply,
+      Matrix.conjTranspose_apply, Complex.conj_ofReal]
   all_goals try rw [inv_sqrt2_sq]
   all_goals push_cast
   all_goals norm_num
@@ -347,7 +351,7 @@ theorem noisy_hadamard_mixture_concrete_and_entangled :
   refine ⟨?_, ?_, ?_⟩
   · ext i j
     fin_cases i <;> fin_cases j <;>
-      simp [ChannelMixture, Fintype.sum_bool, pauliFairBit_prob, noisyHadamardChoice,
+      simp [ChannelMixture, pauliFairBit_prob, noisyHadamardChoice,
         noisyHadamardPhase, relabelGate, Matrix.reindex_apply, boolEquivFin2, Hadamard,
         outerProduct, Qatlib.Foundations.PureStateMath.Ket, Matrix.mul_apply, Fin.sum_univ_two,
         Matrix.conjTranspose_apply, Matrix.diagonal_apply, Complex.conj_ofReal, Complex.conj_I]
@@ -357,15 +361,13 @@ theorem noisy_hadamard_mixture_concrete_and_entangled :
     all_goals push_cast
     all_goals try norm_num
     all_goals try ring_nf
-    all_goals try norm_num
   · intro h
     have hL : ChannelMixture pauliFairBit (noisyHadamardChoice Complex.I)
         (outerProduct (Ket (0 : Fin 2))) 0 1 = -Complex.I / 4 := by
-      simp [ChannelMixture, Fintype.sum_bool, pauliFairBit_prob, noisyHadamardChoice,
+      simp [ChannelMixture, pauliFairBit_prob, noisyHadamardChoice,
         noisyHadamardPhase, relabelGate, Matrix.reindex_apply, boolEquivFin2, Hadamard,
         outerProduct, Qatlib.Foundations.PureStateMath.Ket, Matrix.mul_apply, Fin.sum_univ_two,
         Matrix.conjTranspose_apply, Matrix.diagonal_apply, Complex.conj_ofReal, Complex.conj_I]
-      try rw [inv_sqrt2_sq]
       try ring_nf
       try rw [sqrt2_inv_pow2]
       push_cast
@@ -391,7 +393,7 @@ theorem noisy_hadamard_mixture_concrete_and_entangled :
     have hbell : Normalized noisyMixtureBell := by
       show ∑ p : Fin 2 × Fin 2, ‖noisyMixtureBell p‖ ^ 2 = 1
       rw [Fintype.sum_prod_type]
-      simp only [noisyMixtureBell, Fin.isValue, Fin.sum_univ_two, hnorm2]
+      simp only [noisyMixtureBell, Fin.isValue, Fin.sum_univ_two]
       norm_num
     have htr : Matrix.traceNorm (outerProduct noisyMixtureBell) = 1 := by
       have hpsd := (outerProduct_density hbell).1

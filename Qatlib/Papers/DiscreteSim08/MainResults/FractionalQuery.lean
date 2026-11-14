@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiscreteSim08.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Papers.DiscreteSim08.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Fractional Boolean queries and controlled simulation
@@ -46,7 +50,7 @@ theorem fractionalQuery_decomposition_booleanPhase (θ : ℝ) (b : Bool) :
         (((Real.cos (θ / 2) : ℝ) : ℂ) +
           ((Real.sin (θ / 2) : ℝ) : ℂ) * Complex.I * (if b then -1 else 1)) := by
   cases b
-  · simp only [if_false, Bool.false_eq_true, mul_one]
+  · simp only [ite_false, Bool.false_eq_true, mul_one]
     have hfac : ((Real.cos (θ / 2) : ℝ) : ℂ) +
           ((Real.sin (θ / 2) : ℝ) : ℂ) * Complex.I
         = Complex.exp (((θ / 2 : ℝ) : ℂ) * Complex.I) := by
@@ -56,7 +60,7 @@ theorem fractionalQuery_decomposition_booleanPhase (θ : ℝ) (b : Bool) :
     rw [hfac, ← Complex.exp_add]
     rw [show -(Complex.I * ((θ / 2 : ℝ) : ℂ)) + ((θ / 2 : ℝ) : ℂ) * Complex.I = 0 by ring]
     simp
-  · simp only [if_true]
+  · simp only [ite_true]
     have hfac : ((Real.cos (θ / 2) : ℝ) : ℂ) +
           ((Real.sin (θ / 2) : ℝ) : ℂ) * Complex.I * (-1)
         = Complex.exp (((-(θ / 2) : ℝ) : ℂ) * Complex.I) := by
@@ -80,7 +84,7 @@ theorem fractionalBooleanPhase_neg_div_pi (θ : ℝ) (b : Bool) :
       (if b then Complex.exp (-(Complex.I * (θ : ℂ))) else 1) := by
   cases b
   · simp [fractionalBooleanPhase]
-  · simp only [fractionalBooleanPhase, if_true]
+  · simp only [fractionalBooleanPhase, ite_true]
     congr 1
     have hpi : (Real.pi : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
     push_cast

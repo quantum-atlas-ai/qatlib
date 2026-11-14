@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+
+@[expose] public section
 
 /-!
 # Circuit specifications and QTM light-cone obstructions
@@ -77,19 +81,19 @@ private def TimeConstructibleBudget : Prop :=
           TM0HaltRun Clock s (Turing.TM0.init (x.map some)) = none)
 
 /-- The finite-register gate syntax with Hadamard, T, and controlled-NOT operations. -/
-private inductive DLambdaOp (n : ℕ) where
+inductive DLambdaOp (n : ℕ) where
   | hGate : Fin n → DLambdaOp n
   | tGate : Fin n → DLambdaOp n
   | cnot : Fin n → Fin n → DLambdaOp n
 
 /-- The validity condition requiring distinct control and target wires for controlled-NOT; the
 single-wire operations are always valid. -/
-private def ValidDLambdaOp : ∀ {n : ℕ}, DLambdaOp n → Prop
+def ValidDLambdaOp : ∀ {n : ℕ}, DLambdaOp n → Prop
   | _, .cnot i j => i ≠ j
   | _, _ => True
 
 /-- The matrix interpretation of the Hadamard, T, and controlled-NOT gate syntax. -/
-private noncomputable def dLambdaGateMatrix {n : ℕ} :
+noncomputable def dLambdaGateMatrix {n : ℕ} :
     DLambdaOp n → Matrix (Reg n) (Reg n) ℂ
   | .hGate i =>
     Matrix.of fun y x =>
@@ -107,24 +111,24 @@ private noncomputable def dLambdaGateMatrix {n : ℕ} :
 
 /-- Converts a list of gate operations into the circuit consisting of their matrix
 interpretations. -/
-private noncomputable def dLambdaCircuit {n : ℕ} (ops : List (DLambdaOp n)) :
+noncomputable def dLambdaCircuit {n : ℕ} (ops : List (DLambdaOp n)) :
     Circuit (Reg n) :=
   ops.map (fun op => Step.gate (dLambdaGateMatrix op))
 
 /-- Encodes an operation using a Boolean tag and binary wire indices. -/
-private def dLambdaOpEnc {n : ℕ} : DLambdaOp n → List Bool
+def dLambdaOpEnc {n : ℕ} : DLambdaOp n → List Bool
   | .hGate i => false :: false :: i.val.bits
   | .tGate i => false :: true :: i.val.bits
   | .cnot i j => true :: (i.val.bits ++ [false] ++ j.val.bits)
 
 /-- Encodes an operation list by concatenating the individual operation encodings. -/
-private def dLambdaOpsEnc {n : ℕ} (ops : List (DLambdaOp n)) : List Bool :=
+def dLambdaOpsEnc {n : ℕ} (ops : List (DLambdaOp n)) : List Bool :=
   ops.flatMap dLambdaOpEnc
 
 /-- The conjunction of circuit unitarity and count guarantees, an acceptance-preserving local
 QTM simulation with the specified polynomial bounds, and polynomial tape emission of circuit
 sizes. -/
-private def DLambdaCorrespondence : Prop :=
+def DLambdaCorrespondence : Prop :=
   (∀ (n : ℕ) (ops : List (DLambdaOp n)), (∀ op ∈ ops, ValidDLambdaOp op) →
       IsUnitaryCircuit (dLambdaCircuit ops) ∧
         GateCount (dLambdaCircuit ops) = ops.length ∧
@@ -224,7 +228,7 @@ private theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w
   intro q' _
   refine Finset.sum_eq_zero ?_
   intro b _
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hcond
   rcases hcond with ⟨hmove, -⟩
   obtain ⟨h1, h2⟩ := moveCell_dist dd d.head c.head hmove
@@ -281,13 +285,13 @@ private theorem windowStep_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     by_cases hjj : j = j₀
     · have hne : ¬(j₀ = e.head) := fun hh => hj hh.symm
       have h1j := h1 j₀
-      rw [if_pos rfl, if_neg hne] at h1j
+      rw [ite_eq_left rfl, ite_eq_right hne] at h1j
       subst hjj
-      rw [if_pos rfl, if_neg hne, h1j]
+      rw [ite_eq_left rfl, ite_eq_right hne, h1j]
       simp
-    · rw [if_neg hjj]
+    · rw [ite_eq_right hjj]
       have h1j := h1 j
-      rw [if_neg hjj] at h1j
+      rw [ite_eq_right hjj] at h1j
       exact h1j
   have tapeImp' : ∀ (b : Bool),
       (∀ j : Fin (2 * w + 1),
@@ -298,13 +302,13 @@ private theorem windowStep_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     by_cases hjj : j = j₀
     · have hne : ¬(j₀ = e.head) := fun hh => hj hh.symm
       have h2j := h2 j₀
-      rw [if_pos rfl, if_neg hne] at h2j
+      rw [ite_eq_left rfl, ite_eq_right hne] at h2j
       subst hjj
-      rw [if_pos rfl, ← h2j]
+      rw [ite_eq_left rfl, ← h2j]
       simp [hne]
-    · rw [if_neg hjj]
+    · rw [ite_eq_right hjj]
       have h2j := h2 j
-      rw [if_neg hjj] at h2j
+      rw [ite_eq_right hjj] at h2j
       exact h2j
   simp only [windowStep, Matrix.of_apply]
   simp only [flipCfg]
@@ -317,15 +321,15 @@ private theorem windowStep_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
         ∀ j : Fin (2 * w + 1),
           (if j = j₀ then !c.tape j else c.tape j) = if j = e.head then b else e.tape j :=
       ⟨hmove.1, hmove.2.1, tapeImp b hmove.2.2⟩
-    rw [if_pos hmove, if_pos hcond2]
+    rw [ite_eq_left hmove, ite_eq_left hcond2]
     by_cases hh : e.head = j₀
     · exact absurd hh hj
-    · rw [if_neg hh]
+    · rw [ite_eq_right hh]
   · have hcond2 : ¬(moveCell d e.head = some c.head ∧ c.state = q' ∧
         ∀ j : Fin (2 * w + 1),
           (if j = j₀ then !c.tape j else c.tape j) = if j = e.head then b else e.tape j) :=
       fun hcond => hmove ⟨hcond.1, hcond.2.1, tapeImp' b hcond.2.2⟩
-    rw [if_neg hmove, if_neg hcond2]
+    rw [ite_eq_right hmove, ite_eq_right hcond2]
 
 /-- Before a distant flipped cell can be reached, the two evolutions have equal amplitudes at
 configurations related by that flip. -/
@@ -419,11 +423,11 @@ private theorem zeroInput_eq (i : Fin 730) : zeroInput i = false := rfl
 /-- The bit of `farInput` at index 729 is true. -/
 private theorem farInput_self : farInput ⟨729, by omega⟩ = true := by
   rw [farInput]
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- Every bit of `farInput` away from index 729 is false. -/
 private theorem farInput_ne {i : Fin 730} (h : i ≠ ⟨729, by omega⟩) : farInput i = false := by
-  rw [farInput, if_neg h]
+  rw [farInput, ite_eq_right h]
 
 /-- The register transformation that toggles wire zero under the control of wire 729. -/
 private def cnotPerm : Reg 730 → Reg 730 :=
@@ -458,13 +462,13 @@ private theorem cnotPerm_involutive : Function.Involutive cnotPerm := by
 /-- A basis ket has zero Born probability at a distinct basis register. -/
 private theorem bornProb_ket_ne {n : ℕ} {z y : Reg n} (h : y ≠ z) : BornProb (Ket z) y = 0 := by
   show ‖(if y = z then (1 : ℂ) else 0)‖ ^ 2 = 0
-  rw [if_neg h]
+  rw [ite_eq_right h]
   simp
 
 /-- A basis ket has Born probability one at its own basis register. -/
 private theorem bornProb_ket_self {n : ℕ} (z : Reg n) : BornProb (Ket z) z = 1 := by
   show ‖(if z = z then (1 : ℂ) else 0)‖ ^ 2 = 1
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
   simp
 
 /-- Running the permutation matrix of an involutive register map on a basis ket gives the ket of
@@ -481,19 +485,19 @@ private theorem run_permKet {n : ℕ} (σ : Reg n → Reg n) (_hσ : Function.In
     have hperm : permMatrix σ y x = (if y = σ x then (1 : ℂ) else 0) := rfl
     have hself : Ket x x = (1 : ℂ) := by
       show (if x = x then (1 : ℂ) else 0) = 1
-      exact if_pos rfl
+      exact ite_eq_left rfl
     show (permMatrix σ *ᵥ Ket x) y = Ket (σ x) y
     rw [hsum, hket]
     rw [Finset.sum_eq_single x (fun j _ hj => by
         have hk : Ket x j = 0 := by
           show (if j = x then (1 : ℂ) else 0) = 0
-          rw [if_neg hj]
+          rw [ite_eq_right hj]
         rw [hk, mul_zero])
       (fun h => absurd (Finset.mem_univ x) h)]
     rw [hperm, hself]
     by_cases hy : y = σ x
-    · rw [if_pos hy, mul_one]
-    · rw [if_neg hy]
+    · rw [ite_eq_left hy, mul_one]
+    · rw [ite_eq_right hy]
       norm_num
   exact hstep
 
@@ -509,12 +513,12 @@ private theorem acceptProb_ket {n : ℕ} (hn : 0 < n) (z : Reg n) :
       simp only [Finset.mem_filter, Finset.mem_univ, true_and]
       exact hz
     rw [Finset.sum_eq_single z (fun _ _ hye => bornProb_ket_ne hye)
-      (fun h => absurd hmem h), if_pos hz]
+      (fun h => absurd hmem h), ite_eq_left hz]
     exact bornProb_ket_self z
   · have hnm : z ∉ Finset.univ.filter (fun x : Reg n => x ⟨0, hn⟩ = true) := by
       intro h
       exact hz (Finset.mem_filter.mp h).2
-    rw [if_neg hz]
+    rw [ite_eq_right hz]
     exact Finset.sum_eq_zero fun y hy => bornProb_ket_ne (by
       intro e
       subst e
@@ -535,9 +539,9 @@ private theorem initTape_eq_flip {w : ℕ} (blank : Bool) (j₀ : Fin (2 * w + 1
   intro j
   by_cases hj : j = j₀
   · have hjv : j.val = w + 730 := (congrArg Fin.val hj).trans hj0val
-    rw [if_pos hj]
+    rw [ite_eq_left hj]
     have hreg : w < j.val ∧ j.val ≤ w + 730 := ⟨by omega, by omega⟩
-    rw [dif_pos hreg, dif_pos hreg]
+    rw [dite_eq_left hreg, dite_eq_left hreg]
     have hfar : farInput ⟨j.val - w - 1, by omega⟩ = true := by
       have hidx : (⟨j.val - w - 1, by omega⟩ : Fin 730) = ⟨729, by omega⟩ :=
         Fin.ext (show j.val - w - 1 = 729 by omega)
@@ -546,12 +550,12 @@ private theorem initTape_eq_flip {w : ℕ} (blank : Bool) (j₀ : Fin (2 * w + 1
     rfl
   · have hjv : j.val ≠ w + 730 := fun h => hj (Fin.ext (h.trans hj0val.symm))
     by_cases hreg : w < j.val ∧ j.val ≤ w + 730
-    · rw [dif_pos hreg, if_neg hj, dif_pos hreg]
+    · rw [dite_eq_left hreg, ite_eq_right hj, dite_eq_left hreg]
       have hne : ¬(j.val - w - 1 = 729) := by omega
       have hfar : farInput ⟨j.val - w - 1, by omega⟩ = false := by
-        rw [farInput, if_neg (fun h => hne (congrArg Fin.val h))]
+        rw [farInput, ite_eq_right (fun h => hne (congrArg Fin.val h))]
       rw [hfar, zeroInput_eq]
-    · rw [dif_neg hreg, if_neg hj, dif_neg hreg]
+    · rw [dite_eq_right hreg, ite_eq_right hj, dite_eq_right hreg]
 
 /-- The head-stay simulation specification is false, as witnessed by the distant-bit light-cone
 obstruction. -/
@@ -594,8 +598,8 @@ theorem clause1_headStaySimulationSpec_lightCone_false : ¬ HeadStaySimulationSp
     show Bool.xor (farInput ⟨0, by omega⟩) (farInput ⟨729, by omega⟩) = true
     rw [farInput_ne hne0, farInput_self]
     rfl
-  rw [h0, if_neg (by simp)] at hx0
-  rw [h1, if_pos rfl] at hx1
+  rw [h0, ite_eq_right (by simp)] at hx0
+  rw [h1, ite_eq_left rfl] at hx1
   have hlc := acceptMass_lightCone M qacc j₀
     (initWindowCfg (t := w) M 730 zeroInput) (initWindowCfg (t := w) M 730 farInput)
     hflip hi t hfar
@@ -623,13 +627,13 @@ private theorem run_dLambdaCnot (i j : Fin 730) (x : Reg 730) :
     rw [Finset.sum_eq_single x (fun x' _ hx' => by
         have hk : Ket x x' = 0 := by
           show (if x' = x then (1 : ℂ) else 0) = 0
-          rw [if_neg hx']
+          rw [ite_eq_right hx']
         rw [hk, mul_zero])
       (fun h => absurd (Finset.mem_univ x) h)]
     show (if y = Function.update x j (Bool.xor (x j) (x i)) then (1 : ℂ) else 0)
         * (if x = x then (1 : ℂ) else 0)
         = (if y = Function.update x j (Bool.xor (x j) (x i)) then (1 : ℂ) else 0)
-    rw [if_pos rfl, mul_one]
+    rw [ite_eq_left rfl, mul_one]
   exact hstep
 
 /-- The stated `DLambdaCorrespondence` specification is false because its time bound cannot
@@ -682,10 +686,10 @@ theorem clause2_dLambdaCorrespondence_lightCone_false : ¬ DLambdaCorrespondence
     show (if (⟨0, by omega⟩ : Fin 730) = ⟨0, by omega⟩ then
         Bool.xor (farInput ⟨0, by omega⟩) (farInput ⟨729, by omega⟩) else
         farInput ⟨0, by omega⟩) = true
-    rw [if_pos rfl, farInput_ne hne0, farInput_self]
+    rw [ite_eq_left rfl, farInput_ne hne0, farInput_self]
     rfl
-  rw [h0, if_neg (by simp)] at hx0
-  rw [h1, if_pos rfl] at hx1
+  rw [h0, ite_eq_right (by simp)] at hx0
+  rw [h1, ite_eq_left rfl] at hx1
   have hlc := acceptMass_lightCone M qacc j₀
     (initWindowCfg (t := w) M 730 zeroInput) (initWindowCfg (t := w) M 730 farInput)
     hflip hi t hfar

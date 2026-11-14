@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 /-!
 # Oracle perturbation bounds for adjoint circuits

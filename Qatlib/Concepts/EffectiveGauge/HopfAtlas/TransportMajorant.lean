@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-! # Finite rational transport majorants with no highest-derivative query -/
 set_option autoImplicit false

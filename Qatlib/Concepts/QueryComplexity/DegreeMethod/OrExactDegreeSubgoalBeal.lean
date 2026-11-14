@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
+
+@[expose] public section
 
 /-!
 # Exact polynomial degree lower bound for OR

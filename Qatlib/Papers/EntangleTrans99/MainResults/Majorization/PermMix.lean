@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.TopK
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.TopK
+
+@[expose] public section
 
 /-!
 # Convex mixtures of coordinate permutations

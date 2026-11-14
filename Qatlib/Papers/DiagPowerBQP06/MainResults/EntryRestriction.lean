@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Rescaling to signed unit matrix entries
@@ -36,7 +40,7 @@ noncomputable section
 
 namespace Qatlib.Papers.DiagPowerBQP06.MainResults.EntryRestriction
 
-variable {n : Type*} [Fintype n] [DecidableEq n]
+variable {n : Type*} [instFintypen : Fintype n] [instDecidableEqn : DecidableEq n]
 
 /-- The `m`th power of a real scalar multiple of a matrix equals the original power multiplied
 by the `m`th power of the scalar. See [JanzingWocjan2006a]. -/
@@ -58,8 +62,11 @@ theorem smul_pow_diagonal (A : Matrix n n ℝ) (c : ℝ) (m : ℕ) (j : n) :
     ((c • A) ^ m) j j = c ^ m * (A ^ m) j j := by
   rw [smul_pow_matrix, Matrix.smul_apply, smul_eq_mul]
 
+omit instFintypen instDecidableEqn in
 /-- Real scalar multiplication preserves Hermiticity of a real matrix. See [JanzingWocjan2006a]. -/
-theorem isHermitian_smul_real (A : Matrix n n ℝ) (hA : A.IsHermitian) (c : ℝ) :
+theorem isHermitian_smul_real {n : Type*}
+    [_instFintypen : Fintype n]
+    [_instDecidableEqn : DecidableEq n] (A : Matrix n n ℝ) (hA : A.IsHermitian) (c : ℝ) :
     (c • A).IsHermitian := by
   refine Matrix.IsHermitian.ext (fun i j => ?_)
   show star ((c • A) j i) = (c • A) i j
@@ -69,7 +76,7 @@ theorem isHermitian_smul_real (A : Matrix n n ℝ) (hA : A.IsHermitian) (c : ℝ
 /-- Scaling a matrix by `sqrt 2` transports a strict positive lower bound `δ` on a diagonal
 power entry to the bound `δ * (sqrt 2) ^ m`. See [JanzingWocjan2006a]. -/
 theorem entry_restriction_promise_transfer {A : Matrix n n ℝ} {m : ℕ} {j : n}
-    {δ : ℝ} (hδ : 0 < δ) (h : δ < (A ^ m) j j) :
+    {δ : ℝ} (_hδ : 0 < δ) (h : δ < (A ^ m) j j) :
     δ * (Real.sqrt 2) ^ m < ((Real.sqrt 2 • A) ^ m) j j := by
   rw [smul_pow_diagonal]
   have hs : 0 < (Real.sqrt 2) ^ m := pow_pos (by positivity) m

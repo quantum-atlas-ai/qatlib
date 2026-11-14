@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ApproximationAlgorithms
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ApproximationAlgorithms
+
+@[expose] public section
 
 /-!
 # Finite Hamiltonian passage from a heat-kernel entry

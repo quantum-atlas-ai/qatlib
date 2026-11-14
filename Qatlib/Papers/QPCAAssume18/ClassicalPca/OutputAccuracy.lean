@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.NativeSpectrum
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.LiftResidual
-import Qatlib.Foundations.MatrixAlgebra.SpectralPerturb
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.NativeSpectrum
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.LiftResidual
+public import Qatlib.Foundations.MatrixAlgebra.SpectralPerturb
+
+@[expose] public section
 
 /-!
 # Phase accuracy of lifted PCA outputs

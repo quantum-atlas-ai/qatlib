@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.PartialFraction
-import Mathlib.Analysis.Complex.CauchyIntegral
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.PartialFraction
+public import Mathlib.Analysis.Complex.CauchyIntegral
+
+@[expose] public section
 
 /-!
 # Circle integrals with finitely many simple poles
@@ -73,7 +77,7 @@ theorem circleIntegral_finite_simple_poles {ι : Type*} [DecidableEq ι]
   have hcis (i : ι) (hi : i ∈ s) :
       CircleIntegrable (fun z =>
         (∏ j ∈ s.erase i, (p i - p j))⁻¹ • ((z - p i)⁻¹ • F z)) c R :=
-    (hci i hi).smul_of_continuousOn (g := fun _ : ℂ =>
+    (hci i hi).continuousOn_smul (g := fun _ : ℂ =>
       (∏ j ∈ s.erase i, (p i - p j))⁻¹) continuousOn_const
   rw [circleIntegral.integral_congr hR hparts,
     circleIntegral.integral_fun_sum hcis]

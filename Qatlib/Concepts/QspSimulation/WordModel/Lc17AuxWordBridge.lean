@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+@[expose] public section
 
 /-!
 # Telescoping phase rotations in QSP words
@@ -47,9 +51,8 @@ theorem lcPhaseRotation_mul (α β : ℝ) :
       Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (α + β) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp only [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply,
-      Matrix.mul_apply, Fin.sum_univ_two, Matrix.diagonal_apply, Matrix.one_apply,
-      Matrix.mul_one, Matrix.one_mul, mul_ite, mul_zero]
+    simp only [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation,
+      Matrix.mul_apply, Fin.sum_univ_two, Matrix.diagonal_apply, mul_ite, mul_zero]
   all_goals norm_num
   all_goals rw [← Complex.exp_add]
   all_goals congr 1
@@ -103,7 +106,7 @@ theorem lcAxisRotation_factor (φ θ : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp only [lcSignalStep, lcAxisRotation, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation,
-      Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, Matrix.mul_apply, Fin.sum_univ_two,
+       Matrix.mul_apply, Fin.sum_univ_two,
       Matrix.diagonal_apply]
   all_goals norm_num
   · have hz : Complex.exp (-(↑φ/2 * Complex.I)) * Complex.exp (↑φ/2 * Complex.I) = 1 := by

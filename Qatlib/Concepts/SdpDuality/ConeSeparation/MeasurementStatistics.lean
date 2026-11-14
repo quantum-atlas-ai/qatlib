@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+
+@[expose] public section
 
 /-!
 # POVM outcome statistics and fresh measurements

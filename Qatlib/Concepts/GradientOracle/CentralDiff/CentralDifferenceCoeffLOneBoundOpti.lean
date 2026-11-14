@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceCoeffLOneBoundStat
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceCoeffLOneBoundStat
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # A one-sided mass bound for central-difference coefficients
@@ -39,7 +43,7 @@ theorem centralDiffCoeff_nat_abs_le (m k : ℕ) :
       exact_mod_cast Nat.choose_pos (by omega : k ≤ m + k)
     have hnum : (Nat.choose m k : ℝ) ≤ Nat.choose (m + k) k := by
       exact_mod_cast Nat.choose_le_add m k k
-    rw [centralDiffCoeff, if_neg (by exact_mod_cast hk)]
+    rw [centralDiffCoeff, ite_eq_right (by exact_mod_cast hk)]
     simp only [Int.natAbs_natCast, Int.cast_natCast, abs_div, abs_mul, abs_pow,
       abs_neg, abs_one, one_pow, abs_of_nonneg (Nat.cast_nonneg k : (0 : ℝ) ≤ k),
       abs_of_nonneg (Nat.cast_nonneg (Nat.choose m k) : (0 : ℝ) ≤ Nat.choose m k),

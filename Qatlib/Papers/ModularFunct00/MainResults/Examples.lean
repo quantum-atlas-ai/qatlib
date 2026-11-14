@@ -4,12 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Setup
-import Mathlib.LinearAlgebra.Eigenspace.Matrix
-import Mathlib.LinearAlgebra.Eigenspace.Charpoly
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
-import Mathlib.Algebra.Polynomial.RingDivision
-import Mathlib.Algebra.Polynomial.Roots
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Setup
+public import Mathlib.LinearAlgebra.Eigenspace.Matrix
+public import Mathlib.LinearAlgebra.Eigenspace.Charpoly
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
+public import Mathlib.Algebra.Polynomial.RingDivision
+public import Mathlib.Algebra.Polynomial.Roots
+
+@[expose] public section
 
 /-!
 # Explicit Jones generator matrices and spectra
@@ -159,7 +164,7 @@ theorem charpoly_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q
 
 /-- Under the stated nontrivial fifth-root and parameter hypotheses, the spectrum of `sig2_21 s`
 is `{-1, q}`. -/
-theorem spectrum_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
+theorem spectrum_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (_hq1 : q ≠ 1)
     (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     spectrum ℂ (sig2_21 (q := q) s) = {(-1 : ℂ), q} := by
   ext μ
@@ -191,7 +196,6 @@ theorem braid_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     | linear_combination (-(1 + q ^ 2)) * hs
     | linear_combination (-(q ^ 2)) * hs
     | linear_combination q * hs
-    | ring
 
 /-- A diagonal `5 × 5` matrix with two entries equal to `-1` and three equal to `q`. -/
 def sig1_33 : CM 5 := Matrix.diagonal ![(-1 : ℂ), q, (-1), q, q]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+
+@[expose] public section
 
 /-!
 # Unitary gates in adjoint query circuits

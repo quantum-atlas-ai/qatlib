@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
+
+@[expose] public section
 
 /-!
 # Regular claw counts and scalar budgets

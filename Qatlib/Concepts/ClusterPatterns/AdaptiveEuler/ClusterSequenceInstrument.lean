@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
-import Qatlib.Concepts.InstrumentSeq.SeqAssoc.InstrumentCoarseGrainLaws
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
+public import Qatlib.Concepts.InstrumentSeq.SeqAssoc.InstrumentCoarseGrainLaws
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+@[expose] public section
 
 /-!
 # Instruments for cluster gate sequences

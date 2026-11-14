@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+@[expose] public section
 
 /-!
 # Energy estimates for rounded history Hamiltonians
@@ -92,8 +96,8 @@ private theorem counter_gateEntry :
     finiteCodeMatrix 1 (FiniteGateCode.t 0) (fun _ => true) (fun _ => true)
       = Complex.exp ((Real.pi / 4 : ℂ) * Complex.I) := by
   have h01 : (0 : ℕ) < 1 := by norm_num
-  rw [finiteCodeMatrix, dif_pos h01, wireGate_apply,
-    if_pos (fun (k : Fin 1) (_ : k ≠ (⟨0, h01⟩ : Fin 1)) => rfl), tGate_true_true]
+  rw [finiteCodeMatrix, dite_eq_left h01, wireGate_apply,
+    ite_eq_left (fun (k : Fin 1) (_ : k ≠ (⟨0, h01⟩ : Fin 1)) => rfl), tGate_true_true]
 
 /-- The selected propagation entry of the counterexample is minus one half of the rounded T
 phase. -/
@@ -452,7 +456,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       have hj' : j ≠ ⟨w, hw⟩ := by
         intro hh
         apply hj
-        rw [qmaGateWires, dif_pos hw]
+        rw [qmaGateWires, dite_eq_left hw]
         simp [hh]
       rw [hw2, wireGate_apply] at h
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
@@ -472,7 +476,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       have hj' : j ≠ ⟨w, hw⟩ := by
         intro hh
         apply hj
-        rw [qmaGateWires, dif_pos hw]
+        rw [qmaGateWires, dite_eq_left hw]
         simp [hh]
       rw [hw2, wireGate_apply] at h
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
@@ -492,7 +496,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       have hj' : j ≠ ⟨w, hw⟩ := by
         intro hh
         apply hj
-        rw [qmaGateWires, dif_pos hw]
+        rw [qmaGateWires, dite_eq_left hw]
         simp [hh]
       rw [hw2, wireGate_apply] at h
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
@@ -512,7 +516,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       have hj' : j ≠ ⟨w, hw⟩ := by
         intro hh
         apply hj
-        rw [qmaGateWires, dif_pos hw]
+        rw [qmaGateWires, dite_eq_left hw]
         simp [hh]
       rw [hw2, wireGate_apply] at h
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
@@ -532,7 +536,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       have hjt : (j : Fin n) ≠ ⟨t, hw.2.1⟩ := by
         intro hh
         apply hj
-        rw [qmaGateWires, dif_pos hw]
+        rw [qmaGateWires, dite_eq_left hw]
         simp [hh]
       rw [hw2] at h
       simp only [cnotGate, permMatrix, Matrix.of_apply] at h
@@ -583,12 +587,12 @@ theorem hadamard_entry_abs (a b : Bool) :
   unfold Hadamard
   simp only [Matrix.of_apply]
   by_cases hab : a && b
-  · rw [if_pos hab]
+  · rw [ite_eq_left hab]
     have hval : ((Real.sqrt 2 : ℂ)⁻¹ * (-1 : ℂ)) = -((Real.sqrt 2 : ℂ)⁻¹) := by ring
     rw [hval, Complex.neg_re, Complex.neg_im, hre, him, neg_zero, abs_zero, abs_neg]
     rw [abs_of_nonneg (inv_nonneg.mpr (Real.sqrt_nonneg _))]
     linarith
-  · rw [if_neg hab]
+  · rw [ite_eq_right hab]
     have hval : ((Real.sqrt 2 : ℂ)⁻¹ * (1 : ℂ)) = ((Real.sqrt 2 : ℂ)⁻¹) := by ring
     rw [hval, hre, him, abs_zero]
     rw [abs_of_nonneg (inv_nonneg.mpr (Real.sqrt_nonneg _))]
@@ -663,9 +667,9 @@ theorem permMatrix_entry_abs {I : Type} [Fintype I] [DecidableEq I] (σ : I → 
       ≤ 3 / 2 := by
   simp only [permMatrix, Matrix.of_apply]
   by_cases h : i = σ j
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     norm_num
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     norm_num
 
 /-- Both zero and one have absolute component sum at most 3/2 in the complex numbers. -/
@@ -684,17 +688,17 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
         simp [finiteCodeMatrix, hw]
       rw [hE, wireGate_apply]
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
-      · rw [if_pos hall]
+      · rw [ite_eq_left hall]
         exact hadamard_entry_abs _ _
-      · rw [if_neg hall]
+      · rw [ite_eq_right hall]
         exact one_zero_entry_abs.1
     · have hE : finiteCodeMatrix n (FiniteGateCode.h w) = 1 := by
         simp [finiteCodeMatrix, hw]
       rw [hE, Matrix.one_apply]
       by_cases he : x = y
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         exact one_zero_entry_abs.2
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         exact one_zero_entry_abs.1
   | x w =>
     by_cases hw : w < n
@@ -703,20 +707,20 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
         simp [finiteCodeMatrix, hw]
       rw [hE, wireGate_apply]
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
-      · rw [if_pos hall]
+      · rw [ite_eq_left hall]
         have hval : PauliX (x ⟨w, hw⟩) (y ⟨w, hw⟩)
             = (permMatrix Bool.not : Matrix Bool Bool ℂ) (x ⟨w, hw⟩) (y ⟨w, hw⟩) := rfl
         rw [hval]
         exact permMatrix_entry_abs _ _ _
-      · rw [if_neg hall]
+      · rw [ite_eq_right hall]
         exact one_zero_entry_abs.1
     · have hE : finiteCodeMatrix n (FiniteGateCode.x w) = 1 := by
         simp [finiteCodeMatrix, hw]
       rw [hE, Matrix.one_apply]
       by_cases he : x = y
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         exact one_zero_entry_abs.2
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         exact one_zero_entry_abs.1
   | t w =>
     by_cases hw : w < n
@@ -725,17 +729,17 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
         simp [finiteCodeMatrix, hw]
       rw [hE, wireGate_apply]
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
-      · rw [if_pos hall]
+      · rw [ite_eq_left hall]
         exact tGate_entry_abs _ _
-      · rw [if_neg hall]
+      · rw [ite_eq_right hall]
         exact one_zero_entry_abs.1
     · have hE : finiteCodeMatrix n (FiniteGateCode.t w) = 1 := by
         simp [finiteCodeMatrix, hw]
       rw [hE, Matrix.one_apply]
       by_cases he : x = y
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         exact one_zero_entry_abs.2
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         exact one_zero_entry_abs.1
   | tdg w =>
     by_cases hw : w < n
@@ -744,17 +748,17 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
         simp [finiteCodeMatrix, hw]
       rw [hE, wireGate_apply]
       by_cases hall : ∀ k : Fin n, k ≠ ⟨w, hw⟩ → x k = y k
-      · rw [if_pos hall]
+      · rw [ite_eq_left hall]
         exact tGateAdj_entry_abs _ _
-      · rw [if_neg hall]
+      · rw [ite_eq_right hall]
         exact one_zero_entry_abs.1
     · have hE : finiteCodeMatrix n (FiniteGateCode.tdg w) = 1 := by
         simp [finiteCodeMatrix, hw]
       rw [hE, Matrix.one_apply]
       by_cases he : x = y
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         exact one_zero_entry_abs.2
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         exact one_zero_entry_abs.1
   | cx c t =>
     by_cases hw : c < n ∧ t < n ∧ c ≠ t
@@ -771,9 +775,9 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
         simp [finiteCodeMatrix, hw]
       rw [hE, Matrix.one_apply]
       by_cases he : x = y
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         exact one_zero_entry_abs.2
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         exact one_zero_entry_abs.1
 
 /-- Every rounded finite gate entry has norm at most two when the precision is at least one. -/
@@ -800,16 +804,16 @@ theorem qmaPropTerm_entry (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
   have hs : (i.succ : Fin (m + 1)) ≠ i.castSucc := fin_succ_ne_castSucc i
   by_cases h1 : p.1 = i.succ ∧ q.1 = i.succ
   · rw [qmaPropTerm_apply]
-    simp [h1, hs, hs.symm]
+    simp [h1, hs]
   by_cases h2 : p.1 = i.castSucc ∧ q.1 = i.castSucc
   · rw [qmaPropTerm_apply]
-    simp [h1, h2, hs, hs.symm]
+    simp [h2, hs.symm]
   by_cases h3 : p.1 = i.succ ∧ q.1 = i.castSucc
   · rw [qmaPropTerm_apply]
-    simp [h1, h2, h3, hs, hs.symm]
+    simp [h3, hs, hs.symm]
   by_cases h4 : p.1 = i.castSucc ∧ q.1 = i.succ
   · rw [qmaPropTerm_apply]
-    simp [h1, h2, h3, h4, hs, hs.symm]
+    simp [h4, hs, hs.symm]
   · rw [qmaPropTerm_apply]
     simp [h1, h2, h3, h4]
 
@@ -834,7 +838,7 @@ theorem qmaPropTerm_actsOn (n m : ℕ) (g : FiniteGateCode)
       have hp2 : p.2 = q.2 := by
         by_contra hxy
         apply hone
-        rw [Matrix.one_apply, if_neg hxy]
+        rw [Matrix.one_apply, ite_eq_right hxy]
       intro j _
       exact congrFun hp2 j
   · refine ⟨?_, ?_, ?_⟩
@@ -848,7 +852,7 @@ theorem qmaPropTerm_actsOn (n m : ℕ) (g : FiniteGateCode)
       have hp2 : p.2 = q.2 := by
         by_contra hxy
         apply hone
-        rw [Matrix.one_apply, if_neg hxy]
+        rw [Matrix.one_apply, ite_eq_right hxy]
       intro j _
       exact congrFun hp2 j
   · refine ⟨?_, ?_, ?_⟩
@@ -1098,8 +1102,8 @@ theorem ket_norm_le_one {I : Type} [Fintype I] [DecidableEq I] (i j : I) : ‖Qa
 theorem norm_prod3_le_one (a b c : ℂ) (ha : ‖a‖ ≤ 1) (hb : ‖b‖ ≤ 1) (hc : ‖c‖ ≤ 1) :
     ‖a * b * c‖ ≤ 1 := by
   rw [norm_mul, norm_mul]
-  have h1 : ‖a‖ * ‖b‖ ≤ 1 := mul_le_one₀ ha (norm_nonneg b) hb
-  exact mul_le_one₀ h1 (norm_nonneg c) hc
+  have h1 : ‖a‖ * ‖b‖ ≤ 1 := (mul_le_of_le_one_left (norm_nonneg b) ha).trans hb
+  exact (mul_le_of_le_one_left (norm_nonneg c) h1).trans hc
 
 /-- Multiplication by one half reduces a complex number of norm at most two to norm at most one. -/
 theorem half_mul_norm_le_one {z : ℂ} (hz : ‖z‖ ≤ 2) : ‖(1 / 2 : ℂ) * z‖ ≤ 1 := by
@@ -1373,9 +1377,9 @@ theorem qmaInTerm_mulVec' (n m : ℕ) (j : Fin n)
     intro q
     rw [ket_apply', ket_apply']
     by_cases hq : q = q0
-    · rw [if_pos hq, hq]
+    · rw [ite_eq_left hq, hq]
       simp [hq0def]
-    · rw [if_neg hq]
+    · rw [ite_eq_right hq]
       by_cases hq1 : q.1 = 0
       · by_cases hq2 : q.2 = p.2
         · exfalso
@@ -1389,7 +1393,7 @@ theorem qmaInTerm_mulVec' (n m : ℕ) (j : Fin n)
           simp [hq1, hne]
       · simp [hq1]
   rw [Finset.sum_congr rfl (fun q _ => hterm q), Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   rw [hq0def]
   by_cases hp1 : p.1 = 0
   · have hp : p = (⟨0, by omega⟩, p.2) := by
@@ -1465,9 +1469,9 @@ theorem qmaOutTerm_mulVec' (n m : ℕ) (out : Fin n)
     intro q
     rw [ket_apply', ket_apply']
     by_cases hq : q = q0
-    · rw [if_pos hq, hq]
+    · rw [ite_eq_left hq, hq]
       simp [hq0def]
-    · rw [if_neg hq]
+    · rw [ite_eq_right hq]
       by_cases hq1 : q.1 = Fin.last m
       · by_cases hq2 : q.2 = p.2
         · exfalso
@@ -1479,7 +1483,7 @@ theorem qmaOutTerm_mulVec' (n m : ℕ) (out : Fin n)
           simp [hq1, hne]
       · simp [hq1]
   rw [Finset.sum_congr rfl (fun q _ => hterm q), Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   rw [hq0def]
   by_cases hp1 : p.1 = Fin.last m
   · have hp : p = (Fin.last m, p.2) := by
@@ -1515,7 +1519,7 @@ theorem qmaExactHistory_last (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)
 theorem bornProb_eq_normSq {I : Type*} [Fintype I] (ψ : QState I) (i : I) :
     BornProb ψ i = ‖ψ i‖ ^ 2 := by
   unfold BornProb
-  simp [Complex.normSq_eq_norm_sq]
+  simp
 
 /-- The real part of a product of two real numbers cast to the complex numbers equals their real
 product. -/
@@ -1635,13 +1639,13 @@ theorem qmaEnergy_outTerm (C : QmaHistoryCircuit)
     intro t
     by_cases ht : t = Fin.last C.gates.length
     · rw [ht]
-      simp only [true_and, if_true]
-    · rw [if_neg ht]
+      simp only [true_and, ite_true]
+    · rw [ite_eq_right ht]
       apply Finset.sum_eq_zero
       intro y _
-      rw [if_neg (fun h => ht h.1)]
+      rw [ite_eq_right (fun h => ht h.1)]
   rw [Finset.sum_congr rfl (fun t _ => honly t), Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
 
   have hη : ∀ y : Reg C.qubits,
       star (qmaHistoryState C φ (Fin.last C.gates.length, y))
@@ -1904,13 +1908,13 @@ theorem g13n_out_energy (n m : ℕ) (out : Fin n) (η : QState (Fin (m + 1) × R
     intro t
     by_cases ht : t = Fin.last m
     · rw [ht]
-      simp only [true_and, if_true]
-    · rw [if_neg ht]
+      simp only [true_and, ite_true]
+    · rw [ite_eq_right ht]
       apply Finset.sum_eq_zero
       intro y _
-      rw [if_neg (fun h => ht h.1)]
+      rw [ite_eq_right (fun h => ht h.1)]
   rw [Finset.sum_congr rfl (fun t _ => honly t), Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   have hterm : ∀ y : Reg n,
       (if ¬ y out then (↑(‖η (Fin.last m, y)‖ ^ 2) : ℂ) else 0)
         = (↑(if y out then (0 : ℝ) else ‖η (Fin.last m, y)‖ ^ 2) : ℂ) := by
@@ -1950,13 +1954,13 @@ theorem g13n_in_energy (n m : ℕ) (j : Fin n) (η : QState (Fin (m + 1) × Reg 
     intro t
     by_cases ht : t = 0
     · rw [ht]
-      simp only [true_and, if_true]
-    · rw [if_neg ht]
+      simp only [true_and, ite_true]
+    · rw [ite_eq_right ht]
       apply Finset.sum_eq_zero
       intro y _
-      rw [if_neg (fun h => ht h.1)]
+      rw [ite_eq_right (fun h => ht h.1)]
   rw [Finset.sum_congr rfl (fun t _ => honly t), Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   have hterm : ∀ y : Reg n,
       (if y j then (↑(‖η ((0 : Fin (m + 1)), y)‖ ^ 2) : ℂ) else 0)
         = (↑(if y j then ‖η ((0 : Fin (m + 1)), y)‖ ^ 2 else (0 : ℝ)) : ℂ) := by
@@ -1974,8 +1978,8 @@ theorem g13n_sum_ite_fun {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f 
   have h : ∀ y : α, (if y = a then f y else (0 : ℂ)) = if y = a then f a else (0 : ℂ) := by
     intro y
     by_cases hy : y = a
-    · rw [if_pos hy, if_pos hy, hy]
-    · rw [if_neg hy, if_neg hy]
+    · rw [ite_eq_left hy, ite_eq_left hy, hy]
+    · rw [ite_eq_right hy, ite_eq_right hy]
   rw [Finset.sum_congr rfl (fun y _ => h y), Finset.sum_ite_eq']
   simp
 
@@ -1985,8 +1989,8 @@ theorem g13n_sum_ite_left {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f
   have key : ∀ y : α, (if a = y then f y else (0 : ℂ)) = (if y = a then f y else (0 : ℂ)) := by
     intro y
     by_cases hy : a = y
-    · rw [if_pos hy, if_pos hy.symm]
-    · rw [if_neg hy, if_neg (fun h => hy h.symm)]
+    · rw [ite_eq_left hy, ite_eq_left hy.symm]
+    · rw [ite_eq_right hy, ite_eq_right (fun h => hy h.symm)]
   rw [Finset.sum_congr rfl (fun y _ => key y), g13n_sum_ite_fun]
 
 /-- A finite sum supported at two distinct indices equals the sum of the two assigned values. -/
@@ -1998,13 +2002,13 @@ theorem g13n_sum_two {α : Type*} [Fintype α] [DecidableEq α] {a b : α} (hab 
     intro t
     by_cases h1 : t = a
     · have h2 : ¬ t = b := fun hh => hab (h1.symm.trans hh)
-      simp only [if_pos h1, if_neg h2]
+      simp only [ite_eq_left h1, ite_eq_right h2]
       ring
     · by_cases h2 : t = b
       · have h3 : ¬ t = a := h1
-        simp only [if_neg h3, if_pos h2]
+        simp only [ite_eq_right h3, ite_eq_left h2]
         ring
-      · simp only [if_neg h1, if_neg h2]
+      · simp only [ite_eq_right h1, ite_eq_right h2]
         ring
   rw [Finset.sum_congr rfl (fun t _ => h t), Finset.sum_add_distrib,
     Finset.sum_ite_eq', Finset.sum_ite_eq']
@@ -2049,38 +2053,38 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
         fun h => fin_succ_ne_castSucc i (c1.2.symm.trans h.2)
       have n4 : ¬ (p.1 = i.castSucc ∧ t = i.succ) :=
         fun h => fin_succ_ne_castSucc i (c1.1.symm.trans h.1)
-      simp only [if_pos c1, if_neg n2, if_neg n3, if_neg n4, Matrix.one_apply, mul_ite, mul_zero]
+      simp only [ite_eq_left c1, ite_eq_right n2, ite_eq_right n3, ite_eq_right n4, Matrix.one_apply, mul_ite, mul_zero]
       by_cases hy : p.2 = y
-      · simp only [if_pos hy]
+      · simp only [ite_eq_left hy]
         ring
-      · simp only [if_neg hy]
+      · simp only [ite_eq_right hy]
         ring
     · by_cases c2 : p.1 = i.castSucc ∧ t = i.castSucc
       · have n3 : ¬ (p.1 = i.succ ∧ t = i.castSucc) :=
           fun h => fin_succ_ne_castSucc i (h.1.symm.trans c2.1)
         have n4 : ¬ (p.1 = i.castSucc ∧ t = i.succ) :=
           fun h => fin_succ_ne_castSucc i (h.2.symm.trans c2.2)
-        simp only [if_neg c1, if_pos c2, if_neg n3, if_neg n4, Matrix.one_apply, mul_ite, mul_zero]
+        simp only [ite_eq_right c1, ite_eq_left c2, ite_eq_right n3, ite_eq_right n4, Matrix.one_apply, mul_ite, mul_zero]
         by_cases hy : p.2 = y
-        · simp only [if_pos hy]
+        · simp only [ite_eq_left hy]
           ring
-        · simp only [if_neg hy]
+        · simp only [ite_eq_right hy]
           ring
       · by_cases c3 : p.1 = i.succ ∧ t = i.castSucc
         · have n4 : ¬ (p.1 = i.castSucc ∧ t = i.succ) :=
             fun h => fin_succ_ne_castSucc i (c3.1.symm.trans h.1)
-          simp only [if_neg c1, if_neg c2, if_pos c3, if_neg n4]
+          simp only [ite_eq_right c1, ite_eq_right c2, ite_eq_left c3, ite_eq_right n4]
           ring
         · by_cases c4 : p.1 = i.castSucc ∧ t = i.succ
-          · simp only [if_neg c1, if_neg c2, if_neg c3, if_pos c4]
+          · simp only [ite_eq_right c1, ite_eq_right c2, ite_eq_right c3, ite_eq_left c4]
             ring
-          · simp only [if_neg c1, if_neg c2, if_neg c3, if_neg c4]
+          · simp only [ite_eq_right c1, ite_eq_right c2, ite_eq_right c3, ite_eq_right c4]
             ring
   rw [Finset.sum_congr rfl (fun t _ => Finset.sum_congr rfl (fun y _ => hentry t y))]
 
   by_cases hp1 : p.1 = i.succ
   · have hpne : p.1 ≠ i.castSucc := fun hh => fin_succ_ne_castSucc i (hp1.symm.trans hh)
-    rw [if_pos hp1]
+    rw [ite_eq_left hp1]
     have hpq : (i.succ, p.2) = p := Prod.ext hp1.symm rfl
     have hsumt : ∀ t : Fin (m + 1),
         (∑ y : Reg n,
@@ -2113,8 +2117,8 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                 -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
               else 0) = (if p.2 = y then (1 / 2 : ℂ) * η (t, y) else 0) := by
           intro y
-          simp only [if_pos c1, if_neg n2, if_neg n3, if_neg n4]
-        rw [Finset.sum_congr rfl (fun y _ => hterm y), g13n_sum_ite_left, if_pos ht1, ht1, hpq]
+          simp only [ite_eq_left c1, ite_eq_right n2, ite_eq_right n3, ite_eq_right n4]
+        rw [Finset.sum_congr rfl (fun y _ => hterm y), g13n_sum_ite_left, ite_eq_left ht1, ht1, hpq]
       · by_cases ht2 : t = i.castSucc
         · have n1 : ¬ (p.1 = i.succ ∧ t = i.succ) := fun h => ht1 h.2
           have n2 : ¬ (p.1 = i.castSucc ∧ t = i.castSucc) := fun h => hpne h.1
@@ -2130,8 +2134,8 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                   -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
                 else 0) = -((1 / 2 : ℂ) * U i p.2 y * η (t, y)) := by
             intro y
-            simp only [if_neg n1, if_neg n2, if_pos c3, if_neg n4]
-          rw [Finset.sum_congr rfl (fun y _ => hterm y), if_neg ht1, if_pos ht2, ht2]
+            simp only [ite_eq_right n1, ite_eq_right n2, ite_eq_left c3, ite_eq_right n4]
+          rw [Finset.sum_congr rfl (fun y _ => hterm y), ite_eq_right ht1, ite_eq_left ht2, ht2]
           rw [Finset.sum_neg_distrib]
           have hm : ∀ y : Reg n, (1 / 2 : ℂ) * U i p.2 y * η (i.castSucc, y)
               = (1 / 2 : ℂ) * (U i p.2 y * η (i.castSucc, y)) := by
@@ -2151,16 +2155,16 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                   -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
                 else 0) = (0 : ℂ) := by
             intro y
-            simp only [if_neg n1, if_neg n2, if_neg n3, if_neg n4]
+            simp only [ite_eq_right n1, ite_eq_right n2, ite_eq_right n3, ite_eq_right n4]
           rw [Finset.sum_congr rfl (fun y _ => hterm y), Finset.sum_const, smul_zero,
-            if_neg ht1, if_neg ht2]
+            ite_eq_right ht1, ite_eq_right ht2]
     rw [Finset.sum_congr rfl (fun t _ => hsumt t), g13n_sum_two (fin_succ_ne_castSucc i)]
     show (1 / 2 : ℂ) * η p + -((1 / 2 : ℂ) * ∑ y : Reg n, U i p.2 y * η (i.castSucc, y))
         = (1 / 2 : ℂ) * η p - (1 / 2 : ℂ) * (∑ y : Reg n, U i p.2 y * η (i.castSucc, y))
     ring
   · by_cases hp2 : p.1 = i.castSucc
     · have hpne : p.1 ≠ i.succ := hp1
-      rw [if_neg hp1, if_pos hp2]
+      rw [ite_eq_right hp1, ite_eq_left hp2]
       have hpq : (i.castSucc, p.2) = p := Prod.ext hp2.symm rfl
       have hsumt : ∀ t : Fin (m + 1),
           (∑ y : Reg n,
@@ -2193,8 +2197,8 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                   -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
                 else 0) = (if p.2 = y then (1 / 2 : ℂ) * η (t, y) else 0) := by
             intro y
-            simp only [if_neg n1, if_pos c2, if_neg n3, if_neg n4]
-          rw [Finset.sum_congr rfl (fun y _ => hterm y), g13n_sum_ite_left, if_pos ht2, ht2, hpq]
+            simp only [ite_eq_right n1, ite_eq_left c2, ite_eq_right n3, ite_eq_right n4]
+          rw [Finset.sum_congr rfl (fun y _ => hterm y), g13n_sum_ite_left, ite_eq_left ht2, ht2, hpq]
         · by_cases ht1 : t = i.succ
           · have n1 : ¬ (p.1 = i.succ ∧ t = i.succ) := fun h => hpne h.1
             have n2 : ¬ (p.1 = i.castSucc ∧ t = i.castSucc) := fun h => ht2 h.2
@@ -2210,8 +2214,8 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                     -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
                   else 0) = -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y)) := by
               intro y
-              simp only [if_neg n1, if_neg n2, if_neg n3, if_pos c4]
-            rw [Finset.sum_congr rfl (fun y _ => hterm y), if_neg ht2, if_pos ht1, ht1]
+              simp only [ite_eq_right n1, ite_eq_right n2, ite_eq_right n3, ite_eq_left c4]
+            rw [Finset.sum_congr rfl (fun y _ => hterm y), ite_eq_right ht2, ite_eq_left ht1, ht1]
             rw [Finset.sum_neg_distrib]
             have hm : ∀ y : Reg n, (1 / 2 : ℂ) * star (U i y p.2) * η (i.succ, y)
                 = (1 / 2 : ℂ) * (star (U i y p.2) * η (i.succ, y)) := by
@@ -2231,9 +2235,9 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                     -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
                   else 0) = (0 : ℂ) := by
               intro y
-              simp only [if_neg n1, if_neg n2, if_neg n3, if_neg n4]
+              simp only [ite_eq_right n1, ite_eq_right n2, ite_eq_right n3, ite_eq_right n4]
             rw [Finset.sum_congr rfl (fun y _ => hterm y), Finset.sum_const, smul_zero,
-              if_neg ht1, if_neg ht2]
+              ite_eq_right ht1, ite_eq_right ht2]
       rw [Finset.sum_congr rfl (fun t _ => hsumt t)]
       have hswap : (∑ t : Fin (m + 1),
             (if t = i.castSucc then (1 / 2 : ℂ) * η p
@@ -2247,7 +2251,7 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
       show (1 / 2 : ℂ) * η p + -((1 / 2 : ℂ) * ∑ y : Reg n, star (U i y p.2) * η (i.succ, y))
           = (1 / 2 : ℂ) * η p - (1 / 2 : ℂ) * (∑ y : Reg n, star (U i y p.2) * η (i.succ, y))
       ring
-    · rw [if_neg hp1, if_neg hp2]
+    · rw [ite_eq_right hp1, ite_eq_right hp2]
       have hsumt : ∀ t : Fin (m + 1),
           (∑ y : Reg n,
             (if p.1 = i.succ ∧ t = i.succ then (if p.2 = y then (1 / 2 : ℂ) * η (t, y) else 0)
@@ -2273,7 +2277,7 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                 -((1 / 2 : ℂ) * star (U i y p.2) * η (t, y))
               else 0) = (0 : ℂ) := by
           intro y
-          simp only [if_neg n1, if_neg n2, if_neg n3, if_neg n4]
+          simp only [ite_eq_right n1, ite_eq_right n2, ite_eq_right n3, ite_eq_right n4]
         rw [Finset.sum_congr rfl (fun y _ => hterm y), Finset.sum_const, smul_zero]
       rw [Finset.sum_congr rfl (fun t _ => hsumt t), Finset.sum_const, smul_zero]
 
@@ -2305,7 +2309,6 @@ theorem g13n_conj_cross (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (a b : QState
     rw [star_mul']
     ring
   rw [hA, hB, Finset.sum_comm]
-  try rfl
 
 /-- A propagation energy equals half the sum of adjacent slice squared norms minus the real
 forward cross term. -/
@@ -2368,8 +2371,8 @@ theorem g13n_prop_energy (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
           = star (η (t, y)) *
               ((1 / 2 : ℂ) * η (t, y) - (1 / 2 : ℂ) * (U i *ᵥ sl η i.castSucc) y) := by
         intro y
-        rw [if_pos ht1]
-      rw [Finset.sum_congr rfl (fun y _ => hterm y), if_pos ht1]
+        rw [ite_eq_left ht1]
+      rw [Finset.sum_congr rfl (fun y _ => hterm y), ite_eq_left ht1]
       rw [Finset.sum_congr rfl (fun y _ => by rw [mul_sub]), Finset.sum_sub_distrib]
       have hA : (∑ y : Reg n, star (η (t, y)) * ((1 / 2 : ℂ) * η (t, y)))
           = (1 / 2 : ℂ) * S1 := by
@@ -2397,8 +2400,8 @@ theorem g13n_prop_energy (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
             = star (η (t, y)) *
                 ((1 / 2 : ℂ) * η (t, y) - (1 / 2 : ℂ) * ((U i)ᴴ *ᵥ sl η i.succ) y) := by
           intro y
-          rw [if_neg ht1, if_pos ht2]
-        rw [Finset.sum_congr rfl (fun y _ => hterm y), if_neg ht1, if_pos ht2]
+          rw [ite_eq_right ht1, ite_eq_left ht2]
+        rw [Finset.sum_congr rfl (fun y _ => hterm y), ite_eq_right ht1, ite_eq_left ht2]
         rw [Finset.sum_congr rfl (fun y _ => by rw [mul_sub]), Finset.sum_sub_distrib]
         have hA : (∑ y : Reg n, star (η (t, y)) * ((1 / 2 : ℂ) * η (t, y)))
             = (1 / 2 : ℂ) * S2 := by
@@ -2423,9 +2426,9 @@ theorem g13n_prop_energy (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
                 (1 / 2 : ℂ) * η (t, y) - (1 / 2 : ℂ) * ((U i)ᴴ *ᵥ sl η i.succ) y
               else 0)) = (0 : ℂ) := by
           intro y
-          rw [if_neg ht1, if_neg ht2]
+          rw [ite_eq_right ht1, ite_eq_right ht2]
           ring
-        rw [Finset.sum_congr rfl (fun y _ => hterm y), if_neg ht1, if_neg ht2,
+        rw [Finset.sum_congr rfl (fun y _ => hterm y), ite_eq_right ht1, ite_eq_right ht2,
           Finset.sum_const, smul_zero]
   rw [Finset.sum_congr rfl (fun t _ => hsumt t)]
   have hfold : (∑ t : Fin (m + 1),
@@ -3157,7 +3160,7 @@ noncomputable def g2c2_prodN {n m : ℕ} (E : Fin m → Matrix (Reg n) (Reg n) �
 theorem g2c2_gateN_eq {n m : ℕ} (U : Fin m → Matrix (Reg n) (Reg n) ℂ) (i : ℕ) (hi : i < m) :
     g2c2_gateN n m U i = U ⟨i, hi⟩ := by
   unfold g2c2_gateN
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
 
 /-- The natural-index extension of a unitary gate family is unitary at each in-range index. -/
 theorem g2c2_gateN_unitary {n m : ℕ} (E : Fin m → Matrix (Reg n) (Reg n) ℂ)
@@ -3440,19 +3443,19 @@ theorem g2c2_in_mass (C : QmaHistoryCircuit)
   rw [Finset.sum_comm]
   refine Finset.sum_le_sum (fun y _ => ?_)
   by_cases hy : g2c2_illAt C y
-  · rw [if_pos hy]
+  · rw [ite_eq_left hy]
     obtain ⟨j, hj, hyj⟩ := hy
     have h1 : (if y j = true then ‖η ((0 : Fin (C.gates.length + 1)), y)‖ ^ 2 else (0 : ℝ))
         ≤ ∑ k ∈ C.initZeroWires,
             (if y k = true then ‖η ((0 : Fin (C.gates.length + 1)), y)‖ ^ 2 else (0 : ℝ)) :=
       Finset.single_le_sum
         (f := fun k => if y k = true then ‖η ((0 : Fin (C.gates.length + 1)), y)‖ ^ 2 else (0 : ℝ))
-        (fun k _ => by by_cases h : y k = true <;> simp [h, sq_nonneg]) hj
-    rw [if_pos hyj] at h1
+        (fun k _ => by by_cases h : y k = true <;> simp [h]) hj
+    rw [ite_eq_left hyj] at h1
     exact h1
-  · rw [if_neg hy]
+  · rw [ite_eq_right hy]
     exact Finset.sum_nonneg
-      (fun k _ => by by_cases h : y k = true <;> simp [h, sq_nonneg])
+      (fun k _ => by by_cases h : y k = true <;> simp [h])
 
 /-- Under the stated scale, normalization, and rounding bounds, `(1 - 2 * ρ²) / (2^10 * ν^6)` is
 at most the maximum of `u² / 2`, `β²`, and the combined boundary expression. -/
@@ -3585,7 +3588,7 @@ slice. -/
 theorem g2c2_slN_eq {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) {i : ℕ} (hi : i ≤ m) :
     g2c2_slN η i = sl η ⟨i, by omega⟩ := by
   unfold g2c2_slN
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
 
 /-- The absolute sum of a real function over a finite set is at most the square root of the
 cardinality times the square root of the sum of squares. -/
@@ -3913,7 +3916,7 @@ theorem g2c2_legPart_legal (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
   by_cases hy : g2c2_illAt C p
   · have h0 : g2c2_legPart C v p = 0 := by
       unfold g2c2_legPart
-      rw [if_pos hy]
+      rw [ite_eq_left hy]
     rw [h0] at hp
     exact absurd rfl hp
   · intro j hj

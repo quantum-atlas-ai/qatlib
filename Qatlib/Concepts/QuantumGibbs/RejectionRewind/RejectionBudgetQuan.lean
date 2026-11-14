@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetStat
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+module
+
+public import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetStat
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+@[expose] public section
 
 /-!
 # Round budgets for rejection rewinding
@@ -83,7 +87,7 @@ theorem rejectionBudget_false : ¬ RejectionBudgetLegacy := by
   have hf : ∀ n, 1 ≤ n → 0 ≤ pfail n ∧ pfail n ≤ 1 / (2 * (n + 1)) := by
     intro n hn
     have hn0 : n ≠ 0 := by omega
-    simp only [pfail,if_neg hn0]
+    simp only [pfail,ite_eq_right hn0]
     exact ⟨le_refl _, by positivity⟩
   have bad := h pfail hf 1 0 0 (by norm_num) (by norm_num) (by norm_num) (by norm_num)
   norm_num [pfail] at bad

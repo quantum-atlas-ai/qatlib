@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+@[expose] public section
 
 /-!
 # One-qubit Euler identities
@@ -68,7 +72,7 @@ theorem det_paperRz (α : ℝ) : (paperRz α).det = 1 := by
     Matrix.det_diagonal]
   rw [Fin.prod_univ_two]
   have h1 : (1 : Fin 2) ≠ 0 := by decide
-  simp only [Fin.isValue, if_true, if_neg h1]
+  simp only [Fin.isValue, ite_true, ite_eq_right h1]
   rw [← Complex.exp_add]
   have hz : ((α / 2 : ℝ) : ℂ) * Complex.I + (-((α / 2 : ℝ) : ℂ)) * Complex.I = 0 := by
     ring
@@ -79,7 +83,7 @@ theorem det_paperRy (θ : ℝ) : (paperRy θ).det = 1 := by
   show (qubitEulerRotation θ).det = 1
   rw [det_apply_bool]
   simp only [qubitEulerRotation, Matrix.of_apply]
-  simp only [if_true, if_false, Bool.false_eq_true, Bool.true_eq_false]
+  simp only [ite_true, ite_false, Bool.false_eq_true, Bool.true_eq_false]
   have h : ((Real.cos (θ / 2) : ℂ) * (Real.cos (θ / 2) : ℂ)
       - (Real.sin (θ / 2) : ℂ) * (-(Real.sin (θ / 2) : ℂ)))
       = ((Real.cos (θ / 2) ^ 2 + Real.sin (θ / 2) ^ 2 : ℝ) : ℂ) := by

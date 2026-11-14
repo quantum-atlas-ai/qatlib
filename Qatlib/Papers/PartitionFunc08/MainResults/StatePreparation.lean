@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+@[expose] public section
 
 /-!
 # Gibbs overlaps and state-preparation error
@@ -134,6 +138,6 @@ theorem lemma4_state_preparation (E : Ω → ℝ) (hE : ∀ σ, 0 ≤ E σ) {β 
       ∀ p q : ℝ, 0 ≤ p → p ≤ 1 → 0 ≤ q → q ≤ 1 →
         |Real.sqrt p - Real.sqrt q| ≤ εS → |p - q| ≤ 2 * εS :=
   ⟨gibbs_overlap_ge_half E hE hβ hZ0 hZ1 hα,
-    fun p q hp0 hp1 hq0 hq1 h => sqrt_prob_diff_le hp0 hp1 hq0 hq1 hεS h⟩
+    fun _p _q hp0 hp1 hq0 hq1 h => sqrt_prob_diff_le hp0 hp1 hq0 hq1 hεS h⟩
 
 end Qatlib.Papers.PartitionFunc08.MainResults.StatePreparation

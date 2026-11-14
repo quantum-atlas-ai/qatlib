@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18PhaseTVSubgoalStat
-import Qatlib.Concepts.AEMeanReadout.AELawStability.MontanaroClaim17Mont
-import Qatlib.Concepts.EstimatorLaws.TvStability.Lemma18PhaseTVAux
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18PhaseTVSubgoalStat
+public import Qatlib.Concepts.AEMeanReadout.AELawStability.MontanaroClaim17Mont
+public import Qatlib.Concepts.EstimatorLaws.TvStability.Lemma18PhaseTVAux
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+
+@[expose] public section
 
 /-!
 # Phase-readout total-variation stability

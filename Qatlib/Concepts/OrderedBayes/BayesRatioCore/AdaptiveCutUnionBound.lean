@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightQuan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingLeftQuan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellCorrection
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightQuan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingLeftQuan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellCorrection
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Adaptive cut ratio and window union bounds
@@ -87,7 +92,7 @@ theorem unionAbsorb_terminal {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
           have habs : ∃ pr ∈ S, R * s pr.2 ≤ s pr.1 := h
           have htick : tick (unionAbsorbNext hn j p ε R S) (Sum.inr s)
               = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 1 (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl s)) := by
-            rw [tick, unionAbsorbNext, if_pos habs, PMF.pure_map,
+            rw [tick, unionAbsorbNext, ite_eq_left habs, PMF.pure_map,
                 Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
           rw [show runFor (unionAbsorbNext hn j p ε R S) (fuel + 1) (Sum.inr s)
                 = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (tick (unionAbsorbNext hn j p ε R S) (Sum.inr s))
@@ -106,13 +111,13 @@ theorem unionAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (unionAbsorbNext hn j p ε R S a) (ratioPotential i k) ≤
       ratioPotential i k (Sum.inr a) := by
   by_cases habs : ∃ pr ∈ S, R * a pr.2 ≤ a pr.1
-  · simp only [unionAbsorbNext, if_pos habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
+  · simp only [unionAbsorbNext, ite_eq_left habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
       ratioPotential, configPosterior, Sum.elim_inl, Sum.elim_inr, id_eq]
     exact le_rfl
   · have hpair : ¬ (R * a k ≤ a i) := fun h => habs ⟨(i, k), hmem, h⟩
-    rw [unionAbsorbNext, if_neg habs,
+    rw [unionAbsorbNext, ite_eq_right habs,
       show trueLearnerNext hn j p ε a = crossingAbsorbNext hn j p ε R i k a from by
-        rw [crossingAbsorbNext, if_neg hpair]]
+        rw [crossingAbsorbNext, ite_eq_right hpair]]
     exact crossingAbsorb_one_step_right hn j k i hp hp1 hjk hki a
 
 /-- For `u < v < j`, a pair `(u, v)` in `S`, and `1 / 2 < p < 1`, the union absorbing step does
@@ -124,13 +129,13 @@ theorem unionAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (unionAbsorbNext hn j p ε R S a) (ratioPotential u v) ≤
       ratioPotential u v (Sum.inr a) := by
   by_cases habs : ∃ pr ∈ S, R * a pr.2 ≤ a pr.1
-  · simp only [unionAbsorbNext, if_pos habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
+  · simp only [unionAbsorbNext, ite_eq_left habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
       ratioPotential, configPosterior, Sum.elim_inl, Sum.elim_inr, id_eq]
     exact le_rfl
   · have hpair : ¬ (R * a v ≤ a u) := fun h => habs ⟨(u, v), hmem, h⟩
-    rw [unionAbsorbNext, if_neg habs,
+    rw [unionAbsorbNext, ite_eq_right habs,
       show trueLearnerNext hn j p ε a = crossingAbsorbNext hn j p ε R u v a from by
-        rw [crossingAbsorbNext, if_neg hpair]]
+        rw [crossingAbsorbNext, ite_eq_right hpair]]
     exact crossingAbsorb_one_step_left hn u v j hp hp1 huv hvj a
 
 /-- For `1 / 2 < p < 1`, a truth driven learner step preserves strictly positive posterior
@@ -141,10 +146,10 @@ theorem trueLearnerNext_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : �
   intro cfg hcfg
   simp only [trueLearnerNext] at hcfg
   by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-  · simp only [dif_pos hhalt] at hcfg
+  · simp only [dite_eq_left hhalt] at hcfg
     obtain rfl := (PMF.mem_support_pure_iff _ _).mp hcfg
     exact ha
-  · simp only [dif_neg hhalt] at hcfg
+  · simp only [dite_eq_right hhalt] at hcfg
     obtain ⟨b, hb, hEq⟩ := (PMF.mem_support_bind_iff _ _ cfg).mp hcfg
     rw [PMF.mem_support_pure_iff _ _] at hEq
     obtain rfl := hEq
@@ -162,10 +167,10 @@ theorem unionAbsorb_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ
     ∀ cfg ∈ (unionAbsorbNext hn j p ε R S a).support, truthInv (configPosterior cfg) := by
   intro cfg hcfg
   by_cases habs : ∃ pr ∈ S, R * a pr.2 ≤ a pr.1
-  · simp only [unionAbsorbNext, if_pos habs] at hcfg
+  · simp only [unionAbsorbNext, ite_eq_left habs] at hcfg
     obtain rfl := (PMF.mem_support_pure_iff _ _).mp hcfg
     exact ha
-  · simp only [unionAbsorbNext, if_neg habs] at hcfg
+  · simp only [unionAbsorbNext, ite_eq_right habs] at hcfg
     exact trueLearnerNext_support_inv hn j p ε hp hp1 a ha cfg hcfg
 
 /-- For `(i, k) ∈ S` with `j < k < i`, positive threshold `R`, and `1 / 2 < p < 1`, the crossing
@@ -253,9 +258,9 @@ theorem singleton_unionAbsorbNext {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε R
     · intro hle
       exact ⟨(u, v), Finset.mem_singleton.mpr rfl, hle⟩
   by_cases h : R * a v ≤ a u
-  · simp only [unionAbsorbNext, crossingAbsorbNext, if_pos (hmem_iff.mpr h), if_pos h]
-  · simp only [unionAbsorbNext, crossingAbsorbNext, if_neg (fun hex => h (hmem_iff.mp hex)),
-      if_neg h]
+  · simp only [unionAbsorbNext, crossingAbsorbNext, ite_eq_left (hmem_iff.mpr h), ite_eq_left h]
+  · simp only [unionAbsorbNext, crossingAbsorbNext, ite_eq_right (fun hex => h (hmem_iff.mp hex)),
+      ite_eq_right h]
 
 /-- For `j < k < i`, the singleton union absorbing kernel has crossing probability at most the
 initial ratio `a₀ i / a₀ k` divided by positive `R`, at every fuel, under the noise and
@@ -295,7 +300,7 @@ theorem event_or_le {α : Type*} (μ : PMF α) (A B : α → Prop) :
   intro x
   by_cases hA : A x
   · by_cases hB : B x
-    · simp only [hA, hB, if_true, mul_one, true_or]
+    · simp only [hA, hB, ite_true, mul_one, true_or]
       calc μ x = μ x * 1 := by ring
         _ ≤ μ x * 1 + μ x * 1 := le_add_of_nonneg_right (zero_le : (0 : ℝ≥0∞) ≤ μ x * 1)
         _ = μ x + μ x := by ring
@@ -487,7 +492,7 @@ theorem cut_union_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε δ : ℝ)
 /-- For `1 / 2 < p < 1`, the Bernoulli law defined using `truthAnswerProb` equals the ordered
 search answer law `answerPMF`. -/
 theorem run_answerPMF {n : ℕ} (j c : Fin n) {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
-    (PMF.bernoulli (truthAnswerProb j c p)
+    (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (truthAnswerProb j c p)
         (clampProb_le (if (c : ℕ) ≤ (j : ℕ) then p else 1 - p))) =
     answerPMF ⟨p, by linarith, hp1⟩ j c := rfl
 
@@ -503,11 +508,11 @@ theorem event_mono {α : Type*} (μ : PMF α) {E F : α → Prop}
   intro x
   by_cases hx : E x
   · by_cases hxs : x ∈ μ.support
-    · rw [if_pos hx, if_pos (h x hxs hx)]
-    · rw [if_pos hx, show μ x = 0 from by simpa [PMF.mem_support_iff] using! hxs,
+    · rw [ite_eq_left hx, ite_eq_left (h x hxs hx)]
+    · rw [ite_eq_left hx, show μ x = 0 from by simpa [PMF.mem_support_iff] using! hxs,
         zero_mul]
       simp
-  · rw [if_neg hx]
+  · rw [ite_eq_right hx]
     simp
 
 /-- A length `l` window immediately preceding `u`, with `0 < l ≤ u`, contains an entry at most
@@ -691,9 +696,9 @@ theorem trueLearner_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) (p ε 
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (trueLearnerNext hn j p ε a) (ratioPotential i k) ≤
       ratioPotential i k (Sum.inr a) := by
   by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-  · simp only [trueLearnerNext, dif_pos hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+  · simp only [trueLearnerNext, dite_eq_left hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
     exact le_rfl
-  · simp only [trueLearnerNext, dif_neg hhalt]
+  · simp only [trueLearnerNext, dite_eq_right hhalt]
     have hbr := expectation_bernoulli_branches
       (q := truthAnswerProb j (stageTwoCut hn a ε) p)
       (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p))
@@ -715,7 +720,7 @@ theorem trueLearner_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) (p ε 
       · have hcj : ¬ ((stageTwoCut hn a ε : ℕ) ≤ (j : ℕ)) := by omega
         obtain ⟨hw1, hw2⟩ := truthAnswerProb_weights j (stageTwoCut hn a ε) hp hp1
         rw [hw1, hw2]
-        simp only [if_neg hcj]
+        simp only [ite_eq_right hcj]
         exact across_one_step_le a (stageTwoCut hn a ε) i k (by linarith) (by linarith)
           (by linarith) (by ring)
           (zoo_bayes_update_ratio_across_true a _ k i p hkc (by omega))
@@ -736,9 +741,9 @@ theorem trueLearner_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (trueLearnerNext hn j p ε a) (ratioPotential u v) ≤
       ratioPotential u v (Sum.inr a) := by
   by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-  · simp only [trueLearnerNext, dif_pos hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+  · simp only [trueLearnerNext, dite_eq_left hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
     exact le_rfl
-  · simp only [trueLearnerNext, dif_neg hhalt]
+  · simp only [trueLearnerNext, dite_eq_right hhalt]
     have hbr := expectation_bernoulli_branches
       (q := truthAnswerProb j (stageTwoCut hn a ε) p)
       (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p))
@@ -760,7 +765,7 @@ theorem trueLearner_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε :
       · have hcj : (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) := by omega
         obtain ⟨hw1, hw2⟩ := truthAnswerProb_weights j (stageTwoCut hn a ε) hp hp1
         rw [hw1, hw2]
-        simp only [if_pos hcj]
+        simp only [ite_eq_left hcj]
         refine across_one_step_le a (stageTwoCut hn a ε) u v (by linarith) (by linarith)
           (by linarith) (by ring) ?_ ?_
         · calc p * (updateTrue a (stageTwoCut hn a ε) p u * a v)
@@ -941,7 +946,7 @@ theorem haltCut_heavy {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε : ℝ)
     (h : ∃ i : Fin n, ε ≤ a i) : ε ≤ a (haltCut hn a ε) := by
   have hne : (Finset.univ.filter fun i : Fin n => ε ≤ a i).Nonempty :=
     ⟨h.choose, Finset.mem_filter.mpr ⟨Finset.mem_univ _, h.choose_spec⟩⟩
-  rw [haltCut, dif_pos hne]
+  rw [haltCut, dite_eq_left hne]
   exact (Finset.mem_filter.mp (Finset.min'_mem _ hne)).2
 
 /-- The probability of a halted truth driven configuration with an entry beyond `j + l` of mass

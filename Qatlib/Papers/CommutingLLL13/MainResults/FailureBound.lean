@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutingLLL13.MainResults.EtaBound
-import Qatlib.Papers.CommutingLLL13.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.CommutingLLL13.MainResults.EtaBound
+public import Qatlib.Papers.CommutingLLL13.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A ceiling-adjusted failure threshold

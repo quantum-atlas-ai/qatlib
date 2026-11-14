@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurve04.MainResults.Theorem1.NewtonGirard
+module
+
+public import Qatlib.Papers.ZetaCurve04.MainResults.Theorem1.NewtonGirard
+
+@[expose] public section
 
 /-!
 # Reciprocal reconstruction of numerator polynomials
@@ -65,7 +69,7 @@ theorem reciprocalExtend_spec {q g : ℕ} {a : ℕ → ℚ} {i : ℕ} (hi : i �
     have hback : g - i ≤ g := Nat.sub_le _ _
     have h1 : g + i - g = i := by omega
     unfold reciprocalExtend
-    rw [if_neg hgt, if_pos hback, h1]
+    rw [ite_eq_right hgt, ite_eq_left hback, h1]
 
 /-- The rational polynomial obtained by summing the reciprocal-extension monomials through
 degree `2 * g`. -/
@@ -78,9 +82,9 @@ theorem numeratorPoly_coeff {q g : ℕ} {a : ℕ → ℚ} {k : ℕ} (hk : k ≤ 
   unfold numeratorPoly
   rw [Polynomial.finsetSum_coeff]
   rw [Finset.sum_eq_single k]
-  · rw [Polynomial.coeff_monomial, if_pos rfl]
+  · rw [Polynomial.coeff_monomial, ite_eq_left rfl]
   · intro b _ hb
-    rw [Polynomial.coeff_monomial, if_neg hb]
+    rw [Polynomial.coeff_monomial, ite_eq_right hb]
   · intro hknot
     exact absurd (Finset.mem_range.mpr (by omega)) hknot
 
@@ -118,9 +122,9 @@ theorem theorem1_numerator_determined
   congr 1
   unfold reciprocalExtend
   by_cases hk : k ≤ g
-  · simp only [if_pos hk]
+  · simp only [ite_eq_left hk]
     exact hlow k hk
-  · simp only [if_neg hk]
+  · simp only [ite_eq_right hk]
     rw [hlow (g - (k - g)) (Nat.sub_le _ _)]
 
 end Qatlib.Papers.ZetaCurve04.MainResults.Theorem1

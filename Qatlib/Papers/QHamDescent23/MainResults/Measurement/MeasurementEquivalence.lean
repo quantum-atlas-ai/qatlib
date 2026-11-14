@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QHamDescent23.MainResults.HammingEncoding.HammingModel
+module
+
+public import Qatlib.Papers.QHamDescent23.MainResults.HammingEncoding.HammingModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -63,23 +67,23 @@ theorem source_lemma8_weight_measurement (n : ℕ) (ψ : Ket (BitString n)) (j :
   have hmv : (layerProjector n j *ᵥ ψ) b = if weight b = j then ψ b else 0 := by
     simp only [layerProjector, mulVec, dotProduct]
     by_cases hb : weight b = j
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       rw [Finset.sum_eq_single b]
       · simp [hb]
       · intro b' _ hb'
         simp [hb', hb]
       · intro hbnotmem
         simp at hbnotmem
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       refine Finset.sum_eq_zero (fun b' _ => ?_)
       by_cases hbb : b' = b
       · subst hbb; simp [hb]
       · simp [hbb, hb]
   rw [hmv]
   by_cases hb : weight b = j
-  · rw [if_pos hb, if_pos hb]
+  · rw [ite_eq_left hb, ite_eq_left hb]
     exact Complex.normSq_eq_conj_mul_self.symm
-  · rw [if_neg hb, if_neg hb]
+  · rw [ite_eq_right hb, ite_eq_right hb]
     simp
 
 /-- POVM element for the `d`-fold tensor product of weight measurements,
@@ -124,23 +128,23 @@ theorem source_proposition7_multivariate_measurement
   have hmv : (blockProjector d n j *ᵥ ψ) b = if (∀ i, weight (b i) = j i) then ψ b else 0 := by
     simp only [blockProjector, mulVec, dotProduct]
     by_cases hb : ∀ i, weight (b i) = j i
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       rw [Finset.sum_eq_single b]
       · simp [hb]
       · intro b' _ hb'
         simp [hb', hb]
       · intro hbnotmem
         simp at hbnotmem
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       refine Finset.sum_eq_zero (fun b' _ => ?_)
       by_cases hbb : b' = b
       · subst hbb; simp [hb]
       · simp [hbb, hb]
   rw [hmv]
   by_cases hb : ∀ i, weight (b i) = j i
-  · rw [if_pos hb, if_pos hb]
+  · rw [ite_eq_left hb, ite_eq_left hb]
     exact Complex.normSq_eq_conj_mul_self.symm
-  · rw [if_neg hb, if_neg hb]
+  · rw [ite_eq_right hb, ite_eq_right hb]
     simp
 
 end Qatlib.Papers.QHamDescent23.MainResults.Measurement

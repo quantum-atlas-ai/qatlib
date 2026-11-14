@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonMarkovSim24.MainResults.DQMEModel
-import Mathlib.Data.Nat.Log
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.NonMarkovSim24.MainResults.DQMEModel
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ def encodedQubits (dS N K : ℕ) : ℕ := Nat.clog 2 (dS * dS * N ^ K)
 dissipaton mode, the encoding of Eq. (27)/(30) uses at most
 `clog₂(d_S²) + K · clog₂(N)` qubits, i.e. a linear function of the number `K`
 of dissipaton modes. -/
-theorem qubit_count_linear (dS N K : ℕ) (hN : 1 < N) :
+theorem qubit_count_linear (dS N K : ℕ) (_hN : 1 < N) :
     encodedQubits dS N K ≤ Nat.clog 2 (dS * dS) + K * Nat.clog 2 N := by
   unfold encodedQubits
   apply Nat.clog_le_of_le_pow

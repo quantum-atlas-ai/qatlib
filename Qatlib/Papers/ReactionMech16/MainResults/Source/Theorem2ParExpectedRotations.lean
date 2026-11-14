@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,6 +68,5 @@ theorem theorem2_par_expected_rotations (n M : ℕ) :
   rw [truncated_geometric_expectation (1 / (2 : ℝ) ^ n) hp M]
   have h2 : (2 : ℝ) ^ n ≠ 0 := by positivity
   field_simp
-  try ring
 
 end Qatlib.Papers.ReactionMech16.MainResults.Source

@@ -4,14 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Measure.MeasureSpace
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Measure.Basic
+public import Mathlib.MeasureTheory.Measure.CompleteLattice
+public import Mathlib.MeasureTheory.Measure.Continuity
+public import Mathlib.MeasureTheory.Measure.Filter
+public import Mathlib.MeasureTheory.Measure.Interval
+public import Mathlib.MeasureTheory.Measure.Module
+public import Mathlib.MeasureTheory.Measure.OuterMeasure
+public import Mathlib.MeasureTheory.Measure.Sum
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -318,7 +329,7 @@ def alg37OutputLaw {d : ℕ} (c σ : ℝ) (p : ℝ≥0∞) (ε : ℝ)
 
 /-- Embed an `n`-qubit vector into `N ≥ n` qubits with the ancilla register in
 state `|0⟩` (ancilla-major ordering: indices `< 2^n` have ancilla zero). -/
-def embedZeroVec {n N : ℕ} (h : n ≤ N) (v : Fin (2 ^ n) → ℂ) : Fin (2 ^ N) → ℂ :=
+def embedZeroVec {n N : ℕ} (_h : n ≤ N) (v : Fin (2 ^ n) → ℂ) : Fin (2 ^ N) → ℂ :=
   fun i => if hi : (i : ℕ) < 2 ^ n then v ⟨i, hi⟩ else 0
 
 /-- The uniform superposition vector `2^{-k/2} Σ_i |i⟩` on `k` qubits. -/

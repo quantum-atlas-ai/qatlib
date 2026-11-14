@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRiskWoerner18.PayoffMean
+module
+
+public import Qatlib.Papers.QRiskWoerner18.PayoffMean
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,8 +83,8 @@ theorem sourceCDF_monotone {n : ℕ} (p : FinDist (Fin (2 ^ n))) :
   refine mul_le_mul_of_nonneg_left ?_ (p.nonneg i)
   unfold sourceThresholdPayoff
   by_cases h : (i : ℕ) ≤ l
-  · rw [if_pos h, if_pos (le_trans h hll)]
-  · rw [if_neg h]
+  · rw [ite_eq_left h, ite_eq_left (le_trans h hll)]
+  · rw [ite_eq_right h]
     split <;> norm_num
 
 /-- At the top of the support the source lower-tail mass is the total mass one. -/
@@ -89,7 +93,7 @@ theorem sourceCDF_at_top (n : ℕ) (p : FinDist (Fin (2 ^ n))) :
   have h : ∀ i : Fin (2 ^ n), sourceThresholdPayoff (2 ^ n - 1) (i : ℕ) = 1 := by
     intro i
     unfold sourceThresholdPayoff
-    rw [if_pos (Nat.le_sub_one_of_lt i.isLt)]
+    rw [ite_eq_left (Nat.le_sub_one_of_lt i.isLt)]
   simp [sourceCDF, h, p.sum_one]
 
 /-- The paper's `VaR_alpha(X)` exists: the top of the finite support always reaches the
@@ -168,20 +172,20 @@ theorem sourceBisect_bounds (F : ℕ → ℝ) (q : ℝ) (hF : Monotone F) (k : �
       · have hb : sourceBisect F q (f + 1) lo hi = lo := by simp [sourceBisect, hle]
         rw [hb]
         exact ⟨le_refl _, hlk⟩
-      · simp only [sourceBisect, if_neg hle]
+      · simp only [sourceBisect, ite_eq_right hle]
         by_cases hq : q ≤ F ((lo + hi) / 2)
         · have hkm : k ≤ (lo + hi) / 2 := by
             by_contra hlt
             have hlt' : (lo + hi) / 2 < k := by omega
             exact absurd hq (not_le.mpr (hmin _ hlt'))
-          simpa only [if_pos hq] using ih lo ((lo + hi) / 2) hlk hkm
+          simpa only [ite_eq_left hq] using ih lo ((lo + hi) / 2) hlk hkm
         · have hmk : (lo + hi) / 2 + 1 ≤ k := by
             by_contra hlt
             have hlt' : k ≤ (lo + hi) / 2 := by omega
             have hle' : F k ≤ F ((lo + hi) / 2) := hF hlt'
             exact absurd (le_trans hcross hle') hq
           obtain ⟨h1, h2⟩ := ih ((lo + hi) / 2 + 1) hi hmk hkh
-          simp only [if_neg hq]
+          simp only [ite_eq_right hq]
           exact ⟨le_trans (by omega) h1, h2⟩
 
 /-- **The paper's `n`-step bisection.** On a `2^n`-point support, `n` exact comparisons
@@ -210,13 +214,13 @@ theorem sourceBisect_correct (F : ℕ → ℝ) (q : ℝ) (hF : Monotone F) (k : 
         have hw' : hi - lo ≤ 2 * 2 ^ f - 1 := by
           rw [mul_comm 2 (2 ^ f), ← pow_succ]; omega
         have hwidth := sourceBisect_width lo hi (le_of_lt hlt)
-        simp only [sourceBisect, if_neg hle]
+        simp only [sourceBisect, ite_eq_right hle]
         by_cases hq : q ≤ F ((lo + hi) / 2)
         · have hkm : k ≤ (lo + hi) / 2 := by
             by_contra hlt'
             have hlt'' : (lo + hi) / 2 < k := by omega
             exact absurd hq (not_le.mpr (hmin _ hlt''))
-          rw [if_pos hq]
+          rw [ite_eq_left hq]
           exact ih lo ((lo + hi) / 2) hlk hkm
             (le_trans hwidth.1 (sourceBisect_div_two_le (Nat.one_le_two_pow) hw'))
         · have hmk : (lo + hi) / 2 + 1 ≤ k := by
@@ -224,7 +228,7 @@ theorem sourceBisect_correct (F : ℕ → ℝ) (q : ℝ) (hF : Monotone F) (k : 
             have hlt'' : k ≤ (lo + hi) / 2 := by omega
             have hle' : F k ≤ F ((lo + hi) / 2) := hF hlt''
             exact absurd (le_trans hcross hle') hq
-          rw [if_neg hq]
+          rw [ite_eq_right hq]
           exact ih ((lo + hi) / 2 + 1) hi hmk hkh
             (le_trans hwidth.2 (sourceBisect_div_two_le (Nat.one_le_two_pow) hw'))
 

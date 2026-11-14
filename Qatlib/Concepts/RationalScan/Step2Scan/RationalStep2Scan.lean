@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RationalScan.Step2Scan.RationalStep2ScanDefs
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
-import Mathlib.Data.List.FinRange
-import Mathlib.Logic.Equiv.Fin.Basic
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmRefutations
+module
+
+public import Qatlib.Concepts.RationalScan.Step2Scan.RationalStep2ScanDefs
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+public import Mathlib.Data.List.FinRange
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmRefutations
+
+@[expose] public section
 
 /-!
 # Correctness of the rational Step 2 scan

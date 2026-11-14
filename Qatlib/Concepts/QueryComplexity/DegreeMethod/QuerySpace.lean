@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceCost
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.QuerySpaceValue
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QuerySpaceNoReference
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceCost
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.QuerySpaceValue
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QuerySpaceNoReference
+
+@[expose] public section
 
 /-!
 # Phase and value oracle circuit conversions

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
+
+@[expose] public section
 
 /-!
 # Gauss-Legendre rules and cell remainder bounds
@@ -359,10 +363,10 @@ private theorem legendre_odd_root_count (Q : ℕ) (hQ : 1 ≤ Q) :
       Qatlib.Concepts.LchsSimulation.Quadrature.rootMultiplicity_prod_X_sub_C D ρ
     rw [hSrM]
     by_cases hDmem : ρ ∈ D
-    · rw [if_pos hDmem]
+    · rw [ite_eq_left hDmem]
       obtain ⟨m, hm⟩ := (Finset.mem_filter.1 hDmem).2.2
       exact ⟨m + 1, by omega⟩
-    · rw [if_neg hDmem]
+    · rw [ite_eq_right hDmem]
       by_cases hroot : P.eval ρ = 0
       · have hmem : ρ ∈ P.roots.toFinset := by
           rw [Multiset.mem_toFinset]
@@ -796,7 +800,7 @@ theorem gauss_legendre_cell_error_bound :
         Finset.sum_const_zero]
     obtain ⟨y, hy⟩ : ∃ y ∈ Icc a (a + h), 0 < D.eval y := by
       have hinf : ((Set.Ioo a (a + h)) \ (W'.roots.toFinset : Set ℝ)).Infinite :=
-        (Set.Ioo_infinite hlab).diff (W'.roots.toFinset.finite_toSet)
+        (Set.Ioo_infinite hlab).sdiff (W'.roots.toFinset.finite_toSet)
       obtain ⟨y, hy⟩ := hinf.nonempty
       refine ⟨y, ⟨hy.1.1.le, hy.1.2.le⟩, ?_⟩
       rw [hDdef, Polynomial.eval_pow]
@@ -857,7 +861,7 @@ theorem gauss_legendre_cell_error_bound :
       obtain ⟨y, hyIoo, hyV, hyne⟩ : ∃ y ∈ Set.Ioo a (a + h), V.eval y ≠ 0 ∧ y ≠ xnode q := by
         have hfin : ((V.roots.toFinset : Set ℝ) ∪ {xnode q}).Finite :=
           (V.roots.toFinset.finite_toSet).union (Set.finite_singleton _)
-        obtain ⟨y, hy⟩ := ((Set.Ioo_infinite hlab).diff hfin).nonempty
+        obtain ⟨y, hy⟩ := ((Set.Ioo_infinite hlab).sdiff hfin).nonempty
         refine ⟨y, hy.1, ?_, ?_⟩
         · intro h0
           exact hy.2 (Or.inl (Finset.mem_coe.mpr
@@ -929,7 +933,7 @@ theorem gauss_legendre_cell_error_bound :
       obtain ⟨y, hyIoo, hyV, hyne⟩ : ∃ y ∈ Set.Ioo a (a + h), V.eval y ≠ 0 ∧ y ≠ xnode q := by
         have hfin : ((V.roots.toFinset : Set ℝ) ∪ {xnode q}).Finite :=
           (V.roots.toFinset.finite_toSet).union (Set.finite_singleton _)
-        obtain ⟨y, hy⟩ := ((Set.Ioo_infinite hlab).diff hfin).nonempty
+        obtain ⟨y, hy⟩ := ((Set.Ioo_infinite hlab).sdiff hfin).nonempty
         refine ⟨y, hy.1, ?_, ?_⟩
         · intro h0
           exact hy.2 (Or.inl (Finset.mem_coe.mpr
@@ -989,8 +993,8 @@ theorem gauss_legendre_cell_error_bound :
     intro i j
     rw [Polynomial.eval_pow]
     rcases eq_or_ne j i with hji | hji
-    · rw [hji, hLself i, if_pos rfl, one_pow]
-    · rw [hLne_eval i j hji, if_neg hji, zero_pow two_ne_zero]
+    · rw [hji, hLself i, ite_eq_left rfl, one_pow]
+    · rw [hLne_eval i j hji, ite_eq_right hji, zero_pow two_ne_zero]
   have hdL2 : ∀ i j, ((L i) ^ 2).derivative.eval (xnode j)
       = if j = i then 2 * (L i).derivative.eval (xnode i) else 0 := by
     intro i j
@@ -1000,9 +1004,9 @@ theorem gauss_legendre_cell_error_bound :
     rw [hdp, Polynomial.eval_mul, Polynomial.eval_mul, Polynomial.eval_C,
       Polynomial.eval_pow]
     rcases eq_or_ne j i with hji | hji
-    · rw [hji, hLself i, one_pow, if_pos rfl]
+    · rw [hji, hLself i, one_pow, ite_eq_left rfl]
       ring
-    · rw [hLne_eval i j hji, zero_pow (by norm_num), if_neg hji]
+    · rw [hLne_eval i j hji, zero_pow (by norm_num), ite_eq_right hji]
       ring
   set B : Fin Q → Polynomial ℝ :=
     fun i => (Polynomial.X - Polynomial.C (xnode i)) * (L i) ^ 2 with hBdef
@@ -1095,17 +1099,17 @@ theorem gauss_legendre_cell_error_bound :
     have hS1v : S1.eval (xnode j) = f (xnode j) := by
       rw [hS1def, Polynomial.eval_finsetSum,
         Finset.sum_eq_single j (fun i _ hne => by
-          rw [Polynomial.eval_mul, Polynomial.eval_C, hAeval i j, if_neg (Ne.symm hne),
+          rw [Polynomial.eval_mul, Polynomial.eval_C, hAeval i j, ite_eq_right (Ne.symm hne),
             mul_zero])
           (by simp),
-        Polynomial.eval_mul, Polynomial.eval_C, hAeval j j, if_pos rfl, mul_one]
+        Polynomial.eval_mul, Polynomial.eval_C, hAeval j j, ite_eq_left rfl, mul_one]
     have hS2v : S2.eval (xnode j) = 0 := by
       rw [hS2def, Polynomial.eval_finsetSum,
         Finset.sum_eq_single j (fun i _ hne => by
-          rw [Polynomial.eval_mul, Polynomial.eval_C, hBeval i j, if_neg (Ne.symm hne),
+          rw [Polynomial.eval_mul, Polynomial.eval_C, hBeval i j, ite_eq_right (Ne.symm hne),
             mul_zero, mul_zero])
           (by simp),
-        Polynomial.eval_mul, Polynomial.eval_C, hBeval j j, if_pos rfl]
+        Polynomial.eval_mul, Polynomial.eval_C, hBeval j j, ite_eq_left rfl]
       ring
     rw [hS1v, hS2v, add_zero]
   have hHder : ∀ j, H.derivative.eval (xnode j) = deriv f (xnode j) := by
@@ -1123,10 +1127,10 @@ theorem gauss_legendre_cell_error_bound :
       rw [hS2def, Polynomial.derivative_sum, Polynomial.eval_finsetSum,
         Finset.sum_eq_single j (fun i _ hne => by
           rw [Polynomial.derivative_mul, Polynomial.derivative_C, zero_mul, zero_add,
-            Polynomial.eval_mul, hdB i j, if_neg (Ne.symm hne), mul_zero])
+            Polynomial.eval_mul, hdB i j, ite_eq_right (Ne.symm hne), mul_zero])
           (by simp),
         Polynomial.derivative_mul, Polynomial.derivative_C, zero_mul, zero_add,
-        Polynomial.eval_mul, Polynomial.eval_C, hdB j j, if_pos rfl, mul_one]
+        Polynomial.eval_mul, Polynomial.eval_C, hdB j j, ite_eq_left rfl, mul_one]
     rw [hdS1, hdS2, zero_add]
 
   set Wp : Polynomial ℝ := ∏ q, (Polynomial.X - Polynomial.C (xnode q)) with hWpdef
@@ -1229,40 +1233,40 @@ theorem gauss_legendre_cell_error_bound :
         have hiB := i.isLt
         have hjB := j.isLt
         by_cases hi : (i : ℕ) < Q
-        · have hii : node' i = xnode ⟨(i : ℕ), hi⟩ := dif_pos hi
+        · have hii : node' i = xnode ⟨(i : ℕ), hi⟩ := dite_eq_left hi
           rw [hii] at hij
           by_cases hj : (j : ℕ) < Q
-          · have hjj : node' j = xnode ⟨(j : ℕ), hj⟩ := dif_pos hj
+          · have hjj : node' j = xnode ⟨(j : ℕ), hj⟩ := dite_eq_left hj
             rw [hjj] at hij
             have h4 := congrArg Fin.val (hinj hij)
             exact Fin.val_injective h4
-          · have hjj : node' j = x := dif_neg hj
+          · have hjj : node' j = x := dite_eq_right hj
             rw [hjj] at hij
             exact absurd hij (hnx ⟨(i : ℕ), hi⟩)
-        · have hii : node' i = x := dif_neg hi
+        · have hii : node' i = x := dite_eq_right hi
           rw [hii] at hij
           by_cases hj : (j : ℕ) < Q
-          · have hjj : node' j = xnode ⟨(j : ℕ), hj⟩ := dif_pos hj
+          · have hjj : node' j = xnode ⟨(j : ℕ), hj⟩ := dite_eq_left hj
             rw [hjj] at hij
             exact absurd hij.symm (hnx ⟨(j : ℕ), hj⟩)
-          · have hjj : node' j = x := dif_neg hj
+          · have hjj : node' j = x := dite_eq_right hj
             rw [hjj] at hij
             exact Fin.val_injective (show (i : ℕ) = (j : ℕ) by omega)
       have hnodemem : ∀ i, node' i ∈ Icc a (a + h) := by
         intro i
         by_cases hi : (i : ℕ) < Q
-        · have hii : node' i = xnode ⟨(i : ℕ), hi⟩ := dif_pos hi
+        · have hii : node' i = xnode ⟨(i : ℕ), hi⟩ := dite_eq_left hi
           rw [hii]
           exact ⟨(hnodeIoo ⟨(i : ℕ), hi⟩).1.le, (hnodeIoo ⟨(i : ℕ), hi⟩).2.le⟩
         · show (if hi : (i : ℕ) < Q then xnode ⟨(i : ℕ), hi⟩ else x) ∈ Icc a (a + h)
-          rw [dif_neg hi]
+          rw [dite_eq_right hi]
           exact hx
       have hmult1 : ∀ i, 1 ≤ mult' i := by
         intro i
         by_cases hi : (i : ℕ) < Q
-        · have h : mult' i = 2 := if_pos hi
+        · have h : mult' i = 2 := ite_eq_left hi
           omega
-        · have h : mult' i = 1 := if_neg hi
+        · have h : mult' i = 1 := ite_eq_right hi
           omega
       have hmultsum : ∑ i, mult' i = 2 * Q + 1 := by
         rw [Fin.sum_univ_castSucc]
@@ -1271,20 +1275,20 @@ theorem gauss_legendre_cell_error_bound :
           have hlt : ((Fin.castSucc i : Fin (Q + 1)) : ℕ) < Q := by
             rw [Fin.val_castSucc]
             exact i.isLt
-          exact if_pos hlt
+          exact ite_eq_left hlt
         rw [Finset.sum_congr rfl (fun i _ => hc i)]
         have hlast : mult' (Fin.last Q) = 1 := by
           have hnl : ¬((Fin.last Q : Fin (Q + 1)) : ℕ) < Q := by
             rw [Fin.val_last]
             omega
-          exact if_neg hnl
+          exact ite_eq_right hnl
         rw [hlast, Finset.sum_const]
         simp [Finset.card_univ, Fintype.card_fin, Nat.mul_comm]
       have hzeros : ∀ i (j : ℕ), j < mult' i → iteratedDeriv j G (node' i) = 0 := by
         intro i j hjlt
         by_cases hi : (i : ℕ) < Q
-        · have hm : mult' i = 2 := if_pos hi
-          have hn : node' i = xnode ⟨(i : ℕ), hi⟩ := dif_pos hi
+        · have hm : mult' i = 2 := ite_eq_left hi
+          have hn : node' i = xnode ⟨(i : ℕ), hi⟩ := dite_eq_left hi
           rw [hm] at hjlt
           rw [hn]
           rcases (by omega : j = 0 ∨ j = 1) with hj | hj
@@ -1292,8 +1296,8 @@ theorem gauss_legendre_cell_error_bound :
             exact hGnode _
           · rw [hj, iteratedDeriv_one]
             exact hGdnode _
-        · have hm : mult' i = 1 := if_neg hi
-          have hn : node' i = x := dif_neg hi
+        · have hm : mult' i = 1 := ite_eq_right hi
+          have hn : node' i = x := dite_eq_right hi
           rw [hm] at hjlt
           rw [hn]
           have hj : j = 0 := by omega

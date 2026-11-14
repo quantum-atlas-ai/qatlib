@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
-import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.BooleanPolynomial
-import Qatlib.Papers.LiftingWu25.ProtocolSetup.HybridModel
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Nat.Find
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+public import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.BooleanPolynomial
+public import Qatlib.Papers.LiftingWu25.ProtocolSetup.HybridModel
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Nat.Find
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

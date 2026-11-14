@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.HigherMoments.HigherPauliMomentConsumers
+module
+
+public import Qatlib.Papers.ClassShadows20.HigherMoments.HigherPauliMomentConsumers
+
+@[expose] public section
 
 /-!
 # ClassShadows20 · HigherMoments · two-qubit finite moment
@@ -57,7 +61,7 @@ theorem twoQubitPauliLaw_axis_normalized (a : Fin 2 → Fin 3) :
     ∑ b : Fin 2 → Bool,
       (tensorPauliLaw 2 twoQubitMixed twoQubitMixed_density).prob
         (fun i => (a i, b i)) = (1 : ℝ) / 9 := by
-  convert tensorPauliLaw_axis_mass 2 twoQubitMixed twoQubitMixed_density a using 1 <;> norm_num
+  convert tensorPauliLaw_axis_mass 2 twoQubitMixed twoQubitMixed_density a using 1; norm_num
 
 /-- Two fresh two-qubit Pauli snapshots have exact ordered moment `tr(ρ²) = 1/4`. -/
 theorem twoQubitPauliLaw_second_moment :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+@[expose] public section
 
 /-!
 # Expected query bound for search with a finite cutoff

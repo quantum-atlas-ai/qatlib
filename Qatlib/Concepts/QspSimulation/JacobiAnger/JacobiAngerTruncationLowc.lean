@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Algebra.Polynomial.Roots
+module
+
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Algebra.Polynomial.Roots
+
+@[expose] public section
 
 /-!
 # Jacobi–Anger polynomial truncation
@@ -84,8 +88,7 @@ private theorem lcQ_even :
     ((2 * X ^ 2 - 1 : Polynomial ℝ)).comp (-(X : Polynomial ℝ))
       = (2 * X ^ 2 - 1 : Polynomial ℝ) := by
   refine Polynomial.funext fun x => ?_
-  simp only [eval_comp, eval_neg, eval_X, eval_pow, eval_sub, eval_mul,
-    Polynomial.eval_natCast, Polynomial.eval_ofNat, Polynomial.eval_one]
+  simp only [eval_comp, eval_neg, eval_X, eval_pow, eval_sub, eval_mul, Polynomial.eval_ofNat, Polynomial.eval_one]
   ring
 
 /-- The natural degree of the real polynomial 2X² − 1 is at most two. -/
@@ -250,8 +253,7 @@ private theorem lcJAA_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
     rw [show 2 * (θ / 2) = θ from by ring] at h
     exact h
   have hQeval : (2 * X ^ 2 - 1 : Polynomial ℝ).eval (Real.cos (θ / 2)) = Real.cos θ := by
-    simp only [eval_sub, eval_mul, eval_pow, eval_X, Polynomial.eval_natCast,
-      Polynomial.eval_ofNat, Polynomial.eval_one]
+    simp only [eval_sub, eval_mul, eval_pow, eval_X, Polynomial.eval_ofNat, Polynomial.eval_one]
     rw [hcosθ]
   rw [lcJAA, eval_sub, Polynomial.eval_finsetSum, eval_C]
   simp only [eval_mul, eval_C, eval_comp]
@@ -276,7 +278,7 @@ private theorem lcJAQt_sinmul_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
     rw [show 2 * (θ / 2) = θ from by ring] at h
     exact h
   have hQeval : (2 * X ^ 2 - 1 : Polynomial ℝ).eval (Real.cos (θ / 2)) = Real.cos θ := by
-    simp only [eval_sub, eval_mul, eval_pow, eval_X, Polynomial.eval_natCast,
+    simp only [eval_sub, eval_mul, eval_pow, eval_X,
       Polynomial.eval_ofNat, Polynomial.eval_one]
     rw [hcosθ]
   rw [lcJAQt, Polynomial.eval_finsetSum, Finset.mul_sum]
@@ -311,14 +313,14 @@ private theorem lcAmp_eq (τ : ℝ) (q : ℕ) (hq : 1 ≤ q) (θ : ℝ) :
     rcases eq_or_ne m 0 with rfl | hm0
     · show lcJAp τ θ (2 * 0) + (if 2 * 0 = 0 then 0 else lcJAn τ θ (2 * 0)) = _
       have h20 : (2 * 0 : ℕ) = 0 := by omega
-      rw [h20, if_pos rfl, if_pos rfl, lcJAp]
+      rw [h20, ite_eq_left rfl, ite_eq_left rfl, lcJAp]
       simp only [Nat.cast_zero, zero_mul, mul_zero, neg_zero,
         Complex.exp_zero, Real.cos_zero, mul_one]
       push_cast
       ring
     · have hm2 : 2 * m ≠ 0 := by omega
       show lcJAp τ θ (2 * m) + (if 2 * m = 0 then 0 else lcJAn τ θ (2 * m)) = _
-      rw [if_neg hm2, if_neg hm0, lcJAp, lcJAn, lcNegOnePowEven m, one_mul]
+      rw [ite_eq_right hm2, ite_eq_right hm0, lcJAp, lcJAn, lcNegOnePowEven m, one_mul]
       rw [show (((2 * m : ℕ) : ℂ) * ((θ : ℝ) : ℂ))
             = ((((2 * m : ℕ) : ℝ) * θ : ℝ) : ℂ) from by
           push_cast
@@ -340,7 +342,7 @@ private theorem lcAmp_eq (τ : ℝ) (q : ℕ) (hq : 1 ≤ q) (θ : ℝ) :
     have hm2 : 2 * m + 1 ≠ 0 := by omega
     show lcJAp τ θ (2 * m + 1)
         + (if 2 * m + 1 = 0 then 0 else lcJAn τ θ (2 * m + 1)) = _
-    rw [if_neg hm2, lcJAp, lcJAn, lcNegOnePowOdd m, neg_one_mul, neg_mul, ← sub_eq_add_neg]
+    rw [ite_eq_right hm2, lcJAp, lcJAn, lcNegOnePowOdd m, neg_one_mul, neg_mul, ← sub_eq_add_neg]
     rw [show (((2 * m + 1 : ℕ) : ℂ) * ((θ : ℝ) : ℂ))
           = ((((2 * m + 1 : ℕ) : ℝ) * θ : ℝ) : ℂ) from by
         push_cast
@@ -360,8 +362,8 @@ private theorem lcAmp_eq (τ : ℝ) (q : ℕ) (hq : 1 ≤ q) (θ : ℝ) :
   have hcorr : ∑ m ∈ Finset.range ((q + 1) / 2),
       (if m = 0 then (-(lcBesselJ 0 τ : ℝ) : ℂ) else 0)
       = -((lcBesselJ 0 τ : ℝ) : ℂ) := by
-    rw [Finset.sum_eq_single 0 (fun b _ hb => by rw [if_neg hb])
-      (fun hn => absurd hzero hn), if_pos rfl]
+    rw [Finset.sum_eq_single 0 (fun b _ hb => by rw [ite_eq_right hb])
+      (fun hn => absurd hzero hn), ite_eq_left rfl]
   have hR : (∑ m ∈ Finset.range ((q + 1) / 2),
         ((2 * lcBesselJ (2 * m) τ * Real.cos (((2 * m : ℕ) : ℝ) * θ) : ℝ) : ℂ))
       - ((lcBesselJ 0 τ : ℝ) : ℂ)

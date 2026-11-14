@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputStat
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputStat
+
+@[expose] public section
 
 /-!
 # Scale and distribution of the dual output
@@ -52,7 +56,7 @@ theorem sdpDualSampleOutput : SdpDualSampleOutput := by
     have he := Finset.single_le_sum (fun i _ => hnonneg i) (Finset.mem_univ j₀)
     have hpos : 0 < sdpDualCertificate m δ α R j₀ y T j₀ := by
       unfold sdpDualCertificate
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact add_pos_of_pos_of_nonneg (by positivity)
         (div_nonneg (Finset.sum_nonneg fun t _ => hy t j₀) hTr.le)
     exact hpos.trans_le he
@@ -67,7 +71,7 @@ theorem sdpDualSampleOutput : SdpDualSampleOutput := by
     rw [mul_comm,div_mul_cancel₀ _ hscale.ne']
   · unfold sdpDualSampleScale sdpDualCertificate
     rw [Finset.sum_add_distrib]
-    simp only [Finset.sum_ite_eq',Finset.mem_univ,if_true]
+    simp only [Finset.sum_ite_eq',Finset.mem_univ,ite_true]
     rw [← Finset.sum_div,Finset.sum_comm]
 
 end Qatlib.Concepts.SdpMmwSolver.SdpContract

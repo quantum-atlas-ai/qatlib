@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialEquationsDefs
+module
+
+public import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialEquationsDefs
+
+@[expose] public section
 
 /-!
 # Resource and finite-digit endpoint checks
@@ -53,7 +57,7 @@ parameter. -/
 theorem clause18_source_access_ledger_mono (m m' ρ ρ' : ℕ) (hm : m ≤ m') (hρ : ρ ≤ ρ') :
     (sourceAccessLedger m ρ 0 0).controlledPreparations ≤
       (sourceAccessLedger m' ρ' 0 0).controlledPreparations := by
-  simp only [sourceAccessLedger, SourceAccessLedger.controlledPreparations]
+  simp only [sourceAccessLedger]
   exact Nat.mul_le_mul (Nat.succ_le_succ hm) hρ
 
 /-- The source-access endpoint combines the controlled-preparation and oracle-count identities
@@ -122,8 +126,8 @@ theorem clause20_dyadic_error_bound (x : ℝ) (bits : ℕ) :
   have hfl : |x| * 2 ^ bits < (Nat.floor (|x| * 2 ^ bits) : ℝ) + 1 :=
     Nat.lt_floor_add_one (|x| * 2 ^ bits : ℝ)
   unfold dyadicMagnitude finiteDigitErrorBudget
-  rw [sub_div' (by simpa using! hs.ne'), div_lt_iff₀ hs,
-    div_mul_cancel₀ 1 (by simpa using! hs.ne')]
+  rw [sub_div' (by simp), div_lt_iff₀ hs,
+    div_mul_cancel₀ 1 (by simp)]
   linarith
 
 /-- The sign field of the rounded finite digit is the decision value of `x < 0`. -/
@@ -143,9 +147,9 @@ theorem clause20_finite_digit_value_eq (x : ℝ) (bits : ℕ) :
       exact of_decide_eq_true hd
     have hval : (roundFiniteDigit x bits).value =
         (-1) * (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits := by
-      simp only [FiniteDigit.value, if_pos hsb]
+      simp only [FiniteDigit.value, ite_eq_left hsb]
       simp only [roundFiniteDigit]
-    refine hval.trans (by rw [dyadicMagnitude, if_pos hneg, mul_div_assoc])
+    refine hval.trans (by rw [dyadicMagnitude, ite_eq_left hneg, mul_div_assoc])
   · have hge : ¬ x < 0 := by
       intro hx
       apply hsb
@@ -153,19 +157,19 @@ theorem clause20_finite_digit_value_eq (x : ℝ) (bits : ℕ) :
       exact decide_eq_true hx
     have hval : (roundFiniteDigit x bits).value =
         (1) * (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits := by
-      simp only [FiniteDigit.value, if_neg hsb]
+      simp only [FiniteDigit.value, ite_eq_right hsb]
       simp only [roundFiniteDigit]
-    refine hval.trans (by rw [dyadicMagnitude, if_neg hge, mul_div_assoc])
+    refine hval.trans (by rw [dyadicMagnitude, ite_eq_right hge, mul_div_assoc])
 
 /-- The absolute value of a rounded finite digit equals its dyadic magnitude. -/
 theorem clause20_finite_digit_value_abs (x : ℝ) (bits : ℕ) :
     |(roundFiniteDigit x bits).value| = dyadicMagnitude x bits := by
   have hvm := clause20_finite_digit_value_eq x bits
   by_cases hneg : x < 0
-  · rw [hvm, if_pos hneg, abs_mul, abs_of_nonpos (by norm_num : (-1:ℝ) ≤ 0),
+  · rw [hvm, ite_eq_left hneg, abs_mul, abs_of_nonpos (by norm_num : (-1:ℝ) ≤ 0),
       abs_of_nonneg (clause20_dyadic_magnitude_nonneg x bits)]
     ring
-  · rw [hvm, if_neg hneg, abs_mul, abs_of_nonneg (by norm_num : (0:ℝ) ≤ (1:ℝ)),
+  · rw [hvm, ite_eq_right hneg, abs_mul, abs_of_nonneg (by norm_num : (0:ℝ) ≤ (1:ℝ)),
       abs_of_nonneg (clause20_dyadic_magnitude_nonneg x bits)]
     ring
 
@@ -178,7 +182,7 @@ theorem clause20_finite_digit_signed_error (x : ℝ) (bits : ℕ) :
   by_cases hneg : x < 0
   · have hvm := clause20_finite_digit_value_eq x bits
     have hval : (roundFiniteDigit x bits).value = -dyadicMagnitude x bits := by
-      rw [hvm, if_pos hneg]
+      rw [hvm, ite_eq_left hneg]
       ring
     rw [hval]
     have h1 : |x| = -x := abs_of_neg hneg
@@ -189,7 +193,7 @@ theorem clause20_finite_digit_signed_error (x : ℝ) (bits : ℕ) :
     linarith
   · have hvm := clause20_finite_digit_value_eq x bits
     have hval : (roundFiniteDigit x bits).value = dyadicMagnitude x bits := by
-      rw [hvm, if_neg hneg]
+      rw [hvm, ite_eq_right hneg]
       ring
     rw [hval]
     have h1 : |x| = x := abs_of_nonneg (not_lt.mp hneg)

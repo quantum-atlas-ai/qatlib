@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Statement of restricted expected-query Simon recovery

@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Basic
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
-import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Basic
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+
+@[expose] public section
 
 /-!
 # Definitions for refined minimum-search runtime bounds

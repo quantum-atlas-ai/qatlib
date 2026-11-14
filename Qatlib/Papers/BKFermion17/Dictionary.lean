@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BKFermion17.FermionEdge.Relations
+module
+
+public import Qatlib.Papers.BKFermion17.FermionEdge.Relations
+
+@[expose] public section
 
 /-!
 # Fermionic operators in the edge-generator dictionary
@@ -188,7 +192,7 @@ theorem numberOp_commute_annihilation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠
     eq_neg_of_add_eq_zero_left (car_ann n i j)
   have hcar : annihilation j * creation i + creation i * annihilation j = 0 := by
     have h := car_aa n j i
-    rw [if_neg (Ne.symm hij)] at h
+    rw [ite_eq_right (Ne.symm hij)] at h
     exact h
   have hca : creation i * annihilation j = -(annihilation j * creation i) := by
     have h2 : creation i * annihilation j + annihilation j * creation i = 0 := by
@@ -210,7 +214,7 @@ theorem numberOp_commute_creation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) 
     numberOp i * creation j = creation j * numberOp i := by
   have hac : annihilation i * creation j = -(creation j * annihilation i) := by
     have h := car_aa n i j
-    rw [if_neg hij] at h
+    rw [ite_eq_right hij] at h
     exact eq_neg_of_add_eq_zero_left h
   have hcc : creation i * creation j = -(creation j * creation i) :=
     eq_neg_of_add_eq_zero_left (car_cre n i j)
@@ -407,19 +411,19 @@ theorem annihilation_pair_commute_creation_pair {n : ℕ} (i j k l : Fin n)
       = creation k * creation l * annihilation i * annihilation j := by
   have hik' : annihilation i * creation k = -(creation k * annihilation i) := by
     have h := car_aa n i k
-    rw [if_neg hik] at h
+    rw [ite_eq_right hik] at h
     exact eq_neg_of_add_eq_zero_left h
   have hil' : annihilation i * creation l = -(creation l * annihilation i) := by
     have h := car_aa n i l
-    rw [if_neg hil] at h
+    rw [ite_eq_right hil] at h
     exact eq_neg_of_add_eq_zero_left h
   have hjk' : annihilation j * creation k = -(creation k * annihilation j) := by
     have h := car_aa n j k
-    rw [if_neg hjk] at h
+    rw [ite_eq_right hjk] at h
     exact eq_neg_of_add_eq_zero_left h
   have hjl' : annihilation j * creation l = -(creation l * annihilation j) := by
     have h := car_aa n j l
-    rw [if_neg hjl] at h
+    rw [ite_eq_right hjl] at h
     exact eq_neg_of_add_eq_zero_left h
   calc annihilation i * annihilation j * (creation k * creation l)
       = annihilation i * (annihilation j * creation k) * creation l := by

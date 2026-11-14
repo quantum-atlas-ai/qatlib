@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Born probabilities and energy coordinates
@@ -227,6 +231,7 @@ theorem born_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (i : I) :
   unfold BornProb
   simp only [Pi.smul_apply, smul_eq_mul, norm_mul, hc, one_mul]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Multiplication by a complex scalar of norm one preserves the measurement probability of
 every finite event. See [LidarWang1999]. -/
 theorem measureProb_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (S : Finset I) :
@@ -249,6 +254,7 @@ theorem energyAmplitude_gauge (V : Matrix I I ℂ) (c : ℂ) (ψ : QState I) (n 
   simp only [Pi.smul_apply, smul_eq_mul]
   ring
 
+omit [DecidableEq I] in
 /-- The product of the Born distributions of a normalized state over `n` fresh runs has total
 mass one. See [LidarWang1999]. -/
 theorem fresh_runs_total (n : ℕ) (ψ : QState I) (hψ : Normalized ψ) :

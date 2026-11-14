@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.HspRecovery.Reduction.Reductions
-import Mathlib.Computability.TuringMachine.StackTuringMachine
-import Mathlib.Data.Nat.Bits
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+public import Mathlib.Computability.TuringMachine.StackTuringMachine
+public import Mathlib.Data.Nat.Bits
+
+@[expose] public section
 
 /-!
 # Native circuit and generator endpoints

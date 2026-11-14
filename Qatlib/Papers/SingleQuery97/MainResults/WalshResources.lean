@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.EncoderCircuit
-import Qatlib.Papers.SingleQuery97.MainResults.WalshProgram
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.EncoderCircuit
+public import Qatlib.Papers.SingleQuery97.MainResults.WalshProgram
+
+@[expose] public section
 
 /-!
 # Walsh row weights and sparse encoding counts

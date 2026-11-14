@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
-import Qatlib.Concepts.MatrixWeights.ApproxGibbs
-import Qatlib.Concepts.SdpDuality.ConeSeparation.SdpRunMacros
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
+public import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.SdpRunMacros
+
+@[expose] public section
 
 /-!
 # Recorded histories and exact dual certificate sampling

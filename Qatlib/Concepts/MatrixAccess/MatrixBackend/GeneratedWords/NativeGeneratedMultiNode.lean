@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeGeneratedShiftBudget
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeGroupedNeumannConsumer
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeRationalColumnCertificate
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.HouseholderTableConsumer
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.FreshFlagWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeGeneratedShiftBudget
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeGroupedNeumannConsumer
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeRationalColumnCertificate
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.HouseholderTableConsumer
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 

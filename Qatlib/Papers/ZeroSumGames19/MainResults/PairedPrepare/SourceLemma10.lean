@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Mathlib.Data.Set.Card
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Mathlib.Data.Set.Card
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,11 +50,11 @@ open Qatlib.Papers.ZeroSumGames19.MainResults.GameModel
     cost is not formalised (the sparse oracle and QCRAM model are outside
     the paper-layer cost contracts). -/
 theorem source_lemma10_accuracy
-    {n m : ℕ} (hn : 0 < n) (hm : 0 < m)
-    (A : PayoffMatrix n m) (x : Fin n → ℝ) (t s : ℕ)
-    {β δ : ℝ} (hβ : 1 ≤ β) (hδ0 : 0 < δ) (hδ1 : δ < 1)
-    (hx_nonneg : ∀ i, 0 ≤ x i) (hxβ : ∑ i, x i ≤ β)
-    (hx_sparse : (Function.support x).ncard ≤ t) :
+    {n m : ℕ} (_hn : 0 < n) (hm : 0 < m)
+    (A : PayoffMatrix n m) (x : Fin n → ℝ) (t _s : ℕ)
+    {β δ : ℝ} (_hβ : 1 ≤ β) (hδ0 : 0 < δ) (_hδ1 : δ < 1)
+    (_hx_nonneg : ∀ i, 0 ≤ x i) (_hxβ : ∑ i, x i ≤ β)
+    (_hx_sparse : (Function.support x).ncard ≤ t) :
     IsDistribution (gibbsDist (fun j => colPayoff A x j)) ∧
     ∃ S : GibbsSampler m,
       IsDistribution S.output ∧

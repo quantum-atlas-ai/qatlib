@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.HighPrecisionLchsDefs
-import Mathlib.Analysis.Complex.Conformal
-import Mathlib.Analysis.Complex.OperatorNorm
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.HighPrecisionLchsDefs
+public import Mathlib.Analysis.Complex.Conformal
+public import Mathlib.Analysis.Complex.OperatorNorm
+
+@[expose] public section
 
 /-!
 # Refined high precision LCHS estimates
@@ -58,8 +62,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 /-- The difference between the closed and open lower half-planes is exactly the real axis. -/
 theorem clause30_kernel_domain_gap_eq_frontier : kernelDomainGap = kernelFrontier := by
   ext z
-  simp only [kernelDomainGap, Set.mem_diff, kernelFrontier, Set.mem_setOf_eq,
-    lowerClosedHalfPlane, Set.mem_setOf_eq, lowerOpenHalfPlane, Set.mem_setOf_eq]
+  simp only [kernelDomainGap, Set.mem_sdiff, kernelFrontier, Set.mem_ofPred_eq,
+    lowerClosedHalfPlane, Set.mem_ofPred_eq, lowerOpenHalfPlane, Set.mem_ofPred_eq]
   constructor
   · intro h
     exact le_antisymm h.1 (by linarith [h.2])
@@ -93,7 +97,7 @@ theorem clause30_closed_is_closure_of_open : closure lowerOpenHalfPlane = lowerC
     have hz' : (z - Complex.I * (ε / 2 : ℝ) : ℂ).im = z.im - ε / 2 := by
       rw [Complex.sub_im, him]
     refine ⟨z - Complex.I * (ε / 2 : ℝ), ?_, ?_⟩
-    · simp only [lowerOpenHalfPlane, Set.mem_setOf_eq]
+    · simp only [lowerOpenHalfPlane, Set.mem_ofPred_eq]
       rw [hz', h0]
       have h2 : (0 : ℝ) - ε / 2 < 0 := by
         have : ε / 2 > 0 := by positivity
@@ -119,7 +123,7 @@ theorem clause30_frontier_indicator_analytic_open :
   have hx' : x.im < 0 := hx
   show frontierIndicator x = (0 : ℂ)
   simp only [frontierIndicator]
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hz
   rw [hz] at hx'
   exact (lt_irrefl _ hx')
@@ -132,7 +136,7 @@ theorem clause30_frontier_indicator_not_continuous_closed :
   obtain ⟨δ, hδ0, hδ'⟩ :=
     hone (0 : ℂ) (by simp [lowerClosedHalfPlane]) (1 / 2 : ℝ) (by norm_num)
   have hmem : (-Complex.I * (δ / 2 : ℝ) : ℂ) ∈ lowerClosedHalfPlane := by
-    simp only [lowerClosedHalfPlane, Set.mem_setOf_eq]
+    simp only [lowerClosedHalfPlane, Set.mem_ofPred_eq]
     have him : (-Complex.I * (δ / 2 : ℝ) : ℂ).im = -(δ / 2) := by
       simp [Complex.mul_im, Complex.I_im]
     rw [him]
@@ -157,7 +161,7 @@ theorem clause30_frontier_indicator_not_continuous_closed :
   have hlt' : dist (frontierIndicator (-Complex.I * (δ / 2 : ℝ) : ℂ))
       (frontierIndicator (0 : ℂ)) < 1 / 2 := hlt
   rw [frontierIndicator, frontierIndicator] at hlt'
-  simp only [if_neg hne, Complex.zero_im, if_pos] at hlt'
+  simp only [ite_eq_right hne, Complex.zero_im, ite_eq_left] at hlt'
   simp at hlt'
   linarith
 
@@ -207,7 +211,7 @@ theorem clause30_conj_not_analytic_open :
               (f := fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) (R := ℝ)) 1
         _ = ⇑(↑conjCLE : ℂ →L[ℝ] ℂ) 1 := congrFun hlinkf 1
 
-    have h2 : (↑conjCLE : ℂ →L[ℝ] ℂ) 1 = 1 := by simp [conjCLE_apply]
+    have h2 : (↑conjCLE : ℂ →L[ℝ] ℂ) 1 = 1 := by simp []
     calc (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) 1 = (↑conjCLE : ℂ →L[ℝ] ℂ) 1 := h1
       _ = 1 := h2
   have hI : (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) Complex.I = -Complex.I := by
@@ -220,14 +224,14 @@ theorem clause30_conj_not_analytic_open :
               (f := fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) (R := ℝ)) Complex.I
         _ = ⇑(↑conjCLE : ℂ →L[ℝ] ℂ) Complex.I := congrFun hlinkf Complex.I
     have h2 : (↑conjCLE : ℂ →L[ℝ] ℂ) Complex.I = -Complex.I := by
-      simp [conjCLE_apply]
+      simp []
     calc (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) Complex.I
         = (↑conjCLE : ℂ →L[ℝ] ℂ) Complex.I := h1
       _ = -Complex.I := h2
   have hlin : (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) Complex.I
       = Complex.I * (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) 1 := by
     have hh := map_smul (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) Complex.I (1 : ℂ)
-    simpa [mul_one] using! hh
+    simp []
   have hcontra : Complex.I = -Complex.I := by
     calc Complex.I = 1 * Complex.I := by simp
       _ = (fderiv ℂ (conj : ℂ → ℂ) (-Complex.I)) 1 * Complex.I := by rw [hone]
@@ -338,6 +342,7 @@ theorem clause30_source_mass_independent_of_cells {Q M : ℕ} (K : ℕ) (node we
   rw [hdiv] at hmass
   nlinarith
 
+omit [DecidableEq I] in
 /-- A uniform source-vector norm bound gives a discrete source norm bound equal to the
 coefficient mass times that bound. -/
 theorem clause30_discrete_source_norm_le {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
@@ -389,6 +394,7 @@ theorem clause30_discrete_source_norm_le {Q M : ℕ} (K : ℕ) (node weight : Fi
             ‖sourceCellCoefficient K node weight κ m q‖) * σbound :=
           (Finset.sum_mul _ _ _).symm
 
+omit [Fintype I] [DecidableEq I] in
 /-- The discrete source term vanishes when every source vector is zero. -/
 theorem clause30_discrete_source_zero_of_zero {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) :
@@ -436,7 +442,7 @@ theorem clause30_entrywise_sup_does_not_bound_operator_norm (d : ℕ) (hd : 1 < 
     entrywiseSup (allOnesMatrix d) = 1 ∧ 1 < ‖allOnesMatrix d‖ := by
   constructor
   · have hd0 : 0 < d := by omega
-    haveI : Nonempty (Fin d) := ⟨⟨0, hd0⟩⟩
+    have : Nonempty (Fin d) := ⟨⟨0, hd0⟩⟩
     rw [entrywiseSup]
     simp [allOnesMatrix, ciSup_const]
   · rw [clause30_all_ones_operator_norm d (by omega)]
@@ -511,7 +517,7 @@ theorem clause31_near_optimal_ledger_reconciliation (β T Λ : ℝ) (K : ℕ) (�
       (lchs31NearOptimalLedger β T Λ K ε rounds shots).loadingBits = loadingBits ε ∧
       lchs31TotalCost (lchs31NearOptimalLedger β T Λ K ε rounds shots) =
         (lchs31NearOptimalLedger β T Λ K ε rounds shots).loadedPairs + rounds + shots := by
-  simp [lchs31NearOptimalLedger, lchs31TotalCost, compositeCostLedger] <;> ring
+  simp [lchs31NearOptimalLedger, lchs31TotalCost, compositeCostLedger]
 
 /-- The ledger records `compositeNodeCount β K ε` nodes per cell and `ceil(log(1 / ε) / log 2) +
 1` loading bits. -/

@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # A counterexample using expected query cost
@@ -128,7 +132,7 @@ iterations. -/
 theorem budgetOutput64_true (y z : Fin 64) :
     BudgetOutput64 y true z = BornProb (GroverState {y} 4) z := by
   unfold BudgetOutput64 BudgetOracle64 BudgetBranch64 BudgetStart64
-  simp only [if_true]
+  simp only [ite_true]
   rw [measureProb_run_liftCircuit_bitOracleOn]
   simp only [MeasureProb, Finset.sum_singleton, GroverState, SetOracle]
 
@@ -136,7 +140,7 @@ theorem budgetOutput64_true (y z : Fin 64) :
 theorem budgetOutput64_false (y z : Fin 64) :
     BudgetOutput64 y false z = 1 / 64 := by
   unfold BudgetOutput64 BudgetBranch64 BudgetStart64
-  simp only [Bool.false_eq_true, if_false, run_nil]
+  simp only [Bool.false_eq_true, ite_false, run_nil]
   rw [measureProb_tensorState_left normalized_minus, measureProb_uniform]
   norm_num
 

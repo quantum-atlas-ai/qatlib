@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
-import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+module
+
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
+public import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+
+@[expose] public section
 
 /-!
 # Sparse Simulation Eigenvector Contract

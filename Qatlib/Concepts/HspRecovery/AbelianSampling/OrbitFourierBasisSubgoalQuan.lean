@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasisSubgoalStat
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasisSubgoalStat
+
+@[expose] public section
 
 /-!
 # Orthogonality and translation eigenvalues of Fourier vectors
@@ -71,10 +75,10 @@ private theorem sum_conj_mul (χ η : AddChar E ℂ) :
   rw [Finset.sum_congr rfl (fun g _ => conj_mul_eq_mul_inv_apply E χ η g),
     AddChar.sum_eq_ite]
   by_cases h : χ = η
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     subst h
-    rw [if_pos ((mul_inv_cancel χ).trans AddChar.one_eq_zero)]
-  · rw [if_neg h, if_neg (fun hh =>
+    rw [ite_eq_left ((mul_inv_cancel χ).trans AddChar.one_eq_zero)]
+  · rw [ite_eq_right h, ite_eq_right (fun hh =>
       h ((mul_inv_eq_one.mp (hh.trans AddChar.one_eq_zero.symm)).symm))]
 
 omit [DecidableEq E] in
@@ -87,6 +91,8 @@ private theorem inv_sqrt_sq_mul_card :
     exact_mod_cast Fintype.card_pos
   rw [← Complex.ofReal_pow, ← Complex.ofReal_natCast, ← Complex.ofReal_mul, inv_pow,
     Real.sq_sqrt hq.le, inv_mul_cancel₀ hq.ne', Complex.ofReal_one]
+
+omit [DecidableEq E] in
 
 /-- Normalized character vectors are orthonormal: their inner product is one for equal
 characters and zero otherwise. -/
@@ -103,18 +109,18 @@ private theorem orbitFourierVec_inner (χ η : AddChar E ℂ) :
     ring
   rw [Finset.sum_congr rfl (fun g _ => hpt g), ← Finset.mul_sum, sum_conj_mul E χ η]
   by_cases h : χ = η
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     exact inv_sqrt_sq_mul_card E
-  · rw [if_neg h, if_neg h, mul_zero]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 
 /-- Translation by `g₀` acts on state coordinates by evaluating the original state at `i - g₀`. -/
 private theorem orbitRegMatrix_mulVec_apply (g₀ : E) (ψ : QState E) (i : E) :
     ((orbitRegMatrix E g₀) *ᵥ ψ) i = ψ (i - g₀) := by
   simp only [orbitRegMatrix, permMatrix, Matrix.mulVec, dotProduct, Matrix.of_apply]
   rw [Finset.sum_eq_single (i - g₀)]
-  · rw [if_pos (sub_add_cancel i g₀).symm, one_mul]
+  · rw [ite_eq_left (sub_add_cancel i g₀).symm, one_mul]
   · intro j _ hj
-    rw [if_neg (fun hij => hj (sub_eq_iff_eq_add.mpr hij).symm), zero_mul]
+    rw [ite_eq_right (fun hij => hj (sub_eq_iff_eq_add.mpr hij).symm), zero_mul]
   · simp
 
 /-- The Fourier vector for `χ` is an eigenvector of translation by `g₀` with eigenvalue `χ
@@ -148,10 +154,10 @@ private theorem orbitFourierVec_decomp :
   show _ = Ket (0 : E) g
   rw [ket_apply]
   by_cases h : g = 0
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     rw [← pow_two]
     exact inv_sqrt_sq_mul_card E
-  · rw [if_neg h, if_neg h, mul_zero]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 
 /-- The normalized character vectors are orthonormal translation eigenvectors with eigenvalue `χ
 (-g₀)`, and their equal amplitude sum gives `Ket 0` [Kitaev1995]. -/

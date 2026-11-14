@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
+
+set_option linter.style.haveILetI false
+
+@[expose] public section
 
 /-!
 # Bounds for Boolean quantum query minima

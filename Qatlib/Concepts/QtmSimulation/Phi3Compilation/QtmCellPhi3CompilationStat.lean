@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingStat
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingStat
+
+@[expose] public section
 
 /-!
 # The QTM window Φ3 compilation contract

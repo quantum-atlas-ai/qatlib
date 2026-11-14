@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaWordConsumers
+module
+
+public import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaWordConsumers
+
+@[expose] public section
 
 /-!
 # Shared Frame Complements and Guarded Blocks
@@ -54,14 +58,17 @@ frame, this is the orthogonal projection onto the complement of its range. -/
 noncomputable def sharedComplement (F : Matrix H I ℂ) : Matrix H H ℂ :=
   1 - F * Fᴴ
 
+omit [Fintype H] [DecidableEq H] [DecidableEq I] in
 /-- Identifies `F * Fᴴ` with the defined range matrix `rangeProjector F` for any frame matrix
 `F`. -/
 theorem sharedFrame_projector (F : Matrix H I ℂ) : F * Fᴴ = rangeProjector F := rfl
 
+omit [DecidableEq H] in
 /-- For an isometric frame `F`, its range projector acts as the identity on the columns of `F`. -/
 theorem sharedProjector_mul_F (F : Matrix H I ℂ) (hF : IsIsometry F) :
     F * Fᴴ * F = F := rangeProjector_mul hF
 
+omit [DecidableEq H] in
 /-- For an isometric frame `F`, the range projector `F * Fᴴ` is equal to its conjugate
 transpose. -/
 theorem sharedProjector_adjoint (F : Matrix H I ℂ) (hF : IsIsometry F) :
@@ -90,6 +97,7 @@ theorem sharedComplement_adjoint (F : Matrix H I ℂ) (hF : IsIsometry F) :
   simp only [sharedComplement, Matrix.conjTranspose_sub, Matrix.conjTranspose_one]
   rw [hp]
 
+omit [DecidableEq I] in
 /-- Expands left multiplication by `sharedComplement F` as subtraction of the frame range
 component `F * Fᴴ * X`. -/
 theorem sharedComplement_expand (F : Matrix H I ℂ) (X : Matrix H H ℂ) :
@@ -146,6 +154,7 @@ theorem l2_opNorm_one {n : Type} [Fintype n] [DecidableEq n] [Nonempty n] :
     norm_num
   exact h2
 
+omit [DecidableEq H] in
 /-- Left multiplication by an isometric frame preserves the Euclidean operator norm of a square
 matrix on its input space. -/
 theorem isometry_mul_norm_eq {F : Matrix H I ℂ} (hF : IsIsometry F)

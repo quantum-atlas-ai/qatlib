@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+@[expose] public section
 
 /-!
 # Branch-dependent cost execution and clocks
@@ -221,12 +225,12 @@ theorem branchClock_delay_halt (next : S → PMF ((O ⊕ S) × ℕ))
     haltJoint (branchClockNext next) (branchClockDelay cfg d) o k =
       if d ≤ k then haltJoint (branchClockNext next) (branchClockEmbed cfg) o (k-d) else 0 := by
   by_cases hfit : d ≤ k
-  · rw [if_pos hfit]
+  · rw [ite_eq_left hfit]
     unfold haltJoint
     rw [show k=d+(k-d) by omega, runFor_add, branchClock_countdown]
     simp only [CostedLaw.bind, PMF.pure_bind, charge_point_mass]
     simp [hfit]
-  · rw [if_neg hfit]
+  · rw [ite_eq_right hfit]
     unfold haltJoint
     have hd : d=(d-1)+1 := by omega
     rw [hd, branchClock_prefix next cfg k (d-1) (by omega)]
@@ -255,7 +259,7 @@ theorem branchClock_halt_running (next : S → PMF ((O ⊕ S) × ℕ))
     unfold haltJoint
     rw [branchClockEmbed, costClock_unit_succ]
     simp only [branchClockNext, PMF.bind_map, PMF.bind_apply, Function.comp_def,
-      charge_point_mass, show 1 ≤ k+1 by omega, if_true, Nat.add_sub_cancel]
+      charge_point_mass, show 1 ≤ k+1 by omega, ite_true, Nat.add_sub_cancel]
     change (∑' z : (O ⊕ S) × ℕ, next s z *
       haltJoint (branchClockNext next) (branchClockDelay z.1 (z.2-1)) o k) = _
     apply tsum_congr
@@ -266,10 +270,10 @@ theorem branchClock_halt_running (next : S → PMF ((O ⊕ S) × ℕ))
       rw [branchClock_delay_halt]
       have he : z.2-1 ≤ k ↔ z.2 ≤ k+1 := by omega
       by_cases hfit : z.2 ≤ k+1
-      · rw [if_pos (he.mpr hfit), if_pos hfit]
+      · rw [ite_eq_left (he.mpr hfit), ite_eq_left hfit]
         have hk : k-(z.2-1)=k+1-z.2 := by omega
         rw [hk]; rfl
-      · rw [if_neg (fun h => hfit (he.mp h)), if_neg hfit]
+      · rw [ite_eq_right (fun h => hfit (he.mp h)), ite_eq_right hfit]
 
 /-- With positive supported receipt costs, compiled-clock joint halting mass equals the original
 branch-cost joint halting mass. -/
@@ -340,10 +344,10 @@ theorem branch_cost_output_pending_never_conservation :
   apply tsum_congr
   intro o
   refine (tsum_eq_sum (s := Finset.range (n+1)) (fun k hk => ?_)).trans ?_
-  · rw [if_neg (by have := Finset.mem_range.not.mp hk; omega)]
+  · rw [ite_eq_right (by have := Finset.mem_range.not.mp hk; omega)]
   · apply Finset.sum_congr rfl
     intro k hk
-    rw [if_pos (by have := Finset.mem_range.mp hk; omega), branchClock_bridge next hp]
+    rw [ite_eq_left (by have := Finset.mem_range.mp hk; omega), branchClock_bridge next hp]
 
 /-- With positive supported receipt costs and finite expected compiled-clock time,
 nontermination mass is zero and expected time equals the cost-weighted branch halting sum.

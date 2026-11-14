@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
+
+@[expose] public section
 
 /-!
 # Specification of restricted QSP compilation

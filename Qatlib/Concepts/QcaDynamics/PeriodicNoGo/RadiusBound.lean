@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.FiniteKernel
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
-import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.KernelTransport
+module
+
+public import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.FiniteKernel
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+public import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.KernelTransport
+
+@[expose] public section
 
 /-!
 # Radius bounds for periodic scalar dynamics

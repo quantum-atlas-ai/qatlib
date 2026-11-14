@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Sort
-import Mathlib.Data.Finset.SDiff
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.GroupWithZero.Action
-import Mathlib.Data.Finsupp.SMul
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Data.Finset.SDiff
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.GroupWithZero.Action
+public import Mathlib.Data.Finsupp.SMul
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

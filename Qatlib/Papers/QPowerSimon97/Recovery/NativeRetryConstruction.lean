@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+@[expose] public section
 
 /-!
 # Native Simon retry construction interface

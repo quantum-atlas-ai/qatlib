@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorAction
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorAction
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 /-!
 # Mass preservation and spectral contraction
@@ -55,6 +59,7 @@ theorem walkA_add_walkB_mul (d : ℝ) : walkA d + walkB d * d = 1 := by
   · field_simp
     ring
 
+omit [DecidableEq V] in
 /-- The sum of a column of the adjacency matrix is the degree of its vertex. -/
 theorem sum_adjMatrix_column (G : SimpleGraph V) [DecidableRel G.Adj] (j : V) :
     (∑ i, adjMatrix G i j) = ((G.neighborFinset j).card : ℝ) := by
@@ -80,11 +85,11 @@ theorem walkM_column_sum (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
           walkB d * adjMatrix G i j) := by
         apply Finset.sum_congr rfl
         intro i _
-        simp [walkM, Pi.add_apply, Pi.smul_apply, Matrix.one_apply]
+        simp [walkM, Matrix.one_apply]
     _ = walkA d + walkB d * ((G.neighborFinset j).card : ℝ) := by
         rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum,
           sum_adjMatrix_column G j,
-          Finset.sum_ite_eq', if_pos (Finset.mem_univ j), mul_one]
+          Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ j), mul_one]
     _ = 1 := by
         rw [hreg j]
         exact walkA_add_walkB_mul d
@@ -114,6 +119,7 @@ theorem sum_walkM_pow_mulVec_eq (G : SimpleGraph V) [DecidableRel G.Adj] {d : �
     rw [pow_succ', ← Matrix.mulVec_mulVec,
       sum_walkM_mulVec_eq G hreg ((walkM G d ^ n) *ᵥ x), ih x]
 
+omit [DecidableEq V] in
 /-- The coordinates of the uniform vector on the component of `u` sum to one. -/
 theorem sum_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     (∑ v, uniformOn G u v) = 1 := by
@@ -144,7 +150,7 @@ theorem walkM_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ
     have hsum : (∑ w ∈ G.neighborFinset v, uniformOn G u w) =
         d * (1 / (compSize G u : ℝ)) := by
       rw [Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul, hreg v]
-    rw [hsum, uniformOn, if_pos hv]
+    rw [hsum, uniformOn, ite_eq_left hv]
     calc walkA d * (1 / (compSize G u : ℝ)) +
           walkB d * (d * (1 / (compSize G u : ℝ)))
         = (walkA d + walkB d * d) * (1 / (compSize G u : ℝ)) := by ring
@@ -156,7 +162,7 @@ theorem walkM_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ
       have hreach : ¬ G.Reachable u w :=
         fun hr => hv (hr.trans (reachable_of_mem_neighborFinset hw))
       simp [uniformOn, hreach]
-    rw [hsum, uniformOn, if_neg hv]
+    rw [hsum, uniformOn, ite_eq_right hv]
     ring
 
 /-- Every power of `walkM` on a regular graph fixes the uniform vector on the component of `u`. -/
@@ -222,6 +228,7 @@ theorem spectralGap_singleton (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   rw [hmul]
   simp [l2norm]
 
+omit [DecidableEq V] in
 /-- For `2 ≤ d`, the component contraction factor `1 - 8 / (d * (d + 1) ^ 2 * compSize G u ^ 2)`
 is positive. -/
 theorem spectral_coeff_pos (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
@@ -294,12 +301,12 @@ theorem l2norm_basisVec_sub_uniformOn_sq (G : SimpleGraph V) [DecidableRel G.Adj
     by_cases hv : v ∈ compSet G u
     · have hreach : G.Reachable u v := mem_compSet.mp hv
       have hu : uniformOn G u v = 1 / (compSize G u : ℝ) := by simp [uniformOn, hreach]
-      rw [Pi.sub_apply, hu, if_pos hv]
+      rw [Pi.sub_apply, hu, ite_eq_left hv]
       simp [basisVec]
     · have hreach : ¬ G.Reachable u v := fun h => hv (mem_compSet.mpr h)
       have hne : v ≠ u := fun h => hreach (h ▸ SimpleGraph.Reachable.rfl)
       have hu : uniformOn G u v = 0 := by simp [uniformOn, hreach]
-      rw [Pi.sub_apply, hu, if_neg hv, basisVec_apply_of_ne hne]
+      rw [Pi.sub_apply, hu, ite_eq_right hv, basisVec_apply_of_ne hne]
       ring
   rw [l2norm_sq_eq]
   simp only [hpt, Finset.sum_ite_mem, Finset.univ_inter]
@@ -313,7 +320,7 @@ theorem l2norm_basisVec_sub_uniformOn_sq (G : SimpleGraph V) [DecidableRel G.Adj
           (1 / (compSize G u : ℝ)) ^ 2 := by
       intro v hv
       have hne : v ≠ u := Finset.ne_of_mem_erase hv
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
     rw [Finset.sum_congr rfl hconst, Finset.sum_const, nsmul_eq_mul,
       Finset.card_erase_of_mem hmem]

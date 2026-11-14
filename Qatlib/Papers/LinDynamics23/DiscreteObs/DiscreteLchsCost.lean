@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+
+@[expose] public section
 
 /-!
 # Discrete LCHS vector and preparation stability

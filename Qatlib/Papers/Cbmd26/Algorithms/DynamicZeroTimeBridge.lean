@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
-import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
+public import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+
+@[expose] public section
 
 /-!
 # Exact state preparation at zero evolution time
@@ -110,7 +114,7 @@ theorem fullSystemHerald_exact (ψ : QState I) (hψ : Normalized ψ) :
   · change ConditionalState (Collapse ψ Finset.univ) = some ψ
     rw [hc]
     have hn := (normalized_iff_stateVector_norm ψ).mp hψ
-    simp only [ConditionalState, hp, zero_lt_one, if_true, postMeasure_univ_eq_smul, hn]
+    simp only [ConditionalState, hp, zero_lt_one, ite_true, postMeasure_univ_eq_smul, hn]
     simp
 
 /-- A unitary input-preparation matrix gives an exact normalized application of the zero-time

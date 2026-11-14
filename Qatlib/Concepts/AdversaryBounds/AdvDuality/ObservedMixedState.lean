@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Mixed state execution and continuation costs
@@ -465,7 +469,7 @@ continued circuit equal the prefix expectation plus the sum of continuation expe
 its unnormalized branch states. -/
 theorem mixed_continuation_actual_cost (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
-    (hP : observedWellFormed P) (k : Bool → ObservedCircuit (Fin D))
+    (_hP : observedWellFormed P) (k : Bool → ObservedCircuit (Fin D))
     (hk : ∀ b, observedWellFormed (k b)) (ρ : Operator D) :
     mixedExpectedQueries O (continueObserved P k) ρ = mixedExpectedQueries O P ρ +
       ((observedMixedTraces O P ρ).map

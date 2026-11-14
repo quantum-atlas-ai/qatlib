@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Query
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudget
-import Qatlib.Concepts.AmplitudeSearch.Amplification.InitializedBudgetCoupling
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Query
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudget
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.InitializedBudgetCoupling
+
+@[expose] public section
 
 /-!
 # Coupling query completion to minimum-finding success
@@ -52,7 +56,7 @@ theorem minimumBudgetSuccess_step (T : Fin N → α) (hN1 : N ≠ 1)
         (fun candidate remaining => if remaining < budget then
           minimumBudgetSuccess T remaining (checkedUpdate T current candidate) else 0)
         (fun _ => if ∀ j, T current ≤ T j then 1 else 0) := by
-  rw [minimumBudgetSuccess, minimumBudgetEval_eq, if_neg hN1]
+  rw [minimumBudgetSuccess, minimumBudgetEval_eq, ite_eq_right hN1]
   rfl
 
 /-- For a sorted ranked table, the query-clock completion mass is bounded by the actual budgeted

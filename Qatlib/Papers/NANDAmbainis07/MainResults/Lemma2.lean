@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NANDAmbainis07.MainResults.CertificateAmplitude
+module
+
+public import Qatlib.Papers.NANDAmbainis07.MainResults.CertificateAmplitude
+
+@[expose] public section
 
 /-!
 # Certificate amplitudes in the Hamiltonian kernel
@@ -53,7 +57,7 @@ lemma row_eq_Hmul (x : ℕ → Bool) {e : NNode} (w : W x e) (p : Vtx) :
 the intermediate and selected leaf counts are positive. -/
 lemma hEdge_cancel {mroot mz my : ℕ} (hz : 0 < mz) (hy : 0 < my) :
     hEdge true mroot mz = hEdge false mz my * cval mroot my := by
-  simp only [hEdge, if_true, cval]
+  simp only [hEdge, ite_true, cval]
   exact kernel_coef_id (by positivity) (by exact_mod_cast hz) (by exact_mod_cast hy)
 
 /-- Transfers a constant amplitude scaling along a two-entry prefix to the same scaling of rows

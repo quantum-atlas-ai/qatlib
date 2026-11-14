@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCatalysis20.MainResults.FiniteMajoranaWord
-import Qatlib.Foundations.MatrixGeometry.AxisRotations.ComplexStructureExp
+module
+
+public import Qatlib.Papers.QCatalysis20.MainResults.FiniteMajoranaWord
+public import Qatlib.Foundations.MatrixGeometry.AxisRotations.ComplexStructureExp
+
+@[expose] public section
 
 /-!
 # Physical Majorana synthesis
@@ -79,7 +83,7 @@ theorem majoranaRotation_eq_exp {N : ℕ} {H : Type*} [Fintype H] [DecidableEq H
     (γ : Fin N→Matrix H H ℂ) (hsq : ∀p,γ p*γ p=1)
     (hanti : ∀p q,p≠q→γ p*γ q= -(γ q*γ p)) (p q : Fin N) (hpq : p≠q) (θ : ℝ) :
     majoranaRotation γ p q θ=NormedSpace.exp (θ•(γ p*γ q)) := by
-  letI : NormedAlgebra ℚ (Matrix H H ℂ) := NormedAlgebra.restrictScalars ℚ ℝ (Matrix H H ℂ)
+  let : NormedAlgebra ℚ (Matrix H H ℂ) := NormedAlgebra.restrictScalars ℚ ℝ (Matrix H H ℂ)
   have he := exp_square_neg_one (A:=Matrix H H ℂ) (γ p*γ q) (pairGenerator_sq γ hsq hanti p q hpq) θ
   exact he.symm
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.DotProduct
-import Mathlib.Data.Complex.BigOperators
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+public import Mathlib.Basic.Complex.BigOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

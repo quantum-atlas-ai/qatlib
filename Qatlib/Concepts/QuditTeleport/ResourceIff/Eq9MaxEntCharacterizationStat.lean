@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9Aux
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9Aux
+
+@[expose] public section
 
 /-!
 # The Eq. (9) pure-resource characterization contract

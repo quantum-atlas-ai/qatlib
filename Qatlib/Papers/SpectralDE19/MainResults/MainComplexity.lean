@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ The three conjuncts correspond to (8.11), (8.15) (success probability `Ω(1)`), 
 (query complexity). -/
 theorem theorem1_main_result (P : ODEComplexity) (k : ℕ)
     (hκV : 1 ≤ P.kappaV) (hA : 0 ≤ P.Anorm) (hT : 0 ≤ P.T) (hq : 0 ≤ P.q)
-    (hs : 0 ≤ (P.s : ℝ)) (hε : 0 < P.eps) (hg : 0 < P.g) (hg' : 0 ≤ P.g')
+    (hs : 0 ≤ (P.s : ℝ)) (_hε : 0 < P.eps) (_hg : 0 < P.g) (_hg' : 0 ≤ P.g')
     -- (8.13): `m + p = O(‖A‖ T)`; the factor `2` is the implicit constant of the big-O.
     (hmp : ((P.m + P.p : ℕ) : ℝ) ≤ 2 * P.Anorm * P.T)
     -- (8.6): `n = O(poly(log(κ_V s ‖A‖ g' T / (ε g))))`.
@@ -154,8 +158,8 @@ Here (8.19)–(8.20) are the analogues of (8.9)–(8.11): the solution error is 
 theorem corollary1_time_independent (P : ODEComplexity) (k : ℕ)
     (gammaNorm fnorm tau : ℝ)
     (hκV : 1 ≤ P.kappaV) (hA : 0 ≤ P.Anorm) (hT : 0 ≤ P.T) (hq : 0 ≤ P.q)
-    (hs : 0 ≤ (P.s : ℝ)) (hε : 0 < P.eps) (hg : 0 < P.g)
-    (hγ : 0 ≤ gammaNorm) (hf : 0 ≤ fnorm) (hτ : 0 ≤ tau)
+    (hs : 0 ≤ (P.s : ℝ)) (_hε : 0 < P.eps) (_hg : 0 < P.g)
+    (_hγ : 0 ≤ gammaNorm) (_hf : 0 ≤ fnorm) (_hτ : 0 ≤ tau)
     (hmp : ((P.m + P.p : ℕ) : ℝ) ≤ 2 * P.Anorm * P.T)
     -- (8.17): `n` is chosen from `Ω` built with `‖γ‖ + 2τ‖f‖`.
     (hn : (P.n : ℝ) ≤ odePolylogTI P gammaNorm fnorm k)
@@ -253,7 +257,7 @@ The `‖A‖⁴ T⁴` factor comes from (9.6): `n = O(‖A‖ T · poly(log Ω, 
 QLSA cost becomes `(‖A‖ T)⁴ · polylog⁴`. -/
 theorem theorem2_bvp_query_complexity (P : BVPComplexity) (k : ℕ)
     (hκV : 1 ≤ P.kappaV) (hA : 0 ≤ P.Anorm) (hT : 0 ≤ P.T) (hq : 0 ≤ P.q)
-    (hs : 0 ≤ (P.s : ℝ)) (hε : 0 < P.eps) (hg : 0 < P.g) (hg' : 0 ≤ P.g')
+    (hs : 0 ≤ (P.s : ℝ)) (_hε : 0 < P.eps) (_hg : 0 < P.g) (_hg' : 0 ≤ P.g')
     -- `p = O(1)` (the analysis preceding (9.13)); the factor `3` is the implicit constant.
     (hp : (P.p : ℝ) ≤ 1)
     -- (9.6): `n = O(‖A‖ T · poly(log Ω, log ω))`.
@@ -308,9 +312,9 @@ For a time-independent boundary value problem, `g'` may be replaced by `‖γ‖
 `O(κ_V s ‖A‖⁴ T⁴ q poly(log(κ_V s γ ‖A‖ ‖f‖ T / (ε g))))` queries. -/
 theorem corollary2_time_independent_bvp (P : BVPComplexity) (k : ℕ)
     (gammaNorm fnorm : ℝ)
-    (hκV : 1 ≤ P.kappaV) (hA : 0 ≤ P.Anorm) (hT : 0 ≤ P.T) (hq : 0 ≤ P.q)
-    (hs : 0 ≤ (P.s : ℝ)) (hε : 0 < P.eps) (hg : 0 < P.g)
-    (hγ : 0 ≤ gammaNorm) (hf : 0 ≤ fnorm)
+    (hκV : 1 ≤ P.kappaV) (_hA : 0 ≤ P.Anorm) (_hT : 0 ≤ P.T) (hq : 0 ≤ P.q)
+    (hs : 0 ≤ (P.s : ℝ)) (_hε : 0 < P.eps) (_hg : 0 < P.g)
+    (_hγ : 0 ≤ gammaNorm) (_hf : 0 ≤ fnorm)
     (hp : (P.p : ℝ) ≤ 1)
     (hn : (P.n : ℝ) ≤ P.Anorm * P.T * bvpPolylogTI P gammaNorm fnorm k)
     (hbound : P.errorBound ≤ P.eps)

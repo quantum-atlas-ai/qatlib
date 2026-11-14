@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9ExtAux
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+module
+
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9ExtAux
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+@[expose] public section
 
 /-!
 # Sparse overlap encoding of the V2 Taylor system
@@ -78,7 +82,7 @@ theorem taylorV2_entry_norm_le (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖ 
         have hm := Nat.mod_eq_zero_of_dvd hj.2.2.1
         omega
       have hp : ¬ (m*(k+1) < r.1.val ∧ c.1.val+1=r.1.val) := by omega
-      simp only [taylorStepMatrixV2, if_neg hrc, if_pos hs, if_neg hj, if_neg hp,
+      simp only [taylorStepMatrixV2, ite_eq_right hrc, ite_eq_left hs, ite_eq_right hj, ite_eq_right hp,
         zero_sub, sub_zero, norm_neg, norm_div, Complex.norm_natCast]
       have hd : (1 : ℝ) ≤ (r.1.val%(k+1) : ℕ) := by exact_mod_cast hs.2.1
       apply (div_le_one (by linarith : (0 : ℝ) < (r.1.val%(k+1) : ℕ))).mpr
@@ -86,10 +90,10 @@ theorem taylorV2_entry_norm_le (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖ 
     · by_cases hj : r.1.val ≤ m*(k+1) ∧ 0 < r.1.val ∧ (k+1) ∣ r.1.val ∧
           r.1.val-(k+1) ≤ c.1.val ∧ c.1.val < r.1.val
       · have hp : ¬ (m*(k+1) < r.1.val ∧ c.1.val+1=r.1.val) := by omega
-        simp only [taylorStepMatrixV2, if_neg hrc, if_neg hs, if_pos hj, if_neg hp,
+        simp only [taylorStepMatrixV2, ite_eq_right hrc, ite_eq_right hs, ite_eq_left hj, ite_eq_right hp,
           zero_sub, sub_zero, norm_neg]
         split_ifs <;> norm_num
-      · simp only [taylorStepMatrixV2, if_neg hrc, if_neg hs, if_neg hj, sub_zero]
+      · simp only [taylorStepMatrixV2, ite_eq_right hrc, ite_eq_right hs, ite_eq_right hj, sub_zero]
         split_ifs <;> norm_num
 
 /-- The number of labels in `Fin d` whose values lie in the half-open interval [a, b) is at most
@@ -136,7 +140,7 @@ private theorem taylorV2_nonzero_support (m k p : ℕ) (M : Matrix N N ℂ)
     · exact False.elim (h.2.2.2 hp.2 he)
     · rfl
     · rfl
-  exact hn (by simp only [taylorStepMatrixV2,if_neg h.1,hs,hj,hp,sub_zero])
+  exact hn (by simp only [taylorStepMatrixV2,ite_eq_right h.1,hs,hj,hp,sub_zero])
 
 /-- If each generator row has at most s nonzero entries, each V2 Taylor row has at most k + s +
 3 nonzero entries. -/
@@ -189,7 +193,7 @@ theorem taylorV2_col_sparse (s m k p : ℕ) (M : Matrix N N ℂ)
   have hnext (r : Fin (m*(k+1)+p+1)) (hr : c.1.val+1=r.val) : r=next := by
     have ht : c.1.val+1 < m*(k+1)+p+1 := by omega
     apply Fin.ext
-    simp only [next,dif_pos ht]
+    simp only [next,dite_eq_left ht]
     omega
   have hsub : (Finset.univ.filter (fun r => taylorStepMatrixV2 m k p M r c ≠ 0)) ⊆
       ({c} ∪ S) ∪ (J ∪ {(next,c.2)}) := by

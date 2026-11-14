@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedAccessDefs
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedAccessDefs
+
+@[expose] public section
 
 /-!
 # Paired sparse access and positive-operator access
@@ -69,24 +73,24 @@ theorem colLookup_ne_of_entry_zero (D : SparseAccess I O sr sc) (hD : SparseAcce
 /-- Inverse row lookup returns `none` for a zero matrix entry. -/
 theorem rowUnlookup_eq_none (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hz : D.entry i o = 0) : rowUnlookup D hD i o = none := by
-  simp [rowUnlookup, dif_pos hz]
+  simp [rowUnlookup, dite_eq_left hz]
 
 /-- Inverse row lookup of a nonzero entry returns its canonical row slot. -/
 theorem rowUnlookup_eq_some (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hne : D.entry i o ≠ 0) :
     rowUnlookup D hD i o = some (rowSlotOf D hD i o hne) := by
-  simp [rowUnlookup, dif_neg hne]
+  simp [rowUnlookup, dite_eq_right hne]
 
 /-- Inverse column lookup returns `none` for a zero matrix entry. -/
 theorem colUnlookup_eq_none (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hz : D.entry i j = 0) : colUnlookup D hD j i = none := by
-  simp [colUnlookup, dif_pos hz]
+  simp [colUnlookup, dite_eq_left hz]
 
 /-- Inverse column lookup of a nonzero entry returns its canonical column slot. -/
 theorem colUnlookup_eq_some (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hne : D.entry i j ≠ 0) :
     colUnlookup D hD j i = some (colSlotOf D hD j i hne) := by
-  simp [colUnlookup, dif_neg hne]
+  simp [colUnlookup, dite_eq_right hne]
 
 /-- Looking up the canonical row slot of a nonzero entry returns its column address. -/
 theorem rowLookup_rowUnlookup (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
@@ -204,9 +208,9 @@ theorem permMatrix_mulVec_apply {J : Type*} [Fintype J] [DecidableEq J] (σ : J 
   calc ∑ j, (if x = σ j then 1 else 0) * v j = (if x = σ y0 then 1 else 0) * v y0 :=
       Fintype.sum_eq_single y0 (by
         intro j hj
-        rw [if_neg (fun h => hj (hσ (h.symm.trans hy0.symm)))]
+        rw [ite_eq_right (fun h => hj (hσ (h.symm.trans hy0.symm)))]
         simp)
-    _ = v y0 := by rw [if_pos hy0.symm]; simp
+    _ = v y0 := by rw [ite_eq_left hy0.symm]; simp
 
 /-- The cross-register block-diagonal matrix acts on a basis vector by the selected block and
 preserves the block and spectator indices. -/
@@ -226,13 +230,13 @@ theorem blockDiagCross_mulVec_ket {A B C : Type*} [Fintype A] [DecidableEq A] [F
         intro x hx
         have hK : Qatlib.Foundations.PureStateMath.Ket (b, (a, c)) x = 0 := by
           show (if x = (b, (a, c)) then 1 else 0) = 0
-          rw [if_neg hx]
+          rw [ite_eq_right hx]
         rw [hK]
         simp)
     _ = if a' = a ∧ c' = c then (blk a) b' b else 0 := by
       have hK : Qatlib.Foundations.PureStateMath.Ket (b, (a, c)) (b, (a, c)) = 1 := by
         show (if (b, (a, c)) = (b, (a, c)) then 1 else 0) = 1
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
       rw [hK]
       by_cases ha : a' = a <;> by_cases hc : c' = c <;> simp [ha, hc]
 
@@ -250,13 +254,13 @@ theorem blockDiagFirst_mulVec_ket {A B : Type*} [Fintype A] [DecidableEq A] [Fin
         intro x hx
         have hK : Qatlib.Foundations.PureStateMath.Ket (a, b) x = 0 := by
           show (if x = (a, b) then 1 else 0) = 0
-          rw [if_neg hx]
+          rw [ite_eq_right hx]
         rw [hK]
         simp)
     _ = if a' = a then (blk a) b' b else 0 := by
       have hK : Qatlib.Foundations.PureStateMath.Ket (a, b) (a, b) = 1 := by
         show (if (a, b) = (a, b) then 1 else 0) = 1
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
       rw [hK]
       by_cases ha : a' = a <;> simp [ha]
 
@@ -301,10 +305,10 @@ theorem rankOneEffect_ne (I : Type*) [Fintype I] [DecidableEq I] (i j : I) (hij 
   have h11 := congrFun (congrFun h i) i
   have hK : Ket j i = 0 := by
     show (if i = j then 1 else 0) = 0
-    rw [if_neg hij]
+    rw [ite_eq_right hij]
   have hL : Ket i i = 1 := by
     show (if i = i then 1 else 0) = 1
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   simp only [rankOneEffect, outerProduct_apply, hK, hL] at h11
   norm_num at h11
 

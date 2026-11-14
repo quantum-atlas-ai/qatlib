@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Reflection
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.WalkSpatial08.MainResults.SearchDefs
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Reflection
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Control rotations and the lattice target state
@@ -71,7 +75,7 @@ theorem Xdelta_transpose_mulVec_ket0 (δ : ℝ) :
     mulVec (transpose (Xdelta δ)) ket0 = delta0 δ := by
   funext i
   fin_cases i <;>
-    simp [mulVec, dotProduct, transpose, Xdelta, ket0, delta0, Fin.sum_univ_two]
+    simp [mulVec, dotProduct, transpose, Xdelta, ket0, delta0]
 
 /-- The transpose control rotation sends `ket1` to `delta1 δ`. -/
 theorem Xdelta_transpose_mulVec_ket1 (δ : ℝ) :
@@ -106,13 +110,12 @@ theorem Xdelta_conj_rankOne_ket1 (δ : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [rankOne, Xdelta, ket1, delta1, Matrix.mul_apply, Fin.sum_univ_two,
-      transpose] <;>
-    ring
+      transpose]
 
 /-- The matrix `Zbar` negates `ket0`. -/
 theorem Zbar_mulVec_ket0 : mulVec Zbar ket0 = fun i => -(ket0 i) := by
   funext i
-  fin_cases i <;> simp [Zbar, ket0, mulVec, dotProduct, Fin.sum_univ_two]
+  fin_cases i <;> simp [Zbar, ket0, mulVec, dotProduct]
 
 /-- The matrix `Zbar` fixes `ket1`. -/
 theorem Zbar_mulVec_ket1 : mulVec Zbar ket1 = ket1 := by
@@ -127,7 +130,7 @@ theorem delta1_inner_ket1 (δ : ℝ) :
 /-- The real inner product of `delta1 δ` with `ket0` is `-sin δ`. -/
 theorem delta1_inner_ket0 (δ : ℝ) :
     (∑ i : Fin 2, delta1 δ i * ket0 i) = -Real.sin δ := by
-  simp [Fin.sum_univ_two, delta1, ket0]
+  simp [delta1, ket0]
 
 /-- The real four-dimensional coin vector with every amplitude equal to one half. -/
 def uniformCoin : Fin 4 → ℝ := fun _ => 1 / 2
@@ -145,7 +148,7 @@ def targetState (n : ℕ) (δ : ℝ) (m : Site n) : JointIndex n → ℝ :=
 theorem targetState_eq_zero_of_ne (n : ℕ) (δ : ℝ) (m s : Site n) (h : s ≠ m) :
     ∀ b c, targetState n δ m (b, c, s) = 0 := by
   intro b c
-  simp only [targetState, if_neg h, mul_zero]
+  simp only [targetState, ite_eq_right h, mul_zero]
 
 /-- A target amplitude is the rotated control amplitude times one half, restricted to the marked
 site. -/

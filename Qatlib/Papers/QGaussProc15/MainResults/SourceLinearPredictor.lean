@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGaussProc15.MainResults.SourceMeasurementReadout
+module
+
+public import Qatlib.Papers.QGaussProc15.MainResults.SourceMeasurementReadout
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,7 +74,6 @@ theorem source_linear_predictor_estimator {n : ℕ} (μ : Fin n → Fin n → �
   have hck' : ck ≠ 0 := hck.ne'
   have hcy' : cy ≠ 0 := hcy.ne'
   field_simp
-  try ring
 
 /-- **Fixed arXiv:1512.03929v1, page 4, Eq. (10) (c004), GPR form.**
 The c004 estimator recovers exactly the classical GPR linear predictor

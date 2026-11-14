@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SymQueryComm20.MainResults.SourceComplexity
+module
+
+public import Qatlib.Papers.SymQueryComm20.MainResults.SourceComplexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,7 +103,7 @@ theorem reduction_and {n l m : ℕ} (r : Cube n → Bool) (G : Cube l → Cube m
   by_cases h : ∀ i : Fin n, ∃ b, hadamardization G
       ((fun a => and2 (prepAliceAnd (m := m) X (i, Sum.inl a)) (prepBobAnd (l := l) Y (i, Sum.inl a)),
         fun b => and2 (prepAliceAnd (m := m) X (i, Sum.inr b)) (prepBobAnd (l := l) Y (i, Sum.inr b)))) = some b
-  · rw [dif_pos h]
+  · rw [dite_eq_left h]
     apply congrArg r
     funext i
     exact (Option.some.injEq _ _).mp
@@ -123,7 +127,7 @@ theorem reduction_xor {n l m : ℕ} (r : Cube n → Bool) (G : Cube l → Cube m
   by_cases h : ∀ i : Fin n, ∃ b, hadamardization G
       ((fun a => xor2 (prepAliceXor (m := m) X (i, Sum.inl a)) (prepBobXor (l := l) Y (i, Sum.inl a)),
         fun b => xor2 (prepAliceXor (m := m) X (i, Sum.inr b)) (prepBobXor (l := l) Y (i, Sum.inr b)))) = some b
-  · rw [dif_pos h]
+  · rw [dite_eq_left h]
     apply congrArg r
     funext i
     exact (Option.some.injEq _ _).mp

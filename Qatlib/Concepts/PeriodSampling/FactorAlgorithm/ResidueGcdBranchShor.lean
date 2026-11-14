@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAuxiliary
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAuxiliary
+
+@[expose] public section
 
 /-!
 # Correctness of the residue gcd branch
@@ -41,13 +45,13 @@ theorem residueGcdBranch : ResidueGcdBranch := by
   · intro y hy
     refine ⟨ZMod.unitOfCoprime y.val hy, ?_, ?_⟩
     · unfold residueCoprimeUnit
-      rw [dif_pos hy]
+      rw [dite_eq_left hy]
     · rw [ZMod.coe_unitOfCoprime]
       simp
   · intro u
     have h := ZMod.val_coe_unit_coprime u
     unfold residueCoprimeUnit
-    rw [dif_pos h]
+    rw [dite_eq_left h]
     congr 1
     apply Units.ext
     rw [ZMod.coe_unitOfCoprime]

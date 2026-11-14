@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.MixturePaths
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.ReferenceError.MixturePaths
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Remainders for unitary Hamiltonian evolution
@@ -55,7 +59,7 @@ private theorem hamiltonian_line_exp (D : ℕ) (H : Operator D) (τ u : ℝ) :
       HamiltonianEvolution H (u * τ) := by
   congr 1
   ext i j
-  simp [Matrix.smul_apply, Complex.real_smul]
+  simp [ Matrix.smul_apply, Complex.real_smul]
   ring
 
 /-- The operator norm of `(-iτ) • H` is `|τ| * ‖H‖`. -/
@@ -191,7 +195,7 @@ theorem hamiltonian_reference_first_order_remainder
     have hm : (Complex.I * (τ : ℂ)) •
         (TensorGate H (1 : Operator r) * ρ - ρ * TensorGate H (1 : Operator r)) =
         -(A * ρ) + ρ * A := by
-      simp [A, neg_mul, neg_smul, sub_eq_add_neg]
+      simp [A, neg_mul, neg_smul,  sub_eq_add_neg]
     rw [hm, Matrix.conjTranspose_sub, Matrix.conjTranspose_sub,
       Matrix.conjTranspose_one, hAH]
     noncomm_ring

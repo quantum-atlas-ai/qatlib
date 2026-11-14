@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmeticDefs
+module
+
+public import Qatlib.Foundations.IntervalArith.IntervalOps.RationalIntervalArithmeticDefs
+
+@[expose] public section
 
 /-!
 # Correctness of rational interval arithmetic
@@ -206,7 +210,7 @@ theorem g3 :
       exact div_le_div_of_nonneg_left hw0 (sq_pos_of_pos hg) hprod
     have hmul := g2 a r ha hr
     have hcond : 0<gap ∧ gap≤b.lo ∧ Valid a ∧ Valid b := ⟨hg,hgb,ha,hb⟩
-    refine ⟨mul a r,by simp only [divPositive,if_pos hcond]; rfl,hmul.2.1,?_,?_⟩
+    refine ⟨mul a r,by simp only [divPositive,ite_eq_left hcond]; rfl,hmul.2.1,?_,?_⟩
     · calc
         _ ≤ radius a*width r+radius r*width a := hmul.2.2.2.1
         _ ≤ radius a*(width b/gap^2)+(1/gap)*width a :=
@@ -230,6 +234,6 @@ theorem g3 :
       · exact not_lt_of_ge hgb hbad
       · exact hbad ha
       · exact hbad hb
-    exact if_neg hn
+    exact ite_eq_right hn
 
 end Qatlib.Foundations.IntervalArith.IntervalOps

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.Spectral
-import Mathlib.Order.Interval.Finset.Nat
+module
+
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.Spectral
+public import Mathlib.Order.Interval.Finset.Nat
+
+@[expose] public section
 
 /-!
 # Centered lattice coordinates and box counts
@@ -131,7 +135,7 @@ theorem waveVector_sq (n : ℕ) (m : Fin d → ZMod n) (j : Fin d) :
 at least `16 / n ^ 2` times the square of the maximum coordinate norm. -/
 theorem dispersion_ge_maxNorm_sq {n : ℕ} [NeZero d] (hn : 0 < n) (m : Fin d → ZMod n) :
     (16 / (n : ℝ) ^ 2) * ((maxNorm n m : ℝ)) ^ 2 ≤ dispersion (waveVector n m) := by
-  haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
+  have : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
   have hpi : (0:ℝ) < Real.pi := Real.pi_pos
   have hbase : (4 / Real.pi ^ 2) * ∑ j, (waveVector n m j) ^ 2
       ≤ dispersion (waveVector n m) :=
@@ -161,7 +165,7 @@ dispersion is at most `n ^ 2 / (16 * maxNorm n m ^ 2)`. -/
 theorem inv_dispersion_le {n : ℕ} [NeZero d] (hn : 0 < n) {m : Fin d → ZMod n} (hm : m ≠ 0) :
     (dispersion (waveVector n m))⁻¹
       ≤ (n : ℝ) ^ 2 / (16 * ((maxNorm n m : ℝ)) ^ 2) := by
-  haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
+  have : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
   have hnpos : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn
   have hr : (1:ℝ) ≤ (maxNorm n m : ℝ) := by exact_mod_cast maxNorm_pos_of_ne_zero hm
   have hrpos : (0:ℝ) < (maxNorm n m : ℝ) := by linarith
@@ -291,7 +295,7 @@ theorem finOfCoord_injOn (n s : ℕ) {x y : Fin d → ZMod n}
           simpa using h2
         omega⟩ := by
       unfold finOfCoord
-      rw [dif_pos hx']
+      rw [dite_eq_left hx']
     have hyr : finOfCoord n s y j = ⟨((y j).valMinAbs + (s : ℤ)).toNat, by
         have hc : ((y j).valMinAbs.natAbs : ℕ) ≤ s := le_trans (coordNat_le_maxNorm n y j) hy'
         have hc' : ((y j).valMinAbs.natAbs : ℤ) ≤ (s : ℤ) := by exact_mod_cast hc
@@ -304,7 +308,7 @@ theorem finOfCoord_injOn (n s : ℕ) {x y : Fin d → ZMod n}
           simpa using h2
         omega⟩ := by
       unfold finOfCoord
-      rw [dif_pos hy']
+      rw [dite_eq_left hy']
     rw [hxr, hyr] at hcongr'
     exact congrArg Fin.val hcongr'
   have hnx := coord_add_nonneg n s x hx' j

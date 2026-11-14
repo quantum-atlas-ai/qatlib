@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionParsing
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionParsing
+
+@[expose] public section
 
 /-!
 # Reading signed rational division inputs
@@ -141,7 +145,7 @@ theorem reader_run (sa sb : Bool) (A D B C : Bits) (W : Fin 6 → Bits) :
     dite_true, dite_false] at hA hD hB
   norm_num at hA hD hB
   have htwo : (⟨2,by decide⟩ : Fin 3) = 2 := rfl
-  try rw [htwo] at hD
+
   rw [show readerSteps A D B C = 2+((2*A.length+1)+((2*D.length+1)+
     ((2*B.length+1)+(C.length+1)))) by dsimp [readerSteps]; omega]
   rw [run_add,sign_run,Option.bind_some,run_add,hA,Option.bind_some,

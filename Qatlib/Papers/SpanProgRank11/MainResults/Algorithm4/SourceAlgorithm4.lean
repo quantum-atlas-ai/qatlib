@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgRank11.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.SpanProgRank11.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,7 +62,7 @@ per simulation.
 Reused source subroutines: quantum phase estimation (paper [16,18]) and
 quantum amplitude amplification (paper [4]); in the shared library these live
 under `AmplitudeCore.PhaseEstimation` and `QueryComplexity.Amplification`. -/
-theorem source_algorithm4 (n : ℕ) (L T : ℝ) (hL : 0 ≤ L) (hT : 0 ≤ T) :
+theorem source_algorithm4 (n : ℕ) (L T : ℝ) (_hL : 0 ≤ L) (_hT : 0 ≤ T) :
     ∃ C : ℝ, 0 < C ∧
       determinantSimulationCount n L * T ≤ C * Real.sqrt (n : ℝ) * L * T := by
   refine ⟨1, one_pos, ?_⟩
@@ -70,7 +74,7 @@ theorem source_algorithm4 (n : ℕ) (L T : ℝ) (hL : 0 ≤ L) (hT : 0 ≤ T) :
 /-- The `Õ(√n · L · T)` form of Algorithm 4: the polylogarithmic factor is made
 explicit as `(log (n + 2))^k`, with some exponent `k`.  Taking `k = 0` (the
 bound without logarithmic overhead) discharges the `Õ` claim. -/
-theorem source_algorithm4_orderNotation (n : ℕ) (L T : ℝ) (hL : 0 ≤ L) (hT : 0 ≤ T) :
+theorem source_algorithm4_orderNotation (n : ℕ) (L T : ℝ) (_hL : 0 ≤ L) (_hT : 0 ≤ T) :
     ∃ (k : ℕ) (C : ℝ), 0 < C ∧
       determinantSimulationCount n L * T ≤
         C * Real.sqrt (n : ℝ) * L * T * (Real.log ((n : ℝ) + 2)) ^ k := by

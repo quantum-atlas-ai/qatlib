@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricDegreeLower
-import Mathlib.Data.Nat.Dist
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricDegreeLower
+public import Mathlib.Data.Nat.Dist
+
+@[expose] public section
 
 /-!
 # Layer changes and the symmetric jump parameter
@@ -83,7 +87,7 @@ theorem layerVal_eq {f : (Fin n → Bool) → Bool} (hsym : Symmetric f) {k : �
     rw [← hw]
     simpa [boolWeight] using! h
   unfold layerVal
-  rw [dif_pos hk]
+  rw [dite_eq_left hk]
   exact hsym w _ (hw.trans (Classical.choose_spec (exists_word_weight (n := n) hk)).symm)
 
 /-- A layer change of a symmetric function forces distinct values on the two adjacent weight

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionCompletionModelCore
-import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
-import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyQuan
-import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
-import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionCompletionModelCore
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyQuan
+public import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
+
+@[expose] public section
 
 /-!
 # Branch states and copy-evolution endpoint specifications
@@ -39,6 +43,7 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection

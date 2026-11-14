@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarization
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarization
+
+@[expose] public section
 
 /-!
 # Polarization of logarithm multidegrees
@@ -82,11 +86,11 @@ theorem coeff_grouped_word [Fintype α] (s : α → Finset σ)
   rw [coeff_position_blocks Finset.univ s (fun i => w.count i)
     (fun _ _ _ _ hij => hs hij)]
   by_cases hw : w.Perm v
-  · rw [if_pos hw]
+  · rw [ite_eq_left hw]
     apply Finset.prod_congr rfl
     intro i _
-    rw [hw.count_eq i, hv i, if_pos rfl]
-  · rw [if_neg hw]
+    rw [hw.count_eq i, hv i, ite_eq_left rfl]
+  · rw [ite_eq_right hw]
     have hnot : ¬∀ i, w.count i = (s i).card := by
       intro hc
       apply hw
@@ -94,7 +98,7 @@ theorem coeff_grouped_word [Fintype α] (s : α → Finset σ)
       intro i
       rw [hc i, hv i]
     obtain ⟨i, hi⟩ := not_forall.mp hnot
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg (Ne.symm hi))
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right (Ne.symm hi))
 
 /-- For disjoint variable blocks of the prescribed cardinalities, extracting the full squarefree
 coefficient of the scaled word algebra element gives its selected multidegree component
@@ -247,7 +251,7 @@ theorem evaluate_log_expanded_eq_phi {B : Type} [Ring B] [Algebra ℚ B] [Fintyp
           BCHPhi.phi (fun j => X (base ((xs.flatMap positions).get j))) := by
   apply evaluate_log_multidegree_eq_phi X xs hx hfull positions hp base hbase
   intro i
-  rw [count_expanded_list xs hx, if_pos (hfull i)]
+  rw [count_expanded_list xs hx, ite_eq_left (hfull i)]
 
 /-- For a finite indexed family and a multiplicity profile, the selected logarithm component
 evaluates to phi on the dependent pair indexed clones divided by the product of multiplicity

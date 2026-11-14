@@ -4,44 +4,49 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Bound
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Data.NNReal.Defs
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCore
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Bound
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Basic.NNReal.Defs
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Survival and stopping laws for source search
@@ -304,7 +309,7 @@ theorem sourceSurvival_eq_one_of_zero {I : Type} [Fintype I] [DecidableEq I]
             simpa [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event] using! h
           by_cases hsucc : ∃ y, out.1 = some y
           · have hzout := hz out
-            rw [if_pos hsucc, mul_one] at hzout
+            rw [ite_eq_left hsucc, mul_one] at hzout
             exact (hne hzout).elim
           · rcases Option.eq_none_or_eq_some out.1 with hn | ⟨y0, hy0⟩
             · exact hn
@@ -460,7 +465,7 @@ theorem windowLoop_ledger_expectation_succ {I : Type} [Fintype I] [DecidableEq I
               else 0)
         rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,
           Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr (fun r => hL r (none, o2, o3)),
-          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, if_pos rfl]
+          Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const, ite_eq_left rfl]
         ring
     | some y =>
         show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.pure (some y, o2, o3)) L
@@ -468,7 +473,7 @@ theorem windowLoop_ledger_expectation_succ {I : Type} [Fintype I] [DecidableEq I
             + (if (some y : Option I) = none then
                 Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (windowLoop A hA j₀ S round T (off+1)) L
               else 0)
-        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_neg (by simp)]
+        rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_right (by simp)]
         ring
   have hcongr :
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (round (off + 1)) (fun a =>
@@ -654,9 +659,9 @@ theorem sourceSurvival_eq_reachFrom {I : Type} [Fintype I] [DecidableEq I]
         intro out
         rcases Option.eq_none_or_eq_some out.1 with hnone | ⟨y0, hy0⟩
         · rw [hnone, Option.isSome_none]
-          rw [if_neg (by simp), ih (r + 1) (c1 + out.2.1) (c2 + out.2.2), if_pos rfl]
+          rw [ite_eq_right (by simp), ih (r + 1) (c1 + out.2.1) (c2 + out.2.2), ite_eq_left rfl]
         · rw [hy0, Option.isSome_some]
-          rw [if_pos (by simp), finiteSurvival_halted, if_neg (by simp)]
+          rw [ite_eq_left (by simp), finiteSurvival_halted, ite_eq_right (by simp)]
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit,
           expectation_indicator_mul']
       rw [sourceReachFrom_succ A hA j₀ S r n]
@@ -778,15 +783,15 @@ theorem sourceRunFor_ledger_eq_loop {I : Type} [Fintype I] [DecidableEq I]
         intro out
         rcases Option.eq_none_or_eq_some out.1 with hnone | ⟨y0, hy0⟩
         · rw [hnone, Option.isSome_none]
-          rw [if_neg (by simp)]
+          rw [ite_eq_right (by simp)]
           rw [← hidx]
           rw [ih (off + 1) (c1 + out.2.1) (c2 + out.2.2)]
-          rw [if_pos rfl]
+          rw [ite_eq_left rfl]
         · rw [hy0, Option.isSome_some]
-          rw [if_pos (by simp), runFor_halted,
+          rw [ite_eq_left (by simp), runFor_halted,
               Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
           simp only [sourceAccumulated]
-          rw [if_neg (by simp)]
+          rw [ite_eq_right (by simp)]
           simp
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit,
           Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add]

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
-import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
-import Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
-import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
+public import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
+public import Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
+public import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
+
+@[expose] public section
 
 /-!
 # Conditional output guarantees for walk simulation

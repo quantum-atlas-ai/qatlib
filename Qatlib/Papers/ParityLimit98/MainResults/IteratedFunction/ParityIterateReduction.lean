@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+@[expose] public section
 
 /-!
 # Parity as an iterated function

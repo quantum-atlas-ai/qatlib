@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
+
+@[expose] public section
 
 /-!
 # Corrected charged-budget minimum-finding specification

@@ -4,103 +4,107 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Tower
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Module.Submodule.Lattice
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.CStarAlgebra.Module.Defs
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.MulAction
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.RCLike.Lemmas
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Nontrivial.Defs
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.GroupTheory.GroupAction.SubMulAction
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.Order.Bounds.Defs
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Order.ConditionallyCompleteLattice.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Lattice
-import Mathlib.Order.Notation
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.ConstMulAction
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Module.Basic
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.UniformMulAction
-import Mathlib.Topology.Defs.Induced
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.MetricSpace.Pseudo.Constructions
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Tower
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Module.Submodule.Lattice
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.CStarAlgebra.Module.Defs
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.MulAction
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.RCLike.Lemmas
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Nontrivial.Defs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.GroupTheory.GroupAction.SubMulAction
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.FiniteDimensional.Defs
+public import Mathlib.Order.Bounds.Defs
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Order.ConditionallyCompleteLattice.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.Notation
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.ConstMulAction
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Module.Basic
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.UniformMulAction
+public import Mathlib.Topology.Defs.Induced
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.MetricSpace.Pseudo.Constructions
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Rayleigh energies, compressions, and self-energy
@@ -163,10 +167,12 @@ def selfEnergy (L : Submodule ℂ E) (H V : E →L[ℂ] E) (z : ℝ) : L →L[�
   (z : ℂ) • (1 : L →L[ℂ] L) -
     Ring.inverse (compressedOperator L (resolventOperator (H + V) (z : ℂ)))
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The Rayleigh value at the zero vector is zero. -/
 lemma rayleigh_zero (H : E →L[ℂ] E) : rayleigh H 0 = 0 := by
   simp [rayleigh]
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The absolute Rayleigh value is at most `‖H‖ * ‖v‖^2`. -/
 lemma abs_rayleigh_le (H : E →L[ℂ] E) (v : E) :
     |rayleigh H v| ≤ ‖H‖ * ‖v‖ ^ 2 := by
@@ -179,6 +185,7 @@ lemma abs_rayleigh_le (H : E →L[ℂ] E) (v : E) :
         exact H.le_opNorm v
     _ = ‖H‖ * ‖v‖ ^ 2 := by ring
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The Rayleigh value is at least `-(‖H‖ * ‖v‖^2)`. -/
 lemma rayleigh_neg_le (H : E →L[ℂ] E) (v : E) :
     -(‖H‖ * ‖v‖ ^ 2) ≤ rayleigh H v := by
@@ -186,6 +193,7 @@ lemma rayleigh_neg_le (H : E →L[ℂ] E) (v : E) :
   have h2 := neg_abs_le (rayleigh H v)
   linarith
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The Rayleigh value is at most `‖H‖ * ‖v‖^2`. -/
 lemma rayleigh_le (H : E →L[ℂ] E) (v : E) :
     rayleigh H v ≤ ‖H‖ * ‖v‖ ^ 2 := by
@@ -193,6 +201,7 @@ lemma rayleigh_le (H : E →L[ℂ] E) (v : E) :
   have h2 := le_abs_self (rayleigh H v)
   linarith
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- Scaling the input vector by a real scalar scales its Rayleigh value by the square of that
 scalar. -/
 lemma rayleigh_smul_real (H : E →L[ℂ] E) (r : ℝ) (v : E) :
@@ -201,7 +210,7 @@ lemma rayleigh_smul_real (H : E →L[ℂ] E) (r : ℝ) (v : E) :
   unfold rayleigh
   rw [← hsmul, map_smul, inner_smul_left, inner_smul_right]
   have hstar : (starRingEnd ℂ) (r : ℂ) = (r : ℂ) := by
-    simpa using Complex.conj_ofReal r
+    simp
   rw [hstar]
   have hcomp : ((r : ℂ) * ((r : ℂ) * inner ℂ v (H v))).re =
       r ^ 2 * (inner ℂ v (H v)).re := by
@@ -213,6 +222,7 @@ lemma rayleigh_smul_real (H : E →L[ℂ] E) (r : ℝ) (v : E) :
     ring
   exact hcomp
 
+omit [FiniteDimensional ℂ E] in
 /-- The nontrivial inner product space contains a unit vector. -/
 lemma exists_norm_eq_one : ∃ v : E, ‖v‖ = 1 := by
   obtain ⟨v, hv⟩ := exists_ne (0 : E)
@@ -223,6 +233,7 @@ lemma exists_norm_eq_one : ∃ v : E, ‖v‖ = 1 := by
   rw [norm_smul, hnorm]
   exact inv_mul_cancel₀ (ne_of_gt hpos)
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The set of unit-vector Rayleigh values is bounded below. -/
 lemma bddBelow_rect (H : E →L[ℂ] E) : BddBelow (rect H) := by
   refine ⟨-‖H‖, ?_⟩
@@ -231,6 +242,7 @@ lemma bddBelow_rect (H : E →L[ℂ] E) : BddBelow (rect H) := by
   rw [hv] at h
   simpa using h
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The set of Rayleigh values on unit vectors in a subspace is bounded below. -/
 lemma bddBelow_sectionSet (S : Submodule ℂ E) (H : E →L[ℂ] E) :
     BddBelow (sectionSet S H) := by
@@ -240,11 +252,13 @@ lemma bddBelow_sectionSet (S : Submodule ℂ E) (H : E →L[ℂ] E) :
   rw [hv] at h
   simpa using h
 
+omit [FiniteDimensional ℂ E] in
 /-- The set of unit-vector Rayleigh values is nonempty. -/
 lemma rect_nonempty (H : E →L[ℂ] E) : (rect H).Nonempty := by
   obtain ⟨v, hv⟩ := exists_norm_eq_one (E := E)
   exact ⟨rayleigh H v, v, hv, rfl⟩
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- A nonzero subspace has a nonempty set of unit-vector Rayleigh values. -/
 lemma sectionSet_nonempty (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ ⊥) :
     (sectionSet S H).Nonempty := by
@@ -256,12 +270,14 @@ lemma sectionSet_nonempty (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ 
   rw [norm_smul, hnorm]
   exact inv_mul_cancel₀ (ne_of_gt hpos)
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The subspace energy is at most the Rayleigh value of any unit vector in that subspace. -/
 lemma sectionEnergy_le_rayleigh (S : Submodule ℂ E) (H : E →L[ℂ] E)
     {v : E} (hv : ‖v‖ = 1) (hvS : v ∈ S) :
     sectionEnergy S H ≤ rayleigh H v :=
   csInf_le (bddBelow_sectionSet S H) ⟨v, ⟨hv, hvS⟩, rfl⟩
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- For a vector in `S`, its Rayleigh value is at least `sectionEnergy S H * ‖v‖^2`. -/
 lemma sectionEnergy_mul_le (S : Submodule ℂ E) (H : E →L[ℂ] E)
     {v : E} (hvS : v ∈ S) :
@@ -287,6 +303,7 @@ lemma sectionEnergy_mul_le (S : Submodule ℂ E) (H : E →L[ℂ] E)
         exact mul_le_mul_of_nonneg_right hle' (le_of_lt (by positivity))
       _ = rayleigh H v := div_mul_cancel₀ _ (ne_of_gt (by positivity))
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- For a nonzero subspace, the section energy is at most the operator norm. -/
 lemma sectionEnergy_le_norm (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ ⊥) :
     sectionEnergy S H ≤ ‖H‖ := by

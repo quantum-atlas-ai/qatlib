@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+
+@[expose] public section
 
 /-!
 # Local Fresh-Copy Register Layout
@@ -66,7 +70,7 @@ def localCopyAndWire (n : ℕ) (i : Fin n) : Fin (3*n+2) := ⟨1+2*n+i.val, by o
 
 /-- The physical bit register assembled from a logical control and pair of data labels together
 with AND and parity scratch values. -/
-private def localCopyAssemble (n : ℕ)
+def localCopyAssemble (n : ℕ)
     (p : (Bool × (Fin (2^n) × Fin (2^n))) × (Reg n × Bool)) : Reg (3*n+2) :=
   fun k => if h0 : k.val = 0 then p.1.1
     else if hd : k.val < 1+n then (bitVecEquiv n).symm p.1.2.1 ⟨k.val-1, by omega⟩

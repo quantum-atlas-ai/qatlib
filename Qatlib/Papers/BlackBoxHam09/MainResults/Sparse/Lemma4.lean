@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lemma 4 entry bounds and oracle query word
@@ -56,7 +60,7 @@ theorem lemma4_maxEntry_le {Λ1 Λmax ε : ℝ} {D : ℕ} (hD : 0 < D) (hΛmax0 
 /-- Under the stated positivity and parameter restrictions, every `m` in `[0, Λmax]` satisfies
 `ε * m / Λ1 ≤ 1 / D`. -/
 theorem lemma4_entry_scaled_le {Λ1 Λmax ε : ℝ} {D : ℕ} {m : ℝ}
-    (hD : 0 < D) (hΛmax0 : 0 < Λmax) (hΛ1 : 0 < Λ1) (hε0 : 0 < ε) (hm0 : 0 ≤ m)
+    (hD : 0 < D) (hΛmax0 : 0 < Λmax) (hΛ1 : 0 < Λ1) (hε0 : 0 < ε) (_hm0 : 0 ≤ m)
     (hm : m ≤ Λmax) (hε : ε ≤ Λ1 / ((D : ℝ) * Λmax)) :
     ε * m / Λ1 ≤ 1 / (D : ℝ) := by
   have hden : 0 < (D : ℝ) * Λmax := mul_pos (Nat.cast_pos.mpr hD) hΛmax0
@@ -114,12 +118,24 @@ theorem preparesWalkStateWithin_mono {BB : BlackBox ι D L} {Λ1 ε q q' : ℝ}
 instructions. -/
 def lemma4Circuit : Circuit2 ι L := [Step2.queryF, Step2.queryH, Step2.queryH]
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- The oracle word `lemma4Circuit` has query count exactly three. -/
-theorem lemma4Circuit_queryCount :
+theorem lemma4Circuit_queryCount {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {L : ℕ} :
     QueryCount2 (lemma4Circuit (ι := ι) (L := L)) = 3 := rfl
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Every instruction in `lemma4Circuit` satisfies the unitary circuit validity predicate. -/
-theorem lemma4Circuit_isUnitary :
+theorem lemma4Circuit_isUnitary {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {L : ℕ} :
     IsUnitaryCircuit2 (lemma4Circuit (ι := ι) (L := L)) := by
   simp [lemma4Circuit, IsUnitaryCircuit2]
 
@@ -134,8 +150,8 @@ scaled entry bounds and record that `lemma4Circuit` has three queries. These are
 and query count ingredients for Lemma 4 of [BerryChilds2012]. -/
 theorem lemma4_constant_query_state_prep
     (BB : BlackBox ι D L) {Λ1 Λmax ε : ℝ}
-    (hsp : IsColumnSparse BB.H D) (hD : 0 < D)
-    (hΛ1 : colSumNorm BB.H ≤ Λ1) (hΛmax : maxEntryNorm BB.H ≤ Λmax)
+    (_hsp : IsColumnSparse BB.H D) (hD : 0 < D)
+    (_hΛ1 : colSumNorm BB.H ≤ Λ1) (hΛmax : maxEntryNorm BB.H ≤ Λmax)
     (hΛmax0 : 0 < Λmax) (hε0 : 0 < ε) (hΛ1pos : 0 < Λ1)
     (hε : ε ≤ Λ1 / ((D : ℝ) * Λmax)) :
     Λmax ≤ Λ1 / (ε * (D : ℝ)) ∧
@@ -149,7 +165,7 @@ theorem lemma4_constant_query_state_prep
 /-- The parameter restriction `ε ≤ Λ1 / (D * Λmax)` and `Λ1 ≤ D * Λmax` imply `ε ≤ 1` under the
 stated positivity hypotheses. See [Berry and Childs, Lemma 4][BerryChilds2012]. -/
 theorem lemma4_eps_le_one {Λ1 Λmax ε : ℝ} {D : ℕ} (hD : 0 < D) (hΛmax0 : 0 < Λmax)
-    (hε0 : 0 < ε) (hε : ε ≤ Λ1 / ((D : ℝ) * Λmax)) (hΛ1 : Λ1 ≤ (D : ℝ) * Λmax) :
+    (_hε0 : 0 < ε) (hε : ε ≤ Λ1 / ((D : ℝ) * Λmax)) (hΛ1 : Λ1 ≤ (D : ℝ) * Λmax) :
     ε ≤ 1 := by
   have hden : 0 < (D : ℝ) * Λmax := mul_pos (Nat.cast_pos.mpr hD) hΛmax0
   have h : ε ≤ Λ1 / ((D : ℝ) * Λmax) := hε

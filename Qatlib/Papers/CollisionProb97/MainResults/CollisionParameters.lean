@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
-import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
-import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
-import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
+public import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
+public import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+
+@[expose] public section
 
 /-!
 # Image-size parameters for collision finding

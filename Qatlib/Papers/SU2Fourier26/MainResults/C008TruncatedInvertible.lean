@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceCoefficientOps
-import Qatlib.Papers.SU2Fourier26.MainResults.C005WienerLemma
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceCoefficientOps
+public import Qatlib.Papers.SU2Fourier26.MainResults.C005WienerLemma
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 /-!
 # Lemma 4: invertibility of the truncated operator `Pₙ C Pₙ` (c008)

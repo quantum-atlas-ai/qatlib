@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorTypedCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceRawCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCisBackendCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorTypedCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceRawCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCisBackendCode
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

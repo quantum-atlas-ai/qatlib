@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedRestrictedBridge
-import Qatlib.Concepts.SpinorSampling.Matching.OccupiedSizeTail
-import Qatlib.Concepts.SpinorSampling.Matching.CohortRecordPairs
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedRestrictedBridge
+public import Qatlib.Concepts.SpinorSampling.Matching.OccupiedSizeTail
+public import Qatlib.Concepts.SpinorSampling.Matching.CohortRecordPairs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

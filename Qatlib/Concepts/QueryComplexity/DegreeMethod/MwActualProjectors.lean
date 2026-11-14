@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Verifier acceptance and clean-subspace projectors
@@ -133,6 +137,7 @@ theorem witness_return (U : Matrix H H ℂ) (S : Finset H)
       E *ᵥ (witnessAcceptOperator U S E *ᵥ w) := by
   simp only [cleanProjector, witnessAcceptOperator, mulVec_mulVec, Matrix.mul_assoc]
 
+omit [DecidableEq W] in
 /-- An eigenvector of the compressed witness operator embeds into a vector with the same
 eigenvalue for a clean return after acceptance. -/
 theorem witness_eigen_bridge (U : Matrix H H ℂ) (S : Finset H)

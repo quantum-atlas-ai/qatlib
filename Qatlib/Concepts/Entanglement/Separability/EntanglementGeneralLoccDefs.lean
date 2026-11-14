@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+
+@[expose] public section
 
 /-!
 # Kraus branches and partial-transpose negativity

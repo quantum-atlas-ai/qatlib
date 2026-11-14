@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Mathlib.Tactic.Ext
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Mathlib.Tactic.Ext
+
+@[expose] public section
 
 /-!
 # Resetting the auxiliary register of a Kraus dilation
@@ -75,7 +79,7 @@ theorem kraus_memory_reset_branch {d s : ℕ}
     funext ⟨i, b⟩
     by_cases hb : b = a
     · subst b
-      simp [collapse_apply, tensorState_apply, ket_apply]
+      simp [collapse_apply, tensorState_apply]
     · simp [collapse_apply, tensorState_apply, ket_apply, hb]
   rw [hcollapse, krausMemoryReset, applyGate_tensorGate, applyGate_one,
     applyGate_permMatrix_ket (fun b => Equiv.swap_apply_self a zero b),
@@ -109,7 +113,7 @@ private theorem krausMemoryReset_joint_block {d s : ℕ}
         star (M (j, c) y)) =
     ∑ k : Fin d, (L b * rho) i k * star (L c j k)
   simp only [Fintype.sum_prod_type, hleft, ite_mul, zero_mul,
-    Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true, hcol]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, hcol]
 
 /-- Dilation followed by auxiliary outcome projection and reset maps an initialized joint
 operator to `K a * rho * (K a).conjTranspose` tensored with the projector onto `Ket zero`. -/

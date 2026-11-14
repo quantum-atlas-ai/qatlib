@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Weighted invariants and multiplexed matrix expectations
@@ -133,7 +137,7 @@ theorem applyGate_blockDiag {J P : Type*} [Fintype J] [Fintype P] [DecidableEq J
   · rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro x _
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     ring
   · intro j _ hj
     simp [Ne.symm hj]

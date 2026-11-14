@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Amplified sampling of an arithmetic progression
@@ -260,7 +264,7 @@ theorem aq_zero_amplitude (N : ℕ) (hN : 0 < N) (M : ℕ) (A : Finset (Fin N))
     ((Real.sin ((2*(k:ℝ)+1)*theta)/Real.sin theta:ℝ):ℂ)*
       ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) ⟨0,hN⟩ = _
   rw [aq_inverse_uniform, aq_inverse_selected_zero, hcard]
-  simp only [Ket, if_true]
+  simp only [Ket, ite_true]
   have hcos : (Real.cos theta)^2 = 1-(M:ℝ)/(N:ℝ) := by
     have ht1 := Real.sin_sq_add_cos_sq theta
     rw [ht.2.2.2.1] at ht1

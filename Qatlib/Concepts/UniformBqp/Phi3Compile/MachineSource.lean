@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.MachineSourceDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.MachineSourceDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
+
+@[expose] public section
 
 /-!
 # Machine-source and recursive Fourier-sampling estimates
@@ -143,7 +147,7 @@ private theorem gamma_ge_two_pow (m : ℕ) (hm : 2 ≤ m) :
     have h1 : 2 ^ i ≤ m :=
       (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega)).trans hpow
     exact (Nat.le_div_iff_mul_le (by norm_num : 0 < 2 ^ i)).mpr (by simpa using! h1)
-  rw [rfsGamma, if_neg hm0]
+  rw [rfsGamma, ite_eq_right hm0]
   calc 2 ^ ((Nat.log 2 m / 2) ^ 2)
       ≤ 2 ^ (Nat.log 2 m / 2 * (Nat.log 2 m / 2 + 1)) :=
         Nat.pow_le_pow_right (by norm_num : 1 ≤ 2)

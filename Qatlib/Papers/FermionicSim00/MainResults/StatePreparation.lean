@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Complex.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # State-preparation probabilities and construction costs

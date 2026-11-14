@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Measurements.POVM
+module
+
+public import QuantumInfo.Measurements.POVM
+
+@[expose] public section
 
 /-!
 # Computational basis readout after unitary evolution

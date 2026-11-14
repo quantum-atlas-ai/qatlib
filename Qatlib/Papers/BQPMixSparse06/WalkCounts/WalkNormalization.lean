@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.WalkCounts.MomentSupport
-import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem3DecayIdentity
+module
+
+public import Qatlib.Papers.BQPMixSparse06.WalkCounts.MomentSupport
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem3DecayIdentity
+
+@[expose] public section
 
 /-!
 # Normalization of walk matrices and moment gaps
@@ -104,7 +108,7 @@ second moment equals `∑ k, G q k * (1 - G r k)` after casting to real numbers.
 theorem second_moment_difference {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d : ℝ)
     (h01 : ∀ i j, G i j = 0 ∨ G i j = 1)
     (hsym : ∀ i j, G i j = G j i)
-    (hrow : ∀ i, ∑ j, (G i j : ℝ) = d) (q r : Fin N) :
+    (_hrow : ∀ i, ∑ j, (G i j : ℝ) = d) (q r : Fin N) :
     ((Qatlib.Papers.BQPMixSparse06.MainResults.realCast G) ^ 2) q q -
         ((Qatlib.Papers.BQPMixSparse06.MainResults.realCast G) ^ 2) q r =
       ∑ k, (G q k : ℝ) * (1 - (G r k : ℝ)) := by

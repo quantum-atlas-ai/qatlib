@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.DegreeTestContracts
-import Qatlib.Concepts.WalkSearch.Primitives.DegreeRounds
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.DegreeTestContracts
+public import Qatlib.Concepts.WalkSearch.Primitives.DegreeRounds
+
+@[expose] public section
 
 /-!
 # Concentration for corrected degree tests
@@ -40,7 +44,7 @@ high- and low-degree error-event bounds of at most `1 / n ^ 3` over uniformly co
 theorem fact2DegreeTest_concentration_allPositive : fact2DegreeTestAllPositive := by
   intro n δ hn hδ _hδ1 K c _hc G v
   have hn0 : 0<n := by omega
-  letI : NeZero n := ⟨hn0.ne'⟩
+  let : NeZero n := ⟨hn0.ne'⟩
   have hnR : (0:ℝ)<n := by exact_mod_cast hn0
   have hn1 : (1:ℝ)≤n := by exact_mod_cast (by omega : 1≤n)
   have hK : 0<K := by dsimp [K];omega

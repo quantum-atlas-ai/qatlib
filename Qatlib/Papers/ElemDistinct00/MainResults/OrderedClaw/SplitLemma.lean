@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Int.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Splitting a claw between ordered lists
@@ -64,7 +68,7 @@ def SecondSubproblemClaw (N r : ℕ) (f g : ℕ → ℤ) (j i : ℕ) : Prop :=
 /-- If `b` is the first index in `[1, N]` taking the value `g b`, then monotonicity forces every
 earlier index `y` in that interval to satisfy `g y < g b`. -/
 theorem g_lt_of_lt_first {N : ℕ} {g : ℕ → ℤ} (hg : OrderedOn N g)
-    {b y : ℕ} (hb : 1 ≤ b) (hbN : b ≤ N) (hy : 1 ≤ y) (hyb : y < b)
+    {b y : ℕ} (_hb : 1 ≤ b) (hbN : b ≤ N) (hy : 1 ≤ y) (hyb : y < b)
     (h : ∀ y', 1 ≤ y' → y' ≤ N → g y' = g b → b ≤ y') :
     g y < g b := by
   have hyN : y ≤ N := le_trans (le_of_lt hyb) hbN
@@ -76,7 +80,7 @@ theorem g_lt_of_lt_first {N : ℕ} {g : ℕ → ℤ} (hg : OrderedOn N g)
 /-- If `a` is the first index in `[1, N]` taking the value `f a`, then monotonicity forces every
 earlier index `x` in that interval to satisfy `f x < f a`. -/
 theorem f_lt_of_lt_first {N : ℕ} {f : ℕ → ℤ} (hf : OrderedOn N f)
-    {a x : ℕ} (ha : 1 ≤ a) (haN : a ≤ N) (hx : 1 ≤ x) (hxa : x < a)
+    {a x : ℕ} (_ha : 1 ≤ a) (haN : a ≤ N) (hx : 1 ≤ x) (hxa : x < a)
     (h : ∀ x', 1 ≤ x' → x' ≤ N → f x' = f a → a ≤ x') :
     f x < f a := by
   have hxN : x ≤ N := le_trans (le_of_lt hxa) haN

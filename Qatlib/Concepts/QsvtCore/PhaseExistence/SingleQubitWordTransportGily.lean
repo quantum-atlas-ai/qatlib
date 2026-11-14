@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportStat
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportStat
+
+@[expose] public section
 
 /-!
 # Reflection word response entries

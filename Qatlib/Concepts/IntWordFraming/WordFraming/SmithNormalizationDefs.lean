@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecoveryDefs
-import Qatlib.Concepts.HspRecovery.JointDlog.JointBezoutDlogDecoder
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Data.Nat.Size
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.JointDlog.JointBezoutDlogDecoder
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Data.Nat.Size
+
+@[expose] public section
 
 /-!
 # Normalized Smith data and counted reduction

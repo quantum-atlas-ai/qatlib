@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3CorrectedAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3Corrected
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoal
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Amplitude gain and convergence of Grover search

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Register
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Register
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Binary characters and Pauli operators
@@ -191,8 +195,8 @@ lemma pauliOp_basisState (a b w : Fin n → Fin 2) :
   rw [pauliOp_apply, WithLp.ofLp_smul, Pi.smul_apply, smul_eq_mul, basisState_apply,
     basisState_apply]
   by_cases h : z + a = w
-  · rw [if_pos h, if_pos (by rw [← h, add_assoc, haa, add_zero]), h]
-  · rw [if_neg h, if_neg (fun hz => h (by rw [hz, add_assoc, haa, add_zero])), mul_zero,
+  · rw [ite_eq_left h, ite_eq_left (by rw [← h, add_assoc, haa, add_zero]), h]
+  · rw [ite_eq_right h, ite_eq_right (fun hz => h (by rw [hz, add_assoc, haa, add_zero])), mul_zero,
       mul_zero]
 
 /-- Composing two Pauli operators adds their labels and contributes the sign `pauliSign b a'`. -/
@@ -255,10 +259,10 @@ theorem sum_pauliSign (b : Fin n → Fin 2) :
   by_cases hb : b = 0
   · subst hb
     simp [Finset.prod_const, Finset.card_univ]
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hb
     have hi' : b i ≠ 0 := by simpa using hi
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (by rw [if_neg hi'])
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (by rw [ite_eq_right hi'])
 
 /-- The sum of the diagonal basis amplitudes of `pauliOp a b` is `2 ^ n` for zero labels and
 zero otherwise. -/
@@ -272,8 +276,8 @@ theorem pauliOp_trace (a b : Fin n → Fin 2) :
     rw [pauliOp_apply, basisState_apply]
     by_cases ha : a = 0
     · subst ha
-      rw [add_zero, if_pos rfl, if_pos rfl, one_mul, mul_one]
-    · rw [if_neg ha, if_neg (fun h : z + a = z => ha (by
+      rw [add_zero, ite_eq_left rfl, ite_eq_left rfl, one_mul, mul_one]
+    · rw [ite_eq_right ha, ite_eq_right (fun h : z + a = z => ha (by
         have h' : z + a = z + 0 := by rw [add_zero]; exact h
         exact add_left_cancel h')), mul_zero, zero_mul]
   rw [Finset.sum_congr rfl fun z _ => hterm z]
@@ -283,13 +287,13 @@ theorem pauliOp_trace (a b : Fin n → Fin 2) :
         ((if (0 : Fin n → Fin 2) = 0 then (1 : ℂ) else 0) * pauliSign b (z + 0))
           = pauliSign b z := by
       intro z
-      rw [if_pos rfl, one_mul, add_zero]
+      rw [ite_eq_left rfl, one_mul, add_zero]
     rw [Finset.sum_congr rfl fun z _ => h1 z, sum_pauliSign]
     by_cases hb : b = 0
-    · rw [if_pos hb, if_pos ⟨rfl, hb⟩]
-    · rw [if_neg hb, if_neg (fun h => hb h.2)]
-  · rw [if_neg (fun h => ha h.1)]
-    simp [if_neg ha]
+    · rw [ite_eq_left hb, ite_eq_left ⟨rfl, hb⟩]
+    · rw [ite_eq_right hb, ite_eq_right (fun h => hb h.2)]
+  · rw [ite_eq_right (fun h => ha h.1)]
+    simp [ite_eq_right ha]
 
 /-- Applying the same Pauli operator to two register states preserves their inner product. -/
 theorem inner_pauliOp (a b : Fin n → Fin 2) (ψ φ : QReg n) :

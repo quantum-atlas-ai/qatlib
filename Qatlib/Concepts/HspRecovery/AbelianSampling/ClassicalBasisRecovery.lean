@@ -4,15 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Int.GCD
-import Mathlib.LinearAlgebra.Matrix.Nondegenerate
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.LinearAlgebra.Matrix.Adjugate
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.Order.Group.Unbundled.Int
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Data.Int.GCD
+public import Mathlib.LinearAlgebra.Matrix.Nondegenerate
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.LinearAlgebra.Matrix.Adjugate
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.Order.Group.Unbundled.Int
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+
+@[expose] public section
 
 /-!
 # Canonical integer lattice bases
@@ -91,8 +96,8 @@ theorem bezC_spec (u v : ℤ) : (bezC u v).1 * u + (bezC u v).2 * v = (Int.gcd u
     split
     · rw [Int.gcd_zero_right]
       by_cases hu : u < 0
-      · simp only [if_pos hu]; omega
-      · simp only [if_neg hu]; omega
+      · simp only [ite_eq_left hu]; omega
+      · simp only [ite_eq_right hu]; omega
     · rename_i hcontra; exact absurd rfl hcontra
   · have hg0 : (0 : ℤ) < (Int.gcd u v : ℤ) :=
       Int.natCast_pos.mpr (Int.gcd_pos_of_ne_zero_right u hv)
@@ -121,7 +126,7 @@ theorem bezC_spec (u v : ℤ) : (bezC u v).1 * u + (bezC u v).2 * v = (Int.gcd u
       ediv_mul_cross hgu hgv
     have hAB : Int.gcdA u v * u + Int.gcdB u v * v = (Int.gcd u v : ℤ) := by
       rw [Int.gcd_eq_gcd_ab]; ring
-    simp only [bezC, if_neg hv]
+    simp only [bezC, ite_eq_right hv]
     linear_combination hAB + u * hA
       - ((Int.gcdA u v % |v / (Int.gcd u v : ℤ)| - Int.gcdA u v)
           / (v / (Int.gcd u v : ℤ))) * hcross
@@ -134,8 +139,8 @@ theorem bezC_bound (u v : ℤ) : |(bezC u v).1| ≤ |v| + 1 ∧ |(bezC u v).2| �
     unfold bezC
     split
     · by_cases hu : u < 0
-      · simp only [if_pos hu]; exact ⟨by norm_num, by positivity⟩
-      · simp only [if_neg hu]; exact ⟨by norm_num, by positivity⟩
+      · simp only [ite_eq_left hu]; exact ⟨by norm_num, by positivity⟩
+      · simp only [ite_eq_right hu]; exact ⟨by norm_num, by positivity⟩
     · rename_i hcontra; exact absurd rfl hcontra
   · have hg0 : (0 : ℤ) < (Int.gcd u v : ℤ) :=
       Int.natCast_pos.mpr (Int.gcd_pos_of_ne_zero_right u hv)
@@ -168,7 +173,7 @@ theorem bezC_bound (u v : ℤ) : |(bezC u v).1| ≤ |v| + 1 ∧ |(bezC u v).2| �
     have haLe : |(bezC u v).1| ≤ |v| := by
       have h1 : |(bezC u v).1| ≤ |v / (Int.gcd u v : ℤ)| := by
         unfold bezC
-        rw [if_neg hv, abs_of_nonneg ha]
+        rw [ite_eq_right hv, abs_of_nonneg ha]
         exact le_of_lt halt
       exact h1.trans hdle
     have hFirst : |(bezC u v).1| ≤ |v| + 1 := by omega
@@ -248,19 +253,19 @@ combination of the original rows. -/
 theorem hnfSwapOp_c (R : IMat k) {c i : Fin k} (hci : i ≠ c) (j : Fin k) :
     hnfSwapOp R c i c j = (bezC (R i c) (R c c)).2 * R c j
       + (bezC (R i c) (R c c)).1 * R i j := by
-  simp only [hnfSwapOp, Matrix.updateRow_apply, if_neg (Ne.symm hci), if_true]
+  simp only [hnfSwapOp, Matrix.updateRow_apply, ite_eq_right (Ne.symm hci), ite_true]
 
 /-- Row `i` after `hnfSwapOp` is the original row `i` scaled by `R c c / gcd`, minus row `c`
 scaled by `R i c / gcd`. -/
 theorem hnfSwapOp_i (R : IMat k) {c i : Fin k} (j : Fin k) :
     hnfSwapOp R c i i j = (R c c / (Int.gcd (R i c) (R c c) : ℤ)) * R i j
       - (R i c / (Int.gcd (R i c) (R c c) : ℤ)) * R c j := by
-  simp only [hnfSwapOp, Matrix.updateRow_apply, if_true]
+  simp only [hnfSwapOp, Matrix.updateRow_apply, ite_true]
 
 /-- The Bezout row operation preserves every entry outside rows `c` and `i`. -/
 theorem hnfSwapOp_of (R : IMat k) {c i r : Fin k} (hr : r ≠ c) (hri : r ≠ i) (j : Fin k) :
     hnfSwapOp R c i r j = R r j := by
-  simp only [hnfSwapOp, Matrix.updateRow_apply, if_neg hri, if_neg hr]
+  simp only [hnfSwapOp, Matrix.updateRow_apply, ite_eq_right hri, ite_eq_right hr]
 
 /-- The Bezout row operation preserves every row distinct from both `c` and `i`. -/
 theorem hnfSwapOp_row_of (R : IMat k) {c i r : Fin k} (hr : r ≠ c) (hri : r ≠ i) :
@@ -576,7 +581,7 @@ theorem trailInj_step (R : IMat k) {c : ℕ} (hc : c < k)
         intro h
         have h2 : (j : ℕ) = c := congrArg Fin.val h
         omega
-      rw [if_neg hne, add_zero]
+      rw [ite_eq_right hne, add_zero]
       exact hxsup j (by omega)
     have hvan : ∀ r : Fin k, (r : ℕ) ≤ c →
         ∑ s, (R r s : ℚ) * (x s + (if s = ⟨c, hc⟩ then -((∑ s', (R ⟨c, hc⟩ s' : ℚ) * x s')
@@ -608,7 +613,7 @@ theorem trailInj_step (R : IMat k) {c : ℕ} (hc : c < k)
       rfl
     · have hxj : x j = (x j + (if j = ⟨c, hc⟩ then -((∑ s, (R ⟨c, hc⟩ s : ℚ) * x s)
           / ((R ⟨c, hc⟩ ⟨c, hc⟩ : ℤ) : ℚ)) else 0)) := by
-        rw [if_neg hj, add_zero]
+        rw [ite_eq_right hj, add_zero]
       rw [hxj, congrFun hxt j]
 
 /-- Under `TrailInj c`, a column whose entries above the diagonal vanish cannot have a zero
@@ -638,9 +643,9 @@ theorem trailInj_pivot_ne_zero (R : IMat k) {c : ℕ} (hc : c < k) (hT : TrailIn
       have h2 : (j : ℕ) = c := congrArg Fin.val h
       omega
     show (if j = ⟨c, hc⟩ then (1 : ℚ) else 0) = 0
-    rw [if_neg hne]) hvan
+    rw [ite_eq_right hne]) hvan
   have h1 := congrFun h ⟨c, hc⟩
-  rw [if_pos rfl] at h1
+  rw [ite_eq_left rfl] at h1
   exact zero_ne_one h1.symm
 
 /-- A Bezout operation with `i < c` preserves vanishing above the diagonal in columns starting
@@ -942,7 +947,7 @@ theorem triAux_spec (A : IMat k) (hA : A.det ≠ 0) : ∀ t : ℕ, t ≤ k →
     have hcoe : (((⟨k - 1 - t, hc⟩ : Fin k) : ℕ)) = k - 1 - t := rfl
     rw [hcoe] at hs1 hs2 hs3
     unfold triAux at ⊢
-    rw [dif_neg (by omega)]
+    rw [dite_eq_right (by omega)]
     refine ⟨?_, ?_, ?_, ?_⟩
     · rw [show k - 1 - (t + 1) = (k - 1 - t) - 1 from by omega]
       exact hs1
@@ -1007,7 +1012,7 @@ theorem redStep_entry (i : Fin k) (R : IMat k) (j : Fin k) (hij : (i : ℕ) < (j
       (redStep i R j) j i < R i i := by
   have hd : R i i ≠ 0 := ne_of_gt hpos
   unfold redStep
-  rw [if_pos hij, reduceRowOp, Matrix.updateRow_self]
+  rw [ite_eq_left hij, reduceRowOp, Matrix.updateRow_self]
   have hmd := Int.mul_ediv_add_emod (R j i) (R i i)
   rw [mul_comm (R i i) (R j i / R i i)] at hmd
   constructor
@@ -1046,7 +1051,7 @@ theorem posDiag_redStep (i : Fin k) (R : IMat k) (j : Fin k)
     (hpos : PosDiag 0 R) (hZ : ZeroAbove 0 R) : PosDiag 0 (redStep i R j) := by
   intro r hr
   by_cases hdec : (i : ℕ) < (j : ℕ)
-  · rw [redStep, if_pos hdec]
+  · rw [redStep, ite_eq_left hdec]
     rcases eq_or_ne r j with hrj | hrj
     · rw [hrj, reduceRowOp, Matrix.updateRow_self, hZ i j (by omega) (by omega), mul_zero,
         sub_zero]
@@ -1054,7 +1059,7 @@ theorem posDiag_redStep (i : Fin k) (R : IMat k) (j : Fin k)
     · unfold reduceRowOp
       rw [Matrix.updateRow_ne hrj]
       exact hpos r hr
-  · rw [redStep, if_neg hdec]
+  · rw [redStep, ite_eq_right hdec]
     exact hpos r hr
 
 /-- A reduction step with `i < j` preserves vanishing above the diagonal. -/
@@ -1062,15 +1067,15 @@ theorem zeroAbove_redStep (i : Fin k) (R : IMat k) (j : Fin k) (hij : (i : ℕ) 
     (hZ : ZeroAbove 0 R) : ZeroAbove 0 (redStep i R j) := by
   intro r j' hj' hrj'
   by_cases hdec : (i : ℕ) < (j : ℕ)
-  · rw [redStep, if_pos hdec]
+  · rw [redStep, ite_eq_left hdec]
     exact zeroAbove_reduceRowOp R hij hZ r j' hj' hrj'
-  · rw [redStep, if_neg hdec]
+  · rw [redStep, ite_eq_right hdec]
     exact hZ r j' hj' hrj'
 
 /-- A reduction step with `i < j` preserves the integer row span. -/
 theorem rowSpan_redStep (i : Fin k) (R : IMat k) (j : Fin k) (hij : (i : ℕ) < (j : ℕ)) :
     rowSpan (redStep i R j) = rowSpan R := by
-  rw [redStep, if_pos hij]
+  rw [redStep, ite_eq_left hij]
   exact rowSpan_reduceRowOp R (fun h => absurd (congrArg Fin.val h) (by omega))
 
 /-- Reducing a list of distinct rows below `i` preserves diagonal positivity, triangularity, and
@@ -1198,7 +1203,7 @@ theorem redAux_spec (R : IMat k) (hpos : PosDiag 0 R) (hZ : ZeroAbove 0 R) :
     have hcoe : (((⟨k - 1 - t, hc⟩ : Fin k) : ℕ)) = k - 1 - t := rfl
     rw [hcoe] at hs4
     unfold redAux at ⊢
-    rw [dif_neg (by omega)]
+    rw [dite_eq_right (by omega)]
     rw [show k - (t + 1) = k - 1 - t from by omega]
     exact ⟨hs1, hs2, hs3.trans hb3, hs4⟩
 
@@ -1324,7 +1329,7 @@ theorem mulVec_indicator (M : IMat k) (j : Fin k) :
   funext i
   show ∑ s, M i s * (if s = j then (1 : ℤ) else 0) = M i j
   rw [Finset.sum_eq_single j (fun b _ hb => by
-      rw [if_neg hb, mul_zero])
+      rw [ite_eq_right hb, mul_zero])
     (fun h => absurd (Finset.mem_univ j) h)]
   simp
 
@@ -1389,24 +1394,24 @@ theorem mul_apply_two_terms {K U : IMat k} {i j : Fin k} (hij : (i : ℕ) < (j :
     intro t
     rcases Nat.lt_trichotomy (t : ℕ) (i : ℕ) with h | h | h
     · rw [hKlow t h, zero_mul]
-      rw [if_neg (fun he => by have := congrArg Fin.val he; omega),
-        if_neg (fun he => by have := congrArg Fin.val he; omega), zero_add]
+      rw [ite_eq_right (fun he => by have := congrArg Fin.val he; omega),
+        ite_eq_right (fun he => by have := congrArg Fin.val he; omega), zero_add]
     · have hti : t = i := Fin.ext h
-      rw [if_pos hti, if_neg (fun he => by have := congrArg Fin.val he; omega), add_zero,
+      rw [ite_eq_left hti, ite_eq_right (fun he => by have := congrArg Fin.val he; omega), add_zero,
         hti]
     · rcases Nat.lt_trichotomy (t : ℕ) (j : ℕ) with h' | h' | h'
       · rw [hUmid t h h', mul_zero,
-          if_neg (fun he => by have := congrArg Fin.val he; omega),
-          if_neg (fun he => by have := congrArg Fin.val he; omega), zero_add]
+          ite_eq_right (fun he => by have := congrArg Fin.val he; omega),
+          ite_eq_right (fun he => by have := congrArg Fin.val he; omega), zero_add]
       · have htj : t = j := Fin.ext h'
-        rw [if_neg (fun he => by have := congrArg Fin.val he; omega), if_pos htj, htj,
+        rw [ite_eq_right (fun he => by have := congrArg Fin.val he; omega), ite_eq_left htj, htj,
           zero_add, hUjj, mul_one]
       · rw [hUhigh t h', mul_zero,
-          if_neg (fun he => by have := congrArg Fin.val he; omega),
-          if_neg (fun he => by have := congrArg Fin.val he; omega), zero_add]
+          ite_eq_right (fun he => by have := congrArg Fin.val he; omega),
+          ite_eq_right (fun he => by have := congrArg Fin.val he; omega), zero_add]
   rw [Finset.sum_congr rfl (fun t _ => expand t), Finset.sum_add_distrib,
-    Finset.sum_ite_eq', if_pos (Finset.mem_univ i), Finset.sum_ite_eq',
-    if_pos (Finset.mem_univ j)]
+    Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ i), Finset.sum_ite_eq',
+    ite_eq_left (Finset.mem_univ j)]
 
 /-- Two canonical Hermite normal form matrices with equal integer column spans are equal. -/
 theorem canonical_unique {H K : IMat k} (hH : IsCanonicalHNF H) (hK : IsCanonicalHNF K)
@@ -1431,7 +1436,7 @@ theorem canonical_unique {H K : IMat k} (hH : IsCanonicalHNF H) (hK : IsCanonica
   have hdiagprod : ∀ r : Fin k, U' r r * U r r = 1 := by
     intro r
     have hentry : (U' * U) r r = 1 := by
-      rw [hprod, Matrix.one_apply, if_pos rfl]
+      rw [hprod, Matrix.one_apply, ite_eq_left rfl]
     rw [Matrix.mul_apply, Finset.sum_eq_single r (fun t _ htr => by
       rcases Nat.lt_trichotomy (t : ℕ) (r : ℕ) with h | h | h
       · rw [hU'0 r t h, zero_mul]
@@ -1627,7 +1632,7 @@ theorem matSup_hnfSwapOp (R : IMat k) (c i : Fin k) :
           - (R c c / (Int.gcd (R c c) (R c c) : ℤ)) * R c j = 0 := sub_self _
       rw [hzero]
       exact Nat.zero_le _
-    · simp only [hnfSwapOp, Matrix.updateRow_apply, if_neg hrc]
+    · simp only [hnfSwapOp, Matrix.updateRow_apply, ite_eq_right hrc]
       exact matSup_entry.trans (by rw [hBdef]; unfold matSupStep; nlinarith)
   · rcases eq_or_ne r c with hrc | hrc
     · rw [hrc]
@@ -1944,7 +1949,7 @@ theorem zeroAbove_reduceRowOp_ge (R : IMat k) {i j : Fin k} (_hij : (i : ℕ) < 
 /-- A reduction step with `i < j` preserves `ZeroAbove (i + 1)`. -/
 theorem zeroAbove_redStep_ge (i : Fin k) (R : IMat k) (j : Fin k) (hij : (i : ℕ) < (j : ℕ))
     (hZ : ZeroAbove ((i : ℕ) + 1) R) : ZeroAbove ((i : ℕ) + 1) (redStep i R j) := by
-  rw [redStep, if_pos hij]
+  rw [redStep, ite_eq_left hij]
   exact zeroAbove_reduceRowOp_ge R hij hZ
 
 /-- A reduction step with `i < j` preserves positivity of diagonal entries from `i` onward when
@@ -1953,7 +1958,7 @@ theorem posDiag_redStep_ge (i : Fin k) (R : IMat k) (j : Fin k) (hij : (i : ℕ)
     (hpos : PosDiag (i : ℕ) R) (hZ : ZeroAbove ((i : ℕ) + 1) R) :
     PosDiag (i : ℕ) (redStep i R j) := by
   intro r hr
-  rw [redStep, if_pos hij]
+  rw [redStep, ite_eq_left hij]
   rcases eq_or_ne r j with hrj | hrj
   · rw [hrj, reduceRowOp, Matrix.updateRow_self, hZ i j (by omega) (by omega), mul_zero,
       sub_zero]
@@ -2213,7 +2218,7 @@ theorem interleavedTriAux_spec (A : IMat k) (hA : A.det ≠ 0) : ∀ t : ℕ, t 
     have hcoe : (((⟨k - 1 - t, hc⟩ : Fin k) : ℕ)) = k - 1 - t := rfl
     rw [hcoe] at hs1 hs2 hs3 hs4
     unfold interleavedTriAux at ⊢
-    rw [dif_neg (by omega)]
+    rw [dite_eq_right (by omega)]
     refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · rw [show k - 1 - (t + 1) = (k - 1 - t) - 1 from by omega]
       exact hs1
@@ -2366,11 +2371,11 @@ theorem canonical_diag_dvd_det {A H : IMat k} (hH : IsCanonicalHNF H)
     show ∑ r, (Aᵀ.adjugate) c r * (Aᵀ) r j = 0
     rw [adjugate_row_eq]
     have hne : ¬(c = j) := fun h => by have := congrArg Fin.val h; omega
-    rw [if_neg hne, mul_zero]
+    rw [ite_eq_right hne, mul_zero]
   have hw0 := canonical_coeff_zero_above hH hw hvz
   have hc0 : ∑ t, w t * H c t = (A.det : ℤ) := by
     have h1 : ∑ t, w t * H c t = ∑ r, (Aᵀ.adjugate) c r * (Aᵀ) r c := hw c
-    rw [adjugate_row_eq, if_pos rfl, mul_one, Matrix.det_transpose] at h1
+    rw [adjugate_row_eq, ite_eq_left rfl, mul_one, Matrix.det_transpose] at h1
     exact h1
   rw [Finset.sum_eq_single c (fun b _ hbc => by
       rcases Nat.lt_trichotomy (b : ℕ) (c : ℕ) with h | h | h

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+
+@[expose] public section
 
 /-!
 # Exhaustive hidden-subgroup solvers for finite encodings
@@ -34,9 +38,9 @@ polynomial in token cardinality, obtained by querying all tokens. -/
 theorem hasPolyQuerySolverFor_self {G : Type*} [Group G] (e : BlackBoxEncoding G) :
     HasPolyQuerySolverFor e := by
   classical
-  letI : Fintype e.Token := e.fintype
-  letI : DecidableEq e.Token := e.decEq
-  letI : Fintype G := Fintype.ofSurjective e.enc e.surj
+  let : Fintype e.Token := e.fintype
+  let : DecidableEq e.Token := e.decEq
+  let : Fintype G := Fintype.ofSurjective e.enc e.surj
 
   let tok : G → e.Token := fun g => Classical.choose (e.surj g)
   have htok : ∀ g : G, e.enc (tok g) = g := fun g => Classical.choose_spec (e.surj g)
@@ -51,7 +55,7 @@ theorem hasPolyQuerySolverFor_self {G : Type*} [Group G] (e : BlackBoxEncoding G
         have hset : (↑(Finset.univ.filter (fun g => f (tok g) = f t0)) : Set G)
             = (H : Set G) := by
           ext g
-          simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq]
+          simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq]
           have h := hf (tok g) t0
           rw [htok g, ht0] at h
           constructor

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SqEstimation.HierarchicalSQ.NativeCoefficientChoice
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.SqEstimation.HierarchicalSQ.NativeCoefficientChoice
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Hierarchical sample-and-query closure
@@ -714,7 +718,7 @@ theorem closureMatrixCompose_none {m n : ℕ} (rowRun : PMF (ClosureDrawResult (
   | none => simp [hz]
   | some i =>
     simp only [hz, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,
-        Option.some_ne_none, if_false, zero_add]
+        Option.some_ne_none, ite_false, zero_add]
     apply Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
     intro y
     by_cases hy : y.1 = none <;> simp [hy]

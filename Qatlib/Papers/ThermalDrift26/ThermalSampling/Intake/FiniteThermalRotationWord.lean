@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalPreparationError
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureStateOverlap
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalPreparationError
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureStateOverlap
+
+@[expose] public section
 
 /-!
 # Finite Words for Thermal Rotation Preparation
@@ -82,7 +86,7 @@ theorem splitWordState_actual_run (w : ℕ) (gs : List Qatlib.Concepts.GateVocab
       some (fun x => splitWordState w gs (rotationRegisterEquiv w x)) ∧
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit (w+1) gs) = gs.length := by
   constructor
-  · simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun, hlegal, if_true,
+  · simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun, hlegal, ite_true,
       splitWordState, Equiv.symm_apply_apply]
   · exact (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit_counts (w+1) gs).2
 

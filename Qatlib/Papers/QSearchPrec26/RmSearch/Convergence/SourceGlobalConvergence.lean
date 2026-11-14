@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Topology.Order.MonotoneConvergence
-import Mathlib.Order.Monotone.Basic
-import Mathlib.Order.Filter.AtTopBot.Tendsto
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Topology.Order.MonotoneConvergence
+public import Mathlib.Order.Monotone.Basic
+public import Mathlib.Order.Filter.AtTopBot.Tendsto
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,8 +51,8 @@ probabilities `q : ℕ → ℝ` satisfy `0 ≤ q_k ≤ 1`, the Armijo recurrence
 Then `q_k` is monotonically nondecreasing and converges to `1`. -/
 theorem proposition1_global_monotone_convergence
     (q : ℕ → ℝ) (t γ G : ℕ → ℝ) (L c ρ δ σ : ℝ)
-    (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hL : 0 < L)
-    (hc : 0 < c) (hc2 : c ≤ 1 / 2) (hρ : 0 < ρ) (hρ1 : ρ < 1)
+    (_hδ : 0 < δ) (_hδ1 : δ ≤ 1) (hL : 0 < L)
+    (hc : 0 < c) (hc2 : c ≤ 1 / 2) (hρ : 0 < ρ) (_hρ1 : ρ < 1)
     (hσ : σ = min 1 (2 * ρ * (1 - c) / L))
     (hq0 : ∀ k, 0 ≤ q k ∧ q k ≤ 1)
     (hqpos : 0 < q 0)
@@ -118,11 +122,11 @@ theorem proposition1_global_monotone_convergence
   have hlge1 : 1 ≤ l := by
     have hfac : l * (1 - l) ≤ 0 := by
       by_contra hcon
-      push_neg at hcon
+      push Not at hcon
       have hpos : 0 < 2 * c * σ := by positivity
       nlinarith [hlimle, hpos, hcon]
     by_contra hcon
-    push_neg at hcon
+    push Not at hcon
     nlinarith [hfac, hlpos, hcon]
   have hl_eq : l = 1 := le_antisymm hl1 hlge1
   refine ⟨hmonoStep, ?_⟩

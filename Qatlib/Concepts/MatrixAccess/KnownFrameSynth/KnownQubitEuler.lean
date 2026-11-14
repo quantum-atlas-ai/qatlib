@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+
+@[expose] public section
 
 /-!
 # Explicit Euler angles for qubit unitaries
@@ -324,7 +328,7 @@ theorem knownQubitUnitary_adjoint (p : KnownQubitAngles) :
     rw [show star (Complex.exp ((p.delta : ℂ) * Complex.I))
         = (starRingEnd ℂ) (Complex.exp ((p.delta : ℂ) * Complex.I)) from rfl,
       ← Complex.exp_conj, conj_mul₂, Complex.conj_ofReal, Complex.conj_I]
-    push_cast
+
     ring
   simp only [knownQubitUnitary, knownQubitAngleAdjoint, Matrix.conjTranspose_smul,
     Matrix.conjTranspose_mul, qubitEulerPhase_conjTranspose, qubitEulerRotation_conjTranspose,
@@ -411,36 +415,31 @@ theorem eulerPRP_ff (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) false false
       = Complex.exp (((α / 2 : ℝ) : ℂ) * Complex.I) * ((Real.cos (θ / 2) : ℂ))
         * Complex.exp (((β / 2 : ℝ) : ℂ) * Complex.I) := by
-  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf,
-    qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
-    qubitEulerRotation_tt]
+  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf]
 
 /-- Evaluates the `false, true` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_ft (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) false true
       = Complex.exp (((α / 2 : ℝ) : ℂ) * Complex.I) * ((Real.sin (θ / 2) : ℂ))
         * Complex.exp (((-(β / 2 : ℝ)) : ℂ) * Complex.I) := by
-  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf,
-    qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
-    qubitEulerRotation_tt]
+  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft,
+    qubitEulerPhase_tt]
 
 /-- Evaluates the `true, false` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_tf (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) true false
       = Complex.exp (((-(α / 2 : ℝ)) : ℂ) * Complex.I) * (-((Real.sin (θ / 2) : ℂ)))
         * Complex.exp (((β / 2 : ℝ) : ℂ) * Complex.I) := by
-  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf,
-    qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
-    qubitEulerRotation_tt]
+  simp [Matrix.mul_apply, qubitEulerPhase_ff,  qubitEulerPhase_tf,
+    qubitEulerPhase_tt]
 
 /-- Evaluates the `true, true` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_tt (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) true true
       = Complex.exp (((-(α / 2 : ℝ)) : ℂ) * Complex.I) * ((Real.cos (θ / 2) : ℂ))
         * Complex.exp (((-(β / 2 : ℝ)) : ℂ) * Complex.I) := by
-  simp [Matrix.mul_apply, qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf,
-    qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
-    qubitEulerRotation_tt]
+  simp [Matrix.mul_apply,  qubitEulerPhase_ft, qubitEulerPhase_tf,
+    qubitEulerPhase_tt]
 
 /-- Reconstructs the special unitary matrix with first row (a, b) from argument-based phase
 angles and rotation angle 2 arccos ‖a‖, assuming ‖a‖² + ‖b‖² = 1. -/
@@ -573,7 +572,7 @@ theorem knownQubitEuler_explicit_angles_cover_unitaries :
       rwa [Matrix.star_eq_conjTranspose] at hh
     have h1 : (knownQubitNormalize U * (knownQubitNormalize U)ᴴ) false false = 1 := by
       rw [hR]
-      simp [Matrix.one_apply]
+      simp []
     have e2 : ∀ z : ℂ, z * (starRingEnd ℂ) z = (Complex.normSq z : ℂ) := by
       intro z
       rw [mul_comm]

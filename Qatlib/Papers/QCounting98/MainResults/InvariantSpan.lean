@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
+
+@[expose] public section
 
 /-!
 # Invariant spans for general-phase amplification

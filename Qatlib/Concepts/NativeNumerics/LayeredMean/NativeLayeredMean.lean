@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+
+@[expose] public section
 
 /-!
 # Native layered mean estimation
@@ -94,7 +98,7 @@ theorem native_layered_payoff_exact_partition (I : Type) (f : I → ℚ) (hf : �
       by_cases h : f i<1
       · simp [h, hc.mp h]
       · have hn : ¬(f i:ℝ)<1 := fun hh => h (hc.mpr hh)
-        simp only [if_neg h, if_neg hn, Rat.cast_zero]
+        simp only [ite_eq_right h, ite_eq_right hn, Rat.cast_zero]
     | succ l =>
       simp only [nativeLayerPayoff, layerPayoff_succ]
       have hc : (2:ℚ)^l≤f i ∧ f i<(2:ℚ)^(l+1) ↔
@@ -105,7 +109,7 @@ theorem native_layered_payoff_exact_partition (I : Type) (f : I → ℚ) (hf : �
       by_cases h : (2:ℚ)^l≤f i ∧ f i<(2:ℚ)^(l+1)
       · simp [h, hc.mp h]
       · have hn : ¬((2:ℝ)^l≤(f i:ℝ) ∧ (f i:ℝ)<(2:ℝ)^(l+1)) := fun hh => h (hc.mpr hh)
-        simp only [if_neg h, if_neg hn, Rat.cast_zero]
+        simp only [ite_eq_right h, ite_eq_right hn, Rat.cast_zero]
   have hb : 0≤nativeLayerPayoff f l i ∧ nativeLayerPayoff f l i≤1 := by
     cases l with
     | zero =>
@@ -420,7 +424,7 @@ theorem native_layered_same_record_variation_budget
       (aeLaw (layerGrid k) (nativeLayerPrepare A f k l) (j,false) (nativeLayerEvent I)
         (hP l) (layerGrid_ge_two k)).probOf (ω l)) :
     (∑ ω : LayerRecord k,|law.prob ω-
-      (layerLaw k A j (fun i => (f i:ℝ)) hA (fun i => by change (0:ℝ)≤(f i:ℝ); exact_mod_cast hf i)).prob ω|)≤(1/2:ℝ)^k := by
+      (layerLaw k A j (fun i => (f i:ℝ)) hA (fun i => by exact_mod_cast hf i)).prob ω|)≤(1/2:ℝ)^k := by
   let hfR := fun i => (show (0:ℝ)≤(f i:ℝ) by exact_mod_cast hf i)
   let p := nativeLayerTrialLaw A j f k hP
   let q := layerTrialLaw k A j (fun i => (f i:ℝ)) hA hfR

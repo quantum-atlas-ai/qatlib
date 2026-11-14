@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+
+@[expose] public section
 
 /-!
 # Definitions for finite-bit execution charges

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpResidualMacros
-import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpResidualMacros
+public import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Trace distance bounds for commuting Gibbs operators
@@ -52,7 +56,7 @@ theorem sdpGibbsNormalizationBound (D : ℕ) (H H' : Operator D)
       (Matrix.traceNorm (NormedSpace.exp H - NormedSpace.exp H') +
         |(Matrix.trace (NormedSpace.exp H)).re - (Matrix.trace (NormedSpace.exp H')).re|) /
         max (Matrix.trace (NormedSpace.exp H)).re (Matrix.trace (NormedSpace.exp H')).re := by
-  simpa only [normalizedPositiveBranch, if_pos hp, if_pos hq, Complex.ofReal_inv] using!
+  simpa only [normalizedPositiveBranch, ite_eq_left hp, ite_eq_left hq, Complex.ofReal_inv] using!
     normalized_positive_branch_distance (Fin D) (NormedSpace.exp H) (NormedSpace.exp H')
       hX hY hp hq
 
@@ -60,8 +64,8 @@ theorem sdpGibbsNormalizationBound (D : ℕ) (H H' : Operator D)
 at most exp(‖E‖) − 1. -/
 theorem sdpHermitianExpSubOneNorm (D : ℕ) (E : Operator D) (hD : 0 < D) (hE : E.IsHermitian) :
     ‖NormedSpace.exp E - 1‖ ≤ Real.exp ‖E‖ - 1 := by
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
-  letI : CStarAlgebra (Operator D) := {}
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : CStarAlgebra (Operator D) := {}
   have he : cfc (fun x : ℝ => Real.exp x - 1) E = NormedSpace.exp E - 1 := by
     rw [cfc_sub (f := Real.exp) (g := fun _ : ℝ => 1) E, cfc_const_one ℝ E,
       CFC.real_exp_eq_normedSpace_exp hE]

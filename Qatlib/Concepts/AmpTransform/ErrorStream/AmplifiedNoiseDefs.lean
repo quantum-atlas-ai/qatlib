@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeAmpl
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.DenseZeroModeBoundaryAmpl
-import Qatlib.Concepts.AmpTransform.ErrorStream.TopLevelAllMarkedGainAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.TanDensityPrefactorInequalityAmpl
-import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamGeometricSumZeroAmpl
+module
+
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeAmplification
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.DenseZeroModeBoundaryAmplification
+public import Qatlib.Concepts.AmpTransform.ErrorStream.TopLevelAllMarkedGainAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.TanDensityPrefactorInequalityAmplification
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamGeometricSumZeroAmplification
+
+@[expose] public section
 
 /-!
 # Specifications for amplified Fourier noise

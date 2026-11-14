@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch06.SdpForm.Basic
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+module
+
+public import Qatlib.Papers.OrderedSearch06.SdpForm.Basic
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+
+@[expose] public section
 
 /-!
 # An exact infeasibility certificate at size seven
@@ -197,7 +201,7 @@ theorem genTrace_Q1_re {Q : ℕ → Matrix (Fin 7) (Fin 7) ℂ}
       norm_num at htake
       linarith
     rw [hre]
-    simp only [certCoeff, hi, if_false]
+    simp only [certCoeff, hi, ite_false]
     ring
 
 /-- The size-seven two-query paper semidefinite program is infeasible

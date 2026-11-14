@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+module
+
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+@[expose] public section
 
 /-!
 # Binary projective measurement branches
@@ -63,7 +67,7 @@ theorem conditionalState_collapse {ψ : QState I} {S : Finset I}
   have hm : MeasureProb (Collapse ψ S) Finset.univ = MeasureProb ψ S := by
     simpa [MeasureProb, BornProb] using sum_normSq_collapse ψ S
   unfold ConditionalState
-  rw [hm, if_pos h]
+  rw [hm, ite_eq_left h]
   congr 1
   funext i
   simp [PostMeasure, hm, collapse_apply]

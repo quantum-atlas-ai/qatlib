@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

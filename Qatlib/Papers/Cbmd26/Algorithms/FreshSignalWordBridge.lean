@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.RoutedWordLCUBridge
-import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
-import Mathlib.Data.Fin.Tuple.Basic
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.RoutedWordLCUBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
+public import Mathlib.Data.Fin.Tuple.Basic
+
+@[expose] public section
 
 /-!
 # Circuit products with fresh signal registers

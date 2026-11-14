@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
-import Qatlib.Concepts.QftPreparation.LocalQft
+module
+
+public import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
+public import Qatlib.Concepts.QftPreparation.LocalQft
+
+@[expose] public section
 
 /-!
 # Finite-grid simulation components

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+
+@[expose] public section
 
 /-!
 # Executed nested words, access counts, and accuracy

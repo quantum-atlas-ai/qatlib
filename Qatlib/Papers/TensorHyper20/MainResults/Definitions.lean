@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Tensor hypercontraction resource formulas

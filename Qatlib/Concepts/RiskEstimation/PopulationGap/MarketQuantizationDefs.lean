@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
+
+@[expose] public section
 
 /-!
 # Market quantile grids and lower tail estimates
@@ -115,7 +119,7 @@ theorem marketCDF_eq_zero_of_neg {n : ℕ} (p : FinDist (Option (Fin n)))
   apply Finset.sum_eq_zero
   intro a _
   have hlt : t < loss a := lt_of_lt_of_le ht (hloss a)
-  rw [if_neg (not_le_of_gt hlt)]
+  rw [ite_eq_right (not_le_of_gt hlt)]
   ring
 
 /-- States that `t` is a quantile at level `q`: its CDF reaches `q` and every smaller threshold
@@ -158,7 +162,7 @@ theorem marketGridIndex_spec {n : ℕ} (p : FinDist (Option (Fin n)))
   have hne : (marketGridSet p loss Δ q iT).Nonempty := by
     refine ⟨⟨iT, by omega⟩, ?_⟩
     exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, hcap⟩
-  rw [marketGridIndex, dif_pos hne]
+  rw [marketGridIndex, dite_eq_left hne]
   have hmem : Finset.min' (marketGridSet p loss Δ q iT) hne ∈ marketGridSet p loss Δ q iT :=
     Finset.min'_mem _ _
   have hmem' := Finset.mem_filter.mp hmem
@@ -273,14 +277,14 @@ theorem marketGridRecordIndex_spec {n N : ℕ} (ω : Fin N → Option (Fin n))
   classical
   by_cases hne : (marketGridRecordSet ω loss Δ q iT).Nonempty
   · left
-    rw [marketGridRecordIndex, dif_pos hne]
+    rw [marketGridRecordIndex, dite_eq_left hne]
     have hmem := Finset.min'_mem (marketGridRecordSet ω loss Δ q iT) hne
     have hmem' := Finset.mem_filter.mp hmem
     have hxlt : (Finset.min' (marketGridRecordSet ω loss Δ q iT) hne).val < iT + 1 :=
       (Finset.min' (marketGridRecordSet ω loss Δ q iT) hne).isLt
     refine ⟨Nat.le_of_lt_succ hxlt, hmem'.2⟩
   · right
-    rw [marketGridRecordIndex, dif_neg hne]
+    rw [marketGridRecordIndex, dite_eq_right hne]
     refine ⟨rfl, ?_⟩
     intro j hj
     by_contra hcon
@@ -332,7 +336,7 @@ theorem marketGridRecordIndex_eq_of_good {n N : ℕ} (p : FinDist (Option (Fin n
     linarith
   have hneR : (marketGridRecordSet ω loss Δ q iT).Nonempty :=
     ⟨⟨marketGridIndex p loss Δ q iT, hle'⟩, hmemI⟩
-  rw [marketGridRecordIndex, dif_pos hneR]
+  rw [marketGridRecordIndex, dite_eq_left hneR]
   have hmin_le : Finset.min' (marketGridRecordSet ω loss Δ q iT) hneR
       ≤ ⟨marketGridIndex p loss Δ q iT, hle'⟩ :=
     Finset.min'_le (marketGridRecordSet ω loss Δ q iT)
@@ -426,15 +430,15 @@ theorem marketTailMoment_nonneg {n : ℕ} (p : FinDist (Option (Fin n)))
   apply Finset.sum_nonneg
   intro a _
   by_cases h : loss a ≤ t
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     exact mul_nonneg (p.nonneg a) (hloss a)
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     exact mul_nonneg (p.nonneg a) (le_refl 0)
 
 /-- For nonnegative losses, the lower tail moment is at most the threshold times its cumulative
 probability. -/
 theorem marketTailMoment_le {n : ℕ} (p : FinDist (Option (Fin n)))
-    (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) (t : ℝ) :
+    (loss : Option (Fin n) → ℝ) (_hloss : ∀ a, 0 ≤ loss a) (t : ℝ) :
     marketTailMoment p loss t ≤ t * marketCDF p loss t := by
   have hpoint : ∀ a : Option (Fin n),
       (if loss a ≤ t then loss a else 0) ≤ (if loss a ≤ t then t else 0) := by
@@ -454,12 +458,12 @@ theorem marketTailMoment_le {n : ℕ} (p : FinDist (Option (Fin n)))
               apply Finset.sum_congr rfl
               intro a _
               by_cases h : loss a ≤ t
-              · have h1 : (if loss a ≤ t then (t:ℝ) else (0:ℝ)) = t := if_pos h
-                have h2 : (if loss a ≤ t then (1:ℝ) else (0:ℝ)) = 1 := if_pos h
+              · have h1 : (if loss a ≤ t then (t:ℝ) else (0:ℝ)) = t := ite_eq_left h
+                have h2 : (if loss a ≤ t then (1:ℝ) else (0:ℝ)) = 1 := ite_eq_left h
                 rw [h1, h2]
                 ring
-              · have h1 : (if loss a ≤ t then (t:ℝ) else (0:ℝ)) = 0 := if_neg h
-                have h2 : (if loss a ≤ t then (1:ℝ) else (0:ℝ)) = 0 := if_neg h
+              · have h1 : (if loss a ≤ t then (t:ℝ) else (0:ℝ)) = 0 := ite_eq_right h
+                have h2 : (if loss a ≤ t then (1:ℝ) else (0:ℝ)) = 0 := ite_eq_right h
                 rw [h1, h2]
                 ring
         _ = t * (∑ a, p.prob a * (if loss a ≤ t then 1 else 0)) := by
@@ -665,7 +669,7 @@ tail conditional means. -/
 theorem marketCVaR_flat_window_exact {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     {t g : ℝ} (ht : t ≤ g)
-    (hFt : 0 < marketCDF p loss t) (hFg : 0 < marketCDF p loss g)
+    (_hFt : 0 < marketCDF p loss t) (_hFg : 0 < marketCDF p loss g)
     (hflat : marketCDF p loss g = marketCDF p loss t) :
     marketCVaR p loss g = marketCVaR p loss t := by
   have hC : marketTailMoment p loss g - marketTailMoment p loss t
@@ -690,7 +694,7 @@ def marketCDFLipschitz {n : ℕ} (p : FinDist (Option (Fin n)))
 mean increase is at most `ρ * (g - t) / marketCDF p loss g`. -/
 theorem marketCVaR_deviation_le {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
-    (ρ : ℝ) {t g : ℝ} (ht : t ≤ g) (hρ : 0 ≤ ρ)
+    (ρ : ℝ) {t g : ℝ} (ht : t ≤ g) (_hρ : 0 ≤ ρ)
     (hFt : 0 < marketCDF p loss t) (hFg : 0 < marketCDF p loss g)
     (hLip : marketCDFLipschitz p loss ρ) :
     marketCVaR p loss g - marketCVaR p loss t

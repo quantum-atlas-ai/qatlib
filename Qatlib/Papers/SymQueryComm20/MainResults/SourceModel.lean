@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.Algebra.MvPolynomial.Coeff
-import Mathlib.Algebra.MvPolynomial.Eval
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.MvPolynomial.Basic
+public import Mathlib.Algebra.MvPolynomial.Coeff
+public import Mathlib.Algebra.MvPolynomial.Eval
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -304,12 +308,12 @@ theorem card_filter_and_eq {ι : Type} [Fintype ι] [DecidableEq ι]
       constructor
       · rintro ⟨-, rfl⟩; rfl
       · intro hji; subst hji; exact ⟨hi, rfl⟩
-    rw [hset, Finset.card_singleton, if_pos hi]
+    rw [hset, Finset.card_singleton, ite_eq_left hi]
   · have hset : Finset.univ.filter (fun j => p j ∧ j = i) = ∅ := by
       rw [Finset.filter_eq_empty_iff]
       intro j _ hj
       exact hi (hj.2 ▸ hj.1)
-    rw [hset, Finset.card_empty, if_neg hi]
+    rw [hset, Finset.card_empty, ite_eq_right hi]
 
 /-- Hadamard codewords are injective: `H(s) = H(s')` implies `s = s'`.  Proof:
 at the index `t` that is `−1` exactly at a coordinate where `s` and `s'` differ,
@@ -358,7 +362,7 @@ theorem decodeHadamard_hadamardWord {m : ℕ} (s : Cube m) :
     decodeHadamard (hadamardWord s) = some s := by
   have his : IsSignedHadamard (hadamardWord s) := ⟨s, Or.inl fun _ => rfl⟩
   unfold decodeHadamard
-  rw [dif_pos his]
+  rw [dite_eq_left his]
   congr 1
   rcases Classical.choose_spec his with hpos | hneg
   · exact hadamardWord_injective (fun t => (hpos t).symm)
@@ -370,7 +374,7 @@ theorem decodeHadamard_neg {m : ℕ} (s : Cube m) :
   have his : IsSignedHadamard (fun t => !(hadamardWord s t)) :=
     ⟨s, Or.inr fun _ => rfl⟩
   unfold decodeHadamard
-  rw [dif_pos his]
+  rw [dite_eq_left his]
   congr 1
   rcases Classical.choose_spec his with hpos | hneg
   · exact absurd (fun t => (hpos t).symm) (hadamardWord_ne_neg (Classical.choose his) s)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Setup
-import Qatlib.Papers.ModularFunct00.MainResults.Representation.EquivUpToPhase
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Setup
+public import Qatlib.Papers.ModularFunct00.MainResults.Representation.EquivUpToPhase
+
+@[expose] public section
 
 /-!
 # Phase equivalence and label arithmetic for Theorem 3.2

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary17DensitySimulationStat
-import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationLowc
-import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1Simulation
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary17DensitySimulationStat
+public import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationLowc
+public import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1Simulation
+
+@[expose] public section
 
 /-!
 # Simulation from a Purification Unitary

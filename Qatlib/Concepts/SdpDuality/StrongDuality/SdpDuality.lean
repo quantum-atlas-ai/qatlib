@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
-import Mathlib.Analysis.LocallyConvex.Separation
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+public import Mathlib.Analysis.LocallyConvex.Separation
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+
+@[expose] public section
 
 /-!
 # Semidefinite duality and diamond norm optimization
@@ -49,8 +53,8 @@ finite search guarantees when a positive-radius inner ball is available.
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
-open Qatlib.Concepts.DyadicFloor.FloorRounding
-open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
+open Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget
 
@@ -608,10 +612,10 @@ theorem dualSlackProgram_primal_iff (P : Program I F) (X₀ S : HermitianMat I �
     exact P.constraint.adjoint.range.topologicalClosure_eq_self
   constructor
   · rintro ⟨hS, heq⟩
-    have hp : K.orthogonalProjection (S + P.objective) = 0 := by
-      change K.orthogonalProjection S = -K.orthogonalProjection P.objective at heq
+    have hp : K.orthogonalProjectionOnto (S + P.objective) = 0 := by
+      change K.orthogonalProjectionOnto S = -K.orthogonalProjectionOnto P.objective at heq
       rw [map_add, heq, neg_add_cancel]
-    have hr := Submodule.orthogonalProjection_eq_zero_iff.mp hp
+    have hr := Submodule.orthogonalProjectionOnto_eq_zero_iff.mp hp
     rw [horth] at hr
     obtain ⟨y, hy⟩ := hr
     change P.constraint.adjoint y = S + P.objective at hy
@@ -621,10 +625,10 @@ theorem dualSlackProgram_primal_iff (P : Program I F) (X₀ S : HermitianMat I �
     rwa [hs]
   · rintro ⟨y, hy, rfl⟩
     refine ⟨hy, ?_⟩
-    change K.orthogonalProjection (P.constraint.adjoint y - P.objective) =
-      -K.orthogonalProjection P.objective
-    have hp : K.orthogonalProjection (P.constraint.adjoint y) = 0 := by
-      apply Submodule.orthogonalProjection_eq_zero_iff.mpr
+    change K.orthogonalProjectionOnto (P.constraint.adjoint y - P.objective) =
+      -K.orthogonalProjectionOnto P.objective
+    have hp : K.orthogonalProjectionOnto (P.constraint.adjoint y) = 0 := by
+      apply Submodule.orthogonalProjectionOnto_eq_zero_iff.mpr
       rw [horth]
       exact ⟨y, rfl⟩
     rw [map_sub, hp, zero_sub]
@@ -637,7 +641,7 @@ theorem dualSlackProgram_dual_iff (P : Program I F) {X₀ : HermitianMat I ℂ}
     (hX₀ : P.PrimalFeasible X₀) (z : P.constraint.ker) :
     (P.dualSlackProgram X₀).DualFeasible z ↔ P.PrimalFeasible (X₀ + (z : HermitianMat I ℂ)) := by
   have hadj : (P.dualSlackProgram X₀).constraint.adjoint z = (z : HermitianMat I ℂ) := by
-    exact congrArg (fun L => L z) (Submodule.adjoint_orthogonalProjection P.constraint.ker)
+    exact congrArg (fun L => L z) (Submodule.adjoint_orthogonalProjectionOnto P.constraint.ker)
   have heq : P.constraint (X₀ + (z : HermitianMat I ℂ)) = P.rhs := by
     rw [map_add, show P.constraint (z : HermitianMat I ℂ) = 0 from z.property,
       add_zero]
@@ -670,9 +674,9 @@ theorem dualSlackProgram_dualScore (P : Program I F) (X₀ : HermitianMat I ℂ)
     (z : P.constraint.ker) :
     (P.dualSlackProgram X₀).dualScore z =
       P.primalScore X₀ - P.primalScore (X₀ + (z : HermitianMat I ℂ)) := by
-  change ⟪-P.constraint.ker.orthogonalProjection P.objective, z⟫_ℝ =
+  change ⟪-P.constraint.ker.orthogonalProjectionOnto P.objective, z⟫_ℝ =
     ⟪P.objective, X₀⟫_ℝ - ⟪P.objective, X₀ + (z : HermitianMat I ℂ)⟫_ℝ
-  rw [inner_neg_left, Submodule.inner_orthogonalProjection_eq_of_mem_right,
+  rw [inner_neg_left, Submodule.inner_orthogonalProjectionOnto_eq_of_mem_right,
     inner_add_right]
   ring
 
@@ -798,7 +802,7 @@ theorem blockPinch_inner {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- Block pinching fixes block diagonal Hermitian matrices. -/
 @[simp] theorem blockPinch_blockDiagonal {I : Type*} [Fintype I] (P Q : HermitianMat I ℂ) :
-    blockPinch (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q) = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
+    blockPinch (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q) = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q := by
   apply HermitianMat.ext
   ext r c
   cases r <;> cases c <;> rfl
@@ -815,15 +819,15 @@ theorem blockPinch_inner {I : Type*} [Fintype I] [DecidableEq I]
 
 /-- A block diagonal matrix with positive semidefinite diagonal blocks is positive semidefinite. -/
 theorem blockDiagonal_nonneg {I : Type*} [Fintype I] [DecidableEq I]
-    {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) : 0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
+    {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) : 0 ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q := by
   apply HermitianMat.zero_le_iff.mpr
   rw [Matrix.posSemidef_iff_dotProduct_mulVec]
-  refine ⟨(Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q).H, fun v => ?_⟩
+  refine ⟨(Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q).H, fun v => ?_⟩
   have hp' := (Matrix.posSemidef_iff_dotProduct_mulVec.mp
     (HermitianMat.zero_le_iff.mp hP)).2 (fun i => v (Sum.inl i))
   have hq' := (Matrix.posSemidef_iff_dotProduct_mulVec.mp
     (HermitianMat.zero_le_iff.mp hQ)).2 (fun i => v (Sum.inr i))
-  simpa only [Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal, HermitianMat.mat_mk, Matrix.mulVec, dotProduct,
+  simpa only [Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal, HermitianMat.mat_mk, Matrix.mulVec, dotProduct,
     Fintype.sum_sum_type, Matrix.fromBlocks_apply₁₁, Matrix.fromBlocks_apply₁₂,
     Matrix.fromBlocks_apply₂₁, Matrix.fromBlocks_apply₂₂, Matrix.zero_apply,
     Pi.star_apply, zero_mul, mul_zero, Finset.sum_const_zero, add_zero, zero_add]
@@ -865,7 +869,7 @@ theorem fidelityProgram_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
         (fidelityProgram P Q).PrimalFeasible X ∧
         (fidelityProgram P Q).primalScore X = α := by
   apply (Qatlib.Concepts.SdpDuality.StrongDuality.Program.dualSlater_strong_duality (P := (fidelityProgram P Q))) (fidelityProgram_dual_strict P Q)
-    (X₀ := Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q)
+    (X₀ := Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q)
   exact ⟨blockDiagonal_nonneg hP hQ, blockPinch_blockDiagonal P Q⟩
 
 /-- The trace of a block matrix is the sum of the traces of its diagonal blocks. -/
@@ -878,7 +882,7 @@ private theorem block_trace {I J : Type*} [Fintype I] [Fintype J]
 /-- Pinching a fidelity primal block yields the block diagonal matrix of its two fixed inputs. -/
 @[simp] theorem blockPinch_fidelityPrimalBlock {I : Type*} [Fintype I]
     (P Q : HermitianMat I ℂ) (X : Matrix I I ℂ) :
-    blockPinch (fidelityPrimalBlock P Q X) = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
+    blockPinch (fidelityPrimalBlock P Q X) = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q := by
   apply HermitianMat.ext
   ext r c
   cases r <;> cases c <;> rfl
@@ -907,7 +911,7 @@ theorem fidelityProgram_primal_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (fidelityProgram P Q).PrimalFeasible (fidelityPrimalBlock P Q X) ↔
       (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef := by
   change (0 ≤ fidelityPrimalBlock P Q X ∧
-    blockPinch (fidelityPrimalBlock P Q X) = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q) ↔ _
+    blockPinch (fidelityPrimalBlock P Q X) = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q) ↔ _
   simp only [blockPinch_fidelityPrimalBlock, and_true, HermitianMat.zero_le_iff]
   rfl
 
@@ -920,7 +924,7 @@ theorem fidelityProgram_primal_shape {I : Type*} [Fintype I] [DecidableEq I]
   refine ⟨M.mat.submatrix Sum.inl Sum.inr, ?_⟩
   apply HermitianMat.ext
   ext r c
-  have hpinch : blockPinch M = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q :=
+  have hpinch : blockPinch M = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q :=
       hM.2
   cases r with
   | inl i =>
@@ -942,7 +946,7 @@ theorem fidelityProgram_primal_shape {I : Type*} [Fintype I] [DecidableEq I]
 corresponding diagonal blocks. -/
 theorem blockDiagonal_inner {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
-    ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z⟫_ℝ = ⟪P,Y⟫_ℝ + ⟪Q,Z⟫_ℝ := by
+    ⟪Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q, Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z⟫_ℝ = ⟪P,Y⟫_ℝ + ⟪Q,Z⟫_ℝ := by
   simp only [inner_eq_real_trace]
   change (Matrix.trace (Matrix.fromBlocks P.mat 0 0 Q.mat *
     Matrix.fromBlocks Y.mat 0 0 Z.mat)).re = _
@@ -953,28 +957,27 @@ theorem blockDiagonal_inner {I : Type*} [Fintype I] [DecidableEq I]
 pairings. -/
 theorem fidelityProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
-    (fidelityProgram P Q).dualScore ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) =
+    (fidelityProgram P Q).dualScore ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) =
       (1/2 : ℝ) * ⟪P,Y⟫_ℝ + (1/2 : ℝ) * ⟪Q,Z⟫_ℝ := by
-  change ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q,
-      (1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z⟫_ℝ = _
+  change ⟪Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q,
+      (1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z⟫_ℝ = _
   rw [inner_smul_right, blockDiagonal_inner, mul_add]
 
 /-- The fidelity dual slack at half a block diagonal matrix is half the corresponding
 `fidelityDualBlock`. -/
 theorem fidelityProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
-    (fidelityProgram P Q).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
+    (fidelityProgram P Q).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) -
       (fidelityProgram P Q).objective = (1/2 : ℝ) • fidelityDualBlock Y Z := by
   change (blockPinch : HermitianMat (I ⊕ I) ℂ →L[ℝ] _).adjoint
-    ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _ = _
+    ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) - _ = _
   rw [blockPinch_adjoint]
-  change blockPinch ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
+  change blockPinch ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) -
     (1/2 : ℝ) • offDiagonal (1 : Matrix I I ℂ) = _
   rw [map_smul]
-  change (1/2 : ℝ) • blockPinch
-      (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _ = _
+
   rw [blockPinch_blockDiagonal]
-  exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) (offDiagonal (1 : Matrix I I ℂ))).symm
+  exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) (offDiagonal (1 : Matrix I I ℂ))).symm
 
 /-- Block pinching is idempotent. -/
 @[simp] theorem blockPinch_idempotent {I : Type*} [Fintype I]
@@ -987,7 +990,7 @@ theorem fidelityProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
 blocks. -/
 theorem fidelity_dual_coordinates {I : Type*} [Fintype I]
     (Y : HermitianMat (I ⊕ I) ℂ) :
-    (1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((2 : ℝ) • principalBlock Y Sum.inl)
+    (1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ((2 : ℝ) • principalBlock Y Sum.inl)
       ((2 : ℝ) • principalBlock Y Sum.inr) = blockPinch Y := by
   apply HermitianMat.ext
   ext r c
@@ -1009,16 +1012,16 @@ theorem fidelityProgram_pinched_dual {I : Type*} [Fintype I] [DecidableEq I]
     rw [blockPinch_adjoint]
     change (0 ≤ blockPinch (blockPinch Y) - _) ↔ (0 ≤ blockPinch Y - _)
     rw [blockPinch_idempotent]
-  · change ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, blockPinch Y⟫_ℝ = ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, Y⟫_ℝ
+  · change ⟪Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q, blockPinch Y⟫_ℝ = ⟪Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q, Y⟫_ℝ
     rw [← blockPinch_inner, blockPinch_blockDiagonal]
 
 /-- A half-scaled block diagonal dual point is fidelity dual feasible exactly when its
 `fidelityDualBlock` is positive semidefinite. -/
 theorem fidelityProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
-    (fidelityProgram P Q).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) ↔
+    (fidelityProgram P Q).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) ↔
       0 ≤ fidelityDualBlock Y Z := by
-  change (0 ≤ (fidelityProgram P Q).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _) ↔ _
+  change (0 ≤ (fidelityProgram P Q).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) - _) ↔ _
   rw [fidelityProgram_dual_slack]
   constructor
   · intro h
@@ -1054,7 +1057,7 @@ theorem fidelityProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
     · rw [← fidelityProgram_dualScore, fidelity_dual_coordinates]
       exact (fidelityProgram_pinched_dual P Q M).2
   · rintro ⟨Y, Z, hYZ, rfl⟩
-    exact ⟨(1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z,
+    exact ⟨(1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z,
       (fidelityProgram_dual_block_iff P Q Y Z).mpr hYZ,
       fidelityProgram_dualScore P Q Y Z⟩
 
@@ -1091,7 +1094,7 @@ theorem inverseSqrtOnSupport_sandwich {I : Type*} [Fintype I] [DecidableEq I]
       by_cases hz : x = 0
       · simp [f, hz]
       · have hs : Real.sqrt x ≠ 0 := Real.sqrt_ne_zero'.mpr (lt_of_le_of_ne hx (Ne.symm hz))
-        simp only [f, if_neg hz]
+        simp only [f, ite_eq_right hz]
         have hsq := Real.mul_self_sqrt hx
         field_simp
         nlinarith
@@ -1163,14 +1166,14 @@ theorem fidelity_cross_left_support {I : Type*} [Fintype I] [DecidableEq I]
     P.supportProj.mat * X = X := by
   let M := fidelityPrimalBlock P Q X
   let B :=
-      Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.kerProj (0 : HermitianMat I ℂ)
+      Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.kerProj (0 : HermitianMat I ℂ)
   have hB : 0 ≤ B := blockDiagonal_nonneg (HermitianMat.projector_nonneg _) le_rfl
   have hz : ⟪M,B⟫_ℝ = 0 := by
     calc
       _ = ⟪blockPinch M,B⟫_ℝ := by
         simpa only [B, blockPinch_blockDiagonal] using! (blockPinch_inner M B).symm
       _ = ⟪P,P.kerProj⟫_ℝ + ⟪Q,(0 : HermitianMat I ℂ)⟫_ℝ := by
-        rw [show blockPinch M = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q from blockPinch_fidelityPrimalBlock P Q X]
+        rw [show blockPinch M = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q from blockPinch_fidelityPrimalBlock P Q X]
         exact blockDiagonal_inner _ _ _ _
       _ = 0 := by rw [inner_zero_right, inner_eq_real_trace, mat_mul_kerProj]; simp
   have hMpos : 0 ≤ M := HermitianMat.zero_le_iff.mpr hM
@@ -1211,7 +1214,7 @@ exactly when `K` has norm at most one. -/
 theorem unit_block_positive_iff {I : Type*} [Fintype I] [DecidableEq I]
     (K : Matrix I I ℂ) :
     (Matrix.fromBlocks (1 : Matrix I I ℂ) K Kᴴ 1).PosSemidef ↔ ‖K‖ ≤ 1 := by
-  letI : Invertible (1 : Matrix I I ℂ) := invertibleOne
+  let : Invertible (1 : Matrix I I ℂ) := invertibleOne
   rw [Matrix.PosDef.fromBlocks₁₁ K (1 : Matrix I I ℂ) Matrix.PosDef.one]
   simp only [inv_one, Matrix.mul_one]
   rw [← Matrix.nonneg_iff_posSemidef, sub_nonneg,
@@ -1231,14 +1234,14 @@ theorem inverseSqrt_cross_contraction {I : Type*} [Fintype I] [DecidableEq I]
   let K := A.mat * X * B.mat
   have hD :=
       hM.conjTranspose_mul_mul_same
-      (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal A B).mat
-  have hker : (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.kerProj Q.kerProj).mat.PosSemidef :=
+      (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal A B).mat
+  have hker : (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.kerProj Q.kerProj).mat.PosSemidef :=
     HermitianMat.zero_le_iff.mp (blockDiagonal_nonneg
       (HermitianMat.projector_nonneg _) (HermitianMat.projector_nonneg _))
-  have heq : (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal A B).matᴴ * Matrix.fromBlocks P.mat X Xᴴ Q.mat *
-      (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal A B).mat + (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.kerProj Q.kerProj).mat =
+  have heq : (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal A B).matᴴ * Matrix.fromBlocks P.mat X Xᴴ Q.mat *
+      (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal A B).mat + (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.kerProj Q.kerProj).mat =
       Matrix.fromBlocks (1 : Matrix I I ℂ) K Kᴴ 1 := by
-    simp only [Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal, HermitianMat.mat_mk, Matrix.fromBlocks_conjTranspose,
+    simp only [Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal, HermitianMat.mat_mk, Matrix.fromBlocks_conjTranspose,
       A.H.eq, B.H.eq, Matrix.conjTranspose_zero, Matrix.fromBlocks_multiply,
       zero_mul, mul_zero, zero_add, add_zero]
     have hPsum : A.mat * P.mat * A.mat + P.kerProj.mat = 1 := by
@@ -1284,12 +1287,12 @@ theorem fidelity_block_of_contraction {I : Type*} [Fintype I] [DecidableEq I]
     (Matrix.fromBlocks P.mat (P.sqrt.mat * K * Q.sqrt.mat)
       (P.sqrt.mat * K * Q.sqrt.mat)ᴴ Q.mat).PosSemidef := by
   have h := ((unit_block_positive_iff K).mpr hK).conjTranspose_mul_mul_same
-    (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.sqrt Q.sqrt).mat
-  have heq : (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.sqrt Q.sqrt).matᴴ *
-      Matrix.fromBlocks (1 : Matrix I I ℂ) K Kᴴ 1 * (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P.sqrt Q.sqrt).mat =
+    (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.sqrt Q.sqrt).mat
+  have heq : (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.sqrt Q.sqrt).matᴴ *
+      Matrix.fromBlocks (1 : Matrix I I ℂ) K Kᴴ 1 * (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P.sqrt Q.sqrt).mat =
       Matrix.fromBlocks P.mat (P.sqrt.mat * K * Q.sqrt.mat)
         (P.sqrt.mat * K * Q.sqrt.mat)ᴴ Q.mat := by
-    simp only [Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal, HermitianMat.mat_mk, Matrix.fromBlocks_conjTranspose,
+    simp only [Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal, HermitianMat.mat_mk, Matrix.fromBlocks_conjTranspose,
       P.sqrt.H.eq, Q.sqrt.H.eq, Matrix.conjTranspose_zero, Matrix.fromBlocks_multiply,
       zero_mul, mul_zero, zero_add, add_zero, Matrix.mul_one,
       HermitianMat.sqrt_sq hP, HermitianMat.sqrt_sq hQ]
@@ -1348,8 +1351,8 @@ theorem rootFidelity_block_attained {I : Type*} [Fintype I] [DecidableEq I]
     ext i j
     have h := congrArg (fun A : Matrix I I ℂ => A i j) U.prop.1
     by_cases hij : i = j
-    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_pos hij] using! h
-    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_neg hij] using! h
+    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_left hij] using! h
+    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_right hij] using! h
   have hK : ‖U.val‖ ≤ 1 := (unit_block_positive_iff U.val).mp (by simpa [hunit] using! hGram)
   refine ⟨P.sqrt.mat * U.val * Q.sqrt.mat, fidelity_block_of_contraction hP hQ hK, ?_⟩
   have hcycle : Matrix.trace (P.sqrt.mat * U.val * Q.sqrt.mat) =
@@ -1421,7 +1424,7 @@ theorem weightedBlockProgram_primal_block_iff {I : Type*} [Fintype I] [Decidable
 input pairings. -/
 theorem weightedBlockProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
-    (weightedBlockProgram P Q C).dualScore ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) =
+    (weightedBlockProgram P Q C).dualScore ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) =
       (1/2 : ℝ) * ⟪P,Y⟫_ℝ + (1/2 : ℝ) * ⟪Q,Z⟫_ℝ :=
   fidelityProgram_dualScore P Q Y Z
 
@@ -1429,26 +1432,25 @@ theorem weightedBlockProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
 `weightedDualBlock`. -/
 theorem weightedBlockProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
-    (weightedBlockProgram P Q C).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
+    (weightedBlockProgram P Q C).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) -
       (weightedBlockProgram P Q C).objective = (1/2 : ℝ) • weightedDualBlock C Y Z := by
   change (blockPinch : HermitianMat (I ⊕ I) ℂ →L[ℝ] _).adjoint
-    ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _ = _
+    ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) - _ = _
   rw [blockPinch_adjoint]
-  change blockPinch ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
+  change blockPinch ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) -
       (1/2 : ℝ) • offDiagonal C = _
   rw [map_smul]
-  change (1/2 : ℝ) • blockPinch
-      (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _ = _
+
   rw [blockPinch_blockDiagonal]
-  exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) (offDiagonal C)).symm
+  exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) (offDiagonal C)).symm
 
 /-- A half-scaled block diagonal point is weighted block dual feasible exactly when its
 `weightedDualBlock` is positive semidefinite. -/
 theorem weightedBlockProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
-    (weightedBlockProgram P Q C).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) ↔
+    (weightedBlockProgram P Q C).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) ↔
       0 ≤ weightedDualBlock C Y Z := by
-  change (0 ≤ (weightedBlockProgram P Q C).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) - _) ↔ _
+  change (0 ≤ (weightedBlockProgram P Q C).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z) - _) ↔ _
   rw [weightedBlockProgram_dual_slack]
   constructor
   · intro h
@@ -1499,7 +1501,7 @@ theorem weightedBlockProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
     · rw [← weightedBlockProgram_dualScore P Q _ _ C, fidelity_dual_coordinates]
       exact (weightedBlockProgram_pinched_dual P Q C M).2
   · rintro ⟨Y, Z, hYZ, rfl⟩
-    exact ⟨(1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z,
+    exact ⟨(1/2 : ℝ) • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z,
       (weightedBlockProgram_dual_block_iff P Q Y Z C).mpr hYZ,
       weightedBlockProgram_dualScore P Q Y Z C⟩
 
@@ -1542,8 +1544,7 @@ theorem weightedBlockProgram_dual_strict {I : Type*} [Fintype I] [DecidableEq I]
   change (blockPinch ((‖C‖/2 + 1) • (1 : HermitianMat (I ⊕ I) ℂ)) -
     (1/2 : ℝ) • offDiagonal C).mat.PosDef
   rw [map_smul]
-  change ((‖C‖/2 + 1) • blockPinch (1 : HermitianMat (I ⊕ I) ℂ) -
-    (1/2 : ℝ) • offDiagonal C).mat.PosDef
+
   rw [blockPinch_one]
   have heq : (‖C‖/2 + 1) • (1 : HermitianMat (I ⊕ I) ℂ) -
       (1/2 : ℝ) • offDiagonal C = (1/2 : ℝ) • 1 + (1/2 : ℝ) • H := by
@@ -1561,7 +1562,7 @@ theorem weightedBlock_source_strong_duality {I : Type*} [Fintype I] [DecidableEq
       IsGLB (weightedBlockDualValues P Q C) α ∧
       ∃ X : Matrix I I ℂ, (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef ∧
         (Matrix.trace (Cᴴ * X)).re = α := by
-  have hfeas : (weightedBlockProgram P Q C).PrimalFeasible (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q) :=
+  have hfeas : (weightedBlockProgram P Q C).PrimalFeasible (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q) :=
     ⟨blockDiagonal_nonneg hP hQ, blockPinch_blockDiagonal P Q⟩
   obtain ⟨α, hp, hd, M, hM, hscore⟩ := (Qatlib.Concepts.SdpDuality.StrongDuality.Program.dualSlater_strong_duality (P := (weightedBlockProgram P Q C)))
     (weightedBlockProgram_dual_strict P Q C) hfeas
@@ -1616,8 +1617,8 @@ theorem weightedBlock_norm_attained {I : Type*} [Fintype I] [DecidableEq I]
     ext i j
     have h := congrArg (fun A : Matrix I I ℂ => A i j) U.prop.1
     by_cases hij : i = j
-    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_pos hij] using! h
-    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_neg hij] using! h
+    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_left hij] using! h
+    · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, ite_eq_right hij] using! h
   have hGram := Matrix.fromBlocks_gram_posSemidef U.val (1 : Matrix I I ℂ)
   have hK : ‖U.val‖ ≤ 1 := (unit_block_positive_iff U.val).mp (by simpa [hunit] using! hGram)
   refine ⟨P.sqrt.mat * U.val * Q.sqrt.mat, fidelity_block_of_contraction hP hQ hK, ?_⟩
@@ -1782,14 +1783,14 @@ private theorem traceNorm_two_isometries {I J K : Type*}
     ext i j
     have h := congrArg (fun A : Matrix I I ℂ => A i j) hV
     by_cases hij : i = j
-    · simpa only [Matrix.one_apply, if_pos hij] using! h
-    · simpa only [Matrix.one_apply, if_neg hij] using! h)]
+    · simpa only [Matrix.one_apply, ite_eq_left hij] using! h
+    · simpa only [Matrix.one_apply, ite_eq_right hij] using! h)]
   apply Matrix.traceNorm_isometry_left
   ext i j
   have h := congrArg (fun A : Matrix I I ℂ => A i j) hU
   by_cases hij : i = j
-  · simpa only [Matrix.one_apply, if_pos hij] using! h
-  · simpa only [Matrix.one_apply, if_neg hij] using! h
+  · simpa only [Matrix.one_apply, ite_eq_left hij] using! h
+  · simpa only [Matrix.one_apply, ite_eq_right hij] using! h
 
 /-- The amplified trace norm of normalized rank-one input data is realized as a Choi score for
 two density inputs. -/
@@ -1894,7 +1895,7 @@ theorem diamondChoi_attained {D E : ℕ} (hD : 0 < D) (T : Operator D →ₗ[ℂ
       finiteDiamondNorm T = ENNReal.ofReal (diamondChoiScore T ρ σ) ∧
       diamondChoiValue T = ENNReal.ofReal (diamondChoiScore T ρ σ) := by
   classical
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
   obtain ⟨-, X, hXnorm, hvalue⟩ := diamond_finite_attained_maximum D E T
   let δ : ℝ := Matrix.traceNorm (tensorLeft T X)
   have hδ : 0 ≤ δ := Matrix.traceNorm_nonneg _
@@ -1955,7 +1956,7 @@ theorem finiteDiamondDistance_choi {D E : ℕ} (T S : Operator D →ₗ[ℂ] Ope
 /-- The Choi variational value is zero when the input dimension is zero. -/
 theorem diamondChoiValue_zero_input {E : ℕ} (T : Operator 0 →ₗ[ℂ] Operator E) :
     diamondChoiValue T = 0 := by
-  letI := densityInput_zero_empty
+  let := densityInput_zero_empty
   simp [diamondChoiValue]
 
 set_option backward.isDefEq.respectTransparency false
@@ -2035,7 +2036,7 @@ theorem diamondProgram_primalScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
     (diamondProgram T).primalScore (diamondPrimalData ρ σ X) =
       (Matrix.trace ((MatrixMap.choi_matrix T)ᴴ * X)).re := by
   change ⟪directSum 0 ((1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)),
-    directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ρ σ) (fidelityPrimalBlock (densityLift ρ) (densityLift σ) X)⟫_ℝ = _
+    directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ρ σ) (fidelityPrimalBlock (densityLift ρ) (densityLift σ) X)⟫_ℝ = _
   rw [directSum_inner, principalBlock_directSum_left, principalBlock_directSum_right,
     inner_zero_left, zero_add]
   exact weightedBlockProgram_primalScore _ _ _ _
@@ -2044,7 +2045,7 @@ theorem diamondProgram_primalScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
 principal blocks. -/
 theorem blockDiagonal_inner_general {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (M : HermitianMat (I ⊕ I) ℂ) :
-    ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, M⟫_ℝ =
+    ⟪Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q, M⟫_ℝ =
       ⟪P, principalBlock M Sum.inl⟫_ℝ + ⟪Q, principalBlock M Sum.inr⟫_ℝ :=
   directSum_inner P Q M
 
@@ -2131,7 +2132,7 @@ theorem directSum_nonneg_iff {I J : Type*} [Fintype I] [Fintype J]
 /-- A block diagonal matrix is positive semidefinite exactly when both diagonal blocks are
 positive semidefinite. -/
 theorem blockDiagonal_nonneg_iff {I : Type*} [Fintype I] [DecidableEq I]
-    (P Q : HermitianMat I ℂ) : 0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q ↔ 0 ≤ P ∧ 0 ≤ Q :=
+    (P Q : HermitianMat I ℂ) : 0 ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q ↔ 0 ≤ P ∧ 0 ≤ Q :=
   directSum_nonneg_iff P Q
 
 /-- Diamond primal block data are feasible exactly when the two inputs are density matrices and
@@ -2169,7 +2170,7 @@ theorem directSum_posDef {I J : Type*} [Fintype I] [Fintype J]
     simp only [directSum, HermitianMat.mat_mk, Matrix.mulVec, dotProduct,
       Fintype.sum_sum_type, Matrix.fromBlocks_apply₁₁, Matrix.fromBlocks_apply₁₂,
       Matrix.fromBlocks_apply₂₁, Matrix.fromBlocks_apply₂₂, Matrix.zero_apply,
-      Pi.star_apply, zero_mul, mul_zero, Finset.sum_const_zero, add_zero, zero_add]
+      Pi.star_apply, zero_mul, Finset.sum_const_zero, add_zero, zero_add]
   rw [heq]
   by_cases hl : (fun i => v (Sum.inl i)) = 0
   · have hr : (fun i => v (Sum.inr i)) ≠ 0 := by
@@ -2201,7 +2202,7 @@ theorem diamondProgram_primal_strict {D E : ℕ} (hD : 0 < D)
         directSum (densityLift ρ) (densityLift ρ) := by
       apply HermitianMat.ext
       simp only [fidelityPrimalBlock, directSum, HermitianMat.mat_mk, Matrix.conjTranspose_zero]
-    change (directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ρ ρ) (fidelityPrimalBlock (densityLift ρ) (densityLift ρ) 0)).mat.PosDef
+    change (directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ρ ρ) (fidelityPrimalBlock (densityLift ρ) (densityLift ρ) 0)).mat.PosDef
     rw [hz]
     exact directSum_posDef (directSum_posDef hp hp) (directSum_posDef hl hl)
   · change diamondEqMap D E (diamondPrimalData ρ ρ 0) = diamondDualData 1 1 0 0
@@ -2228,11 +2229,11 @@ theorem diamondProgram_dual_strict {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
     (0 : HermitianMat (Fin E × Fin D) ℂ) 0 (MatrixMap.choi_matrix T)
   let Y := principalBlock W Sum.inl
   let Z := principalBlock W Sum.inr
-  have hw : (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)).mat.PosDef := by
+  have hw : (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)).mat.PosDef := by
     change (((blockPinch : HermitianMat ((Fin E × Fin D) ⊕ (Fin E × Fin D)) ℂ →L[ℝ] _).adjoint W) -
       (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)).mat.PosDef at hW
     rw [blockPinch_adjoint] at hW
-    have heq : blockPinch W = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z := by
+    have heq : blockPinch W = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z := by
       apply HermitianMat.ext
       ext i j
       cases i <;> cases j <;> rfl
@@ -2242,9 +2243,9 @@ theorem diamondProgram_dual_strict {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
   rw [diamondEqMap_adjoint]
   have heq : diamondAdjointData (‖Y.traceLeft‖ + 1) (‖Z.traceLeft‖ + 1) Y Z -
       (diamondProgram T).objective =
-      directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((‖Y.traceLeft‖ + 1) • 1 - Y.traceLeft)
+      directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ((‖Y.traceLeft‖ + 1) • 1 - Y.traceLeft)
         ((‖Z.traceLeft‖ + 1) • 1 - Z.traceLeft))
-        (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)) := by
+        (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)) := by
     apply HermitianMat.ext
     change Matrix.fromBlocks _ 0 0 _ - Matrix.fromBlocks 0 0 0 _ =
       Matrix.fromBlocks _ 0 0 _
@@ -2290,7 +2291,7 @@ theorem diamondProgram_primal_reduction {D E : ℕ} (T : Operator D →ₗ[ℂ] 
   have hσtr : σ.trace = 1 := congrArg Prod.snd htr
   have hP : P = densityLift ρ := sub_eq_zero.mp (congrArg Prod.fst hres)
   have hQ : Q = densityLift σ := sub_eq_zero.mp (congrArg Prod.snd hres)
-  have hp : blockPinch B = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (densityLift ρ) (densityLift σ) := by
+  have hp : blockPinch B = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (densityLift ρ) (densityLift σ) := by
     rw [← hP, ← hQ]
     apply HermitianMat.ext
     ext i j
@@ -2427,8 +2428,8 @@ theorem diamondProgram_dual_slack {D E : ℕ} (T : Operator D →ₗ[ℂ] Operat
     (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondProgram T).constraint.adjoint (diamondDualData a b Y Z) -
       (diamondProgram T).objective =
-      directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (a • 1 - Y.traceLeft) (b • 1 - Z.traceLeft))
-        (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)) := by
+      directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (a • 1 - Y.traceLeft) (b • 1 - Z.traceLeft))
+        (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T)) := by
   change (diamondEqMap D E).adjoint _ - _ = _
   rw [diamondEqMap_adjoint]
   apply HermitianMat.ext
@@ -2442,7 +2443,7 @@ theorem diamondProgram_dual_block_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
     (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondProgram T).DualFeasible (diamondDualData a b Y Z) ↔
       0 ≤ a • 1 - Y.traceLeft ∧ 0 ≤ b • 1 - Z.traceLeft ∧
-        0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T) := by
+        0 ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (MatrixMap.choi_matrix T) := by
   unfold Program.DualFeasible
   rw [diamondProgram_dual_slack, directSum_nonneg_iff, blockDiagonal_nonneg_iff, and_assoc]
 
@@ -2474,16 +2475,16 @@ theorem weightedDualBlock_diagonal_nonneg {I : Type*} [Fintype I] [DecidableEq I
 
 /-- Forming a block diagonal matrix commutes with real scalar multiplication. -/
 theorem blockDiagonal_smul {I : Type*} [Fintype I] (r : ℝ) (Y Z : HermitianMat I ℂ) :
-    Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (r • Y) (r • Z) = r • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z := by
+    Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (r • Y) (r • Z) = r • Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z := by
   apply HermitianMat.ext
-  simp only [Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal, HermitianMat.mat_mk, HermitianMat.mat_smul,
+  simp only [Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal, HermitianMat.mat_mk, HermitianMat.mat_smul,
     Matrix.fromBlocks_smul, smul_zero]
 
 /-- The diamond coupling block formed from half-scaled diagonal blocks is half the weighted dual
 block. -/
 theorem diamond_half_dual_block {I : Type*} [Fintype I] (C : Matrix I I ℂ)
     (Y Z : HermitianMat I ℂ) :
-    Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((1/2 : ℝ) • Y) ((1/2 : ℝ) • Z) - (1/2 : ℝ) • offDiagonal C =
+    Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ((1/2 : ℝ) • Y) ((1/2 : ℝ) • Z) - (1/2 : ℝ) • offDiagonal C =
       (1/2 : ℝ) • weightedDualBlock C Y Z := by
   rw [blockDiagonal_smul, weightedDualBlock, smul_sub]
 
@@ -2492,7 +2493,7 @@ block. -/
 theorem diamond_double_dual_block {I : Type*} [Fintype I] (C : Matrix I I ℂ)
     (Y Z : HermitianMat I ℂ) :
     weightedDualBlock C ((2 : ℝ) • Y) ((2 : ℝ) • Z) =
-      (2 : ℝ) • (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal C) := by
+      (2 : ℝ) • (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal C) := by
   rw [weightedDualBlock, blockDiagonal_smul, smul_sub, smul_smul]
   norm_num
 
@@ -2536,7 +2537,7 @@ theorem diamondProgram_dual_reduction {D E : ℕ} (hD : 0 < D)
     ∃ Y Z : HermitianMat (Fin E × Fin D) ℂ,
       0 ≤ weightedDualBlock (MatrixMap.choi_matrix T) Y Z ∧
         diamondDualObjective Y Z ≤ (diamondProgram T).dualScore y := by
-  letI : NeZero D := ⟨Nat.ne_of_gt hD⟩
+  let : NeZero D := ⟨Nat.ne_of_gt hD⟩
   let a := (WithLp.ofLp (WithLp.ofLp y).1).1
   let b := (WithLp.ofLp (WithLp.ofLp y).1).2
   let Y := (WithLp.ofLp (WithLp.ofLp y).2).1
@@ -2656,7 +2657,7 @@ theorem sqrt_isometry_conj {I J : Type*} [Fintype I] [Fintype J]
       _ = U * P.sqrt.mat * (Uᴴ * U) * P.sqrt.mat * Uᴴ := by simp only [Matrix.mul_assoc]
       _ = U * P.mat * Uᴴ := by
         rw [hU,Matrix.mul_one]
-        simp only [Matrix.mul_assoc,← Matrix.mul_assoc P.sqrt.mat, HermitianMat.sqrt_sq hP]
+        simp only [Matrix.mul_assoc, HermitianMat.sqrt_sq hP]
   rw [← hs]
   exact sqrt_square_nonneg (HermitianMat.conj_nonneg U P.sqrt_nonneg)
 
@@ -2839,8 +2840,8 @@ theorem stinespringFrame_gram {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z
     ∑ a, (∑ j, (∑ i, A (a,w) i * ρ.val.mat j i) * star (A (a,z) j))
   simp only [stinespringFactor,Matrix.kronecker,Matrix.kroneckerMap_apply,
     Fintype.sum_prod_type,Matrix.one_apply,ite_mul,one_mul,zero_mul,mul_ite,mul_zero,
-    Finset.sum_ite_irrel,Finset.sum_const_zero,Finset.sum_ite_eq,Finset.sum_ite_eq',
-    Finset.mem_univ,if_true,Finset.sum_mul]
+    Finset.sum_ite_irrel,Finset.sum_const_zero,Finset.sum_ite_eq',
+    Finset.mem_univ,ite_true,Finset.sum_mul]
   apply Finset.sum_congr rfl
   intro a ha
   rw [Finset.sum_comm]
@@ -2987,9 +2988,9 @@ theorem stinespringProgram_dual_slack {D E : ℕ} {Z : Type*} [Fintype Z] [Decid
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ) :
     (stinespringProgram A B).constraint.adjoint (stinespringDualData a b Y W) -
       (stinespringProgram A B).objective =
-      directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (a • 1 - (stinespringComplementLinear A).adjoint Y)
+      directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (a • 1 - (stinespringComplementLinear A).adjoint Y)
         (b • 1 - (stinespringComplementLinear B).adjoint W))
-        (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y W - (1/2 : ℝ) • offDiagonal (1 : Matrix Z Z ℂ)) := by
+        (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y W - (1/2 : ℝ) • offDiagonal (1 : Matrix Z Z ℂ)) := by
   change (stinespringEqMap A B).adjoint _ - _ = _
   rw [stinespringEqMap_adjoint]
   apply HermitianMat.ext
@@ -3043,7 +3044,7 @@ theorem stinespringProgram_primalScore {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (ρ σ : HermitianMat (Fin D) ℂ) (X : Matrix Z Z ℂ) :
     (stinespringProgram A B).primalScore (stinespringPrimalData A B ρ σ X) = (Matrix.trace X).re := by
   change ⟪directSum 0 ((1/2 : ℝ) • offDiagonal (1 : Matrix Z Z ℂ)),
-    directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ρ σ)
+    directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ρ σ)
       (fidelityPrimalBlock (stinespringComplement A ρ) (stinespringComplement B σ) X)⟫_ℝ = _
   rw [directSum_inner,principalBlock_directSum_left,principalBlock_directSum_right,inner_zero_left,zero_add]
   exact fidelityProgram_primalScore _ _ _
@@ -3075,7 +3076,7 @@ theorem stinespringProgram_dual_strict {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
   let Q := (stinespringComplementLinear B).adjoint 1
   refine ⟨stinespringDualData (‖P‖+1) (‖Q‖+1) (1 : HermitianMat Z ℂ) 1,?_⟩
   rw [stinespringProgram_dual_slack]
-  have hdiag : Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (1 : HermitianMat Z ℂ) 1 = 1 := by
+  have hdiag : Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (1 : HermitianMat Z ℂ) 1 = 1 := by
     apply HermitianMat.ext
     exact Matrix.fromBlocks_one
   rw [hdiag]
@@ -3085,9 +3086,9 @@ theorem stinespringProgram_dual_strict {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
 /-- A fidelity primal block with zero cross block is the block diagonal matrix of its two
 inputs. -/
 @[simp] theorem fidelityPrimalBlock_zero {I : Type*} [Fintype I] (P Q : HermitianMat I ℂ) :
-    fidelityPrimalBlock P Q 0 = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
+    fidelityPrimalBlock P Q 0 = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q := by
   apply HermitianMat.ext
-  simp only [fidelityPrimalBlock,Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal,HermitianMat.mat_mk,Matrix.conjTranspose_zero]
+  simp only [fidelityPrimalBlock,Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal,HermitianMat.mat_mk,Matrix.conjTranspose_zero]
 
 /-- The Stinespring program has a primal feasible point when the input dimension is positive. -/
 theorem stinespringProgram_primal_feasible {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
@@ -3136,7 +3137,7 @@ theorem stinespringProgram_primal_reduction {D E : ℕ} {Z : Type*} [Fintype Z] 
   have hσtr : σ.trace = 1 := congrArg Prod.snd htr
   have hP : P = stinespringComplement A ρ := sub_eq_zero.mp (congrArg Prod.fst hres)
   have hQ : Q = stinespringComplement B σ := sub_eq_zero.mp (congrArg Prod.snd hres)
-  have hpinch : blockPinch S = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (stinespringComplement A ρ) (stinespringComplement B σ) := by
+  have hpinch : blockPinch S = Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (stinespringComplement A ρ) (stinespringComplement B σ) := by
     rw [← hP,← hQ]
     apply HermitianMat.ext
     ext i j
@@ -3243,7 +3244,7 @@ theorem fidelityDualBlock_left_posDef {I : Type*} [Fintype I] [DecidableEq I]
   have hdiag := weightedDualBlock_diagonal_nonneg (C := (1 : Matrix I I ℂ)) h
   have hraw : (Matrix.fromBlocks Y.mat (-1 : Matrix I I ℂ) (-1 : Matrix I I ℂ) W.mat).PosSemidef := by
     have hm := HermitianMat.zero_le_iff.mp h
-    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal,offDiagonal,
+    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal,offDiagonal,
       HermitianMat.mat_mk,Matrix.conjTranspose_one] at hm
     rw [sub_eq_add_neg,Matrix.fromBlocks_neg,Matrix.fromBlocks_add] at hm
     simpa only [neg_zero,add_zero,zero_add] using! hm
@@ -3263,14 +3264,14 @@ theorem fidelityDualBlock_iff_inverse_slack {I : Type*} [Fintype I] [DecidableEq
     0 ≤ fidelityDualBlock Y W ↔ Y.mat.PosDef ∧ 0 ≤ W - Y⁻¹ := by
   have hform : (fidelityDualBlock Y W).mat =
       Matrix.fromBlocks Y.mat (-1 : Matrix I I ℂ) (-1 : Matrix I I ℂ) W.mat := by
-    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal,offDiagonal,
+    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal,offDiagonal,
       HermitianMat.mat_mk,Matrix.conjTranspose_one]
     rw [sub_eq_add_neg,Matrix.fromBlocks_neg,Matrix.fromBlocks_add]
     simp only [neg_zero,add_zero,zero_add]
   constructor
   · intro h
     have hp := fidelityDualBlock_left_posDef h
-    letI : Invertible Y.mat := hp.isUnit.invertible
+    let : Invertible Y.mat := hp.isUnit.invertible
     have hs := (Matrix.PosDef.fromBlocks₁₁ (-1 : Matrix I I ℂ) W.mat hp).mp
       (by simpa only [Matrix.conjTranspose_neg,Matrix.conjTranspose_one,hform]
         using! HermitianMat.zero_le_iff.mp h)
@@ -3278,7 +3279,7 @@ theorem fidelityDualBlock_iff_inverse_slack {I : Type*} [Fintype I] [DecidableEq
     simpa only [Matrix.conjTranspose_neg,Matrix.conjTranspose_one,Matrix.neg_mul,
       Matrix.mul_neg,Matrix.one_mul,Matrix.mul_one,neg_neg,HermitianMat.mat_sub,HermitianMat.mat_inv] using! hs
   · rintro ⟨hp,hs⟩
-    letI : Invertible Y.mat := hp.isUnit.invertible
+    let : Invertible Y.mat := hp.isUnit.invertible
     apply HermitianMat.zero_le_iff.mpr
     rw [hform]
     have hm := (Matrix.PosDef.fromBlocks₁₁ (-1 : Matrix I I ℂ) W.mat hp).mpr (by
@@ -3302,7 +3303,7 @@ theorem stinespringProgram_dual_block_iff {D E : ℕ} {Z : Type*} [Fintype Z] [D
     (stinespringProgram A B).DualFeasible (stinespringDualData a b Y W) ↔
       0 ≤ a • 1 - (stinespringComplementLinear A).adjoint Y ∧
       0 ≤ b • 1 - (stinespringComplementLinear B).adjoint W ∧
-      0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y W - (1/2 : ℝ) • offDiagonal (1 : Matrix Z Z ℂ) := by
+      0 ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y W - (1/2 : ℝ) • offDiagonal (1 : Matrix Z Z ℂ) := by
   unfold Program.DualFeasible
   rw [stinespringProgram_dual_slack,directSum_nonneg_iff,blockDiagonal_nonneg_iff,and_assoc]
 
@@ -3338,8 +3339,7 @@ theorem stinespringBlockDual_lift {D E : ℕ} {Z : Type*} [Fintype Z] [Decidable
   have hw := stinespringComplement_adjoint_nonneg B hW
   refine ⟨(stinespringProgram_dual_block_iff _ _ _ _ _ _).mpr ⟨?_,?_,?_⟩,?_⟩
   · rw [map_smul]
-    change 0 ≤ ((1/2 : ℝ) * ‖((stinespringComplementLinear A).adjoint Y).mat‖) • 1 -
-      (1/2 : ℝ) • (stinespringComplementLinear A).adjoint Y
+
     have heq : ((1/2 : ℝ) * ‖((stinespringComplementLinear A).adjoint Y).mat‖) •
         (1 : HermitianMat (Fin D) ℂ) - (1/2 : ℝ) • (stinespringComplementLinear A).adjoint Y =
         (1/2 : ℝ) • (‖((stinespringComplementLinear A).adjoint Y).mat‖ • 1 -
@@ -3347,8 +3347,7 @@ theorem stinespringBlockDual_lift {D E : ℕ} {Z : Type*} [Fintype Z] [Decidable
     rw [heq]
     exact smul_nonneg (by norm_num : (0 : ℝ) ≤ 1/2) (nonneg_opNorm_slack hy)
   · rw [map_smul]
-    change 0 ≤ ((1/2 : ℝ) * ‖((stinespringComplementLinear B).adjoint W).mat‖) • 1 -
-      (1/2 : ℝ) • (stinespringComplementLinear B).adjoint W
+
     have heq : ((1/2 : ℝ) * ‖((stinespringComplementLinear B).adjoint W).mat‖) •
         (1 : HermitianMat (Fin D) ℂ) - (1/2 : ℝ) • (stinespringComplementLinear B).adjoint W =
         (1/2 : ℝ) • (‖((stinespringComplementLinear B).adjoint W).mat‖ • 1 -
@@ -3367,7 +3366,7 @@ theorem stinespringProgram_dual_reduction {D E : ℕ} {Z : Type*} [Fintype Z] [D
     (hy : (stinespringProgram A B).DualFeasible y) :
     ∃ Y W : HermitianMat Z ℂ, 0 ≤ fidelityDualBlock Y W ∧
       stinespringBlockDualObjective A B Y W ≤ (stinespringProgram A B).dualScore y := by
-  letI : NeZero D := ⟨Nat.ne_of_gt hD⟩
+  let : NeZero D := ⟨Nat.ne_of_gt hD⟩
   let a := (WithLp.ofLp (WithLp.ofLp y).1).1
   let b := (WithLp.ofLp (WithLp.ofLp y).1).2
   let Y := (WithLp.ofLp (WithLp.ofLp y).2).1
@@ -3545,7 +3544,7 @@ theorem directSum_sub {I J : Type*} [Fintype I] [Fintype J]
     (P R : HermitianMat I ℂ) (Q S : HermitianMat J ℂ) :
     directSum P Q - directSum R S = directSum (P - R) (Q - S) := by
   apply HermitianMat.ext
-  simp only [directSum,HermitianMat.mat_mk,HermitianMat.mat_sub,HermitianMat.mat_add,HermitianMat.mat_neg,sub_eq_add_neg,
+  simp only [directSum,HermitianMat.mat_mk,HermitianMat.mat_add,HermitianMat.mat_neg,sub_eq_add_neg,
     Matrix.fromBlocks_neg,Matrix.fromBlocks_add,neg_zero,add_zero]
 
 /-- Direct sums preserve the order of both summands. -/
@@ -3559,7 +3558,7 @@ theorem directSum_mono {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [De
 /-- Forming block diagonal matrices preserves the order of both blocks. -/
 theorem blockDiagonal_mono {I : Type*} [Fintype I] [DecidableEq I]
     {P R Q S : HermitianMat I ℂ} (hP : P ≤ R) (hQ : Q ≤ S) :
-    Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal R S := directSum_mono hP hQ
+    Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal P Q ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal R S := directSum_mono hP hQ
 
 /-- The direct sum of equally scaled identity matrices is the equally scaled identity on the sum
 type. -/
@@ -3573,7 +3572,7 @@ type. -/
 
 /-- A block diagonal matrix of equally scaled identity blocks is the equally scaled identity. -/
 @[simp] theorem blockDiagonal_scalar_one {I : Type*} [Fintype I] [DecidableEq I] (r : ℝ) :
-    Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (r • (1 : HermitianMat I ℂ)) (r • 1) = r • 1 := directSum_scalar_one r
+    Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (r • (1 : HermitianMat I ℂ)) (r • 1) = r • 1 := directSum_scalar_one r
 
 /-- Each scalar or matrix coordinate of Stinespring dual data is bounded in absolute value or
 norm by the norm of the full data. -/
@@ -3680,15 +3679,15 @@ theorem stinespringEqMap_adjoint_norm_bound {D E : ℕ} {Z : Type*} [Fintype Z] 
 theorem fidelity_identity_slack_margin {I : Type*} [Fintype I] [DecidableEq I] :
     (1/2 : ℝ) • (1 : HermitianMat (I ⊕ I) ℂ) ≤
       1 - (1/2 : ℝ) • offDiagonal (1 : Matrix I I ℂ) := by
-  have hdiag : Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (1 : HermitianMat I ℂ) 1 = 1 := by
+  have hdiag : Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (1 : HermitianMat I ℂ) 1 = 1 := by
     simpa only [one_smul] using! blockDiagonal_scalar_one (I := I) (1 : ℝ)
   have hg : 0 ≤ fidelityDualBlock (1 : HermitianMat I ℂ) 1 := by
     apply HermitianMat.zero_le_iff.mpr
-    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal,offDiagonal,
+    simp only [fidelityDualBlock,HermitianMat.mat_sub,Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal,offDiagonal,
       HermitianMat.mat_mk,HermitianMat.mat_one,Matrix.conjTranspose_one]
     rw [sub_eq_add_neg,Matrix.fromBlocks_neg,Matrix.fromBlocks_add]
     simpa using! Matrix.fromBlocks_gram_posSemidef (-1 : Matrix I I ℂ) (1 : Matrix I I ℂ)
-  change 0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal
+  change 0 ≤ Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal
       (1 : HermitianMat I ℂ) 1 - offDiagonal (1 : Matrix I I ℂ) at hg
   rw [hdiag] at hg
   apply sub_nonneg.mp
@@ -3718,7 +3717,7 @@ theorem stinespringDualCenter_margin {D E : ℕ} {Z : Type*} [Fintype Z] [Decida
     ((stinespringComplementLinear B).adjoint (1 : HermitianMat Z ℂ)) (1/2 : ℝ)
   unfold stinespringDualCenter
   rw [stinespringProgram_dual_slack]
-  have hdiag : Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (1 : HermitianMat Z ℂ) 1 = 1 := by
+  have hdiag : Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (1 : HermitianMat Z ℂ) 1 = 1 := by
     simpa only [one_smul] using! blockDiagonal_scalar_one (I := Z) (1 : ℝ)
   rw [hdiag]
   have hh := directSum_mono (blockDiagonal_mono hP hQ) (fidelity_identity_slack_margin (I := Z))
@@ -3769,7 +3768,7 @@ theorem stinespringDualCenter_ball_margin {D E : ℕ} {Z : Type*} [Fintype Z] [D
     change (1/4 : ℝ) • (1 : HermitianMat (StinespringRegister D Z) ℂ) ≤
       (stinespringEqMap A B).adjoint (stinespringDualCenter A B) -
         (stinespringProgram A B).objective + (stinespringEqMap A B).adjoint h at hm
-    convert! hm using 1 <;> abel
+    convert! hm using 1; abel
   exact hmargin
 
 /-- Every perturbation within the Stinespring interior radius gives positive definite dual
@@ -3871,7 +3870,7 @@ theorem diamondDualCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operato
   rw [diamondProgram_dual_slack,HermitianMat.traceLeft_smul,traceLeft_one_fin,
     scalar_center_cancel]
   rw [blockDiagonal_scalar_one (I := Fin E × Fin D) (‖MatrixMap.choi_matrix T‖/2 + 1)]
-  have hi : Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (1 : HermitianMat (Fin D) ℂ) 1 = 1 := by
+  have hi : Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (1 : HermitianMat (Fin D) ℂ) 1 = 1 := by
     simpa only [one_smul] using! blockDiagonal_scalar_one (I := Fin D) (1 : ℝ)
   rw [hi]
   have hh := directSum_mono (le_refl (1 : HermitianMat (Fin D ⊕ Fin D) ℂ))
@@ -3999,7 +3998,7 @@ theorem diamondDualCenter_interior_ball {D E : ℕ} (T : Operator D →ₗ[ℂ] 
   rw [map_add]
   change 0 ≤ (diamondEqMap D E).adjoint (diamondDualCenter T) - (diamondProgram T).objective +
     (diamondEqMap D E).adjoint h at hm
-  convert! hm using 1 <;> abel
+  convert! hm using 1; abel
 
 end ChoiInteriorRadius
 
@@ -4047,7 +4046,7 @@ theorem diamondProgram_dual_size_data {D E : ℕ} (hD : 0 < D)
     (hy : (diamondProgram T).DualFeasible (diamondDualData a b Y W)) :
     0 ≤ a ∧ 0 ≤ b ∧ 0 ≤ Y ∧ 0 ≤ W ∧
       Y.trace ≤ a * D ∧ W.trace ≤ b * D := by
-  letI : NeZero D := ⟨Nat.ne_of_gt hD⟩
+  let : NeZero D := ⟨Nat.ne_of_gt hD⟩
   obtain ⟨ha,hb,hblock⟩ := (diamondProgram_dual_block_iff T a b Y W).mp hy
   have hd : 0 ≤ weightedDualBlock (MatrixMap.choi_matrix T) ((2 : ℝ) • Y) ((2 : ℝ) • W) := by
     rw [diamond_double_dual_block]
@@ -4627,7 +4626,7 @@ theorem diamondDyadicWordCount_eq (D E : ℕ) : diamondDyadicWordCount D E = 2 +
 @[simp] theorem diamondDyadicFromWords_words {D E : ℕ} (P : DiamondDyadicData D E) :
     diamondDyadicFromWords D E (diamondDyadicWords P) = some P := by
   unfold diamondDyadicFromWords
-  rw [if_pos (diamondDyadicWords_length P)]
+  rw [ite_eq_left (diamondDyadicWords_length P)]
   cases P with
   | mk a b Y W =>
     simp [diamondDyadicWords,List.drop_append]
@@ -4693,7 +4692,7 @@ theorem diamondDyadicPayload_word_bound {D E : ℕ} (p : ℕ) (y : DiamondConstr
 count. -/
 theorem diamondDyadicFromWords_reject_length {D E : ℕ} {xs : List ℤ}
     (h : xs.length ≠ diamondDyadicWordCount D E) : diamondDyadicFromWords D E xs = none := by
-  exact if_neg h
+  exact ite_eq_right h
 
 /-- For positive input dimension and tolerance, a bounded dyadic word witness decodes to a
 strictly dual feasible point within the tolerance above the diamond optimum. Its encoding
@@ -4814,13 +4813,13 @@ theorem diamondDyadicBitCount_eq (D E b : ℕ) :
 theorem diamondDyadicFromBits_bits {D E : ℕ} (b : ℕ) (P : DiamondDyadicData D E)
     (hP : P.WordBound b) : diamondDyadicFromBits D E b (diamondDyadicBits b P) = some P := by
   unfold diamondDyadicFromBits
-  rw [if_pos (diamondDyadicBits_length b P)]
+  rw [ite_eq_left (diamondDyadicBits_length b P)]
   rw [diamondDyadicBits,← diamondDyadicWords_length P,signedDyadicWordsRead_bits b _ hP]
   exact diamondDyadicFromWords_words P
 
 /-- The diamond dyadic bit decoder rejects lists of an incorrect length. -/
 theorem diamondDyadicFromBits_reject_length {D E b : ℕ} {bs : List Bool}
-    (h : bs.length ≠ diamondDyadicBitCount D E b) : diamondDyadicFromBits D E b bs = none := if_neg h
+    (h : bs.length ≠ diamondDyadicBitCount D E b) : diamondDyadicFromBits D E b bs = none := ite_eq_right h
 
 /-- For positive input dimension and tolerance, a bounded dyadic dual witness has a binary
 encoding that decodes exactly and yields a strictly dual feasible point within the tolerance
@@ -4967,7 +4966,7 @@ theorem gaussianRational_psd_schur_iff {n : ℕ}
     constructor
     · simpa using! (Rat.cast_pos.mpr hp : (0 : ℝ) < ((Q 0 0).re : ℝ))
     · simp
-  letI : Invertible A := hA.isUnit.invertible
+  let : Invertible A := hA.isUnit.invertible
   have hblock : (gaussianRationalMatrix Q).submatrix (psdHeadEquiv n) (psdHeadEquiv n) =
       Matrix.fromBlocks A B Bᴴ D := gaussianRational_block hQ
   have hschur : gaussianRationalMatrix (gaussianRationalSchur Q) = D - Bᴴ * A⁻¹ * B := by
@@ -4976,7 +4975,7 @@ theorem gaussianRational_psd_schur_iff {n : ℕ}
       rw [← gaussianRationalEmbed_star,hQ.apply i.succ 0]
     simp only [gaussianRationalMatrix,gaussianRationalSchur,gaussianRationalTail,Matrix.map_apply,map_sub,map_mul,map_inv₀,
       D,B,A,Matrix.sub_apply,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.inv_subsingleton,
-      Matrix.diagonal_apply,Fin.sum_univ_one,if_true,hl,Ring.inverse_eq_inv]
+      Matrix.diagonal_apply,Fin.sum_univ_one,ite_true,hl,Ring.inverse_eq_inv]
   rw [← Matrix.posSemidef_submatrix_equiv (psdHeadEquiv n),hblock,
     Matrix.PosDef.fromBlocks₁₁ B D hA,← hschur]
 
@@ -5038,26 +5037,26 @@ theorem gaussianRationalPsdCore_correct (n : ℕ) (A : GaussianRationalTable n) 
       else gaussianRationalPsdCore n (gaussianRationalTable (gaussianRationalSchur Q))
       else false) = true ↔ (gaussianRationalMatrix Q).PosSemidef
     by_cases hQ : Q.IsHermitian
-    · rw [if_pos hQ]
+    · rw [ite_eq_left hQ]
       by_cases hn : (Q 0 0).re < 0
-      · rw [if_pos hn]
+      · rw [ite_eq_left hn]
         simp only [Bool.false_eq_true,false_iff]
         intro h
         exact (not_lt_of_ge (gaussianRational_psd_head_nonneg h)) hn
-      · rw [if_neg hn]
+      · rw [ite_eq_right hn]
         by_cases hz : (Q 0 0).re = 0
-        · rw [if_pos hz]
+        · rw [ite_eq_left hz]
           by_cases hr : ∀ j : Fin n, Q 0 j.succ = 0
-          · rw [if_pos hr,ih,gaussianRationalTableMatrix_table]
+          · rw [ite_eq_left hr,ih,gaussianRationalTableMatrix_table]
             exact (gaussianRational_psd_zero_iff hQ hz hr).symm
-          · rw [if_neg hr]
+          · rw [ite_eq_right hr]
             simp only [Bool.false_eq_true,false_iff]
             intro h
             exact hr (gaussianRational_psd_zero_row h hz)
-        · rw [if_neg hz,ih,gaussianRationalTableMatrix_table]
+        · rw [ite_eq_right hz,ih,gaussianRationalTableMatrix_table]
           have hp : 0 < (Q 0 0).re := lt_of_le_of_ne (le_of_not_gt hn) (Ne.symm hz)
           exact (gaussianRational_psd_schur_iff hQ hp).symm
-    · rw [if_neg hQ]
+    · rw [ite_eq_right hQ]
       simp only [Bool.false_eq_true,false_iff]
       intro h
       exact hQ ((gaussianRationalMatrix_hermitian_iff Q).mp h.1)
@@ -5141,7 +5140,7 @@ theorem gaussianRationalQuadratic_cross {n : ℕ}
   have hbs : star (Q 0 j.succ) ≠ 0 := star_ne_zero.mpr hb
   rw [gaussianRationalCrossVector, gaussianRationalQuadratic_cons]
   simp only [Pi.single_apply, apply_ite star, star_one, star_zero, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, hzero, zero_mul, zero_add, ite_mul, one_mul, zero_mul]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, hzero, zero_mul, zero_add, ite_mul, one_mul, zero_mul]
   simp only [hc, star_div₀, star_neg, star_add, star_one, star_mul, star_ofNat, star_star, hd]
   field_simp
   ring
@@ -5194,7 +5193,7 @@ theorem gaussianRationalNegativeCore_correct (n : ℕ) (A : GaussianRationalTabl
               (fun v => Vector.ofFn (gaussianRationalSchurLift Q (fun i => v[i])))) := rfl
     rw [heq]
     by_cases hn : (Q 0 0).re < 0
-    · simp only [if_pos hn]
+    · simp only [ite_eq_left hn]
       constructor
       · simp only [Option.some_ne_none, false_iff]
         exact fun hp => (not_lt_of_ge (gaussianRational_psd_head_nonneg hp)) hn
@@ -5202,9 +5201,9 @@ theorem gaussianRationalNegativeCore_correct (n : ℕ) (A : GaussianRationalTabl
         cases Option.some.inj hv
         simpa only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta,
             gaussianRationalQuadratic_single] using! hn
-    · simp only [if_neg hn]
+    · simp only [ite_eq_right hn]
       by_cases hz : (Q 0 0).re = 0
-      · simp only [if_pos hz]
+      · simp only [ite_eq_left hz]
         cases hf : Fin.find? (fun j : Fin n => decide (Q 0 j.succ ≠ 0)) with
         | none =>
           have hr : ∀ j : Fin n, Q 0 j.succ = 0 := by
@@ -5235,7 +5234,7 @@ theorem gaussianRationalNegativeCore_correct (n : ℕ) (A : GaussianRationalTabl
             change (gaussianRationalQuadratic Q (gaussianRationalCrossVector Q j)).re < 0
             rw [gaussianRationalQuadratic_cross hQ hz j hb]
             norm_num [QuadraticAlgebra.re_neg, QuadraticAlgebra.re_one]
-      · simp only [if_neg hz]
+      · simp only [ite_eq_right hz]
         have hp : 0 < (Q 0 0).re := lt_of_le_of_ne (le_of_not_gt hn) (Ne.symm hz)
         have ha : Q 0 0 ≠ 0 := by intro he; simp [he] at hp
         have ht := ih (gaussianRationalTable (gaussianRationalSchur Q)) (by
@@ -5265,9 +5264,9 @@ theorem gaussianRationalPsdSeparate_psd_iff {n : ℕ} (A : GaussianRationalTable
   by_cases hQ : (gaussianRationalTableMatrix A).IsHermitian
   · have ht := (gaussianRationalNegativeCore_correct n A hQ).1
     unfold gaussianRationalPsdSeparate
-    rw [if_pos hQ]
+    rw [ite_eq_left hQ]
     cases hc : gaussianRationalNegativeCore n A <;> simpa [hc] using! ht
-  · simp only [gaussianRationalPsdSeparate, if_neg hQ, reduceCtorEq, false_iff]
+  · simp only [gaussianRationalPsdSeparate, ite_eq_right hQ, reduceCtorEq, false_iff]
     intro hp
     exact hQ ((gaussianRationalMatrix_hermitian_iff _).mp hp.1)
 
@@ -5363,8 +5362,8 @@ theorem diamondRationalSlack_embed {D E : ℕ}
     (Yq Zq : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hY : gaussianRationalMatrix Yq = Y.mat) (hZ : gaussianRationalMatrix Zq = Z.mat) (a b : ℚ) :
     gaussianRationalMatrix (diamondRationalSlack J Yq Zq a b) =
-      (directSum (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((a : ℝ) • 1 - Y.traceLeft) ((b : ℝ) • 1 - Z.traceLeft))
-        (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (gaussianRationalMatrix J))).mat := by
+      (directSum (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal ((a : ℝ) • 1 - Y.traceLeft) ((b : ℝ) • 1 - Z.traceLeft))
+        (Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal Y Z - (1/2 : ℝ) • offDiagonal (gaussianRationalMatrix J))).mat := by
   change gaussianRationalMatrix (diamondRationalSlack J Yq Zq a b) =
     Matrix.fromBlocks
       (Matrix.fromBlocks ((a : ℝ) • (1 : Matrix (Fin D) (Fin D) ℂ) - Y.mat.traceLeft) 0 0
@@ -5727,7 +5726,7 @@ theorem diamondRationalCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Ope
   push_cast
   rw [diamondProgram_dual_slack,HermitianMat.traceLeft_smul,traceLeft_one_fin,scalar_center_cancel]
   rw [blockDiagonal_scalar_one]
-  have hinput : Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (1 : HermitianMat (Fin D) ℂ) 1 = 1 := by
+  have hinput : Qatlib.Concepts.SdpDuality.StrongDuality.blockDiagonal (1 : HermitianMat (Fin D) ℂ) 1 = 1 := by
     simpa only [one_smul] using! blockDiagonal_scalar_one (I := Fin D) (1 : ℝ)
   rw [hinput]
   have ht := directSum_mono (le_refl (1 : HermitianMat (Fin D ⊕ Fin D) ℂ)) henv
@@ -6137,17 +6136,17 @@ theorem diamondRationalPack_block {D E : ℕ} (a b : ℚ)
     have hk := k.isLt
     have h2 : ¬ 2 + (if which then gaussianDyadicWordCount D E else 0) + k.val < 2 := by omega
     dsimp only [diamondRationalBlockIndex,diamondRationalPack]
-    rw [dif_neg h2]
+    rw [dite_eq_right h2]
     cases which with
     | false =>
-      simp only [Bool.false_eq_true,if_false,add_zero]
-      rw [dif_pos (by omega)]
+      simp only [Bool.false_eq_true,ite_false,add_zero]
+      rw [dite_eq_left (by omega)]
       congr 1
       apply Fin.ext
       simp
     | true =>
-      simp only [if_true]
-      rw [dif_neg (by omega)]
+      simp only [ite_true]
+      rw [dite_eq_right (by omega)]
       congr 1
       apply Fin.ext
       simp
@@ -6296,7 +6295,7 @@ theorem realLinearMap_eq_of_rational {n : ℕ} (f g : (Fin n → ℝ) →ₗ[ℝ
   have he (k : Fin n) : (fun i => ((Pi.single k 1 : Fin n → ℚ) i : ℝ)) =
       (Pi.single k 1 : Fin n → ℝ) := by
     funext i
-    by_cases hi : i = k <;> simp [Pi.single_apply,hi]
+    by_cases hi : i = k <;> simp [hi]
   have hb (k : Fin n) : f (Pi.single k 1) = g (Pi.single k 1) := by
     rw [← he]
     exact h _
@@ -6467,9 +6466,9 @@ theorem diamondRationalSublevelOracle_feasible_iff {D E : ℕ} (T : Operator D �
     exact_mod_cast Iff.rfl
   unfold diamondRationalSublevelOracle
   by_cases hs : diamondRationalScore x ≤ γ
-  · rw [if_pos hs,diamondRationalSeparationOracle_feasible_iff T J hJ]
+  · rw [ite_eq_left hs,diamondRationalSeparationOracle_feasible_iff T J hJ]
     exact ⟨fun h => ⟨h,hb.mp hs⟩,fun h => h.1⟩
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     simp only [reduceCtorEq,false_iff]
     rintro ⟨_,hscore⟩
     exact hs (hb.mpr hscore)
@@ -6496,10 +6495,10 @@ theorem diamondRationalSublevelOracle_cut {D E : ℕ} (T : Operator D →ₗ[ℂ
     (∃ k : Fin (diamondDyadicWordCount D E), C.coefficients[k] ≠ 0) := by
   unfold diamondRationalSublevelOracle at hc
   by_cases hs : diamondRationalScore q ≤ γ
-  · rw [if_pos hs] at hc
+  · rw [ite_eq_left hs] at hc
     obtain ⟨hrej,hkeep⟩ := diamondRationalSeparationOracle_cut_real T J hJ q C hc
     exact ⟨hrej,fun x hx _ => hkeep x hx,diamondRationalSeparationOracle_cut_nonzero T J hJ q C hc⟩
-  · rw [if_neg hs] at hc
+  · rw [ite_eq_right hs] at hc
     cases RationalSeparationResult.cut.inj hc
     refine ⟨?_,?_,diamondRationalObjectiveCut_nonzero D E γ⟩
     · rw [diamondRationalObjectiveCut_eval]
@@ -6538,17 +6537,17 @@ theorem diamondRealPack_block {D E : ℕ} (a b : ℝ)
     have hk := k.isLt
     have h2 : ¬ 2 + (if which then gaussianDyadicWordCount D E else 0) + k.val < 2 := by omega
     dsimp only [diamondRationalBlockIndex,diamondRealPack]
-    rw [dif_neg h2]
+    rw [dite_eq_right h2]
     cases which with
     | false =>
-      simp only [Bool.false_eq_true,if_false,add_zero]
-      rw [dif_pos (by omega)]
+      simp only [Bool.false_eq_true,ite_false,add_zero]
+      rw [dite_eq_left (by omega)]
       congr 1
       apply Fin.ext
       simp
     | true =>
-      simp only [if_true]
-      rw [dif_neg (by omega)]
+      simp only [ite_true]
+      rw [dite_eq_right (by omega)]
       congr 1
       apply Fin.ext
       simp
@@ -6571,7 +6570,7 @@ theorem diamondRealDecode_pack {D E : ℕ} (a b : ℝ) (Y Z : HermitianMat (Fin 
     apply HermitianMat.ext
     change (1/2 : ℝ) • (diamondRealRawBlock _ _ + (diamondRealRawBlock _ _)ᴴ) = _
     rw [diamondRealPack_block]
-    simp only [Bool.false_eq_true,if_false,if_true]
+    simp only [Bool.false_eq_true,ite_false,ite_true]
     exact hb _
 
 /-- Decoding the real coordinate encoding recovers the original diamond dual data. -/
@@ -6905,7 +6904,7 @@ theorem diamondProgram_coordinate_sublevel_ball {D E : ℕ} (hD : 0 < D)
   obtain ⟨hm,hpd,hl,hu,hout,hsize⟩ := hball x hx
   constructor
   · exact ⟨HermitianMat.zero_le_iff.mpr hpd.posSemidef,hu.le.trans hγ⟩
-  · simpa only [diamondCoordinateBall,Set.mem_setOf_eq,sub_zero] using! hout
+  · simpa only [diamondCoordinateBall,Set.mem_ofPred_eq,sub_zero] using! hout
 
 end SdpCoordinateBalls
 
@@ -8288,7 +8287,7 @@ theorem diamondEllipsoidRun_feasible_of_ball {D E : ℕ} (T : Operator D →ₗ[
       obtain ⟨hsub,houter⟩ := hball hx
       have hi : (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E))) ∈ s.region := by
         apply (diamondEllipsoidInitialState_region hR x).mpr
-        simpa only [diamondCoordinateBall,Set.mem_setOf_eq,sub_zero] using! houter
+        simpa only [diamondCoordinateBall,Set.mem_ofPred_eq,sub_zero] using! houter
       have hh := hkeep x hsub hi
       simpa only [x,WithLp.toLp_ofLp,RationalEllipsoidState.region] using! hh
     have hsmall := rationalEllipsoidSearchBudget_det_small (diamondDyadicWordCount D E) hR hr

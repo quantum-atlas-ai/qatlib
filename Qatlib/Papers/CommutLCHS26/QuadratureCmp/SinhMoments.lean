@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
+
+@[expose] public section
 
 /-!
 # Actual moments of sinh quadrature rules

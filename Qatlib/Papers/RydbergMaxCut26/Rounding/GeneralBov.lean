@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.JointTransport
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysicalCases
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.ActualGaussianEndpoints
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.JointTransport
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysicalCases
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.ActualGaussianEndpoints
+
+@[expose] public section
 
 /-!
 # The Gaussian rounding kernel and expected QMC energy

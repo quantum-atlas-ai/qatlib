@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9AltAux
+module
+
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9AltAux
+
+@[expose] public section
 
 /-!
 # Clipped lower bounds for joint readout probability

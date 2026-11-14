@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPhaseAsymptoticQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPhaseAsymptoticQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
+
+@[expose] public section
 
 /-!
 # Johnson-walk spectral claims

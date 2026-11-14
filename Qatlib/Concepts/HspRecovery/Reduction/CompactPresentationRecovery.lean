@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.ModularReversibleWord
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecoveryDefs
-import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
-import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.ModularReversibleWord
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+@[expose] public section
 
 /-!
 # Compact recovery from Smith coordinates
@@ -338,7 +342,7 @@ theorem compactDecode_annihilates {m n : ℕ} (p : NormalizedSmithData m n)
   exact hann l hl
 
 /-- Encoding the decoded word in the original generators recovers `compactDecodeNormalized`. -/
-theorem compactDecodeOriginal_encode {m n : ℕ} (p : CompactPresentation)
+theorem compactDecodeOriginal_encode {_m _n : ℕ} (p : CompactPresentation)
     (L : List (FactorLabel p.smith)) :
     normalizedEncode p.smith (compactDecodeOriginal p.smith L) = compactDecodeNormalized p.smith L := by
   exact normalizedEncode_decode (smithDecodeRelations p.table) (compactDecodeNormalized p.smith L)
@@ -451,7 +455,7 @@ theorem compactPresentation_output_size (p : CompactPresentation) :
 /-- A finite compact presentation has factors invariant under presentation isomorphism, one
 generator word per factor, correct word reconstruction, and a relation-image
 characterization of word equality. -/
-theorem clause1_endpoint {m n m' n' : ℕ}
+theorem clause1_endpoint {_m _n _m' _n' : ℕ}
     (p : CompactPresentation) (p' : CompactPresentation)
     (hp : p.isFinite = true)
     (e : PresentationModule (p.relationMatrix) ≃+ PresentationModule (p'.relationMatrix)) :
@@ -559,7 +563,7 @@ theorem compact_cyclic_recovery_probability {N : ℕ} [NeZero N]
 /-- The cyclic table sampling circuit uses one query and two gates. -/
 theorem compact_cyclic_quantum_ledger {N : ℕ} [NeZero N]
     {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
-    (f : ZMod N → R) (e : ZMod N ≃ AddChar (ZMod N) ℂ)
+    (_f : ZMod N → R) (e : ZMod N ≃ AddChar (ZMod N) ℂ)
     (A : Matrix (ZMod N) (ZMod N) ℂ) :
     QueryCount (tableSamplingCircuit (R := R) e A) = 1 ∧
       GateCount (tableSamplingCircuit (R := R) e A) = 2 := by

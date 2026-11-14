@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundEmitter
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundEmitter
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,21 +72,21 @@ theorem higher_prefix {states : ℕ}
     rw [collected_step replies (k+1) hn9] at ee
     have hi : higherConfig states replies (k+1)=
         ⟨some (.begin i),default,sourceState (PaidBoundBank.collected replies (k+1)) [false] (fun _ => [])⟩ := by
-      simp only [higherConfig,higherLabel,dif_pos hn9,i]
+      simp only [higherConfig,higherLabel,dite_eq_left hn9,i]
     have hne : i≠0 := by
       intro h
       have hv := congrArg Fin.val h
       dsimp only [i,Fin.val_zero] at hv
       omega
     have hl : afterStore i=higherLabel (states := states) (k+1+1) := by
-      simp only [afterStore,if_neg hne,higherLabel]
+      simp only [afterStore,ite_eq_right hne,higherLabel]
       rfl
     have ho : higherConfig states replies (k+1+1)=
         ⟨some (afterStore i),default,sourceState (PaidBoundBank.collected replies (k+1+1)) [false] (fun _ => [])⟩ := by
       rw [hl]
       rfl
     rw [←hi,←ho] at ee
-    simpa only [higherPrefixBudget,dif_pos hn9] using (ih (by omega)).trans ee
+    simpa only [higherPrefixBudget,dite_eq_left hn9] using (ih (by omega)).trans ee
 
 /-- Only the used branch contributes source and emitter clocks. -/
 def bankBudget (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ) (flag : Bool) : ℕ :=
@@ -97,7 +101,7 @@ private theorem first_collected (replies : Fin 9 → CanonicalCodec.Bits) :
   by_cases h : j=0
   · subst j; simp [PaidBoundBank.collected]
   · have hj : j.val≠0 := fun he => h (Fin.ext he)
-    simp only [Function.update_of_ne h,PaidBoundBank.collected,if_neg (show ¬j.val<1 by omega)]
+    simp only [Function.update_of_ne h,PaidBoundBank.collected,ite_eq_right (show ¬j.val<1 by omega)]
 
 /-- Original `first_active` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
 private theorem first_active (replies : Fin 9 → CanonicalCodec.Bits) :
@@ -106,12 +110,12 @@ private theorem first_active (replies : Fin 9 → CanonicalCodec.Bits) :
   by_cases h : j=0
   · subst j; simp [activeReplies]
   · have hj : j.val≠0 := fun he => h (Fin.ext he)
-    simp only [Function.update_of_ne h,activeReplies,Fin.val_zero,if_neg (show ¬j.val≤0 by omega)]
+    simp only [Function.update_of_ne h,activeReplies,Fin.val_zero,ite_eq_right (show ¬j.val≤0 by omega)]
 
 /-- Original `all_active` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
 private theorem all_active (replies : Fin 9 → CanonicalCodec.Bits) : activeReplies replies 8=replies := by
   funext j
-  exact if_pos (by have hj := j.isLt; omega)
+  exact ite_eq_left (by have hj := j.isLt; omega)
 
 /-- The first bound is called once, then the actual generated flag selects
 one answer or the remaining eight calls. The same run writes the wire payload. -/
@@ -132,19 +136,19 @@ theorem bank_execution {states : ℕ}
   have ee := first_and_choose machine (answers 0) (time 0) (space 0) (hrun 0 (Nat.zero_le _))
   cases hflag : decide ((answers 0).num.1=(answers 0).num.2) with
   | false =>
-    simp only [hflag,branchChoice,Bool.false_eq_true,if_false] at ee ⊢
+    simp only [hflag,branchChoice,Bool.false_eq_true,ite_false] at ee ⊢
     have hs : sourceState (Function.update (fun _ => []) 0 (replies 0)) [false] (fun _ => [])=
         sourceState (PaidBoundBank.collected replies 1) [false] (fun _ => []) := by rw [first_collected]
     have hi : higherConfig states replies 1=
         ⟨some (.begin 1),default,sourceState (Function.update (fun _ => []) 0 (replies 0)) [false] (fun _ => [])⟩ := by
-      simp only [higherConfig,higherLabel,show 1<9 by decide,dif_pos]
+      simp only [higherConfig,higherLabel,show 1<9 by decide,dite_eq_left]
       rw [←hs]
       rfl
-    simp only [hflag,Bool.false_eq_true,if_false] at hrun
+    simp only [hflag,Bool.false_eq_true,ite_false] at hrun
     have hm := higher_prefix machine replies time space
       (fun i => hrun i (by have hi := i.isLt; omega)) 8 (by decide)
     have he := emit_active machine replies 8 false
-    have ha : PaidBoundBank.collected replies 9=replies := by funext j; exact if_pos j.isLt
+    have ha : PaidBoundBank.collected replies 9=replies := by funext j; exact ite_eq_left j.isLt
     have ho : higherConfig states replies 9=
         ⟨some (.emit 8 0 0),default,sourceState (activeReplies replies 8) [false] (fun _ => [])⟩ := by
       simp [higherConfig,higherLabel,ha,all_active]
@@ -152,7 +156,7 @@ theorem bank_execution {states : ℕ}
     have hh := (ee.trans hm).trans he
     simpa [bankBudget,replies,Nat.add_assoc] using hh
   | true =>
-    simp only [hflag,branchChoice,if_true] at ee ⊢
+    simp only [hflag,branchChoice,ite_true] at ee ⊢
     have ha := first_active replies
     rw [ha] at ee
     have he := emit_active machine replies 0 true

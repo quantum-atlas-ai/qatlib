@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Wire
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Wire
+
+@[expose] public section
 
 /-!
 # Finite register calculations for cluster patterns
@@ -191,8 +195,8 @@ theorem sum_reg6_fixed (f : Reg 6 → ℂ) (a0 a5 : Bool)
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : c 0 = a0 ∧ c 5 = a5
-    · rw [if_pos h]
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+    · rw [ite_eq_right h]
       have h' : c 0 ≠ a0 ∨ c 5 ≠ a5 := by
         by_contra hc
         push Not at hc
@@ -242,7 +246,7 @@ theorem sum_bool_eq {α : Type*} [AddCommMonoid α] (f : Bool → α) :
 /-- Summing the function supported at a single Boolean value `b` returns `g b`. -/
 theorem sum_ite_bool {α : Type*} [AddCommMonoid α] (b : Bool) (g : Bool → α) :
     ∑ a : Bool, (if a = b then g a else 0) = g b := by
-  cases b <;> simp [sum_bool_eq]
+  cases b <;> simp
 
 /-- Expresses each `mpSVector` coordinate as the complex embedding of a real number involving
 `Real.exp` and `Real.sqrt 2`. -/
@@ -253,7 +257,7 @@ theorem sv_eq_ofReal (α : ℝ) (o b : Bool) :
     (Complex.ofReal_exp α).symm
   simp only [mpSVector, hexp]
   rcases b with rfl | rfl <;> rcases o with rfl | rfl <;>
-    simp [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg]
+    simp [Complex.ofReal_div, Complex.ofReal_neg]
 
 /-- Every coordinate of `mpSVector` is unchanged by complex conjugation. -/
 theorem star_sv (α : ℝ) (o b : Bool) : star (mpSVector α o b) = mpSVector α o b := by
@@ -309,8 +313,8 @@ theorem cnotAux_sum_reclause4_fix (f : Reg 4 → ℂ) (a0 a2 a3 : Bool)
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : c 0 = a0 ∧ c 2 = a2 ∧ c 3 = a3
-    · rw [if_pos h]
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+    · rw [ite_eq_right h]
       have h' : c 0 ≠ a0 ∨ c 2 ≠ a2 ∨ c 3 ≠ a3 := by
         by_contra hc
         push Not at hc
@@ -370,8 +374,9 @@ theorem cnotAux_bitPhase_inj {a b : Bool}
 /-- Adding one to `bitPhase e` gives zero when `e` is true and two when it is false. -/
 theorem cnotAux_one_add_bitPhase (e : Bool) :
     (1 : ℂ) + Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase e = if e then 0 else 2 := by
-  rcases Bool.eq_false_or_eq_true e with h | h <;> rw [h] <;>
-    simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase] <;> norm_num
+  rcases Bool.eq_false_or_eq_true e with h | h <;> rw [h]
+  · simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
+  · norm_num [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
 /-- The product of two complex embeddings of `Real.sqrt 2` is two. -/
 theorem cnotAux_sqrt2_sq : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
@@ -416,14 +421,20 @@ theorem cnotAux_inv_sqrt2_cube' :
 theorem cnotAux_smul_mul {l m n : ℕ} (a : ℂ) (A : Matrix (Fin l) (Fin m) ℂ)
     (B : Matrix (Fin m) (Fin n) ℂ) : (a • A) * B = a • (A * B) := by
   ext i j
-  simp [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul, mul_assoc, Finset.mul_sum]
+  simp only [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul]
+  calc
+    _ = ∑ x, a * (A i x * B x j) := by
+      apply Finset.sum_congr rfl
+      intro x _
+      ring
+    _ = a * ∑ x, A i x * B x j := by rw [Finset.mul_sum]
 
 /-- The product of two scalar multiples of matrices is their matrix product scaled by the
 product of the scalars. -/
 theorem cnotAux_smul_mul_smul {l m n : ℕ} (a b : ℂ) (A : Matrix (Fin l) (Fin m) ℂ)
     (B : Matrix (Fin m) (Fin n) ℂ) : (a • A) * (b • B) = (a * b) • (A * B) := by
   ext i j
-  simp [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul, mul_assoc, mul_left_comm, mul_comm,
+  simp [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul, mul_left_comm, mul_comm,
     Finset.mul_sum]
 
 /-- The single bit decoded from a finite basis index is true exactly when that index is one. -/
@@ -458,7 +469,7 @@ theorem cnotAux_sv0 (o b : Bool) :
       = (if b then (if o then (-1 : ℂ) else 1) else 1) * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ := by
   rw [sv_zero]
   rcases b with rfl | rfl <;> rcases o with rfl | rfl <;>
-    simp [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg, Complex.ofReal_ofNat,
+    simp [Complex.ofReal_neg,
       div_eq_mul_inv]
 
 /-- The conjugate of a zero-angle measurement-vector coordinate is its Boolean sign multiplied

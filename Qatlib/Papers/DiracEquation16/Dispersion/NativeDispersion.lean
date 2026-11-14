@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.TwoAxis
-import Qatlib.Papers.DiracEquation16.SpinGates.Spin
-import Qatlib.Papers.DiracEquation16.Dispersion.ScalarPhase
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.TwoAxis
+public import Qatlib.Papers.DiracEquation16.SpinGates.Spin
+public import Qatlib.Papers.DiracEquation16.Dispersion.ScalarPhase
+
+@[expose] public section
 
 /-!
 # Zero modes of the half-CFL Dirac walk

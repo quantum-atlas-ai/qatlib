@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalBoltzmannWeights
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalBoltzmannWeights
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+
+@[expose] public section
 
 /-!
 # Rational approximation of diagonal Gibbs states
@@ -208,7 +212,7 @@ theorem rationalEnergyGibbs_l1 {N : ℕ} (K : ℕ) (E : Fin N → ℚ) (hN : 0 <
   have h := normalized_positive_weights_l1 hN
     (fun i => (rationalBoltzmannTaylor K (E i):ℝ)) (fun i => Real.exp (1-(E i:ℝ)))
     (2*(1/2:ℝ)^K) (fun i => by
-      change (1:ℝ) ≤ (rationalBoltzmannTaylor K (E i):ℝ)
+
       exact_mod_cast (rational_boltzmann_computed_positive_tail K (E i) (hE i).1 (hE i).2).1)
     (fun i => sub_nonneg.mp (rational_boltzmann_computed_positive_tail K (E i) (hE i).1 (hE i).2).2.1)
     (fun i => (rational_boltzmann_computed_positive_tail K (E i) (hE i).1 (hE i).2).2.2)
@@ -251,7 +255,7 @@ theorem rational_energy_gibbs_actual_reference_precision :
       (4*(1/2:ℝ)^(k+3))*Matrix.traceNorm X := by
     rw [rationalHeatBathDensity_taylor E hW hN hE, rationalEnergyGibbsDensity_shift,
       Matrix.diagonal_sub]
-    simp only [Pi.sub_apply, ← Complex.ofReal_sub]
+    simp only [ ← Complex.ofReal_sub]
     exact (real_diagonal_tensor_traceNorm_le _ Y hX.traceLeft).trans
       (by
         rw [hn]

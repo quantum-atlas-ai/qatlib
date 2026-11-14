@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpGibbsPerturbation
-import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
-import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpGibbsPerturbation
+public import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+public import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+
+@[expose] public section
 
 /-!
 # Perturbation bounds for normalized Gibbs matrices
@@ -130,7 +134,7 @@ theorem sdp_gibbs_perturbation_noncommuting (D : ℕ) (H K : Qatlib.Foundations.
       (((Matrix.trace (NormedSpace.exp H)).re : ℂ)⁻¹ • NormedSpace.exp H -
        ((Matrix.trace (NormedSpace.exp K)).re : ℂ)⁻¹ • NormedSpace.exp K) ≤
       2 * (Real.exp ‖H - K‖ - 1) := by
-  letI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   have hX : (NormedSpace.exp H).PosSemidef := exp_posSemidef H hH
   have hY : (NormedSpace.exp K).PosSemidef := exp_posSemidef K hK
   have hp : 0 < (Matrix.trace (NormedSpace.exp H)).re := exp_trace_re_pos H hH

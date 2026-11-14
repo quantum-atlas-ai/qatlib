@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.Module
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.Module
+
+@[expose] public section
 
 /-!
 # Resolvent identities for Grover interpolation
@@ -86,7 +90,6 @@ theorem grover_paired_resolvent (m : ℕ)
     dsimp only [Az, Aw]
     module
   have hi := congrArg (fun B => K⁻¹ * B) he
-  try dsimp only at hi
   rw [← Matrix.mul_assoc, Matrix.nonsing_inv_mul _ hKdet, Matrix.one_mul,
     Matrix.mul_smul, Matrix.mul_one] at hi
   exact hi
@@ -125,7 +128,6 @@ theorem grover_inverse_overlap_eigenbasis (m : ℕ)
     rw [← Matrix.mul_assoc, hKB, Matrix.mul_assoc, hD, Matrix.mul_one]
   have hinv : K⁻¹ * B = B * D := by
     have h := congrArg (fun A => K⁻¹ * A) hKD
-    try dsimp only at h
     rw [← Matrix.mul_assoc, Matrix.nonsing_inv_mul _
       ((Matrix.isUnit_iff_isUnit_det _).mp hK), Matrix.one_mul] at h
     exact h.symm
@@ -158,10 +160,8 @@ theorem grover_symmetric_eigenvector (m : ℕ)
       ((2 * (μ.re - c) : ℝ) : ℂ) • v := by
   have hadj : star U *ᵥ v = star μ • v := by
     have h := congrArg (fun w => star U *ᵥ w) he
-    try dsimp only at h
     rw [Matrix.mulVec_mulVec, hu, Matrix.one_mulVec, Matrix.mulVec_smul] at h
     have hs := congrArg (fun w => star μ • w) h
-    (try dsimp only at hs)
     rw [smul_smul, hμ, one_smul] at hs
     exact hs.symm
   have hc : μ + star μ - ((2*c : ℝ) : ℂ) = ((2*(μ.re-c) : ℝ) : ℂ) := by
@@ -183,9 +183,9 @@ theorem grover_weighted_pole_split (m : ℕ) (μ : Fin m → ℂ)
   have ht (j : Fin m) : (w j + α^2*s j) / ((μ j).re - c) =
       -(w j / (c - if μ j = 1 then -1 else (μ j).re)) + α^2*(s j/(1-c)) := by
     by_cases hj : μ j = 1
-    · simp only [hj, Complex.one_re, if_pos, hw j hj, zero_add, zero_div, neg_zero]
+    · simp only [hj, Complex.one_re, ite_eq_left, hw j hj, zero_add, zero_div, neg_zero]
       ring
-    · simp only [hj, if_false, hs j hj, mul_zero, add_zero, zero_div, add_zero]
+    · simp only [hj, ite_false, hs j hj, mul_zero, add_zero, zero_div, add_zero]
       rw [← neg_sub c (μ j).re, div_neg]
   simp_rw [ht]
   rw [Finset.sum_add_distrib, Finset.sum_neg_distrib, ← Finset.mul_sum,
@@ -204,9 +204,9 @@ theorem grover_weighted_pole_split_sq (m : ℕ) (μ : Fin m → ℂ)
   have ht (j : Fin m) : (w j + α^2*s j) / ((μ j).re - c)^2 =
       w j / (c - if μ j = 1 then -1 else (μ j).re)^2 + α^2*(s j/(1-c)^2) := by
     by_cases hj : μ j = 1
-    · simp only [hj, Complex.one_re, if_pos, hw j hj, zero_add, zero_div]
+    · simp only [hj, Complex.one_re, ite_eq_left, hw j hj, zero_add, zero_div]
       ring
-    · simp only [hj, if_false, hs j hj, mul_zero, add_zero, zero_div, add_zero]
+    · simp only [hj, ite_false, hs j hj, mul_zero, add_zero, zero_div, add_zero]
       rw [show ((μ j).re-c)^2=(c-(μ j).re)^2 by ring]
   simp_rw [ht]
   rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.sum_div, hsum]

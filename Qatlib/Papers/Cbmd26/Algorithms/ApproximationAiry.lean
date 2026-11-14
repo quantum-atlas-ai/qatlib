@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationSharpQSVT
-import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationSharpQSVT
+public import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+@[expose] public section
 
 /-!
 # Polynomial and QSVT approximation of the Airy propagator

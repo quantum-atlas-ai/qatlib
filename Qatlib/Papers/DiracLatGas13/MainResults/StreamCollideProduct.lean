@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiracLatGas13.MainResults.PauliRotation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DiracLatGas13.MainResults.PauliRotation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -85,8 +89,7 @@ theorem diracHamiltonian_form (m c p : ℝ) :
     diracHamiltonian m c p = (-(c * p)) • sigmaZ + (m * c ^ 2) • sigmaX := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [diracHamiltonian, pauli, sigmaX, sigmaY, sigmaZ] <;>
-    ring
+    simp [diracHamiltonian, pauli, sigmaX, sigmaY, sigmaZ]
 
 /-- **Composite-rotation identity** (Eq. (29a) specialised to (33), and Eq. (37)):
 a rotation about `ẑ` followed by a rotation about `(cos a₂, -sin a₂, 0)` is the matrix
@@ -128,19 +131,17 @@ theorem streamCollide_eq_diracRotation
     rw [hcos, hcosE]
   have hsin' : Real.sin a₁ = Real.sin (E * ℓ / (ℏ * c)) * (m * c ^ 2 / E) := by
     rw [hsin, ← hgrid]
-    field_simp <;> ring
+    field_simp
   have hpc' : Real.cos a₁ * Real.sin (streamAngle p ℓ ℏ)
       = -(c * p / E) * Real.sin (E * ℓ / (ℏ * c)) := by
     rw [hpc, ← hgrid]
-    field_simp <;> ring
+    field_simp
   simp only [streamOp, collideOp, collideAxis, diracRotation, diracAxis]
   rw [Rot_zhat_mul_Rot_perp a₁ (streamAngle p ℓ ℏ)]
   ext i j
   fin_cases i <;> fin_cases j <;>
     apply Complex.ext <;>
-    simp [Rot, pauli, sigmaX, sigmaY, sigmaZ, Matrix.one_fin_two, Matrix.mul_apply,
-      Fin.sum_univ_two, Complex.cos_ofReal_re, Complex.sin_ofReal_re, Complex.cos_ofReal_im,
-      Complex.sin_ofReal_im, hcos', hsin', hpc'] <;>
+    simp [Rot, pauli, sigmaX, sigmaY, sigmaZ, Matrix.one_fin_two, hcos', hsin', hpc'] <;>
     (try field_simp) <;> (try ring)
 
 /-- **Eq. (39d), finite-τ statement (claim c002).**  Because no continuum limit `τ → 0` is
@@ -149,7 +150,7 @@ product identity still holds.  This restates `streamCollide_eq_diracRotation` wh
 explicit that `τ` is finite (`0 < τ`). -/
 theorem finiteTau_dirac_evolution
     (p m c ℏ ℓ τ E a₁ : ℝ)
-    (hℏ : ℏ ≠ 0) (hc : c ≠ 0) (hEpos : 0 < E) (hτpos : 0 < τ)
+    (hℏ : ℏ ≠ 0) (hc : c ≠ 0) (hEpos : 0 < E) (_hτpos : 0 < τ)
     (hsin : Real.sin a₁ = m * c ^ 2 * τ / ℏ)
     (hpc : Real.cos a₁ * Real.sin (streamAngle p ℓ ℏ) = -(c * p * τ / ℏ))
     (hcos : Real.cos a₁ * Real.cos (streamAngle p ℓ ℏ) = Real.sqrt (1 - (E * τ / ℏ) ^ 2))
@@ -162,7 +163,7 @@ theorem finiteTau_dirac_evolution
 `cos(E ℓ/(ℏ c)) = √(1-(E τ/ℏ)²)` of Eq. (39d), the grid scales must satisfy
 `E τ/ℏ = sin(E ℓ/(ℏ c))`. -/
 theorem gridEquation_of_cos
-    (E ℏ c ℓ τ : ℝ) (hℏ : ℏ ≠ 0) (hc : c ≠ 0) (hEpos : 0 < E)
+    (E ℏ c ℓ τ : ℝ) (_hℏ : ℏ ≠ 0) (_hc : c ≠ 0) (_hEpos : 0 < E)
     (hr : 0 ≤ 1 - (E * τ / ℏ) ^ 2)
     (hcos : Real.cos (E * ℓ / (ℏ * c)) = Real.sqrt (1 - (E * τ / ℏ) ^ 2))
     (hsinpos : 0 ≤ Real.sin (E * ℓ / (ℏ * c)))

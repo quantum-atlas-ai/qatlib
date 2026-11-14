@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsStat
+
+@[expose] public section
 
 /-!
 # Semantics of paid oracle words
@@ -44,7 +48,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 /-- The matrix of a paid-word step, using a known gate directly or a controlled oracle or
 adjoint for a call. -/
-private def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
+def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) :
     Matrix (Space H r) (Space H r) ℂ :=
   match s with
@@ -53,7 +57,7 @@ private def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
 
 /-- The adjoint of a paid-word step, conjugate-transposing known gates and reversing the adjoint
 flag of oracle calls. -/
-private def adjStep {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r :=
+def adjStep {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r :=
   match s with
   | .known U => .known Uᴴ
   | .call i T a => .call i T (!a)
@@ -119,7 +123,7 @@ theorem sum_ite_delta {H : Type} [Fintype H] [DecidableEq H] (h h' : H) :
       · have hg2 : ¬ h' = g := fun e => hh (hg.trans e.symm)
         simp [hg, hg2]
       · simp [hg]
-    rw [Finset.sum_congr rfl fun g _ => hterm g, if_neg hh]
+    rw [Finset.sum_congr rfl fun g _ => hterm g, ite_eq_right hh]
     simp
 
 /-- A controlled unitary multiplied by its conjugate transpose is the identity. -/
@@ -144,7 +148,7 @@ theorem controlled_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r :
             else 0)) = _
     by_cases hk : k = k'
     · rw [← hk]
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       have hstep : ∀ g : H,
           (∑ j : Fin r,
             (if k = j then (if k ∈ T then U h g else if h = g then (1 : ℂ) else 0) else 0)
@@ -167,9 +171,9 @@ theorem controlled_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r :
         simp
       rw [Finset.sum_congr rfl fun g _ => hstep g]
       by_cases hT : k ∈ T
-      · simp only [hT, if_true]
+      · simp only [hT, ite_true]
         exact hUapp h h'
-      · simp only [hT, if_false]
+      · simp only [hT, ite_false]
         have hrew : ∀ x : H,
             ((if h = x then (1 : ℂ) else 0)) * star ((if h' = x then (1 : ℂ) else 0))
             = ((if h = x then (1 : ℂ) else 0)) * ((if h' = x then (1 : ℂ) else 0)) := by
@@ -187,7 +191,7 @@ theorem controlled_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r :
         · have h2 : ¬ k' = j := fun e => hk (h1.trans e.symm)
           simp [h1, h2]
         · simp [h1]
-      rw [hz, if_neg hk]
+      rw [hz, ite_eq_right hk]
   rw [hprod]
   by_cases hk : k = k' <;> by_cases hh : h = h' <;> simp [hk, hh]
 

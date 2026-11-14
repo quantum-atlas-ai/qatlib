@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstructionDefs
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstructionDefs
+
+@[expose] public section
 
 /-!
 # Stabilizer projectors and Pauli measurement branches
@@ -484,7 +488,7 @@ theorem projectorAux_mulVec_iff {n : ℕ} (gs : List (PauliElem n))
   | nil =>
       constructor
       · intro _
-        intro h hx
+         h hx
         cases hx
       · intro _
         show (1 : Matrix (Reg n) (Reg n) ℂ) *ᵥ ψ = ψ
@@ -498,7 +502,7 @@ theorem projectorAux_mulVec_iff {n : ℕ} (gs : List (PauliElem n))
         ih hgs_herm hgs_comm
       constructor
       · intro hP
-        intro h hh
+         h hh
         have hgen : op h * projectorAux (g :: gs) = projectorAux (g :: gs) :=
           projectorAux_mul_gen (g :: gs) hherm hcomm h hh
         calc op h *ᵥ ψ = op h *ᵥ (projectorAux (g :: gs) *ᵥ ψ) := by rw [hP]
@@ -595,9 +599,9 @@ theorem neg_one_eq_smul_one {ι : Type*} [Fintype ι] [DecidableEq ι] :
   ext i j
   by_cases hij : i = j
   · subst j
-    simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, if_pos rfl]
+    simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply]
     ring
-  · simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, if_neg hij]
+  · simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, ite_eq_right hij]
     ring
 
 /-- Multiplication of a complex matrix by the scalar minus one equals matrix negation. -/
@@ -606,9 +610,9 @@ theorem neg_smul_one {ι : Type*} [Fintype ι] [DecidableEq ι] (M : Matrix ι �
   ext i j
   by_cases hij : i = j
   · subst j
-    simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, if_pos rfl]
+    simp only [Matrix.smul_apply, Matrix.neg_apply]
     ring
-  · simp only [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, if_neg hij]
+  · simp only [Matrix.smul_apply, Matrix.neg_apply]
     ring
 
 /-- The identity matrix plus its negative is zero. -/
@@ -617,9 +621,9 @@ theorem one_add_neg_one {ι : Type*} [Fintype ι] [DecidableEq ι] :
   ext i j
   by_cases hij : i = j
   · subst j
-    simp only [Matrix.add_apply, Matrix.one_apply, Matrix.neg_apply, Matrix.zero_apply, if_pos rfl]
+    simp only [Matrix.add_apply, Matrix.one_apply, Matrix.neg_apply, Matrix.zero_apply]
     ring
-  · simp only [Matrix.add_apply, Matrix.one_apply, Matrix.neg_apply, Matrix.zero_apply, if_neg hij]
+  · simp only [Matrix.add_apply, Matrix.one_apply, Matrix.neg_apply, Matrix.zero_apply, ite_eq_right hij]
     ring
 
 /-- Right multiplication by the negative identity negates a complex matrix. -/
@@ -643,12 +647,12 @@ theorem projectorAux_eq_zero_of_minusI {n : ℕ} (gs : List (PauliElem n))
           subst heq
           rw [op_minusI, one_add_neg_one]
           ext i j
-          simp [Matrix.smul_apply, Matrix.mul_apply, Matrix.zero_apply]
+          simp [Matrix.smul_apply, Matrix.zero_apply]
       | inr htail =>
           have hz : projectorAux gs = 0 := ih htail
           rw [hz]
           ext i j
-          simp [Matrix.smul_apply, Matrix.mul_apply, Matrix.zero_apply]
+          simp [Matrix.smul_apply, Matrix.zero_apply]
 
 /-- The complement of the positive Pauli branch projector is the negative branch projector. -/
 theorem pauliBranchProjector_compl {n : ℕ} (p : PauliElem n) :
@@ -658,9 +662,9 @@ theorem pauliBranchProjector_compl {n : ℕ} (p : PauliElem n) :
     Matrix.one_apply, smul_eq_mul]
   by_cases hij : i = j
   · subst j
-    simp only [if_pos rfl]
+    simp only []
     ring
-  · simp only [if_neg hij]
+  · simp only [ite_eq_right hij]
     ring
 
 /-- A Hermitian Pauli operator acts as the identity on its positive branch projector. -/
@@ -742,9 +746,9 @@ theorem mem_feedback_codeSpace_true {n m : ℕ} (t : Tableau n m) (ψ : QState (
   intro c
   by_cases hc : c = a
   · subst c
-    rw [feedbackTableau, if_pos rfl, hbr]
+    rw [feedbackTableau, ite_eq_left rfl, hbr]
     exact op_feedbackRow_branch p hp true ψ
-  · rw [feedbackTableau, if_neg hc, hbr]
+  · rw [feedbackTableau, ite_eq_right hc, hbr]
     have hswap : op (t c).decode * pauliBranchProjector p true
         = pauliBranchProjector p true * op (t c).decode :=
       op_row_comm_branch (t c).decode p true (hcomm c hc)
@@ -772,9 +776,9 @@ theorem mem_feedback_codeSpace_false {n m : ℕ} (t : Tableau n m) (ψ : QState 
   intro c
   by_cases hc : c = a
   · subst c
-    rw [feedbackTableau, if_pos rfl, hbr]
+    rw [feedbackTableau, ite_eq_left rfl, hbr]
     exact op_feedbackRow_branch p hp false ψ
-  · rw [feedbackTableau, if_neg hc, hbr]
+  · rw [feedbackTableau, ite_eq_right hc, hbr]
     have hswap : op (t c).decode * pauliBranchProjector p false
         = pauliBranchProjector p false * op (t c).decode :=
       op_row_comm_branch (t c).decode p false (hcomm c hc)
@@ -840,13 +844,13 @@ theorem pauliBranchProjector_add {n : ℕ} (p : PauliElem n) :
     smul_eq_mul]
   have hone : (1 : Matrix (Reg n) (Reg n) ℂ) i j = if i = j then 1 else 0 := Matrix.one_apply
   by_cases hij : i = j
-  · rw [hone, if_pos hij]
+  · rw [hone, ite_eq_left hij]
     calc ((2 : ℂ)⁻¹) * (1 + op p i j) + ((2 : ℂ)⁻¹) * (1 - op p i j)
         = ((2 : ℂ)⁻¹) + ((2 : ℂ)⁻¹) * op p i j + ((2 : ℂ)⁻¹) - ((2 : ℂ)⁻¹) * op p i j := by
           ring
       _ = ((2 : ℂ)⁻¹) + ((2 : ℂ)⁻¹) := by ring
       _ = 1 := half_add_half
-  · rw [hone, if_neg hij]
+  · rw [hone, ite_eq_right hij]
     calc ((2 : ℂ)⁻¹) * (0 + op p i j) + ((2 : ℂ)⁻¹) * (0 - op p i j)
         = ((2 : ℂ)⁻¹) * op p i j + (0 - ((2 : ℂ)⁻¹) * op p i j) := by ring
       _ = 0 := by ring

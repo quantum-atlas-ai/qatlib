@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 /-!
 # Matrix exponential flow

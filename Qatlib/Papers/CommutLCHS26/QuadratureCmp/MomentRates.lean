@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
-import Mathlib.Analysis.Asymptotics.Defs
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
+public import Mathlib.Analysis.Asymptotics.Defs
+
+@[expose] public section
 
 /-!
 # Asymptotic rates for finite moments

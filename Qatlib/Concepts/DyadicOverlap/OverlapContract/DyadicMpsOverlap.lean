@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicOverlap.OverlapContract.DyadicMpsOverlapDefs
+module
+
+public import Qatlib.Concepts.DyadicOverlap.OverlapContract.DyadicMpsOverlapDefs
+
+@[expose] public section
 
 /-!
 # Dyadic MPS overlap correctness and arithmetic logs
@@ -366,15 +370,15 @@ theorem transfer_prod_eq_sum {d Da Db : ℕ} :
     · obtain rfl := ha
       by_cases hb : b0 = b1
       · obtain rfl := hb
-        rw [if_pos rfl, if_pos rfl, if_pos rfl]
+        rw [ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
         simp
-      · rw [if_neg (fun h => hb (toIdx_eq_iff.mp h).2), if_pos rfl, if_neg hb]
+      · rw [ite_eq_right (fun h => hb (toIdx_eq_iff.mp h).2), ite_eq_left rfl, ite_eq_right hb]
         simp
     · by_cases hb : b0 = b1
       · obtain rfl := hb
-        rw [if_neg (fun h => ha (toIdx_eq_iff.mp h).1), if_neg ha, if_pos rfl]
+        rw [ite_eq_right (fun h => ha (toIdx_eq_iff.mp h).1), ite_eq_right ha, ite_eq_left rfl]
         simp
-      · rw [if_neg (fun h => ha (toIdx_eq_iff.mp h).1), if_neg ha, if_neg hb]
+      · rw [ite_eq_right (fun h => ha (toIdx_eq_iff.mp h).1), ite_eq_right ha, ite_eq_right hb]
         simp
   | succ n ih =>
     intro Abar Bbar a0 a1 b0 b1
@@ -491,12 +495,12 @@ theorem transfer_prod_eq_sum {d Da Db : ℕ} :
           hsnoc
 
 /-- The left virtual index at a site, taking the boundary value `a` at the first site. -/
-private def bondLeftIdx {n D : ℕ} (a : Fin D) (α : Fin (n - 1) → Fin D) (i : Fin n) : Fin D :=
+def bondLeftIdx {n D : ℕ} (a : Fin D) (α : Fin (n - 1) → Fin D) (i : Fin n) : Fin D :=
   if (i : ℕ) = 0 then a
   else if h2 : (i : ℕ) - 1 < n - 1 then α ⟨(i : ℕ) - 1, h2⟩ else a
 
 /-- The right virtual index at a site, taking the boundary value `b` at the final site. -/
-private def bondRightIdx {n D : ℕ} (b : Fin D) (α : Fin (n - 1) → Fin D) (i : Fin n) : Fin D :=
+def bondRightIdx {n D : ℕ} (b : Fin D) (α : Fin (n - 1) → Fin D) (i : Fin n) : Fin D :=
   if h : (i : ℕ) < n - 1 then α ⟨(i : ℕ), h⟩ else b
 
 /-- The internal-bond sum for an MPS with arbitrary endpoints, using the identity-matrix entry
@@ -530,33 +534,33 @@ private theorem snoc_of_last {m D : ℕ} {β : Fin m → Fin D} {k : Fin D}
 /-- Appending an internal bond leaves the left indices of the initial sites unchanged. -/
 private theorem bondLeftIdx_snoc {m D : ℕ} (a k : Fin D) (β : Fin m → Fin D)
     (i : Fin (m + 1)) :
-    bondLeftIdx a (@Fin.snoc m (fun _ => Fin D) β k) i.castSucc = bondLeftIdx a β i := by
+    bondLeftIdx a (@Fin.snoc m (fun _ => Fin D) β k) i.castSucc = bondLeftIdx (n := m + 1) a β i := by
   unfold bondLeftIdx
   rw [Fin.val_castSucc]
   by_cases hi : (i : ℕ) = 0
-  · rw [hi, if_pos rfl, if_pos rfl]
-  · rw [if_neg hi, if_neg hi]
+  · rw [hi, ite_eq_left rfl, ite_eq_left rfl]
+  · rw [ite_eq_right hi, ite_eq_right hi]
     have h1 : (i : ℕ) - 1 < (m + 1 + 1) - 1 := by have := i.isLt; omega
     have h2 : (i : ℕ) - 1 < (m + 1) - 1 := by have := i.isLt; omega
-    rw [dif_pos h1, dif_pos h2]
+    rw [dite_eq_left h1, dite_eq_left h2]
     exact snoc_of_lt _
 
 /-- For the initial sites, appending the bond `k` makes their right-index formula agree with a
 prefix chain whose right boundary is `k`. -/
 private theorem bondRightIdx_snoc {m D : ℕ} (b k : Fin D) (β : Fin m → Fin D)
     (i : Fin (m + 1)) :
-    bondRightIdx b (@Fin.snoc m (fun _ => Fin D) β k) i.castSucc = bondRightIdx k β i := by
+    bondRightIdx b (@Fin.snoc m (fun _ => Fin D) β k) i.castSucc = bondRightIdx (n := m + 1) k β i := by
   unfold bondRightIdx
   rw [Fin.val_castSucc]
   by_cases hi : (i : ℕ) < m
   · have h1 : (i : ℕ) < (m + 1 + 1) - 1 := by have := i.isLt; omega
     have h2 : (i : ℕ) < (m + 1) - 1 := by omega
-    rw [dif_pos h1, dif_pos h2]
+    rw [dite_eq_left h1, dite_eq_left h2]
     exact snoc_of_lt hi
   · have h1 : (i : ℕ) = m := by have := i.isLt; omega
     have h2 : ¬(i : ℕ) < (m + 1) - 1 := by omega
     have h3 : (i : ℕ) < (m + 1 + 1) - 1 := by have := i.isLt; omega
-    rw [dif_pos h3, dif_neg h2]
+    rw [dite_eq_left h3, dite_eq_right h2]
     exact snoc_of_last h1
 
 /-- The left virtual index at the last site is the appended internal bond `k`. -/
@@ -565,7 +569,7 @@ private theorem bondLeftIdx_last {m D : ℕ} (a k : Fin D) (β : Fin m → Fin D
   unfold bondLeftIdx
   have h0 : ¬((Fin.last (m + 1) : ℕ) = 0) := by rw [Fin.val_last]; omega
   have h1 : ((Fin.last (m + 1) : ℕ)) - 1 < (m + 1 + 1) - 1 := by rw [Fin.val_last]; omega
-  rw [if_neg h0, dif_pos h1]
+  rw [ite_eq_right h0, dite_eq_left h1]
   exact snoc_of_last (by
     show (Fin.last (m + 1) : ℕ) - 1 = m
     have := Fin.val_last (m + 1)
@@ -576,7 +580,7 @@ private theorem bondRightIdx_last {m D : ℕ} (b k : Fin D) (β : Fin m → Fin 
     bondRightIdx b (@Fin.snoc m (fun _ => Fin D) β k) (Fin.last (m + 1)) = b := by
   unfold bondRightIdx
   have h1 : ¬((Fin.last (m + 1) : ℕ) < (m + 1 + 1) - 1) := by rw [Fin.val_last]; omega
-  rw [dif_neg h1]
+  rw [dite_eq_right h1]
 
 /-- A configuration's matrix product factors into the initial-site product and the final
 selected matrix. -/
@@ -611,10 +615,10 @@ theorem bondAmp_eq_prodAt {d D : ℕ} :
         rw [Fin.prod_univ_one]
         have hl : bondLeftIdx a α (0 : Fin 1) = a := by
           unfold bondLeftIdx
-          exact if_pos rfl
+          exact ite_eq_left rfl
         have hr : bondRightIdx b α (0 : Fin 1) = b := by
           unfold bondRightIdx
-          rw [dif_neg (by omega : ¬((0 : Fin 1) : ℕ) < 1 - 1)]
+          rw [dite_eq_right (by omega : ¬((0 : Fin 1) : ℕ) < 1 - 1)]
         rw [hl, hr]
       show (∑ α : Fin (1 - 1) → Fin D,
           ∏ i : Fin 1, M i (x i) (bondLeftIdx a α i) (bondRightIdx b α i))
@@ -648,7 +652,7 @@ theorem bondAmp_eq_prodAt {d D : ℕ} :
                 (bondRightIdx b α (Fin.last (m + 1))))
           = ∑ β : Fin ((m + 1) - 1) → Fin D, ∑ k : Fin D,
             (∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-                (bondLeftIdx a β i) (bondRightIdx k β i))
+                (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i))
               * M (Fin.last (m + 1)) (x (Fin.last (m + 1))) k b := by
         have hE : (∑ α : Fin ((m + 2) - 1) → Fin D,
               (∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
@@ -678,23 +682,23 @@ theorem bondAmp_eq_prodAt {d D : ℕ} :
       have hk : ∀ k : Fin D,
           (∑ β : Fin ((m + 1) - 1) → Fin D,
             ∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-              (bondLeftIdx a β i) (bondRightIdx k β i))
+              (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i))
           = prodAt (fun i => M i.castSucc) (fun i => x i.castSucc) a k := by
         intro k
         rw [← ih (fun i => M i.castSucc) (fun i => x i.castSucc) a k]
         have hb : bondAmp (fun i => M i.castSucc) (fun i => x i.castSucc) a k
             = (∑ β : Fin ((m + 1) - 1) → Fin D,
               ∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-                (bondLeftIdx a β i) (bondRightIdx k β i)) := by
+                (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i)) := by
           show (if m + 1 = 0 then (if a = k then (1 : ℂ) else 0)
               else ∑ β : Fin ((m + 1) - 1) → Fin D,
                 ∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-                  (bondLeftIdx a β i) (bondRightIdx k β i)) = _
-          rw [if_neg (by omega)]
+                  (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i)) = _
+          rw [ite_eq_right (by omega)]
         rw [hb]
       have hswap : (∑ β : Fin ((m + 1) - 1) → Fin D, ∑ k : Fin D,
             (∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-                (bondLeftIdx a β i) (bondRightIdx k β i))
+                (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i))
               * M (Fin.last (m + 1)) (x (Fin.last (m + 1))) k b)
           = ∑ k : Fin D, prodAt (fun i => M i.castSucc) (fun i => x i.castSucc) a k
               * M (Fin.last (m + 1)) (x (Fin.last (m + 1))) k b := by
@@ -708,7 +712,7 @@ theorem bondAmp_eq_prodAt {d D : ℕ} :
               show (if m + 2 = 0 then (if a = b then (1 : ℂ) else 0)
                   else ∑ α : Fin ((m + 2) - 1) → Fin D,
                     ∏ i : Fin (m + 2), M i (x i) (bondLeftIdx a α i) (bondRightIdx b α i)) = _
-              rw [if_neg (by omega)]
+              rw [ite_eq_right (by omega)]
         _ = ∑ α : Fin ((m + 2) - 1) → Fin D,
               (∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
                   (bondLeftIdx a α i.castSucc) (bondRightIdx b α i.castSucc))
@@ -718,7 +722,7 @@ theorem bondAmp_eq_prodAt {d D : ℕ} :
             Finset.sum_congr rfl fun α _ => hprod α
         _ = ∑ β : Fin ((m + 1) - 1) → Fin D, ∑ k : Fin D,
               (∏ i : Fin (m + 1), M i.castSucc (x i.castSucc)
-                  (bondLeftIdx a β i) (bondRightIdx k β i))
+              (bondLeftIdx (n := m + 1) a β i) (bondRightIdx (n := m + 1) k β i))
                 * M (Fin.last (m + 1)) (x (Fin.last (m + 1))) k b :=
             hre
         _ = ∑ k : Fin D,
@@ -742,7 +746,7 @@ private theorem mpsAmplitude_eq_bondAmp {n d D : ℕ} [NeZero D]
         ∏ i : Fin 0, M i (x i) (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsLeftIdx α i)
           (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx α i))
       = if (0 : Fin D) = 0 then (1 : ℂ) else 0
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     refine (Fintype.sum_eq_single (fun i : Fin 0 => i.elim0) ?_).trans ?_
     · intro α hne
       exact absurd (funext (fun i => i.elim0) : α = fun i => i.elim0) hne

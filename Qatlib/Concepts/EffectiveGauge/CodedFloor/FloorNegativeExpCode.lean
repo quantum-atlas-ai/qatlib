@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalScalarCode
+
+@[expose] public section
 
 /-!
 # Floor Negative Exp Code
@@ -53,20 +57,20 @@ theorem floorExpCodeRun_value (p : FloorExpCodeParameters) (s : FloorExpCodeStat
     · have hv : |floorRationalCodeValue s.2.2| ≤ floorRationalCodeValue p.2 := by
         simpa only [floorRationalCodeAbs_value] using
           (floorRationalCodeLE_value (floorRationalCodeAbs s.2.2) p.2).mp h
-      rw [floorExpCodeStep,if_pos h]
+      rw [floorExpCodeStep,ite_eq_left h]
       change floorExpCodeResult (floorExpCodeRun p s fuel)=_
       rw [ih]
-      cases fuel <;> simp only [negativeExpLoop,if_pos hv]
+      cases fuel <;> simp only [negativeExpLoop,ite_eq_left hv]
     · have hv : ¬|floorRationalCodeValue s.2.2| ≤ floorRationalCodeValue p.2 := by
         intro hv
         apply h
         exact (floorRationalCodeLE_value _ _).mpr (by simpa only [floorRationalCodeAbs_value] using hv)
-      rw [floorExpCodeStep,if_neg h]
+      rw [floorExpCodeStep,ite_eq_right h]
       change floorExpCodeResult (floorExpCodeRun p _ fuel)=_
       rw [ih]
       simp only [floorRationalCodeAdd_value,floorRationalCodeMul_value,
         floorRationalCodeNeg_value,floorRationalCodeInv_value,floorRationalCodeNat_value,
-        negativeExpLoop,if_neg hv,div_eq_mul_inv]
+        negativeExpLoop,ite_eq_right hv,div_eq_mul_inv]
 
 /-- Original `primrec_floorExpCodeStep` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
 theorem primrec_floorExpCodeStep : Primrec₂ floorExpCodeStep := by

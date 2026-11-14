@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.StatePrep.LowerBoundSchedule
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.KoopmanSim26.StatePrep.LowerBoundSchedule
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # State preparation with unknown success probability
@@ -99,7 +103,7 @@ theorem attempt_success {I : Type} [Fintype I] [DecidableEq I]
   simp only [event, attempt, expectation_map, jointPMF]
   rw [← success_is_actual A hA j S M hM]
   rw [← finite_expect_nn (jointLaw A hA j S M hM) (fun x => if x.2 ∈ S then 1 else 0)
-    (fun _ => by (try dsimp only); split_ifs <;> norm_num)]
+    (fun _ => by  split_ifs <;> norm_num)]
   apply Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
   intro x
   by_cases h : x.2 ∈ S <;> simp [h]
@@ -280,12 +284,12 @@ theorem potential_nonneg (h0 off : ℕ) : 0 ≤ potential h0 off := by
 theorem potential_before (h0 off : ℕ) (h : off<h0) :
     24*(2:ℝ)^off + potential h0 (off+1) ≤ potential h0 off := by
   unfold potential
-  rw [if_pos h]
+  rw [ite_eq_left h]
   by_cases hn : off+1<h0
-  · rw [if_pos hn]
+  · rw [ite_eq_left hn]
     simp only [pow_succ]
     linarith
-  · rw [if_neg hn]
+  · rw [ite_eq_right hn]
     have he : off+1=h0 := by omega
     rw [← he]
     simp only [pow_succ]
@@ -297,7 +301,7 @@ theorem potential_after (h0 off : ℕ) (h : h0≤off) :
     24*(2:ℝ)^off + (3/8)*potential h0 (off+1) ≤ potential h0 off := by
   have hn : ¬off+1<h0 := by omega
   have ho : ¬off<h0 := by omega
-  simp only [potential, if_neg hn, if_neg ho, pow_succ]
+  simp only [potential, ite_eq_right hn, ite_eq_right ho, pow_succ]
   nlinarith [pow_nonneg (by norm_num : (0:ℝ)≤2) off]
 
 /-- Once a dyadic window satisfies the maturity inequality, every larger exponent satisfies it

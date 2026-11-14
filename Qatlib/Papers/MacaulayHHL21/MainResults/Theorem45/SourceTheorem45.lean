@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
-import Qatlib.Papers.MacaulayHHL21.MainResults.Lemma43.SourceLemma43
-import Mathlib.Algebra.Order.Monoid.Unbundled.Pow
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+public import Qatlib.Papers.MacaulayHHL21.MainResults.Lemma43.SourceLemma43
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Pow
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -124,9 +128,10 @@ theorem theorem45_totalDegree_sameWeight
 /-- Theorem 4.5 (arXiv:2111.00405, p.9), max-degree form, convex-hull case: when the
 minimum-norm solution lies in the convex hull, Lemma 4.4 supplies `‖Y 0‖ ≤ √t·‖y‖`; equation
 (10) and (9) then give the bound.  The Lemma 4.4 norm bound is an explicit hypothesis here. -/
-theorem theorem45_maxDegree_convexHull
+theorem theorem45_maxDegree_convexHull {ι : Type*} [Fintype ι]
+    [_macaulayDecidableEq : DecidableEq ι]
     {t d h : ℕ} [NeZero t] (Y : Fin t → ι → ℂ)
-    (hY0 : l2NormSq (Y 0) = ((d : ℝ) + 1) ^ h - 1) (hZ : IsZeroOne (Y 0))
+    (hY0 : l2NormSq (Y 0) = ((d : ℝ) + 1) ^ h - 1) (_hZ : IsZeroOne (Y 0))
     {y : ι → ℂ}
     (hconv : l2Norm (Y 0) ≤ Real.sqrt (t : ℝ) * l2Norm y)
     {matNorm bNorm : ℝ} (hM : 1 ≤ matNorm) (hb : bNorm = 1) :
@@ -141,9 +146,10 @@ theorem theorem45_maxDegree_convexHull
   exact tqlscn_lowerBound_of_normBound hrad hnormY0 hconv hM hb
 
 /-- Theorem 4.5 (arXiv:2111.00405, p.9), total-degree form, convex-hull case. -/
-theorem theorem45_totalDegree_convexHull
+theorem theorem45_totalDegree_convexHull {ι : Type*} [Fintype ι]
+    [_macaulayDecidableEq : DecidableEq ι]
     {t d h : ℕ} [NeZero t] (Y : Fin t → ι → ℂ)
-    (hY0 : l2NormSq (Y 0) = (Nat.choose (d + h) h : ℝ) - 1) (hZ : IsZeroOne (Y 0))
+    (hY0 : l2NormSq (Y 0) = (Nat.choose (d + h) h : ℝ) - 1) (_hZ : IsZeroOne (Y 0))
     {y : ι → ℂ}
     (hconv : l2Norm (Y 0) ≤ Real.sqrt (t : ℝ) * l2Norm y)
     {matNorm bNorm : ℝ} (hM : 1 ≤ matNorm) (hb : bNorm = 1) :

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.Proposition1HelstromError
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.Proposition1HelstromError
+
+@[expose] public section
 
 /-!
 # Quantum Kolmogorov distance equals trace distance

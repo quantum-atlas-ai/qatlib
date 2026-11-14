@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayUniversalityStat
-import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelElem
+module
+
+public import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayUniversalityStat
+public import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelElem
+
+@[expose] public section
 
 /-!
 # Exact Gray-code universality

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficient
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficient
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,9 +30,9 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
 /-- Abbreviation for Coefficient Coordinate Point in the Hopf Atlas construction. -/
-private abbrev CoefficientCoordinatePoint := Fin 3 → ℝ
+abbrev CoefficientCoordinatePoint := Fin 3 → ℝ
 /-- Definition of coefficient Coordinate Top in the Hopf Atlas construction. -/
-private def coefficientCoordinateTop : CoefficientCoordinatePoint := fun _ => 1
+def coefficientCoordinateTop : CoefficientCoordinatePoint := fun _ => 1
 
 /-- Definition of unit Complex Cube Integral in the Hopf Atlas construction. -/
 def unitComplexCubeIntegral (f : SpatialPoint → ℂ) : ℂ :=

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualRun
-import Mathlib.Analysis.SpecialFunctions.Log.Base
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualRun
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+@[expose] public section
 
 /-!
 # Charged nearest-centroid estimation

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Model
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Model
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ theorem lemmaS13_likelihood_ratio
     (n N : ℕ) (lam beta tau : ℝ) (hlam : 0 < lam) (hbeta : 0 < beta)
     (hN : 0 < N) (htau : tau = lam * beta / (N : ℝ))
     (logTr LN Q : ℝ)
-    (C1 C2 : ℝ) (hC1 : 0 ≤ C1) (hC2 : 0 ≤ C2)
+    (C1 C2 : ℝ) (_hC1 : 0 ≤ C1) (_hC2 : 0 ≤ C2)
     (h63 : |Real.log LN + tau * Q| ≤ C1 * ((N : ℝ) * tau ^ 2))
     (h67 : |-(tau * Q) - (logTr - (n : ℝ) * Real.log 2)| ≤
         C2 * ((N : ℝ) * tau ^ 2)) :

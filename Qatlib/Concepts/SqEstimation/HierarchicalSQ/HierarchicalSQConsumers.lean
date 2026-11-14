@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SqEstimation.HierarchicalSQ.HierarchicalSQAccess
+module
+
+public import Qatlib.Concepts.SqEstimation.HierarchicalSQ.HierarchicalSQAccess
+
+@[expose] public section
 
 /-!
 # Hierarchical sample-and-query consumers
@@ -318,7 +322,7 @@ theorem native_sq_rur_same_record_sampler_and_cost (rand : ClosureNativeRandom) 
     have hglobalrate : closureRate (closureWeights coeff W) = 1 := closure_basis_global_rate
     have hrowrate : closureRate (closureRowWeights coeff closureBasisRowNorm i) = 1/2 :=
         closure_basis_row_rate i
-    simp only [closureSuccess, hmax, hrowmax, one_ne_zero, if_false, hglobalrate, hrowrate]
+    simp only [closureSuccess, hmax, hrowmax, one_ne_zero, ite_false, hglobalrate, hrowrate]
     norm_num [closureSum, closureWeights]
     by_cases ht : Trow = 0
     · simp [ht]

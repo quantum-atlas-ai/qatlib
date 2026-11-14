@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridQuan
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridQuan
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Transport of data-structure states to QRAM registers
@@ -206,7 +210,7 @@ theorem sourceValueAction_dataBasis {N M r : ℕ} (D : CollisionDataStructure N 
       fun i => if Nat.clog 2 (N+1) ≤ i.val ∧ i.val < Nat.clog 2 (N+1)+Nat.clog 2 (M+1)
         then naturalBit (x p.val.2).val (i.val-Nat.clog 2 (N+1))
         else dataBasis D k w x h p i := by
-  letI : NeZero M := ⟨ne_of_gt hM⟩
+  let : NeZero M := ⟨ne_of_gt hM⟩
   unfold sourceValueAction
   (try dsimp only)
   rw [dataBasis_address, dataBasis_answer_zero]

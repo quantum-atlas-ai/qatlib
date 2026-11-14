@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.PartialTrace
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.PartialTrace
+
+@[expose] public section
 
 /-!
 # Tensor pair operators as lifted observables

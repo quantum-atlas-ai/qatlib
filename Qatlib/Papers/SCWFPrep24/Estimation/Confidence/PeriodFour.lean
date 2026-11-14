@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPromise
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.FullLossNuisance
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPromise
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.FullLossNuisance
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

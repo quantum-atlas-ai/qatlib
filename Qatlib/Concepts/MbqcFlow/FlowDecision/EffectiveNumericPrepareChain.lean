@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrtBounds
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessExt
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrtBounds
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessExt
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Numerical state preparation from dense tables

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicFloor.FloorRounding.RationalFloor
-import Mathlib.Algebra.Order.Chebyshev
+module
+
+public import Qatlib.Concepts.DyadicFloor.FloorRounding.RationalFloor
+public import Mathlib.Algebra.Order.Chebyshev
+
+@[expose] public section
 
 /-!
 # Positive definite dyadic matrix rounding
@@ -32,6 +36,7 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.PsdRounding.PsdSafeRound
 open Qatlib.Concepts.DyadicFloor.FloorRounding Matrix
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped BigOperators
 
 /-- The matrix returned by `roundMatrix` is symmetric for every input matrix. -/
@@ -113,9 +118,9 @@ lemma quad_smul_one {n : ℕ} (μ : ℝ) (x : Fin n →₀ ℝ) :
         = ∑ j, if i = j then x i * μ * x j else 0 := by
       refine Finset.sum_congr rfl fun j _ => ?_
       by_cases hij : i = j
-      · simp [hij, Matrix.smul_apply, Matrix.one_apply, mul_assoc]
-      · simp [hij, Matrix.smul_apply, Matrix.one_apply]
-    rw [hinner, Finset.sum_ite_eq, if_pos (Finset.mem_univ i)]
+      · simp [hij, Matrix.smul_apply,  mul_assoc]
+      · simp [hij, Matrix.smul_apply]
+    rw [hinner, Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ i)]
   simp_rw [hrow, pow_two, Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   ring

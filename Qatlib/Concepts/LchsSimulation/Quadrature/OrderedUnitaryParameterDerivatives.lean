@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Liouville
-import Qatlib.Concepts.LchsSimulation.TimeLchs
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.Calculus.FDeriv.Analytic
+module
+
+public import Mathlib.Analysis.Complex.Liouville
+public import Qatlib.Concepts.LchsSimulation.TimeLchs
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Calculus.FDeriv.Analytic
+
+@[expose] public section
 
 /-!
 # Complex parameter estimates for ordered evolution
@@ -101,7 +105,7 @@ theorem ordered_unitary_complex_parameter_growth
     (hHermH : ∀ u,(H u).IsHermitian) (hT : 0≤T) (hΛ : 0<Λ)
     (hbound : ∀ u∈Icc 0 T,‖L u‖≤Λ) (z : ℂ) :
     ‖orderedEvolution (fun u=>Complex.I • (H u+z • L u)) 0 T‖≤Real.exp (|z.im| *T*Λ) := by
-  letI := InnerProductSpace.rclikeToReal ℂ (EuclideanSpace ℂ I)
+  let := InnerProductSpace.rclikeToReal ℂ (EuclideanSpace ℂ I)
   let A := fun u=>Complex.I • (H u+z • L u)
   have hA : Continuous A := by dsimp [A]; fun_prop
   let b := |z.im| *Λ

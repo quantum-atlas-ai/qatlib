@@ -24,11 +24,15 @@ of the first `p` is a zero sum unless one subset is empty (then any nonempty one
 is a zero sum). We state the deterministic-witness conclusion; the call count
 `< S^{⌈log p⌉}` is recorded explicitly and `⌈log p⌉` is `Nat.clog 2 p`.
 -/
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic.Linarith
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+
+@[expose] public section
 
 /-!
 # Collision Amplification to Zero-Sum Subsequences over `ℤ_p^n`

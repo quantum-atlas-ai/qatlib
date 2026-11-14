@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteCounts.ExceptionalBits.Count
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Foundations.FiniteCounts.ExceptionalBits.Count
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Exceptional events in additive-group prefix runs

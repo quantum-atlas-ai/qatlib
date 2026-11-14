@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,6 +66,7 @@ def rieszSelect (K : Set ℂ) (g : ℂ → ℂ) (lam : ℂ) (N : Sq n) (s : ℕ)
   classical
   exact if lam ∈ K then rieszSum g lam N s else 0
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Proposition A.3 (p. 49), Eq. (A.5).  On a Jordan block `Jλ = λI + Nλ`
 (`Nλ^s = 0`, block size `1 ≤ s`), the Riesz operator of `g` is the Taylor sum `Σ_{r<s} g⁽ʳ⁾(λ)/r! Nλʳ` for
 `λ ∈ Kχ` and `0` otherwise.  Consequences recorded here: the operator is a polynomial in `Nλ`
@@ -69,16 +74,17 @@ def rieszSelect (K : Set ℂ) (g : ℂ → ℂ) (lam : ℂ) (N : Sq n) (s : ℕ)
 identity on the selected branch (the spectral projector of the single Jordan block).  The regular-pencil formula
 (A.6) is the change of basis `Tr (·) Tr⁻¹` of this block formula. -/
 theorem proposition_A_3_weighted_spectral_selection
-    (K : Set ℂ) (g : ℂ → ℂ) (lam : ℂ) (N : Sq n) (s : ℕ) (hN : N ^ s = 0)
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
+    (K : Set ℂ) (g : ℂ → ℂ) (lam : ℂ) (N : Sq n) (s : ℕ) (_hN : N ^ s = 0)
     (hs : 1 ≤ s) :
     rieszSelect K g lam N s * (lam • (1 : Sq n) + N) =
         (lam • (1 : Sq n) + N) * rieszSelect K g lam N s ∧
       (lam ∉ K → rieszSelect K g lam N s = 0) ∧
       (lam ∈ K → rieszSelect K (fun _ => 1) lam N s = 1) := by
-  refine ⟨?_, fun h => if_neg h, ?_⟩
+  refine ⟨?_, fun h => ite_eq_right h, ?_⟩
   · -- commutation: the Riesz sum is a polynomial in `N`
     rcases em (lam ∈ K) with hin | hin
-    · simp only [rieszSelect, if_pos hin]
+    · simp only [rieszSelect, ite_eq_left hin]
       have hcomm : (∑ r ∈ Finset.range s, ((iteratedDeriv r g lam / (r.factorial : ℂ))) •
           N ^ r) * N = N * (∑ r ∈ Finset.range s,
             ((iteratedDeriv r g lam / (r.factorial : ℂ))) • N ^ r) := by
@@ -106,10 +112,10 @@ theorem proposition_A_3_weighted_spectral_selection
               rw [Matrix.add_mul]
               congr 1
               rw [Matrix.smul_mul, Matrix.one_mul]
-    · simp only [rieszSelect, if_neg hin, Matrix.zero_mul, Matrix.mul_zero]
+    · simp only [rieszSelect, ite_eq_right hin, Matrix.zero_mul, Matrix.mul_zero]
   · -- `g ≡ 1` on the selected branch: only the `r = 0` term survives
     intro hin
-    simp only [rieszSelect, rieszSum, if_pos hin]
+    simp only [rieszSelect, rieszSum, ite_eq_left hin]
     rw [Finset.sum_eq_single 0]
     · simp
     · intro r _ hr
@@ -129,12 +135,14 @@ def periodicMean (F : ℝ → Sq n) : Sq n :=
 
 /-! ## Proposition A.5: perturbed-input contour construction -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Proposition A.5 (p. 50), Eq. (A.12).  If the ideal quadrature is within
 `εquad` of the Riesz operator `Gχ`, the decoded perturbed sum is within `εinput` of the ideal
 sum, and the implemented output is within `εimpl` of the decoded sum, then the implemented
 output is within `εquad + εinput + εimpl` of `Gχ`.  The source then bounds `εinput` by (A.12)
 (ordinary case) and (A.13) (pencil case); those bounds are recorded separately below. -/
 theorem proposition_A_5_error_decomposition
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
     (Sout Sdec Sideal Gχ : Sq n) (εquad εinput εimpl : ℝ)
     (hquad : ‖Sideal - Gχ‖ ≤ εquad)
     (hinput : ‖Sdec - Sideal‖ ≤ εinput)
@@ -147,19 +155,21 @@ theorem proposition_A_5_error_decomposition
         gcongr
         exact norm_add_le _ _
     _ ≤ εimpl + εinput + εquad := by
-        gcongr <;> assumption
+        gcongr
     _ = εquad + εinput + εimpl := by ring
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Proposition A.5 (p. 50), Eq. (A.12) (ordinary case).  The input error of the
 ordinary construction is
 `εinput = Σ_j |ωj| ( αR εM ‖Aj⁻¹‖² / (1 - εM ‖Aj⁻¹‖) + ‖Aj⁻¹ ‖ εR )`,
 under invertibility of every `Aj = zj I - M` and `εM ‖Aj⁻¹‖ < 1`. -/
 theorem proposition_A_5_ordinary_input_error
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
     (m : ℕ) (ω : Fin m → ℝ) (αR εM εR εinput : ℝ) (Ainv : Fin m → Sq n)
-    (hαR : 0 ≤ αR) (hAinv : ∀ j, 0 < ‖Ainv j‖)
+    (hαR : 0 ≤ αR) (_hAinv : ∀ j, 0 < ‖Ainv j‖)
     (hsmall : ∀ j, εM * ‖Ainv j‖ < 1)
     (hsmall2 : ∀ j, εM * ‖Ainv j‖ ≤ 1 / 2)
-    (hεR : 0 ≤ εR) (hεM : 0 ≤ εM)
+    (_hεR : 0 ≤ εR) (hεM : 0 ≤ εM)
     (hεinput : εinput = ∑ j, |ω j| *
       (αR * εM * ‖Ainv j‖ ^ 2 / (1 - εM * ‖Ainv j‖) + ‖Ainv j‖ * εR)) :
     εinput ≤ ∑ j, |ω j| * (2 * αR * εM * ‖Ainv j‖ ^ 2 + ‖Ainv j‖ * εR) := by
@@ -182,14 +192,16 @@ theorem proposition_A_5_ordinary_input_error
 
 /-! ## Proposition D.4: paired-rectangle Gauss–Legendre rule -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- Conditional arithmetic associated with Proposition D.4. Returns the assumed
 quadrature error and node-count identity, weakens two assumed normalization
 identities to inequalities, and propagates the assumed error to a supplied
 tolerance. No quadrature construction or query implementation is proved. -/
 theorem proposition_D_4_paired_rectangle_quadrature
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
     (δ αR ℓΓ εT RDRE αgR : ℝ) (S Tg : Sq n) (p Npan mT : ℕ)
-    (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hαR : 0 ≤ αR) (hℓ : 0 ≤ ℓΓ)
-    (hNpan : (Npan : ℝ) ≤ 4 * ℓΓ / δ + 4)
+    (_hδ : 0 < δ) (_hδ1 : δ ≤ 1) (_hαR : 0 ≤ αR) (_hℓ : 0 ≤ ℓΓ)
+    (_hNpan : (Npan : ℝ) ≤ 4 * ℓΓ / δ + 4)
     (hRDRE : RDRE = 2 * (1 + 2 * Real.sqrt 2) / δ)
     (hαgR : αgR = 6 / Real.pi * αR * RDRE)
     (hmT : (mT : ℝ) = (Npan : ℝ) * (p : ℝ))

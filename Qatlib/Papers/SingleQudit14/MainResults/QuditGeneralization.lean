@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQudit14.MainResults.QuditFourier
+module
+
+public import Qatlib.Papers.SingleQudit14.MainResults.QuditFourier
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,9 +70,11 @@ theorem generalized_cyclic_orientation (σ : Equiv.Perm (ZMod d)) :
         ∃ c : ℂ, c ≠ 0 ∧ applyPerm σ (qftVec (1 : ZMod d)) = c • qftVec (-1)) :=
   ⟨positive_cyclic_maps_psi_two_to_itself σ, negative_cyclic_maps_psi_two_to_psi_d σ⟩
 
+omit [NeZero d] in
 /-- `-1` and `d - 1` agree in `ZMod d` (the reflection output is literally the paper's
 `d`-th Fourier column `U_FT |d⟩ = |ψ_d⟩`). -/
-lemma neg_one_eq_last (hd : 1 ≤ d) : (-1 : ZMod d) = ((d - 1 : ℕ) : ZMod d) := by
+lemma neg_one_eq_last {d : ℕ} [_neZeroD : NeZero d] (hd : 1 ≤ d) :
+    (-1 : ZMod d) = ((d - 1 : ℕ) : ZMod d) := by
   rw [Nat.cast_sub hd, ZMod.natCast_self]
   ring
 

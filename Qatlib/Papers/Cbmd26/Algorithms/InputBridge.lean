@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
-import Qatlib.Foundations.CbmdAnalysis.Core.Algebra
+module
+
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+public import Qatlib.Foundations.CbmdAnalysis.Core.Algebra
+
+@[expose] public section
 
 /-!
 # Hermitian sample encodings from an original matrix oracle

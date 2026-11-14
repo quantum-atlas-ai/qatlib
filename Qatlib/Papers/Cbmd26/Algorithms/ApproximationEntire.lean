@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationCauchy
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationWindow
-import Mathlib.Algebra.Polynomial.Degree.Operations
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationCauchy
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationWindow
+public import Mathlib.Algebra.Polynomial.Degree.Operations
+
+@[expose] public section
 
 /-!
 # Bounded polynomial approximation from Cauchy truncations

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.FeedbackMachine
+module
+
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.FeedbackMachine
+
+@[expose] public section
 
 /-!
 # Pending controller variables and feedback banks
@@ -138,7 +142,7 @@ theorem pending_feedback_execution {q : ℕ} (bank : Bank q) (pending : Variable
     rw [← List.drop_eq_getElem_cons hi]
     exact List.take_append_drop _ _
   have hu : List.ofFn (supply bank pending b) = slots.take i.val ++ some b :: slots.drop (i.val+1) := by
-    rw [supply, ofFn_update, List.set_eq_take_append_cons_drop, if_pos hi]
+    rw [supply, ofFn_update, List.set_eq_take_append_cons_drop, ite_eq_left hi]
   have he := feedback_machine_execution (slots.take i.val) slots[i.val] (slots.drop (i.val+1))
     [] i.val.bits (b,(false,none),none) (by rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits, ht])
   rw [hs, ← hu, ht] at he

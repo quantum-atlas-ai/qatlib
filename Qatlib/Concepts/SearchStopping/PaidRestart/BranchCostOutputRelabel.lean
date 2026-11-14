@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
+module
+
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+
+@[expose] public section
 
 /-!
 # Fixed-price restart laws with output labels
@@ -81,7 +85,7 @@ theorem unitRestart_point (n k : ℕ) (i : O) :
   rw [he, tsum_sum_type', tsum_fintype, tsum_fintype]
   simp only [Fintype.sum_unique, ha, hq, branchCostRun_halted]
   by_cases hfit : price ≤ k
-  · simp only [if_pos hfit, PMF.pure_apply, Prod.mk.injEq, Sum.inl.injEq]
+  · simp only [ite_eq_left hfit, PMF.pure_apply, Prod.mk.injEq, Sum.inl.injEq]
     by_cases hk : price = k
     · subst k
       simp [mul_ite, add_comm]
@@ -115,10 +119,10 @@ theorem unitRestart_halt_recursion (hp : 0 < price) (k : ℕ) (i : O) :
     unfold branchHaltJoint
     rw [unitRestart_point next price a q ha hq hs]
     by_cases hfit : price ≤ k+1
-    · rw [if_pos hfit, if_pos hfit, branchCostRun_stable next hpos
+    · rw [ite_eq_left hfit, ite_eq_left hfit, branchCostRun_stable next hpos
         (Sum.inr ()) i (k+1-price) k (by omega)]
       rfl
-    · rw [if_neg hfit, if_neg hfit]
+    · rw [ite_eq_right hfit, ite_eq_right hfit]
 
 /-- For a positive fixed price, the joint mass of output `i` at receipt `(r + 1) * price` is `q
 ^ r * a i`. -/
@@ -137,7 +141,7 @@ theorem unitRestart_exact_receipt (hp : 0 < price) (r : ℕ) (i : O) :
     have hne : price ≠ (r+1+1)*price := by nlinarith
     have he : (r+1+1)*price-price = (r+1)*price := by
       rw [Nat.add_mul, Nat.one_mul]; omega
-    rw [if_pos hfit, if_neg hne, he, ih, add_zero, pow_succ']
+    rw [ite_eq_left hfit, ite_eq_right hne, he, ih, add_zero, pow_succ']
     ring
 
 /-- If the one-attempt success mass of an output is zero, every finite-run mass at that output
@@ -158,9 +162,9 @@ theorem unitRestart_support (hp : 0 < price) (i : O) (k : ℕ)
     by_cases he : price = k
     · exact ⟨0, by omega⟩
     · rw [unitRestart_halt_recursion next price a q ha hq hs hp k i,
-        if_neg he, add_zero] at hm
+        ite_eq_right he, add_zero] at hm
       have hfit : price ≤ k := by by_contra hn; simp [hn] at hm
-      rw [if_pos hfit] at hm
+      rw [ite_eq_left hfit] at hm
       obtain ⟨r,hr⟩ := ih (k-price) (by omega) (right_ne_zero_of_mul hm)
       exact ⟨r+1, by rw [Nat.add_mul, Nat.one_mul]; omega⟩
 
@@ -179,7 +183,7 @@ theorem unitRestart_total_halt (coin : PMF Bool)
       rw [branchRetry_point]
       simp only [true_and]
       by_cases hfit : price ≤ k
-      · simp only [if_pos hfit, Finset.sum_add_distrib, ← Finset.mul_sum]
+      · simp only [ite_eq_left hfit, Finset.sum_add_distrib, ← Finset.mul_sum]
         rw [ih]
         by_cases hk : price = k <;> simp [hk,hc,hf]
       · have hk : price ≠ k := by omega

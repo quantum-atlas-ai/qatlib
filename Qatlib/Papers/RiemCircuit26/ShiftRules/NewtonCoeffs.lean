@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiemCircuit26.ShiftRules.HessianCoefficient
-import Qatlib.Papers.RiemCircuit26.HessianGeometry.RiemannianHessian
-import Qatlib.Papers.RiemCircuit26.AccessGeometry
+module
+
+public import Qatlib.Papers.RiemCircuit26.ShiftRules.HessianCoefficient
+public import Qatlib.Papers.RiemCircuit26.HessianGeometry.RiemannianHessian
+public import Qatlib.Papers.RiemCircuit26.AccessGeometry
+
+@[expose] public section
 
 /-!
 # Newton coefficients from shifted costs

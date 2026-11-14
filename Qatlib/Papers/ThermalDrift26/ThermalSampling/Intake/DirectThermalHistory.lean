@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalPreparationError
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalAmplification
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourcePrefixes
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalPreparationError
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalAmplification
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourcePrefixes
+
+@[expose] public section
 
 /-!
 # Stored Direct Thermal Source Histories
@@ -373,7 +377,7 @@ private theorem historyBranch_block {L d N : ℕ} (F : ReflectionFamily L d)
       ← Matrix.submatrix_mul_equiv _ _ _ (historyInputEquiv L d N), historyWeak_submatrix]
     congr 2
     ext x y
-    simp [basisReindex, Matrix.reindexLinearEquiv_apply, Matrix.reindex_apply]
+    simp [basisReindex, Matrix.coe_reindexLinearEquiv, Matrix.reindex_apply]
   have he := congrFun (congrFun h (i,w)) (k,v)
   simpa [Matrix.mul_apply, Fintype.sum_prod_type, Matrix.kroneckerMap_apply,
     Matrix.one_apply] using! he
@@ -436,7 +440,7 @@ theorem storedSourceRun_ideal {L d : ℕ} (F : ReflectionFamily L d)
   | zero =>
     ext ⟨i,w⟩ ⟨k,v⟩
     have hw : w=v := Subsingleton.elim _ _
-    simp [storedSourceRun, basisReindex, Matrix.reindexLinearEquiv_apply, Matrix.reindex_apply,
+    simp [storedSourceRun, basisReindex, Matrix.coe_reindexLinearEquiv, Matrix.reindex_apply,
       emptyHistoryEquiv, pathSourceMatrix, Matrix.blockDiagonal_apply, pathInstrument_branch,
       pathKraus, hw]
   | succ N ih =>
@@ -613,7 +617,8 @@ def recordDensityLaw {d : ℕ} {R : Type} [Fintype R] [DecidableEq R]
     (A : Matrix (Fin d × R) (Fin d × R) ℂ) (hA : A.PosSemidef) (htr : Matrix.trace A=1) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist R where
   prob r := (Matrix.trace (recordDensityBlock A r)).re
-  nonneg r := (RCLike.nonneg_iff.mp (recordDensityBlock_pos A hA r).trace_nonneg).1
+  nonneg r := by
+    exact (RCLike.nonneg_iff.mp (recordDensityBlock_pos A hA r).trace_nonneg).1
   sum_one := by
     have he : (∑ r, Matrix.trace (recordDensityBlock A r))=Matrix.trace A := by
       simp only [recordDensityBlock, Matrix.trace, Matrix.diag_apply, Matrix.submatrix_apply,
@@ -641,10 +646,12 @@ def recordDensityState {d : ℕ} {R : Type} [Fintype R] [DecidableEq R]
   by_cases hz : (recordDensityLaw A hA htr).prob r=0
   · exact reference r
   · refine ⟨((((recordDensityLaw A hA htr).prob r)⁻¹ : ℝ) : ℂ) • recordDensityBlock A r, ?_, ?_⟩
-    · exact (recordDensityBlock_pos A hA r).smul
-        (RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr ((recordDensityLaw A hA htr).nonneg r)))
-    · rw [Matrix.trace_smul, recordDensityBlock_trace A hA htr r, smul_eq_mul]
-      exact_mod_cast inv_mul_cancel₀ hz
+    · exact (by
+        exact (recordDensityBlock_pos A hA r).smul
+          (RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr ((recordDensityLaw A hA htr).nonneg r))))
+    · exact (by
+        rw [Matrix.trace_smul, recordDensityBlock_trace A hA htr r, smul_eq_mul]
+        exact_mod_cast inv_mul_cancel₀ hz)
 
 /-- Multiplying the conditional density operator at a record by its record probability recovers
 that record's principal block, including the zero-probability case. -/
@@ -689,7 +696,7 @@ theorem historyReport_blockDiagonal {L d N : ℕ} {R : Type} [Fintype R] [Decida
   by_cases hrs : r=s
   · subst s
     simp [recordDensityBlock]
-  · simp only [hrs, if_false]
+  · simp only [hrs, ite_false]
     symm
     simp only [historyReport, MatrixMap.of_kraus_eq_sum_conj, LinearMap.sum_apply,
       MatrixMap.conj, LinearMap.coe_mk, AddHom.coe_mk, Matrix.sum_apply, historyReportKraus_conj]

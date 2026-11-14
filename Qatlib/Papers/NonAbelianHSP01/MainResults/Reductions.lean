@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Qatlib.Papers.NonAbelianHSP01.MainResults.MembershipReduction
-import Qatlib.Papers.NonAbelianHSP01.MainResults.HiddenNormalSubgroup
-import Qatlib.Papers.NonAbelianHSP01.MainResults.CommutatorExtraSpecial
-import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
-import Qatlib.Papers.NonAbelianHSP01.MainResults.AbelianHSP
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.MembershipReduction
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.HiddenNormalSubgroup
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.CommutatorExtraSpecial
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.AbelianHSP
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Algebraic hidden-subgroup reconstruction

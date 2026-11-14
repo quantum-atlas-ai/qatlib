@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.ForcingModel.ClockPostselect
-import Qatlib.Concepts.ChannelTheory.Naimark.ProjectionControl
-import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+module
+
+public import Qatlib.Papers.NonlinearDE20.ForcingModel.ClockPostselect
+public import Qatlib.Concepts.ChannelTheory.Naimark.ProjectionControl
+public import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+
+@[expose] public section
 
 /-!
 # Clock readout by a unitary projection program

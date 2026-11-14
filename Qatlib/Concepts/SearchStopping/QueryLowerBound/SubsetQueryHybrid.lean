@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
-import Mathlib.Data.Finset.Powerset
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
+public import Mathlib.Data.Finset.Powerset
+
+@[expose] public section
 
 /-!
 # Subset incidence bounds for query hybrids

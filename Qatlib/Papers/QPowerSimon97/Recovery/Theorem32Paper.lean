@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedOracleRecoveryRestrictedSimo
-import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedTimeRestrictedSimo
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedOracleRecoveryRestrictedSimo
+public import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedTimeRestrictedSimo
+
+@[expose] public section
 
 /-!
 # Verified retry conclusions for Simon's Theorem 3.2

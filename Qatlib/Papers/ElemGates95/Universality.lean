@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
-import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayUniversalityElem
+module
+
+public import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
+public import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayUniversalityElem
+
+@[expose] public section
 
 /-!
 # Exact universality on a qubit register

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.LatGaugeSim05.MainResults.U1RegisterHamiltonian
-import Qatlib.Papers.LatGaugeSim05.MainResults.SU2Hamiltonian
-import Qatlib.Papers.LatGaugeSim05.MainResults.SU3Hamiltonian
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.LatGaugeSim05.MainResults.U1RegisterHamiltonian
+public import Qatlib.Papers.LatGaugeSim05.MainResults.SU2Hamiltonian
+public import Qatlib.Papers.LatGaugeSim05.MainResults.SU3Hamiltonian
+
+@[expose] public section
 
 /-!
 # Lattice gauge simulation resource formulas

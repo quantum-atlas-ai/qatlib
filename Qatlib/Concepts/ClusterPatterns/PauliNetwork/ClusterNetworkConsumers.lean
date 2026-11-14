@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.CountedClusterNetwork
+module
+
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.CountedClusterNetwork
+
+@[expose] public section
 
 /-!
 # A Bell-state consumer of cluster networks
@@ -118,8 +122,8 @@ theorem networkBellWireGate0_entry_bve (ζ : ℂ) (x y : Fin 4) :
       from rfl,
     h]
   by_cases hc : ((bitVecEquiv 2).symm x) 1 = ((bitVecEquiv 2).symm y) 1
-  · rw [if_pos hc, if_pos hc, mul_one]
-  · rw [if_neg hc, if_neg hc, mul_zero]
+  · rw [ite_eq_left hc, ite_eq_left hc, mul_one]
+  · rw [ite_eq_right hc, ite_eq_right hc, mul_zero]
 
 /-- The matrix entry of a wire gate on position 1 is the corresponding `clusterJ` entry when the
 position-0 bits agree, and zero otherwise, expressed through `bitVecEquiv 2`. -/
@@ -137,8 +141,8 @@ theorem networkBellWireGate1_entry_bve (ζ : ℂ) (x y : Fin 4) :
       from rfl,
     h]
   by_cases hc : ((bitVecEquiv 2).symm x) 0 = ((bitVecEquiv 2).symm y) 0
-  · rw [if_pos hc, if_pos hc, mul_one]
-  · rw [if_neg hc, if_neg hc, mul_zero]
+  · rw [ite_eq_left hc, ite_eq_left hc, mul_one]
+  · rw [ite_eq_right hc, ite_eq_right hc, mul_zero]
 
 /-- The two-qubit CZ matrix is diagonal in the register basis, with sign minus one exactly when
 both bits are true, expressed through `bitVecEquiv 2`. -/
@@ -188,10 +192,10 @@ theorem networkBellCzGate_entry (x y : Fin 4) :
   rw [networkBellCzGate_entry_bve]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, networkBellBitVecEquiv2_symm_pos0,
+    rw [ite_eq_left rfl, networkBellBitVecEquiv2_symm_pos0,
       networkBellBitVecEquiv2_symm_pos1]
     fin_cases x <;> simp
-  · rw [if_neg hxy, if_neg (fun he => hxy ((bitVecEquiv 2).symm.injective he))]
+  · rw [ite_eq_right hxy, ite_eq_right (fun he => hxy ((bitVecEquiv 2).symm.injective he))]
 
 /-- At phase 1, every `clusterJ` entry is `1 / sqrt(2)` except the entry with row and column
 both 1, which has the opposite sign. -/
@@ -275,17 +279,17 @@ theorem networkBellVector_normalized :
     norm_num
   unfold Normalized
   have e0 : ‖(if (0 : Fin 4) = 0 ∨ (0 : Fin 4) = 3 then ((Real.sqrt 2 : ℂ)⁻¹) else 0)‖ ^ 2
-      = 1 / 2 := by rw [if_pos (Or.inl rfl), hsq]
+      = 1 / 2 := by rw [ite_eq_left (Or.inl rfl), hsq]
   have e1 : ‖(if (1 : Fin 4) = 0 ∨ (1 : Fin 4) = 3 then ((Real.sqrt 2 : ℂ)⁻¹) else 0)‖ ^ 2
       = 0 := by
-    rw [if_neg (by decide : ¬((1 : Fin 4) = 0 ∨ (1 : Fin 4) = 3))]
+    rw [ite_eq_right (by decide : ¬((1 : Fin 4) = 0 ∨ (1 : Fin 4) = 3))]
     norm_num
   have e2 : ‖(if (2 : Fin 4) = 0 ∨ (2 : Fin 4) = 3 then ((Real.sqrt 2 : ℂ)⁻¹) else 0)‖ ^ 2
       = 0 := by
-    rw [if_neg (by decide : ¬((2 : Fin 4) = 0 ∨ (2 : Fin 4) = 3))]
+    rw [ite_eq_right (by decide : ¬((2 : Fin 4) = 0 ∨ (2 : Fin 4) = 3))]
     norm_num
   have e3 : ‖(if (3 : Fin 4) = 0 ∨ (3 : Fin 4) = 3 then ((Real.sqrt 2 : ℂ)⁻¹) else 0)‖ ^ 2
-      = 1 / 2 := by rw [if_pos (Or.inr rfl), hsq]
+      = 1 / 2 := by rw [ite_eq_left (Or.inr rfl), hsq]
   show (∑ i : Fin 4,
       ‖(if i = 0 ∨ i = 3 then ((Real.sqrt 2 : ℂ)⁻¹) else 0)‖ ^ 2) = 1
   rw [Fin.sum_univ_four]
@@ -314,7 +318,7 @@ theorem networkBellWord_counts : networkCounts networkBellWord = (3, 1) := by
 /-- The maximum entry of the Bell word's wire-occupancy trace is four. -/
 theorem networkBellWord_trace_peak : (networkWireTrace networkBellWord).foldl max 0 = 4 := by
   have h := networkWireTrace_peak networkBellWord
-  rw [if_neg (by simp [networkBellWord])] at h
+  rw [ite_eq_right (by simp [networkBellWord])] at h
   exact h
 
 /-- The Bell word is legal, has three wire gates and one CZ gate, and its history instrument

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Division
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Division
+
+@[expose] public section
 
 /-!
 # Correctness and cost of bitwise Euclidean GCD
@@ -154,7 +158,7 @@ private theorem run_spec (w k : ℕ) (xs ys : List Bool)
               nz.2+d.gates+nr.2+e.gates+(binomialGcdRun w k r s).gates⟩ := by
           dsimp only [nz] at hz
           dsimp only [nr,r,d] at hrz
-          simp only [binomialGcdRun,if_pos hz,if_pos hrz]
+          simp only [binomialGcdRun,ite_eq_left hz,ite_eq_left hrz]
           rfl
         simp only [heq]
         refine ⟨?_,hlen,by omega,?_⟩
@@ -167,7 +171,7 @@ private theorem run_spec (w k : ℕ) (xs ys : List Bool)
         have heq : binomialGcdRun w (k+1) xs ys = ⟨ys,1,nz.2+d.gates+nr.2⟩ := by
           dsimp only [nz] at hz
           dsimp only [nr,r,d] at hrz
-          simp only [binomialGcdRun,if_pos hz,if_neg hrz]
+          simp only [binomialGcdRun,ite_eq_left hz,ite_eq_right hrz]
           rfl
         simp only [heq]
         refine ⟨?_,hy,by omega,?_⟩
@@ -179,7 +183,7 @@ private theorem run_spec (w k : ℕ) (xs ys : List Bool)
         exact hz (hn.mpr h)
       have heq : binomialGcdRun w (k+1) xs ys = ⟨xs,0,nz.2⟩ := by
         dsimp only [nz] at hz
-        simp only [binomialGcdRun,if_neg hz]
+        simp only [binomialGcdRun,ite_eq_right hz]
         rfl
       simp only [heq,hy0,Nat.gcd_zero_right]
       exact ⟨trivial,hx,by omega,by nlinarith⟩

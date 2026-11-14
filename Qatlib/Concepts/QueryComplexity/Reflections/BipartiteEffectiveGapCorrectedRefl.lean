@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedStat
-import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapCorrectedRefl
-import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessCorrectedRefl
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedStat
+public import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapCorrectedRefl
+public import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessCorrectedRefl
+
+@[expose] public section
 
 /-!
 # Corrected bipartite effective spectral gap

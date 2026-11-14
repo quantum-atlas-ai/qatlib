@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionStat
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueLabels
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionStat
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueLabels
+
+@[expose] public section
 
 /-!
 # Full-range fixed-point precision

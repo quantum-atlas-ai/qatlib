@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fourier deconvolution for hidden shifts
@@ -81,7 +85,7 @@ theorem deconvolution_amplitude (g : G → ℂ) (s x : G) :
   · simp [h]
   · have hcancel : (fourier g ψ)⁻¹ * (ψ s * fourier g ψ) = ψ s := by
       rw [mul_comm (ψ s) (fourier g ψ), ← mul_assoc, inv_mul_cancel₀ h, one_mul]
-    simp only [h, if_false]
+    simp only [h, ite_false]
     rw [hcancel]
 
 /-- At the negative shift, the deconvolution amplitude equals `fourierScale G` times the number

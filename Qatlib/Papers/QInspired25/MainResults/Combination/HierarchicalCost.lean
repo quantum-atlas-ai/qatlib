@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Chebyshev
-import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+module
+
+public import Mathlib.Algebra.Order.Chebyshev
+public import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -125,8 +129,8 @@ def hierarchicalOracleCost (k T q m : ℕ) : ℕ :=
 
 /-- **Theorem 28, oracle cost (p. 17).**  `T log q + kT log(qm) ≤ 2kT log(qm)`, i.e. the
 pre-amplification cost is `O(kT log(qm))`. -/
-theorem hierarchicalOracleCost_le (k T q m : ℕ) (hk : 0 < k) (hT : 0 < T)
-    (hq : 0 < q) (hm : 0 < m) :
+theorem hierarchicalOracleCost_le (k T q m : ℕ) (hk : 0 < k) (_hT : 0 < T)
+    (_hq : 0 < q) (hm : 0 < m) :
     hierarchicalOracleCost k T q m ≤ 2 * k * T * logBits (q * m) := by
   have hL : logBits q ≤ logBits (q * m) := logBits_mono (Nat.le_mul_of_pos_right q hm)
   have h1 : T * logBits q ≤ k * T * logBits (q * m) := by

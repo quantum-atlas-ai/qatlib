@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+
+@[expose] public section
 
 /-!
 # Completion laws for naturally charged runs
@@ -110,17 +114,17 @@ theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge :
         convert! h using 1
         · funext xs
           simp only [runCharge, List.map_cons, List.sum_cons, runMass,
-            if_neg (Nat.ne_of_gt ht), if_pos hx]
+            ite_eq_right (Nat.ne_of_gt ht), ite_eq_left hx]
           have heq : charge x + runCharge charge xs ≤ budget ↔
               runCharge charge xs ≤ budget - charge x := by omega
           simp only [runCharge] at heq
           simp only [heq]
           split_ifs <;> ring
-        · (try simp only [g, if_pos hcost])
+        · (try simp only [g, ite_eq_left hcost])
       · have hz := law.lower_support t ht htN x hx
         have hzero : g x = 0 := by simp [g, hcost, hz]
         rw [hzero]
-        simpa only [runMass, if_neg (Nat.ne_of_gt ht), if_neg hx, ite_self] using
+        simpa only [runMass, ite_eq_right (Nat.ne_of_gt ht), ite_eq_right hx, ite_self] using
           (hasSum_zero : HasSum (fun _ : List Ω => (0 : ℝ)) 0)
     · have hzero : g x = 0 := by simp [g, hcost]
       rw [hzero]
@@ -130,18 +134,18 @@ theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge :
         have hnot : ¬ runCharge charge (x :: xs) ≤ budget := by
           simp only [runCharge, List.map_cons, List.sum_cons]
           omega
-        simp only [if_neg hnot]
+        simp only [ite_eq_right hnot]
       rw [heq]
       exact hasSum_zero
   have hprod := nonnegative_product_sum
     (fun x xs => if runCharge charge (x :: xs) ≤ budget then law.runMass skip t (x :: xs) else 0)
-    (fun x xs => by (try dsimp only); split_ifs; exact law.runMass_nonneg skip t htN _; exact le_rfl)
+    (fun x xs => by  split_ifs; exact law.runMass_nonneg skip t htN _; exact le_rfl)
     g _ hfib hgs.hasSum
   have hfull := list_run_hasSum
     (fun xs => if runCharge charge xs ≤ budget then law.runMass skip t xs else 0) _ hprod
   have hmean : HasSum (fun xs => if runCharge charge xs ≤ budget then law.runMass skip t xs else 0)
       (∑' x, g x) := by
-    simpa only [runMass, if_neg (Nat.ne_of_gt ht), ite_self, zero_add] using hfull
+    simpa only [runMass, ite_eq_right (Nat.ne_of_gt ht), ite_self, zero_add] using hfull
   have heq := (law.completion_law skip charge t htN budget).1.unique hmean
   rw [heq]
   exact hgs.hasSum
@@ -166,7 +170,7 @@ theorem initial_completion_hasSum (law : RankedCallLaw N Ω) (skip : RankSkip N)
     exact hasSum_fintype _
   apply nonnegative_product_sum _ _ _ _ hfib hrows
   intro i xs
-  (try dsimp only)
+
   split_ifs
   · exact (law.initialMass_normalized skip hN).2 (i, xs)
   · exact le_rfl

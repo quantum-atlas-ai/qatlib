@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationStat
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.Logic.Equiv.Prod
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationAsymptotics
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationStat
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.Logic.Equiv.Prod
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationAsymptotics
+
+@[expose] public section
 
 /-!
 # Quantitative isolation of a collision
@@ -95,13 +99,13 @@ theorem permutationCylinder_partition {q R m : ℕ}
   let f : Fin m → Fin q := fun z => π s (i z)
   have hf : Function.Injective f := (π s).injective.comp hi
   by_cases hv : V f
-  · rw [if_pos hv]
+  · rw [ite_eq_left hv]
     apply Eq.symm
     have hoff : ∀ j ∈ Finset.univ.filter (fun j : Fin m → Fin q =>
         Function.Injective j ∧ V j), j ≠ f →
         (if ∀ z, π s (i z) = j z then (1 : ℝ) else 0) = 0 := by
       intro j _ hj
-      apply if_neg
+      apply ite_eq_right
       intro h
       exact hj (funext h).symm
     have hnot : f ∉ Finset.univ.filter (fun j : Fin m → Fin q =>
@@ -113,14 +117,14 @@ theorem permutationCylinder_partition {q R m : ℕ}
     · apply Finset.sum_congr rfl
       intro j _
       by_cases h : ∀ z, π s (i z) = j z
-      · simp only [if_pos h]
-      · simp only [if_neg h]
+      · simp only [ite_eq_left h]
+      · simp only [ite_eq_right h]
     · simp [f]
-  · rw [if_neg hv]
+  · rw [ite_eq_right hv]
     apply Eq.symm
     apply Finset.sum_eq_zero
     intro j hj
-    apply if_neg
+    apply ite_eq_right
     intro h
     have : j = f := (funext h).symm
     exact hv (this ▸ (Finset.mem_filter.mp hj).2.2)
@@ -191,7 +195,7 @@ theorem mem_frameSet_nextFrame {k N : ℕ} {f : Algorithm3Frame N}
     dsimp only [nextFrame]
     rw [hcast, Equiv.symm_apply_apply]
     have hbound : (Fin.castLE P.enough j).val < f.size := j.isLt
-    rw [dif_pos hbound]
+    rw [dite_eq_left hbound]
     exact hj
 
 /-- The set represented by the next frame is contained in the set represented by the current
@@ -233,7 +237,7 @@ theorem collisionBinomialMass_recurrence (m l : ℕ) (p : ℝ) (hl : l < m) :
   have hsub : m-l = (m-(l+1))+1 := by omega
   unfold collisionBinomialMass
   rw [pow_succ, hsub, pow_succ]
-  push_cast at hc
+
   calc
     _ = ((l+1 : ℝ)*(m.choose (l+1) : ℝ))*
         (p^l*p*(1-p)^(m-(l+1))*(1-p)) := by ring
@@ -1000,7 +1004,7 @@ theorem iidMask_card (m q : ℕ) (B : Finset (Fin q)) (S : Finset (Fin m)) :
         if z ∈ S then B.card else q-B.card := by
     by_cases hz : z ∈ S
     · simp [hz]
-    · simp only [hz,iff_false,if_false]
+    · simp only [hz,iff_false,ite_false]
       rw [hnotB,Finset.card_compl,Fintype.card_fin]
   simp_rw [hcoord]
   rw [Finset.prod_ite]

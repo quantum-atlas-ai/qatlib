@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.EigenRayleigh
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.EigenRayleigh
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+
+@[expose] public section
 
 /-!
 # Spectral perturbation statements
@@ -69,7 +73,7 @@ theorem hzero_of_hvan {ι σ : Type} [Fintype ι] [DecidableEq ι] [Fintype σ]
       ext i
       rw [Matrix.mulVec, dotProduct, Finset.sum_eq_single j]
       · simp [basisKet]
-      · intro k _ hk; simp [basisKet, if_neg hk]
+      · intro k _ hk; simp [basisKet, ite_eq_right hk]
       · intro hj; exact absurd (Finset.mem_univ j) hj
     have h := congrFun (hvan (basisKet j)) i
     rw [hcol] at h

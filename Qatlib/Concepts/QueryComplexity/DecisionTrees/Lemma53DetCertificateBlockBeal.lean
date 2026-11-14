@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockStat
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
+module
+
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockStat
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
+
+@[expose] public section
 
 /-!
 # Deterministic query trees from certificates

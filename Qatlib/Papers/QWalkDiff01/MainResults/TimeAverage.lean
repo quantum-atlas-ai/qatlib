@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Normed.Group.Continuity
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Tactic
-import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Normed.Group.Continuity
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Tactic
+public import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+
+@[expose] public section
 
 /-!
 # Continuous time averages of spectral probabilities
@@ -115,7 +119,7 @@ theorem tendsto_avg_cos (ω : ℝ) :
       (𝓝 (if ω = 0 then 1 else 0)) := by
   by_cases hω : ω = 0
   · subst hω
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have heq : (fun T : ℝ => (1 / T) * ∫ t in (0 : ℝ)..T, Real.cos ((0 : ℝ) * t))
         =ᶠ[atTop] fun _ => (1 : ℝ) := by
       filter_upwards [eventually_gt_atTop (0 : ℝ)] with T hT
@@ -124,7 +128,7 @@ theorem tendsto_avg_cos (ω : ℝ) :
       simp only [sub_zero, smul_eq_mul, mul_one]
       field_simp
     exact tendsto_const_nhds.congr' heq.symm
-  · rw [if_neg hω]
+  · rw [ite_eq_right hω]
     have heq : (fun T : ℝ => (1 / T) * ∫ t in (0 : ℝ)..T, Real.cos (ω * t))
         =ᶠ[atTop] fun T : ℝ => (Real.sin (ω * T) / ω) * (1 / T) := by
       filter_upwards with T

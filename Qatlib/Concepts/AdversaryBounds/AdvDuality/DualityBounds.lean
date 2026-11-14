@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.MatrixAccess.FrameFilterProd
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.OperatorErrors.Robustness
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
-import Qatlib.Concepts.MatrixAccess.FrameFilterUse
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackendDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackend
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DualityDefs
+module
+
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.MatrixAccess.FrameFilterProd
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.OperatorErrors.Robustness
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+public import Qatlib.Concepts.MatrixAccess.FrameFilterUse
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackendDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackend
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DualityDefs
+
+@[expose] public section
 
 /-!
 # Finite-frame preparation and filtered composition bounds

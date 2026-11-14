@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Limit
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Limit
+
+@[expose] public section
 
 /-!
 # Supremum bounds for the cube remainder
@@ -50,7 +54,7 @@ theorem repeated_energy_continuous (q N:ℕ) :
   have hr:Continuous (repeated (q:=q) (N:=N)) := by
     apply continuous_pi
     intro k
-    by_cases hk:Function.Injective k <;>simp only [repeated,hk,if_true,if_false] <;>fun_prop
+    by_cases hk:Function.Injective k <;>simp only [repeated,hk,ite_true,ite_false] <;>fun_prop
   exact (continuous_tensorEnergy.comp ((hr.comp continuous_fst).prodMk continuous_snd)).abs
 
 /-- The supremum of the absolute repeated index energy on the Hilbert cube is continuous in the
@@ -86,7 +90,7 @@ theorem actual_supCube_subextensive (r:ℕ) (η:ℝ) (hη:0 < η) :
   have he (N:ℕ) : {A:Tensor (r+1) N|η*(N:ℝ) ≤ supCube A}=
       {A|∃u∈hilbertCube N,η*(N:ℝ) ≤ |tensorEnergy (repeated A) u|} := by
     ext A
-    simp only [mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     obtain ⟨u,hu,hmax,hbound⟩:=supCube_attained A
     constructor
     · intro h;exact ⟨u,hu,h.trans_eq hmax⟩
@@ -101,7 +105,7 @@ theorem actual_absolute_optimum_gap_subextensive (r:ℕ) (η:ℝ) (hη:0 < η) :
   have he (N:ℕ) : {A:Tensor (r+1) N|η*(N:ℝ) < |binaryGround A-cubeOpt A|}=
       {A|η*(N:ℝ) < binaryGround A-cubeOpt A} := by
     ext A
-    simp only [mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     rw [abs_of_nonneg (sub_nonneg.mpr (cubeOpt_le_binaryGround A))]
   simpa only [he] using! actual_optimum_gap_subextensive r η hη
 end Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder

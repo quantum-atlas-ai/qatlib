@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpectralMeas17.PauliExpect.Coefficients
-import Qatlib.Foundations.MatrixGeometry.LcuFrame.Spectrum
-import Qatlib.Foundations.MatrixGeometry.LcuFrame.PlaneNorm
+module
+
+public import Qatlib.Papers.SpectralMeas17.PauliExpect.Coefficients
+public import Qatlib.Foundations.MatrixGeometry.LcuFrame.Spectrum
+public import Qatlib.Foundations.MatrixGeometry.LcuFrame.PlaneNorm
+
+@[expose] public section
 
 /-!
 # Spectral walk from Pauli coefficients

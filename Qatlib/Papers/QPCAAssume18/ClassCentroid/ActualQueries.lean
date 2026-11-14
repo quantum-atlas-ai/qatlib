@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualBudgets
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualBudgets
+
+@[expose] public section
 
 /-!
 # Primitive query traces for centroid estimation

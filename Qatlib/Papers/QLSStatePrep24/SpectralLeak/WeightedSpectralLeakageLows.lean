@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLSStatePrep24.SpectralLeak.WeightedSpectralLeakageStat
+module
+
+public import Qatlib.Papers.QLSStatePrep24.SpectralLeak.WeightedSpectralLeakageStat
+
+@[expose] public section
 
 /-!
 # Bounds for weighted spectral leakage
@@ -585,7 +589,7 @@ theorem Clause30WeightedSpectralLeakage_answer : Clause30WeightedSpectralLeakage
       (pow_nonneg (by norm_num) _))
 
   refine ⟨hnormMain, ?_, ?_⟩
-  · simp only [bandLeakage, singleBandProbability, if_true]
+  · simp only [bandLeakage, singleBandProbability, ite_true]
     have hpow9 : ∀ u : I, (9 : ℝ) * (9 : ℝ) ^ (k u + 1) = (9 : ℝ) ^ (k u + 2) := by
       intro u
       have h := pow_succ (a := (9:ℝ)) (n := k u + 1)
@@ -617,12 +621,12 @@ theorem Clause30WeightedSpectralLeakage_answer : Clause30WeightedSpectralLeakage
     have hg : 0 ≤ ‖γ u‖ ^ 2 := sq_nonneg _
     exact mul_le_mul_of_nonneg_left
       ((div_le_div_iff_of_pos_right hpow).mpr hkey) hg
-  · simp only [bandLeakage, singleBandProbability, Bool.false_eq_true, if_false]
+  · simp only [bandLeakage, singleBandProbability, Bool.false_eq_true, ite_false]
     have h9 : ∀ u : I, (9 : ℝ) ^ (k u + 1) / 9 = (9 : ℝ) ^ (k u) := by
       intro u
       rw [pow_succ (a := (9:ℝ)) (n := k u)]
       field_simp
-      try ring
+
     have hform : (∑ u, ‖γ u‖ ^ 2 * (9 : ℝ) ^ (k u + 1) / (9 : ℝ) ^ m) / 9
           * (∑ j : Fin m, δ (j.val + 1)) ^ 2
         = ∑ u, ‖γ u‖ ^ 2 *

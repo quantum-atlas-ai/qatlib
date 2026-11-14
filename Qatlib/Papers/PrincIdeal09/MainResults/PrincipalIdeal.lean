@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PrincIdeal09.MainResults.Framework
-import Qatlib.Papers.PrincIdeal09.MainResults.Periodicity
-import Qatlib.Papers.PrincIdeal09.MainResults.NumericBounds
-import Qatlib.Papers.PrincIdeal09.MainResults.RegulatorDual
+module
+
+public import Qatlib.Papers.PrincIdeal09.MainResults.Framework
+public import Qatlib.Papers.PrincIdeal09.MainResults.Periodicity
+public import Qatlib.Papers.PrincIdeal09.MainResults.NumericBounds
+public import Qatlib.Papers.PrincIdeal09.MainResults.RegulatorDual
+
+@[expose] public section
 
 /-!
 # Principal-ideal period windows and resource bounds

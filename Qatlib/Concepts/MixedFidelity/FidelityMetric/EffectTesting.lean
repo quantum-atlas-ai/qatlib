@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+public import Mathlib.Tactic
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath.BornBridge

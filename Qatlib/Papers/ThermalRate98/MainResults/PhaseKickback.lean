@@ -4,59 +4,63 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Complex.BigOperators
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Prod.Basic
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Prod.Basic
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Binary phases and clean phase circuits
@@ -173,8 +177,15 @@ def evalMap (X : α → β) (p : α × β) : α × β := (p.1, p.2 + X p.1)
 /-- The inverse evaluation map sending `(a, b)` to `(a, b - X a)`. -/
 def evalMapInv (X : α → β) (p : α × β) : α × β := (p.1, p.2 - X p.1)
 
+omit [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β] [AddCommGroup β] in
 /-- Adding the function value to the ancillary coordinate defines a bijection. -/
-theorem evalMap_bijective (X : α → β) : Function.Bijective (evalMap X) := by
+theorem evalMap_bijective {α β : Type*}
+    [_inst0 : Fintype α]
+    [_inst1 : DecidableEq α]
+    [_inst2 : Fintype β]
+    [_inst3 : DecidableEq β]
+    [_inst4 : AddCommGroup β]
+    (X : α → β) : Function.Bijective (evalMap X) := by
   constructor
   · intro p q h
     simp only [evalMap, Prod.mk.injEq] at h
@@ -227,9 +238,16 @@ theorem evalPerm_unitary (X : α → β) :
     simp [hki]
   · intro h; exact absurd (Finset.mem_univ k0) h
 
+omit [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β] [AddCommGroup β] in
 /-- Subtracting `X` from the ancillary coordinate is the evaluation map associated with the
 pointwise negative of `X`. -/
-theorem evalMapInv_eq (X : α → β) :
+theorem evalMapInv_eq {α β : Type*}
+    [_inst0 : Fintype α]
+    [_inst1 : DecidableEq α]
+    [_inst2 : Fintype β]
+    [_inst3 : DecidableEq β]
+    [_inst4 : AddCommGroup β]
+    (X : α → β) :
     evalMapInv X = evalMap (fun a => -X a) := by
   funext p
   simp [evalMapInv, evalMap, sub_eq_add_neg]
@@ -251,9 +269,16 @@ theorem evalPermInv_unitary (X : α → β) :
 def appPhase (val : β → ℝ) : Matrix (α × β) (α × β) ℂ :=
   Matrix.diagonal (fun p => Complex.exp (Complex.I * (val p.2 : ℂ)))
 
+omit [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β] [AddCommGroup β] in
 /-- The ancillary phase gate multiplies a basis ket by the exponential of `i` times the value of
 its ancillary coordinate. -/
-theorem appPhase_apply (val : β → ℝ) (p : α × β) :
+theorem appPhase_apply {α β : Type*}
+    [_inst0 : Fintype α]
+    [_inst1 : DecidableEq α]
+    [_inst2 : Fintype β]
+    [_inst3 : DecidableEq β]
+    [_inst4 : AddCommGroup β]
+    (val : β → ℝ) (p : α × β) :
     appPhase val *ᵥ (Ket p : QState (α × β)) =
       (Complex.exp (Complex.I * (val p.2 : ℂ))) • Ket p := by
   funext i
@@ -264,8 +289,15 @@ theorem appPhase_apply (val : β → ℝ) (p : α × β) :
   · intro k _ hk; simp [hk]
   · intro h; exact absurd (Finset.mem_univ p) h
 
+omit [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β] [AddCommGroup β] in
 /-- The ancillary phase gate is unitary. -/
-theorem appPhase_unitary (val : β → ℝ) : appPhase val ∈ Matrix.unitaryGroup (α × β) ℂ := by
+theorem appPhase_unitary {α β : Type*}
+    [_inst0 : Fintype α]
+    [_inst1 : DecidableEq α]
+    [_inst2 : Fintype β]
+    [_inst3 : DecidableEq β]
+    [_inst4 : AddCommGroup β]
+    (val : β → ℝ) : appPhase val ∈ Matrix.unitaryGroup (α × β) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   unfold appPhase
   rw [Matrix.diagonal_conjTranspose, Matrix.diagonal_mul_diagonal]
@@ -293,7 +325,7 @@ restores the ancillary register to zero. See [LidarWang1999]. -/
 theorem cleanPhaseWord_run (X : α → β) (val : β → ℝ) (a : α) :
     Run 1 (cleanPhaseWord X val) (Ket (a, 0)) =
       (Complex.exp (Complex.I * (val (X a) : ℂ))) • Ket (a, 0) := by
-  simp only [cleanPhaseWord, Run, ApplyGate, List.cons.injEq, and_true, List.nil_eq]
+  simp only [cleanPhaseWord, Run, ApplyGate]
   rw [evalPerm_apply, appPhase_apply, Matrix.mulVec_smul, evalPermInv_apply]
   simp [evalMap, evalMapInv, add_comm]
 

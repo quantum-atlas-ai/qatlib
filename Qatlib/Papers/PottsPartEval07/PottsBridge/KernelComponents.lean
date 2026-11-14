@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
+module
+
+public import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
+
+@[expose] public section
 
 /-!
 # Coboundary kernels and connected components
@@ -40,7 +44,7 @@ def Adj (ends : E → V × V) (a b : V) : Prop :=
   (∃ e : E, (ends e).1 = a ∧ (ends e).2 = b) ∨ (∃ e : E, (ends e).1 = b ∧ (ends e).2 = a)
 
 /-- The endpoint adjacency relation is symmetric. -/
-lemma adj_symm (ends : E → V × V) : Symmetric (Adj ends) := by
+lemma adj_symm (ends : E → V × V) : ∀ ⦃a b⦄, Adj ends a b → Adj ends b a := by
   rintro a b (⟨e, h1, h2⟩ | ⟨e, h1, h2⟩)
   · exact Or.inr ⟨e, h1, h2⟩
   · exact Or.inl ⟨e, h1, h2⟩
@@ -62,8 +66,13 @@ variable {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E] [DecidableEq E]
 
 variable (q : ℕ) [NeZero q] (ends : E → V × V)
 
+omit [Fintype V] [DecidableEq V] [Fintype E] [DecidableEq E] [NeZero q] in
 /-- A coloring with zero coboundary is constant on each connected component. -/
-theorem eq_of_coboundary_eq_zero {σ : V → ZMod q} (hσ : coboundary q ends σ = 0)
+theorem eq_of_coboundary_eq_zero {V E : Type*}
+    [_instFintypeV : Fintype V] [_instDecidableEqV : DecidableEq V]
+    [_instFintypeE : Fintype E] [_instDecidableEqE : DecidableEq E]
+    (q : ℕ) [_instNeZeroQ : NeZero q] (ends : E → V × V)
+    {σ : V → ZMod q} (hσ : coboundary q ends σ = 0)
     {a b : V} (h : Relation.EqvGen (Adj ends) a b) : σ a = σ b := by
   induction h with
   | rel a b hab =>

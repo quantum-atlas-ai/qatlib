@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Mathlib.Probability.Moments.SubGaussian
-import Mathlib.Probability.ProbabilityMassFunction.Integrals
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Mathlib.Probability.Moments.SubGaussian
+public import Mathlib.Probability.ProbabilityMassFunction.Integrals
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Bounded differences for finite product laws
@@ -48,7 +52,7 @@ theorem finite_hoeffding_centered_mgf : ∀ (X : Type) [Fintype X] [DecidableEq 
     (p : FinDist X) (f : X→ℝ) (a b t : ℝ), a≤b → (∀ x,f x∈Set.Icc a b) →
   p.expect (fun x => Real.exp (t*(f x-p.expect f))) ≤ Real.exp (t^2*(b-a)^2/8) := by
   intro X _ _ p f a b t hab hf
-  letI : MeasurableSpace X := ⊤
+  let : MeasurableSpace X := ⊤
   obtain ⟨μ,hμ⟩ := Qatlib.Concepts.SketchArith.TransposeAccess.FinDist.exists_pmf p
   have hi (g : X→ℝ) : (∫ x,g x ∂μ.toMeasure) = p.expect g := by
     rw [PMF.integral_eq_sum]

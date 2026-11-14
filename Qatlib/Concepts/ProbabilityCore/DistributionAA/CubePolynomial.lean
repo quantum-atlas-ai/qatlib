@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
+module
+
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
+
+@[expose] public section
 
 /-!
 # Cube expectation polynomials and noise derivatives
@@ -182,12 +186,12 @@ theorem cube_monomial_flip_difference {n : ℕ} (S : Finset (Fin n)) (x : Fin n 
       apply Finset.prod_congr rfl
       intro j hj
       simp [cubeFlip, (Finset.mem_erase.1 hj).1]
-    rw [if_pos hi, hprod, hprod, herase]
+    rw [ite_eq_left hi, hprod, hprod, herase]
     cases hx : x i
     · simp [cubeFlip,hx]
     · simp [cubeFlip,hx]
       ring
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     have he : cubeMonomial S (cubeFlip x i) = cubeMonomial S x := by
       apply Finset.prod_congr rfl
       intro j hj

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Index
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.Subgroup.Lattice
-import Mathlib.Tactic
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.Subgroup.Lattice
+public import Mathlib.Tactic
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Group membership reductions to order computation
@@ -108,8 +112,8 @@ theorem membership_reduces_to_order (Ω : OrderOracle G) (hΩ : Ω.CorrectOn)
     rw [hcoe]
     exact Subgroup.closure_mono (Set.subset_union_left)
   have hsolv' : Group.IsSolvable ↥(Subgroup.closure (s : Set G)) := by
-    haveI := hsolv
-    exact solvable_of_solvable_injective (f := Subgroup.inclusion hle)
+    have := hsolv
+    exact Group.isSolvable_of_isSolvable_injective (f := Subgroup.inclusion hle)
       (Subgroup.inclusion_injective hle)
   unfold OrderOracle.testMembership
   rw [beq_iff_eq, hΩ s hsolv', hΩ (s ∪ {h}) hsolv]
@@ -155,6 +159,7 @@ theorem closure_le_iff_card_eq_union (s t : Finset G) :
       Subgroup.closure_mono (fun y hy => Set.mem_union_right (s : Set G) hy) hx
     rwa [← heq] at hxt
 
+omit [Fintype G] [DecidableEq G] in
 /-- Two finitely generated subgroups are equal exactly when each is contained in the other. See
 [Watrous2001]. -/
 theorem closure_eq_iff_le_and_le (s t : Finset G) :
@@ -163,6 +168,7 @@ theorem closure_eq_iff_le_and_le (s t : Finset G) :
         Subgroup.closure (t : Set G) ≤ Subgroup.closure (s : Set G) :=
   ⟨fun h => ⟨h.le, h.ge⟩, fun h => le_antisymm h.1 h.2⟩
 
+omit [DecidableEq G] in
 /-- For H ≤ K with the specified generating sets, H is normal in K exactly when conjugating each
 generator of H by each generator of K gives an element of H. See [Watrous2001]. -/
 theorem normal_iff_generators (s t : Finset G) (H K : Subgroup G)

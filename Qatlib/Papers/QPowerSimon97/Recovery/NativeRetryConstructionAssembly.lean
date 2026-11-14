@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+
+@[expose] public section
 
 /-!
 # Simon amplification and random-oracle bounds
@@ -129,7 +133,7 @@ lemma guess_mass_decomp {n : ℕ} (P : PMF (SimonQueryTree n)) :
   apply expectation_congr
   intro s
   rw [expectation_bind, expectation_uniform_bool]
-  simp only [Bool.false_eq_true, if_false, if_true, expectation_map]
+  simp only [Bool.false_eq_true, ite_false, ite_true, expectation_map]
   rw [mul_add]
   congr 1
   congr 1
@@ -233,9 +237,9 @@ lemma simonOracleGuessMass_le_birthday {n q : ℕ} (hn : 1 ≤ n) (hqpos : 1 ≤
     apply expectation_le_of_forall
     intro τ
     by_cases hs : s = 0
-    · simp only [hs, if_true]
+    · simp only [hs, ite_true]
       exact (event_le_one _ _).trans (le_add_left (le_add_left le_rfl))
-    · simp only [hs, if_false, add_zero]
+    · simp only [hs, ite_false, add_zero]
       exact simon_twoToOne_true_le_reference hn s hs τ
   have hB : expectation (PMF.uniformOfFintype' (Equiv.Perm (BooleanVec n)))
       (fun (π : Equiv.Perm (BooleanVec n)) => SimonQueryTree.guessMass P π false) = B := by

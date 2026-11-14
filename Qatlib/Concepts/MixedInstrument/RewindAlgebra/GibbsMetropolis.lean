@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
-import Qatlib.Concepts.GibbsMetropolis.EnergyReadout
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
-import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetQuan
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
+public import Qatlib.Concepts.GibbsMetropolis.EnergyReadout
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+public import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetQuan
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+@[expose] public section
 
 /-!
 # Quantum Metropolis contracts and finite examples
@@ -922,7 +926,7 @@ theorem twoProjectorP_fix : twoProjectorP *ᵥ (twoProjectorPsi : QState (Fin 2)
   have heq :
       (twoProjectorPsi : QState (Fin 2)) =
       (Qatlib.Foundations.PureStateMath.Ket 0 : QState (Fin 2)) := rfl
-  rw [heq, hket, inner_ket_ket, if_pos rfl, one_smul]
+  rw [heq, hket, inner_ket_ket, ite_eq_left rfl, one_smul]
 
 /-- For `0 ≤ d ≤ 1`, the two projector rejection failure probability after `n` rounds equals `d
 * (1 - d) * (d ^ 2 + (1 - d) ^ 2) ^ n`. -/
@@ -1132,7 +1136,7 @@ theorem gibbsBasis_isDensity {D : ℕ} (ψ : Fin D → QState (Fin D)) (p : Fin 
     have h1 : ∀ i : Fin D,
         Matrix.trace ((p i : ℂ) • ketbra (ψ i) (ψ i)) = (p i : ℂ) := by
       intro i
-      rw [Matrix.trace_smul, clause26_trace_ketbra, horth, if_pos rfl, smul_eq_mul, mul_one]
+      rw [Matrix.trace_smul, clause26_trace_ketbra, horth, ite_eq_left rfl, smul_eq_mul, mul_one]
     rw [Finset.sum_congr rfl (fun i _ => h1 i), ← Complex.ofReal_sum, hsum,
       Complex.ofReal_one]
   exact ⟨hpsd, htr⟩

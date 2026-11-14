@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeOracle
-import Qatlib.Concepts.QueryComplexity.PrepQueries.BornWeights
+module
+
+public import Qatlib.Concepts.QueryComplexity.PrepQueries.NativeOracle
+public import Qatlib.Concepts.QueryComplexity.PrepQueries.BornWeights
+
+@[expose] public section
 
 /-!
 # Preparation-query hybrid bounds
@@ -76,7 +80,7 @@ theorem queryRun_distance {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
         U (t+1) (Q t a-R t b) := by simp only [queryRun,map_sub,a,b]
     rw [he,hU]
     have hs : Q t a-R t b = (Q t-R t) a+R t (a-b) := by
-      simp only [ContinuousLinearMap.sub_apply,map_sub];abel
+      simp only [_root_.sub_apply,map_sub];abel
     rw [hs]
     calc
       _ ≤ ‖(Q t-R t) a‖+‖R t (a-b)‖ := norm_add_le _ _
@@ -102,7 +106,7 @@ theorem matrixWord_apply {J : Type*} [Fintype J] [DecidableEq J]
         (fun i=>Matrix.toEuclideanCLM (n:=J) (𝕜:=ℂ) (Q i)) t x := by
   induction t with
   | zero => rfl
-  | succ t ih => simp only [matrixWord,map_mul,ContinuousLinearMap.mul_apply,queryRun,ih]
+  | succ t ih => simp only [matrixWord,map_mul,_root_.mul_apply_eq_comp,queryRun,ih]
 
 /-- Runs an alternating unitary matrix word using forward or inverse preparation queries
 according to `inverse`. -/

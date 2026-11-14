@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QsampleCoup25.MainResults.QuantizedCoupling
+module
+
+public import Qatlib.Papers.QsampleCoup25.MainResults.QuantizedCoupling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -90,7 +94,7 @@ theorem rescale_orthogonal_proj (hmc : MarkovChain P π) :
       = (if a = b then π a else 0) - π a * π b := by
     by_cases h : a = b
     · subst h
-      simp only [Matrix.one_apply, if_true, qsample]
+      simp only [Matrix.one_apply, ite_true, qsample]
       have h3 : Real.sqrt (π a) * (Real.sqrt (π a) * Real.sqrt (π a)) * Real.sqrt (π a)
           = π a * π a := by
         calc Real.sqrt (π a) * (Real.sqrt (π a) * Real.sqrt (π a)) * Real.sqrt (π a)
@@ -109,7 +113,7 @@ theorem rescale_orthogonal_proj (hmc : MarkovChain P π) :
             = (Real.sqrt (π a) * Real.sqrt (π a)) * (Real.sqrt (π b) * Real.sqrt (π b)) := by
               ring
           _ = π a * π b := by rw [hsq a, hsq b]
-      simp only [Matrix.one_apply, if_neg h, qsample, zero_sub]
+      simp only [Matrix.one_apply, ite_eq_right h, qsample, zero_sub]
       rw [show Real.sqrt (π a) * -(Real.sqrt (π a) * Real.sqrt (π b)) * Real.sqrt (π b)
           = - (Real.sqrt (π a) * (Real.sqrt (π a) * Real.sqrt (π b)) * Real.sqrt (π b)) by ring,
         h3]
@@ -178,9 +182,9 @@ theorem rescale_orthogonal_proj (hmc : MarkovChain P π) :
   rw [hsum, t11, t22, t33, t44, hlhs]
   by_cases hab : a = b
   · subst hab
-    simp only [if_true]
+    simp only [ite_true]
     ring
-  · rw [if_neg hab, if_neg hab]
+  · rw [ite_eq_right hab, ite_eq_right hab]
     ring
 
 end Qatlib.Papers.QsampleCoup25.MainResults

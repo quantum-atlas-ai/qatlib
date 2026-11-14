@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.TapeDecisionConsumers
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
-import Qatlib.Foundations.StandardModel.WindowSim.Theorem2QtmCircuitSimulationQuan
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.TapeDecisionConsumers
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+public import Qatlib.Foundations.StandardDefs.WindowSim.Theorem2QtmCircuitSimulationQuan
+
+@[expose] public section
 
 /-!
 # Gate languages and clocked native machine definitions

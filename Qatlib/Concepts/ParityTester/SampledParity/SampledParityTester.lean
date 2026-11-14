@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ParityTester.SampledParity.SampledParityTesterDefs
-import Qatlib.Concepts.SparseSyndrome.RowScan
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+module
+
+public import Qatlib.Concepts.ParityTester.SampledParity.SampledParityTesterDefs
+public import Qatlib.Concepts.SparseSyndrome.RowScan
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+@[expose] public section
 
 /-!
 # Accuracy and read bounds for sampled parity checks

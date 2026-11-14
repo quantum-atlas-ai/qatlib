@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+@[expose] public section
 
 /-!
 # Sharp quadratic Pauli variance specification

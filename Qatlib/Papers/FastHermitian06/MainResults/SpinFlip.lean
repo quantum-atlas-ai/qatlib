@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastHermitian06.MainResults.Defs
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.FastHermitian06.MainResults.Defs
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Two-level spin-flip evolution

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedAlgebra
+
+@[expose] public section
 
 /-!
 # Algebra of corrected deferred LCU circuits
@@ -78,7 +82,7 @@ theorem preservesLCUBit_rot_other {k : ℕ} (i j : Fin k) (hji : j≠i)
   intro p q h
   rw [rotGateCorrected_apply]
   have hn : ¬((∀ l : Fin k,l≠i→p.1 l=q.1 l) ∧ p.2=q.2) := fun he=>h (he.1 j hji)
-  rw [if_neg hn,mul_zero]
+  rw [ite_eq_right hn,mul_zero]
 
 omit [Fintype I] [DecidableEq I] in
 
@@ -143,8 +147,8 @@ theorem ctrlGateCorrected_unitary {k : ℕ} (i : Fin k)
     have he (r s : (Fin k→Bool)×I) (hs : p.1 i=s.1 i) : ctrlGateCorrected k i Cx Cy r s=A r s := by
       by_cases hrs : r.1 i=s.1 i
       · have hrp : r.1 i=p.1 i := hrs.trans hs.symm
-        simp only [ctrlGateCorrected,Matrix.of_apply,hrp,if_pos hs,A]
-      · simp only [ctrlGateCorrected,Matrix.of_apply,if_neg hrs]
+        simp only [ctrlGateCorrected,Matrix.of_apply,hrp,ite_eq_left hs,A]
+      · simp only [ctrlGateCorrected,Matrix.of_apply,ite_eq_right hrs]
         exact (hAp r s hrs).symm
     simp only [Matrix.mul_apply,Matrix.conjTranspose_apply]
     simp_rw [he _ p rfl,he _ q hpq]

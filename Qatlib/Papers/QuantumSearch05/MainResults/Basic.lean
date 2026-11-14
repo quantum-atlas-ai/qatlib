@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+module
+
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+
+@[expose] public section
 
 /-!
 # Fixed-point quantum search
@@ -115,7 +119,7 @@ theorem projectiveBranchMass_outerProduct {H : Type*} [Fintype H] [DecidableEq H
     (t ψ : QState H) (ht : Normalized t) :
     ProjectiveBranchMass (outerProduct t) true ψ = ‖Inner t ψ‖ ^ 2 := by
   unfold ProjectiveBranchMass ProjectiveBranch ApplyGate
-  simp only [if_true]
+  simp only [ite_true]
   rw [outerProduct_mulVec, measureProb_smul, measureProb_univ ht, mul_one]
 
 /-- For unitary `U` and an orthogonal target projector, initial success `1 - ε` becomes `1 - ε ^

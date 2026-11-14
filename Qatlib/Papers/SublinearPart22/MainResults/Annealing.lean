@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Topology.Algebra.InfiniteSum.Ring
+module
+
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Topology.Algebra.InfiniteSum.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,7 +73,7 @@ private lemma tsum_eq_prob1_add_tail (p : ℝ) (hp0 : 0 < p) (hp1 : p < 1) :
     intro n
     have h0 : n + 2 ≠ 0 := by omega
     have h1 : n + 2 ≠ 1 := by omega
-    rw [annealTerminationProb, if_neg h0, if_neg h1, Nat.add_sub_cancel, hf, hq]
+    rw [annealTerminationProb, ite_eq_right h0, ite_eq_right h1, Nat.add_sub_cancel, hf, hq]
   -- summability of the tail
   have hsum_q : Summable (fun n : ℕ => q ^ n) := summable_geometric_of_norm_lt_one hqnorm
   have hsum_nq : Summable (fun n : ℕ => (n : ℝ) * q ^ n) :=

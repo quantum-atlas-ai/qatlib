@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeLittleEndian
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeLittleEndian
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

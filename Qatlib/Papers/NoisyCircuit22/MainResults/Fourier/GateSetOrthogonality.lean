@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
+module
+
+public import Qatlib.Papers.NoisyCircuit22.MainResults.SourceModel.PauliPath
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -113,7 +117,6 @@ theorem source_lemma2_gate_set_orthogonality
       (U ⊗ₖ U) * (A ⊗ₖ B) * (U ⊗ₖ U)ᴴ := by
     intro A B U
     rw [conjTranspose_kronecker, ← mul_kronecker_mul, ← mul_kronecker_mul]
-    try simp only [mul_assoc]
   have hzero : ∀ U : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ,
       (16 : ℂ)⁻¹ • ∑ V : Pauli1 × Pauli1,
         (U * twoQubitMat V * twoQubitMat P * (U * twoQubitMat V)ᴴ) ⊗ₖ
@@ -140,7 +143,6 @@ theorem source_lemma2_gate_set_orthogonality
             (twoQubitMat V * twoQubitMat Q * (twoQubitMat V)ᴴ)) * (U ⊗ₖ U)ᴴ := by
       simp_rw [hstep]
       rw [Finset.mul_sum, Finset.sum_mul]
-      try simp only [mul_assoc]
     rw [show (∑ V : Pauli1 × Pauli1,
         (U * twoQubitMat V * twoQubitMat P * (U * twoQubitMat V)ᴴ) ⊗ₖ
         (U * twoQubitMat V * twoQubitMat Q * (U * twoQubitMat V)ᴴ)) = _ from by

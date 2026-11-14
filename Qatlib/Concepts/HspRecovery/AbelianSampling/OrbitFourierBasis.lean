@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # Orbit Fourier vectors and uniform Born weights
@@ -85,6 +89,7 @@ noncomputable def fourierBornDist : FinDist (AddChar E ℂ) where
           rw [show (Fintype.card (AddChar E ℂ) : ℝ) = (Fintype.card E : ℝ) from by
               exact_mod_cast hcard, mul_inv_cancel₀ hq]
 
+omit [DecidableEq E] in
 /-- Every character has probability equal to the reciprocal of the group cardinality under
 `fourierBornDist`. -/
 @[simp] theorem fourierBornDist_apply (χ : AddChar E ℂ) :

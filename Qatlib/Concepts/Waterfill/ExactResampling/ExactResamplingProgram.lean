@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalQuan
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Exact water-level resampling circuits
@@ -260,7 +264,7 @@ theorem resamplingLevelRatio_bounds {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     simp [resamplingLevelRatio,hi,hz]
   · have hpi : (π i : ℝ) ≠ 0 := by exact_mod_cast hi
     have hpos : (0 : ℝ) < π i := lt_of_le_of_ne hp hpi.symm
-    simp only [resamplingLevelRatio,if_neg hi]
+    simp only [resamplingLevelRatio,ite_eq_right hi]
     refine ⟨div_nonneg hfill hp, (div_le_one hpos).mpr hle, ?_⟩
     field_simp
 
@@ -285,7 +289,7 @@ theorem resamplingSelected_normSq (m D : ℕ) (w : Fin m → ℝ)
     (ξ : Fin m → QState (Fin D)) (hξ : ∀ i, Normalized (ξ i)) :
     (∑ p : ((Fin m × Fin D) × Bool), Complex.normSq
       (if p.2 then (w p.1.1 : ℂ)*ξ p.1.1 p.1.2 else 0)) = ∑ i, (w i)^2 := by
-  simp only [Fintype.sum_prod_type,Fintype.sum_bool,Bool.false_eq_true,if_false,if_true,
+  simp only [Fintype.sum_prod_type,Fintype.sum_bool,Bool.false_eq_true,ite_false,ite_true,
     Complex.normSq_zero,add_zero,Complex.normSq_mul,Complex.normSq_ofReal]
   have hnorm (i : Fin m) : (∑ d, Complex.normSq (ξ i d)) = 1 := by
     simpa only [← Complex.sq_norm] using! hξ i
@@ -335,7 +339,7 @@ theorem resamplingLevelPrepare_actual :
       have hsqrt : Real.sqrt ((a*resamplingLevelRatio π σ γ i)^2) =
           a*resamplingLevelRatio π σ γ i := Real.sqrt_sq (mul_nonneg ha hr.1)
       simp only [collapse_apply,waterEvent,Finset.mem_filter,Finset.mem_univ,and_true,
-        if_true,if_false,Bool.false_eq_true,payoffRotation_apply,hsqrt,hcol]
+        ite_true,ite_false,Bool.false_eq_true,payoffRotation_apply,hsqrt,hcol]
       have he : (π i : ℂ)*(a*resamplingLevelRatio π σ γ i : ℝ) =
           ((a*levelFill π σ γ i : ℝ) : ℂ) := by
         rw [← Complex.ofReal_ratCast,← Complex.ofReal_mul]
@@ -459,8 +463,7 @@ theorem resamplingPaidWord_actual :
     rcases List.mem_cons.mp hc with rfl | hc
     · exact resamplingCoinSwap_unitary m D
     · exact resamplingExpanded_valid π σ γ a hf hm _ hw.1 c hc
-  · change preparedInputQueries _ = _
-    simpa only [resamplingPaidWord,preparedInputQueries] using! hcounts.1.trans hw.2.2.1
+  · simpa only [resamplingPaidWord,preparedInputQueries] using! hcounts.1.trans hw.2.2.1
   · simpa only [resamplingPaidWord,preparedDataQueries] using! hcounts.2.1
   · simp only [resamplingPaidWord,preparedFixedGates,hcounts.2.2,hw.2.1,hw.2.2.1,hw.2.2.2.1]
     omega
@@ -505,7 +508,7 @@ theorem resamplingFamily_inner (m D : ℕ) (v w : Fin m → ℝ)
     Inner (resamplingFamily v ξ) (resamplingFamily w ξ) =
       ((∑ i, v i*w i : ℝ) : ℂ) := by
   simp only [inner_apply,resamplingFamily,Fintype.sum_prod_type,Fintype.sum_bool,
-    if_true,if_false,Bool.false_eq_true,map_zero,zero_mul,zero_add,map_mul,
+    ite_true,ite_false,Bool.false_eq_true,map_zero,zero_mul,zero_add,map_mul,
     Complex.conj_ofReal,Complex.ofReal_sum,Complex.ofReal_mul]
   apply Finset.sum_congr rfl
   intro i _
@@ -639,7 +642,7 @@ theorem resamplingExactOutput_actual :
         _ = (1/Real.sin α*a)*levelFill π σ γ i := by ring
         _ = _ := by rw [hcoeff]
     cases b
-    · simpa only [Bool.not_false,resamplingFamily,Bool.false_eq_true,if_true,if_false,← mul_assoc] using!
+    · simpa only [Bool.not_false,resamplingFamily,Bool.false_eq_true,ite_true,ite_false,← mul_assoc] using!
         congrArg (· * ξ i d) hc
     · simp [resamplingFamily]
   refine ⟨hout,?_,?_,?_,hword.2.1,?_,hword.2.2.1,hword.2.2.2.1⟩

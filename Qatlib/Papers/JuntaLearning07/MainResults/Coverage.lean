@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningAlgorithm
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningAlgorithm
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coverage and error bounds for junta learning
@@ -57,9 +61,9 @@ theorem weightedMarkov (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (_hw1 : ∑ o, 
     intro o _
     change t * (w o * (if t ≤ X o then 1 else 0)) ≤ w o * X o
     by_cases h : t ≤ X o
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       nlinarith [hw0 o]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       nlinarith [hw0 o, hX0 o]
   have hle : weightedMean w (fun o => if t ≤ X o then 1 else 0) ≤ weightedMean w X / t := by
     rw [le_div_iff₀ ht, mul_comm]
@@ -85,8 +89,8 @@ theorem coverage_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o, w o 
       change w o * (if err o < ε / 3 then (1 : ℝ) else 0) +
         w o * (if ε / 3 ≤ err o then 1 else 0) = w o
       by_cases h : err o < ε / 3
-      · rw [if_pos h, if_neg (not_le.mpr h)]; ring
-      · rw [if_neg h, if_pos (le_of_not_gt h)]; ring
+      · rw [ite_eq_left h, ite_eq_right (not_le.mpr h)]; ring
+      · rw [ite_eq_right h, ite_eq_left (le_of_not_gt h)]; ring
     · exact hw1
   have hratio : (ε / 10) / (ε / 3) = 3 / 10 := by
     field_simp
@@ -106,8 +110,8 @@ theorem agree_fraction_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o
     funext o
     have : 1 - ε / 3 < 1 - err o ↔ err o < ε / 3 := by constructor <;> intro h <;> linarith
     by_cases h : err o < ε / 3
-    · rw [if_pos (this.mpr h), if_pos h]
-    · rw [if_neg (fun hh => h (this.mp hh)), if_neg h]
+    · rw [ite_eq_left (this.mpr h), ite_eq_left h]
+    · rw [ite_eq_right (fun hh => h (this.mp hh)), ite_eq_right h]
   rw [hle]
   exact coverage_ge w hw0 hw1 err herr0 hε hmean
 
@@ -126,11 +130,11 @@ theorem stage2_error_bound (f H : (Fin n → Bool) → Bool) (S : Finset (Fin n 
         (if x ∈ S then (if H x = f x then (0 : ℝ) else 1) else 0) := by
     intro x
     by_cases hx : x ∈ S
-    · rw [if_pos hx, if_pos hx, zero_add]
+    · rw [ite_eq_left hx, ite_eq_left hx, zero_add]
       by_cases h : H x = f x
-      · rw [if_pos h, if_pos h.symm]
-      · rw [if_neg h, if_neg (fun hh => h hh.symm)]
-    · rw [if_neg hx, if_neg hx, add_zero]
+      · rw [ite_eq_left h, ite_eq_left h.symm]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]
+    · rw [ite_eq_right hx, ite_eq_right hx, add_zero]
       by_cases h : f x = H x <;> simp [h]
   have hsum : disagreement f H ≤
       uniformExpect (fun x => if x ∈ S then (0 : ℝ) else 1) +

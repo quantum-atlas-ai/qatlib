@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactDecode
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeGridExecution
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierFiniteCoefficient
+module
+
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactDecode
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeGridExecution
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierFiniteCoefficient
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

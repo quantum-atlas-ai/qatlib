@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.PreparationScan
-import Qatlib.Concepts.WalkSearch.MainResults.TrianglePartitionCoverage
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetPreservation
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationBudget
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.PreparationScan
+public import Qatlib.Concepts.WalkSearch.MainResults.TrianglePartitionCoverage
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetPreservation
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationBudget
+
+@[expose] public section
 
 /-!
 # A budgeted combinatorial triangle algorithm

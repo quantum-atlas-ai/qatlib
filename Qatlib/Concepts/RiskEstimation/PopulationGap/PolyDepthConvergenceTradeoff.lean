@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.PolyDepthConvergenceTradeoff
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.PolyDepthConvergenceTradeoff
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateQuan
+
+@[expose] public section
 
 /-!
 # Polynomial readout convergence tradeoff

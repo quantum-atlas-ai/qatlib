@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Stochastic
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Analysis.Calculus.Deriv.Mul
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Stochastic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+
+@[expose] public section
 
 /-!
 # Infinitesimal generators of lazy Markov steps
@@ -51,12 +55,14 @@ theorem lazyStep_sub (M : Matrix N N ℝ) (ε : ℝ) (p : N → ℝ) :
   simp only [lazyStep, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+omit [DecidableEq N] in
 /-- For nonzero `ε`, the lazy-step difference quotient equals `M *ᵥ p - p`. This is the
 infinitesimal identity used in the classical walk discussion of [Childs2010]. -/
 theorem difference_quotient (M : Matrix N N ℝ) {ε : ℝ} (hε : ε ≠ 0) (p : N → ℝ) :
     ε⁻¹ • (lazyStep M ε p - p) = M *ᵥ p - p := by
   rw [lazyStep_sub, smul_smul, inv_mul_cancel₀ hε, one_smul]
 
+omit [DecidableEq N] in
 /-- As `ε` tends to zero through nonzero values, the lazy-step difference quotient tends to `M
 *ᵥ p - p`. See the classical continuous-time discussion in [Childs2010]. -/
 theorem tendsto_generator (M : Matrix N N ℝ) (p : N → ℝ) :
@@ -123,7 +129,7 @@ theorem exp_walk_hasDerivAt {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ 
       (NormedSpace.exp (t • T) * T) t := hasDerivAt_exp_smul_const (𝕂 := ℝ) T t
   have hu : HasDerivAt (fun _ : ℝ => p₀) (0 : E) t := hasDerivAt_const t p₀
   have h := HasDerivAt.clm_apply hc hu
-  simpa [mul_apply_eq_comp] using h
+  simpa [_root_.mul_apply_eq_comp] using h
 
 /-- The derivative at zero of `exp(s • T) p₀` is `T p₀`. -/
 theorem exp_walk_hasDerivAt_zero {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]

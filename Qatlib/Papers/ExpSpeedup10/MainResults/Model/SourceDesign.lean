@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceCore
+module
+
+public import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceCore
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,7 +98,7 @@ noncomputable def sourceLambda1 {N : ℕ} (hN : 1 ≤ N)
 projection onto the operators commuting with `U^{⊗t} ⊗ Ū^{⊗t}`.  We record the
 projector properties; the explicit Haar average on `U(2)` / `U(4)` is the
 formalisation gap documented in Lemma VI.4. -/
-def IsLocalHaarTwirlProjector (t : ℕ) {D : ℕ} (P : Matrix (Fin D) (Fin D) ℂ) : Prop :=
+def IsLocalHaarTwirlProjector (_t : ℕ) {D : ℕ} (P : Matrix (Fin D) (Fin D) ℂ) : Prop :=
   P.IsHermitian ∧ P * P = P ∧ (∀ X, P * X * P = P * X)
 
 /-- Eq. (56)/(57): `M_{t,n} = (1/n) ∑ᵢ Pᵢ,ᵢ₊₁` with `Pᵢ,ᵢ₊₁` the local Haar

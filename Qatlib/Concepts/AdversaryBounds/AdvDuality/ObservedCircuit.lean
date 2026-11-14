@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+@[expose] public section
 
 /-!
 # Observed adaptive circuits
@@ -129,6 +133,7 @@ noncomputable def expectedObservedQueries (oracle : Matrix I I ℂ)
   (observedTraces oracle program psi).foldl
     (fun total trace => total + branchMass trace.state * trace.queries) 0
 
+omit [DecidableEq I] in
 /-- The Born mass of every pure branch state is nonnegative. -/
 theorem branchMass_nonneg (psi : QState I) : 0 ≤ branchMass psi := measureProb_nonneg _ _
 

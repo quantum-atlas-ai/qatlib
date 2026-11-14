@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.GroundPath
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Consumer
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SmallSpin
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.MaximizingSpin
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.GroundPath
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Consumer
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SmallSpin
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.MaximizingSpin
+
+@[expose] public section
 
 /-!
 # Probability bounds for the raw cube energy obstruction

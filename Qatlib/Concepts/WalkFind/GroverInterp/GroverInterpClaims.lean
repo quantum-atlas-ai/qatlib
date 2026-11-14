@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverIncludingMinusOneQuan
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverIncludingMinusOneQuan
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Statements and proofs for Grover interpolation claims

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+
+@[expose] public section
 
 /-!
 # Joint laws of search attempts and histories
@@ -78,7 +82,7 @@ theorem search_joint_attempt_law {I : Type*} [Fintype I] [DecidableEq I]
     have hmne : (m : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hm)
     field_simp
   · intro j i hi
-    simp only [AttemptMass, (search_checked_attempt hN A j.val).2.1 i, if_neg hi, zero_div]
+    simp only [AttemptMass, (search_checked_attempt hN A j.val).2.1 i, ite_eq_right hi, zero_div]
 
 /-- The joint attempt marginals recover checked failure, averaged checked output masses, and
 checked success. -/

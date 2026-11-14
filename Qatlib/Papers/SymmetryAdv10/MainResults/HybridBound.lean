@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SymmetryAdv10.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.SymmetryAdv10.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,7 +90,7 @@ paper's decomposition and of `tr(Γ̃ρ_good) ≤ λ̃`, `tr(Γ̃ρ_bad) ≤ 1`;
 `β ≥ √(1−ε) − √η` (obtained from `β = √(1−ε) − √η + O(η²)` in the proof). -/
 theorem hybrid_final_progress_bound (lam eps eta beta Wgood Wbad WT : ℝ)
     (hlam : lam ≤ 1) (hbeta0 : 0 ≤ beta) (hbeta1 : beta ≤ 1)
-    (heps : eps ≤ 1) (heta : eta ≤ 1 - eps)
+    (_heps : eps ≤ 1) (heta : eta ≤ 1 - eps)
     (hgood : Wgood ≤ lam) (hbad : Wbad ≤ 1)
     (hdec : WT = beta * Wgood + (1 - beta) * Wbad)
     (hbetage : Real.sqrt (1 - eps) - Real.sqrt eta ≤ beta) :

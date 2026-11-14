@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Data.Fin.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Exact-cover guards on assignment prefixes
@@ -89,8 +93,7 @@ theorem psum_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
       (Finset.univ.filter
         (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = true)).card := by
   rw [prefixSum]
-  simpa using (Finset.card_filter
-    (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = true) Finset.univ).symm
+  simp
 
 /-- Expresses the prefix zero count as the cardinality of the earlier true row entries assigned
 false. -/
@@ -100,8 +103,7 @@ theorem pzero_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
       (Finset.univ.filter
         (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = false)).card := by
   rw [prefixZeros]
-  simpa using (Finset.card_filter
-    (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = false) Finset.univ).symm
+  simp
 
 /-- The row sum equals the prefix sum at the full assignment length. -/
 theorem rowSum_eq_psum (A : Fin m → Fin n → Bool) (x : Fin n → Bool)
@@ -130,7 +132,7 @@ theorem psum_succ (A : Fin m → Fin n → Bool) (i : ℕ) (hi : i < n)
       simp
     · have hne : k.val ≠ i := fun h => hk (Fin.ext h)
       have hiff : k.val < i + 1 ↔ k.val < i := by omega
-      simp [hk, hne, hiff]
+      simp [hk, hiff]
   rw [Finset.sum_congr rfl (fun k _ => hpt k), Finset.sum_add_distrib]
   have hsingle : (∑ k : Fin n,
       if k = ⟨i, hi⟩ then (if A j ⟨i, hi⟩ = true ∧ x ⟨i, hi⟩ = true then 1 else 0)
@@ -173,7 +175,7 @@ theorem rowSum_le_three (A : Fin m → Fin n → Bool)
 /-- For rows with three true entries, legality of a prefix forces each row's prefix sum to be at
 most one. See [FarhiGutmann1998]. -/
 theorem psum_le_one (A : Fin m → Fin n → Bool)
-    (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool) :
+    (_hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool) :
     ∀ i, legalAt A i x → ∀ j, prefixSum A i x j ≤ 1 := by
   intro i
   induction i with
@@ -188,12 +190,12 @@ theorem psum_le_one (A : Fin m → Fin n → Bool)
         fun k hk => hleg k (Nat.lt_trans hk (Nat.lt_succ_self i))
       have h1 := ih hleg' j
       by_cases hbit : A j ⟨i, hi⟩ = true ∧ x ⟨i, hi⟩ = true
-      · rw [if_pos hbit]
+      · rw [ite_eq_left hbit]
         have hall := hleg ⟨i, hi⟩ (Nat.lt_succ_self i)
-        simp only [allowedAt, hbit.2, if_true] at hall
+        simp only [allowedAt, hbit.2, ite_true] at hall
         have hz : prefixSum A i x j = 0 := hall j hbit.1
         rw [hz]
-      · rw [if_neg hbit]
+      · rw [ite_eq_right hbit]
         simpa using h1
     · have hEq : prefixSum A (i + 1) x j = prefixSum A i x j := by
         rw [prefixSum, prefixSum]
@@ -264,7 +266,7 @@ theorem rowSum_one (A : Fin m → Fin n → Bool)
   have hz2 : prefixZeros A r.val x j = 2 := by
     rw [hzEq, Finset.card_erase_of_mem hr_mem, hrow j]
   have hall := hleg r r.isLt
-  simp only [allowedAt, hrx, if_false] at hall
+  simp only [allowedAt, hrx] at hall
   exact hall j hrA hz2
 
 /-- For rows with three true entries, an assignment selecting exactly one true entry per row is
@@ -274,11 +276,11 @@ theorem legal_of_one (A : Fin m → Fin n → Bool)
     (hsum : ∀ j, rowSum A x j = 1) : legalAt A n x := by
   intro k hk
   by_cases hx : x k = true
-  · simp only [allowedAt, hx, if_true]
+  · simp only [allowedAt, hx, ite_true]
     intro j hA
     by_contra hpos
     have hp1 : prefixSum A (k.val + 1) x j = prefixSum A k.val x j + 1 := by
-      rw [psum_succ A k.val hk x j, if_pos ⟨hA, hx⟩]
+      rw [psum_succ A k.val hk x j, ite_eq_left ⟨hA, hx⟩]
     have hmono : prefixSum A k.val x j + 1 ≤ rowSum A x j := by
       rw [rowSum_eq_psum, ← hp1]
       exact psum_mono A x (Nat.succ_le_of_lt hk) j
@@ -289,7 +291,7 @@ theorem legal_of_one (A : Fin m → Fin n → Bool)
       cases hxk : x k with
       | false => rfl
       | true => exact absurd hxk hx
-    simp only [allowedAt, hkx, if_false]
+    simp only [allowedAt, hkx]
     intro j hA hz2
     have hZsub : (Finset.univ.filter
         (fun l : Fin n => l.val < k.val ∧ A j l = true ∧ x l = false)) ⊆
@@ -427,7 +429,7 @@ theorem psum_agree (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → B
     · have hy : y k = true := by rw [← hxy]; exact hx
       have hx' : k.val < i.val ∧ A j k = true ∧ x k = true := ⟨hk.1, hk.2, hx⟩
       have hy' : k.val < i.val ∧ A j k = true ∧ y k = true := ⟨hk.1, hk.2, hy⟩
-      rw [if_pos hx', if_pos hy']
+      rw [ite_eq_left hx', ite_eq_left hy']
     · have hxf : x k = false := by
         cases hxk : x k with
         | false => rfl
@@ -440,10 +442,10 @@ theorem psum_agree (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → B
         intro hc; exact hx hc.2.2
       have hy' : ¬ (k.val < i.val ∧ A j k = true ∧ y k = true) := by
         intro hc; exact hy hc.2.2
-      rw [if_neg hx', if_neg hy']
+      rw [ite_eq_right hx', ite_eq_right hy']
   · have h1 : ¬ (k.val < i.val ∧ A j k = true ∧ x k = true) := by tauto
     have h2 : ¬ (k.val < i.val ∧ A j k = true ∧ y k = true) := by tauto
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
 
 /-- Assignments agreeing on the guard support have equal prefix zero counts in every row
 containing the guarded column. -/
@@ -469,7 +471,7 @@ theorem pzero_eq (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Boo
     · have hy : y k = false := by rw [← hxy]; exact hx
       have hx' : k.val < i.val ∧ A j k = true ∧ x k = false := ⟨hk.1, hk.2, hx⟩
       have hy' : k.val < i.val ∧ A j k = true ∧ y k = false := ⟨hk.1, hk.2, hy⟩
-      rw [if_pos hx', if_pos hy']
+      rw [ite_eq_left hx', ite_eq_left hy']
     · have hxf : x k = true := by
         cases hxk : x k with
         | false => exact absurd hxk hx
@@ -482,10 +484,10 @@ theorem pzero_eq (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Boo
         intro hc; exact hx hc.2.2
       have hy' : ¬ (k.val < i.val ∧ A j k = true ∧ y k = false) := by
         intro hc; exact hy hc.2.2
-      rw [if_neg hx', if_neg hy']
+      rw [ite_eq_right hx', ite_eq_right hy']
   · have h1 : ¬ (k.val < i.val ∧ A j k = true ∧ x k = false) := by tauto
     have h2 : ¬ (k.val < i.val ∧ A j k = true ∧ y k = false) := by tauto
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
 
 /-- The one-bit guard is unchanged by assignments agreeing on its guard support. -/
 theorem one_ext (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool}

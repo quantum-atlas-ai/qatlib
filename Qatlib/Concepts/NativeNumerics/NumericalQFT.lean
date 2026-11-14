@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Numerical quantum Fourier transform budgets

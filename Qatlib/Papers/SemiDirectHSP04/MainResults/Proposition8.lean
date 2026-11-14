@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition7
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition7
+
+@[expose] public section
 
 /-!
 # Noncommutativity of the canonical cyclic semidirect product
@@ -68,8 +72,8 @@ theorem proposition8_nonabelian :
     canonicalX p r hp hp2 hr * canonicalY p r hp hp2 hr
       ≠ canonicalY p r hp hp2 hr * canonicalX p r hp hp2 hr := by
   intro h
-  haveI : NeZero p := ⟨hp.pos.ne'⟩
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
+  have : NeZero p := ⟨hp.pos.ne'⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.pos.ne'⟩
 
   have hleft := congrArg (fun g : Ppr p r u hu => g.left) h
 
@@ -81,7 +85,7 @@ theorem proposition8_nonabelian :
   have hyx : (canonicalY p r hp hp2 hr * canonicalX p r hp hp2 hr).left
       = Multiplicative.ofAdd ((canonicalUnit p r hp hr : ZMod (p ^ r))) := by
     rw [canonicalY_eq_py, canonicalX_eq_px, py_mul_px]
-    haveI : Fact (1 < p) := ⟨hp.one_lt⟩
+    have : Fact (1 < p) := ⟨hp.one_lt⟩
     simp [px, py, ZMod.val_one]
   have hone : (1 : ZMod (p ^ r))
       = (canonicalUnit p r hp hr : ZMod (p ^ r)) := by

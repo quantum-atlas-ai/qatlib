@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Finset.Max
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -389,7 +393,7 @@ instance decidableMemRange {n k : ℕ} (f : Fin k → Fin n) (j : Fin n) :
 /-- The complement of the selected coordinates is finite. -/
 instance finiteComplementIndex {n k : ℕ} (f : Fin k → Fin n) :
     Finite (complementIndex f) :=
-  Finite.of_injective (fun x : complementIndex f => x.1) (fun a b h => Subtype.ext h)
+  Finite.of_injective (fun x : complementIndex f => x.1) (fun _a _b h => Subtype.ext h)
 
 /-- The finite type of coordinates outside the selected range. -/
 instance complementIndexFintype {n k : ℕ} (f : Fin k → Fin n) :
@@ -494,7 +498,7 @@ structure RepresentativeSystem (n : ℕ) where
     ∃! H' : MatZ k n, H' ∈ rep k ∧ ∀ x : F2 n, matVec H' x = 0 ↔ matVec H x = 0
 
 /-- A family of primal variables over a representative system. -/
-abbrev RepFamily (n : ℕ) (R : RepresentativeSystem n) :=
+abbrev RepFamily (n : ℕ) (_R : RepresentativeSystem n) :=
   (k : ℕ) → (H : MatZ k n) → F2 n → ℝ
 
 /-- Objective of the compact program over a representative system. -/

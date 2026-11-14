@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Fintype.BigOperators
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Fintype.BigOperators
+
+@[expose] public section
 
 /-!
 # Finite averages and complex hash buckets

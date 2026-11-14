@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.Stirling
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Nat.Choose.Cast
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Nat.Choose.Cast
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

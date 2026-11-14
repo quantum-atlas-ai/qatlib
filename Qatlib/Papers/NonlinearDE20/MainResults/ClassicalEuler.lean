@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Logic.Function.Iterate
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Logic.Function.Iterate
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Forced classical Euler steps and iterates

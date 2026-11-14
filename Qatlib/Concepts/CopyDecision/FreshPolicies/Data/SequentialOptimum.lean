@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.ControllerPresentations
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.ControllerPresentations
+
+@[expose] public section
 
 /-!
 # Sequential Optimum
@@ -67,9 +71,9 @@ lemma CausalProgramMixture.ofCausal_error {N : ℕ} {H : Type} [MeasurableSpace 
 /-- The stated copy-decision construction satisfies `CausalProgramMixture.optimum_le_error` with the complete displayed premises. -/
 lemma CausalProgramMixture.optimum_le_error {N : ℕ} (P : CausalProgramMixture N) :
     causalPolicyOptimum N (fun _ => 1/3) ≤ P.error := by
-  letI := P.seedSpace
-  letI : ∀ s, MeasurableSpace (P.Memory s) := P.memorySpace
-  letI := P.probability
+  let := P.seedSpace
+  let : ∀ s, MeasurableSpace (P.Memory s) := P.memorySpace
+  let := P.probability
   have hb : BddBelow (causalPolicyRisks N (fun _ => (1/3:ℝ))) :=
     (generalPolicyRisks_bddBelow N _ (by intro i; norm_num)).mono (causalRisks_subset_general N _)
   have hint := integrable_unitRisk P.law _ P.measurable_error

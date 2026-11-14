@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSingleCU
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PhysicalMidpoint
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
-import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSingleCU
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PhysicalMidpoint
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+public import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Born probabilities for projector histories
@@ -114,6 +118,8 @@ noncomputable def idealOutput (U : Matrix (A × I) (A × I) ℂ) (a : A)
   fun x => Uniform C x.1 *
     (U *ᵥ (encodingFiber a *ᵥ (V x.1 *ᵥ (fun i => psi (x.2.1,i))))) x.2.2
 
+omit [DecidableEq E] in
+
 /-- The expectation of `K` in `purifiedDensity psi` is the sum of its quadratic forms on the
 environment-indexed slices of `psi`. -/
 theorem purified_expectation (psi : QState (E × I)) (K : Matrix I I ℂ) :
@@ -131,7 +137,7 @@ theorem evolution_quadratic (V K : Matrix I I ℂ) (v : QState I) :
   simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec, Matrix.dotProduct_mulVec,
     Matrix.mulVec_mulVec, Matrix.vecMul_vecMul, Matrix.mul_assoc]
 
-omit [DecidableEq C] in
+omit [DecidableEq C] [DecidableEq E] in
 
 /-- The selected ancilla probability of `idealOutput` is the uniform clock average of the
 evolved projector expectations in `purifiedDensity psi`. -/
@@ -166,7 +172,7 @@ theorem idealOutput_born (Pi : Matrix I I ℂ)
   simp_rw [hmass]
   simp only [← Finset.mul_sum, purified_expectation, Complex.re_sum]
 
-omit [DecidableEq E] in
+omit [DecidableEq C] [DecidableEq E] in
 
 /-- Unitary clock evolutions and a unitary readout preserve normalization of the ideal history
 for a nonempty clock. -/
@@ -219,6 +225,8 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.Projecto
 variable {I E A : Type} [Fintype I] [DecidableEq I]
   [Fintype E] [DecidableEq E] [Fintype A] [DecidableEq A]
 
+omit [DecidableEq E] in
+
 /-- The physical readout integral differs from the scaled midpoint-history Born probability by
 at most `alpha * ‖Pi‖ * T² / (2 * N)`. -/
 theorem midpoint_born_quadrature (H : Matrix I I ℂ) (hH : H.IsHermitian)
@@ -269,7 +277,7 @@ theorem approximate_history_integral_error (H : Matrix I I ℂ) (hH : H.IsHermit
     |(∫ t in (0:ℝ)..T, physicalReadout H Pi (purifiedDensity psi) t) -
       T * MeasureProb actual {x | x.2.2.1 = a}| ≤
       alpha * ‖Pi‖ * T^2 / (2*N) + 2*T*delta := by
-  letI : NeZero N := ⟨Nat.ne_of_gt hN⟩
+  let _ : NeZero N := ⟨Nat.ne_of_gt hN⟩
   let ideal := idealOutput U a (fun j : Fin N => HamiltonianEvolution H
     (T * Clock.midpoint N j)) psi
   let S : Finset (Fin N × (E × (A × I))) := {x | x.2.2.1 = a}

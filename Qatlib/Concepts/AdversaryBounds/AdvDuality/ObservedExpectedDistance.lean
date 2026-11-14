@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedHybridDefs
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Data.List.OfFn
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedHybridDefs
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Expected query bounds for paired branch distance
@@ -69,11 +73,13 @@ private theorem re_list_sum (xs : List ℂ) :
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The mass of a pure branch is the squared Euclidean norm of its vector representation. -/
 private theorem mass_eq_euclidean_sq (v : QState I) :
     branchMass v = ‖toEuclidean_fromVec v‖ ^ 2 := by
   simp only [branchMass, MeasureProb, BornProb, norm_toEuclidean_fromVec_sq]
 
+omit [DecidableEq I] in
 /-- Expands the squared Euclidean distance of two states as the sum of their squared norms minus
 twice the real part of their inner product. -/
 private theorem euclidean_sub_sq (v w : QState I) :
@@ -87,6 +93,7 @@ private theorem euclidean_sub_sq (v w : QState I) :
     ‖toEuclidean_fromVec w‖ ^ 2 = _
   ring
 
+omit [DecidableEq I] in
 /-- The total squared distance across a list of paired branch states equals their two total
 squared norms minus twice their total real inner product. -/
 private theorem paired_distance_identity (ts : List (BranchTrace I × BranchTrace I)) :

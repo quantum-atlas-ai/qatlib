@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedAngularPreparation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhaseWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedAngularPreparation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePhaseWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

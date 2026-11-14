@@ -6,19 +6,23 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDiff.PiecewiseC1On
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.RegularityConditions
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.OneSidedDerivLimit
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOrder.Asymptotics
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.SectorCancellation
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.WindowSplitting
-import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDiff.PiecewiseC1On
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.RegularityConditions
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.OneSidedDerivLimit
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOrder.Asymptotics
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.SectorCancellation
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.WindowSplitting
+public import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+
+@[expose] public section
 
 /-!
 # Higher-order poles on crossing windows

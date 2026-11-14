@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.KnownGatePerturbation
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
-import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import QuantumInfo.ForMathlib.Isometry
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.HspRecovery.SieveLaw.PaidAdjointCompilation
-import Mathlib.Algebra.Polynomial.Eval.SMul
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.KnownGatePerturbation
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+public import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import QuantumInfo.ForMathlib.Isometry
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.HspRecovery.SieveLaw.PaidAdjointCompilation
+public import Mathlib.Algebra.Polynomial.Eval.SMul
+
+@[expose] public section
 
 /-!
 # Four-route complex polynomial block encodings
@@ -243,9 +247,9 @@ otherwise. -/
 theorem component_parity (P : Polynomial ℂ) (b c : Bool) :
     HasRealParity (if c then 1 else 0) (component P b c) := by
   cases c
-  · simpa only [component,Bool.false_eq_true,if_false] using!
+  · simpa only [component,Bool.false_eq_true,ite_false] using!
       evenPart_parity (if b then imagPolynomial P else realPolynomial P)
-  · simpa only [component,if_true] using!
+  · simpa only [component,ite_true] using!
       oddPart_parity (if b then imagPolynomial P else realPolynomial P)
 
 /-- The scaled route polynomial has odd parity when its second flag is `true` and even parity
@@ -567,9 +571,9 @@ omit [Fintype I] [DecidableEq I] in
 /-- The reverse order of the two route Hadamards also gives `prep`. -/
 theorem hInner_hOuter : hInner (K:=K) * hOuter = prep := by
   simp [hOuter, hInner, prep, tensorGate_mul]
+omit [Fintype K] in
 omit [Fintype I] [DecidableEq I] in
 
-/-- The two-flag preparation matrix is self-adjoint. -/
 theorem prep_adjoint : (prep (K:=K))ᴴ = prep := by
   simp [prep, tensorGate_conjTranspose, hadamard_conjTranspose]
 
@@ -794,7 +798,7 @@ theorem compress_phase_frame (z : ℂ) (F : Matrix (CanonSpace H) I ℂ)
   simp only [compress, Matrix.conjTranspose_smul, Matrix.smul_mul, Matrix.mul_smul, smul_smul]
   exact (congrArg (fun c : ℂ => c • (Fᴴ * W * F)) hz').trans (one_smul ℂ _)
 
-omit I in
+omit [Fintype H] in
 
 /-- The spectator real-average gate is self-adjoint. -/
 theorem spectatorAvgGate_adjoint : (spectatorAvgGate (H:=H))ᴴ = spectatorAvgGate := by

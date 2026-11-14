@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+
+@[expose] public section
 
 /-!
 # Rewards for search completion before a deadline
@@ -79,7 +83,7 @@ theorem rewardRow_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ →
         payoff (i,some (budget-(HistoryIterations sizes (n+1) (Fin.cons j h)+k.val))) else 0)) = _
   simp_rw [(search_history_head A sizes n j _).1,(search_history_head A sizes n j _).2]
   by_cases hc : j.val < budget
-  · rw [if_pos hc,Finset.mul_sum]
+  · rw [ite_eq_left hc,Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro h _
     rw [Finset.mul_sum]
@@ -98,14 +102,14 @@ theorem rewardRow_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ →
         (lt_of_le_of_lt (Nat.zero_le _) j.isLt)).1 (j,none)
       simp only [mul_assoc,ENNReal.ofReal_mul ha]
     · simp
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     apply Finset.sum_eq_zero
     intro h _
     apply Finset.sum_eq_zero
     intro k _
     apply Finset.sum_eq_zero
     intro i _
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
 
 /-- The sum of completion rewards over terminal stages below `depth`. -/
 def rewardPrefix (A : Finset I) (sizes : ℕ → ℕ) (budget depth : ℕ)
@@ -128,7 +132,7 @@ theorem rewardPrefix_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ 
   apply Finset.sum_congr rfl
   intro j _
   by_cases hc : j.val < budget
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     rw [← Finset.mul_sum]
     exact add_comm _ _
   · simp [hc]

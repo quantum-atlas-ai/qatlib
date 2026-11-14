@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+module
+
+public import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+@[expose] public section
 
 /-!
 # Local circuits for prepared amplitude amplification

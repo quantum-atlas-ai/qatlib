@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationProgress
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationEdgeLedger
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationProgress
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationEdgeLedger
+
+@[expose] public section
 
 /-!
 # Bounds for graph classification scans

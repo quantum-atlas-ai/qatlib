@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Product states for subtraction retries

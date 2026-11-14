@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 /-!
 # Quantum Shannon decomposition from cosine-sine data
@@ -114,7 +118,7 @@ theorem hermPart_comm_skewPart {M : Type*} [Fintype M] [DecidableEq M]
 /-- If a unitary conjugate of a diagonal matrix is unitary, every diagonal entry has squared
 norm one. -/
 theorem diag_normSq_of_unitary {n : ℕ} (V : Matrix (Fin n) (Fin n) ℂ) (d : Fin n → ℂ)
-    (hVl : V * Vᴴ = 1) (hVr : Vᴴ * V = 1)
+    (_hVl : V * Vᴴ = 1) (hVr : Vᴴ * V = 1)
     (hU : (V * Matrix.diagonal d * Vᴴ) * (V * Matrix.diagonal d * Vᴴ)ᴴ = 1) :
     ∀ j, Complex.normSq (d j) = 1 := by
   have hconj : (V * Matrix.diagonal d * Vᴴ)ᴴ = V * (Matrix.diagonal d)ᴴ * Vᴴ := by
@@ -205,7 +209,7 @@ theorem selectBlock_mul {M : Type*} [Fintype M]
   ext ⟨s, i⟩ ⟨s', j⟩
   simp only [selectBlock, Matrix.mul_apply, Fintype.sum_prod_type]
   rcases s with _ | _ <;> rcases s' with _ | _ <;>
-    simp [Fintype.sum_bool, Matrix.mul_apply]
+    simp [Matrix.mul_apply]
 
 /-- Selecting the diagonal phases `exp (-φ*I/2)` and `exp (φ*I/2)` equals the multiplexor of
 `paperRz (φ c)`. See [ShendeBullockMarkov2006]. -/

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Dense output with a Lindbladian gap (arXiv:2609.40094v1, p.22-23)
@@ -80,7 +84,7 @@ theorem integral_mul_exp_neg_mul {μ T : ℝ} (hμ : μ ≠ 0) :
         (s * Real.exp (-μ * s)) s := by
     intro s _
     have hx : HasDerivAt (fun x : ℝ => -(x / μ)) (-(1 / μ)) s := by
-      convert ((hasDerivAt_id s).div_const μ).neg using 1 <;> simp <;> rfl
+      exact ((hasDerivAt_id s).div_const μ).neg
     have h2 := hasDerivAt_exp_neg_mul μ s
     have h4 := hx.mul h2
     have h5 := h2.const_mul (-(1 / μ ^ 2))

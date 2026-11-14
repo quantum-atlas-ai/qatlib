@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
+module
+
+public import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,21 +192,12 @@ theorem quaternionGaussian_leftRight_symmetry (p : ℕ) (d : Fin p → ℍ) :
     congr 1
     funext j
     exact (map_quaternion_mulLeft_kGaussian (d j)).symm
-  calc
-    Measure.map (fun g : Fin p → ℍ => ∑ j, g j * d j)
-        (Measure.pi fun _ : Fin p => kGaussianLaw ℍ)
-        = Measure.map (fun y : Fin p → ℍ => ∑ j, y j)
-            (Measure.map (fun g : Fin p → ℍ => fun j => g j * d j)
-              (Measure.pi fun _ : Fin p => kGaussianLaw ℍ)) := by
-          rw [Measure.map_map (by fun_prop) (by fun_prop)]
-          rfl
-    _ = Measure.map (fun y : Fin p → ℍ => ∑ j, y j)
-            (Measure.map (fun h : Fin p → ℍ => fun j => d j * h j)
-              (Measure.pi fun _ : Fin p => kGaussianLaw ℍ)) := by rw [hprod]
-    _ = Measure.map (fun h : Fin p → ℍ => ∑ j, d j * h j)
-            (Measure.pi fun _ : Fin p => kGaussianLaw ℍ) := by
-          rw [Measure.map_map (by fun_prop) (by fun_prop)]
-          rfl
+  have hsum := congrArg (Measure.map (fun y : Fin p → ℍ => ∑ j, y j)) hprod
+  rw [Measure.map_map (g := fun y : Fin p → ℍ => ∑ j, y j)
+      (f := fun g : Fin p → ℍ => fun j => g j * d j) (by fun_prop) (by fun_prop),
+    Measure.map_map (g := fun y : Fin p → ℍ => ∑ j, y j)
+      (f := fun h : Fin p → ℍ => fun j => d j * h j) (by fun_prop) (by fun_prop)] at hsum
+  exact hsum
 
 end
 

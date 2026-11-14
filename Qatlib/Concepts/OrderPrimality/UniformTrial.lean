@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Foundations.OrderPrimality.GeneratorCount
-import Mathlib.Probability.Distributions.Uniform
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Foundations.OrderPrimality.GeneratorCount
+public import Mathlib.Probability.Distributions.Uniform
+
+@[expose] public section
 
 /-!
 # Uniform nonidentity unit trials
@@ -80,7 +84,7 @@ theorem sample_success_mass {N : ℕ} [NeZero N] (hp : N.Prime) (hN : 3 ≤ N) :
     (sample hp hN).toOuterMeasure {a | orderOf a=N-1} =
       (Nat.totient (N-1) : ℝ≥0∞)/(N-2 : ℕ) := by
   rw [sample,PMF.toOuterMeasure_uniformOfFinset'_apply]
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   rw [candidates_good_card hp hN,candidates_card hp hN]
 
 /-- The real probability that a uniformly sampled nonidentity unit has order `N - 1`. -/

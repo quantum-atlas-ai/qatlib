@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Data.List.OfFn
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Complex.Basic
-import Qatlib.Concepts.DyadicProgram.DyadicContract.DyadicMpsProgram
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+module
+
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Basic.Complex.Basic
+public import Qatlib.Concepts.DyadicProgram.DyadicContract.DyadicMpsProgram
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+
+@[expose] public section
 
 /-!
 # Dyadic MPS overlap programs and event logs

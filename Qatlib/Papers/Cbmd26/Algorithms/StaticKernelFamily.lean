@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
-import Qatlib.Foundations.CbmdAnalysis.Core.StaticDyson
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightPositive
-import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
+public import Qatlib.Foundations.CbmdAnalysis.Core.StaticDyson
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightPositive
+public import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
+
+@[expose] public section
 
 /-!
 # Finite static kernel sample families

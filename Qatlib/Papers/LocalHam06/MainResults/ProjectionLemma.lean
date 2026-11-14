@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
+
+@[expose] public section
 
 /-!
 # The projection lemma for ground energy
@@ -43,7 +47,7 @@ ground energy of `H1 + H2` lies between `sectionEnergy S H1 - ‖H1‖^2 / (J - 
 `sectionEnergy S H1`. This is the projection lemma of [KempeKitaevRegev2006]. -/
 theorem projection_lemma
     (S : Submodule ℂ E) (H1 H2 : E →L[ℂ] E) (J : ℝ)
-    (hH1 : (H1 : E →ₗ[ℂ] E).IsSymmetric)
+    (_hH1 : (H1 : E →ₗ[ℂ] E).IsSymmetric)
     (hH2 : (H2 : E →ₗ[ℂ] E).IsSymmetric)
     (hS : S ≠ ⊥)
     (hJ : 2 * ‖H1‖ < J)
@@ -63,7 +67,7 @@ theorem projection_lemma
     have hH2w : H2 w = 0 := hH2zero w hwS
     have hval : rayleigh (H1 + H2) w = rayleigh H1 w := by
       unfold rayleigh
-      rw [ContinuousLinearMap.add_apply, hH2w, add_zero]
+      rw [_root_.add_apply, hH2w, add_zero]
     exact le_trans (csInf_le (bddBelow_rect (H1 + H2)) ⟨w, hw1, rfl⟩) (le_of_eq hval)
   refine ⟨?_, hupper⟩
 
@@ -90,7 +94,7 @@ theorem projection_lemma
     rw [← hH2.apply_clm u q, hH2zero u hu, inner_zero_left]
   have hp2q : ⟪p, H2 q⟫_ℂ = 0 := (S.mem_orthogonal (H2 q)).1 hH2q_mem p hpS
   have hHval : (H1 + H2) (p + q) = H1 p + H1 q + H2 q := by
-    simp only [map_add, ContinuousLinearMap.add_apply, hH2p, add_zero]
+    simp only [map_add, _root_.add_apply, hH2p, add_zero]
     abel
   have hval : rayleigh (H1 + H2) v =
       rayleigh H1 p + (inner ℂ p (H1 q)).re + (inner ℂ q (H1 p)).re
@@ -113,7 +117,7 @@ theorem projection_lemma
     have hvalq : rayleigh (H1 + H2) v = rayleigh H1 q + rayleigh H2 q := by
       rw [hvq]
       unfold rayleigh
-      rw [ContinuousLinearMap.add_apply, inner_add_right, Complex.add_re]
+      rw [_root_.add_apply, inner_add_right, Complex.add_re]
     rw [hvalq]
     have hnonneg : 0 ≤ K ^ 2 / (J - 2 * K) := div_nonneg (sq_nonneg K) (le_of_lt hden)
     nlinarith [hH1q', hH2q', hsec, hnonneg, hden, hKnonneg]

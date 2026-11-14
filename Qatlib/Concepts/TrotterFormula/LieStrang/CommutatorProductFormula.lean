@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
+
+@[expose] public section
 
 /-!
 # Commutator bounds for Lie and Strang product formulas

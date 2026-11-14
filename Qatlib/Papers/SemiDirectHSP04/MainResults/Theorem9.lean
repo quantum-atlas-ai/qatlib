@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.Solver
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.Solver
+
+@[expose] public section
 
 /-!
 # A query-bound result for the canonical cyclic semidirect product

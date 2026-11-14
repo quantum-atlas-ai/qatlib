@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.RingTheory.RootsOfUnity.Complex
-import Mathlib.NumberTheory.MulChar.Lemmas
+module
+
+public import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+public import Mathlib.NumberTheory.MulChar.Lemmas
+
+@[expose] public section
 
 /-!
 # Square-root bounds for subgroup character sums
@@ -189,7 +193,7 @@ theorem geom_sum_roots (z : ℂ) (m : ℕ) (hz : z ^ m = 1) :
     ∑ j ∈ Finset.range m, z ^ j = if z = 1 then (m : ℂ) else 0 := by
   by_cases h : z = 1
   · subst h; simp
-  · rw [if_neg h, geom_sum_eq h m, hz, sub_self, zero_div]
+  · rw [ite_eq_right h, geom_sum_eq h m, hz, sub_self, zero_div]
 
 /-- A Gauss sum over `ZMod p` equals the sum of the character products over its units. -/
 theorem gaussSum_eq_sum_units (χ : MulChar (ZMod p) ℂ) (ψ : AddChar (ZMod p) ℂ) :
@@ -253,8 +257,8 @@ theorem sum_char_pow_apply_unit (g : (ZMod p)ˣ) (hg : ∀ x, x ∈ Subgroup.zpo
     simpa only [MulChar.pow_apply_coe, MulChar.one_apply_coe] using h
   rw [geom_sum_roots (χ ((u : ZMod p))) m hzm]
   by_cases hu : u ∈ Subgroup.zpowers a
-  · rw [if_pos hu, if_pos ((char_eq_one_iff_mem g hg a q m ha hmq hm χ hχ u).mpr hu)]
-  · rw [if_neg hu, if_neg]
+  · rw [ite_eq_left hu, ite_eq_left ((char_eq_one_iff_mem g hg a q m ha hmq hm χ hχ u).mpr hu)]
+  · rw [ite_eq_right hu, ite_eq_right]
     intro h1
     exact hu ((char_eq_one_iff_mem g hg a q m ha hmq hm χ hχ u).mp h1)
 
@@ -367,7 +371,7 @@ theorem charSub_norm_le_sqrt (hp : 2 ≤ p) (ψ : AddChar (ZMod p) ℂ) (hψ : �
 shifted multiplicatively by `k`. -/
 theorem subgroupSum_eq_charSub (a : (ZMod p)ˣ) (k : ZMod p) (q : ℕ) :
     subgroupSum p a k q = charSub ((ZMod.stdAddChar (N := p)).mulShift k) a q := by
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   unfold subgroupSum charSub
   apply Finset.sum_congr rfl
   intro t _
@@ -378,7 +382,7 @@ stated order and index hypotheses. -/
 theorem subgroupSum_norm_le_sqrt (hp : 2 ≤ p) (a : (ZMod p)ˣ) (k : ZMod p) (hk : k ≠ 0)
     (q m : ℕ) (ha : orderOf a = q) (hmq : q * m = p - 1) (hm : 0 < m) :
     ‖subgroupSum p a k q‖ ≤ Real.sqrt p := by
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   have hprim : (ZMod.stdAddChar (N := p)).IsPrimitive := ZMod.isPrimitive_stdAddChar p
   have hψne : (ZMod.stdAddChar (N := p)).mulShift k ≠ 1 := by
     intro h

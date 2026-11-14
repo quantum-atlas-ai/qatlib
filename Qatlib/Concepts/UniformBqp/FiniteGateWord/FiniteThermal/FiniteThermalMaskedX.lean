@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMultiX
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMultiX
+
+@[expose] public section
 
 /-!
 # Masked controls for finite controlled-X words
@@ -116,8 +120,8 @@ theorem thermalMaskedX_basis {n : ℕ} (cs zeros : List (Fin n)) (t : Fin n)
   let y := thermalFlipBasis zeros x
   have hyc : ∀ w∈ws,y w=false := by
     intro w hw
-    simp only [y,thermalFlipBasis_apply zeros hz,if_neg (hwz w hw),hc w hw]
-  have hyt : y t=x t := by simp only [y,thermalFlipBasis_apply zeros hz,if_neg hzt]
+    simp only [y,thermalFlipBasis_apply zeros hz,ite_eq_right (hwz w hw),hc w hw]
+  have hyt : y t=x t := by simp only [y,thermalFlipBasis_apply zeros hz,ite_eq_right hzt]
   have hcy : thermalControl cs y=thermalMatch cs zeros x := by
     unfold thermalControl thermalMatch
     exact List.all_congr rfl (fun c => thermalFlipBasis_apply zeros hz x c)
@@ -208,7 +212,7 @@ theorem thermalMaskedX_public {n : ℕ} (cs zeros : List (Fin n)) (t : Fin n)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hc : ∀ w∈ws,x w=false) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun n (thermalMaskedX cs zeros t ws) (Qatlib.Foundations.PureStateMath.Ket x) =
       some (Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ thermalMatch cs zeros x))) := by
-  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalMaskedX_legal cs zeros t ws hn hlen,if_true]
+  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalMaskedX_legal cs zeros t ws hn hlen,ite_true]
   rw [thermalMaskedX_basis cs zeros t ws hn hz hsub hlen x hc]
 
 end Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits

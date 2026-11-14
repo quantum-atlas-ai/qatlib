@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Stat
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Stat
+
+@[expose] public section
 
 /-!
 # Posterior invariants and expected information gain
@@ -57,7 +61,7 @@ private theorem prefix_probability {n : ℕ} (a : Fin n → ℝ) (i : Fin n)
   constructor
   · apply Finset.sum_nonneg
     intro j _hj
-    (try dsimp [prefixMass])
+
     split_ifs
     · exact ha j
     · exact le_rfl
@@ -232,7 +236,7 @@ theorem zoo_bayes_expected_info_identity {n : ℕ} (a : Fin n → ℝ) (i : Fin 
 p` divided by `Real.log 2`. -/
 theorem zoo_bayes_queryInfo_natural (p : ℝ) :
     queryInfo p = 1 - Real.binEntropy p / Real.log 2 := by
-  simp only [queryInfo, binEntropy, Real.binEntropy, Real.log_inv]
+  simp only [queryInfo, binEntropy, Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub, Real.negMulLog_def]
   ring
 
 /-- The binary entropy deficit 1 - `Real.binEntropy x`/`Real.log 2` minus the quadratic term c(x

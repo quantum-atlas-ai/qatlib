@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Lemma41
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Contraction
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Unitary
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Lemma41
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Contraction
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Unitary
+
+@[expose] public section
 
 /-!
 # Geometric steps in the bridge argument
@@ -86,8 +90,8 @@ theorem lemma61_contraction_approach (u v : E) (hu : ‖u‖ = 1) (x : ℕ → �
 theorem specialUnitary_fixes_orthogonal {A : Submodule ℂ E} {T : E →L[ℂ] E}
     (hT : T ∈ SpecialUnitary A) {x : E} (hx : x ∈ Aᗮ) : T x = x := by
   obtain ⟨U, _hU, hTx⟩ := hT
-  have hP : A.orthogonalProjection x = 0 :=
-    (Submodule.orthogonalProjection_eq_zero_iff (K := A)).2 hx
+  have hP : A.orthogonalProjectionOnto x = 0 :=
+    (Submodule.orthogonalProjectionOnto_eq_zero_iff (K := A)).2 hx
   have hS : A.starProjection x = 0 := by
     rw [Submodule.starProjection_apply, hP]
     simp
@@ -172,15 +176,15 @@ theorem lemma61_bridge_normalized {A B : Submodule ℂ E} (hBA : Aᗮ = B)
   have hx1 : ‖x‖ = 1 := by rw [hxdef, W.norm_map, hu01]
   have hlt : ‖A.starProjection x‖ < 1 :=
     contraction_factor_of_component hBA x hx1 hb0B hb0ne'
-  by_cases hp : A.orthogonalProjection x = 0
+  by_cases hp : A.orthogonalProjectionOnto x = 0
   · have hxB : x ∈ B := by
-      have horth : x ∈ Aᗮ := (Submodule.orthogonalProjection_eq_zero_iff (K := A)).1 hp
+      have horth : x ∈ Aᗮ := (Submodule.orthogonalProjectionOnto_eq_zero_iff (K := A)).1 hp
       exact hBA ▸ horth
     refine ⟨(W : E →L[ℂ] E), ApproximableBy.of_mem (Or.inr rfl),
       fun y => W.norm_map y, hWvB, u0, hu0A, hu01, 0, 1, by norm_num, x, hxB,
       hx1, ?_⟩
     simp [hxdef]
-  · set p : A := A.orthogonalProjection x with hpdef
+  · set p : A := A.orthogonalProjectionOnto x with hpdef
     have hpne0 : p ≠ 0 := by rw [hpdef]; exact hp
     have hpnorm : ‖p‖ ≠ 0 := fun h => hpne0 (norm_eq_zero.mp h)
     have hc0 : ((‖p‖ : ℝ) : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hpnorm

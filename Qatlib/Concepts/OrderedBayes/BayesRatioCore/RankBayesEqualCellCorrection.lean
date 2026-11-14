@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellAdaptive
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellSourceRank
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellAdaptive
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellSourceRank
+
+@[expose] public section
 
 /-!
 # Conditional probabilities at the equal rank cell

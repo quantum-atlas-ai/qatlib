@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,8 +51,8 @@ the QLSA output satisfy `‖X_good‖² = (p+1)(n+1)‖x(T)‖²` (6.9) and
 `‖X_good‖²/(‖X_good‖²+‖X_bad‖²)` is at least the paper's bound. -/
 theorem lemma5_success_probability
     (m p n : ℕ) (q xT good bad : ℝ)
-    (hxT : 0 < xT) (hq : 0 ≤ q)
-    (hgood : 0 ≤ good) (hbad : 0 ≤ bad)
+    (hxT : 0 < xT) (_hq : 0 ≤ q)
+    (_hgood : 0 ≤ good) (hbad : 0 ≤ bad)
     (hgood_eq : good = ((p + 1 : ℕ) : ℝ) * ((n + 1 : ℕ) : ℝ) * xT ^ 2)
     (hbad_le : bad ≤ Real.pi * (m : ℝ) * q ^ 2 * xT ^ 2) :
     ((p + 1 : ℕ) : ℝ) * ((n + 1 : ℕ) : ℝ) /

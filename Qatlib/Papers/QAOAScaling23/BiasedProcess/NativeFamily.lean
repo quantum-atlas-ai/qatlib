@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.ActualRowFees
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.GlobalFallback
-import Qatlib.Papers.QAOAScaling23.CausalSearch.PublicBudget
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.ActualRowFees
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.GlobalFallback
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.PublicBudget
+
+@[expose] public section
 
 /-!
 # A native oracle row family over all ranks
@@ -110,7 +114,7 @@ theorem entry_actual (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (
       NativeRows.actualCandidate U hU seed cost (threshold cost r hr) r (threshold_rank cost r hr)
       (actual_prefix_pos U hU seed cost h0 r) ms⟩ := by
   unfold entry
-  exact dif_pos hr
+  exact dite_eq_left hr
 
 /-- Outside the actual threshold range, the family entry is the fallback row with its class
 representatives. -/
@@ -119,7 +123,7 @@ theorem entry_outside (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) 
     (hr : ¬r+1<(costLevels cost).card) : entry U hU seed cost h0 ms r=
     ⟨Outside.fallbackRow cost (Born.preparedLaw U hU seed) r (Nat.le_of_not_gt hr),Outside.classRep cost⟩ := by
   unfold entry
-  exact dif_neg hr
+  exact dite_eq_right hr
 
 /-- The descent row component of the total native family at rank index `r`. -/
 def rows (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (cost : I → ℝ)

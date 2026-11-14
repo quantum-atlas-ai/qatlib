@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation14Stat
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation14Stat
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Statement of amplified vector-error control

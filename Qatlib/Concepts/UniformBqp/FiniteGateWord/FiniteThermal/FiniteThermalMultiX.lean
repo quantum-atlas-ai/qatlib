@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalToffoli
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalToffoli
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Finite words for multiply controlled X
@@ -86,7 +90,7 @@ private theorem x_run {n : ℕ} (t : Fin n) (x : Qatlib.Foundations.PureStateMat
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n [.x t.val])
       (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (!x t)) := by
   simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_cons,List.map_nil,Qatlib.Foundations.QueryWordCore.Circuit.run_gate,Qatlib.Foundations.QueryWordCore.Circuit.run_nil,
-    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dif_pos t.isLt]
+    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dite_eq_left t.isLt]
   rw [Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_wireGate_ket]
   cases hx :
       x t <;> simp
@@ -99,7 +103,7 @@ private theorem cx_run {n : ℕ} (c t : Fin n) (hct : c ≠ t) (x : Qatlib.Found
       (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ x c)) := by
   have hct' : c.val ≠ t.val := fun h => hct (Fin.ext h)
   simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit,List.map_cons,List.map_nil,Qatlib.Foundations.QueryWordCore.Circuit.run_gate,Qatlib.Foundations.QueryWordCore.Circuit.run_nil,
-    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dif_pos (show c.val < n ∧ t.val < n ∧ c.val ≠ t.val from
+    Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeMatrix,dite_eq_left (show c.val < n ∧ t.val < n ∧ c.val ≠ t.val from
       ⟨c.isLt,t.isLt,hct'⟩)]
   exact Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_cnotGate_ket n c t hct x
 
@@ -255,9 +259,9 @@ theorem thermalMultiX_cost {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List 
     simp only [List.length_cons] at hi
     have hf : ¬rest.length+1+1 ≤ 1 := by omega
     have hf2 : ¬rest.length+1+1+1 ≤ 1 := by omega
-    simp only [if_neg hf] at hi
+    simp only [ite_eq_right hf] at hi
     rw [hi]
-    simp only [List.length_cons,if_neg hf2]
+    simp only [List.length_cons,ite_eq_right hf2]
     omega
   | case5 cs h0 h1 h2 =>
     cases cs with
@@ -319,7 +323,7 @@ theorem thermalMultiX_public {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : Lis
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hclean : ∀ w∈ws,x w=false) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun n (thermalMultiX cs t ws) (Qatlib.Foundations.PureStateMath.Ket x) =
       some (Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ thermalControl cs x))) := by
-  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalMultiX_legal cs t ws hn hlen,if_true]
+  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalMultiX_legal cs t ws hn hlen,ite_true]
   rw [thermalMultiX_basis cs t ws hn hlen x hclean]
 
 end Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits

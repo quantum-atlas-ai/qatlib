@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.MinimalAxioms
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.GroupTheory.Subgroup.Center
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.MinimalAxioms
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.GroupTheory.Subgroup.Center
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coordinates for Nilpotency Class Two
@@ -155,10 +159,10 @@ theorem cmt_smul (a b : ZMod p) (x y : Fin m → ZMod p) :
     F.cmt (a • x) (b • y) = (a * b) • F.cmt x y := by
   have hx : a • x = a.val • x := by
     funext i
-    simp [nsmul_eq_mul, ZMod.natCast_zmod_val]
+    simp [nsmul_eq_mul]
   have hy : b • y = b.val • y := by
     funext i
-    simp [nsmul_eq_mul, ZMod.natCast_zmod_val]
+    simp [nsmul_eq_mul]
   rw [hx, hy, cmt_nsmul_left, cmt_nsmul_right, smul_smul, natCast_smul_coord, Nat.cast_mul,
     ZMod.natCast_zmod_val, ZMod.natCast_zmod_val]
 
@@ -174,7 +178,7 @@ instance instGroup : Group (Coord p m d) :=
   Group.ofLeftAxioms
     (by intro a b c; exact mul_assoc_coord a b c)
     (by intro a; apply Coord.ext <;> funext i <;> simp [F.cmt_zero_left])
-    (by intro a; apply Coord.ext <;> funext i <;> simp [F.cmt_zero_left, cmt_neg_left, F.cmt_self])
+    (by intro a; apply Coord.ext <;> funext i <;> simp [cmt_neg_left, F.cmt_self])
 
 /-- The `n`th power of a coordinate element is obtained by repeated addition of each coordinate
 vector `n` times. -/
@@ -260,12 +264,12 @@ theorem derived_le_center :
 theorem commutator_pair (x y : Fin m → ZMod p) :
     (⁅(⟨x, 0⟩ : Coord p m d), (⟨y, 0⟩ : Coord p m d)⁆) = ⟨0, F.cmt x y - F.cmt y x⟩ := by
   apply Coord.ext <;> funext i
-  · simp only [commutatorElement_def, mul_fst, inv_fst, mul_snd, Pi.add_apply, Pi.neg_apply,
+  · simp only [commutatorElement_def, mul_fst, inv_fst, Pi.add_apply, Pi.neg_apply,
       Pi.zero_apply]
     abel
   · simp [commutatorElement_def, mul_fst, inv_fst, inv_snd, mul_snd, F.cmt_add_left,
-      F.cmt_add_right, cmt_neg_left, cmt_neg_right, F.cmt_zero_left, F.cmt_zero_right,
-      F.cmt_self] <;> abel
+      cmt_neg_right, F.cmt_self]
+    abel
 
 /-- Every element of `gPrime` belongs to the derived subgroup of the coordinate group. -/
 theorem gPrime_le_commutator : gPrime (p := p) (m := m) (d := d) ≤ ⁅(⊤ : Subgroup (Coord p m d)), ⊤⁆ := by
@@ -288,12 +292,11 @@ the displayed order. -/
 theorem commutator_mul_mul (g₁ g₂ g₃ g₄ : Coord p m d) :
     ⁅g₁ * g₂, g₃ * g₄⁆ = ⁅g₁, g₃⁆ * ⁅g₁, g₄⁆ * ⁅g₂, g₃⁆ * ⁅g₂, g₄⁆ := by
   apply Coord.ext <;> funext i
-  · simp only [commutatorElement_def, mul_fst, inv_fst, mul_snd, Pi.add_apply, Pi.neg_apply,
-      Pi.zero_apply]
+  · simp only [commutatorElement_def, mul_fst, inv_fst, Pi.add_apply, Pi.neg_apply]
     abel
   · simp [commutatorElement_def, mul_fst, inv_fst, inv_snd, mul_snd, F.cmt_add_left,
-      F.cmt_add_right, cmt_neg_left, cmt_neg_right, F.cmt_zero_left, F.cmt_zero_right,
-      F.cmt_self] <;> abel
+      F.cmt_add_right, cmt_neg_left, cmt_neg_right, F.cmt_zero_left, F.cmt_self]
+    abel
 
 end DerivedSubgroup
 
@@ -305,12 +308,16 @@ variable [F : Nil2Form p m d]
 def phi (j : ZMod p) (g : Coord p m d) : Coord p m d :=
   ⟨j • g.fst, (j * j) • g.snd⟩
 
+omit F in
+
 /-- The coordinate map with parameter one is the identity map. -/
-theorem phi_one (g : Coord p m d) : phi 1 g = g := by
+theorem phi_one {p : ℕ} [_scopePrime : Fact p.Prime] {m d : ℕ} [_scopeForm : Nil2Form p m d] (g : Coord p m d) : phi 1 g = g := by
   apply Coord.ext <;> funext i <;> simp [phi]
 
+omit F in
+
 /-- The coordinate map with parameter zero sends every element to the group identity. -/
-theorem phi_zero (g : Coord p m d) : phi 0 g = 1 := by
+theorem phi_zero {p : ℕ} [_scopePrime : Fact p.Prime] {m d : ℕ} [_scopeForm : Nil2Form p m d] (g : Coord p m d) : phi 0 g = 1 := by
   apply Coord.ext <;> funext i <;> simp [phi]
 
 /-- The coordinate map `phi j` preserves multiplication for every parameter `j`. This provides
@@ -318,11 +325,13 @@ multiplicativity of the coordinate maps used in [IvanyosSanselmeSantha2007a]. -/
 theorem phi_mul (j : ZMod p) (g h : Coord p m d) : phi j (g * h) = phi j g * phi j h := by
   apply Coord.ext <;> funext i
   · simp [phi]
-  · simp only [phi, mul_fst, mul_snd, smul_add, cmt_smul, Pi.add_apply, Pi.smul_apply] <;> abel
+  · simp only [phi, mul_fst, mul_snd, smul_add, cmt_smul, Pi.add_apply, Pi.smul_apply]
+
+omit F in
 
 /-- For nonzero `j`, the coordinate map `phi j` is bijective. This provides bijectivity of the
 nonzero coordinate scalings used in [IvanyosSanselmeSantha2007a]. -/
-theorem phi_bijective (j : ZMod p) (hj : j ≠ 0) : Function.Bijective (phi (p := p) (m := m) (d := d) j) := by
+theorem phi_bijective {p : ℕ} [_scopePrime : Fact p.Prime] {m d : ℕ} [_scopeForm : Nil2Form p m d] (j : ZMod p) (hj : j ≠ 0) : Function.Bijective (phi (p := p) (m := m) (d := d) j) := by
   have hj2 : j * j ≠ 0 := mul_ne_zero hj hj
   constructor
   · intro g h hgh
@@ -375,12 +384,12 @@ theorem exists_zg (g : Coord p m d) :
   · intro j
     rw [pow_coord, pow_coord]
     apply Coord.ext <;> funext i
-    · simp only [phi, mul_fst, zero_add, Pi.add_apply, Pi.smul_apply, smul_zero, add_zero,
+    · simp only [phi, mul_fst, Pi.add_apply, Pi.smul_apply, smul_zero, add_zero,
         Pi.zero_apply]
-      simp [nsmul_eq_mul, ZMod.natCast_zmod_val]
-    · simp only [phi, mul_fst, mul_snd, zero_add, smul_zero, F.cmt_zero_right, add_zero,
+      simp [nsmul_eq_mul]
+    · simp only [phi, mul_snd, smul_zero, F.cmt_zero_right, add_zero,
         smul_neg, Pi.zero_apply, Pi.smul_apply, Pi.add_apply, Pi.neg_apply]
-      simp [nsmul_eq_mul, ZMod.natCast_zmod_val]
+      simp [nsmul_eq_mul]
       ring
 
 end Automorphisms

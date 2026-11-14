@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+
+@[expose] public section
 
 /-!
 # Concrete noisy least-squares postselection
@@ -78,7 +82,7 @@ theorem labelEmbed_isometry {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
       simp [hne]
     · simp
   · have hfij : f i ≠ f j := fun e => hij (hf e)
-    simp only [if_neg hij]
+    simp only [ite_eq_right hij]
     apply Finset.sum_eq_zero
     intro h _
     by_cases h1 : h = f i
@@ -276,9 +280,9 @@ theorem postMeasure_smul_ket {I : Type} [Fintype I] [DecidableEq I] (c : ℂ) (i
       Complex.real_smul]
   by_cases hj : j = i
   · subst j
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     ring
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
     ring
 
 /-- The least-squares vector for the example is `1 / √2` times input ket zero. -/
@@ -392,18 +396,18 @@ theorem lsNoisyU_diagonal_unitary (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
   by_cases hij : i = j
   · subst j
     rw [Finset.sum_eq_single i]
-    · rw [if_pos rfl, if_pos rfl]
+    · rw [ite_eq_left rfl, ite_eq_left rfl]
       by_cases hi : i = 0
       · subst i
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         rw [Complex.conj_mul', hζ]
         norm_num
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         simp
     · intro k _ hki
       simp [hki]
     · simp
-  · simp only [if_neg hij]
+  · simp only [ite_eq_right hij]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hk : k = i

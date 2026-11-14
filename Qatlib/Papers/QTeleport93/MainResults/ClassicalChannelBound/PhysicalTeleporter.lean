@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound.TeleporterMessageBound
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+module
+
+public import Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound.TeleporterMessageBound
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+
+@[expose] public section
 
 /-!
 # Physical one way teleporters and message bounds

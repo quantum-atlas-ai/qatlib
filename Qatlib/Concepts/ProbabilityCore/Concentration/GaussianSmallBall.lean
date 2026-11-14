@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Multivariate
-import Mathlib.Topology.Algebra.MvPolynomial
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSampling
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.Topology.Algebra.MvPolynomial
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSampling
+
+@[expose] public section
 
 /-!
 # Gaussian small ball bounds
@@ -68,7 +72,7 @@ theorem gaussian_small_ball (m : ℝ) (v : ℝ≥0) (hv : v ≠ 0) (a ε : ℝ) 
     gaussianReal m v {x | |x-a| ≤ ε} ≤ ENNReal.ofReal (2*ε/Real.sqrt (2*Real.pi*v)) := by
   have hs : {x : ℝ | |x-a| ≤ ε} = Set.Icc (a-ε) (a+ε) := by
     ext x
-    simp only [Set.mem_setOf_eq, Set.mem_Icc, abs_le]
+    simp only [Set.mem_ofPred_eq, Set.mem_Icc, abs_le]
     constructor <;> rintro ⟨h1,h2⟩ <;> constructor <;> linarith
   rw [hs]
   convert gaussian_interval_bound m v hv (a-ε) (a+ε) (by linarith) using 1

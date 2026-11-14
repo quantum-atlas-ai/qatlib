@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.SpectralHitting
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.SpectralHitting
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Uniform-time hitting from an energy gap

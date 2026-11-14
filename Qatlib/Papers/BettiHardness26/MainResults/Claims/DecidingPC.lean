@@ -7,7 +7,11 @@ Authors: Qatlib Contributors
 /-
 Copyright (c) 2026. All rights reserved.
 -/
-import Qatlib.Papers.BettiHardness26.MainResults.Model.BettiProblem
+module
+
+public import Qatlib.Papers.BettiHardness26.MainResults.Model.BettiProblem
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

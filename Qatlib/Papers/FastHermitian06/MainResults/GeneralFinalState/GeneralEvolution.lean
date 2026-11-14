@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastHermitian06.MainResults.GeneralFinalState.Basic
-import Qatlib.Papers.FastHermitian06.MainResults.SpinFlip
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.FastHermitian06.MainResults.GeneralFinalState.Basic
+public import Qatlib.Papers.FastHermitian06.MainResults.SpinFlip
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Evolution for a general two-level Hamiltonian

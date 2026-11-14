@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HSPAffine13.MainResults.Fourier.OrbitLine
-import Qatlib.Papers.HSPAffine13.MainResults.Wavelet.WaveletStates
-import Mathlib.NumberTheory.MulChar.Lemmas
+module
+
+public import Qatlib.Papers.HSPAffine13.MainResults.Fourier.OrbitLine
+public import Qatlib.Papers.HSPAffine13.MainResults.Wavelet.WaveletStates
+public import Mathlib.NumberTheory.MulChar.Lemmas
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -102,10 +106,10 @@ theorem fourierCoeff_uniform (χ : MulChar F ℂ) :
       exact_mod_cast (Real.sqrt_ne_zero'.mpr hq1)
     unfold waveletNorm
     field_simp [hsqrt]
-    simp only [if_true, mul_one]
+    simp only [ite_true, mul_one]
     rw [← Complex.ofReal_pow, Real.sq_sqrt (le_of_lt hq1)]
     norm_num
-  · rw [if_neg hχ]
+  · rw [ite_eq_right hχ]
     unfold fourierCoeff
     have hsum : (∑ a : Fˣ, χ (a : F)) = 0 := by
       rw [sum_units_eq_sum, MulChar.sum_eq_zero_of_ne_one hχ]
@@ -127,10 +131,10 @@ theorem orbitState_slice_aligned (u : Fˣ) (b : F) (hu : (u : F) ≠ 1)
   have h := mem_orbit_iff_second_eq u b hu hgen g (⟨a, y⟩ : AffineGroup F) hg
   by_cases hy : y = g.b
   · have hmem : InOrbit u b g (⟨a, y⟩ : AffineGroup F) := h.mpr (by simpa using hy)
-    simp only [orbitState, hmem, if_true, Pi.smul_apply, smul_eq_mul, if_pos hy, one_mul]
+    simp only [orbitState, hmem, ite_true, Pi.smul_apply, smul_eq_mul, ite_eq_left hy, one_mul]
   · have hnot : ¬ InOrbit u b g (⟨a, y⟩ : AffineGroup F) :=
       fun hh => hy (by simpa using h.mp hh)
-    simp only [orbitState, hnot, if_false, Pi.smul_apply, smul_eq_mul, if_neg hy, zero_mul]
+    simp only [orbitState, hnot, ite_false, Pi.smul_apply, smul_eq_mul, ite_eq_right hy, zero_mul]
 
 /-- **Theorem 4, aligned case.**  If `g.b = b / (1 - u)` and `u` generates
 `Fˣ`, then the Fourier transform of the orbit state is the product state

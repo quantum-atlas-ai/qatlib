@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SeqEntangle05.MainResults.SequentialGeneration
+module
+
+public import Qatlib.Papers.SeqEntangle05.MainResults.SequentialGeneration
+
+@[expose] public section
 
 /-!
 # Matrix-product representations of GHZ, W, and cluster amplitudes
@@ -99,7 +103,7 @@ theorem prod_indicator (l : List (Fin 2)) (i : Fin 2) :
   | cons b bs ih =>
       rw [List.map_cons, List.prod_cons]
       by_cases hb : i = b
-      · rw [if_pos hb, one_mul, ih]
+      · rw [ite_eq_left hb, one_mul, ih]
         have hiff : (∀ x ∈ bs, i = x) ↔ (∀ x ∈ b :: bs, i = x) := by
           constructor
           · intro h x hx
@@ -112,7 +116,7 @@ theorem prod_indicator (l : List (Fin 2)) (i : Fin 2) :
       · have hneg : ¬ (∀ b_1 ∈ b :: bs, i = b_1) := by
           intro hc
           exact hb (hc b (by simp))
-        rw [if_neg hb, zero_mul, if_neg hneg]
+        rw [ite_eq_right hb, zero_mul, ite_eq_right hneg]
 
 /-- Every entry of `List.ofFn bits` equals `i` if and only if `bits k = i` at every finite index
 `k`. -/
@@ -154,11 +158,11 @@ theorem ghz_cond_add {n : ℕ} (hn : 1 ≤ n) (bits : Fin n → Fin 2) :
       have hk1 := h1 (⟨0, by omega⟩ : Fin n)
       rw [hk0] at hk1
       exact absurd hk1 (by decide)
-    · rw [if_pos h0, if_neg h1, if_pos (Or.inl h0)]; simp
-  · rw [if_neg h0]
+    · rw [ite_eq_left h0, ite_eq_right h1, ite_eq_left (Or.inl h0)]; simp
+  · rw [ite_eq_right h0]
     by_cases h1 : ∀ k, bits k = 1
-    · rw [if_pos h1, if_pos (Or.inr h1)]; simp
-    · rw [if_neg h1, if_neg (by rintro (h | h); exact h0 h; exact h1 h)]; simp
+    · rw [ite_eq_left h1, ite_eq_left (Or.inr h1)]; simp
+    · rw [ite_eq_right h1, ite_eq_right (by rintro (h | h); exact h0 h; exact h1 h)]; simp
 
 /-- For `1 ≤ n`, the unnormalized GHZ amplitude has a bond-dimension-two matrix-product
 representation using `ghzBlock` and all-ones boundary vectors [SchoenEtAl2005]. -/
@@ -196,19 +200,19 @@ def onesCount : List (Fin 2) → ℕ
 theorem wE_sq_zero : wE ^ 2 = 0 := by
   ext a b
   simp only [pow_two, Matrix.mul_apply, Matrix.zero_apply]
-  fin_cases a <;> fin_cases b <;> simp [wE, Fin.sum_univ_two]
+  fin_cases a <;> fin_cases b <;> simp [wE]
 
 /-- The row-zero, column-one entry of `wE ^ m` equals one precisely when `m = 1`, and equals
 zero otherwise. -/
 theorem wE_pow_zero_one (m : ℕ) : (wE ^ m) 0 1 = if m = 1 then (1 : ℂ) else 0 := by
   by_cases h0 : m = 0
-  · subst h0; simp [wE]
+  · subst h0; simp []
   by_cases h1 : m = 1
   · subst h1; simp [wE]
   · have h2 : 2 ≤ m := by omega
     have hm : wE ^ m = wE ^ 2 * wE ^ (m - 2) := by
       rw [← pow_add]; congr 1; omega
-    rw [hm, wE_sq_zero, Matrix.zero_mul, if_neg h1]
+    rw [hm, wE_sq_zero, Matrix.zero_mul, ite_eq_right h1]
     simp
 
 /-- For a bit list of length `n`, the product of `n` W blocks is `wE` raised to the number of
@@ -230,7 +234,7 @@ theorem prodBlocks_replicate_wBlock (n : ℕ) (is : List (Fin 2)) (h : is.length
       · have hwb : wBlock i = wE := by simp [wBlock, hi]
         rw [hwb]
         show wE * wE ^ onesCount is' = wE ^ (onesCount is' + (if i = 0 then 0 else 1))
-        rw [if_neg hi, pow_succ']
+        rw [ite_eq_right hi, pow_succ']
 
 /-- The amplitude of the W block family with boundaries `wPhiI` and `wPhiF` is the row-zero,
 column-one entry of `wE` raised to the bit string's number of ones. -/
@@ -242,7 +246,7 @@ theorem mpsAmplitude_w (n : ℕ) (bits : Fin n → Fin 2) :
   rw [hA]
   have hlen : (List.ofFn bits).length = n := by simp
   rw [prodBlocks_replicate_wBlock n (List.ofFn bits) hlen]
-  simp [wPhiF, wPhiI, Matrix.mulVec, Fin.sum_univ_two]
+  simp [wPhiF, wPhiI, Matrix.mulVec]
 
 /-- The unnormalized single-excitation amplitude, equal to one exactly on bit strings containing
 one occurrence of one and zero on all other strings. -/
@@ -310,7 +314,7 @@ theorem clBlock_mulVec (i : Fin 2) (w : Fin 2 → ℂ) (a : Fin 2) :
     (clBlock i *ᵥ w) a
       = invSqrt2 * (if a = 0 then 1 else (if i = 0 then 1 else -1)) * w i := by
   fin_cases i <;> fin_cases a <;>
-    simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two, clBlock]
+    simp [Matrix.mulVec, dotProduct, clBlock]
 
 /-- Computes both coordinates of the cluster block product applied to `clPhiI`: coordinate zero
 is `invSqrt2 ^ l.length` times the adjacent-pair phase, and coordinate one has the
@@ -334,12 +338,12 @@ theorem clChain (l : List (Fin 2)) :
         · simpa using h0
         · simpa using h1
       constructor
-      · rw [clBlock_mulVec, if_pos rfl, hw, ← adj_step i js]
-        simp only [List.length_cons, pow_succ]
+      · rw [clBlock_mulVec, ite_eq_left rfl, hw, ← adj_step i js]
+        simp only [ pow_succ]
         ring
       · rw [clBlock_mulVec, hw, ← adj_step i js]
-        simp only [List.length_cons, pow_succ, headSign,
-          if_neg (show ¬((1 : Fin 2) = 0) by decide)]
+        simp only [ pow_succ, headSign,
+          ite_eq_right (show ¬((1 : Fin 2) = 0) by decide)]
         ring
 
 /-- For every chain length, the linear cluster amplitude has a bond-dimension-two matrix-product
@@ -353,7 +357,7 @@ theorem clState_isMPS (n : ℕ) : IsMPS 2 n (clState n) := by
   have hlen : (List.ofFn bits).length = n := by simp
   have h := (clChain (List.ofFn bits)).1
   rw [hlen] at h
-  simp only [Fin.sum_univ_two, clPhiF, star_one, star_zero]
+  simp only [Fin.sum_univ_two, clPhiF]
   simpa using h.symm
 
 /-- For a nonempty chain, the unnormalized GHZ amplitude satisfies the sequential-isometry

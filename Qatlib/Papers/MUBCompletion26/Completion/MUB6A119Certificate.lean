@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Data
-import Qatlib.Papers.MUBCompletion26.Completion.MUB6GraphLabelGap
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Papers.MUBCompletion26.Completion.MUB6A119Data
+public import Qatlib.Papers.MUBCompletion26.Completion.MUB6GraphLabelGap
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Finite overlap certificate for 48 candidate rays

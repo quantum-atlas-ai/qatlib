@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountLadders
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountLadders
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Compressed relative-Toffoli prefix ladders
@@ -316,7 +321,7 @@ theorem sourcePrefixSign_return {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
   rw [hact, reflectionApplyGate_smul, hact, smul_smul,
     noWorkDirtyPrefixTransform_involutive c w r h x] at hi
   have he := congrFun hi x
-  simpa only [Pi.smul_apply, smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket, if_true,
+  simpa only [Pi.smul_apply, smul_eq_mul, Qatlib.Foundations.PureStateMath.Ket, ite_true,
       mul_one] using! he
 
 end Qatlib.Concepts.CircuitImpl.MultiControl.CountCompressedLadders

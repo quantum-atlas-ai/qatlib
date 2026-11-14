@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Block
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Block
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,16 +58,28 @@ def restrictedBoundary (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0 ℝ)
     (d : Matrix Vm V0 ℝ) : Matrix Vm V0 ℝ :=
   Pleft * d * Pright
 
+omit [Fintype Vm] [Fintype V0] [DecidableEq Vm] [DecidableEq V0] in
 /-- A restricted boundary map is fixed on the left by its left projector (idempotence). -/
-lemma restrictedBoundary_left (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0 ℝ)
+lemma restrictedBoundary_left {Vm V0 : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0 ℝ)
     (d : Matrix Vm V0 ℝ) (h : Pleft * Pleft = Pleft) :
     Pleft * restrictedBoundary Pleft Pright d = restrictedBoundary Pleft Pright d := by
   unfold restrictedBoundary
   rw [show Pleft * (Pleft * d * Pright) = Pleft * d * Pright by
     rw [Matrix.mul_assoc Pleft d Pright, ← Matrix.mul_assoc Pleft Pleft (d * Pright), h]]
 
+omit [Fintype Vm] [Fintype V0] [DecidableEq Vm] [DecidableEq V0] in
 /-- A restricted boundary map is fixed on the right by its right projector (idempotence). -/
-lemma restrictedBoundary_right (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0 ℝ)
+lemma restrictedBoundary_right {Vm V0 : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0 ℝ)
     (d : Matrix Vm V0 ℝ) (h : Pright * Pright = Pright) :
     restrictedBoundary Pleft Pright d * Pright = restrictedBoundary Pleft Pright d := by
   unfold restrictedBoundary
@@ -75,21 +91,45 @@ lemma restrictedBoundary_right (Pleft : Matrix Vm Vm ℝ) (Pright : Matrix V0 V0
 def oddEvenMap (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) : Matrix (Vm ⊕ Vp) V0 ℝ :=
   Matrix.of (fun i j => Sum.elim (fun a => A a j) (fun c => Cᵀ c j) i)
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- Odd Even Map inl: the paper model identity or bound. -/
-lemma oddEvenMap_inl (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) (a : Vm) (j : V0) :
+lemma oddEvenMap_inl {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) (a : Vm) (j : V0) :
     oddEvenMap A C (Sum.inl a) j = A a j := rfl
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- Odd Even Map inr: the paper model identity or bound. -/
-lemma oddEvenMap_inr (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) (c : Vp) (j : V0) :
+lemma oddEvenMap_inr {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) (c : Vp) (j : V0) :
     oddEvenMap A C (Sum.inr c) j = Cᵀ c j := rfl
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- The even block of `(B_k)^2`, Eq. (16), p.7:
 `M^T M = dt_k^T dt_k + dt_{k+1} dt_{k+1}^T`, the persistent Laplacian of Eq. (8), p.5. -/
-lemma oddEvenMap_transpose_mul_self (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) :
+lemma oddEvenMap_transpose_mul_self {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) :
     (oddEvenMap A C)ᵀ * oddEvenMap A C = Aᵀ * A + C * Cᵀ := by
   ext i j
   simp [Matrix.mul_apply, Matrix.add_apply, Fintype.sum_sum_type, oddEvenMap,
-    transpose_apply, mul_comm]
+    transpose_apply]
 
 /-- The `k`-th persistent combinatorial Laplacian `L_k` (paper Eq. (8), p.5):
 `L_k = dt_k^T dt_k + dt_{k+1} dt_{k+1}^T`. -/
@@ -122,8 +162,16 @@ def diracOperator (Pm : Matrix Vm Vm ℝ) (P0 : Matrix V0 V0 ℝ) (Pp : Matrix V
     Matrix ((Vm ⊕ Vp) ⊕ V0) ((Vm ⊕ Vp) ⊕ V0) ℝ :=
   diracOddEven A C - ξ • diracProjector Pm P0 Pp
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- `M P_k = M` from the right-compression of both restricted boundaries. -/
-lemma oddEvenMap_mul_projector (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
+lemma oddEvenMap_mul_projector {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
     (P0 : Matrix V0 V0 ℝ) (hAR : A * P0 = A) (hCL : P0 * C = C) (hP0 : P0ᵀ = P0) :
     oddEvenMap A C * P0 = oddEvenMap A C := by
   have hC : Cᵀ * P0 = Cᵀ := by
@@ -140,8 +188,16 @@ lemma oddEvenMap_mul_projector (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
     simp only [oddEvenMap_inr]
     simpa [Matrix.mul_apply] using congrFun (congrFun hC c) j
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- `P_{k-1} + P_{k+1}` fixes `M = oddEvenMap` on the left. -/
-lemma diag_mul_oddEvenMap (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
+lemma diag_mul_oddEvenMap {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
     (Pm : Matrix Vm Vm ℝ) (Pp : Matrix Vp Vp ℝ)
     (hAL : Pm * A = A) (hCR : C * Pp = C) (hPp : Ppᵀ = Pp) :
     (fromBlocks Pm (0 : Matrix Vm Vp ℝ) (0 : Matrix Vp Vm ℝ) Pp :
@@ -162,25 +218,49 @@ lemma diag_mul_oddEvenMap (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
       Matrix.zero_apply, zero_mul, Finset.sum_const_zero, zero_add]
     simpa [Matrix.mul_apply] using congrFun (congrFun hC c) j
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- `diracProjector^2 = diag(P_{k-1}, P_k, P_{k+1}) = diracProjectorAbs` (paper Eq. (16)). -/
-lemma diracProjector_sq (Pm : Matrix Vm Vm ℝ) (P0 : Matrix V0 V0 ℝ) (Pp : Matrix Vp Vp ℝ)
+lemma diracProjector_sq {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (Pm : Matrix Vm Vm ℝ) (P0 : Matrix V0 V0 ℝ) (Pp : Matrix Vp Vp ℝ)
     (hPm : Pm * Pm = Pm) (hP0 : P0 * P0 = P0) (hPp : Pp * Pp = Pp) :
     diracProjector Pm P0 Pp * diracProjector Pm P0 Pp = diracProjectorAbs Pm P0 Pp := by
   unfold diracProjector diracProjectorAbs
   rw [fromBlocks_multiply, fromBlocks_multiply]
-  simp only [Matrix.mul_zero, Matrix.zero_mul, mul_zero, zero_mul, add_zero, zero_add]
+  simp only [Matrix.mul_zero, Matrix.zero_mul, add_zero, zero_add]
   rw [neg_mul_neg, hPm, hPp, hP0]
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- The signed projector is symmetric. -/
-lemma diracProjector_transpose (Pm : Matrix Vm Vm ℝ) (P0 : Matrix V0 V0 ℝ)
+lemma diracProjector_transpose {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (Pm : Matrix Vm Vm ℝ) (P0 : Matrix V0 V0 ℝ)
     (Pp : Matrix Vp Vp ℝ) (hPm : Pmᵀ = Pm) (hP0 : P0ᵀ = P0) (hPp : Ppᵀ = Pp) :
     (diracProjector Pm P0 Pp)ᵀ = diracProjector Pm P0 Pp := by
   unfold diracProjector
   rw [fromBlocks_transpose, fromBlocks_transpose]
   simp [hPm, hP0, hPp, transpose_neg]
 
+omit [Fintype Vm] [Fintype V0] [Fintype Vp] [DecidableEq Vm] [DecidableEq V0] [DecidableEq Vp] in
 /-- The off-diagonal Dirac block is symmetric (`B_k` is self-adjoint). -/
-lemma diracOddEven_transpose (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) :
+lemma diracOddEven_transpose {Vm V0 Vp : Type*}
+    [_instFintypeVm : Fintype Vm]
+    [_instFintypeV0 : Fintype V0]
+    [_instFintypeVp : Fintype Vp]
+    [_instDecidableEqVm : DecidableEq Vm]
+    [_instDecidableEqV0 : DecidableEq V0]
+    [_instDecidableEqVp : DecidableEq Vp]
+    (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) :
     (diracOddEven A C)ᵀ = diracOddEven A C := by
   unfold diracOddEven
   rw [fromBlocks_transpose]
@@ -192,7 +272,7 @@ lemma diracOddEven_sq (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ) :
       fromBlocks (oddEvenMap A C * (oddEvenMap A C)ᵀ) 0 0 (persistentLaplacian A C) := by
   unfold diracOddEven persistentLaplacian
   rw [fromBlocks_multiply]
-  simp only [Matrix.mul_zero, Matrix.zero_mul, mul_zero, zero_mul, add_zero, zero_add]
+  simp only [Matrix.mul_zero, Matrix.zero_mul, mul_zero, add_zero, zero_add]
   rw [oddEvenMap_transpose_mul_self]
 
 /-- The cross term `D . diag(P,-P,P) + diag(P,-P,P) . D` vanishes: compression of the
@@ -251,7 +331,7 @@ theorem persistentDiracOperator_sq (A : Matrix Vm V0 ℝ) (C : Matrix V0 Vp ℝ)
     simp only [sub_mul, mul_sub, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
     abel
   rw [hsq, sub_sub, hz]
-  simp only [sub_zero, zero_add]
+  simp only [sub_zero]
   rw [diracProjector_sq Pm P0 Pp hPm hP0 hPp, diracOddEven_sq]
   unfold diracProjectorAbs
   rw [fromBlocks_smul, fromBlocks_add]

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.HardBornChi
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliInvolution
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliScoreEquality
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.HardBornChi
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliInvolution
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliScoreEquality
+
+@[expose] public section
 
 /-!
 # Born chi-square identities for Pauli hard states

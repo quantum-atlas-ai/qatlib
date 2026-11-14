@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+
+@[expose] public section
 
 /-!
 # Trace and bilinear-form estimation consumers
@@ -103,13 +107,13 @@ theorem sqMatrix_sampler_factorization {n : ℕ} (a : FiniteSQInput (Fin n × Fi
   have hcolsum : ∀ i, ∑ j, sqMatrixColumnProbability a i j = 1 := by
     intro i
     by_cases hi : sqMatrixRowProbability a i = 0
-    · simp only [sqMatrixColumnProbability, if_pos hi]
+    · simp only [sqMatrixColumnProbability, ite_eq_left hi]
       have hj : ∀ j : Fin n, j.val = 0 ↔ j = j0 := by
         intro j
         simpa only [j0] using! (Fin.ext_iff (a := j) (b := j0)).symm
       simp_rw [hj]
       simp
-    · simp only [sqMatrixColumnProbability, if_neg hi]
+    · simp only [sqMatrixColumnProbability, ite_eq_right hi]
       rw [← Finset.sum_div]
       exact div_self hi
   let cols : Fin n → FinDist (Fin n) := fun i =>

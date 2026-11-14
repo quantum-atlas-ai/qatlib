@@ -97,3 +97,6 @@ jobs:
             check_range HEAD^
           fi
           lake lint
+
+      - name: Check documentation snapshot regressions
+        run: python3 scripts/test_docs_pipeline.py

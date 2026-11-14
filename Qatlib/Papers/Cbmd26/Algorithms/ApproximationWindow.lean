@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationJackson
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationAmplifier
-import Mathlib.Topology.MetricSpace.Lipschitz
-import Mathlib.Algebra.Order.Floor.Semiring
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationJackson
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationAmplifier
+public import Mathlib.Topology.MetricSpace.Lipschitz
+public import Mathlib.Algebra.Order.Floor.Semiring
+
+@[expose] public section
 
 /-!
 # Bounded polynomial windows across a spectral gap

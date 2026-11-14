@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+module
+
+public import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+
+@[expose] public section
 
 /-!
 # Restricted sparse-walk eigenphase decomposition
@@ -44,6 +48,7 @@ section Aux
 
 variable {W : Type} [Fintype W] [DecidableEq W]
 
+omit [DecidableEq W] in
 /-- The conjugate dot product of a finite complex vector with itself equals the complex cast of
 the sum of its squared coordinate norms. -/
 private theorem lcStarDot_self_eq (u : W → ℂ) :
@@ -51,6 +56,7 @@ private theorem lcStarDot_self_eq (u : W → ℂ) :
   rw [show star u ⬝ᵥ u = Qatlib.Foundations.PureStateMath.Inner u u from rfl, Qatlib.Foundations.PureStateMath.inner_self,
     Complex.ofReal_sum]
 
+omit [DecidableEq W] in
 /-- A finite complex vector whose conjugate dot product with itself is zero is the zero vector. -/
 private theorem lcStarDot_eq_zero (f : W → ℂ) (h : star f ⬝ᵥ f = 0) : f = 0 := by
   rw [lcStarDot_self_eq] at h

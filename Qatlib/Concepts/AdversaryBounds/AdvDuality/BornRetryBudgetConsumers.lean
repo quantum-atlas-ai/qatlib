@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RetryBudgetCoupling
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RetryBudgetCoupling
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+
+@[expose] public section
 
 /-!
 # Born-measurement retries and finite-budget costs
@@ -119,8 +123,8 @@ theorem bornRetry_perform_true (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup 
     simp only [d, bornDistribution_apply, hps]
   change (d.map bornRetryLabel) (some true) = _
   rw [pmf_map_apply_eq, tsum_fintype, Fin.sum_univ_two]
-  rw [bornRetryLabel_zero, PMF.pure_apply, if_neg (by simp), mul_zero]
-  rw [bornRetryLabel_one, PMF.pure_apply, if_pos rfl, mul_one, h1, zero_add]
+  rw [bornRetryLabel_zero, PMF.pure_apply, ite_eq_right (by simp), mul_zero]
+  rw [bornRetryLabel_one, PMF.pure_apply, ite_eq_left rfl, mul_one, h1, zero_add]
 
 /-- A Born retry trial assigns zero mass to `some false`. -/
 theorem bornRetry_perform_false (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
@@ -129,8 +133,8 @@ theorem bornRetry_perform_false (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup
     (normalized_applyGate hU (normalized_ket (0 : Fin 2)))
   change (d.map bornRetryLabel) (some false) = 0
   rw [pmf_map_apply_eq, tsum_fintype, Fin.sum_univ_two]
-  rw [bornRetryLabel_zero, PMF.pure_apply, if_neg (by decide), mul_zero,
-    bornRetryLabel_one, PMF.pure_apply, if_neg (by decide), mul_zero]
+  rw [bornRetryLabel_zero, PMF.pure_apply, ite_eq_right (by decide), mul_zero,
+    bornRetryLabel_one, PMF.pure_apply, ite_eq_right (by decide), mul_zero]
   simp
 
 /-- The two Born probabilities of a normalized two-dimensional state sum to one. -/
@@ -156,8 +160,8 @@ theorem bornRetry_perform_none (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup 
     simp only [d, bornDistribution_apply, hsplit, hps]
   change (d.map bornRetryLabel) (none) = _
   rw [pmf_map_apply_eq, tsum_fintype, Fin.sum_univ_two]
-  rw [bornRetryLabel_zero, PMF.pure_apply, if_pos rfl, mul_one]
-  rw [bornRetryLabel_one, PMF.pure_apply, if_neg (by simp), mul_zero]
+  rw [bornRetryLabel_zero, PMF.pure_apply, ite_eq_left rfl, mul_one]
+  rw [bornRetryLabel_one, PMF.pure_apply, ite_eq_right (by simp), mul_zero]
   rw [add_zero, h0]
 
 /-- Adding one to `r` times the first `n` powers of `r` gives the sum of the first `n + 1`
@@ -258,8 +262,8 @@ theorem bornRetry_eval (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
                     (bornRetry U hU).eval B () (fun a _ => if a then 1 else 0) (fun _ => 0))
           else 0)
       = 1 - (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) ^ (B + 1)
-    rw [if_pos (by rw [hcost]; omega)]
-    simp only [Fintype.sum_option, Fintype.sum_bool, reduceIte, Bool.false_eq_true, if_false,
+    rw [ite_eq_left (by rw [hcost]; omega)]
+    simp only [Fintype.sum_option, Fintype.sum_bool, reduceIte, Bool.false_eq_true, ite_false,
       mul_zero, add_zero]
     rw [bornRetry_perform_true U hU, bornRetry_perform_none U hU]
     have hp : 0 ≤ MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1} :=
@@ -274,7 +278,7 @@ theorem bornRetry_eval (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
     simp only [ENNReal.toReal_ofReal hp, ENNReal.toReal_ofReal h0]
     have hchoose : (((bornRetry U hU).choose () () : ℝ≥0∞)).toReal = 1 := by
       show ((PMF.pure () : PMF Unit) () : ℝ≥0∞).toReal = 1
-      rw [PMF.pure_apply, if_pos rfl, ENNReal.toReal_one]
+      rw [PMF.pure_apply, ite_eq_left rfl, ENNReal.toReal_one]
     simp only [hchoose, one_mul, mul_one]
     rw [ih]
     have h1 : (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1})
@@ -299,7 +303,7 @@ theorem bornRetry_run_succ (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin
   rw [PlannedRetry.run]
   have h1 : (bornRetry U hU).choose () = (PMF.pure () : PMF ((bornRetry U hU).Plan ())) := rfl
   rw [h1, PMF.pure_bind]
-  simp only [show ((bornRetry U hU).cost () () : ℕ) = 1 from rfl, dif_pos hB]
+  simp only [show ((bornRetry U hU).cost () () : ℕ) = 1 from rfl, dite_eq_left hB]
   apply congrArg (fun (g : Option Bool → PMF (Option Bool × ℕ)) =>
     PMF.bind ((bornRetry U hU).perform () ()) g)
   funext o
@@ -387,7 +391,7 @@ theorem bornRetry_cost (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
       have hc := tsum_eq_single_of _ _ (fun a ha => by
         show ((PMF.pure (some true, B) : PMF (Option Bool × ℕ))) a
             * ((B + 1 - a.2 : ℕ) : ℝ≥0∞) = 0
-        rw [PMF.pure_apply, if_neg ha]
+        rw [PMF.pure_apply, ite_eq_right ha]
         simp)
       rw [hc]
       simp
@@ -400,7 +404,7 @@ theorem bornRetry_cost (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
       have hc := tsum_eq_single_of _ _ (fun a ha => by
         show ((PMF.pure (some false, B) : PMF (Option Bool × ℕ))) a
             * ((B + 1 - a.2 : ℕ) : ℝ≥0∞) = 0
-        rw [PMF.pure_apply, if_neg ha]
+        rw [PMF.pure_apply, ite_eq_right ha]
         simp)
       rw [hc]
       simp
@@ -514,7 +518,7 @@ theorem geom_half_sum_le_two (n : ℕ) :
 
 /-- For `B ≤ C`, Hadamard-based retries have true-success mass `1 - (1/2)^B` with budget `B` and
 expected cost at most two with budget `C`. -/
-theorem born_retry_hadamard_budget_consumer (B C : ℕ) (hBC : B ≤ C) :
+theorem born_retry_hadamard_budget_consumer (B C : ℕ) (_hBC : B ≤ C) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
         ((bornRetry (relabelGate boolEquivFin2 Hadamard)
           (relabelGate_unitary boolEquivFin2 hadamard_unitary)).run B ())

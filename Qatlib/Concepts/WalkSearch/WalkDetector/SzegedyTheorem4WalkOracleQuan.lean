@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleStat
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleStat
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+@[expose] public section
 
 /-!
 # Unitary extension of the Szegedy isometry
@@ -41,12 +45,13 @@ theorem szegedyTheorem4WalkOracle : SzegedyTheorem4WalkOracle := by
   let e : I ↪ I × I := ⟨fun i => (i, j), fun _ _ h => congrArg Prod.fst h⟩
   let v : I × I → EuclideanSpace ℂ (I × I) := fun p =>
     WithLp.toLp 2 (fun x => SzegedyIsometry P x p.1)
-  have hv : Orthonormal ℂ ((Set.range e).restrict v) := by
+  have hv : Orthonormal ℂ ((Set.range e).domRestrict v) := by
     rw [orthonormal_iff_ite]
     intro ⟨x, hx⟩ ⟨y, hy⟩
     obtain ⟨a, rfl⟩ := hx
     obtain ⟨b, rfl⟩ := hy
-    dsimp only [Set.restrict]; rw [EuclideanSpace.inner_eq_star_dotProduct]
+    simp only [Set.domRestrict, Subtype.ext_iff, e.injective.eq_iff]
+    rw [EuclideanSpace.inner_eq_star_dotProduct]
     have hab := congrArg (fun M : Matrix I I ℂ => M a b)
       (szegedyIsometry_conjTranspose_mul P hP)
     simpa [e, v, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply,

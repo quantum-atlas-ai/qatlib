@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SignedWtEnum99.MainResults.Readout
-import Qatlib.Papers.SignedWtEnum99.MainResults.Factorization
+module
+
+public import Qatlib.Papers.SignedWtEnum99.MainResults.Readout
+public import Qatlib.Papers.SignedWtEnum99.MainResults.Factorization
+
+@[expose] public section
 
 /-!
 # Pauli product expansions and signed weight enumerators
@@ -61,8 +65,8 @@ lemma triForm_eq_quadForm {N : ℕ} (b : Fin N → PV n) (a : Fin N → ZMod 2) 
   apply Finset.sum_congr rfl
   intro k _
   by_cases h : k < j
-  · simp only [h, if_true]; ring
-  · simp only [h, if_false]; ring
+  · simp only [h, ite_true]; ring
+  · simp only [h, ite_false]; ring
 
 /-- The Hamming weight of a binary vector of length `N` is at most `N`. -/
 lemma bitWeight_le {N : ℕ} (a : Fin N → ZMod 2) : bitWeight a ≤ N := by
@@ -110,7 +114,7 @@ lemma triForm_inner_castSucc {N : ℕ} (b : Fin (N + 1) → PV n) (a : Fin N →
   have hlast : ¬ (Fin.last N < j.castSucc) := by
     simp only [Fin.lt_def, Fin.val_last, Fin.val_castSucc]
     omega
-  simp only [hlast, if_false, add_zero, Fin.castSucc_lt_castSucc_iff,
+  simp only [hlast, ite_false, add_zero, Fin.castSucc_lt_castSucc_iff,
     Fin.snoc_castSucc (α := fun _ : Fin (N + 1) => ZMod 2)]
 
 /-- The last row of the triangular phase is the last bit times its bilinear pairing sum with the
@@ -127,10 +131,10 @@ lemma triForm_inner_last {N : ℕ} (b : Fin (N + 1) → PV n) (a : Fin N → ZMo
   have hlastlast : ¬ (Fin.last N < Fin.last N) := by
     simp only [Fin.lt_def]
     omega
-  simp only [hlastlast, if_false, add_zero,
+  simp only [hlastlast, ite_false, add_zero,
     Fin.snoc_castSucc (α := fun _ : Fin (N + 1) => ZMod 2),
     Fin.snoc_last (α := fun _ : Fin (N + 1) => ZMod 2),
-    Fin.castSucc_lt_last, if_true, Finset.mul_sum]
+    Fin.castSucc_lt_last, ite_true, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro k _
   ring
@@ -424,9 +428,9 @@ theorem gateProd_vacuum {n : ℕ} (N : ℕ) (b : Fin N → PV n) :
     apply Finset.sum_congr rfl
     intro a _
     by_cases h : xpart (pauliSum b a) = 0
-    · rw [if_pos h, if_pos ((xpart_pauliSum_eq_zero_iff b a).mp h),
+    · rw [ite_eq_left h, ite_eq_left ((xpart_pauliSum_eq_zero_iff b a).mp h),
         yWeight_pauliSum_eq_zero_of_xpart_eq_zero h, pow_zero, one_mul]
-    · rw [if_neg h, if_neg (fun hh => h ((xpart_pauliSum_eq_zero_iff b a).mpr hh))]
+    · rw [ite_eq_right h, ite_eq_right (fun hh => h ((xpart_pauliSum_eq_zero_iff b a).mpr hh))]
   rw [hsum]
 
 /-- The complex sign `sgn z` equals the integer sign `sgnZ z` cast to the complex numbers. -/
@@ -455,8 +459,8 @@ theorem gateProd_vacuum_eq_qsen {n : ℕ} (N : ℕ) (b : Fin N → PV n) :
     apply Finset.sum_congr rfl
     intro a _
     by_cases h : (oddRows b).mulVec a = 0
-    · rw [if_pos h, if_pos h, coef_eq_qsen_term]
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h, coef_eq_qsen_term]
+    · rw [ite_eq_right h, ite_eq_right h]
   rw [hcast]
 
 /-- The trace of the gate product equals `2 ^ n * 5⁻ᴺ` times the two-constraint signed
@@ -474,8 +478,8 @@ theorem trace_gateProd_eq_qsen2 {n : ℕ} (N : ℕ) (b : Fin N → PV n) :
     intro a _
     simp only [Matrix.trace_smul, smul_eq_mul, trace_sMat]
     by_cases h : pauliSum b a = 0
-    · rw [if_pos h, if_pos h, mul_comm]
-    · rw [if_neg h, if_neg h, mul_zero, mul_zero]
+    · rw [ite_eq_left h, ite_eq_left h, mul_comm]
+    · rw [ite_eq_right h, ite_eq_right h, mul_zero, mul_zero]
   rw [htrace]
   have hq : ((qsen2 (oddRows b) (evenRows b) (lwtr (gram b)) 3 4 : ℤ) : ℂ)
       = ∑ a : Fin N → ZMod 2, if pauliSum b a = 0 then coef b a else 0 := by
@@ -488,10 +492,10 @@ theorem trace_gateProd_eq_qsen2 {n : ℕ} (N : ℕ) (b : Fin N → PV n) :
         ((pauliSum_eq_zero_iff b a).mp h).1
       have h2 : (oddRows b).mulVec a = 0 :=
         ((pauliSum_eq_zero_iff b a).mp h).2
-      rw [if_pos ⟨h2, h1⟩, if_pos h, coef_eq_qsen_term]
+      rw [ite_eq_left ⟨h2, h1⟩, ite_eq_left h, coef_eq_qsen_term]
     · have h' : ¬ ((oddRows b).mulVec a = 0 ∧ (evenRows b).mulVec a = 0) :=
         fun hh => h ((pauliSum_eq_zero_iff b a).mpr ⟨hh.2, hh.1⟩)
-      rw [if_neg h', if_neg h]
+      rw [ite_eq_right h', ite_eq_right h]
   rw [hq]
   ring
 

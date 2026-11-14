@@ -4,8 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
+
+@[expose] public section
+set_option linter.unusedTactic false
+set_option linter.unnecessarySimpa false
 
 /-!
 # Polynomial transport and rectangle approximation bounds

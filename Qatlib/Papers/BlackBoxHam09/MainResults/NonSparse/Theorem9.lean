@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Theorem 9 break norm query estimates
@@ -49,7 +53,7 @@ theorem logSafe_pos (D : ℕ) : 0 < logSafe D := by
 
 /-- For `L ≥ 1` and positive `δ`, the product `L * sqrt (L ^ (3 / 2) / δ)` equals `L ^ (7 / 4) /
 sqrt δ`. See [Berry and Childs, Theorem 9][BerryChilds2012]. -/
-theorem theorem9_query_composition {L : ℕ} {δ : ℝ} (hL : 1 ≤ L) (hδ : 0 < δ) :
+theorem theorem9_query_composition {L : ℕ} {δ : ℝ} (hL : 1 ≤ L) (_hδ : 0 < δ) :
     (L : ℝ) * Real.sqrt ((L : ℝ) ^ (3 / 2 : ℝ) / δ) =
       Real.rpow (L : ℝ) (7 / 4) / Real.sqrt δ := by
   have hLpos : (0 : ℝ) < (L : ℝ) := Nat.cast_pos.mpr (by omega)
@@ -82,9 +86,15 @@ theorem theorem9QueryExpr_pos {Λ Υ t δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ) (ht
     Real.rpow_pos_of_pos (mul_pos hΛ ht) _
   positivity
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- An upper bound `Υ` on the black box Hamiltonian's break norm is at least one. See [Berry and
 Childs, Theorem 9][BerryChilds2012]. -/
-theorem theorem9_break_ge_one (BB : BlackBox ι D L) {Υ : ℝ}
+theorem theorem9_break_ge_one {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ} (BB : BlackBox ι D L) {Υ : ℝ}
     (hbreak : breakNorm BB.H ≤ Υ) : 1 ≤ Υ :=
   le_trans (breakNorm_ge_one BB.H) hbreak
 
@@ -133,7 +143,7 @@ theorem theorem9_query_mono_delta {Λ Υ t δ δ' : ℝ} (hD : 0 < D) (hΛ : 0 <
 /-- For positive `D`, `Λ`, `t`, and `δ`, increasing time increases the Theorem 9 query
 expression weakly. -/
 theorem theorem9_query_mono_time {Λ t t' Υ δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ)
-    (ht : 0 < t) (htt : t ≤ t') (hδ : 0 < δ) :
+    (ht : 0 < t) (htt : t ≤ t') (_hδ : 0 < δ) :
     theorem9QueryExpr Λ Υ D t δ ≤ theorem9QueryExpr Λ Υ D t' δ := by
   unfold theorem9QueryExpr
   have hDpos : (0 : ℝ) < (D : ℝ) := Nat.cast_pos.mpr hD
@@ -153,13 +163,13 @@ simulation witness to budget `c * theorem9QueryExpr`, matching the bound form of
 in [BerryChilds2012]. -/
 theorem theorem9_break_query_complexity
     (BB : BlackBox ι D L) {Λ Υ t δ : ℝ}
-    (hsp : IsColumnSparse BB.H D) (hD : 0 < D)
-    (hΛ : spectralNorm BB.H ≤ Λ) (hΛ0 : 0 < Λ)
-    (hbreak : breakNorm BB.H ≤ Υ) (hΥD : Υ ≤ (D : ℝ))
-    (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (ht : 0 < t)
-    (hcond1 : Real.sqrt δ < Λ * t)
-    (hcond2 : Λ * t < δ * (D : ℝ))
-    {c q : ℝ} (hc : 0 < c) (hΥpos : 0 < Υ)
+    (_hsp : IsColumnSparse BB.H D) (hD : 0 < D)
+    (_hΛ : spectralNorm BB.H ≤ Λ) (hΛ0 : 0 < Λ)
+    (hbreak : breakNorm BB.H ≤ Υ) (_hΥD : Υ ≤ (D : ℝ))
+    (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (ht : 0 < t)
+    (_hcond1 : Real.sqrt δ < Λ * t)
+    (_hcond2 : Λ * t < δ * (D : ℝ))
+    {c q : ℝ} (_hc : 0 < c) (hΥpos : 0 < Υ)
     (hsim : SimulableWithin BB t δ q)
     (hq : q ≤ c * theorem9QueryExpr Λ Υ D t δ) :
     0 < theorem9QueryExpr Λ Υ D t δ ∧ 1 ≤ Υ ∧

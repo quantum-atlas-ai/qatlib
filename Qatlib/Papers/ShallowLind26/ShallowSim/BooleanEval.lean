@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Bool.Basic
-import Mathlib.Logic.Function.Basic
+module
+
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Bool.Basic
+public import Mathlib.Logic.Function.Basic
+
+@[expose] public section
 
 /-!
 # Coherent Boolean evaluation (Lemma 5.3)

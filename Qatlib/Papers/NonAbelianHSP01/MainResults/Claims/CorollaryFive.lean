@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
-import Mathlib.GroupTheory.PresentedGroup
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+public import Mathlib.GroupTheory.PresentedGroup
+
+@[expose] public section
 
 /-!
 # Finite group task feasibility

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+module
+
+public import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+
+@[expose] public section
 
 /-!
 # Unitary basis measurements and exact decoding

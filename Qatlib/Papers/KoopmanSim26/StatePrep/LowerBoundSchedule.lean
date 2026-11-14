@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.StatePrep.ObservablePreparation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.KoopmanSim26.StatePrep.ObservablePreparation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Randomized preparation from a probability lower bound
@@ -144,7 +148,7 @@ theorem success_formula {I : Type} [Fintype I] [DecidableEq I]
       (1/2)*((∑ i : Fin M, MeasureProb
         (Run (preparedMark S) (preparedAACircuit A j i.val) (Ket j)) S)/(M:ℝ)) := by
   simp only [success, Fintype.sum_prod_type, Fintype.sum_bool, runState, chosenRound,
-    Bool.false_eq_true, if_false, if_true]
+    Bool.false_eq_true, ite_false, ite_true]
   have hzero : Run (preparedMark S) (preparedAACircuit A j 0) (Ket j) = preparedAAState A j := by
     simp [preparedAACircuit, preparedAAState, RepeatCircuit]
   simp_rw [hzero]
@@ -293,7 +297,7 @@ theorem aa_good_span {I : Type} [Fintype I] [DecidableEq I]
     refine ⟨((Real.sin ((2*(k:ℝ)+1)*θ) / Real.sin θ : ℝ) : ℂ), ?_⟩
     ext i
     by_cases hi : i ∈ S
-    · simpa only [collapse_apply, hi, if_true, Pi.smul_apply, smul_eq_mul] using!
+    · simpa only [collapse_apply, hi, ite_true, Pi.smul_apply, smul_eq_mul] using!
         actual_marked_amplitude A j S θ k hA hθ0 hθ1 hmass i hi
     · simp [collapse_apply, hi]
   · have hpEq : MeasureProb (preparedAAState A j) S = 1 := le_antisymm hp1 (le_of_not_gt hp)
@@ -322,7 +326,7 @@ theorem amplified_index_span {n m : ℕ} (b : Reg n → Reg m) (value : Reg m �
   ext j
   have hi : (j,(ZeroStr m,false)) ∈ goodSet n m := by simp [goodSet]
   have hcoord := congrFun hz (j,(ZeroStr m,false))
-  simp only [collapse_apply, hi, if_true, Pi.smul_apply, smul_eq_mul] at hcoord
+  simp only [collapse_apply, hi, ite_true, Pi.smul_apply, smul_eq_mul] at hcoord
   rw [hcoord]
   change z * (preparation b value G *ᵥ Ket (seed n m)) (j,(ZeroStr m,false)) =
     (z*(Real.sqrt p : ℂ)) * ((preparation b value G *ᵥ Ket (seed n m))

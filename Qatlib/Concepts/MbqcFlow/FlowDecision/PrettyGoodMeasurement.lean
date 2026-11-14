@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementFrame
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementFrame
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+@[expose] public section
 
 /-!
 # Pretty-good measurement from a matrix frame
@@ -85,7 +89,7 @@ support effect. -/
 noncomputable def prettyGoodPOVM (W : Matrix (Fin D) I ℂ) :
     POVM (Option I) (Fin D) where
   mats := prettyGoodEffect W
-  nonneg := pretty_good_effect_nonneg W
-  normalized := pretty_good_effect_sum W
+  nonneg := by exact pretty_good_effect_nonneg W
+  normalized := by exact pretty_good_effect_sum W
 
 end Qatlib.Concepts.MbqcFlow.FlowDecision

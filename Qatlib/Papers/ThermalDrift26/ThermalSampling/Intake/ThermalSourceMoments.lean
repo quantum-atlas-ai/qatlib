@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+
+@[expose] public section
 
 /-!
 # Thermal Source Sign Laws and Moments

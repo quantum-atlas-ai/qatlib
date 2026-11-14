@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
-import Mathlib.Algebra.Polynomial.Derivative
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
+public import Mathlib.Algebra.Polynomial.Derivative
+
+@[expose] public section
 
 /-!
 # Formal matrix logarithms of exponential words

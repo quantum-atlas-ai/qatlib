@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
+
+@[expose] public section
 
 /-!
 # The tetrahedral qubit shadow instrument
@@ -380,14 +384,14 @@ theorem tetrahedral_trace_col (ρ : Operator 2) (j : Fin 3) :
       have h0 : ∀ k : Fin 3, k ≠ j → ((if k = j then ((2 / Real.sqrt 3 : ℝ) : ℂ)
             • Matrix.trace (pauliMatrix k * ρ) else 0) = 0) := by
         intro k hkj
-        rw [if_neg hkj]
+        rw [ite_eq_right hkj]
       simp only [Finset.sum_eq_single j (fun k _ hkj => h0 k hkj)
-        (fun h => (h (Finset.mem_univ _)).elim), if_true]
+        (fun h => (h (Finset.mem_univ _)).elim), ite_true]
     rw [hsplitrhs]
     refine Finset.sum_congr rfl fun k _ => ?_
     by_cases hkj : k = j
-    · rw [if_pos hkj, tetraSigns_frame k j, if_pos hkj, smul_eq_mul, ← mul_assoc, hscal4]
-    · rw [if_neg hkj, tetraSigns_frame k j, if_neg hkj]
+    · rw [ite_eq_left hkj, tetraSigns_frame k j, ite_eq_left hkj, smul_eq_mul, ← mul_assoc, hscal4]
+    · rw [ite_eq_right hkj, tetraSigns_frame k j, ite_eq_right hkj]
       simp
   rw [hrowC]
   simp only [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]

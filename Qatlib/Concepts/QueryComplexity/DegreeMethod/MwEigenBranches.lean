@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualProjectors
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualProjectors
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Eigenvector branches for alternating projectors
@@ -46,6 +50,7 @@ open scoped Classical BigOperators
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+omit [DecidableEq H] in
 /-- The real part of a state vector's self-inner-product equals its total measurement mass. -/
 theorem inner_self_re_mass (ψ : QState H) :
     (Inner ψ ψ).re = MeasureProb ψ Finset.univ := by

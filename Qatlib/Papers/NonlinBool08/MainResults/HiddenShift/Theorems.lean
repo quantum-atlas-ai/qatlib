@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
-import Qatlib.Papers.NonlinBool08.MainResults.AffineTransform
-import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+public import Qatlib.Papers.NonlinBool08.MainResults.AffineTransform
+public import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
+
+@[expose] public section
 
 /-!
 # Bent hidden-shift identities and decoding
@@ -87,7 +91,7 @@ theorem hidesShift_unique {n : ℕ} {f g : BVec n → ZMod 2} {s s' : BVec n}
     intro x
     rw [hper x, add_self_zmod2, eps_zero]
   have hac := bent_autocorrelation hf (s + s')
-  rw [if_neg hne0] at hac
+  rw [ite_eq_right hne0] at hac
   have hsum : (∑ x : BVec n, eps (f x + f (x + (s + s')))) = (2 : ℤ) ^ n := by
     rw [show (∑ x : BVec n, eps (f x + f (x + (s + s'))))
         = ∑ _x : BVec n, (1 : ℤ) from
@@ -143,9 +147,9 @@ theorem finalAmp_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
     _ = (2 : ℤ) ^ (n / 2) * (if u = s then (2 : ℤ) ^ n else 0) := by
         congr 1
         by_cases h : u = s
-        · rw [if_pos h]
-          rw [if_pos (by simpa [h] using BentCore.add_self_bvec s)]
-        · rw [if_neg h, if_neg]
+        · rw [ite_eq_left h]
+          rw [ite_eq_left (by simpa [h] using BentCore.add_self_bvec s)]
+        · rw [ite_eq_right h, ite_eq_right]
           intro h0
           exact h ((add_eq_zero_iff_eq_bvec u s).mp h0)
 
@@ -168,7 +172,7 @@ theorem exists_isDual_of_bent {n : ℕ} {f : BVec n → ZMod 2}
   rcases hpm w with h | h
   · show walsh f w
       = (2 : ℤ) ^ (n / 2) * eps (if walsh f w = (2 : ℤ) ^ (n / 2) then 0 else 1)
-    rw [if_pos h, eps_zero, mul_one]
+    rw [ite_eq_left h, eps_zero, mul_one]
     exact h
   · have hne : walsh f w ≠ (2 : ℤ) ^ (n / 2) := by
       intro heq
@@ -178,7 +182,7 @@ theorem exists_isDual_of_bent {n : ℕ} {f : BVec n → ZMod 2}
       exact ha hzero
     show walsh f w
       = (2 : ℤ) ^ (n / 2) * eps (if walsh f w = (2 : ℤ) ^ (n / 2) then 0 else 1)
-    rw [if_neg hne, eps_one, h]
+    rw [ite_eq_right hne, eps_one, h]
     ring
 
 /-- Chooses an input with nonzero final amplitude, returning zero if no such input exists. -/
@@ -192,15 +196,15 @@ theorem decode_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
     decode ft g = s := by
   classical
   have hpos : finalAmp ft g s ≠ 0 := by
-    rw [finalAmp_eq hd hg hn s, if_pos rfl]
+    rw [finalAmp_eq hd hg hn s, ite_eq_left rfl]
     exact mul_ne_zero (pow_ne_zero _ (by norm_num)) (pow_ne_zero _ (by norm_num))
   have hex : ∃ u : BVec n, finalAmp ft g u ≠ 0 := ⟨s, hpos⟩
   unfold decode
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   have hprop : ∀ u : BVec n, finalAmp ft g u ≠ 0 → u = s := by
     intro u hu
     by_contra hne
-    exact hu (by rw [finalAmp_eq hd hg hn u, if_neg hne, mul_zero])
+    exact hu (by rw [finalAmp_eq hd hg hn u, ite_eq_right hne, mul_zero])
   exact hprop _ (Classical.choose_spec hex)
 
 /-- The cross-correlation of translated sign vectors of a bent function and its shift is `2 ^ n`

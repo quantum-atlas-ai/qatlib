@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbForms
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbForms
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Matrix amplification identities for tensor forms
@@ -263,6 +267,7 @@ theorem cbSlot_last (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) 
     cbSlot W δ z (Fin.last s) = W (Fin.last s) := by
   rw [cbSlot, dite_eq_right (by simp)]
 
+omit [Fintype κ] in
 /-- The matrix sandwich equals the ordered product of all its slots. -/
 theorem cbSandwichMatrix_eq (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (z : Fin s → κ → ℂ) :
@@ -284,6 +289,7 @@ def cbPathVal (W : Fin (s + 1) → Matrix R R ℂ) (u v : QState R) (r : Fin (s 
 def cbPattern (δ : R → Option κ) (r : Fin (s + 2) → R) : Fin s → Option κ :=
   fun j => δ (r j.castSucc.succ)
 
+omit [Fintype κ] in
 /-- Expand a matrix sandwich into a sum of path coefficients times their diagonal substitution
 products. -/
 theorem cbSandwich_eq_sum (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
@@ -564,6 +570,7 @@ theorem l2_opNorm_matProdFin_le {k : ℕ} (M : Fin k → Matrix m m ℂ) :
     refine le_trans (l2_opNorm_mul _ _) ?_
     exact mul_le_mul (le_refl _) (ih (Fin.tail M)) (norm_nonneg _) (norm_nonneg _)
 
+omit [DecidableEq m] in
 /-- The inner product is additive over a finite sum in its second argument. -/
 theorem inner_sum_right {ι : Type} [Fintype ι] (ξ : QState m) (w : ι → QState m) :
     Inner ξ (∑ i, w i) = ∑ i, Inner ξ (w i) := by
@@ -636,6 +643,7 @@ theorem cbBigD_mulVec_apply {d : ℕ} (δ : R → Option κ)
     · simp [hq]
   rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ _)]
 
+omit [Fintype κ] in
 /-- If all coordinate matrices in a slot are contractions, the corresponding block diagonal
 matrix has operator norm at most one. -/
 theorem cbBigD_norm_le {d : ℕ} (δ : R → Option κ)
@@ -724,6 +732,7 @@ noncomputable def cbNbig {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R 
   if h : (j : ℕ) < s then cbBigW (W ⟨j, by omega⟩) * cbBigD δ B ⟨j, h⟩
   else cbBigW (W ⟨j, by omega⟩)
 
+omit [Fintype κ] in
 /-- An initial amplified sandwich factor has entries equal to a matrix entry times the
 appropriate coordinate block entry. -/
 theorem cbNbig_castSucc {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
@@ -742,6 +751,7 @@ theorem cbNbig_last {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → O
     cbNbig W δ B (Fin.last s) x y = if x.2 = y.2 then W (Fin.last s) x.1 y.1 else 0 := by
   rw [cbNbig, dite_eq_right (by simp), cbBigW_apply]
 
+omit [Fintype κ] in
 /-- If every matrix and coordinate substitution is a contraction, each amplified sandwich factor
 has operator norm at most one. -/
 theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
@@ -761,6 +771,7 @@ theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R �
     calc ‖cbBigW (W ⟨j, by omega⟩)‖ ≤ ‖W ⟨j, by omega⟩‖ := cbBigW_norm_le
       _ ≤ 1 := hW _
 
+omit [Fintype κ] in
 /-- If all matrices and coordinate substitutions are contractions, their amplified sandwich
 product has operator norm at most one. -/
 theorem cbNbig_prod_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)

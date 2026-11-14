@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorMeanSign
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ReferenceMeanLiftInvariant
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorMeanSign
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ReferenceMeanLiftInvariant
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,7 +85,7 @@ theorem floorSourceReferenceMean_floor (a : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1/1
   by_cases hz : a=0
   · subst a
     simp only [ite_true,floorMeanCandidate_floor_zero]
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     exact floorMeanCandidate_floor_of_pos a (lt_of_le_of_ne ha (Ne.symm hz)) ha1
 
 end Qatlib.Concepts.EffectiveGauge.CodedFloor

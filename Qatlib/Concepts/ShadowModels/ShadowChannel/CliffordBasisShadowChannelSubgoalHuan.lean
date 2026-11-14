@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalStat
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
-import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalStat
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+
+@[expose] public section
 
 /-!
 # Clifford basis shadow channel identities

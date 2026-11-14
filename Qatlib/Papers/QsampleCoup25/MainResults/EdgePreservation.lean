@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QsampleCoup25.MainResults.EdgeLaplacian
+module
+
+public import Qatlib.Papers.QsampleCoup25.MainResults.EdgeLaplacian
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,9 +47,9 @@ omit [Fintype Ω] in
 lemma eVec_comm (x p : Ω) : eVec x p = eVec p x := by
   simp only [eVec]
   by_cases h : p = x
-  · rw [if_pos h, if_pos h.symm]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
   · have h2 : ¬ (x = p) := fun hh => h hh.symm
-    rw [if_neg h, if_neg h2]
+    rw [ite_eq_right h, ite_eq_right h2]
 
 /-- The same collapse as `sum_eVec_mul_vec`, for the argument order produced by
 `edgeProj`, where the delta target comes first. -/
@@ -71,10 +75,10 @@ lemma C_diag_eq (hc : Coupling P C) (a b s : Ω) :
   by_cases h : a = b
   · subst h
     rw [hc.meet_diag]
-    simp only [eVec, if_true, one_mul]
+    simp only [eVec, ite_true, one_mul]
   · have hba : ¬ (b = a) := fun hh => h hh.symm
     rw [hc.meet_offdiag a b s h]
-    simp only [eVec, hba, if_false, zero_mul]
+    simp only [eVec, hba, ite_false, zero_mul]
 
 /-- Collapsing a sum whose two deltas both sit on the first coordinate of the
 coupling matrix. The second marginal (condition (10)) leaves `P` on the diagonal,

@@ -4,20 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Optimizers for cost-weighted nonnegative adversaries
@@ -125,15 +131,15 @@ theorem costAdversary_closed (input : X → K → Bool) (f : X → Bool) (alpha 
     intro y
     change Continuous (fun G : Matrix X X ℝ => if input x i ≠ input y i then G x y else 0)
     by_cases h : input x i ≠ input y i
-    · simpa only [if_pos h] using! (show Continuous (fun G : Matrix X X ℝ => G x y) by fun_prop)
-    · simpa only [if_neg h] using! (continuous_const : Continuous (fun _ : Matrix X X ℝ => (0 : ℝ)))
+    · simpa only [ite_eq_left h] using! (show Continuous (fun G : Matrix X X ℝ => G x y) by fun_prop)
+    · simpa only [ite_eq_right h] using! (continuous_const : Continuous (fun _ : Matrix X X ℝ => (0 : ℝ)))
   apply IsClosed.inter
   · exact isClosed_eq (by fun_prop : Continuous (fun G : Matrix X X ℝ => G.transpose)) continuous_id
   apply IsClosed.inter
   · convert! isClosed_iInter (fun x => isClosed_iInter (fun y =>
       isClosed_le continuous_const (show Continuous (fun G : Matrix X X ℝ => G x y) by fun_prop))) using 1
     ext G
-    simp only [Set.mem_iInter,Set.mem_setOf_eq]
+    simp only [Set.mem_iInter,Set.mem_ofPred_eq]
     rfl
   apply IsClosed.inter
   · have hs (x y : X) : IsClosed {G : Matrix X X ℝ | f x = f y → G x y = 0} := by
@@ -143,12 +149,12 @@ theorem costAdversary_closed (input : X → K → Bool) (f : X → Bool) (alpha 
       · simp [h]
     convert! isClosed_iInter (fun x => isClosed_iInter (hs x)) using 1
     ext G
-    simp only [Set.mem_iInter,Set.mem_setOf_eq]
+    simp only [Set.mem_iInter,Set.mem_ofPred_eq]
     rfl
   · convert! isClosed_iInter (fun i => isClosed_le (continuous_norm.comp (hc i))
       (continuous_const : Continuous (fun _ : Matrix X X ℝ => alpha i))) using 1
     ext G
-    simp only [Set.mem_iInter,Set.mem_setOf_eq]
+    simp only [Set.mem_iInter,Set.mem_ofPred_eq]
     rfl
 end
 noncomputable section
@@ -166,7 +172,7 @@ theorem costAdversary_entry_bound (input : X → K → Bool) (f : X → Bool) (a
   · obtain ⟨i,hi⟩ := hobs x y hf
     have hh := (real_operator_entry_bound (genAdvFilter input Gamma i) x y).trans (hG.2.2.2 i)
     change ‖if input x i ≠ input y i then Gamma x y else 0‖ ≤ alpha i at hh
-    rw [if_pos hi] at hh
+    rw [ite_eq_left hi] at hh
     exact hh.trans (Finset.single_le_sum (fun j _ => ha j) (Finset.mem_univ i))
 end
 noncomputable section
@@ -232,7 +238,7 @@ theorem nonzero_adversary_filter (input : X → K → Bool) (f : X → Bool)
   intro he
   have hh := congrArg (fun G : Matrix X X ℝ => G x y) he
   change (if input x i ≠ input y i then Gamma x y else 0) = 0 at hh
-  rw [if_pos hi] at hh
+  rw [ite_eq_left hi] at hh
   exact hxy hh
 end
 noncomputable section
@@ -425,7 +431,7 @@ theorem adversaryEdge_filter_zero (input : X → K → Bool) (a b : X)
   · rcases h with ⟨rfl,rfl⟩ | ⟨rfl,rfl⟩
     · simp only [hinput i,ne_eq,not_true_eq_false,↓reduceIte]
     · simp only [hinput i,ne_eq,not_true_eq_false,↓reduceIte]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     split_ifs <;> rfl
 end
 noncomputable section

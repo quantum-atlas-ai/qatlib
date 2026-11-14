@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+module
+
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+
+@[expose] public section
 
 /-!
 # Corrected cluster histories and resource counts
@@ -82,7 +86,7 @@ theorem deferred_pauli_corrected_history_entangled_reference :
   intro R X
   rw [deferredCorrectedBranch_eq gs hist hgs]
   by_cases hv : networkBranchValid gs hist
-  · rw [if_pos hv, if_pos hv]
+  · rw [ite_eq_left hv, ite_eq_left hv]
     have hs : ∀ (c : ℂ) (T : Operator (2 ^ n) →ₗ[ℂ] Operator (2 ^ n)),
         ChannelAmplification (c • T) R X = c • ChannelAmplification T R X := fun _ _ => rfl
     rw [hs, channelAmplification_conjBranch]
@@ -90,7 +94,7 @@ theorem deferred_pauli_corrected_history_entangled_reference :
       (TensorGate (1 : Operator R) (networkLogicalMatrix gs) * X *
         (TensorGate (1 : Operator R) (networkLogicalMatrix gs))ᴴ) = _
     rw [Matrix.smul_mul, Matrix.smul_mul]
-  · rw [if_neg hv, if_neg hv]
+  · rw [ite_eq_right hv, ite_eq_right hv]
     rfl
 
 /-- Every deferred history branch of a legal network starting from the zero Pauli frame is
@@ -109,9 +113,9 @@ theorem deferredHistoryBranch_cp {n : ℕ} (gs : List (ClusterNetworkGate n))
       simp [hv, deferredHistoryBranch_zero_formula gs hist hgs ρ]
   rw [he]
   by_cases hv : networkBranchValid gs hist
-  · rw [if_pos hv, networkHalf_pow_cast]
+  · rw [ite_eq_left hv, networkHalf_pow_cast]
     exact networkCP_const_smul (completelyPositive_conjBranch _) (by positivity)
-  · rw [if_neg hv]
+  · rw [ite_eq_right hv]
     exact networkCP_zero
 
 /-- For a legal network, all zero-frame deferred history branches are completely positive, and

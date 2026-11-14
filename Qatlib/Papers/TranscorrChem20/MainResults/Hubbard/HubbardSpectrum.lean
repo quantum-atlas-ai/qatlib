@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TranscorrChem20.MainResults.Hubbard.Gutzwiller
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+module
+
+public import Qatlib.Papers.TranscorrChem20.MainResults.Hubbard.Gutzwiller
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+
+@[expose] public section
 
 /-!
 # Characteristic polynomial of the corrected Hubbard Hamiltonian

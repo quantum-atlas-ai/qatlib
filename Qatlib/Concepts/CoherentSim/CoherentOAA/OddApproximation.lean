@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+@[expose] public section
 
 /-!
 # Odd singular transforms and approximation bounds
@@ -77,12 +81,12 @@ theorem leftSingularColumns_gram (A : Matrix O I ℂ) :
   · subst j
     rw [Matrix.diagonal_apply_eq]
     by_cases hi : matrixSingularValues A i = 0
-    · rw [if_pos hi, leftSingularVector_eq_zero A i hi]
+    · rw [ite_eq_left hi, leftSingularVector_eq_zero A i hi]
       simp
     · have hpos : 0 < matrixSingularValues A i :=
         lt_of_le_of_ne (matrixSingularValues_nonneg A i) (Ne.symm hi)
       have hr := (matrixSingularValues_pos_iff_lt_finrank_range A).mp hpos
-      rw [if_neg hi, inner_self_eq_norm_sq_to_K, norm_leftSingularVector A i hr]
+      rw [ite_eq_right hi, inner_self_eq_norm_sq_to_K, norm_leftSingularVector A i hr]
       simp
   · rw [inner_leftSingularVector_of_ne A hij]
     simp [hij]
@@ -191,16 +195,16 @@ theorem oddSingularTransform_norm_le_positive (A : Matrix O I ℂ) (f : ℝ → 
   let g : ℝ → ℂ := fun x => if x = 0 then 0 else f x
   have he : oddSingularTransform A f = oddSingularTransform A g :=
     oddSingularTransform_congr_positive A f g
-      (fun i hi => by dsimp only [g]; rw [if_neg (ne_of_gt hi)])
+      (fun i hi => by dsimp only [g]; rw [ite_eq_right (ne_of_gt hi)])
   rw [he]
   apply oddSingularTransform_norm_le A g hε
   intro i
   by_cases hi : matrixSingularValues A i = 0
   · dsimp only [g]
-    rw [if_pos hi, norm_zero]
+    rw [ite_eq_left hi, norm_zero]
     exact hε
   · dsimp only [g]
-    rw [if_neg hi]
+    rw [ite_eq_right hi]
     exact hf i (lt_of_le_of_ne (matrixSingularValues_nonneg A i) (Ne.symm hi))
 
 omit [DecidableEq O] in

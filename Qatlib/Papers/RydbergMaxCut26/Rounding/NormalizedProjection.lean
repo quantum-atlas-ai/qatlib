@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.GroundBounds
-import Qatlib.Papers.RydbergMaxCut26.MomentSdp.GramFactor
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.GroundBounds
+public import Qatlib.Papers.RydbergMaxCut26.MomentSdp.GramFactor
+
+@[expose] public section
 
 /-!
 # Normalization of projected Bloch vectors

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceTaylor
-import Mathlib.Analysis.Analytic.Uniqueness
-import Mathlib.Analysis.Analytic.ChangeOrigin
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceTaylor
+public import Mathlib.Analysis.Analytic.Uniqueness
+public import Mathlib.Analysis.Analytic.ChangeOrigin
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 /-!
 # Globally convergent analytic ray series

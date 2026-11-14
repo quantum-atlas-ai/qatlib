@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistinctLB26.MainResults.Framework.KnowledgeBound
+module
+
+public import Qatlib.Papers.DistinctLB26.MainResults.Framework.KnowledgeBound
+
+@[expose] public section
 
 /-!
 # Anti-Concentration Bounds for Element Distinctness and k-Distinctness

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
-import Mathlib.Algebra.BigOperators.Group.Finset.Interval
-import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
-import Mathlib.Topology.ContinuousMap.ZeroAtInfty
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
+public import Mathlib.Algebra.BigOperators.Group.Finset.Interval
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
+public import Mathlib.Topology.ContinuousMap.ZeroAtInfty
+
+@[expose] public section
 
 /-!
 # Finite quadrature coefficient moments
@@ -147,8 +151,8 @@ theorem cappedDensity_subcritical {β c : ℝ} (hβ : β < -1) (hc : 0 < c) :
         apply intervalIntegral.integral_mono_on (by norm_num) hi.intervalIntegrable
           intervalIntegrable_const
         intro x _
-        exact mul_le_one₀ (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _)
-          (by linarith)) (Real.exp_pos _).le (he x)
+        exact (mul_le_of_le_one_left (Real.exp_pos _).le (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _)
+          (by linarith)) ).trans (he x)
       _ = 1 := by simp
   have ht : (∫ x in Ioi (1 : ℝ), cappedDensity β c x) ≤ -1 / (β + 1) := by
     calc
@@ -264,8 +268,8 @@ theorem moment_subcritical (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hb : 0 < b) (
 /-- For nonpositive exponent, the capped Gaussian density is at most one. -/
 theorem cappedDensity_le_one {β c : ℝ} (hβ : β ≤ 0) (x : ℝ) :
     cappedDensity β c x ≤ 1 := by
-  apply mul_le_one₀ (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _) hβ)
-    (Real.exp_pos _).le
+  apply (mul_le_of_le_one_left (Real.exp_pos _).le (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _) hβ)
+    ).trans
   exact Real.exp_le_one_iff.mpr (div_nonpos_of_nonpos_of_nonneg (by nlinarith [sq_nonneg x])
     (by positivity))
 
@@ -562,13 +566,13 @@ theorem moment_three_regimes (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν
   · have hd : 2 / (ν - n) < 0 := div_neg_of_pos_of_neg (by norm_num) (sub_neg.mpr hn)
     refine ⟨(3 - 2 / (ν - n)) / (min 1 b) ^ n, div_pos (by linarith) hm,
       fun c hc d h hh hh1 N => ?_⟩
-    simpa only [momentGrowth, if_pos hn, mul_one] using!
+    simpa only [momentGrowth, ite_eq_left hn, mul_one] using!
       moment_subcritical n b c d ν h N hb hc hν hn hh hh1
   · by_cases he : ν = n
     · subst ν
       refine ⟨(3 + 4 * Real.sqrt Real.pi) / (min 1 b) ^ n, by positivity,
         fun c hc d h hh hh1 N => ?_⟩
-      simpa only [momentGrowth, lt_self_iff_false, if_false, if_true] using!
+      simpa only [momentGrowth, lt_self_iff_false, ite_false, ite_true] using!
         moment_critical n b c d h N hb hc hh hh1
     · have hnν : (n : ℝ) < ν := lt_of_le_of_ne (le_of_not_gt hn) (Ne.symm he)
       let β := ν - (n + 1 : ℕ)
@@ -591,7 +595,7 @@ theorem moment_three_regimes (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν
         _ ≤ (kernelScale n b c d / (min 1 b) ^ n) * (C * (1 + c ^ (β + 1))) :=
           mul_le_mul_of_nonneg_left hf hA
         _ = _ := by
-          simp only [momentGrowth, if_neg hn, if_neg he]
+          simp only [momentGrowth, ite_eq_right hn, ite_eq_right he]
           have hex : β + 1 = ν - n := by dsimp [β]; push_cast; ring
           rw [hex]
           ring

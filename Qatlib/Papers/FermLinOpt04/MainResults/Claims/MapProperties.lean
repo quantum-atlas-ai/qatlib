@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Composition properties of Gaussian-map data
@@ -51,8 +55,8 @@ theorem isCP_comp {n : ℕ} {F G : Fock n →ₗ[ℂ] Fock n}
     (hF : IsCP F) (hG : IsCP G) : IsCP (G.comp F) := by
   obtain ⟨ι1, inst1, A1, h1⟩ := hF
   obtain ⟨ι2, inst2, A2, h2⟩ := hG
-  letI := inst1
-  letI := inst2
+  let := inst1
+  let := inst2
   refine ⟨ι2 × ι1, inferInstance, (fun p : ι2 × ι1 => A2 p.1 * A1 p.2), ?_⟩
   intro X
   simp only [LinearMap.comp_apply]

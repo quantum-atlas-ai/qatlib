@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGData
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGData
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+
+@[expose] public section
 
 /-!
 # Boolean graph data for unsigned word addition

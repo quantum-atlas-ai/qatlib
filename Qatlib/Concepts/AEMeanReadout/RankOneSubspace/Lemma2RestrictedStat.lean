@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basis
-import Mathlib.Data.Matrix.Diagonal
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedQuan
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+module
+
+public import Mathlib.Data.Matrix.Basis
+public import Mathlib.Data.Matrix.Diagonal
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedQuan
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+
+@[expose] public section
 
 /-!
 # Rank-one phase iterates and component specifications

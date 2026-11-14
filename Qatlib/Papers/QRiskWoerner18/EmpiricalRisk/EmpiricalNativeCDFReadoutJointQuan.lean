@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCDFReadoutJointStat
-import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+module
+
+public import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCDFReadoutJointStat
+public import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Joint empirical CDF readout guarantee

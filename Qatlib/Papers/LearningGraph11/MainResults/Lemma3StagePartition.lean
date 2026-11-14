@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+module
+
+public import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,7 +92,7 @@ theorem source_lemma_3
         = (α i / C1 i) * posComplexityAtW G.len G.weight (G.flow y) (piece part i) := by
     intro y i
     have hden : (∑ e ∈ piece part i, G.flow y e) = α i := hconsistent y i
-    rw [posComplexityAtW, if_neg (by rw [hden]; exact ne_of_gt (hα_pos i)), hden,
+    rw [posComplexityAtW, ite_eq_right (by rw [hden]; exact ne_of_gt (hα_pos i)), hden,
       Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro e he
@@ -104,7 +108,7 @@ theorem source_lemma_3
     intro y
     have hstage : (∑ e ∈ (Finset.univ : Finset E), G.flow y e) = 1 := by
       simpa [edgeSum] using G.stage_flow y
-    rw [posComplexityAtW, if_neg (by rw [hstage]; norm_num)]
+    rw [posComplexityAtW, ite_eq_right (by rw [hstage]; norm_num)]
     simp only [hstage, div_one]
     have hsplit : (∑ e ∈ (Finset.univ : Finset E),
           (G.len e : ℝ) / w' e * (G.flow y e) ^ 2)

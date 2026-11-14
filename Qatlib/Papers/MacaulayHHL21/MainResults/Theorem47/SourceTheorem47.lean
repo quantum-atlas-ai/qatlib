@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,7 +52,8 @@ def gramMatrix {r : ℕ} (v : Fin r → ι → ℂ) : Matrix (Fin r) (Fin r) ℂ
   Matrix.of (fun i j => ∑ k, star (v i k) * v j k)
 
 /-- Computation rule for the Gram matrix (16): its `(i, j)` entry is `⟨vᵢ, vⱼ⟩`. -/
-theorem gramMatrix_apply {r : ℕ} (v : Fin r → ι → ℂ) (i j : Fin r) :
+theorem gramMatrix_apply {ι : Type*} [Fintype ι] [_gramDecidableEq : DecidableEq ι]
+    {r : ℕ} (v : Fin r → ι → ℂ) (i j : Fin r) :
     gramMatrix v i j = ∑ k, star (v i k) * v j k := rfl
 
 /-- **Theorem 4.7**, equation (15) (arXiv:2111.00405, p.10): if `‖M‖ ≥ 1`, `‖b‖ = 1` and the
@@ -57,7 +62,7 @@ shortest-vector identity of Lemma 4.6 supplies `√(1/⟨1, G⁺1⟩) ≤ ‖M�
 theorem theorem47_tqlscn_lowerBound
     {matNorm mnNorm bNorm gInvOnes : ℝ}
     (hM : 1 ≤ matNorm) (hb : bNorm = 1) (hmn : 0 ≤ mnNorm)
-    (hγpos : 0 < gInvOnes)
+    (_hγpos : 0 < gInvOnes)
     (hshort : Real.sqrt (1 / gInvOnes) ≤ mnNorm) :
     1 / Real.sqrt gInvOnes ≤ tqlscn matNorm mnNorm bNorm := by
   have hsqrt : Real.sqrt (1 / gInvOnes) = 1 / Real.sqrt gInvOnes := by

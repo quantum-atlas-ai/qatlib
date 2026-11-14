@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.AiryProjection
-import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.AiryProjection
+public import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+@[expose] public section
 
 /-!
 # Matrix Airy projection and normalization

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
-import Qatlib.Papers.CommutLCHS26.MainResults.StripSampling
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+module
+
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+public import Qatlib.Papers.CommutLCHS26.MainResults.StripSampling
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+
+@[expose] public section
 
 /-!
 # Analytic strip estimates for the simulation kernel
@@ -69,7 +73,7 @@ theorem shifted_part (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
 semidefinite. -/
 theorem norm_gap_pos (L : Matrix ι ι ℂ) (hL : L.PosSemidef) :
     (‖L‖ • (1 : Matrix ι ι ℂ) - L).PosSemidef := by
-  letI : CStarAlgebra (Matrix ι ι ℂ) := {}
+  let : CStarAlgebra (Matrix ι ι ℂ) := {}
   have h := IsSelfAdjoint.le_algebraMap_norm_self (a := L)
     (ha := hL.isHermitian.isSelfAdjoint)
   simpa only [Algebra.algebraMap_eq_smul_one] using! h

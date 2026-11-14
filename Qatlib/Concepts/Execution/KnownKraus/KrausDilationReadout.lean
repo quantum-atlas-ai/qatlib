@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Mathlib.Data.List.OfFn
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Mathlib.Data.List.OfFn
+
+@[expose] public section
 
 /-!
 # Reading out a Kraus dilation
@@ -176,7 +180,7 @@ private theorem krausReadout_joint_block {d s : ℕ}
         star (W (j, b) y)) =
     ∑ k : Fin d, (K a * rho) i k * star (K b j k)
   simp only [Fintype.sum_prod_type, hleft, ite_mul, zero_mul,
-    Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true, hcol]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, hcol]
 
 /-- After projection onto a coarse ancilla label and partial trace, the branch operator is the
 sum of the Kraus conjugations with that label. -/
@@ -199,7 +203,7 @@ private theorem krausReadout_reduced_branch {d s t : ℕ}
   simp only [Projector, Matrix.mul_diagonal, Matrix.diagonal_mul,
     Finset.mem_filter, Finset.mem_univ, true_and]
   by_cases ha : label a = o
-  · simpa only [ha, if_true, one_mul, mul_one] using
+  · simpa only [ha, ite_true, one_mul, mul_one] using
       krausReadout_joint_block K zero W hcol rho i j a a
   · simp [ha]
 

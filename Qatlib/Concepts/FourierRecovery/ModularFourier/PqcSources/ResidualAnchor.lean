@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualReadoutUpper
-import Mathlib.Tactic.GCongr
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualReadoutUpper
+public import Mathlib.Tactic.GCongr
+
+@[expose] public section
 
 /-! Public residual anchors in the actual residual/Fourier state.
 Source vectors and guesses are arbitrary. Uniform whole-block anchors
@@ -44,8 +48,10 @@ private theorem anchor_norm_sum_sq_le_card {I : Type} (s : Finset I) (v : I → 
       have h := Finset.sum_mul_sq_le_sq_mul_sq s (fun _ => (1 : ℝ)) (fun i => ‖v i‖)
       simpa using h
 
+omit [DecidableEq G] in
 /-- The actual finite-label construction satisfies `anchor_fourier_support_bound` with all displayed hypotheses. -/
-private theorem anchor_fourier_support_bound (v : QState G) (η : AddChar G ℂ)
+private theorem anchor_fourier_support_bound {G : Type} [AddCommGroup G] [Fintype G]
+    [_decidableEqG : DecidableEq G] (v : QState G) (η : AddChar G ℂ)
     (s : Finset G) (hs : ∀ y, y ∉ s → v y = 0) :
     BornProb (fourier v) η ≤
       (Fintype.card G : ℝ)⁻¹ * (s.card : ℝ) * ∑ y : G, BornProb v y := by
@@ -95,8 +101,12 @@ private theorem anchor_accepted_mass_codes (f : K → G × C) (ψ : QState K)
   intro k _
   simp [eq_comm]
 
+omit [Fintype C] in
 /-- The actual finite-label construction satisfies `pqc_residual_arbitrary_readout_moment` with all displayed hypotheses. -/
-theorem pqc_residual_arbitrary_readout_moment (f : K → G × C)
+theorem pqc_residual_arbitrary_readout_moment {K G C : Type}
+    [AddGroup K] [Fintype K] [DecidableEq K]
+    [AddCommGroup G] [Fintype G] [DecidableEq G] [_fintypeC : Fintype C] [DecidableEq C]
+    (f : K → G × C)
     (guess : G × C → K) (ψ : QState K) (kept : Finset C) (η : AddChar G ℂ) :
     (pqcResidualAcceptedReadoutMass f guess ψ kept η)^2 ≤
       (Fintype.card G : ℝ)⁻¹ * pqcResidualAcceptedMass f ψ kept *

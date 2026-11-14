@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+
+@[expose] public section
 
 /-!
 # Lifting observed circuits to network registers
@@ -141,12 +145,12 @@ theorem tensorGate_projector_one {I J : Type*} [Fintype I] [DecidableEq I] [Fint
   by_cases hpq : p = q
   · subst hpq
     simp
-  · rw [if_neg hpq]
+  · rw [ite_eq_right hpq]
     by_cases h1 : p.1 = q.1
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       have h2 : p.2 ≠ q.2 := fun h => hpq (Prod.ext h1 h)
-      rw [if_neg h2, mul_zero]
-    · rw [if_neg h1, zero_mul]
+      rw [ite_eq_right h2, mul_zero]
+    · rw [ite_eq_right h1, zero_mul]
 
 /-- Relabeling a basis projector selects precisely those new indices whose inverse images belong
 to the original set. -/
@@ -161,7 +165,7 @@ theorem networkRelabelGate_projector {I J : Type*} [Fintype I] [DecidableEq I] [
   · subst hrr'
     simp
   · have hne : e.symm r ≠ e.symm r' := fun h => hrr' (e.symm.injective h)
-    rw [if_neg hrr', if_neg hne]
+    rw [ite_eq_right hrr', ite_eq_right hne]
 
 /-- Lifting a projector onto a measurement outcome gives the projector onto that outcome for the
 lifted measurement label. -/

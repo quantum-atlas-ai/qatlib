@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkDefs
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkDefs
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+
+@[expose] public section
 
 /-!
 # Count bounds for tensor-network evaluators

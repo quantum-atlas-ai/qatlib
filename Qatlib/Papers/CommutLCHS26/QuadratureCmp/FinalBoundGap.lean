@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TruncationGap
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TruncationGap
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+
+@[expose] public section
 
 /-!
 # A gap in a finite-grid error estimate

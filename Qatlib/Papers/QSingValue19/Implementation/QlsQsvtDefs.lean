@@ -4,27 +4,31 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseGily
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseGily
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
-import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvt
-import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
-import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41ClosedGapConsumer
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationGily
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23PolynomialLevel
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseGily
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseGily
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralGily
+public import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvt
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41ClosedGapConsumer
+
+@[expose] public section
 
 /-!
 # QSVT linear systems resource definitions

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexity
-import Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexity
+public import Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Uniform witness families and their resource ledgers
@@ -225,7 +229,7 @@ theorem cnotWitnessFamily_oracleFree : cnotWitnessFamily.OracleFree := by
   intro x
   show (cnotWitnessFamily.generator x).instructions.all
     (fun | .fixed _ => true | .oracle _ _ => false) = true
-  simp [cnotWitnessFamily, oracleFree]
+  simp [cnotWitnessFamily]
 
 /-- Transports a witness matrix from the family's prescribed witness width to the equal witness
 width of the generated program. -/

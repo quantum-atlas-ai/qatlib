@@ -4,65 +4,69 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.InnerProductSpace.Orthogonal
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.RCLike.Lemmas
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Defs.Induced
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.MetricSpace.Pseudo.Constructions
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.InnerProductSpace.Orthogonal
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.RCLike.Lemmas
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.LinearAlgebra.FiniteDimensional.Defs
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Defs.Induced
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.MetricSpace.Pseudo.Constructions
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Errors of approximate line reflections
@@ -124,6 +128,7 @@ theorem lineProj_apply_eq_zero_of_mem_orthogonal {u ψ : W}
   rw [h, (Submodule.starProjection_apply_eq_zero_iff
     (K := Submodule.span ℂ ({u} : Set W))).mpr hψ]
 
+omit [FiniteDimensional ℂ W] in
 /-- If `R` fixes `u`, its reflection error at `u` is zero, as in [Magniez et al., Fact
 1][MagniezNayakRolandSantha2011]. -/
 theorem reflError_apply_self (R : W ≃ₗᵢ[ℂ] W) (u : W) (hfix : R u = u) :
@@ -133,6 +138,7 @@ theorem reflError_apply_self (R : W ≃ₗᵢ[ℂ] W) (u : W) (hfix : R u = u) :
   rw [hlin, hfix]
   module
 
+omit [FiniteDimensional ℂ W] in
 /-- On the orthogonal complement of the span of `u`, the reflection error equals `R ψ + ψ`. -/
 theorem reflError_apply_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W}
     (hψ : ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ) :
@@ -142,6 +148,7 @@ theorem reflError_apply_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W}
   rw [hzero]
   module
 
+omit [FiniteDimensional ℂ W] in
 /-- The assumed homogeneous reflection discrepancy bound implies `‖reflError R u ψ‖ ≤ β * ‖ψ‖`
 for vectors orthogonal to `u`. -/
 theorem reflError_bound_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {β : ℝ}
@@ -155,6 +162,7 @@ theorem reflError_bound_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {�
   rw [reflError_apply_of_mem_orthogonal R hψ, ← hEq]
   exact hbound ψ hψ
 
+omit [FiniteDimensional ℂ W] in
 /-- For a unit vector orthogonal to `u`, the homogeneous discrepancy hypothesis bounds the
 reflection error by `β`; see [Magniez et al., Fact 1][MagniezNayakRolandSantha2011]. -/
 theorem reflError_bound_unit (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {β : ℝ}

@@ -31,15 +31,19 @@ The genuinely algorithmic conclusions (existence of the phase-estimation output 
 stated trace-distance bound, and Algorithm 3 of Appendix A) are not formalised yet and appear as
 placeholder declarations with the comments below.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -101,7 +105,7 @@ theorem pB_norm_sq {ι E : Type*} [Fintype ι] [DecidableEq ι]
 `‖|p_B⟩‖² ≤ s·E_T/(1+pᵀb)²` this is at most `√(s·E_T)/ε²`. -/
 theorem theorem39_query_complexity {pbnorm pb s ETv ε : ℝ}
     (hpbnorm : 0 ≤ pbnorm) (hone : 0 ≤ 1 + pb) (hε : 0 < ε)
-    (hET : 0 ≤ ETv) (hs : 0 ≤ s)
+    (_hET : 0 ≤ ETv) (_hs : 0 ≤ s)
     (hbound : ((1 + pb) * pbnorm) ^ 2 ≤ s * ETv) :
     (1 + pb) * pbnorm / ε ^ 2 ≤ Real.sqrt (s * ETv) / ε ^ 2 := by
   have hle : (1 + pb) * pbnorm ≤ Real.sqrt (s * ETv) := by
@@ -134,12 +138,12 @@ def theorem39_statement
     {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℝ) (θstar Φb pBket w : EuclideanSpace ℝ I)
     (ε ynorm2 : ℝ)
-    (hε : 0 < ε) (hε1 : ε ≤ 1) (hyn : 0 < ynorm2)
-    (hU : U ∈ Matrix.orthogonalGroup I ℝ)
+    (_hε : 0 < ε) (_hε1 : ε ≤ 1) (_hyn : 0 < ynorm2)
+    (_hU : U ∈ Matrix.orthogonalGroup I ℝ)
     -- the three hypotheses of Theorem 3.9
-    (hdecomp : Φb = (Real.sqrt (1 + ynorm2))⁻¹ • θstar - w)
-    (hfix : U *ᵥ θstar = θstar)
-    (hproj : pBket ≠ 0) : Prop :=
+    (_hdecomp : Φb = (Real.sqrt (1 + ynorm2))⁻¹ • θstar - w)
+    (_hfix : U *ᵥ θstar = θstar)
+    (_hproj : pBket ≠ 0) : Prop :=
   ∃ (θ' : EuclideanSpace ℝ I) (psuccess : ℝ),
     1 / (1 + ynorm2) ≤ psuccess ∧ psuccess ≤ 1 ∧ ‖θ' - θstar‖ ≤ 2 * ε
 
@@ -194,8 +198,8 @@ construction of that solver. -/
 def theoremA1_statement
     {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (b : EuclideanSpace ℝ (Fin n))
     (y : EuclideanSpace ℝ (Fin n)) (κ ε : ℝ)
-    (hκ : 1 ≤ κ) (hε : 0 < ε) (hε1 : ε ≤ 1)
-    (hy : A.toEuclideanLin y = b) (hyn : ‖y‖ = 1) : Prop :=
+    (_hκ : 1 ≤ κ) (_hε : 0 < ε) (_hε1 : ε ≤ 1)
+    (_hy : A.toEuclideanLin y = b) (_hyn : ‖y‖ = 1) : Prop :=
   ∃ (solver : ℝ → EuclideanSpace ℝ (Fin n)) (queries : ℝ → ℝ),
     queries ε ≤ qsvtQueryCost κ ε ∧ ‖solver ε - y‖ ≤ ε
 

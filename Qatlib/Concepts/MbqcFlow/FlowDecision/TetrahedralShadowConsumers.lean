@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowStatistics
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowStatistics
+
+@[expose] public section
 
 /-!
 # Tetrahedral shadow examples
@@ -50,7 +54,7 @@ theorem trace_pauliY_tetraSnapshot (a : Fin 4) :
         mul_zero])]
     rw [Finset.sum_ite_eq (Finset.univ : Finset (Fin 3)) 1
       (fun k => ((tetraSigns a k / Real.sqrt 3 : ℝ) : ℂ) * 2)]
-    simp only [Finset.mem_univ, if_true, mul_comm]
+    simp only [Finset.mem_univ, ite_true, mul_comm]
   have hprojc : Matrix.trace (pauliY * tetraProjector a)
       = ((tetraSigns a 1 / Real.sqrt 3 : ℝ) : ℂ) := by
     rw [tetraProjector, Matrix.mul_smul, Matrix.mul_add, Matrix.mul_one, Matrix.trace_smul,
@@ -126,7 +130,7 @@ theorem tetrahedral_xyz_joint_actual_consumer (ρ : Operator 2) (hρ : IsDensity
               |tetraSampleMean (pauliMatrix z) m a
                   - (Matrix.trace (@HMul.hMul (Matrix (Fin 2) (Fin 2) ℂ) (Operator 2)
                       (Matrix (Fin 2) (Fin 2) ℂ) inferInstance (pauliMatrix z) ρ)).re|)
-            (fun z => inferInstance) (Fin.fintype 3)),
+            (fun _z => inferInstance) (Fin.fintype 3)),
         (tetraFreshLaw ρ hρ m).prob ω)
       ≤ (∑ z : Fin 3, 9*(OperatorSpectralNorm (pauliMatrix z))^2)/((m:ℝ)*ε^2) :=
   @tetrahedral_many_observable_actual_mean_bound (Fin 3) (Fin.fintype 3) (instDecidableEqFin 3)

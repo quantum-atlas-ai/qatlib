@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fixed-point search error scaling
@@ -103,7 +107,7 @@ theorem swappedSuccess_at_one (q : ℕ) : swappedSuccess 1 q = 0 := by
 
 /-- For `0 ≤ f ≤ 1`, the power `(1 - f) ^ (2 * q + 1)` is at most `exp (-(2 * q + 1) * f)`. See
 [TulsiGroverPatel2006]. -/
-theorem error_le_exp_neg (f : ℝ) (h0 : 0 ≤ f) (h1 : f ≤ 1) (q : ℕ) :
+theorem error_le_exp_neg (f : ℝ) (_h0 : 0 ≤ f) (h1 : f ≤ 1) (q : ℕ) :
     (1 - f) ^ (2 * q + 1) ≤ Real.exp (-((2 * (q : ℝ) + 1) * f)) := by
   have hbase : 0 ≤ 1 - f := by linarith
   have hle : 1 - f ≤ Real.exp (-f) := Real.one_sub_le_exp_neg f
@@ -118,7 +122,7 @@ theorem error_le_exp_neg (f : ℝ) (h0 : 0 ≤ f) (h1 : f ≤ 1) (q : ℕ) :
 /-- For positive `f ≤ 1` and `0 < δ < 1`, the condition `log (1 / δ) ≤ (2 * q + 1) * f`
 guarantees fixed-point error at most `δ`. [TulsiGroverPatel2006] -/
 theorem queries_sufficient (f δ : ℝ) (hf0 : 0 < f) (hf1 : f ≤ 1)
-    (hδ0 : 0 < δ) (hδ1 : δ < 1) (q : ℕ)
+    (hδ0 : 0 < δ) (_hδ1 : δ < 1) (q : ℕ)
     (hq : Real.log (1 / δ) ≤ (2 * (q : ℝ) + 1) * f) :
     fixedPointError (1 - f) q ≤ δ := by
   rw [fixedPointError_eq_pow]

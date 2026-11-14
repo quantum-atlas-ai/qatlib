@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.WeightedSamplerDefs
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.WeightedSamplerDefs
+
+@[expose] public section
 
 /-!
 # Weighted sampling costs and truncation bounds
@@ -128,8 +132,7 @@ theorem pendingMass_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   simp only [PMF.uniformOfFintype'_apply, Fintype.card_bool, Nat.cast_ofNat]
   rw [show (2 : ℝ≥0∞)⁻¹ = (1/2 : ℝ≥0∞) by norm_num]
   simp only [show (if True then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from
-      if_pos trivial,
-    show (if true = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.right from rfl,
+      ite_eq_left trivial,
     show (if false = true then Turing.Dir.right else Turing.Dir.left) = Turing.Dir.left from by simp,
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
@@ -913,7 +916,7 @@ theorem race_halted_outcome (n : ℕ) (bs : List Bool) (a b : ℕ) (hN : 0 < a +
       have houtput : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)) =
           (if bit then some true else some false) := by
         rw [Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output,
-            if_pos ⟨hhalt, hdone⟩]
+            ite_eq_left ⟨hhalt, hdone⟩]
         cases bit <;> simp [hhead]
       constructor
       · cases bit with
@@ -945,7 +948,7 @@ theorem law_outcome_partition (n a b : ℕ) (hN : 0 < a + b) :
       by_cases hs : r.stop = .fuel
       · have hout : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = Option.none := by
           unfold Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output
-          rw [if_neg (by simp [hs])]
+          rw [ite_eq_right (by simp [hs])]
         have ho' : RaceOutcome.of r = .none := RaceOutcome.of_eq_none _ hout
         simp [leftIndicator, rightIndicator, pendingIndicator, ho', hs]
       · have hhalt : r.stop = .halted := by
@@ -2134,14 +2137,14 @@ theorem leafMass_le_one (t : BucketTree) (p : List Bool) (hpath : isPath t p)
       cases p with
       | nil => simp [leafMass]
       | cons b bs =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
   | node l r ihl ihr =>
       have hWL : 0 < totalWeight l := positiveTree_weight l hpos.1
       have hWR : 0 < totalWeight r := positiveTree_weight r hpos.2
       cases p with
       | nil =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
       | cons b bs =>
           cases b with
@@ -2181,7 +2184,7 @@ theorem treeLeafMassTrunc_le (n : ℕ) (t : BucketTree) (p : List Bool)
       cases p with
       | nil => simp [treeLeafMassTrunc, leafMass]
       | cons b bs =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
   | node l r ihl ihr =>
       have hWL : 0 < totalWeight l := positiveTree_weight l hpos.1
@@ -2192,7 +2195,7 @@ theorem treeLeafMassTrunc_le (n : ℕ) (t : BucketTree) (p : List Bool)
       have hR0 := nodeLaw_toRight_nonneg n (totalWeight l) (totalWeight r)
       cases p with
       | nil =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
       | cons b bs =>
           cases b with
@@ -2215,8 +2218,8 @@ theorem treeLeafMassTrunc_le (n : ℕ) (t : BucketTree) (p : List Bool)
 most the pending term plus the two weighted residual bounds. -/
 theorem deficit_step (R L TL TR P pending M T P' : ℝ)
     (hTL : TL ≤ R) (hTR : TR ≤ L) (hfrac : R + L = 1) (hsum : TL + TR + pending = 1)
-    (hTL0 : 0 ≤ TL) (hTR0 : 0 ≤ TR) (hP0 : 0 ≤ pending)
-    (hdef : M - T ≤ P) (hM1 : M ≤ 1) (hM0 : 0 ≤ M) (hP'0 : 0 ≤ P') :
+    (hTL0 : 0 ≤ TL) (hTR0 : 0 ≤ TR) (_hP0 : 0 ≤ pending)
+    (hdef : M - T ≤ P) (hM1 : M ≤ 1) (_hM0 : 0 ≤ M) (hP'0 : 0 ≤ P') :
     R * M - TL * T ≤ pending + TL * P + TR * P' := by
   have hgap : R - TL ≤ pending := by
     have h1 : 0 ≤ L - TR := by linarith
@@ -2251,7 +2254,7 @@ theorem treeDeficit_le (n : ℕ) (t : BucketTree) (p : List Bool)
       cases p with
       | nil => simp [treeLeafMassTrunc, leafMass, treePendingProb, treeSuccessProb]
       | cons b bs =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
   | node l r ihl ihr =>
       have hWL : 0 < totalWeight l := positiveTree_weight l hpos.1
@@ -2266,7 +2269,7 @@ theorem treeDeficit_le (n : ℕ) (t : BucketTree) (p : List Bool)
       have hsucc := treePendingProb_succ n l r ⟨hpos.1, hpos.2⟩
       cases p with
       | nil =>
-          have hfalse : False := by simpa [isPath] using! hpath
+          have hfalse : False := by simp [isPath] at hpath
           exact hfalse.elim
       | cons b bs =>
           cases b with

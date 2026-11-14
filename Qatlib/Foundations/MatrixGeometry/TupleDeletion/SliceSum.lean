@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+
+@[expose] public section
 
 /-!
 # Counting sums over coordinate replacements
@@ -57,7 +61,7 @@ theorem sum_update {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i : I) :
   have he := Fintype.sum_equiv e
     (fun f : I → L => ∑ x : L,H (Function.update f i x))
     (fun p : L × (Off I i → L) => ∑ x : L,H (Function.update (e.symm p) i x))
-    (fun f => by (try dsimp only);rw [e.symm_apply_apply])
+    (fun f => by rw [e.symm_apply_apply])
   rw [he,Fintype.sum_prod_type]
   dsimp only [e]
   simp_rw [split_restore_update]
@@ -65,7 +69,7 @@ theorem sum_update {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i : I) :
   congr 1
   have hH :=
       Fintype.sum_equiv e H (fun p => H (e.symm p))
-      (fun f => by (try dsimp only);rw [e.symm_apply_apply])
+      (fun f => by rw [e.symm_apply_apply])
   rw [hH,Fintype.sum_prod_type,Finset.sum_comm]
 
 /-- Summing a function over all tuples and both replacement labels for two successive coordinate
@@ -90,8 +94,8 @@ theorem sum_pair_slices {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i j
     apply Finset.sum_congr rfl
     intro y hy
     by_cases hxy : x ≠ y
-    · rw [if_pos hxy]
-    · rw [if_neg hxy]
+    · rw [ite_eq_left hxy]
+    · rw [ite_eq_right hxy]
       symm
       apply hz
       simp [Function.update_of_ne hij,not_ne_iff.mp hxy]

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePermutationAverage
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSwapInfluence
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePermutationAverage
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSwapInfluence
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
+
+@[expose] public section
 
 /-!
 # Slice Poincaré bounds from permutations

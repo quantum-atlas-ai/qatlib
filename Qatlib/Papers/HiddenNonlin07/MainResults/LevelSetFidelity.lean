@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+
+@[expose] public section
 
 /-!
 # Level-set matrices and fidelity bounds
@@ -51,14 +55,17 @@ def lset (f : X → Y) (y : Y) : Finset X := Finset.univ.filter (fun x => f x = 
 /-- The cardinality of the intersection of the level sets `lset f y` and `lset f' y'`. -/
 def ovl (f f' : X → Y) (y y' : Y) : ℕ := (lset f y ∩ lset f' y').card
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Membership in `lset f y` is equivalent to the equation `f x = y`. -/
 @[simp] theorem mem_lset {f : X → Y} {y : Y} {x : X} : x ∈ lset f y ↔ f x = y := by
   simp [lset]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- The level set containing a given input has positive cardinality. -/
 theorem card_lset_pos (f : X → Y) (x : X) : 0 < (lset f (f x)).card :=
   Finset.card_pos.mpr ⟨x, by simp⟩
 
+omit [Fintype Y] in
 /-- The overlap of two level sets counts the inputs whose pair of function values equals `(y,
 y')`. -/
 theorem ovl_eq_card_filter (f f' : X → Y) (y y' : Y) :
@@ -87,6 +94,7 @@ values agree and zero otherwise. -/
 noncomputable def sqrtRho (f : X → Y) : Matrix X X ℂ :=
   fun x x' => if f x = f x' then (wt f (f x) : ℂ) else 0
 
+omit [DecidableEq X] in
 /-- The matrix `sqrtRho f` is the sum of the level-set indicator outer products weighted by `wt
 f y`. -/
 theorem sqrtRho_eq_sum (f : X → Y) :
@@ -95,7 +103,7 @@ theorem sqrtRho_eq_sum (f : X → Y) :
   simp only [Matrix.sum_apply, Matrix.smul_apply, Matrix.vecMulVec_apply, sqrtRho,
     Complex.real_smul]
   by_cases h : f x = f x'
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hsingle : (∑ y, ↑(wt f y) * (indL f y x * (star (indL f y)) x'))
         = ↑(wt f (f x)) * (indL f (f x) x * (star (indL f (f x))) x') := by
       refine Finset.sum_eq_single (f x) ?_ ?_
@@ -105,16 +113,17 @@ theorem sqrtRho_eq_sum (f : X → Y) :
       · intro hnot; exact absurd (Finset.mem_univ _) hnot
     rw [hsingle]
     simp [indL, h]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     refine Eq.symm (Finset.sum_eq_zero (fun y _ => ?_))
     by_cases hy : f x = y
     · have hx' : indL f y x' = 0 := by
         simp only [indL]
-        rw [if_neg (fun hc => h (hc.trans hy.symm).symm)]
+        rw [ite_eq_right (fun hc => h (hc.trans hy.symm).symm)]
       simp [hx']
     · have hy' : ¬(f x = y) := hy
       simp [indL, hy']
 
+omit [DecidableEq X] in
 /-- The matrix `sqrtRho f` is positive semidefinite. -/
 theorem sqrtRho_posSemidef (f : X → Y) : (sqrtRho f).PosSemidef := by
   rw [sqrtRho_eq_sum]
@@ -129,12 +138,13 @@ def preB (f : X → Y) : Matrix X Y ℂ := fun x y => indL f y x
 /-- The matrix whose row indexed by `y` is the indicator of `lset f y` scaled by `wt f y`. -/
 noncomputable def preC (f : X → Y) : Matrix Y X ℂ := fun y x => wt f y • indL f y x
 
+omit [DecidableEq X] in
 /-- The level-set square-root matrix factors as `preB f * preC f`. -/
 theorem sqrtRho_eq_mul (f : X → Y) : sqrtRho f = preB f * preC f := by
   ext x x'
   simp only [Matrix.mul_apply, preB, preC, sqrtRho, Complex.real_smul]
   by_cases h : f x = f x'
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hsingle : (∑ y, indL f y x * (↑(wt f y) * indL f y x'))
         = indL f (f x) x * (↑(wt f (f x)) * indL f (f x) x') := by
       refine Finset.sum_eq_single (f x) ?_ ?_
@@ -144,39 +154,43 @@ theorem sqrtRho_eq_mul (f : X → Y) : sqrtRho f = preB f * preC f := by
       · intro hnot; exact absurd (Finset.mem_univ _) hnot
     rw [hsingle]
     simp [indL, h]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     refine Eq.symm (Finset.sum_eq_zero (fun y _ => ?_))
     by_cases hy : f x = y
     · have hx' : indL f y x' = 0 := by
         simp only [indL]
-        rw [if_neg (fun hc => h (hc.trans hy.symm).symm)]
+        rw [ite_eq_right (fun hc => h (hc.trans hy.symm).symm)]
       simp [hx']
     · have hy' : ¬(f x = y) := hy
       simp [indL, hy']
 
+omit [DecidableEq X] in
 /-- The rank of the level-set square-root matrix is at most the cardinality of the codomain. -/
 theorem rank_sqrtRho_le (f : X → Y) : (sqrtRho f).rank ≤ Fintype.card Y := by
   rw [sqrtRho_eq_mul]
   exact (Matrix.rank_mul_le_left (preB f) (preC f)).trans (Matrix.rank_le_card_width _)
 
+omit [DecidableEq X] [Fintype Y] in
 /-- The sum of a level-set indicator equals the complex cast of the level-set cardinality. -/
 theorem sum_indL (f : X → Y) (y : Y) :
     (∑ z, indL f y z) = ((lset f y).card : ℂ) := by
   simp [indL, lset]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Summing a fixed complex value times a level-set indicator multiplies that value by the
 level-set cardinality. -/
 theorem sum_indL_mul (f : X → Y) (y : Y) (c : ℂ) :
     (∑ z, indL f y z * c) = ((lset f y).card : ℂ) * c := by
   rw [← Finset.sum_mul, sum_indL]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- The square of `sqrtRho f` is `rho f`. -/
 theorem sqrtRho_sq (f : X → Y) : sqrtRho f * sqrtRho f = rho f := by
   ext x x'
   rw [Matrix.mul_apply]
   simp only [rho]
   by_cases h : f x = f x'
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hstep : ∀ z, sqrtRho f x z * sqrtRho f z x' =
         indL f (f x) z * (↑(wt f (f x)) * ↑(wt f (f x))) := by
       intro z
@@ -184,12 +198,12 @@ theorem sqrtRho_sq (f : X → Y) : sqrtRho f * sqrtRho f = rho f := by
       · have hz' : f z = f x' := hz.trans h
         have hxz : f x = f z := hz.symm
         simp only [sqrtRho, indL]
-        rw [if_pos hxz, if_pos hz', if_pos hz, hz]
+        rw [ite_eq_left hxz, ite_eq_left hz', ite_eq_left hz, hz]
         ring
       · have hzx : f z ≠ f x' := fun hc => hz (hc.trans h.symm)
         have hxz : f x ≠ f z := fun hc => hz hc.symm
         simp only [sqrtRho, indL]
-        rw [if_neg hxz, if_neg hzx, if_neg hz]
+        rw [ite_eq_right hxz, ite_eq_right hzx, ite_eq_right hz]
         ring
     rw [Finset.sum_congr rfl (fun z _ => hstep z), sum_indL_mul]
     have hLX : (0 : ℝ) < (Fintype.card X : ℝ) := by
@@ -204,13 +218,13 @@ theorem sqrtRho_sq (f : X → Y) : sqrtRho f * sqrtRho f = rho f := by
     have hc := congrArg (fun r : ℝ => (r : ℂ)) hreal
     push_cast at hc
     simpa using hc
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     refine Finset.sum_eq_zero (fun z _ => ?_)
     by_cases hz : f z = f x
     · have hzx : f z ≠ f x' := fun hc => h (hz.symm.trans hc)
       have hxz : f x = f z := hz.symm
       simp only [sqrtRho]
-      rw [if_pos hxz, if_neg hzx]
+      rw [ite_eq_left hxz, ite_eq_right hzx]
       ring
     · have hxz : f x ≠ f z := fun hc => hz hc.symm
       simp [sqrtRho, hxz]
@@ -224,6 +238,7 @@ theorem cfc_sqrt_rho (f : X → Y) : CFC.sqrt (rho f) = sqrtRho f :=
 def ind2 (f f' : X → Y) (y y' : Y) (x : X) : ℂ :=
   if f x = y ∧ f' x = y' then 1 else 0
 
+omit [Fintype Y] in
 /-- The complex cast of the overlap cardinality equals the sum of the joint level-set indicator. -/
 theorem ovl_eq_sum (f f' : X → Y) (y y' : Y) :
     (ovl f f' y y' : ℂ) = ∑ x, ind2 f f' y y' x := by
@@ -248,7 +263,7 @@ theorem sum_pair_fiber (f f' : X → Y) (h : Y → Y → ℂ) :
           ind2 f f' y y' x * h y y' = 0 := by
         intro y' _ hy'
         simp only [ind2]
-        rw [if_neg (fun hc => hy' hc.2.symm), zero_mul]
+        rw [ite_eq_right (fun hc => hy' hc.2.symm), zero_mul]
       have h1 : f' x ∉ (Finset.univ : Finset Y) →
           ind2 f f' y (f' x) x * h y (f' x) = 0 :=
         fun hnot => absurd (Finset.mem_univ _) hnot
@@ -258,7 +273,7 @@ theorem sum_pair_fiber (f f' : X → Y) (h : Y → Y → ℂ) :
         ind2 f f' y (f' x) x * h y (f' x) = 0 := by
       intro y _ hy
       simp only [ind2]
-      rw [if_neg (fun hc => hy hc.1.symm), zero_mul]
+      rw [ite_eq_right (fun hc => hy hc.1.symm), zero_mul]
     have h1 : f x ∉ (Finset.univ : Finset Y) →
         ind2 f f' (f x) (f' x) x * h (f x) (f' x) = 0 :=
       fun hnot => absurd (Finset.mem_univ _) hnot
@@ -281,6 +296,7 @@ theorem sum_pair_fiber (f f' : X → Y) (h : Y → Y → ℂ) :
         refine Finset.sum_congr rfl (fun y' _ => ?_)
         rw [← ovl_eq_sum]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- A diagonal entry of `rho f * rho f'` is the joint-level-set count at that input multiplied
 by the inverse square of the domain size. -/
 theorem entry_rho_mul (f f' : X → Y) (x : X) :
@@ -292,14 +308,14 @@ theorem entry_rho_mul (f f' : X → Y) (x : X) :
   simp only [rho]
   by_cases h1 : f x = f z
   · by_cases h2 : f' z = f' x
-    · rw [if_pos h1, if_pos h2,
-        if_pos (show f x = f z ∧ f' x = f' z from ⟨h1, h2.symm⟩)]
+    · rw [ite_eq_left h1, ite_eq_left h2,
+        ite_eq_left (show f x = f z ∧ f' x = f' z from ⟨h1, h2.symm⟩)]
       ring
-    · rw [if_neg h2,
-        if_neg (show ¬(f x = f z ∧ f' x = f' z) from fun hh => h2 hh.2.symm)]
+    · rw [ite_eq_right h2,
+        ite_eq_right (show ¬(f x = f z ∧ f' x = f' z) from fun hh => h2 hh.2.symm)]
       ring
-  · rw [if_neg h1,
-      if_neg (show ¬(f x = f z ∧ f' x = f' z) from fun hh => h1 hh.1)]
+  · rw [ite_eq_right h1,
+      ite_eq_right (show ¬(f x = f z ∧ f' x = f' z) from fun hh => h1 hh.1)]
     ring
 
 /-- The trace of the product of two level-set matrices is the complex cast of the sum of squared
@@ -318,9 +334,9 @@ theorem trace_rho_mul (f f' : X → Y) :
       simp only [ind2]
       by_cases h1 : f x = f z
       · by_cases h2 : f' x = f' z
-        · rw [if_pos ⟨h1, h2⟩, if_pos ⟨h1.symm, h2.symm⟩]
-        · rw [if_neg (fun hh => h2 hh.2), if_neg (fun hh => h2 hh.2.symm)]
-      · rw [if_neg (fun hh => h1 hh.1), if_neg (fun hh => h1 hh.1.symm)]
+        · rw [ite_eq_left ⟨h1, h2⟩, ite_eq_left ⟨h1.symm, h2.symm⟩]
+        · rw [ite_eq_right (fun hh => h2 hh.2), ite_eq_right (fun hh => h2 hh.2.symm)]
+      · rw [ite_eq_right (fun hh => h1 hh.1), ite_eq_right (fun hh => h1 hh.1.symm)]
     rw [Finset.sum_congr rfl (fun x _ => hinner x)]
     exact sum_pair_fiber f f' (fun y y' => (ovl f f' y y' : ℂ))
   have ha : (∑ y, ∑ y', (ovl f f' y y' : ℂ) * (ovl f f' y y' : ℂ))
@@ -372,13 +388,13 @@ theorem sum_sq_ovl_le (f f' : X → Y) {α δ β : ℝ}
     intro p
     have hκ0 : (0 : ℝ) ≤ (ovl f f' p.1 p.2 : ℝ) := Nat.cast_nonneg _
     by_cases hp : α ≤ (ovl f f' p.1 p.2 : ℝ)
-    · rw [if_pos hp]
+    · rw [ite_eq_left hp]
       have hκδ : (ovl f f' p.1 p.2 : ℝ) ≤ δ := by
         have h1 : ovl f f' p.1 p.2 ≤ (lset f p.1).card :=
           Finset.card_le_card Finset.inter_subset_left
         exact le_trans (by exact_mod_cast h1) (hδ p.1)
       nlinarith
-    · rw [if_neg hp]
+    · rw [ite_eq_right hp]
       have hlt : (ovl f f' p.1 p.2 : ℝ) < α := lt_of_not_ge hp
       nlinarith
   have hcard : (Fintype.card (Y × Y) : ℝ) = (Fintype.card Y : ℝ) ^ 2 := by
@@ -545,16 +561,18 @@ the function values agree and zero otherwise. -/
 noncomputable def suppProj (f : X → Y) : Matrix X X ℂ :=
   fun x x' => if f x = f x' then ((↑((lset f (f x)).card) : ℂ))⁻¹ else 0
 
+omit [DecidableEq X] [Fintype Y] in
 /-- The level-set support projector is equal to its conjugate transpose. -/
 theorem suppProj_conjTranspose (f : X → Y) : (suppProj f)ᴴ = suppProj f := by
   ext x x'
   rw [Matrix.conjTranspose_apply]
   simp only [suppProj]
   by_cases h : f x = f x'
-  · rw [if_pos h.symm, if_pos h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
     simp [h]
-  · rw [if_neg (fun hc => h hc.symm), if_neg h, star_zero]
+  · rw [ite_eq_right (fun hc => h hc.symm), ite_eq_right h, star_zero]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Right multiplication by the level-set support projector leaves `sqrtRho f` unchanged. -/
 theorem sqrtRho_mul_suppProj (f : X → Y) :
     sqrtRho f * suppProj f = sqrtRho f := by
@@ -563,7 +581,7 @@ theorem sqrtRho_mul_suppProj (f : X → Y) :
   by_cases h : f x = f x'
   · have hval : sqrtRho f x x' = (↑(wt f (f x)) : ℂ) := by
       simp only [sqrtRho]
-      rw [if_pos h]
+      rw [ite_eq_left h]
     rw [hval]
     have hterm : ∀ z, sqrtRho f x z * suppProj f z x' =
         (↑(wt f (f x)) * ((↑((lset f (f x)).card) : ℂ))⁻¹) * indL f (f x) z := by
@@ -572,12 +590,12 @@ theorem sqrtRho_mul_suppProj (f : X → Y) :
       · have hzx : f z = f x' := hz.trans h
         have hxz : f x = f z := hz.symm
         simp only [sqrtRho, suppProj, indL]
-        rw [if_pos hxz, if_pos hzx, if_pos hz, hz]
+        rw [ite_eq_left hxz, ite_eq_left hzx, ite_eq_left hz, hz]
         ring
       · have hzx : ¬(f z = f x') := fun hc => hz (hc.trans h.symm)
         have hxz : ¬(f x = f z) := fun hc => hz hc.symm
         simp only [sqrtRho, suppProj, indL]
-        rw [if_neg hxz, if_neg hzx, if_neg hz]
+        rw [ite_eq_right hxz, ite_eq_right hzx, ite_eq_right hz]
         ring
     rw [Finset.sum_congr rfl (fun z _ => hterm z)]
     rw [← Finset.mul_sum, sum_indL]
@@ -586,19 +604,20 @@ theorem sqrtRho_mul_suppProj (f : X → Y) :
     field_simp
   · have hval : sqrtRho f x x' = 0 := by
       simp only [sqrtRho]
-      rw [if_neg h]
+      rw [ite_eq_right h]
     rw [hval]
     refine Finset.sum_eq_zero (fun z _ => ?_)
     by_cases hz : f z = f x
     · have hzx : f z ≠ f x' := fun hc => h (hz.symm.trans hc)
       have hxz : f x = f z := hz.symm
       simp only [sqrtRho, suppProj]
-      rw [if_pos hxz, if_neg hzx, mul_zero]
+      rw [ite_eq_left hxz, ite_eq_right hzx, mul_zero]
     · have hxz : f x ≠ f z := fun hc => hz hc.symm
       simp only [sqrtRho]
-      rw [if_neg hxz]
+      rw [ite_eq_right hxz]
       simp
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Left multiplication by the level-set support projector leaves `sqrtRho f` unchanged. -/
 theorem suppProj_mul_sqrtRho (f : X → Y) :
     suppProj f * sqrtRho f = sqrtRho f := by
@@ -607,7 +626,7 @@ theorem suppProj_mul_sqrtRho (f : X → Y) :
   by_cases h : f x = f x'
   · have hval : sqrtRho f x x' = (↑(wt f (f x)) : ℂ) := by
       simp only [sqrtRho]
-      rw [if_pos h]
+      rw [ite_eq_left h]
     rw [hval]
     have hterm : ∀ z, suppProj f x z * sqrtRho f z x' =
         (((↑((lset f (f x)).card) : ℂ))⁻¹ * ↑(wt f (f x))) * indL f (f x) z := by
@@ -616,12 +635,12 @@ theorem suppProj_mul_sqrtRho (f : X → Y) :
       · have hzx : f z = f x' := hz.trans h
         have hxz : f x = f z := hz.symm
         simp only [suppProj, sqrtRho, indL]
-        rw [if_pos hxz, if_pos hzx, if_pos hz, hz]
+        rw [ite_eq_left hxz, ite_eq_left hzx, ite_eq_left hz, hz]
         ring
       · have hzx : ¬(f z = f x') := fun hc => hz (hc.trans h.symm)
         have hxz : ¬(f x = f z) := fun hc => hz hc.symm
         simp only [suppProj, sqrtRho, indL]
-        rw [if_neg hxz, if_neg hzx, if_neg hz]
+        rw [ite_eq_right hxz, ite_eq_right hzx, ite_eq_right hz]
         ring
     rw [Finset.sum_congr rfl (fun z _ => hterm z)]
     rw [← Finset.mul_sum, sum_indL]
@@ -630,19 +649,20 @@ theorem suppProj_mul_sqrtRho (f : X → Y) :
     field_simp
   · have hval : sqrtRho f x x' = 0 := by
       simp only [sqrtRho]
-      rw [if_neg h]
+      rw [ite_eq_right h]
     rw [hval]
     refine Finset.sum_eq_zero (fun z _ => ?_)
     by_cases hz : f z = f x
     · have hzx : f z ≠ f x' := fun hc => h (hz.symm.trans hc)
       have hxz : f x = f z := hz.symm
       simp only [suppProj, sqrtRho]
-      rw [if_pos hxz, if_neg hzx, mul_zero]
+      rw [ite_eq_left hxz, ite_eq_right hzx, mul_zero]
     · have hxz : f x ≠ f z := fun hc => hz hc.symm
       simp only [suppProj]
-      rw [if_neg hxz]
+      rw [ite_eq_right hxz]
       simp
 
+omit [DecidableEq X] [Fintype Y] in
 /-- The level-set support projector is idempotent. -/
 theorem suppProj_mul_self (f : X → Y) :
     suppProj f * suppProj f = suppProj f := by
@@ -651,7 +671,7 @@ theorem suppProj_mul_self (f : X → Y) :
   by_cases h : f x = f x'
   · have hval : suppProj f x x' = ((↑((lset f (f x)).card) : ℂ))⁻¹ := by
       simp only [suppProj]
-      rw [if_pos h]
+      rw [ite_eq_left h]
     rw [hval]
     have hterm : ∀ z, suppProj f x z * suppProj f z x' =
         (((↑((lset f (f x)).card) : ℂ))⁻¹ * ((↑((lset f (f x)).card) : ℂ))⁻¹)
@@ -661,12 +681,12 @@ theorem suppProj_mul_self (f : X → Y) :
       · have hzx : f z = f x' := hz.trans h
         have hxz : f x = f z := hz.symm
         simp only [suppProj, indL]
-        rw [if_pos hxz, if_pos hzx, if_pos hz, hz]
+        rw [ite_eq_left hxz, ite_eq_left hzx, ite_eq_left hz, hz]
         ring
       · have hzx : ¬(f z = f x') := fun hc => hz (hc.trans h.symm)
         have hxz : ¬(f x = f z) := fun hc => hz hc.symm
         simp only [suppProj, indL]
-        rw [if_neg hxz, if_neg hzx, if_neg hz]
+        rw [ite_eq_right hxz, ite_eq_right hzx, ite_eq_right hz]
         ring
     rw [Finset.sum_congr rfl (fun z _ => hterm z)]
     rw [← Finset.mul_sum, sum_indL]
@@ -675,19 +695,20 @@ theorem suppProj_mul_self (f : X → Y) :
     field_simp
   · have hval : suppProj f x x' = 0 := by
       simp only [suppProj]
-      rw [if_neg h]
+      rw [ite_eq_right h]
     rw [hval]
     refine Finset.sum_eq_zero (fun z _ => ?_)
     by_cases hz : f z = f x
     · have hzx : f z ≠ f x' := fun hc => h (hz.symm.trans hc)
       have hxz : f x = f z := hz.symm
       simp only [suppProj]
-      rw [if_pos hxz, if_neg hzx, mul_zero]
+      rw [ite_eq_left hxz, ite_eq_right hzx, mul_zero]
     · have hxz : f x ≠ f z := fun hc => hz hc.symm
       simp only [suppProj]
-      rw [if_neg hxz]
+      rw [ite_eq_right hxz]
       simp
 
+omit [DecidableEq X] [Fintype Y] in
 /-- For a nonempty domain, the real trace of `rho f` equals one. -/
 theorem trace_rho_re [Nonempty X] (f : X → Y) : ((rho f).trace).re = 1 := by
   have hcard : ((Fintype.card X : ℂ)) ≠ 0 := by
@@ -738,13 +759,13 @@ theorem trace_suppProj_mul_rho_re (f f' : X → Y) :
       simp only [suppProj, rho, ind2]
       by_cases h1 : f x = f z
       · by_cases h2 : f' z = f' x
-        · rw [if_pos h1, if_pos h2, if_pos (show f z = f x ∧ f' z = f' x from ⟨h1.symm, h2⟩)]
+        · rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left (show f z = f x ∧ f' z = f' x from ⟨h1.symm, h2⟩)]
           ring
-        · rw [if_pos h1, if_neg h2,
-            if_neg (show ¬(f z = f x ∧ f' z = f' x) from fun hh => h2 hh.2)]
+        · rw [ite_eq_left h1, ite_eq_right h2,
+            ite_eq_right (show ¬(f z = f x ∧ f' z = f' x) from fun hh => h2 hh.2)]
           ring
-      · rw [if_neg h1,
-          if_neg (show ¬(f z = f x ∧ f' z = f' x) from fun hh => h1 hh.1.symm),
+      · rw [ite_eq_right h1,
+          ite_eq_right (show ¬(f z = f x ∧ f' z = f' x) from fun hh => h1 hh.1.symm),
           zero_mul, mul_zero]
     rw [Finset.sum_congr rfl (fun z _ => hstep z)]
     rw [← Finset.mul_sum, ← ovl_eq_sum]
@@ -878,14 +899,14 @@ theorem sum_div_ovl_le [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
         simp [hovl]
       rw [hsum0, zero_div]
       by_cases hy : y ∈ bad
-      · rw [if_pos hy]; exact hδ0
-      · rw [if_neg hy]; exact hα
+      · rw [ite_eq_left hy]; exact hδ0
+      · rw [ite_eq_right hy]; exact hα
     · have hLpos : (0 : ℝ) < ((lset f y).card : ℝ) := by
         exact_mod_cast Nat.pos_of_ne_zero hL0
       have hsum_card : (∑ y', (ovl f f' y y' : ℝ)) = ((lset f y).card : ℝ) := by
         rw [← Nat.cast_sum, sum_ovl_eq_card]
       by_cases hy : y ∈ bad
-      · rw [if_pos hy, div_le_iff₀ hLpos]
+      · rw [ite_eq_left hy, div_le_iff₀ hLpos]
         have hnn : ∀ y' ∈ (Finset.univ : Finset Y),
             (0 : ℝ) ≤ (ovl f f' y y' : ℝ) := fun y' _ => Nat.cast_nonneg _
         have hsq := Finset.sum_sq_le_sq_sum_of_nonneg hnn
@@ -897,11 +918,11 @@ theorem sum_div_ovl_le [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
             _ ≤ δ * ((lset f y).card : ℝ) :=
                 mul_le_mul_of_nonneg_right (hδ y) (Nat.cast_nonneg _)
         linarith
-      · rw [if_neg hy, div_le_iff₀ hLpos]
+      · rw [ite_eq_right hy, div_le_iff₀ hLpos]
         have hlt : ∀ y', (ovl f f' y y' : ℝ) < α := by
           intro y'
           by_contra hcon
-          push_neg at hcon
+          push Not at hcon
           exact hy (Finset.mem_filter.mpr ⟨Finset.mem_univ _, ⟨y', hcon⟩⟩)
         have hle : ∀ y', (ovl f f' y y' : ℝ) ^ 2 ≤ α * (ovl f f' y y' : ℝ) := by
           intro y'
@@ -921,9 +942,9 @@ theorem sum_div_ovl_le [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
         rw [← Finset.sum_filter_add_sum_filter_not (s := (Finset.univ : Finset Y))
           (p := fun y => y ∈ bad) (f := fun y => if y ∈ bad then δ else α), hbad']
         congr 1
-        · rw [Finset.sum_congr rfl (fun y hy => if_pos (by simpa using hy)),
+        · rw [Finset.sum_congr rfl (fun y hy => ite_eq_left (by simpa using hy)),
             Finset.sum_const, nsmul_eq_mul]
-        · rw [Finset.sum_congr rfl (fun y hy => if_neg (by simpa using hy)),
+        · rw [Finset.sum_congr rfl (fun y hy => ite_eq_right (by simpa using hy)),
             Finset.sum_const, nsmul_eq_mul]
     _ ≤ (β * (Fintype.card Y : ℝ)) * δ + (Fintype.card Y : ℝ) * α := by
         have hc2 : ((Finset.univ.filter (fun y : Y => y ∉ bad)).card : ℝ)
@@ -962,6 +983,7 @@ theorem lemma9 [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
         rw [div_eq_mul_inv]
         ring
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Relabeling function values by a codomain equivalence leaves the level-set matrix unchanged.
 [ChildsSchulmanVazirani2007]. -/
 theorem rho_comp_equiv (e : Y ≃ Y) (f : X → Y) :
@@ -969,6 +991,7 @@ theorem rho_comp_equiv (e : Y ≃ Y) (f : X → Y) :
   funext x x'
   simp only [rho, e.apply_eq_iff_eq]
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Adding a fixed codomain group element to every function value leaves the level-set matrix
 unchanged. -/
 theorem rho_add_const [AddGroup Y] (f : X → Y) (b : Y) :
@@ -977,6 +1000,7 @@ theorem rho_add_const [AddGroup Y] (f : X → Y) (b : Y) :
   rw [he]
   exact rho_comp_equiv _ f
 
+omit [DecidableEq X] [Fintype Y] in
 /-- Multiplying all function values by a nonzero field element leaves the level-set matrix
 unchanged. [ChildsSchulmanVazirani2007]. -/
 theorem rho_mul_const_of_ne_zero [Field Y] (f : X → Y) {c : Y} (hc : c ≠ 0) :

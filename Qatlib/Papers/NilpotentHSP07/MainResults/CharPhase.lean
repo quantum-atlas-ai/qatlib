@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Character Phases and Cancellation
@@ -86,7 +90,7 @@ values. -/
 theorem charFun_add (u z z' : Fin d → ZMod p) :
     charFun u (z + z') = charFun u z * charFun u z' := by
   have hp : p ≠ 0 := (Fact.out : p.Prime).ne_zero
-  haveI : NeZero p := ⟨hp⟩
+  have : NeZero p := ⟨hp⟩
   unfold charFun
   rw [dot_add, ZMod.val_add, omega_pow_mod hp, pow_add]
 
@@ -134,7 +138,7 @@ the corresponding dot products. This combines the character phases appearing in
 theorem prod_charFun {n : ℕ} (U : Fin n → Fin d → ZMod p) (V : Fin n → Fin d → ZMod p) :
     ∏ i, charFun (U i) (V i) = omega p ^ (∑ i, dot (U i) (V i)).val := by
   have hp : p ≠ 0 := (Fact.out : p.Prime).ne_zero
-  haveI : NeZero p := ⟨hp⟩
+  have : NeZero p := ⟨hp⟩
   induction (Finset.univ : Finset (Fin n)) using Finset.induction with
   | empty => simp
   | insert i s hi ih =>

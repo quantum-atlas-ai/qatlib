@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — transfer operator and its gap, eqs. (19)–(24)

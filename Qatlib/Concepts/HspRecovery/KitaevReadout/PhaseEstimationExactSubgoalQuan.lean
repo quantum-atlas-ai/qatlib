@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.PhaseEstimationExactSubgoalStat
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.PhaseEstimationExactSubgoalStat
+
+@[expose] public section
 
 /-!
 # Exact phase estimation on the Fourier grid
@@ -32,6 +36,6 @@ open Qatlib
 /-- Proves exact phase estimation for a normalized eigenvector on a positive Fourier grid: the
 label register equals `Ket j` and is measured as `j` with probability one; see [Kitaev1995]. -/
 theorem phaseEstimationExactSubgoal : PhaseEstimationExactSubgoal :=
-  fun M I _ _ U hM ψ hψn j hψ => Qatlib.Concepts.SpectralFilter.PhaseReadout.qpe_exact_readout hM hψn j hψ
+  fun _M _I _ _ _U hM _ψ hψn j hψ => Qatlib.Concepts.SpectralFilter.PhaseReadout.qpe_exact_readout hM hψn j hψ
 
 end Qatlib.Concepts.HspRecovery.KitaevReadout

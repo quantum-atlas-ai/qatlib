@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Data.ZMod.QuotientRing
-import Mathlib.Algebra.Group.Pi.Units
-import Mathlib.GroupTheory.Index
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
+public import Mathlib.Data.Nat.Prime.Basic
+public import Mathlib.Data.ZMod.QuotientRing
+public import Mathlib.Algebra.Group.Pi.Units
+public import Mathlib.GroupTheory.Index
+
+@[expose] public section
 
 /-!
 # Random-base success in the factoring reduction
@@ -55,7 +59,7 @@ private theorem root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     (hN : 1 < N) (hodd : Odd N) (x : (ZMod N)ˣ)
     (hx : x ^ 2 = 1) :
     (x.val.val - 1).Coprime N ↔ (x : ZMod N) = -1 := by
-  letI : Fact (1 < N) := ⟨hN⟩
+  let : Fact (1 < N) := ⟨hN⟩
   have ht : 1 ≤ x.val.val := by
     have h : x.val.val ≠ 0 := by rw [ZMod.val_ne_zero]; exact x.isUnit.ne_zero
     omega
@@ -85,7 +89,7 @@ theorem random_base_exact_order_factor_characterization :
       (randomBaseGood N a ↔ Even (orderOf a) ∧
         ((a ^ (orderOf a / 2) : (ZMod N)ˣ) : ZMod N) ≠ -1) := by
   intro N _ a hN hodd
-  letI : Fact (1 < N) := ⟨hN⟩
+  let : Fact (1 < N) := ⟨hN⟩
   by_cases he : Even (orderOf a)
   · have hmod : orderOf a % 2 = 0 := Nat.mod_eq_zero_of_dvd (even_iff_two_dvd.mp he)
     have hr : 0 < orderOf a := orderOf_pos a
@@ -235,7 +239,7 @@ private theorem power_fiber_double_le_card {G : Type*} [CommGroup G] [Fintype G]
     2 * (Finset.univ.filter (fun a : G => a ^ E = y)).card ≤ Fintype.card G := by
   let f : G →* G := powMonoidHom E
   have hzmem : z ∈ f.range := hroot
-  letI : Nontrivial f.range := ⟨⟨⟨z, hzmem⟩, 1, fun h => hne (congrArg Subtype.val h)⟩⟩
+  let : Nontrivial f.range := ⟨⟨⟨z, hzmem⟩, 1, fun h => hne (congrArg Subtype.val h)⟩⟩
   have hrange : 2 ≤ Nat.card f.range := by
     rw [Nat.card_eq_fintype_card]
     exact Fintype.one_lt_card
@@ -318,7 +322,7 @@ private theorem random_base_power_fiber_bound (N : ℕ) [NeZero N] (hodd : Odd N
     2 ^ N.primeFactors.card *
       (Finset.univ.filter (fun a : (ZMod N)ˣ => a ^ E = y)).card ≤
       Fintype.card ((ZMod N)ˣ) := by
-  letI : ∀ p : N.primeFactors, NeZero ((p : ℕ) ^ N.factorization p) :=
+  let : ∀ p : N.primeFactors, NeZero ((p : ℕ) ^ N.factorization p) :=
     fun p => ⟨pow_ne_zero _ (Nat.prime_of_mem_primeFactors p.property).ne_zero⟩
   let e : (ZMod N)ˣ ≃* (∀ p : N.primeFactors, (ZMod ((p : ℕ) ^ N.factorization p))ˣ) :=
     (Units.mapEquiv (ZMod.equivPi N (NeZero.ne N)).toMulEquiv).trans MulEquiv.piUnits
@@ -329,7 +333,7 @@ private theorem random_base_power_fiber_bound (N : ℕ) [NeZero N] (hodd : Odd N
     simp
   have hne : ∀ p : N.primeFactors, e (-1) p ≠ 1 := by
     intro p
-    letI : Fact (2 < (p : ℕ) ^ N.factorization p) := ⟨odd_prime_power_gt_two N hodd p⟩
+    let : Fact (2 < (p : ℕ) ^ N.factorization p) := ⟨odd_prime_power_gt_two N hodd p⟩
     rw [hez p]
     intro h
     exact ZMod.neg_one_ne_one (congrArg Units.val h)
@@ -356,7 +360,7 @@ theorem random_base_crt_success_bound :
       2 ≤ N.primeFactors.card →
       1 - (2 : ℝ) ^ (-(N.primeFactors.card - 1 : ℤ)) ≤ randomBaseSuccess N := by
   intro N _ hN hodd hk
-  letI : Fact (2 < N) := ⟨by obtain ⟨k, hk⟩ := hodd; omega⟩
+  let : Fact (2 < N) := ⟨by obtain ⟨k, hk⟩ := hodd; omega⟩
   have hz : (-1 : (ZMod N)ˣ) ^ 2 = 1 := by apply Units.ext; simp
   have hne : (-1 : (ZMod N)ˣ) ≠ 1 := by
     intro h

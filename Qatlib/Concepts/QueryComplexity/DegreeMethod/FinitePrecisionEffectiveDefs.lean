@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
-import Qatlib.Concepts.ScaledSqrt.SqrtBounds.ScaledRationalSqrt
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
+public import Qatlib.Concepts.ScaledSqrt.SqrtBounds.ScaledRationalSqrt
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Effective arithmetic and complete parameter words

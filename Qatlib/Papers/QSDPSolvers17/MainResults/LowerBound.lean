@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
-import Qatlib.Concepts.MatrixWeights.WeightsCore
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem trace_mul_maximallyMixed (A : Operator n) :
     (Matrix.trace (A * maximallyMixed n)).re = (Matrix.trace A).re / n := by
   unfold maximallyMixed
   rw [Matrix.mul_smul, Matrix.mul_one, Matrix.trace_smul]
-  simp [Complex.smul_re, smul_eq_mul]
+  simp
   ring
 
 /-- **Theorem 13, infeasible family.**  If all constraint matrices equal a PSD `A₀` and
@@ -89,7 +93,7 @@ theorem instance_one_infeasible {m n : ℕ} (A0 : Operator n) (hA0 : A0.PosSemid
 `Tr(A₀) ≤ 1` and all `a_j = 1/2`, the maximally mixed state lies in `S_{1/4}`:
 `Tr(A₀ I/n) = Tr(A₀)/n ≤ 1/2 ≤ 1/2 + 1/4`. -/
 theorem instance_two_feasible {m n : ℕ} (hn : 2 ≤ n) (A0 : Operator n)
-    (hA0 : A0.PosSemidef) (htr : (Matrix.trace A0).re ≤ 1)
+    (_hA0 : A0.PosSemidef) (htr : (Matrix.trace A0).re ≤ 1)
     (P : SdpInstance m n) (hA : ∀ j, P.A j = A0) (ha : ∀ j, P.a j = 1 / 2) :
     ∃ ρ, EpsFeasibleAt P (1 / 4) ρ := by
   refine ⟨maximallyMixed n, maximallyMixed_density (by omega), fun j => ?_⟩
@@ -122,7 +126,7 @@ at least `√m/4` queries to Oracle D.1.
 The Grover reduction `Ω(√m)` (from [8]) enters as the explicit hypothesis `hGrover`:
 any pair indistinguishable through D.2 with differing feasibility requires that many
 D.1 queries. -/
-theorem lower_bound_sqrt_m (m n : ℕ) (hm : 2 ≤ m) (hn : 2 ≤ n)
+theorem lower_bound_sqrt_m (m n : ℕ) (_hm : 2 ≤ m) (hn : 2 ≤ n)
     (A0 : Operator n) (hA0 : A0.PosSemidef) (htr : (Matrix.trace A0).re ≤ 1)
     (j0 : Fin m) (D1queries : SdpInstance m n → SdpInstance m n → ℝ)
     (hGrover : ∀ S1 S2 : SdpInstance m n, (∀ j, S1.A j = S2.A j) →

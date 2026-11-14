@@ -4,14 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Lean.Elab.Tactic.Omega
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStoppingDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Lean.Elab.Tactic.Omega
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStoppingDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+set_option linter.unnecessarySeqFocus false
+set_option linter.unnecessarySimpa false
+set_option linter.style.haveILetI false
 
 /-!
 # Amplitude estimation, counting, and search stopping bounds
@@ -1205,7 +1215,7 @@ theorem restartIntegerOptimum_spec (θ : ℝ) (M : ℕ) (hM : 0 < M) :
       restartProfile θ (restartIntegerOptimum θ M) = restartOptimalValue θ M := by
   have hfind : restartIntegerOptimum θ M
       = Nat.find (restartIntegerOptimum_exists θ M hM) := by
-    simp [restartIntegerOptimum, dif_pos hM]
+    simp [restartIntegerOptimum, dite_eq_left hM]
   rw [hfind]
   obtain ⟨h1, h2, h3⟩ := Nat.find_spec (restartIntegerOptimum_exists θ M hM)
   exact ⟨h1, h2, h3⟩
@@ -1225,7 +1235,7 @@ theorem restartProfile_ge_min (θ : ℝ) (M : ℕ) (hM : 0 < M) (j : ℕ) (hj : 
     Finset.min'_le (restartWindowProfile θ M) (restartProfile θ (j : ℝ)) hmem
   have hcongr : (restartWindowProfile θ M).min' ⟨restartProfile θ (j : ℝ), hmem⟩
       = restartOptimalValue θ M := by
-    rw [restartOptimalValue, dif_pos hM]
+    rw [restartOptimalValue, dite_eq_left hM]
   rw [hcongr] at hle
   exact hle
 
@@ -3749,9 +3759,9 @@ theorem clause9_native_cost_eq_frozen {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0
     apply Finset.sum_congr rfl
     intro l _
     by_cases hl : l.val < basicApproxCountStop N ω
-    · rw [if_pos hl, if_pos hl]
+    · rw [ite_eq_left hl, ite_eq_left hl]
       exact clause9_record_native_ledger_eq hN _ (by positivity)
-    · rw [if_neg hl, if_neg hl]
+    · rw [ite_eq_right hl, ite_eq_right hl]
   unfold basicApproxCountNativeCost basicApproxCountTotalCost
   rw [hfin, hs]
 
@@ -4188,7 +4198,7 @@ theorem clause44_classical_time_lower {n : ℕ} (_hn : 0 < n)
       have hle'' : (1:ℝ) ≤ (n : ℝ) / ((BHMTTh6.heuristicGoodCount n G f : ℕ) : ℝ) := by
         rw [le_div_iff₀ hden]
         linarith
-      rw [if_pos hmem]
+      rw [ite_eq_left hmem]
       simpa using! mul_le_mul_of_nonneg_left hle'' (ENNReal.toReal_nonneg)
     · have hz : D f = 0 := by
         by_contra hc
@@ -5230,7 +5240,7 @@ theorem clause12_native_attempt_success {I : Type*} [Fintype I] [DecidableEq I]
     growthAttemptSuccess A m r = (1 - growthRejectProb m ^ r) * CheckedSuccess A m := by
   have hmar (j : ℕ) (hj : j < m) :
       growthMarginalAt m r j = (1 - growthRejectProb m ^ r) * (1 / (m : ℝ)) := by
-    simp only [growthMarginalAt, dif_pos hj]
+    simp only [growthMarginalAt, dite_eq_left hj]
     exact clause12_growth_marginal_uniform m r hm ⟨j, hj⟩
   unfold growthAttemptSuccess
   calc
@@ -5255,7 +5265,7 @@ theorem clause12_native_attempt_failure {I : Type*} [Fintype I] [DecidableEq I]
     growthAttemptFailure A m r = (1 - growthRejectProb m ^ r) * CheckedFailure A m := by
   have hmar (j : ℕ) (hj : j < m) :
       growthMarginalAt m r j = (1 - growthRejectProb m ^ r) * (1 / (m : ℝ)) := by
-    simp only [growthMarginalAt, dif_pos hj]
+    simp only [growthMarginalAt, dite_eq_left hj]
     exact clause12_growth_marginal_uniform m r hm ⟨j, hj⟩
   unfold growthAttemptFailure
   calc
@@ -5280,7 +5290,7 @@ theorem clause12_native_attempt_queries (I : Type*) [Fintype I] [DecidableEq I]
     growthAttemptQueries I m r = (1 - growthRejectProb m ^ r) * CheckedMeanQueries I m := by
   have hmar (j : ℕ) (hj : j < m) :
       growthMarginalAt m r j = (1 - growthRejectProb m ^ r) * (1 / (m : ℝ)) := by
-    simp only [growthMarginalAt, dif_pos hj]
+    simp only [growthMarginalAt, dite_eq_left hj]
     exact clause12_growth_marginal_uniform m r hm ⟨j, hj⟩
   unfold growthAttemptQueries
   calc
@@ -6393,11 +6403,11 @@ theorem clause41_no_progress_success {N : ℕ} {α : Type*} [LinearOrder α] (T 
     have hpay : (fun i _ => if ∀ j, T i ≤ T j then (1 : ℝ) else 0) current budget =
         (if ∀ j, T current ≤ T j then (1 : ℝ) else 0) := rfl
     by_cases hsingle : N = 1
-    · rw [minimumBudgetEvalWithInit, if_pos hsingle]
-    · rw [minimumBudgetEvalWithInit, if_neg hsingle]
+    · rw [minimumBudgetEvalWithInit, ite_eq_left hsingle]
+    · rw [minimumBudgetEvalWithInit, ite_eq_right hsingle]
       by_cases hpaid : initCharge N ≤ budget
       · omega
-      · rw [if_neg hpaid]
+      · rw [ite_eq_right hpaid]
   simp_rw [hstep]
 
 /-- If the initial candidate is not a global minimizer, its zero-run failure probability is one. -/
@@ -6410,7 +6420,7 @@ theorem clause41_placeholder_failure {N : ℕ} {α : Type*} [LinearOrder α] (T 
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   rw [show (fun x => ¬ ∀ (j : Fin N), T x.1 ≤ T j) (clause41Placeholder hN, 0) =
       (¬ ∀ (j : Fin N), T (clause41Placeholder hN) ≤ T j) from rfl]
-  rw [if_pos hnone]
+  rw [ite_eq_left hnone]
   simp
 
 /-- For a two-element table whose second index is minimal and whose initial candidate is not, a
@@ -6436,8 +6446,8 @@ theorem clause41_counterexample_two_runs {α : Type*} [LinearOrder α] (T : Fin 
   have hzero : (0 : Fin 2) = clause41Placeholder hN := rfl
   have hsum : (∑ i : Fin 2, if ∀ j, T i ≤ T j then (1 : ℝ) else 0) = 1 := by
     rw [Fin.sum_univ_two, hzero]
-    have h0 : (if ∀ j, T (clause41Placeholder hN) ≤ T j then (1 : ℝ) else 0) = 0 := if_neg hnone
-    have h1 : (if ∀ j, T 1 ≤ T j then (1 : ℝ) else 0) = 1 := if_pos hmin
+    have h0 : (if ∀ j, T (clause41Placeholder hN) ≤ T j then (1 : ℝ) else 0) = 0 := ite_eq_right hnone
+    have h1 : (if ∀ j, T 1 ≤ T j then (1 : ℝ) else 0) = 1 := ite_eq_left hmin
     rw [h0, h1]
     norm_num
   have hsucc : (clause41SingleSuccess T hN 0).toReal = 1 / 2 := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation13Stat
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation13Stat
+
+@[expose] public section
 
 /-!
 # Cubic identity for projected amplification

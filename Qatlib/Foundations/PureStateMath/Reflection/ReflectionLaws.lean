@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
+module
+
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+
+@[expose] public section
 
 /-!
 # Reflections associated with orthogonal projectors
@@ -102,11 +106,13 @@ theorem outerProduct_mulVec (ψ φ : QState I) :
     exact Finset.sum_congr rfl fun j _ => by ring
   simpa using! h
 
+omit [DecidableEq I] in
 /-- A normalized state has inner product one with itself. -/
 theorem inner_self_eq_one {ψ : QState I} (hψ : Normalized ψ) : Inner ψ ψ = 1 := by
   rw [normalized_iff_inner_self] at hψ
   exact hψ
 
+omit [DecidableEq I] in
 /-- The outer product of a normalized state is an orthogonal projector. -/
 theorem isOrthogonalProjector_outerProduct {ψ : QState I} (hψ : Normalized ψ) :
     IsOrthogonalProjector (outerProduct ψ) := by

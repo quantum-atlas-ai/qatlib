@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyQpcaDefs
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyQpcaDefs
+
+@[expose] public section
 
 /-!
 # Copy-based QPCA endpoint theorems
@@ -147,7 +151,7 @@ theorem clause9_mcopy_law (M m : ℕ) (p : LabelLaw M) :
 /-- For density operators and positive `n`, the amplified two-species simulation error on
 positive input `X` is at most `32 * t ^ 2 / n` times its real trace. The associated ledger
 records `2 * (M - 1) * n` copies, gates, and discards. -/
-theorem thresholdGoal_two_species_fresh (D r M n : ℕ) (hM : 0 < M) (hn : 0 < n) (ρ σ : Operator D)
+theorem thresholdGoal_two_species_fresh (D r M n : ℕ) (_hM : 0 < M) (hn : 0 < n) (ρ σ : Operator D)
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (t : ℝ)
     (X : Matrix (Fin r × Fin (2 * D)) (Fin r × Fin (2 * D)) ℂ) (hX : X.PosSemidef) :
     Matrix.traceNorm (ChannelAmplification (twoSpeciesRun D ρ hρ σ hσ t n).map r X -
@@ -167,7 +171,7 @@ theorem thresholdGoal_sign_error_budget (M n : ℕ) (γ : ℝ) :
 nonempty uniform mixture of normalized training states. -/
 theorem thresholdGoal_training_set :
     TrainingSetFiniteDiscrimination ∧
-    (∀ (d m : ℕ) (φ : Fin m → QState (Fin d)) (hφ : ∀ i, Normalized (φ i)) (hm : 0 < m),
+    (∀ (d m : ℕ) (φ : Fin m → QState (Fin d)) (_hφ : ∀ i, Normalized (φ i)) (_hm : 0 < m),
       IsDensityOperator (pureStateMixture d m φ)) := by
   refine ⟨trainingSetFiniteDiscrimination, ?_⟩
   intro d m φ hφ hm
@@ -185,7 +189,7 @@ theorem clause16_endpoint :
       0 ≤ piDyadicWord w k ∧ piDyadicWord w k < 1) ∧
     (∀ (D : ℕ) (angles : List ℝ),
       freshStepLedger D angles = ⟨angles.length, angles.length, angles.length, 0⟩) ∧
-    (∀ (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n),
+    (∀ (D M n : ℕ) (_hM : 2 ≤ M) (_hn : 0 < n),
       qpePathLedger D M n = ⟨(M - 1) * n, (M - 1) * n, (M - 1) * n, 0⟩) := by
   refine ⟨stageB_copy_qpca_clause16, ?_, ?_, ?_, ?_, ?_⟩
   · intro m d A i j
@@ -204,11 +208,11 @@ bound `8 * (M - 1) * π² / n` under the stated normalization and spectral assum
 [LloydMohseniRebentrost2014]. -/
 theorem clause17_endpoint :
     StageBCopyQpcaClause17 ∧
-    (∀ {r d M n : ℕ} (ψ : Fin r → QState (Fin d)) (hψ : ∀ i, Normalized (ψ i))
-      (w : Fin r → ℝ) (hw : ∀ i, 0 ≤ w i) (hsumw : ∑ i, (w i) ^ 2 = 1) (hM : 2 ≤ M)
-      (hn : 0 < n) (V : Operator r) (hV : V ∈ Matrix.unitaryGroup (Fin r) ℂ)
+    (∀ {r d M n : ℕ} (ψ : Fin r → QState (Fin d)) (_hψ : ∀ i, Normalized (ψ i))
+      (w : Fin r → ℝ) (_hw : ∀ i, 0 ≤ w i) (_hsumw : ∑ i, (w i) ^ 2 = 1) (_hM : 2 ≤ M)
+      (_hn : 0 < n) (V : Operator r) (_hV : V ∈ Matrix.unitaryGroup (Fin r) ℂ)
       (eig : Fin r → ℝ)
-      (hs : gramMatrix ψ w = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ)
+      (_hs : gramMatrix ψ w = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ)
       (E : Finset (Fin M)),
       |(∑ z ∈ E, copyQPELabelMass r M (copyQPEOutput r M n (gramMatrix ψ w)) z) -
           (∑ i, eig i * (∑ z ∈ E, ‖qpeKernel M (-eig i / 2) z‖ ^ 2))| ≤
@@ -221,9 +225,9 @@ theorem clause17_endpoint :
 bound, and the explicit sign-error budget [LloydMohseniRebentrost2014]. -/
 theorem clause19_endpoint :
     StageBCopyQpcaClause19 ∧
-    (∀ (D r M n : ℕ) (hM : 0 < M) (hn : 0 < n) (ρ σ : Operator D) (hρ : IsDensityOperator ρ)
+    (∀ (D r M n : ℕ) (_hM : 0 < M) (_hn : 0 < n) (ρ σ : Operator D) (hρ : IsDensityOperator ρ)
       (hσ : IsDensityOperator σ) (t : ℝ)
-      (X : Matrix (Fin r × Fin (2 * D)) (Fin r × Fin (2 * D)) ℂ) (hX : X.PosSemidef),
+      (X : Matrix (Fin r × Fin (2 * D)) (Fin r × Fin (2 * D)) ℂ) (_hX : X.PosSemidef),
       Matrix.traceNorm (ChannelAmplification (twoSpeciesRun D ρ hρ σ hσ t n).map r X -
           MatrixMap.conj (TensorGate (1 : Operator r) (copyControlledEvolution (ρ - σ) t)) X)
         ≤ 32 * t ^ 2 / (n : ℝ) * (Matrix.trace X).re) ∧

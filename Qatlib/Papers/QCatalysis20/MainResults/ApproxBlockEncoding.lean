@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCatalysis20.MainResults.Definitions
-import Qatlib.Papers.QCatalysis20.MainResults.RoundedProbabilities
-import Qatlib.Papers.QCatalysis20.MainResults.PrepSelect
+module
+
+public import Qatlib.Papers.QCatalysis20.MainResults.Definitions
+public import Qatlib.Papers.QCatalysis20.MainResults.RoundedProbabilities
+public import Qatlib.Papers.QCatalysis20.MainResults.PrepSelect
+
+@[expose] public section
 
 /-!
 # Approximate LCU block encodings

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
+
+@[expose] public section
 
 /-!
 # Support identities for pretty-good frames
@@ -56,7 +60,7 @@ private theorem sqrt_mul_reciprocal_eq_support (x : ℝ) (hx : 0 ≤ x) :
   · simp [hzero]
   · have hpos : 0 < Real.sqrt x :=
       Real.sqrt_pos.mpr (lt_of_le_of_ne hx (Ne.symm hzero))
-    rw [if_neg hzero, mul_inv_cancel₀ hpos.ne']
+    rw [ite_eq_right hzero, mul_inv_cancel₀ hpos.ne']
 
 variable {I : Type} [Fintype I] [DecidableEq I] {D : ℕ}
 

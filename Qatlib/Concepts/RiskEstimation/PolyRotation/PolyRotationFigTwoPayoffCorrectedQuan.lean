@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoPayoffCorrectedStat
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoPayoffCorrectedStat
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Payoff semantics of corrected polynomial rotations
@@ -85,6 +89,6 @@ theorem riskPolyRotationFigTwoPayoffCorrected : PolyRotationFigTwoPayoffCorrecte
   have hhalf : (-2*φ)/2= -φ := by ring
   rw [mulVec_ket_apply,mulVec_ket_apply,payoffRotation_apply,hgx]
   cases b <;> simp only [qubitEulerRotation,Matrix.of_apply,hhalf,Real.cos_neg,Real.sin_neg,Complex.ofReal_neg,neg_neg,
-    if_true,if_false,Bool.false_eq_true,Bool.true_eq_false,hr0,hr1]
+    ite_true,ite_false,Bool.false_eq_true,Bool.true_eq_false,hr0,hr1]
 
 end Qatlib.Concepts.RiskEstimation.PolyRotation

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
+module
+
+public import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,9 +42,9 @@ The records below carry independent output and resource annotations; this propos
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def lemma13_sparse_flag_statement (n : ℕ) (A H : Matrix (Fin n) (Fin n) ℂ)
     (K μ : ℝ) (s d : ℕ)
-    (hμ : 0 < μ) (hK : 0 < K) (hA : OpNormLE A 1)
-    (hHmin : PSDMinusOne H) (hHmax : LeScalarIdentity H K)
-    (hAs : RowSparse A s) (hHd : RowSparse H d) (hsd : s ≤ d) : Prop :=
+    (_hμ : 0 < μ) (_hK : 0 < K) (_hA : OpNormLE A 1)
+    (_hHmin : PSDMinusOne H) (_hHmax : LeScalarIdentity H K)
+    (_hAs : RowSparse A s) (_hHd : RowSparse H d) (_hsd : s ≤ d) : Prop :=
     ∃ F : ProbabilityCircuit,
       |F.prob - (Matrix.trace (((1 / (4 * (n : ℝ))) • (1 + A / 2)) * matExp H)).re| ≤ μ ∧
       IsSoftO F.queries ((K : ℝ) * (d : ℝ)) ((n : ℝ) + K + 1 / μ) ∧

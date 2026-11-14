@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedTimeRestrictedStat
-import Qatlib.Papers.QPowerSimon97.Recovery.WeightedConstantCost
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedTimeRestrictedStat
+public import Qatlib.Papers.QPowerSimon97.Recovery.WeightedConstantCost
+
+@[expose] public section
 
 /-!
 # Expected cost of verified Simon retries

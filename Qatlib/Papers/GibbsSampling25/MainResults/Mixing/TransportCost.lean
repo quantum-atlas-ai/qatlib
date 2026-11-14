@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,9 +45,9 @@ coarse-graining `{A_i}_{i=1}^{n_A}` (eq. (7)). Then it satisfies a
 coarse-graining, and `hAT` records the weak AT hypothesis (54). -/
 def weak_transport_cost_inequality {I : Type} [Fintype I] [DecidableEq I]
     (ρ σ : Density I) (W1 : WOneDist I) (nA : ℕ) (shell : ℕ → ℝ)
-    (maxShell c₂ : ℝ) (hmax : ∀ i : ℕ, i < nA → 2 * Real.sqrt (2 * shell i) ≤ maxShell)
-    (hmax_nonneg : 0 ≤ maxShell) (hc₂ : 0 ≤ c₂)
-    (hAT : ∃ davies : ℕ → Density I → Density I,
+    (maxShell c₂ : ℝ) (_hmax : ∀ i : ℕ, i < nA → 2 * Real.sqrt (2 * shell i) ≤ maxShell)
+    (_hmax_nonneg : 0 ≤ maxShell) (_hc₂ : 0 ≤ c₂)
+    (_hAT : ∃ davies : ℕ → Density I → Density I,
       relEnt ρ σ ≤ (∑ i ∈ Finset.range nA, relEnt ρ (davies i ρ)) + c₂)  : Prop :=
     W1 ρ σ ≤ maxShell * Real.sqrt ((nA : ℝ) * relEnt ρ σ)
       + (Fintype.card I : ℝ) * Real.sqrt (2 * c₂)

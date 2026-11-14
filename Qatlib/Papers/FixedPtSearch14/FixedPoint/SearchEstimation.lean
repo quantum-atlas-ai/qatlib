@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchEstimationDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CountingCertainty
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchEstimationDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CountingCertainty
+
+@[expose] public section
 
 /-!
 # Search and counting endpoint theorems
@@ -133,7 +137,7 @@ theorem clause78_endpoint :
     (∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I),
       Tendsto (fun N => CostedLaw.expectation (runFor (sourceNext A hA j₀ S) N
           (sourceInitial (I := I)))
-          (fun x => (sourceAccumulated (fun c1 c2 => c1) x.1 : ℝ≥0∞)))
+          (fun x => (sourceAccumulated (fun c1 _c2 => c1) x.1 : ℝ≥0∞)))
         atTop (𝓝 (sourceStopLedgerExpectation A hA j₀ S
           (fun out => (out.2.1 : ℝ≥0∞))))) ∧
 
@@ -200,7 +204,7 @@ theorem clause8_endpoint
             / ((N : ℝ)*(nu : ℝ)^2)) *
           unknownSigmaLedgerAccesses N r (unknownSigmaWorstPrecision eps)) ∧
 
-    (∀ (N : ℕ) (nu : ℝ) (hnu : 0 < nu) (δ : ℝ) (r : ℕ),
+    (∀ (N : ℕ) (nu : ℝ) (_hnu : 0 < nu) (δ : ℝ) (r : ℕ),
       (8/9 : ℝ)^r < δ →
       ∃ (A : Matrix (Fin 2) (Fin 2) ℂ) (j : Fin 2)
         (hA : A ∈ Matrix.unitaryGroup (Fin 2) ℂ) (f : Fin 2 → ℚ),
@@ -209,7 +213,7 @@ theorem clause8_endpoint
           > (N : ℝ) * (nu : ℝ)^2 * (δ - (8/9 : ℝ)^r)) ∧
 
     (∀ (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ)
-      (N : ℕ) (nu : ℝ) (r : ℕ) (hN : 0 < N) (hnu : 0 < nu) (δ : ℝ),
+      (N : ℕ) (nu : ℝ) (r : ℕ) (_hN : 0 < N) (_hnu : 0 < nu) (δ : ℝ),
       (8/9 : ℝ)^r < δ →
       (unknownSigmaSecondMoment A j hA f + unknownSigmaFourthMoment A j hA f
           ≤ (N : ℝ) * (nu : ℝ)^2 * (δ - (8/9 : ℝ)^r)) →
@@ -274,19 +278,19 @@ preparation-access bound for the chosen certainty branch. -/
 theorem clause81_endpoint :
 
     (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
-      (hA : A * A.conjTranspose = 1) (θ : ℝ) (hθ0 : 0 < θ) (hθπ : θ ≤ Real.pi / 2)
-      (hmass : Real.sin θ ^ 2 = CountingCertainty.nextGoodMass A g)
-      (ha0 : 0 < CountingCertainty.nextGoodMass A g)
-      (ha1 : CountingCertainty.nextGoodMass A g < 1)
-      (m : ℕ) (hm : (m : ℝ) = CountingCertainty.nextHalfStep θ),
+      (_hA : A * A.conjTranspose = 1) (θ : ℝ) (_hθ0 : 0 < θ) (_hθπ : θ ≤ Real.pi / 2)
+      (_hmass : Real.sin θ ^ 2 = CountingCertainty.nextGoodMass A g)
+      (_ha0 : 0 < CountingCertainty.nextGoodMass A g)
+      (_ha1 : CountingCertainty.nextGoodMass A g < 1)
+      (m : ℕ) (_hm : (m : ℝ) = CountingCertainty.nextHalfStep θ),
       ∑ i, Complex.normSq (RankOneReflection.goodPart g
         (((RankOneReflection.iterate A g (-1) (-1)) ^ m).mulVec (fun i => A i 0)) i) = 1) ∧
 
     (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
-      (hA : A * A.conjTranspose = 1) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
-      (hmass : Real.sin θ ^ 2 = CountingCertainty.nextGoodMass A g)
-      (ha0 : 0 < CountingCertainty.nextGoodMass A g)
-      (ha1 : CountingCertainty.nextGoodMass A g < 1) (φ ϕ : ℂ),
+      (_hA : A * A.conjTranspose = 1) (θ : ℝ) (_hθ0 : 0 < θ) (_hθ1 : θ < Real.pi / 2)
+      (_hmass : Real.sin θ ^ 2 = CountingCertainty.nextGoodMass A g)
+      (_ha0 : 0 < CountingCertainty.nextGoodMass A g)
+      (_ha1 : CountingCertainty.nextGoodMass A g < 1) (φ ϕ : ℂ),
       (∀ (m : ℕ) (h : (m : ℝ) = CountingCertainty.nextHalfStep θ),
         ∑ i, Complex.normSq (RankOneReflection.goodPart g
           (CountingCertainty.nextCertaintyProgram A g θ φ ϕ
@@ -300,12 +304,12 @@ theorem clause81_endpoint :
               (.nonIntegral hne)) i) = 1)) ∧
 
     (∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
-      (hA : A * A.conjTranspose = 1)
+      (_hA : A * A.conjTranspose = 1)
       (P₀ : CountingCertainty.NextZeroProjector I) (φ : ℂ),
       A * (1 + (φ - 1) • P₀.toMatrix) * A.conjTranspose
         = 1 + (φ - 1) • (A * P₀.toMatrix * A.conjTranspose)) ∧
     (∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
-      (hA : A * A.conjTranspose = 1) (g : I → Bool)
+      (_hA : A * A.conjTranspose = 1) (g : I → Bool)
       (P₀ : CountingCertainty.NextZeroProjector I) (φ ϕ : ℂ)
       (ψg ψb : I → ℂ) (c₁ c₂ c₃ c₄ : ℂ),
       ((A * P₀.toMatrix * A.conjTranspose).mulVec
@@ -332,8 +336,8 @@ theorem clause81_endpoint :
       (1 : Matrix (Fin 2) (Fin 2) ℂ) * (1 : Matrix (Fin 2) (Fin 2) ℂ) *
         (Matrix.single 0 0 (1 : ℂ)) ≠ (1 : Matrix (Fin 2) (Fin 2) ℂ)) ∧
 
-    (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
-      (hA : A * A.conjTranspose = 1) (θ : ℝ) (hθ0 : 0 < θ) (hθπ : θ ≤ Real.pi / 2)
+    (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (_g : Fin (n + 1) → Bool)
+      (_hA : A * A.conjTranspose = 1) (θ : ℝ) (_hθ0 : 0 < θ) (_hθπ : θ ≤ Real.pi / 2)
       (br : CountingCertainty.NextCertaintyBranch θ),
       (CountingCertainty.nextCertaintyPrepareAccesses θ br : ℝ)
         ≤ 2 * (CountingCertainty.nextHalfStep θ + 1)) := by
@@ -456,7 +460,7 @@ theorem clause87_endpoint
           (nextRelativeGrid_two ha0 (le_trans ha0a ha1) hε hε1)).prob z = 1 ∧
         aeEstimate (nextRelativeGrid a₀ ε) z = 0 ∧
         |aeEstimate (nextRelativeGrid a₀ ε) z - 0| ≤ ε * 0) ∧
-    (∀ M : ℕ, ∀ hM : 2 ≤ M, ∃ a : ℝ, 0 < a ∧ a ≤ 1 ∧ nextAeWindow M a > ε * a) ∧
+    (∀ M : ℕ, ∀ _hM : 2 ≤ M, ∃ a : ℝ, 0 < a ∧ a ≤ 1 ∧ nextAeWindow M a > ε * a) ∧
     (aeForwardAccesses (aeAccessWord (I := I) (nextRelativeGrid a₀ ε)) = nextRelativeGrid a₀ ε ∧
       aeBackwardAccesses (aeAccessWord (I := I) (nextRelativeGrid a₀ ε)) = nextRelativeGrid a₀ ε - 1 ∧
       QueryCount (countedAECircuit (nextRelativeGrid a₀ ε) A j) = nextRelativeGrid a₀ ε - 1 ∧
@@ -560,7 +564,7 @@ theorem clause89_endpoint
         (firstProb hN S z.1) * (firstProb hN S z.2))
         ≤ (1 / (2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1))) *
           (1 / (2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1)))) ∧
-    (∀ j : ℕ, ∀ v : ℝ, 0 ≤ v → v ≤ (N : ℝ) →
+    (∀ _j : ℕ, ∀ v : ℝ, 0 ≤ v → v ≤ (N : ℝ) →
       v ≤ (S.card : ℝ) + ladderWindow N (N + 3) (S.card : ℝ) →
       ladderCost v N
         ≤ ladderCost (S.card : ℝ) N * (if v ≤ (S.card : ℝ) then 1 else 0)

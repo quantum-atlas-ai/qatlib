@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprStat
+module
+
+public import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprStat
+
+@[expose] public section
 
 /-!
 # Interaction-picture factorization of LCHS evolutions

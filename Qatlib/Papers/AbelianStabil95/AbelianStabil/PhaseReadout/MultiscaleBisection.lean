@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.PrecisionArithmetic
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.ReadoutParameters
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.PrecisionArithmetic
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.ReadoutParameters
+
+@[expose] public section
 
 /-!
 # Controlled powers for multiscale phase estimation
@@ -65,13 +69,13 @@ theorem powerAccess_apply (U : Matrix I I ℂ) (r : ℕ) (a : Fin (r + 1)) (ξ :
     Ket, Fintype.sum_prod_type]
   by_cases ha : a' = a
   · subst a'
-    simp only [if_true, ite_mul, zero_mul]
+    simp only [ite_true, ite_mul, zero_mul]
     rw [Finset.sum_eq_single a]
-    · simp [Matrix.mulVec, dotProduct]
+    · simp
     · intro a'' _ ha''; simp [Ne.symm ha'']
     · intro h; exact absurd (Finset.mem_univ a) h
   · have h0 : ¬ (a = a') := fun h => ha h.symm
-    simp [ha, h0]
+    simp [ha]
 
 /-- The dyadic exponent `2 ^ j` as an element of the power-access range for `j < l`. -/
 def levelExponent (l j : ℕ) (hj : j < l) : Fin (bisectRange l + 1) :=

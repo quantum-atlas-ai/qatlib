@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.Stride
-import Qatlib.Papers.MonteCarloInt20.MainResults.FiniteTermCode
-import Qatlib.Papers.MonteCarloInt20.MainResults.FlagRotation
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.Stride
+public import Qatlib.Papers.MonteCarloInt20.MainResults.FiniteTermCode
+public import Qatlib.Papers.MonteCarloInt20.MainResults.FlagRotation
+
+@[expose] public section
 
 /-!
 # PRN-based finite inner oracles

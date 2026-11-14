@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Matrices acting on a prescribed coordinate subset
@@ -78,7 +82,7 @@ theorem actsOnSubset_mul {m : ℕ} {S : Finset (Fin m)} {U V : Matrix (Fin m) (F
     · intro k _ hk
       by_cases hkS : k ∈ S
       · rw [hU.2.1 i k hi hkS, zero_mul]
-      · rw [hU.1 i k hi hkS, if_neg (fun h : i = k => hk h.symm), zero_mul]
+      · rw [hU.1 i k hi hkS, ite_eq_right (fun h : i = k => hk h.symm), zero_mul]
     · intro h
       exact absurd (Finset.mem_univ i) h
   · intro i j hi hj
@@ -88,7 +92,7 @@ theorem actsOnSubset_mul {m : ℕ} {S : Finset (Fin m)} {U V : Matrix (Fin m) (F
     · intro k _ hk
       by_cases hkS : k ∈ S
       · rw [hU.2.1 i k hi hkS, zero_mul]
-      · rw [hU.1 i k hi hkS, if_neg (fun h : i = k => hk h.symm), zero_mul]
+      · rw [hU.1 i k hi hkS, ite_eq_right (fun h : i = k => hk h.symm), zero_mul]
     · intro h
       exact absurd (Finset.mem_univ i) h
   · intro i j hi hj
@@ -97,7 +101,7 @@ theorem actsOnSubset_mul {m : ℕ} {S : Finset (Fin m)} {U V : Matrix (Fin m) (F
     · intro k _ hk
       by_cases hkS : k ∈ S
       · rw [hV.2.2 k j hkS hj, mul_zero]
-      · rw [hV.1 k j hkS hj, if_neg (fun h : k = j => hk h), mul_zero]
+      · rw [hV.1 k j hkS hj, ite_eq_right (fun h : k = j => hk h), mul_zero]
     · intro h
       exact absurd (Finset.mem_univ j) h
 

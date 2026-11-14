@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.SdpAlgorithm.MatrixMultiplicativeWeightsConsumers
+module
+
+public import Qatlib.Concepts.MatrixWeights.SdpAlgorithm.MatrixMultiplicativeWeightsConsumers
+
+@[expose] public section
 
 /-!
 # Stopping and certificates for matrix multiplicative weights

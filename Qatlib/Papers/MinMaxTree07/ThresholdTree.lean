@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Bool.Basic
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Bool.Basic
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Threshold reduction for Min-Max trees

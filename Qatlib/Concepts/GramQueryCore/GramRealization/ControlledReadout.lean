@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GramRealization.ChannelHelpers
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+module
+
+public import Qatlib.Concepts.GramQueryCore.GramRealization.ChannelHelpers
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+
+@[expose] public section
 
 /-!
 # Controlled permutation collision readout

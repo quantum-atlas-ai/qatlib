@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HiddenShift02.MainResults.RingCharacter
-import Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.Data.Nat.Totient
+module
+
+public import Qatlib.Papers.HiddenShift02.MainResults.RingCharacter
+public import Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Fourier support for prime moduli
@@ -49,7 +53,7 @@ theorem fourier_mulShift_zero {ell : ℕ} [Fact ell.Prime]
   classical
   have htriv : ψ.mulShift 0 = 1 := by
     ext x
-    simp [AddChar.mulShift_apply]
+    simp []
   have hsum : fourier χ (1 : AddChar (ZMod ell) ℂ) = 0 := by
     rw [fourier_apply]
     have hz : (∑ x : ZMod ell, conj ((1 : AddChar (ZMod ell) ℂ) x) * χ x) = 0 := by
@@ -62,7 +66,7 @@ theorem fourier_mulShift_zero {ell : ℕ} [Fact ell.Prime]
 coefficient at `ψ`, every nonzero frequency multiplier gives a nonzero coefficient of the
 shifted character ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem fourier_mulShift_ne_zero_of_ne_zero {ell : ℕ} [Fact ell.Prime]
-    (χ : MulChar (ZMod ell) ℂ) (hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ)
+    (χ : MulChar (ZMod ell) ℂ) (_hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ)
     (hψhat : ‖fourier χ ψ‖ = 1) (s : ZMod ell) {y : ZMod ell} (hy : y ≠ 0) :
     fourier (fun x => χ (x + s)) (ψ.mulShift y) ≠ 0 := by
   have hF : fourier χ ψ ≠ 0 := by
@@ -81,7 +85,7 @@ ell has Fourier support exactly at nonzero residues. Those residues have represe
 coprime to ell, and the support cardinality is φ(ell) ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem source_theorem3_prime {ell : ℕ} [Fact ell.Prime]
     (χ : MulChar (ZMod ell) ℂ) (hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ)
-    (hψ : ψ.IsPrimitive) (hψhat : ‖fourier χ ψ‖ = 1) (s : ZMod ell) :
+    (_hψ : ψ.IsPrimitive) (hψhat : ‖fourier χ ψ‖ = 1) (s : ZMod ell) :
     (∀ y : ZMod ell,
         fourier (fun x => χ (x + s)) (ψ.mulShift y) ≠ 0 ↔ y ≠ 0) ∧
       (∀ y : ZMod ell,

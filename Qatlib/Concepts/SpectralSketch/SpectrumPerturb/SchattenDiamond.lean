@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamondDefs
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamondDefs
+
+@[expose] public section
 
 /-!
 # Schatten trace norms and diamond norm bounds
@@ -51,6 +55,7 @@ noncomputable def unitarySubmonoid (k : Type) [Fintype k] : Submonoid (Matrix k 
   @Matrix.unitaryGroup k (Classical.decEq k) (inferInstance : Fintype k) ℂ
     Complex.commRing Complex.instStarRing
 
+omit [Fintype k] in
 /-- The Gram matrix `Aᴴ * A` is Hermitian. -/
 theorem gram_isHermitian (A : Matrix m k ℂ) : (Aᴴ * A).IsHermitian :=
   Matrix.isHermitian_conjTranspose_mul_self A
@@ -166,7 +171,7 @@ theorem schattenPower_one_dual (A : Matrix k k ℂ) :
 theorem schattenPower_zero_dim (p : ℝ) (A : Matrix m k ℂ) (hp : 1 ≤ p) (h : IsEmpty k) :
     schattenPower p A = 0 := by
   rw [schattenPower]
-  letI := h
+  let := h
   have hsum : (∑ i : k, (Real.sqrt ((gram_isHermitian A).eigenvalues i)) ^ p) = 0 :=
     Finset.sum_eq_zero fun i _ => (IsEmpty.false i).elim
   rw [hsum]
@@ -210,10 +215,10 @@ theorem diamondHermitianNorm_le_diamondNorm (T : Operator D →ₗ[ℂ] Operator
   apply iSup_le
   intro X
   by_cases hX : X.IsHermitian ∧ Matrix.traceNorm X ≤ 1
-  · rw [if_pos hX]
+  · rw [ite_eq_left hX]
     unfold Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm
     exact le_iSup_of_le r (le_iSup_of_le X (by simp [hX.2]))
-  · rw [if_neg hX]
+  · rw [ite_eq_right hX]
     exact bot_le
 
 /-- The diamond norm can be expressed using all finite reference dimensions with the reference

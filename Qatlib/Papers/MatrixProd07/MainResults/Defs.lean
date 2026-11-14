@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
-import Qatlib.Concepts.TensorNetwork.CanonicalMPS
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+public import Qatlib.Concepts.TensorNetwork.CanonicalMPS
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 /-!
 # Matrix product state definitions

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshFallback.BitScanLedger.CountedFreshFallbackDefs
+module
+
+public import Qatlib.Concepts.FreshFallback.BitScanLedger.CountedFreshFallbackDefs
+
+@[expose] public section
 
 /-!
 # Counted fresh-string fallback
@@ -162,7 +166,7 @@ theorem runFallback_correct_and_budget :
       simp only [runFallback, hb, ↓reduceIte]
       refine ⟨?_, ?_, binaryPrefixCounted_visits n (hist.length + 1)⟩
       · rw [hs.1]
-        simpa only [samplerFallback, if_pos hx, firstFreshBounded] using
+        simpa only [samplerFallback, ite_eq_left hx, firstFreshBounded] using
           firstFreshBounded_eq_firstFresh n hist
       · calc
           _ ≤ 2 * n * hist.length +
@@ -183,7 +187,7 @@ theorem runFallback_correct_and_budget :
   intro hlen
   have hnon : samplerFallback n hist x ≠ none := by
     by_cases hx : x ∈ hist
-    · simpa only [samplerFallback, if_pos hx] using
+    · simpa only [samplerFallback, ite_eq_left hx] using
         firstFresh_ne_none_of_length_lt n hist hlen
     · simp [samplerFallback, hx]
   cases hout : samplerFallback n hist x with

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Mathlib.Data.List.TakeWhile
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Mathlib.Data.List.TakeWhile
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+
+@[expose] public section
 
 /-!
 # Verified tape and stack copy and reset programs

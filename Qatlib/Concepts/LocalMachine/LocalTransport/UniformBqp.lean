@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
-import Lean
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
+public import Lean
+
+@[expose] public section
 
 /-!
 # Uniform BQP generator metatheory
@@ -59,86 +63,37 @@ open Turing
 
 /-- Parses a unary field consisting of `k` true bits followed by a false bit, returning `k` and
 the unconsumed suffix. Returns `none` when no terminating false bit is present. -/
-def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseUnaryField").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseUnaryField : List Bool → Option (ℕ × List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseUnaryField
 
 /-- Parses the wire fields for a gate selected by its numeric tag, returning the gate code and
 the remaining bits. Tags outside the five supported gate constructors fail. -/
-def modelParseGateCodeFields : (tag : ℕ) → (bits : List Bool) → Option (FiniteGateCode × List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseGateCodeFields").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseGateCodeFields : (tag : ℕ) → (bits : List Bool) → Option (FiniteGateCode × List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseGateCodeFields
 
 /-- Parses a concatenation of finite gate encodings using at most the supplied number of
 gate-parsing steps. Success requires consuming the entire bit list. -/
-def modelParseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCode) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseGateCodeListFuel").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCode) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.parseGateCodeListFuel
 
 /-- Runs the machine from the given configuration until it halts within the supplied number of
 steps. Returns the halted configuration, or `none` if the step budget expires first. -/
-def modelRunUntilHaltWithin : {k : ℕ} → (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.runUntilHaltWithin").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelRunUntilHaltWithin : {k : ℕ} → (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.runUntilHaltWithin
 
 /-- Reads Boolean symbols from the tape until the first blank, allowing at most the supplied
 number of nonblank symbols. Returns `none` if no blank is reached within that bound. -/
-def modelReadOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.readOutputUntilBlank").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelReadOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.readOutputUntilBlank
 
 /-- The one-state machine that moves right over nonblank symbols and halts on a blank. -/
-def modelClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.uniformBqpClockMachine").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.uniformBqpClockMachine
 
 /-- The finite-control machine that scans the input, prints the fixed word `bs`, and returns its
 head to the beginning of the printed word. Its state type has `3 * bs.length + 1` elements. -/
-def modelWordPrinterMachine : (bs : List Bool) → Turing.TM0.Machine (Option Bool) (Fin (3 * bs.length + 1)) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.uniformBqpWordPrinterMachine").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelWordPrinterMachine : (bs : List Bool) → Turing.TM0.Machine (Option Bool) (Fin (3 * bs.length + 1)) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs.uniformBqpWordPrinterMachine
 
 /-- Decodes a unary wire count followed by a list of finite gate encodings. The gate parser
 receives the remaining bit length as its fuel. -/
@@ -730,14 +685,14 @@ theorem modelReadOutputUntilBlank_eq_some_iff {B : ℕ} {tape : ListBlank (Optio
     constructor
     · intro h
       by_cases hblank : tape.nth 0 = none
-      · rw [if_pos hblank] at h
+      · rw [ite_eq_left hblank] at h
         have hw : w = [] := Option.some.inj h.symm
         subst hw
         refine ⟨by simp, ?_, ?_⟩
         · simpa using! hblank
         · intro i hi
           simp at hi
-      · rw [if_neg hblank] at h
+      · rw [ite_eq_right hblank] at h
         simp at h
     · intro h
       obtain ⟨hlen, hblank, hcells⟩ := h
@@ -750,7 +705,7 @@ theorem modelReadOutputUntilBlank_eq_some_iff {B : ℕ} {tape : ListBlank (Optio
           omega
       subst hw
       have hblank0 : tape.nth 0 = none := by simpa using! hblank
-      rw [if_pos hblank0]
+      rw [ite_eq_left hblank0]
   | succ B ih =>
     rw [modelReadOutputUntilBlank_succ]
     constructor
@@ -1102,28 +1057,28 @@ theorem finiteCodeMatrix_entry_finiteDigit (q : ℕ) (g : FiniteGateCode)
   cases g with
   | h w =>
     have hw : w < q := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     split_ifs with hsupp
     · exact hadamard_apply_finiteDigit (i ⟨w, hw⟩) (j ⟨w, hw⟩)
     · exact ⟨⟨0, 0, false, 0⟩, finiteDigitVal_zero⟩
   | x w =>
     have hw : w < q := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     split_ifs with hsupp
     · simpa [PauliX] using! permMatrix_entry_finiteDigit Bool.not (i ⟨w, hw⟩) (j ⟨w, hw⟩)
     · exact ⟨⟨0, 0, false, 0⟩, finiteDigitVal_zero⟩
   | t w =>
     have hw : w < q := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     split_ifs with hsupp
     · exact tGate_apply_finiteDigit (i ⟨w, hw⟩) (j ⟨w, hw⟩)
     · exact ⟨⟨0, 0, false, 0⟩, finiteDigitVal_zero⟩
   | tdg w =>
     have hw : w < q := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     split_ifs with hsupp
     · exact tGateAdj_apply_finiteDigit (i ⟨w, hw⟩) (j ⟨w, hw⟩)
@@ -1131,7 +1086,7 @@ theorem finiteCodeMatrix_entry_finiteDigit (q : ℕ) (g : FiniteGateCode)
   | cx c t =>
     have hw : c < q ∧ t < q ∧ c ≠ t := by simpa [finiteCodeLegal] using! hg
     have hct : (⟨c, hw.1⟩ : Fin q) ≠ ⟨t, hw.2.1⟩ := fun hh => hw.2.2 (congrArg Fin.val hh)
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     simpa [cnotGate] using! permMatrix_entry_finiteDigit
       (fun x : Reg q => Function.update x ⟨t, hw.2.1⟩ (x ⟨t, hw.2.1⟩ ^^ x ⟨c, hw.1⟩)) i j
 
@@ -1347,11 +1302,11 @@ theorem clock_step (cfg : TM0.Cfg (Option Bool) (Fin 1)) :
   obtain ⟨q, T⟩ := cfg
   rw [clock_machine_eq]
   by_cases hT : T.head = none
-  · rw [if_pos hT]
+  · rw [ite_eq_left hT]
     refine (tm0_step_none_iff modelClockMachine ⟨q, T⟩).mpr ?_
     rw [modelClockMachine_apply]
     simp [hT]
-  · rw [if_neg hT]
+  · rw [ite_eq_right hT]
     have happ : modelClockMachine q T.head
         = some ⟨default, TM0.Stmt.move Turing.Dir.right⟩ := by
       rw [modelClockMachine_apply]
@@ -1366,7 +1321,7 @@ theorem clock_head_of_lt (n t : ℕ) (ht : t < n) :
       (Turing.Tape.mk₁ (uniformBqpUnaryInput n))).head = some true := by
   have h1 := Turing.Tape.move_right_n_head (Turing.Tape.mk₁ (uniformBqpUnaryInput n)) t
   rw [h1, init_nth]
-  simp only [if_neg (by omega : ¬((t : ℤ) < 0)), Int.toNat_natCast]
+  simp only [ite_eq_right (by omega : ¬((t : ℤ) < 0)), Int.toNat_natCast]
   exact unaryInput_getI_of_lt n t ht
 
 /-- After `n` right moves on unary input of length `n`, the head symbol is blank. -/
@@ -1375,7 +1330,7 @@ theorem clock_head_none (n : ℕ) :
       (Turing.Tape.mk₁ (uniformBqpUnaryInput n))).head = none := by
   have h1 := Turing.Tape.move_right_n_head (Turing.Tape.mk₁ (uniformBqpUnaryInput n)) n
   rw [h1, init_nth]
-  simp only [if_neg (by omega : ¬((n : ℤ) < 0)), Int.toNat_natCast]
+  simp only [ite_eq_right (by omega : ¬((n : ℤ) < 0)), Int.toNat_natCast]
   exact unaryInput_getI_of_le n n le_rfl
 
 /-- Up to time `n`, the clock configuration has its sole control state and the initial unary
@@ -1397,7 +1352,7 @@ theorem clock_after_of_le (n t : ℕ) (ht : t ≤ n) :
           (Turing.Tape.mk₁ (uniformBqpUnaryInput n))).head = some true :=
         clock_head_of_lt n t (by omega)
       rw [clock_step, hhead]
-      simp only [Option.some_ne_none, if_false]
+      simp only [Option.some_ne_none, ite_false]
       rw [← Function.iterate_succ_apply' (Turing.Tape.move Turing.Dir.right) t
         (Turing.Tape.mk₁ (uniformBqpUnaryInput n))]
     show (BitMachineAfter uniformBqpClockGenerator.machine (uniformBqpUnaryInput n) t).bind
@@ -1449,7 +1404,6 @@ theorem clock_generatedAt_none (n : ℕ) :
   unfold modelGeneratedAt
   have hfuel : n ≤ uniformBqpTimeBound uniformBqpClockGenerator n := by
     simp [uniformBqpTimeBound, uniformBqpPolynomial, uniformBqpClockGenerator]
-    try simp
   have hrun : modelRunUntilHaltWithin uniformBqpClockGenerator.machine
       (uniformBqpTimeBound uniformBqpClockGenerator n)
       (TM0.init (uniformBqpUnaryInput n)) = some
@@ -1493,26 +1447,26 @@ def printerContent (n w : ℕ) (bs : List Bool) (x : ℤ) : Option Bool :=
 theorem printerContent_neg {n w : ℕ} {bs : List Bool} {x : ℤ} (hx : x < 0) :
     printerContent n w bs x = none := by
   unfold printerContent
-  rw [if_pos hx]
+  rw [ite_eq_left hx]
 
 /-- The initial input segment of the printer-content model contains `some true`. -/
 theorem printerContent_input {n w : ℕ} {bs : List Bool} {x : ℤ} (hx : 0 ≤ x) (hxn : x < n) :
     printerContent n w bs x = some true := by
   unfold printerContent
-  rw [if_neg (by omega : ¬x < 0), if_pos hxn]
+  rw [ite_eq_right (by omega : ¬x < 0), ite_eq_left hxn]
 
 /-- Within the written segment, the printer-content model contains the corresponding bit of
 `bs`, defaulting to false. -/
 theorem printerContent_written {n w : ℕ} {bs : List Bool} {x : ℤ} (hxn : n ≤ x)
     (hxw : x < n + w) : printerContent n w bs x = some (bs.getD (x.toNat - n) false) := by
   unfold printerContent
-  rw [if_neg (by omega : ¬x < 0), if_neg (by omega : ¬x < n), if_pos hxw]
+  rw [ite_eq_right (by omega : ¬x < 0), ite_eq_right (by omega : ¬x < n), ite_eq_left hxw]
 
 /-- The printer-content model is blank at positions at or beyond the end of the written segment. -/
 theorem printerContent_blank {n w : ℕ} {bs : List Bool} {x : ℤ} (hxw : n + w ≤ x) :
     printerContent n w bs x = none := by
   unfold printerContent
-  rw [if_neg (by omega : ¬x < 0), if_neg (by omega : ¬x < n), if_neg (by omega : ¬x < n + w)]
+  rw [ite_eq_right (by omega : ¬x < 0), ite_eq_right (by omega : ¬x < n), ite_eq_right (by omega : ¬x < n + w)]
 
 /-- Expands the printer's transition table into its scanning, writing, right-moving,
 left-returning, and halting cases. -/
@@ -1618,9 +1572,9 @@ theorem printer_scan_reach (bs : List Bool) (n : ℕ) : ∀ k ≤ n,
     show (Turing.Tape.mk₁ (uniformBqpUnaryInput n)).nth i = _
     rw [init_nth]
     by_cases hi : i < 0
-    · rw [if_pos hi, printerContent_neg (by omega : ((0 : ℕ) : ℤ) + i < 0)]
+    · rw [ite_eq_left hi, printerContent_neg (by omega : ((0 : ℕ) : ℤ) + i < 0)]
       rfl
-    · rw [if_neg hi]
+    · rw [ite_eq_right hi]
       by_cases hik : i < n
       · rw [printerContent_input (by omega) (by omega)]
         unfold uniformBqpUnaryInput
@@ -1653,23 +1607,23 @@ theorem printerContent_succ (n w : ℕ) (bs : List Bool) (x : ℤ) :
         Int.toNat_natCast, Int.toNat_natCast]
     omega
   by_cases h0 : x < 0
-  · rw [printerContent_neg h0, if_neg (by omega), printerContent_neg h0]
+  · rw [printerContent_neg h0, ite_eq_right (by omega), printerContent_neg h0]
   by_cases h1 : x < n
-  · rw [printerContent_input (by omega) h1, if_neg (by omega),
+  · rw [printerContent_input (by omega) h1, ite_eq_right (by omega),
       printerContent_input (by omega) h1]
   by_cases h2 : x = (n : ℤ) + w
-  · rw [if_pos h2]
+  · rw [ite_eq_left h2]
     have h3 : printerContent n (w + 1) bs x = some (bs.getD (x.toNat - n) false) :=
       printerContent_written (by omega) (by omega)
     rw [h3, h2, hidx]
   by_cases h3 : x < n + w
-  · rw [if_neg h2]
+  · rw [ite_eq_right h2]
     have h4 : printerContent n (w + 1) bs x = some (bs.getD (x.toNat - n) false) :=
       printerContent_written (by omega) (by omega)
     have h5 : printerContent n w bs x = some (bs.getD (x.toNat - n) false) :=
       printerContent_written (by omega) h3
     rw [h4, h5]
-  · rw [if_neg h2, printerContent_blank (by omega), printerContent_blank (by omega)]
+  · rw [ite_eq_right h2, printerContent_blank (by omega), printerContent_blank (by omega)]
 
 /-- For a nonempty output word, the printer at the end of its input scan writes the first output
 bit and enters state one. -/
@@ -1695,16 +1649,16 @@ theorem printer_step_first_write {bs : List Bool} {n : ℕ} (hL : 1 ≤ bs.lengt
     rw [Turing.Tape.write_nth]
     by_cases hi : i = 0
     · subst hi
-      rw [if_pos rfl, Int.add_zero]
+      rw [ite_eq_left rfl, Int.add_zero]
       have h4 : printerContent n 1 bs ((n : ℤ)) = some (bs.getD 0 false) := by
         have h5 := printerContent_written (n := n) (w := 1) (bs := bs)
           (x := (n : ℤ)) (by omega) (by omega)
         rw [h5]
         simp
       exact h4.symm
-    · rw [if_neg hi, hcontent]
+    · rw [ite_eq_right hi, hcontent]
       rw [printerContent_succ n 0 bs (↑n + i)]
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
 
 /-- After writing bit `j`, if another bit remains, the printer moves right and advances from
 state `2 * j + 1` to state `2 * j + 2`. -/
@@ -1775,7 +1729,7 @@ theorem printer_step_write {bs : List Bool} {n j : ℕ}
     rw [Turing.Tape.write_nth]
     by_cases hi : i = 0
     · subst hi
-      rw [if_pos rfl, Int.add_zero]
+      rw [ite_eq_left rfl, Int.add_zero]
       have h6 : printerContent n (j + 1) bs (↑(n + j)) = some (bs.getD j false) := by
         have h7 := printerContent_written (n := n) (w := j + 1) (bs := bs)
           (x := ((n + j : ℕ) : ℤ)) (by omega) (by omega)
@@ -1785,9 +1739,9 @@ theorem printer_step_write {bs : List Bool} {n j : ℕ}
           omega
         rw [h8]
       exact h6.symm
-    · rw [if_neg hi, hcontent]
+    · rw [ite_eq_right hi, hcontent]
       rw [printerContent_succ n j bs (↑(n + j) + i)]
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
 
 /-- During the return phase, the printer advances its control state and moves one position left
 while preserving the completed output word. -/
@@ -1955,7 +1909,7 @@ theorem printerContent_at_halt (n : ℕ) (bs : List Bool) (i : ℕ) :
     printerContent n bs.length bs (↑n + (i : ℤ)) =
       if i < bs.length then some (bs.getD i false) else none := by
   by_cases hi : i < bs.length
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     have h := printerContent_written (n := n) (w := bs.length) (bs := bs)
       (x := (↑n + (i : ℤ))) (by omega) (by omega)
     rw [h]
@@ -1965,7 +1919,7 @@ theorem printerContent_at_halt (n : ℕ) (bs : List Bool) (i : ℕ) :
         Int.toNat_natCast, Int.toNat_natCast]
       omega
     rw [h2]
-  · rw [if_neg hi, printerContent_blank (by omega)]
+  · rw [ite_eq_right hi, printerContent_blank (by omega)]
 
 /-- For a nonempty output word, the printer reaches a halted configuration at time `n + 3 *
 bs.length - 2`. Its tape from the head contains exactly `bs` followed by a blank. -/
@@ -1989,9 +1943,9 @@ theorem printer_final_nth (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
       (by rw [hq]; rintro ⟨_, _, h⟩; omega)
   · intro i hi
     rw [Turing.Tape.right₀_nth, hc, hpos, printerContent_at_halt]
-    rw [if_pos hi]
+    rw [ite_eq_left hi]
   · rw [Turing.Tape.right₀_nth, hc, hpos, printerContent_at_halt]
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
 
 /-- The printer's halting time for an encoded uniform BQP word is at most its declared time
 bound. -/
@@ -2062,7 +2016,7 @@ theorem printer_valid (q : ℕ) (gs : List FiniteGateCode)
 /-- With no initial protected wires, wire padding shifts every wire index by `k`. -/
 theorem padWire_zero (k w : ℕ) : Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padWire 0 k w = w + k := by
   unfold Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padWire
-  rw [if_neg (by omega : ¬w < 0)]
+  rw [ite_eq_right (by omega : ¬w < 0)]
 
 /-- A finite gate code legal on `q` wires remains legal on any larger wire register. -/
 theorem finiteCodeLegal_of_le {q q' : ℕ} {g : FiniteGateCode} (hle : q ≤ q')
@@ -2441,7 +2395,7 @@ theorem nfMachine_enter_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)
       (m q a).map fun _ => ⟨nfAct q a, TM0.Stmt.write a⟩ := by
   unfold nfMachine
   have hcond : (nfEnter q).val < k + 1 := q.isLt
-  rw [dif_pos hcond]
+  rw [dite_eq_left hcond]
   have heq : (⟨(nfEnter q).val, hcond⟩ : Fin (k + 1)) = q := Fin.eq_of_val_eq rfl
   rw [heq]
 
@@ -2459,7 +2413,7 @@ theorem nfMachine_act_match_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k 
     unfold nfActVal
     omega
   have hiff : a = nfDecA k (nfAct q a) := by rw [nfDecA_nfAct]
-  rw [dif_neg hcond, if_pos hiff, nfDecQ_nfAct, nfDecA_nfAct]
+  rw [dite_eq_right hcond, ite_eq_left hiff, nfDecQ_nfAct, nfDecA_nfAct]
 
 /-- At an action state with a mismatching scanned symbol, the normal-form machine preserves that
 symbol and returns to the recorded control state's entry state. -/
@@ -2477,7 +2431,7 @@ theorem nfMachine_act_mismatch_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin 
   have hiff : b ≠ nfDecA k (nfAct q a) := by
     rw [nfDecA_nfAct]
     exact hab
-  rw [dif_neg hcond, if_neg hiff, nfDecQ_nfAct]
+  rw [dite_eq_right hcond, ite_eq_right hiff, nfDecQ_nfAct]
 
 /-- The transformed machine is unidirectional: any two movement instructions enabled at the same
 state have the same direction. -/
@@ -2490,7 +2444,7 @@ theorem nfMachine_unidirectional {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (
   · have ha' : nfMachine m s a =
         (m ⟨s.val, hs⟩ a).map fun _ => ⟨nfAct ⟨s.val, hs⟩ a, TM0.Stmt.write a⟩ := by
       unfold nfMachine
-      rw [dif_pos hs]
+      rw [dite_eq_left hs]
     rw [ha'] at ha
     cases hm : m ⟨s.val, hs⟩ a with
     | none => simp [hm] at ha
@@ -2503,11 +2457,11 @@ theorem nfMachine_unidirectional {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (
       · have ha' : nfMachine m s a =
             (m (nfDecQ k s) (nfDecA k s)).map fun p => ⟨nfEnter p.1, p.2⟩ := by
           unfold nfMachine
-          rw [dif_neg hs, if_pos haa]
+          rw [dite_eq_right hs, ite_eq_left haa]
         have hb' : nfMachine m s b =
             (m (nfDecQ k s) (nfDecA k s)).map fun p => ⟨nfEnter p.1, p.2⟩ := by
           unfold nfMachine
-          rw [dif_neg hs, if_pos hbb]
+          rw [dite_eq_right hs, ite_eq_left hbb]
         rw [ha'] at ha
         rw [hb'] at hb
         cases hm : m (nfDecQ k s) (nfDecA k s) with
@@ -2520,14 +2474,14 @@ theorem nfMachine_unidirectional {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (
           rfl
       · have hb' : nfMachine m s b = some ⟨nfEnter (nfDecQ k s), TM0.Stmt.write b⟩ := by
           unfold nfMachine
-          rw [dif_neg hs, if_neg hbb]
+          rw [dite_eq_right hs, ite_eq_right hbb]
         rw [hb'] at hb
         simp at hb
         obtain rfl := hb.symm
         simp at hd₂
     · have ha' : nfMachine m s a = some ⟨nfEnter (nfDecQ k s), TM0.Stmt.write a⟩ := by
         unfold nfMachine
-        rw [dif_neg hs, if_neg haa]
+        rw [dite_eq_right hs, ite_eq_right haa]
       rw [ha'] at ha
       simp at ha
       obtain rfl := ha.symm
@@ -2745,7 +2699,7 @@ theorem blank_bound {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) (n :
     show (Turing.Tape.mk₁ (uniformBqpUnaryInput n)).nth (i : ℤ) = none
     rw [init_nth (uniformBqpUnaryInput n) (i : ℤ)]
     have hi0 : ¬((i : ℤ) < 0) := by omega
-    rw [if_neg hi0, Int.toNat_natCast]
+    rw [ite_eq_right hi0, Int.toNat_natCast]
     exact unaryInput_getI_of_le n i hi
   | succ t ih =>
     intro cfg h i hi
@@ -2794,7 +2748,7 @@ theorem blank_bound {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) (n :
         show (cfg_t.Tape.write b).nth (i : ℤ) = none
         rw [Turing.Tape.write_nth]
         have hi0 : ¬((i : ℤ) = 0) := by omega
-        rw [if_neg hi0]
+        rw [ite_eq_right hi0]
         exact hblankT i (by omega)
 
 /-- If every tape position at least `N` is blank, reading with budget `N` succeeds for some
@@ -2808,7 +2762,7 @@ theorem modelReadOutputUntilBlank_exists_of_blank {N : ℕ}
     refine ⟨[], ?_⟩
     rw [modelReadOutputUntilBlank_zero]
     have h0 : tape.nth 0 = none := hblank 0 (by omega)
-    rw [if_pos h0]
+    rw [ite_eq_left h0]
   | succ N ih =>
     cases hb : tape.nth 0 with
     | none =>

@@ -28,16 +28,20 @@ The arithmetic statements are proved here.  The two algorithm contracts below ta
 output operator, random-seed space, and runtime function as arguments; they do not assert that the
 paper's algorithms have already been constructed in this library.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -63,7 +67,7 @@ def algorithmTime (ynorm2 s ETv ε : ℝ) : ℝ :=
 
 /-- `√(s³·E_T) = s·√(s·E_T)`: the `s³` form of Theorem 1.1 (page 3) equals the `s·√(s·E_T)` form
 that arises from the phase-estimation query count of Theorem 3.9 (page 19). -/
-theorem sqrt_cube_mul (s ETv : ℝ) (hs : 0 ≤ s) (hET : 0 ≤ ETv) :
+theorem sqrt_cube_mul (s ETv : ℝ) (hs : 0 ≤ s) (_hET : 0 ≤ ETv) :
     Real.sqrt (s ^ 3 * ETv) = s * Real.sqrt (s * ETv) := by
   have h : s ^ 3 * ETv = s ^ 2 * (s * ETv) := by ring
   rw [h, Real.sqrt_mul (sq_nonneg s), Real.sqrt_sq hs]
@@ -102,7 +106,7 @@ The implementation itself, including phase estimation and amplification, remains
 this contract. -/
 def theorem11_guarantee
     {N : ℕ} (A : StatePreparationAlgorithm N) (y : EuclideanSpace ℝ (Fin N)) (s ETv ε C : ℝ)
-    (hε : 0 < ε) (hC : 0 < C) (hs : 0 ≤ s) (hET : 0 ≤ ETv) (hyn : 0 < ‖y‖) : Prop :=
+    (_hε : 0 < ε) (_hC : 0 < C) (_hs : 0 ≤ s) (_hET : 0 ≤ ETv) (_hyn : 0 < ‖y‖) : Prop :=
   traceDistance (rankOne (A.prepare y)) (rankOne y) ≤ C * ε ∧
     A.runtime y ≤ algorithmTime (‖y‖ ^ 2) s ETv ε
 
@@ -132,7 +136,7 @@ and the runtime is the implementation's runtime.  The polynomial-system construc
 connection to the paper's Boolean solution are outside this contract. -/
 def theorem12_guarantee
     {n M : ℕ} (A : RecoveryAlgorithm n M) (p d : Fin M → ℝ) (target : Fin n → Bool)
-    (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) : Prop :=
+    (δ : ℝ) (_hδ : 0 < δ) (_hδ1 : δ ≤ 1) : Prop :=
   1 - δ ≤ A.successProbability p d target ∧
     A.successProbability p d target ≤ 1 ∧
       A.runtime p d ≤ Real.sqrt (ET p d) * Real.log (1 / δ)
@@ -164,7 +168,7 @@ planted MIS as a Boolean Macaulay system, the identification of the support with
 sets, and the polynomial bound on the resulting row norms.  Candidate reusable dependencies:
 `Qatlib.Concepts.QlsReadoutSpec.PseudoInverse.spectralSupport`. -/
 theorem theorem13_planted_mis
-    {M : ℕ} (p d : Fin M → ℝ) (P : ℝ) (hP : 0 < P)
+    {M : ℕ} (p d : Fin M → ℝ) (P : ℝ) (_hP : 0 < P)
     (hterm : ∀ i, p i ^ 2 * d i ≤ P) :
     ET p d ≤ (M : ℝ) * P := by
   simpa using ET_le_card_mul_of_term_bound p d P hterm
@@ -179,7 +183,7 @@ This is the provable cost half of the claim; the exponential lower bound on `κ(
 (`proposition57_exponential_condition_number`). -/
 theorem theorem15_time_bound (ynorm2 s ETv ε Cs CE : ℝ)
     (hyn : 1 ≤ ynorm2) (hs : 0 ≤ s) (hET : 0 ≤ ETv)
-    (hsCs : s ≤ Cs) (hETCE : ETv ≤ CE) (hCs : 0 ≤ Cs) (hCs1 : 1 ≤ Cs) (hCE : 0 ≤ CE)
+    (hsCs : s ≤ Cs) (hETCE : ETv ≤ CE) (_hCs : 0 ≤ Cs) (hCs1 : 1 ≤ Cs) (_hCE : 0 ≤ CE)
     (hε : 0 < ε) :
     algorithmTime ynorm2 s ETv ε ≤ (ynorm2 + Cs) * Real.sqrt (Cs ^ 3 * CE) / ε ^ 2 := by
   have hyn0 : (0 : ℝ) < ynorm2 := by linarith
@@ -211,7 +215,7 @@ with the arithmetic core `proposition57_lower_bound`).  The provable cost half i
 `theorem15_time_bound`.  Missing formal ingredients: the welded-tree graph and its incidence matrix,
 the `s-t` electrical-flow solution structure, and the row-norm bounds `d_i = O(1)`. -/
 theorem theorem15_welded_tree_main
-    {n : ℕ} (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
+    {_n : ℕ} (ε : ℝ) (hε : 0 < ε) (_hε1 : ε ≤ 1)
     (s ETv ynorm2 : ℝ) (hs : 0 ≤ s) (hET : 0 ≤ ETv) (hyn : 1 ≤ ynorm2)
     (Cs CE : ℝ) (hsCs : s ≤ Cs) (hETCE : ETv ≤ CE) (hCs : 0 ≤ Cs) (hCs1 : 1 ≤ Cs)
     (hCE : 0 ≤ CE) :

@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
-import Qatlib.Concepts.IntWordFraming.WordFraming.SmithNormalizationDefs
-import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFramingDefs
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotationCorrected
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
-import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.OrderShor
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.IntWordFraming.WordFraming.FourierRecovery
+public import Qatlib.Concepts.IntWordFraming.WordFraming.SmithNormalizationDefs
+public import Qatlib.Concepts.IntWordFraming.WordFraming.SmithFramingDefs
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDivider
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotationCorrected
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.OrderShor
+
+@[expose] public section
 
 /-!
 # Specifications for effective Fourier recovery
@@ -96,7 +100,7 @@ def stageA_fourier_recovery_clause1_spec : Prop :=
     (hp : p.Valid) (v : Fin m → ℤ),
     compactRecoveryEquiv p hp (generatorWordMap p.generators v) = normalizedEncode p.run v) ∧
   (∀ {C : Type} [AddCommGroup C] {m n : ℕ} (p : CompactAbelianPresentation C m n)
-    (hp : p.Valid) (u v : Fin m → ℤ),
+    (_hp : p.Valid) (u v : Fin m → ℤ),
     normalizedWordEq p.run u v = true ↔ generatorWordMap p.generators u = generatorWordMap p.generators v) ∧
   (∀ {C : Type} [AddCommGroup C] {m n : ℕ} (p : CompactAbelianPresentation C m n)
     (hp : p.Valid) (r : Fin m),
@@ -105,7 +109,7 @@ def stageA_fourier_recovery_clause1_spec : Prop :=
   (∀ {m n m' n' : ℕ} (rows : Vector (Vector SmithIntegerCode n) m)
     (rows' : Vector (Vector SmithIntegerCode n') m'),
     (smithRunBinaryEuclid rows).1.1.isFinite = true →
-    ∀ (e : PresentationModule (tableMatrix (smithDecodeRelations rows)) ≃+
+    ∀ (_e : PresentationModule (tableMatrix (smithDecodeRelations rows)) ≃+
       PresentationModule (tableMatrix (smithDecodeRelations rows'))),
       (smithRunBinaryEuclid rows).1.1.factors = (smithRunBinaryEuclid rows').1.1.factors) ∧
   (∀ {m n : ℕ} (rows : Vector (Vector SmithIntegerCode n) m) (op : SmithKernelOp),
@@ -115,8 +119,8 @@ def stageA_fourier_recovery_clause1_spec : Prop :=
     (smithRunBinaryEuclid rows).2.quotRemPairs ≤
       (m + n) * (smithRunBinaryEuclid rows).1.2 .pivotFuelAllocated *
         (2 * (smithRunBinaryEuclid rows).2.peakPairInputBits + 2)) ∧
-  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (hM : 0 < M)
-    {U : Matrix I I ℂ} {ψ : QState I} (hψn : Normalized ψ) (j : Fin M),
+  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (_hM : 0 < M)
+    {U : Matrix I I ℂ} {ψ : QState I} (_hψn : Normalized ψ) (j : Fin M),
     U.mulVec ψ = (primRoot M ^ ((j.val : ℤ))) • ψ →
     ApplyGate (TensorGate (QFTMatrix M).conjTranspose 1)
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ))
@@ -176,8 +180,8 @@ def stageA_fourier_recovery_clause2_spec : Prop :=
     |MeasureProb (Run 1 (localProgramCircuit (localProgramAdjoint (approxLocalQFT n b))) ψ) S -
         MeasureProb (ApplyGate (relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n))).conjTranspose ψ) S| ≤
       Real.pi * (n : ℝ) / (2 : ℝ) ^ b) ∧
-  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (hM : 0 < M)
-    {U : Matrix I I ℂ} {ψ : QState I} (hψn : Normalized ψ) (j : Fin M),
+  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (_hM : 0 < M)
+    {U : Matrix I I ℂ} {ψ : QState I} (_hψn : Normalized ψ) (j : Fin M),
     U.mulVec ψ = (primRoot M ^ ((j.val : ℤ))) • ψ →
     ApplyGate (TensorGate (QFTMatrix M).conjTranspose 1)
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ))
@@ -221,8 +225,8 @@ def stageA_fourier_recovery_clause3_spec : Prop :=
   (∀ (M y : ℕ) (cs : List (ℕ × ℕ)), (boundedRationalScan M y cs).2 ≤ cs.length) ∧
   (∀ (M y : ℕ) (cs : List (ℕ × ℕ)) (c : ℕ × ℕ),
     (boundedRationalScan M y cs).1 = some c → c ∈ cs ∧ boundedRationalAccept M y c = true) ∧
-  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (hM : 0 < M)
-    {U : Matrix I I ℂ} {ψ : QState I} (hψn : Normalized ψ) (j : Fin M),
+  (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] (_hM : 0 < M)
+    {U : Matrix I I ℂ} {ψ : QState I} (_hψn : Normalized ψ) (j : Fin M),
     U.mulVec ψ = (primRoot M ^ ((j.val : ℤ))) • ψ →
     ApplyGate (TensorGate (QFTMatrix M).conjTranspose 1)
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ))
@@ -262,7 +266,7 @@ def StageAFourierRecoveryClause2ModeExpEndpoint : Prop :=
   (∀ (n a e : ℕ),
     ((modeExpSchedule (a : ZMod n) (modExpBits e) 0).map (fun p => p.2)).count true
       = (modExpBits e).count true) ∧
-  (∀ (n a e : ℕ) (hn : 0 < n),
+  (∀ (n a e : ℕ) (_hn : 0 < n),
     applyModWord (modeExpWord (a : ZMod n) e) 1 = (modExpResult n a e : ZMod n))
 
 end Qatlib.Concepts.HspRecovery.AbelianSampling

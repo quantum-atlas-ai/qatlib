@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Data.Real.Sqrt
-import Mathlib.LinearAlgebra.Matrix.Rank
+module
+
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.Matrix.Rank
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -107,9 +111,9 @@ theorem isometryP_orthonormal (A : Matrix (Fin m) (Fin n) ℝ)
       = if k = i then (if l = i then (1 : ℝ) else 0) else 0 := by
     intro i
     by_cases hk : k = i
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       by_cases hl : l = i
-      · rw [if_pos hl]
+      · rw [ite_eq_left hl]
         have hterm : ∀ j, (A i j / Real.sqrt (rowNormSq A i)) *
             (A i j / Real.sqrt (rowNormSq A i)) = A i j ^ 2 / rowNormSq A i := by
           intro j
@@ -119,25 +123,25 @@ theorem isometryP_orthonormal (A : Matrix (Fin m) (Fin n) ℝ)
             = ∑ j, A i j ^ 2 / rowNormSq A i :=
           Finset.sum_congr rfl (fun j _ => by
             simp only [isometryP]
-            rw [if_pos hk, if_pos hl]
+            rw [ite_eq_left hk, ite_eq_left hl]
             exact hterm j)
         rw [hsum, ← Finset.sum_div]
         exact div_self (hrow i).ne'
-      · rw [if_neg hl]
+      · rw [ite_eq_right hl]
         refine Finset.sum_eq_zero fun j _ => ?_
         simp only [isometryP]
-        rw [if_pos hk, if_neg hl]
+        rw [ite_eq_left hk, ite_eq_right hl]
         simp
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       refine Finset.sum_eq_zero fun j _ => ?_
       simp only [isometryP]
-      rw [if_neg hk]
+      rw [ite_eq_right hk]
       simp
   rw [Finset.sum_congr rfl (fun i _ => hinner i)]
   rw [Fintype.sum_ite_eq]
   by_cases h : k = l
-  · rw [if_pos h.symm, if_pos h]
-  · rw [if_neg (fun e => h e.symm), if_neg h]
+  · rw [ite_eq_left h.symm, ite_eq_left h]
+  · rw [ite_eq_right (fun e => h e.symm), ite_eq_right h]
 
 /-- Part (i) of Lemma 5.3: `Qᵀ Q = 1`. The squared norm of column `k` is
 `∑_i ‖A_i‖² / ‖A‖_F² = 1`. -/
@@ -151,7 +155,7 @@ theorem isometryQ_orthonormal (A : Matrix (Fin m) (Fin n) ℝ)
       = if k = l then (Real.sqrt (rowNormSq A i) / ‖A‖) ^ 2 else 0 := by
     intro i
     by_cases hkl : k = l
-    · rw [if_pos hkl]
+    · rw [ite_eq_left hkl]
       rw [Finset.sum_eq_single k]
       · have e1 : isometryQ A (i, k) k = Real.sqrt (rowNormSq A i) / ‖A‖ := by
           simp [isometryQ]
@@ -162,34 +166,34 @@ theorem isometryQ_orthonormal (A : Matrix (Fin m) (Fin n) ℝ)
       · intro j _ hj
         have hne : ¬ (k = j) := by intro h; exact hj (by rw [h])
         rw [isometryQ]
-        simp only [if_neg hne, zero_mul]
+        simp only [ite_eq_right hne, zero_mul]
       · intro hk
         exact absurd (Finset.mem_univ k) hk
-    · rw [if_neg hkl]
+    · rw [ite_eq_right hkl]
       refine Finset.sum_eq_zero fun j _ => ?_
       by_cases hkj : k = j
       · have hlj : ¬ (l = j) := by intro h; exact hkl (hkj.trans h.symm)
         simp only [isometryQ]
-        rw [if_pos hkj, if_neg hlj]
+        rw [ite_eq_left hkj, ite_eq_right hlj]
         simp
       · simp only [isometryQ]
-        rw [if_neg hkj]
+        rw [ite_eq_right hkj]
         simp
   rw [Finset.sum_congr rfl (fun i _ => hinner i)]
   by_cases hkl : k = l
-  · rw [if_pos hkl]
+  · rw [ite_eq_left hkl]
     have hterm : ∀ i, (Real.sqrt (rowNormSq A i) / ‖A‖) ^ 2 = rowNormSq A i / ‖A‖ ^ 2 := by
       intro i
       rw [div_pow, Real.sq_sqrt (rowNormSq_nonneg A i)]
     have hcongr : (∑ i, (if k = l then (Real.sqrt (rowNormSq A i) / ‖A‖) ^ 2 else 0))
         = ∑ i, (Real.sqrt (rowNormSq A i) / ‖A‖) ^ 2 :=
-      Finset.sum_congr rfl (fun i _ => by rw [if_pos hkl])
+      Finset.sum_congr rfl (fun i _ => by rw [ite_eq_left hkl])
     rw [hcongr]
     have hsum : (∑ i, (Real.sqrt (rowNormSq A i) / ‖A‖) ^ 2)
         = ∑ i, rowNormSq A i / ‖A‖ ^ 2 :=
       Finset.sum_congr rfl (fun i _ => hterm i)
     rw [hsum, ← Finset.sum_div, sum_rowNormSq, div_self (pow_ne_zero 2 hA.ne')]
-  · rw [if_neg hkl]
+  · rw [ite_eq_right hkl]
     simp [hkl]
 
 /-- Part (i) of Lemma 5.3: `A / ‖A‖_F = Pᵀ Q`, written `(‖A‖_F)⁻¹ • A`. The only
@@ -212,7 +216,7 @@ theorem P_transpose_mul_Q (A : Matrix (Fin m) (Fin n) ℝ)
     · intro j _ hj
       have hne : ¬ (l = j) := by intro h; exact hj (by rw [h])
       rw [isometryQ]
-      simp only [if_neg hne, mul_zero]
+      simp only [ite_eq_right hne, mul_zero]
     · intro hl
       exact absurd (Finset.mem_univ l) hl
   · intro i _ hi

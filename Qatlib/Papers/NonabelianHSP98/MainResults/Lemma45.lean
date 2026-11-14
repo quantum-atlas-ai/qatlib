@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+
+@[expose] public section
 
 /-!
 # Equal orthogonal-complement slices
@@ -92,7 +96,7 @@ theorem lemma_4_5 (U : Subgroup (Wreath n)) (t₀ : Wreath n)
         · exact mem_orthW_iff.mp (by rw [phiInv_phi]; exact z.2)
         · rw [← phi_a, phiInv_phi]; exact hz
       · apply Subtype.ext
-        simp only [Subtype.coe_mk]
+        simp only []
         exact phiInv_phi (z : Vec n)
   have hB : B.card = B'.card := by
     apply Finset.card_bij (fun (g : Wreath n) (hg : g ∈ B) =>
@@ -115,7 +119,7 @@ theorem lemma_4_5 (U : Subgroup (Wreath n)) (t₀ : Wreath n)
         · exact mem_orthW_iff.mp (by rw [phiInv_phi]; exact z.2)
         · rw [← phi_a, phiInv_phi]; exact hz
       · apply Subtype.ext
-        simp only [Subtype.coe_mk]
+        simp only []
         exact phiInv_phi (z : Vec n)
   have hC : C.card = Fintype.card W := by
     rw [← Finset.card_univ]
@@ -134,7 +138,7 @@ theorem lemma_4_5 (U : Subgroup (Wreath n)) (t₀ : Wreath n)
       · simp only [C, mem_filter, mem_univ, true_and]
         exact mem_orthW_iff.mp (by rw [phiInv_phi]; exact z.2)
       · apply Subtype.ext
-        simp only [Subtype.coe_mk]
+        simp only []
         exact phiInv_phi (z : Vec n)
 
   have hz₀ : phi t₀ ∈ W := mem_orthW_iff.mpr ht₀

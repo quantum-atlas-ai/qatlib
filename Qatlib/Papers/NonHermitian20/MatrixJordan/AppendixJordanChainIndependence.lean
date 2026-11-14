@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.LinearIndependent.Defs
-import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.LinearIndependent.Defs
+public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -106,7 +110,7 @@ theorem theorem_A2_jordan_chain_independence {m : ℕ} (T : V →ₗ[K] V) (lam 
                 c ⟨j, ⟨p j - e, Nat.lt_succ_of_le (Nat.sub_le (p j) e)⟩⟩ else 0) • top j := by
         intro j
         by_cases h : e ≤ p j
-        · rw [dif_pos h]
+        · rw [dite_eq_left h]
           let k0 : Fin (p j + 1) :=
             ⟨p j - e, Nat.lt_succ_of_le (Nat.sub_le (p j) e)⟩
           trans (c ⟨j, k0⟩ • (N ^ (e + (k0 : ℕ))) (u j))
@@ -128,7 +132,7 @@ theorem theorem_A2_jordan_chain_independence {m : ℕ} (T : V →ₗ[K] V) (lam 
               omega
             simp only [hk0, top]
             rfl
-        · rw [dif_neg h, zero_smul]
+        · rw [dite_eq_right h, zero_smul]
           apply Finset.sum_eq_zero
           intro k _
           have hnil : p j + 1 ≤ e + (k : ℕ) := by omega
@@ -156,7 +160,7 @@ theorem theorem_A2_jordan_chain_independence {m : ℕ} (T : V →ₗ[K] V) (lam 
       have hle := hp_le j
       have hpj : p j = P := by omega
       have hk0 : (k : ℕ) = 0 := by omega
-      rw [dif_pos (le_of_eq hpj.symm)] at hd0
+      rw [dite_eq_left (le_of_eq hpj.symm)] at hd0
       have hd0' : c ⟨j, ⟨0, Nat.zero_lt_succ (p j)⟩⟩ = 0 := by
         simpa [hpj] using hd0
       have hkfin : k = ⟨0, Nat.zero_lt_succ (p j)⟩ := Fin.ext hk0
@@ -184,7 +188,7 @@ theorem theorem_A2_jordan_chain_independence {m : ℕ} (T : V →ₗ[K] V) (lam 
               c ⟨j', ⟨p j' - e, Nat.lt_succ_of_le (Nat.sub_le (p j') e)⟩⟩ else 0) hcoll
         have hd0 := hd j
         have hep : e ≤ p j := by omega
-        rw [dif_pos hep] at hd0
+        rw [dite_eq_left hep] at hd0
         have hkval : (k : ℕ) = p j - e := by omega
         have hkfin : k = ⟨p j - e, Nat.lt_succ_of_le (Nat.sub_le (p j) e)⟩ := Fin.ext hkval
         simpa [hkfin] using hd0

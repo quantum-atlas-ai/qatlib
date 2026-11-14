@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
+
+@[expose] public section
 
 /-!
 # Terminal trace bounds for finite search budgets
@@ -54,11 +58,11 @@ theorem search_finite_budget_shift {I : Type*} [Fintype I] [DecidableEq I]
     intro x _
     congr 1
     by_cases hc : x.1.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases hx : x.2 with
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
       | some i => rfl
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
 
 /-- Prepending a failed attempt factors the failure-history mass and adds its iteration count to
 the history clock. -/
@@ -113,7 +117,7 @@ theorem search_budget_row_succ {I : Type*} [Fintype I] [DecidableEq I]
     else 0)) = _
   simp_rw [(search_history_head A sizes n j _).1, (search_history_head A sizes n j _).2]
   by_cases hc : j.val+1 ≤ budget
-  · rw [if_pos hc, Finset.mul_sum]
+  · rw [ite_eq_left hc, Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro h _
     rw [Finset.mul_sum]
@@ -123,12 +127,12 @@ theorem search_budget_row_succ {I : Type*} [Fintype I] [DecidableEq I]
         HistoryIterations (TailSizes sizes) n h + k.val + (n+1) ≤ budget-(j.val+1) := by omega
     simp only [heq]
     split_ifs <;> ring
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     apply Finset.sum_eq_zero
     intro h _
     apply Finset.sum_eq_zero
     intro k _
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
 
 /-- The completed mass for output `i` summed over stages below `depth`. -/
 noncomputable def BudgetCompletedPrefix {I : Type*} [Fintype I] [DecidableEq I]
@@ -151,7 +155,7 @@ theorem search_budget_prefix_succ {I : Type*} [Fintype I] [DecidableEq I]
   apply Finset.sum_congr rfl
   intro j _
   by_cases hc : j.val+1 ≤ budget
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     rw [← Finset.mul_sum]
     ring
   · simp [hc]
@@ -171,7 +175,7 @@ theorem search_finite_budget_success_step {I : Type*} [Fintype I] [DecidableEq I
   intro j _
   rw [search_finite_budget_shift]
   by_cases hc : j.val+1 ≤ budget
-  · simp only [dif_pos hc, if_pos hc]
+  · simp only [dite_eq_left hc, ite_eq_left hc]
     rw [Fintype.sum_option]
     simp [mul_ite, add_comm]
   · simp [hc]
@@ -190,12 +194,12 @@ theorem search_budget_prefix_le {I : Type*} [Fintype I] [DecidableEq I]
     apply Finset.sum_le_sum
     intro j _
     by_cases hc : j.val+1 ≤ budget
-    · rw [if_pos hc, if_pos hc]
+    · rw [ite_eq_left hc, ite_eq_left hc]
       apply add_le_add le_rfl
       apply mul_le_mul_of_nonneg_left
       · exact ih (TailSizes sizes) (fun k => hsizes (k+1)) (budget-(j.val+1))
       · exact (search_joint_attempt_law hN A (sizes 0) (hsizes 0)).1 (j,none)
-    · rw [if_neg hc, if_neg hc]
+    · rw [ite_eq_right hc, ite_eq_right hc]
 
 /-- The stagewise terminal mass of traces fitting the Boolean-query budget and outputting `i`
 equals `BudgetCompletedRow`. -/

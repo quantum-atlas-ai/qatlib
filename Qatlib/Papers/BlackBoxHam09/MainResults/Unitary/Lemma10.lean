@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lemma 10 exact phase arithmetic
@@ -108,16 +112,22 @@ theorem lemma10_steps_le {ε Λ1 : ℝ} {d : ℕ} (hε0 : 0 < ε) (hΛ1 : 0 < Λ
       _ ≤ (Real.pi / 2 * (Λ1 / ε)) * (2 * Real.arcsin (ε / Λ1)) := hmono
   exact hkey
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Under the stated black box hypotheses and the existence of an odd integer satisfying the
 prescribed inverse sine formula, obtain that integer with exact phase powers `I` and `-I`
 and the step bound `(Real.pi / 2) * (Λ1 / ε)`. This is the conditional phase arithmetic for
 Lemma 10 of [BerryChilds2012]. -/
-theorem lemma10_exact_pi_over_two
+theorem lemma10_exact_pi_over_two {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ}
     (BB : BlackBox ι D L) {Λ1 ε : ℝ}
-    (hsp : IsColumnSparse BB.H D)
-    (hΛ1 : colSumNorm BB.H ≤ Λ1) (hΛ1pos : 0 < Λ1)
-    (hε0 : 0 < ε) (hε1 : ε ≤ 1) (hεΛ : ε ≤ Λ1)
-    (hsq : BB.H.mat * BB.H.mat = 1)
+    (_hsp : IsColumnSparse BB.H D)
+    (_hΛ1 : colSumNorm BB.H ≤ Λ1) (hΛ1pos : 0 < Λ1)
+    (hε0 : 0 < ε) (_hε1 : ε ≤ 1) (hεΛ : ε ≤ Λ1)
+    (_hsq : BB.H.mat * BB.H.mat = 1)
     (hodd : ∃ d : ℕ, Odd d ∧ (d : ℝ) = Real.pi / (2 * Real.arcsin (ε / Λ1))) :
     ∃ d : ℕ, Odd d ∧ (d : ℝ) * Real.arcsin (ε / Λ1) = Real.pi / 2 ∧
       (Complex.exp (Real.arcsin (ε / Λ1) * Complex.I)) ^ d = Complex.I ∧

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+
+@[expose] public section
 
 /-!
 # Two-pair qubit resources and fixed corrections

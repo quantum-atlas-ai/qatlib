@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.MomentRates
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.MomentRates
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
+
+@[expose] public section
 
 /-!
 # Bounds for actual sinh quadrature moments
@@ -210,7 +214,7 @@ theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
     refine ⟨1 - 1 / (ν - n), by linarith, fun c hc => ?_⟩
     have hi := cappedDensity_subcritical hβ hc
     have he : ν - (n + 1 : ℕ) + 1 = ν - n := by push_cast; ring
-    simpa only [he, momentGrowth, if_pos hn, mul_one] using! hi
+    simpa only [he, momentGrowth, ite_eq_left hn, mul_one] using! hi
   · by_cases he : ν = n
     · subst ν
       refine ⟨1 + 2 * Real.sqrt Real.pi, by positivity, fun c hc => ?_⟩
@@ -218,7 +222,7 @@ theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
       rw [hβ]
       have hi := cappedDensity_critical hc
       have hl : 0 ≤ Real.log (1 + c) := Real.log_nonneg (by linarith)
-      simp only [momentGrowth, lt_self_iff_false, if_false, if_true]
+      simp only [momentGrowth, lt_self_iff_false, ite_false, ite_true]
       nlinarith [mul_nonneg hl (Real.sqrt_nonneg Real.pi)]
     · have hnν : (n : ℝ) < ν := lt_of_le_of_ne (le_of_not_gt hn) (Ne.symm he)
       let β := ν - (n + 1 : ℕ)
@@ -229,7 +233,7 @@ theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
         have hi := cappedDensity_supercritical hβ hβ0 hc
         change (∫ x in Ioi 0, cappedDensity β c x) ≤ _
         rw [hex] at hi
-        simp only [momentGrowth, if_neg hn, if_neg he]
+        simp only [momentGrowth, ite_eq_right hn, ite_eq_right he]
         nlinarith [Real.rpow_nonneg hc.le (ν - n), abs_nonneg (gaussianMoment β)]
       · have hβp : 0 < β := lt_of_not_ge hβ0
         obtain ⟨K, hK, hpeak⟩ := positive_power_peak hβp
@@ -253,7 +257,7 @@ theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
         have hbound := (hmono.trans (mul_le_mul_of_nonneg_left hgauss hAc)).trans
           (positive_power_growth hβp hK.le hc)
         change (∫ x in Ioi 0, cappedDensity β c x) ≤ _
-        simpa only [momentGrowth, if_neg hn, if_neg he, hex] using! hbound
+        simpa only [momentGrowth, ite_eq_right hn, ite_eq_right he, hex] using! hbound
 
 /-- For positive `b` and nonnegative moment order, twice the continuous positive-half-line
 coefficient moment is bounded by `kernelScale * C * momentGrowth` with a fixed positive

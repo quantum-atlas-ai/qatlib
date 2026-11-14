@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumMetro05.MainResults.SequentialBound.Eq7
+module
+
+public import Qatlib.Papers.QuantumMetro05.MainResults.SequentialBound.Eq7
+
+@[expose] public section
 
 /-!
 # Sequential spectra under permutations

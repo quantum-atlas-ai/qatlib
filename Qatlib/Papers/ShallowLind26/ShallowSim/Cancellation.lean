@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Data.Int.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Cancellation of noncrossing components (Lemma 3.1)

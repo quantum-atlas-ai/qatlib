@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
+module
+
+public import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,7 +47,7 @@ theorem normalizedLoss_error_bound
     (hObs : uObs ≠ 0) (hT : uT ≠ 0) (hTtilde : uTtilde ≠ 0)
     (happ : ‖uT - uTtilde‖ ≤ εapp)
     (hclose : ‖uT - uObs‖ ≤ δ * ‖uObs‖)
-    (hδ0 : 0 < δ) (hδ1 : δ < 1) (hε0 : 0 ≤ εapp) :
+    (_hδ0 : 0 < δ) (hδ1 : δ < 1) (hε0 : 0 ≤ εapp) :
     |normalizedLoss uObs uT - normalizedLoss uObs uTtilde| ≤
       4 * εapp / ((1 - δ) * ‖uObs‖) := by
   have hObsPos : 0 < ‖uObs‖ := norm_pos_iff.mpr hObs

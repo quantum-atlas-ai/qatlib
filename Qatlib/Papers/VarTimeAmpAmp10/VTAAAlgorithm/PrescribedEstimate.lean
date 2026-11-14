@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Prescribed accuracy for variable-time estimates

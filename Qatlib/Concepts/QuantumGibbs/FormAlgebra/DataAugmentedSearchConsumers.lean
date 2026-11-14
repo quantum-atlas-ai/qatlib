@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.CountedWalk.DataAugmentedSzegedy
+module
+
+public import Qatlib.Concepts.WalkSearch.CountedWalk.DataAugmentedSzegedy
+
+@[expose] public section
 
 /-!
 # Data-tag transport for phase-based search
@@ -318,7 +322,7 @@ theorem dataFlagMatrix_freshLift {H : Type} [Fintype H] [DecidableEq H]
   simp only [dataFlagMatrix_apply, relabelGate, Matrix.reindex_apply,
     Matrix.submatrix_apply, Equiv.symm_symm]
   simp only [phaseFreshActionSplit, Equiv.trans_apply, Equiv.prodAssoc_apply,
-      Equiv.prodCongr_apply, Equiv.prodComm_apply, Equiv.refl_apply, Prod.map, Prod.swap, id_eq]
+      Equiv.prodCongr_apply, Equiv.prodComm_apply, Equiv.refl_apply, Prod.map, Prod.swap]
   simp only [tensorGate_apply, dataFlagMatrix_apply]
   split_ifs <;> simp
 
@@ -350,7 +354,7 @@ theorem dataFlagEmbed_fresh {H : Type} [Fintype H] [DecidableEq H]
   simp only [phaseFreshAppend, relabelState, Function.comp_apply, Equiv.symm_symm,
     TensorState, dataFlagEmbed_apply]
   simp only [phaseFreshSplit, Equiv.trans_apply, Equiv.prodAssoc_apply, Equiv.prodCongr_apply,
-      Equiv.refl_apply, Prod.map, id_eq]
+      Equiv.refl_apply, Prod.map]
   split_ifs <;> simp
 
 /-- The phase-search check negates exactly the amplitudes whose workspace belongs to the marked
@@ -389,10 +393,10 @@ theorem dataTagSearchState {H : Type} [Fintype H] [DecidableEq H]
   | zero => exact dataFlagEmbed_initial b M (k*0) d ψ
   | succ t ih =>
     by_cases hM : 0 < M
-    · rw [phaseSearchState, dif_pos hM, phaseSearchState, dif_pos hM, ih,
+    · rw [phaseSearchState, dite_eq_left hM, phaseSearchState, dite_eq_left hM, ih,
         dataFlagEmbed_fresh, dataFlagEmbed_check, ← dataFlagMatrix_freshReflection,
         dataFlagMatrix_embed]
-    · simp only [phaseSearchState, dif_neg hM]
+    · simp only [phaseSearchState, dite_eq_right hM]
       funext p
       simp [dataFlagEmbed_apply]
 

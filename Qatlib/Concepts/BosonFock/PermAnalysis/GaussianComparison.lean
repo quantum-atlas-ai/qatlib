@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Multivariate
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
+
+@[expose] public section
 
 /-!
 # Gaussian characteristic functions and Laplace comparison
@@ -67,7 +72,7 @@ private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ �
       gaussianPDFReal 0 1 r • cexp (((-(μ * r ^ 2 / 2) : ℝ) : ℂ) + I * (((h * r) : ℝ) : ℂ))
         = ((√(2 * Real.pi))⁻¹ : ℝ) * cexp (((-((1 + μ) * r ^ 2 / 2) : ℝ) : ℂ) + I * (((h * r) : ℝ) : ℂ)) := by
     intro r
-    simp only [gaussianPDFReal, NNReal.coe_one, mul_one, smul_eq_mul, Algebra.smul_def,
+    simp only [gaussianPDFReal, NNReal.coe_one, mul_one, Algebra.smul_def,
       Complex.coe_algebraMap, Complex.ofReal_mul, sub_zero]
     rw [Complex.ofReal_exp, mul_assoc, ← Complex.exp_add]
     congr 1
@@ -83,7 +88,7 @@ private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ �
   rw [integral_congr_ae (ae_of_all _ e2)]
   rw [integral_cexp_quadratic (b := ((-(1 + μ) / 2 : ℝ) : ℂ)) (c := I * ((h : ℝ) : ℂ)) (d := 0)
     (by rw [Complex.ofReal_re]; linarith)]
-  have h12 : ((1 / 2 : ℝ) : ℂ) = 1 / 2 := by simp [Complex.ofReal_div]
+  have h12 : ((1 / 2 : ℝ) : ℂ) = 1 / 2 := by simp
   have hp : ((Real.pi : ℝ) : ℂ) / -((-(1 + μ) / 2 : ℝ) : ℂ) = ((Real.pi / ((1 + μ) / 2) : ℝ) : ℂ) := by
     rw [← Complex.ofReal_neg, ← Complex.ofReal_div]
     congr 1
@@ -94,11 +99,11 @@ private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ �
   have hexp : (0 - (I * ((h : ℝ) : ℂ)) ^ 2 / (4 * ((-(1 + μ) / 2 : ℝ) : ℂ)) : ℂ)
       = ((-(h ^ 2 / (2 * (1 + μ))) : ℝ) : ℂ) := by
     rw [Complex.ext_iff]
-    simp only [Complex.sub_re, Complex.sub_im, Complex.zero_re, Complex.zero_im, Complex.neg_re,
-      Complex.neg_im, Complex.div_re, Complex.div_im, Complex.mul_re, Complex.mul_im,
-      Complex.I_re, Complex.I_im, Complex.ofReal_re, Complex.ofReal_im, pow_two, Complex.I_mul_I,
-      Complex.one_re, Complex.one_im, mul_zero, zero_mul, add_zero, sub_self, mul_one, one_mul,
-      neg_zero, sub_zero, mul_neg, neg_mul, neg_neg, Complex.normSq_mul, Complex.normSq_ofReal,
+    simp only [Complex.sub_re, Complex.sub_im, Complex.zero_re, Complex.zero_im,
+      Complex.div_re, Complex.div_im, Complex.mul_re, Complex.mul_im,
+      Complex.I_re, Complex.I_im, Complex.ofReal_re, Complex.ofReal_im, pow_two,
+      mul_zero, zero_mul, add_zero, sub_self, one_mul,
+      sub_zero, Complex.normSq_mul, Complex.normSq_ofReal,
       Complex.normSq_ofNat, Complex.re_ofNat, Complex.im_ofNat]
     constructor
     · field_simp
@@ -113,6 +118,8 @@ private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ �
       ring,
     Real.div_rpow (by positivity) h1μ.le, ← Real.sqrt_eq_rpow, mul_div_assoc',
     inv_mul_cancel₀ hr, one_div, ← Real.rpow_neg h1μ.le]
+
+omit [MeasurableSpace E] [BorelSpace E] in
 
 /-- The linear operator `1 + R.adjoint ∘L R` is symmetric. -/
 private theorem gaussAdjointSymm (R : E →L[ℝ] E) :
@@ -144,10 +151,10 @@ private theorem gaussian_anisotropic_integral (R : E →L[ℝ] E) (h : E) :
   have hpos : ∀ i : Fin n, 1 ≤ ev i := by
     intro i
     have h2 : ⟪e i, S (e i)⟫_ℝ = ev i := by
-      rw [heig, real_inner_smul_right, hon i i, if_pos rfl, mul_one]
+      rw [heig, real_inner_smul_right, hon i i, ite_eq_left rfl, mul_one]
     have h3 : ⟪e i, S (e i)⟫_ℝ = 1 + ⟪R (e i), R (e i)⟫_ℝ := by
       show ⟪e i, e i + R.adjoint (R (e i))⟫_ℝ = _
-      rw [inner_add_right, hon i i, if_pos rfl, ContinuousLinearMap.adjoint_inner_right]
+      rw [inner_add_right, hon i i, ite_eq_left rfl, ContinuousLinearMap.adjoint_inner_right]
     have h4 : 0 ≤ ⟪R (e i), R (e i)⟫_ℝ := real_inner_self_nonneg
     have h5 : ev i = 1 + ⟪R (e i), R (e i)⟫_ℝ := by rw [← h2, h3]
     rw [h5]
@@ -273,6 +280,8 @@ private theorem gaussianBilinearCF_a_zero {F : Type*} [NormedAddCommGroup F] [No
           simp [Complex.mul_re, Complex.I_re, Complex.I_im, Complex.add_re, Complex.add_im]
         rw [hre, Real.exp_zero]
 
+omit [MeasurableSpace E] [BorelSpace E] in
+
 /-- Every eigenvalue of `1 + R.adjoint ∘L R` is at least one. -/
 private theorem gaussEigenvalue_ge_one (R : E →L[ℝ] E) (i : Fin (Module.finrank ℝ E)) :
     1 ≤ (gaussAdjointSymm R).eigenvalues rfl i := by
@@ -284,10 +293,10 @@ private theorem gaussEigenvalue_ge_one (R : E →L[ℝ] E) (i : Fin (Module.finr
   have heig : ∀ j : Fin (Module.finrank ℝ E), S (e j) = ↑(ev j) • e j := fun j ↦
     (gaussAdjointSymm R).apply_eigenvectorBasis rfl j
   have h2 : ⟪e i, S (e i)⟫_ℝ = ev i := by
-    rw [heig, real_inner_smul_right, hon i i, if_pos rfl, mul_one]
+    rw [heig, real_inner_smul_right, hon i i, ite_eq_left rfl, mul_one]
   have h3 : ⟪e i, S (e i)⟫_ℝ = 1 + ⟪R (e i), R (e i)⟫_ℝ := by
     show ⟪e i, e i + R.adjoint (R (e i))⟫_ℝ = _
-    rw [inner_add_right, hon i i, if_pos rfl, ContinuousLinearMap.adjoint_inner_right]
+    rw [inner_add_right, hon i i, ite_eq_left rfl, ContinuousLinearMap.adjoint_inner_right]
   have h4 : 0 ≤ ⟪R (e i), R (e i)⟫_ℝ := real_inner_self_nonneg
   rw [← h2, h3]
   linarith
@@ -625,6 +634,8 @@ private theorem stdGaussian_prod_lp_rotate :
     stdGaussian_map (rotLp : WithLp 2 (E × E) ≃ₗᵢ[ℝ] WithLp 2 (E × E))
   rw [hr]
 
+omit [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
+
 /-- The difference of two bilinear phase expressions splits after `rotLp` into two cross terms,
 with linear parameters scaled by `sqrt 2`. -/
 private theorem rotLp_exponent {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
@@ -649,7 +660,7 @@ private theorem rotLp_exponent {F : Type*} [NormedAddCommGroup F] [NormedSpace �
   have hs2 : ((↑(Real.sqrt 2) : ℂ) ^ 2) = 2 := by
     rw [← Complex.ofReal_pow, Real.sq_sqrt (by norm_num)]
     norm_num
-  simp only [hrot1, hrot2, smul_eq_mul, map_add, map_sub, map_smul, inner_add_left,
+  simp only [hrot1, hrot2, map_add, map_sub, map_smul, inner_add_left,
     inner_add_right, inner_sub_left, inner_sub_right, real_inner_smul_left,
     real_inner_smul_right, hc]
   push_cast
@@ -1566,7 +1577,7 @@ private theorem rpow_split_one {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 
 /-- For nonnegative bases and complementary nonnegative weights, the product of the
 doubled-power terms equals the square of their geometrically interpolated expression. -/
 private theorem rpow_interp_sq {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 1 - θ)
-    (hc0 : 0 < c0) (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    (_hc0 : 0 < c0) (hx : 0 ≤ x) (hy : 0 ≤ y) :
     c0 * x ^ (2 * θ) * (c0 * y ^ (2 * (1 - θ))) = (c0 * x ^ θ * y ^ (1 - θ)) ^ 2 := by
   have h2a : x ^ (2 * θ) = (x ^ θ) ^ 2 := by
     rw [show (2 * θ) = θ + θ from by ring, Real.rpow_add_of_nonneg hx hθ hθ, ← pow_two]
@@ -1666,6 +1677,8 @@ theorem gaussianCF_geometricInterpolation (T : E →L[ℝ] E) (L : F →L[ℝ] E
   · rw [← sq]
     exact rpow_interp_sq hθ₁ (by linarith) hp0
       (div_nonneg hpa.le hp0.le) (div_nonneg hpb.le hp0.le)
+
+omit [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 
 /-- The complex phase integrand defining `gaussianBilinearCF` has norm one. -/
 private theorem gaussianCF_integrand_norm_one {F : Type*} [NormedAddCommGroup F]
@@ -1963,12 +1976,16 @@ private theorem norm_cexp_imag_one (r : ℝ) : ‖cexp (r * I)‖ = 1 := by
     simp [Complex.mul_re, Complex.I_re, Complex.I_im]
   rw [hre, Real.exp_zero]
 
+omit [FiniteDimensional ℝ E] in
+
 /-- The characteristic function of a probability measure has norm at most one. -/
 private theorem charFun_norm_le_one (μ : Measure E) [IsProbabilityMeasure μ] (t : E) :
     ‖charFun μ t‖ ≤ 1 := by
   rw [charFun_apply]
   exact integral_norm_le_one (Continuous.aestronglyMeasurable (by fun_prop))
     (fun x ↦ (norm_cexp_imag_one (⟪x, t⟫_ℝ)).le)
+
+omit [MeasurableSpace E] [BorelSpace E] in
 
 /-- A symmetric nonnegative quadratic form possesses a symmetric linear square root whose
 squared output norm equals the quadratic form. -/
@@ -1986,7 +2003,7 @@ private theorem exists_symmetric_sqrt_quad (T : E →L[ℝ] E)
   have hpos : ∀ i : Fin n, 0 ≤ ev i := by
     intro i
     have h2 : ⟪e i, T (e i)⟫_ℝ = ev i := by
-      rw [heig, real_inner_smul_right, hon i i, if_pos rfl, mul_one]
+      rw [heig, real_inner_smul_right, hon i i, ite_eq_left rfl, mul_one]
     rw [← h2]; exact hTpsd _
   have hcoe : ∀ x : E, ∀ i : Fin n, (e.toBasis.repr x) i = ⟪e i, x⟫_ℝ := fun x i ↦
     (OrthonormalBasis.coe_toBasis_repr_apply e x i).trans (OrthonormalBasis.repr_apply_apply e x i)
@@ -2133,13 +2150,13 @@ theorem fourier_to_laplace (μX μY : Measure E) [IsProbabilityMeasure μX] [IsP
   have hTsym : (T.toLinearMap).IsSymmetric := by
     intro x y
     show ⟪T x, y⟫_ℝ = ⟪x, T y⟫_ℝ
-    simp only [hT, ContinuousLinearMap.add_apply, inner_add_left, inner_add_right,
+    simp only [hT, _root_.add_apply, inner_add_left, inner_add_right,
       ContinuousLinearMap.adjoint_inner_left, ContinuousLinearMap.adjoint_inner_right]
     ring
   have hTquad : ∀ x : E, ⟪x, T x⟫_ℝ = ⟪x, Q x⟫_ℝ + ⟪x, Q x⟫_ℝ := by
     intro x
     have h1 : ⟪x, T x⟫_ℝ = ⟪x, Q x⟫_ℝ + ⟪Q x, x⟫_ℝ := by
-      simp only [hT, ContinuousLinearMap.add_apply, inner_add_right,
+      simp only [hT, _root_.add_apply, inner_add_right,
         ContinuousLinearMap.adjoint_inner_right]
     rw [h1, real_inner_comm (Q x) x]
   have hTpsd : ∀ x : E, 0 ≤ ⟪x, T x⟫_ℝ := by

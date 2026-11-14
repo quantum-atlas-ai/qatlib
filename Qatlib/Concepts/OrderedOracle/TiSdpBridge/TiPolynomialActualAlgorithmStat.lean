@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+
+@[expose] public section
 
 /-!
 # Statement of ordered search circuit realization

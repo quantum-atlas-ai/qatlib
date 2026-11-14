@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedHami
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFailureCorrectedHami
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedHami
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFailureCorrectedHami
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LCU
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.BlockEncoding.LCU
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Linear combinations with complex coefficients
@@ -92,7 +96,7 @@ theorem norm_mul_coefficientPhase (z : ℂ) :
   · simp [hz]
   · have hn : (‖z‖ : ℂ) ≠ 0 := by
       exact_mod_cast (norm_ne_zero_iff.mpr hz)
-    simp only [coefficientPhase, if_neg hz]
+    simp only [coefficientPhase, ite_eq_right hz]
     field_simp
 
 section Coefficients

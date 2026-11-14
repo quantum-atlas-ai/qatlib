@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerL2Multiplier
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayerL2Multiplier
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 open Qatlib.Foundations.OpCalculus.ContourCalc.DoubleLayer.L2
 
@@ -92,7 +96,7 @@ variable {X E : Type} [TopologicalSpace X] [MeasurableSpace X] [BorelSpace X] [C
 theorem analysis_norm (w : C(X,E))
     (hMass : (∫ t,rankOne ℂ (w t) (w t) ∂μ)=1) (x : E) : ‖analysis μ w x‖=‖x‖ := by
   have hi := weighted_inner μ w (1 : C(X,ℂ)) x x
-  simp only [multiplication_one,one_apply,ContinuousMap.one_apply,one_smul,hMass] at hi
+  simp only [multiplication_one,ContinuousMap.one_apply,one_smul,hMass] at hi
   have hs : ‖analysis μ w x‖^2=‖x‖^2 := by
     calc
       _ = (inner ℂ (analysis μ w x) (analysis μ w x)).re :=

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HypercubeWalk01.MainResults.DiscreteMixing
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HypercubeWalk01.MainResults.DiscreteMixing
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fourier bounds relative to a parity class
@@ -58,8 +62,8 @@ theorem trueWeight_eq_card {n : ℕ} (x : Cube n) :
 /-- The power `(-1) ^ m` is one for even `m` and negative one for odd `m`. -/
 theorem negOne_pow_eq {m : ℕ} : (-1 : ℝ) ^ m = if m % 2 = 0 then 1 else -1 := by
   rcases Nat.mod_two_eq_zero_or_one m with h | h
-  · rw [if_pos h]; exact Even.neg_one_pow (Nat.even_iff.mpr h)
-  · rw [if_neg (by omega)]; exact Odd.neg_one_pow (Nat.odd_iff.mpr h)
+  · rw [ite_eq_left h]; exact Even.neg_one_pow (Nat.even_iff.mpr h)
+  · rw [ite_eq_right (by omega)]; exact Odd.neg_one_pow (Nat.odd_iff.mpr h)
 
 /-- Every even natural power of negative one is one. -/
 theorem negOne_pow_two_mul {k : ℕ} : (-1 : ℝ) ^ (2 * k) = 1 := by
@@ -84,8 +88,8 @@ theorem wchar_eq_negOne_pow {n : ℕ} {t : ℕ} {x : Cube n}
     (hx : trueWeight x % 2 = t % 2) : wchar x = (-1 : ℝ) ^ t := by
   rw [wchar_eq_pow, negOne_pow_eq (m := trueWeight x), negOne_pow_eq (m := t)]
   by_cases ht : t % 2 = 0
-  · rw [if_pos ht, if_pos (by omega : trueWeight x % 2 = 0)]
-  · rw [if_neg ht, if_neg (by omega : ¬ trueWeight x % 2 = 0)]
+  · rw [ite_eq_left ht, ite_eq_left (by omega : trueWeight x % 2 = 0)]
+  · rw [ite_eq_right ht, ite_eq_right (by omega : ¬ trueWeight x % 2 = 0)]
 
 /-- The parity character equals `(-1) ^ n` times the full-subset character. -/
 theorem wchar_eq_univ_chi {n : ℕ} (x : Cube n) :
@@ -135,10 +139,10 @@ theorem indicator_parityClass {n b : ℕ} (x : Cube n) :
     (if trueWeight x % 2 = b % 2 then (1 : ℝ) else 0) = (1 + (-1 : ℝ) ^ b * wchar x) / 2 := by
   rw [negOne_pow_eq (m := b), wchar_eq_pm]
   by_cases hb : b % 2 = 0 <;> by_cases hx : trueWeight x % 2 = 0
-  · rw [if_pos hb, if_pos hx, if_pos (by omega)]; norm_num
-  · rw [if_pos hb, if_neg hx, if_neg (by omega)]; norm_num
-  · rw [if_neg hb, if_pos hx, if_neg (by omega)]; norm_num
-  · rw [if_neg hb, if_neg hx, if_pos (by omega)]; norm_num
+  · rw [ite_eq_left hb, ite_eq_left hx, ite_eq_left (by omega)]; norm_num
+  · rw [ite_eq_left hb, ite_eq_right hx, ite_eq_right (by omega)]; norm_num
+  · rw [ite_eq_right hb, ite_eq_left hx, ite_eq_right (by omega)]; norm_num
+  · rw [ite_eq_right hb, ite_eq_right hx, ite_eq_left (by omega)]; norm_num
 
 /-- A sum restricted to a parity class equals the unrestricted sum weighted by its character
 indicator. -/
@@ -226,7 +230,7 @@ theorem sum_parityParityMass {n t : ℕ} (hn : 1 ≤ n) :
 theorem parityParityMass_eq_zero_of_notMem {n t : ℕ} {x : Cube n}
     (hx : trueWeight x % 2 ≠ t % 2) : parityParityMass n t x = 0 := by
   simp only [parityParityMass]
-  rw [if_neg]
+  rw [ite_eq_right]
   simpa [trueWeight] using hx
 
 /-- In positive dimension, the parity mass function has zero Fourier coefficient at every proper

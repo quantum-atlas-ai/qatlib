@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.TiltedProductMoments
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.PairGaussianLaw
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.TiltedProductMoments
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.PairGaussianLaw
+
+@[expose] public section
 
 /-!
 # Closed form of the Gaussian source tilt

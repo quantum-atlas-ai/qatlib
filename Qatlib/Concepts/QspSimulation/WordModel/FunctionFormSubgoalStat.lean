@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+
+@[expose] public section
 
 /-!
 # Specification of QSP polynomial entry form

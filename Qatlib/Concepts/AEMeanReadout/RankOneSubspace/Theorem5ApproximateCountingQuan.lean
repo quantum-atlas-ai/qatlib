@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingStat
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingStat
+
+@[expose] public section
 
 /-!
 # Approximate counting from amplitude estimation

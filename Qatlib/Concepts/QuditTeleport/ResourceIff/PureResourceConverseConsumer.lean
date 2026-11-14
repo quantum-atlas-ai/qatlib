@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseTele
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntCharacterizationTele
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseTele
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9MaxEntCharacterizationTele
+
+@[expose] public section
 
 /-!
 # Pure qubit resources in the teleportation normal form

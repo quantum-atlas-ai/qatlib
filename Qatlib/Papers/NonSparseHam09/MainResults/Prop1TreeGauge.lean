@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Defs
-import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Defs
+public import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+
+@[expose] public section
 
 /-!
 # Unitary invariance and diagonal gauge identities
@@ -59,6 +63,7 @@ lemma unitary_star_mul (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι
   rw [← Matrix.star_eq_conjTranspose U]
   exact Matrix.mem_unitaryGroup_iff'.mp hU
 
+omit [Nonempty ι] in
 /-- The conjugate transpose of a unitary matrix is unitary. -/
 lemma unitary_star_mem (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ) :
     Uᴴ ∈ Matrix.unitaryGroup ι ℂ := by
@@ -73,6 +78,7 @@ lemma norm_unitary (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ
     rw [← Matrix.l2_opNorm_conjTranspose_mul_self U, unitary_star_mul U hU, norm_one_matrix]
   nlinarith [norm_nonneg U]
 
+omit [Nonempty ι] in
 /-- Taking the conjugate transpose preserves the spectral norm. -/
 lemma specNorm_conjTranspose (H : Matrix ι ι ℂ) : specNorm Hᴴ = specNorm H := by
   rw [specNorm_eq_l2, specNorm_eq_l2, Matrix.l2_opNorm_conjTranspose]

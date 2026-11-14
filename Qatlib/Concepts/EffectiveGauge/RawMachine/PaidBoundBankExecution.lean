@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankControl
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundBankControl
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -77,7 +81,7 @@ theorem source_prefix {states : ℕ}
     have ho : sourceConfig states replies (n+1)=
         ⟨some (nextSource i),default,frame (collected replies (n+1)) [] (fun _ => [])⟩ := rfl
     rw [←hi,←ho] at ee
-    simpa only [sourcePrefixBudget,dif_pos hn9] using (ih (by omega)).trans ee
+    simpa only [sourcePrefixBudget,dite_eq_left hn9] using (ih (by omega)).trans ee
 
 /-- Definition of remaining in the Raw Machine construction. -/
 def remaining (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (j : Fin 9) : CanonicalCodec.Bits :=
@@ -135,10 +139,10 @@ theorem emit_prefix {states : ℕ}
     have ho : emitConfig states replies (n+1)=
         ⟨some (nextEmit i),default,frame (remaining replies (n+1))
           ((replies i).reverse++(emitted replies n).reverse) (fun _ => [])⟩ := by
-      simp only [emitConfig,emitted,dif_pos hn9,List.reverse_append]
+      simp only [emitConfig,emitted,dite_eq_left hn9,List.reverse_append]
       rfl
     rw [←hi,←ho] at ee
-    simpa only [emitPrefixBudget,dif_pos hn9] using (ih (by omega)).trans ee
+    simpa only [emitPrefixBudget,dite_eq_left hn9] using (ih (by omega)).trans ee
 
 /-- Original `empty_frame` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
 private theorem empty_frame (out : CanonicalCodec.Bits) :
@@ -178,20 +182,20 @@ theorem bank_execution {states : ℕ}
   have he := emit_prefix machine replies 9 (by decide)
   have hc : sourceConfig states replies 9=emitConfig states replies 0 := by
     have h1 : collected replies 9=replies := by
-      funext j; exact if_pos j.isLt
+      funext j; exact ite_eq_left j.isLt
     have h2 : remaining replies 0=replies := by
-      funext j; exact if_neg (Nat.not_lt_zero j.val)
+      funext j; exact ite_eq_right (Nat.not_lt_zero j.val)
     simp [sourceConfig,sourceLabel,h1,emitConfig,emitLabel,h2,emitted]
   have hfirst : sourceConfig states replies 0=TM2.init rawSlot [] := by
     have h0 : collected replies 0=(fun _ => []) := by
-      funext j; exact if_neg (Nat.not_lt_zero j.val)
-    simp only [sourceConfig,sourceLabel,show 0<9 by decide,dif_pos,h0,empty_frame]
+      funext j; exact ite_eq_right (Nat.not_lt_zero j.val)
+    simp only [sourceConfig,sourceLabel,show 0<9 by decide,dite_eq_left,h0,empty_frame]
     simp only [TM2.init,Function.update_eq_self]
     rfl
   have hlast : emitConfig states replies 9=
       ⟨some .done,default,Function.update (fun _ => []) outputSlot (bankOutput replies).reverse⟩ := by
     have h0 : remaining replies 9=(fun _ => []) := by
-      funext j; exact if_pos j.isLt
+      funext j; exact ite_eq_left j.isLt
     simp [emitConfig,emitLabel,h0,empty_frame,bankOutput]
   rw [hfirst,hc] at hs
   rw [hlast] at he
